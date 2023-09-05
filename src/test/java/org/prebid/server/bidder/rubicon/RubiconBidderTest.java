@@ -56,6 +56,7 @@ import org.prebid.server.bidder.rubicon.proto.request.RubiconBannerExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtPrebid;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRp;
+import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRpRtb;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRpTrack;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconNative;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconPubExt;
@@ -112,6 +113,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -266,6 +268,80 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetImpExtRpRtbFormatsToImpExtFormats() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().w(300).h(200).build()),
+                extImpRubiconBuilder -> extImpRubiconBuilder.formats(Set.of(ImpMediaType.video, ImpMediaType.banner)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getRtb)
+                .flatExtracting(RubiconImpExtRpRtb::getFormats)
+                .containsExactlyInAnyOrder(ImpMediaType.video, ImpMediaType.banner);
+
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetImpExtRpRtbFormatsToImpFormatsWhenImpContainsOnlyOneFormat() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().w(300).h(200).build()),
+                extImpRubiconBuilder -> extImpRubiconBuilder.bidOnMultiFormat(true));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getRtb)
+                .containsOnlyNulls();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetImpExtRpRtbFormatsToSuppliedImpFormatsWhenBidOnMultiFormatTrue() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder().w(300).h(200).build())
+                        .video(Video.builder().w(300).h(200).build()),
+                extImpRubiconBuilder -> extImpRubiconBuilder.bidOnMultiFormat(true));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> mapper.treeToValue(ext, RubiconImpExt.class))
+                .extracting(RubiconImpExt::getRp)
+                .extracting(RubiconImpExtRp::getRtb)
+                .extracting(RubiconImpExtRpRtb::getFormats)
+                .containsExactlyInAnyOrder(
+                        Set.of(ImpMediaType.video, ImpMediaType.banner),
+                        Set.of(ImpMediaType.video, ImpMediaType.banner));
+
+    }
+
+    @Test
     public void makeHttpRequestsShouldCreateSeparateRequestsOnlyForMultiformatImps() {
         // given
         final Imp imp1 = givenImp(impBuilder -> impBuilder
@@ -383,7 +459,8 @@ public class RubiconBidderTest extends VertxTest {
                 .containsOnly(RubiconImpExt.builder()
                         .rp(RubiconImpExtRp.of(4001,
                                 mapper.valueToTree(Inventory.of(singletonList("5-star"), singletonList("tech"))),
-                                RubiconImpExtRpTrack.of("", "")))
+                                RubiconImpExtRpTrack.of("", ""),
+                                null))
                         .skadn(givenSkadn)
                         .maxbids(1)
                         .build());
@@ -1822,40 +1899,6 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateUserExtLiverampId() {
-        // given
-        final List<Eid> eids = asList(
-                Eid.of(
-                        "liveramp.com",
-                        asList(
-                                Uid.of("firstId", null, null),
-                                Uid.of("ignored", null, null)),
-                        null),
-                Eid.of(
-                        "liveramp.com",
-                        singletonList(Uid.of("ignored", null, null)),
-                        null));
-        final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.user(User.builder().eids(eids).build()),
-                builder -> builder.video(Video.builder().build()),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getUser).doesNotContainNull()
-                .containsOnly(User.builder()
-                        .ext(jacksonMapper.fillExtension(
-                                ExtUser.builder().eids(eids).build(),
-                                RubiconUserExt.builder().liverampIdl("firstId").build()))
-                        .build());
-    }
-
-    @Test
     public void makeHttpRequestsShouldIgnoreLiverampIdIfMissingEidUidId() {
         // given
         final ExtUser extUser = ExtUser.builder()
@@ -2149,7 +2192,7 @@ public class RubiconBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(RubiconImpExt.builder()
-                                .rp(RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")))
+                                .rp(RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", ""), null))
                                 .maxbids(1)
                                 .build()))
                         .build()))
@@ -2160,7 +2203,7 @@ public class RubiconBidderTest extends VertxTest {
                         .video(Video.builder().build())
                         .ext(mapper.valueToTree(
                                 RubiconImpExt.builder()
-                                        .rp(RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", "")))
+                                        .rp(RubiconImpExtRp.of(null, null, RubiconImpExtRpTrack.of("", ""), null))
                                         .maxbids(1)
                                         .build()))
                         .build()))

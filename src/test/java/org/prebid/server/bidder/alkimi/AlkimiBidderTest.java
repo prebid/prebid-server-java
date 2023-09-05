@@ -2,6 +2,7 @@ package org.prebid.server.bidder.alkimi;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -33,12 +34,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 
 public class AlkimiBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://exchange.alkimi-onboarding.com/server/bid";
     private static final String DIV_BANNER_ID = "div_banner_1";
     private static final String DIV_VIDEO_ID = "div_video_1";
+    private static final String DIV_AUDIO_ID = "div_audio_1";
     private static final String PUB_TOKEN = "testPubToken";
     private static final String TYPE_BANNER = "Banner";
     private static final String TYPE_VIDEO = "Video";
@@ -87,6 +90,14 @@ public class AlkimiBidderTest extends VertxTest {
                                 .instl(1)
                                 .exp(30)
                                 .ext(expectedVideoExt())
+                                .build(),
+                        Imp.builder()
+                                .id(DIV_AUDIO_ID)
+                                .bidfloor(BigDecimal.valueOf(0.4))
+                                .audio(expectedAudio())
+                                .instl(1)
+                                .exp(30)
+                                .ext(expectedAudioExt())
                                 .build())
                 ).build();
 
@@ -137,6 +148,24 @@ public class AlkimiBidderTest extends VertxTest {
                         .build()));
     }
 
+    private Audio expectedAudio() {
+        return Audio.builder()
+                .mimes(List.of("audio/mp4"))
+                .build();
+    }
+
+    private ObjectNode expectedAudioExt() {
+        return mapper.valueToTree(ExtPrebid.of(
+                null,
+                ExtImpAlkimi.builder()
+                        .token(PUB_TOKEN)
+                        .bidFloor(BigDecimal.valueOf(0.4))
+                        .instl(1)
+                        .exp(30)
+                        .adUnitCode(DIV_AUDIO_ID)
+                        .build()));
+    }
+
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
@@ -179,6 +208,7 @@ public class AlkimiBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).contains(BidderBid.of(givenBannerBid(identity()), banner, null));
         assertThat(result.getValue()).contains(BidderBid.of(givenVideoBid(identity()), video, null));
+        assertThat(result.getValue()).contains(BidderBid.of(givenAudioBid(identity()), audio, null));
     }
 
     private static BidRequest givenBidRequest() {
@@ -194,7 +224,7 @@ public class AlkimiBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer
     ) {
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(List.of(givenBannerImp(impCustomizer), givenVideoImp(impCustomizer)))
+                .imp(List.of(givenBannerImp(impCustomizer), givenVideoImp(impCustomizer), givenAudioImp(impCustomizer)))
         ).build();
     }
 
@@ -238,6 +268,23 @@ public class AlkimiBidderTest extends VertxTest {
         ).build();
     }
 
+    private static Imp givenAudioImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                .id(DIV_AUDIO_ID)
+                .audio(Audio.builder()
+                        .mimes(List.of("audio/mp4"))
+                        .build())
+                .ext(mapper.valueToTree(ExtPrebid.of(
+                        null,
+                        ExtImpAlkimi.builder()
+                                .token(PUB_TOKEN)
+                                .bidFloor(BigDecimal.valueOf(0.4))
+                                .instl(1)
+                                .exp(30)
+                                .build())))
+        ).build();
+    }
+
     private static BidResponse givenBidResponse() {
         return givenBidResponse(identity());
     }
@@ -253,7 +300,8 @@ public class AlkimiBidderTest extends VertxTest {
         return bidResponseCustomizer.apply(BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder().bid(List.of(
                         givenBannerBid(bidCustomizer),
-                        givenVideoBid(bidCustomizer))
+                        givenVideoBid(bidCustomizer),
+                        givenAudioBid(bidCustomizer))
                 ).build()))
         ).build();
     }
@@ -267,6 +315,12 @@ public class AlkimiBidderTest extends VertxTest {
     private static Bid givenVideoBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return bidCustomizer.apply(Bid.builder()
                 .impid(DIV_VIDEO_ID)
+        ).build();
+    }
+
+    private static Bid givenAudioBid(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
+        return bidCustomizer.apply(Bid.builder()
+                .impid(DIV_AUDIO_ID)
         ).build();
     }
 

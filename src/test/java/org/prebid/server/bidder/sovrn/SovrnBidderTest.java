@@ -122,8 +122,66 @@ public class SovrnBidderTest extends VertxTest {
                 .extracting(HttpRequest::getBody)
                 .extracting(SovrnBidderTest::mappedToBidRequest)
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBidfloor, Imp::getTagid)
-                .containsExactly(tuple(BigDecimal.TEN, "tagid"));
+                .extracting(Imp::getBidfloor, Imp::getTagid, e -> e.getExt().get("adunitcode"))
+                .containsExactly(tuple(BigDecimal.TEN, "tagid", mapper.valueToTree("sovrn_auc")));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetAdUnitCodeFromExtIfPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(SovrnBidderTest::mappedToBidRequest)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(e -> e.get("adunitcode"))
+                .containsExactly(mapper.valueToTree("sovrn_auc"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetAdUnitCodeFromExtIfNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .id("impId")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "legacyTagId", null, null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(SovrnBidderTest::mappedToBidRequest)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(e -> e.get("adunitcode"))
+                .containsOnlyNulls();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetAdUnitCodeFromExtIfCorrupted() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .id("impId")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "legacyTagId", null, " ")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(SovrnBidderTest::mappedToBidRequest)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(e -> e.get("adunitcode"))
+                .containsOnlyNulls();
     }
 
     @Test
@@ -246,7 +304,7 @@ public class SovrnBidderTest extends VertxTest {
                         .w(200)
                         .h(300)
                         .build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "legacyTagId", null)))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "legacyTagId", null, null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
@@ -301,7 +359,7 @@ public class SovrnBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestNotContainsBothTagidAndLegacyTagid() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "", null)))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "", null, null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
@@ -451,7 +509,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .protocols(singletonList(1))
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid",
-                                "legacyTagId", BigDecimal.TEN)))))
+                                "legacyTagId", BigDecimal.TEN, "sovrn_auc")))))
                 .build();
     }
 

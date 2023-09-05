@@ -1,0 +1,19 @@
+hooks:
+  modules:
+    confiant-ad-quality:
+      api-key: ""
+      redis-config:
+        write-node:
+          host: ""
+          port: 8000
+          password: ""
+        read-node:
+          host: ""
+          port: 8000
+          password: ""
+      redis-retry-config:
+        short-interval-attempts: 60
+        short-interval: 1000
+        long-interval-attempts: 336
+        long-interval: 1800000
+      scan-state-check-interval: 600000

@@ -33,7 +33,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -57,6 +56,7 @@ import org.prebid.server.bidder.rubicon.proto.request.RubiconExtPrebidBiddersBid
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtPrebid;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRp;
+import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRpRtb;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconImpExtRpTrack;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconNative;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconPubExt;
@@ -139,9 +139,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
 
-    private static final String ADSERVER_EID = "adserver.org";
-    private static final String LIVEINTENT_EID = "liveintent.com";
-    private static final String LIVERAMP_EID = "liveramp.com";
     private static final String SOURCE_RUBICON = "rubiconproject.com";
 
     private static final String FPD_GPID_FIELD = "gpid";
@@ -219,38 +216,78 @@ public class RubiconBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt = parseRubiconImpExts(imps, errors);
-        final Set<Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>>> multiformatImpToImpExt = new HashSet<>();
-        final Set<Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>>> nonMultiformatImpToImpExt = new HashSet<>();
-        impToImpExt.entrySet().forEach(entry -> {
-            if (isMultiformatEnabled(entry.getValue())) {
-                multiformatImpToImpExt.addAll(separateImpByMediaType(entry));
-            } else {
-                nonMultiformatImpToImpExt.add(entry);
-            }
-        });
-
-        final String impLanguage = firstImpExtLanguage(impToImpExt.values());
+        final Map<Imp, ExtImpRubicon> impToImpExt = parseRubiconImpExts(imps, errors);
+        final String language = firstImpExtLanguage(impToImpExt.values());
         final String uri = makeUri(bidRequest);
 
-        for (Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToExt
-                : CollectionUtils.union(multiformatImpToImpExt, nonMultiformatImpToImpExt)) {
+        for (Map.Entry<Imp, ExtImpRubicon> impToExt : impToImpExt.entrySet()) {
             try {
                 final Imp imp = impToExt.getKey();
-                final ExtPrebid<ExtImpPrebid, ExtImpRubicon> ext = impToExt.getValue();
-                final BidRequest singleImpRequest = createSingleRequest(
-                        imp, ext.getBidder(), bidRequest, impLanguage, errors);
-                if (hasDeals(imp)) {
-                    httpRequests.addAll(createDealsRequests(singleImpRequest, uri));
-                } else {
-                    httpRequests.add(createHttpRequest(singleImpRequest, uri));
-                }
+                final ExtImpRubicon impExt = impToExt.getValue();
+                final List<BidRequest> impBidRequests = isMultiformatEnabled(impExt)
+                        ? createMultiFormatRequests(bidRequest, imp, impExt, language, errors)
+                        : List.of(createSingleRequest(bidRequest, imp, impExt, null, language, errors));
+
+                httpRequests.addAll(createImpHttpRequests(imp, impBidRequests, uri));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
         return Result.of(httpRequests, errors);
+    }
+
+    private List<BidRequest> createMultiFormatRequests(BidRequest bidRequest,
+                                                       Imp imp,
+                                                       ExtImpRubicon impExt,
+                                                       String language,
+                                                       List<BidderError> errors) {
+
+        final Map<ImpMediaType, Imp> impByType = splitByMediaType(imp);
+        final Set<ImpMediaType> formats = impByType.keySet();
+        if (formats.size() == 1) {
+            return Collections.singletonList(
+                    createSingleRequest(bidRequest, imp, impExt, null, language, errors));
+        }
+
+        final List<BidRequest> bidRequests = new ArrayList<>();
+        for (Imp singleFormatImp : impByType.values()) {
+            try {
+                bidRequests.add(createSingleRequest(bidRequest, singleFormatImp, impExt, formats, language, errors));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
+            }
+        }
+
+        return bidRequests;
+    }
+
+    private Map<ImpMediaType, Imp> splitByMediaType(Imp imp) {
+        final Map<ImpMediaType, Imp> impByType = new HashMap<>();
+        if (imp.getBanner() != null) {
+            impByType.put(ImpMediaType.banner, imp.toBuilder().video(null).xNative(null).audio(null).build());
+        }
+        if (imp.getVideo() != null) {
+            impByType.put(ImpMediaType.video, imp.toBuilder().banner(null).xNative(null).audio(null).build());
+        }
+        if (imp.getXNative() != null) {
+            impByType.put(ImpMediaType.xNative, imp.toBuilder().banner(null).video(null).audio(null).build());
+        }
+        if (imp.getAudio() != null) {
+            impByType.put(ImpMediaType.audio, imp.toBuilder().banner(null).video(null).xNative(null).build());
+        }
+
+        return impByType;
+    }
+
+    private List<HttpRequest<BidRequest>> createImpHttpRequests(Imp imp, List<BidRequest> impBidRequests, String uri) {
+        if (hasDeals(imp)) {
+            return impBidRequests.stream()
+                    .map(request -> createDealsRequests(request, uri))
+                    .flatMap(Collection::stream)
+                    .toList();
+        }
+        return impBidRequests.stream().map(request -> createHttpRequest(request, uri)).toList();
     }
 
     @Override
@@ -332,14 +369,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return "Basic " + Base64.getEncoder().encodeToString((xapiUsername + ':' + xapiPassword).getBytes());
     }
 
-    private Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> parseRubiconImpExts(
-            List<Imp> imps, List<BidderError> errors) {
-
-        final Map<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> impToImpExt = new HashMap<>();
+    private Map<Imp, ExtImpRubicon> parseRubiconImpExts(List<Imp> imps, List<BidderError> errors) {
+        final Map<Imp, ExtImpRubicon> impToImpExt = new HashMap<>();
         for (final Imp imp : imps) {
             try {
-                final ExtPrebid<ExtImpPrebid, ExtImpRubicon> rubiconImpExt = parseRubiconExt(imp);
-                impToImpExt.put(imp, rubiconImpExt);
+                impToImpExt.put(imp, parseRubiconExt(imp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -347,51 +381,22 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return impToImpExt;
     }
 
-    private ExtPrebid<ExtImpPrebid, ExtImpRubicon> parseRubiconExt(Imp imp) {
+    private ExtImpRubicon parseRubiconExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), RUBICON_EXT_TYPE_REFERENCE);
+            return mapper.mapper().convertValue(imp.getExt(), RUBICON_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
     }
 
-    private static boolean isMultiformatEnabled(ExtPrebid<ExtImpPrebid, ExtImpRubicon> extImp) {
+    private static boolean isMultiformatEnabled(ExtImpRubicon extImp) {
         return Optional.ofNullable(extImp)
-                .map(ExtPrebid::getBidder)
                 .map(ExtImpRubicon::getBidOnMultiFormat)
                 .orElse(DEFAULT_MULTIFORMAT_VALUE);
     }
 
-    private static Set<Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>>> separateImpByMediaType(
-            Map.Entry<Imp, ExtPrebid<ExtImpPrebid, ExtImpRubicon>> entry) {
-
-        return separateImpByMediaType(entry.getKey()).stream()
-                .map(imp -> Map.entry(imp, entry.getValue()))
-                .collect(Collectors.toSet());
-    }
-
-    private static Set<Imp> separateImpByMediaType(Imp imp) {
-        final Set<Imp> separatedImps = new HashSet<>();
-        if (imp.getBanner() != null) {
-            separatedImps.add(imp.toBuilder().video(null).xNative(null).audio(null).build());
-        }
-        if (imp.getVideo() != null) {
-            separatedImps.add(imp.toBuilder().banner(null).xNative(null).audio(null).build());
-        }
-        if (imp.getXNative() != null) {
-            separatedImps.add(imp.toBuilder().banner(null).video(null).audio(null).build());
-        }
-        if (imp.getAudio() != null) {
-            separatedImps.add(imp.toBuilder().banner(null).video(null).xNative(null).build());
-        }
-
-        return separatedImps;
-    }
-
-    private static String firstImpExtLanguage(Collection<ExtPrebid<ExtImpPrebid, ExtImpRubicon>> rubiconImpExts) {
+    private static String firstImpExtLanguage(Collection<ExtImpRubicon> rubiconImpExts) {
         return rubiconImpExts.stream()
-                .filter(Objects::nonNull)
-                .map(ExtPrebid::getBidder)
                 .filter(Objects::nonNull)
                 .map(ExtImpRubicon::getVideo)
                 .filter(Objects::nonNull)
@@ -401,14 +406,15 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .orElse(null);
     }
 
-    private BidRequest createSingleRequest(Imp imp,
+    private BidRequest createSingleRequest(BidRequest bidRequest,
+                                           Imp imp,
                                            ExtImpRubicon extImpRubicon,
-                                           BidRequest bidRequest,
+                                           Set<ImpMediaType> formats,
                                            String impLanguage,
                                            List<BidderError> errors) {
 
         return bidRequest.toBuilder()
-                .imp(Collections.singletonList(makeImp(imp, extImpRubicon, bidRequest, errors)))
+                .imp(Collections.singletonList(makeImp(imp, extImpRubicon, bidRequest, formats, errors)))
                 .user(downgradeUserConsent(makeUser(bidRequest.getUser(), extImpRubicon)))
                 .device(makeDevice(bidRequest.getDevice()))
                 .site(makeSite(bidRequest.getSite(), impLanguage, extImpRubicon))
@@ -460,6 +466,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private Imp makeImp(Imp imp,
                         ExtImpRubicon extImpRubicon,
                         BidRequest bidRequest,
+                        Set<ImpMediaType> formats,
                         List<BidderError> errors) {
 
         final App app = bidRequest.getApp();
@@ -469,6 +476,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<String> priceFloorsWarnings = new ArrayList<>();
 
         final PriceFloorResult priceFloorResult = resolvePriceFloors(bidRequest, imp, impType, priceFloorsWarnings);
+        final Set<ImpMediaType> resolvedFormats = ObjectUtils.defaultIfNull(extImpRubicon.getFormats(), formats);
 
         final BigDecimal ipfFloor = ObjectUtil.getIfNotNull(priceFloorResult, PriceFloorResult::getFloorValue);
         final String ipfCurrency = ipfFloor != null
@@ -486,6 +494,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                                 imp,
                                 bidRequest,
                                 extImpRubicon,
+                                resolvedFormats,
                                 site,
                                 app,
                                 extRequest,
@@ -647,6 +656,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private RubiconImpExt makeImpExt(Imp imp,
                                      BidRequest bidRequest,
                                      ExtImpRubicon rubiconImpExt,
+                                     Set<ImpMediaType> formats,
                                      Site site,
                                      App app,
                                      ExtRequest extRequest,
@@ -657,11 +667,19 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final RubiconImpExtPrebid rubiconImpExtPrebid = priceFloorResult != null
                 ? makeRubiconExtPrebid(priceFloorResult, ipfResolvedCurrency, imp, bidRequest)
                 : null;
+
+        final RubiconImpExtRpRtb rubiconImpExtRpRtb = CollectionUtils.isNotEmpty(formats)
+                ? RubiconImpExtRpRtb.of(formats)
+                : null;
+
+        final RubiconImpExtRp rubiconImpExtRp = RubiconImpExtRp.of(
+                rubiconImpExt.getZoneId(),
+                makeTarget(imp, rubiconImpExt, site, app, context),
+                RubiconImpExtRpTrack.of("", ""),
+                rubiconImpExtRpRtb);
+
         return RubiconImpExt.builder()
-                .rp(RubiconImpExtRp.of(
-                        rubiconImpExt.getZoneId(),
-                        makeTarget(imp, rubiconImpExt, site, app, context),
-                        RubiconImpExtRpTrack.of("", "")))
+                .rp(rubiconImpExtRp)
                 .viewabilityvendors(mapVendorsNamesToUrls(imp.getMetric()))
                 .maxbids(getMaxBids(extRequest))
                 .gpid(getGpid(imp.getExt()))
@@ -1146,22 +1164,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final String userBuyeruid = user != null ? user.getBuyeruid() : null;
         final String resolvedBuyeruid = userBuyeruid != null ? userBuyeruid : resolveBuyeruidFromEids(userEids);
         final ExtUser extUser = user != null ? user.getExt() : null;
-        final Map<String, List<Eid>> sourceToUserEid = user != null
-                ? specialUserEids(userEids)
-                : null;
         final boolean hasStypeToRemove = hasStypeToRemove(userEids);
         final List<Eid> resolvedUserEids = hasStypeToRemove
                 ? prepareUserEids(userEids)
                 : userEids;
         final boolean hasDataToRemove = ObjectUtil.getIfNotNull(user, User::getData) != null;
-        final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt, sourceToUserEid);
+        final RubiconUserExtRp userExtRp = rubiconUserExtRp(user, rubiconImpExt);
         final ObjectNode userExtData = extUser != null ? extUser.getData() : null;
-        final String liverampId = extractLiverampId(sourceToUserEid);
 
         if (userExtRp == null
                 && userExtData == null
                 && resolvedUserEids == null
-                && liverampId == null
                 && resolvedId == null
                 && Objects.equals(userBuyeruid, resolvedBuyeruid)
                 && !hasStypeToRemove
@@ -1178,7 +1191,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
                 .rp(userExtRp)
-                .liverampIdl(liverampId)
                 .build();
 
         final User.UserBuilder userBuilder = user != null ? user.toBuilder() : User.builder();
@@ -1294,47 +1306,22 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .filter(RubiconBidder::validateUserEidUidForUserBuyeruid)
                 .map(Uid::getId)
                 .findFirst()
                 .orElse(null);
 
     }
 
-    private static boolean validateUserEidUidForUserBuyeruid(Uid uid) {
-        final String uidExtStype = getUserEidUidStype(uid);
-        return StringUtils.equalsAny(uidExtStype, PPUID_STYPE, OTHER_STYPE);
-    }
-
-    private static Map<String, List<Eid>> specialUserEids(List<Eid> eids) {
-        if (CollectionUtils.isEmpty(eids)) {
-            return null;
-        }
-        return eids.stream()
-                .filter(userEid -> StringUtils.equalsAny(
-                        userEid.getSource(), ADSERVER_EID, LIVEINTENT_EID, LIVERAMP_EID))
-                .filter(userEid -> CollectionUtils.isNotEmpty(userEid.getUids()))
-                .collect(Collectors.groupingBy(Eid::getSource));
-    }
-
-    private RubiconUserExtRp rubiconUserExtRp(User user,
-                                              ExtImpRubicon rubiconImpExt,
-                                              Map<String, List<Eid>> sourceToUserEid) {
-
-        final JsonNode target = rubiconUserExtRpTarget(sourceToUserEid, rubiconImpExt.getVisitor(), user);
+    private RubiconUserExtRp rubiconUserExtRp(User user, ExtImpRubicon rubiconImpExt) {
+        final JsonNode target = rubiconUserExtRpTarget(rubiconImpExt.getVisitor(), user);
 
         return target != null ? RubiconUserExtRp.of(target) : null;
     }
 
-    private JsonNode rubiconUserExtRpTarget(Map<String, List<Eid>> sourceToUserEid,
-                                            ObjectNode visitor,
-                                            User user) {
-
+    private JsonNode rubiconUserExtRpTarget(ObjectNode visitor, User user) {
         final ObjectNode result = existingRubiconUserExtRpTarget(user);
 
         populateFirstPartyDataAttributes(visitor, result);
-
-        copyLiveintentSegment(sourceToUserEid, result);
 
         if (user != null) {
             mergeFirstPartyDataFromUser(user.getExt(), result);
@@ -1342,7 +1329,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             enrichWithIabAttribute(result, user.getData(), USER_SEGTAXES);
         }
 
-        return result.size() > 0 ? result : null;
+        return !result.isEmpty() ? result : null;
     }
 
     private ObjectNode existingRubiconUserExtRpTarget(User user) {
@@ -1354,17 +1341,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final JsonNode target = userRubiconRpExt != null ? userRubiconRpExt.getTarget() : null;
 
         return target != null && target.isObject() ? (ObjectNode) target : mapper.mapper().createObjectNode();
-    }
-
-    private static void copyLiveintentSegment(Map<String, List<Eid>> sourceToUserEid, ObjectNode result) {
-        if (sourceToUserEid != null && CollectionUtils.isNotEmpty(sourceToUserEid.get(LIVEINTENT_EID))) {
-            final ObjectNode ext = sourceToUserEid.get(LIVEINTENT_EID).get(0).getExt();
-            final JsonNode segment = ext != null ? ext.get("segments") : null;
-
-            if (segment != null) {
-                result.set("LIseg", segment);
-            }
-        }
     }
 
     private void mergeFirstPartyDataFromUser(ExtUser userExt, ObjectNode result) {
@@ -1395,19 +1371,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final JsonNode taxonomyName = ext != null ? ext.get("segtax") : null;
 
         return taxonomyName != null && taxonomyName.isInt() && segtaxValues.contains(taxonomyName.intValue());
-    }
-
-    private static String extractLiverampId(Map<String, List<Eid>> sourceToUserEid) {
-        final List<Eid> liverampEids = MapUtils.emptyIfNull(sourceToUserEid).get(LIVERAMP_EID);
-        for (Eid extUserEid : CollectionUtils.emptyIfNull(liverampEids)) {
-            return extUserEid.getUids().stream()
-                    .map(Uid::getId)
-                    .filter(StringUtils::isNotEmpty)
-                    .findFirst()
-                    .orElse(null);
-        }
-
-        return null;
     }
 
     private void processWarnings(List<BidderError> errors, List<String> priceFloorsWarnings) {
@@ -1613,7 +1576,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final ObjectNode modifiedTargetNode = targetNode.put("line_item", extLineItemId);
         final RubiconImpExtRp modifiedImpExtRp = RubiconImpExtRp.of(impExtRp.getZoneId(), modifiedTargetNode,
-                impExtRp.getTrack());
+                impExtRp.getTrack(), impExtRp.getRtb());
 
         return mapper.mapper().valueToTree(rubiconImpExt.toBuilder()
                 .rp(modifiedImpExtRp)
@@ -1760,10 +1723,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private Float cpmOverrideFromImp(Imp imp) {
-        final ExtPrebid<ExtImpPrebid, ExtImpRubicon> extPrebid = imp != null ? parseRubiconExt(imp) : null;
-        final ExtImpRubicon bidder = extPrebid != null ? extPrebid.getBidder() : null;
-        final ExtImpRubiconDebug debug = bidder != null ? bidder.getDebug() : null;
-        return debug != null ? debug.getCpmoverride() : null;
+        return Optional.ofNullable(imp)
+                .map(this::parseRubiconExt)
+                .map(ExtImpRubicon::getDebug)
+                .map(ExtImpRubiconDebug::getCpmoverride)
+                .orElse(null);
     }
 
     private static BidType bidType(BidRequest bidRequest) {

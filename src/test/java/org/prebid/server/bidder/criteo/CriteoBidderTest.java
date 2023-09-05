@@ -3,9 +3,12 @@ package org.prebid.server.bidder.criteo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Test;
@@ -19,21 +22,27 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.List;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
+import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
+import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
+import static org.prebid.server.util.HttpUtil.headers;
+import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class CriteoBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private CriteoBidder bidder;
+    private CriteoBidder target;
 
     @Before
     public void setUp() {
-        bidder = new CriteoBidder(ENDPOINT_URL, jacksonMapper);
+        target = new CriteoBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
@@ -45,18 +54,28 @@ public class CriteoBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldEncodePassedBidRequest() {
         // given
-        final BidRequest bidRequest = BidRequest.builder().id("id").build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("id")
+                .imp(List.of(Imp.builder().id("imp_id").build()))
+                .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
+        final MultiMap expectedHeaders = headers()
+                .set(CONTENT_TYPE_HEADER, APPLICATION_JSON_CONTENT_TYPE)
+                .set(ACCEPT_HEADER, APPLICATION_JSON_VALUE);
+        final Result<List<HttpRequest<BidRequest>>> expectedResult = Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(ENDPOINT_URL)
+                .headers(expectedHeaders)
+                .impIds(Set.of("imp_id"))
+                .body(jacksonMapper.encodeToBytes(bidRequest))
+                .payload(bidRequest)
+                .build());
+        assertThat(result.getValue()).usingRecursiveComparison().isEqualTo(expectedResult.getValue());
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .allSatisfy(httpRequest -> {
-                    assertThat(httpRequest.getBody()).isEqualTo(jacksonMapper.encodeToBytes(bidRequest));
-                    assertThat(httpRequest.getPayload()).isSameAs(bidRequest);
-                });
     }
 
     @Test
@@ -65,7 +84,7 @@ public class CriteoBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -82,7 +101,7 @@ public class CriteoBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -95,7 +114,7 @@ public class CriteoBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -109,7 +128,7 @@ public class CriteoBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -123,7 +142,7 @@ public class CriteoBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bid -> bid.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
@@ -138,7 +157,7 @@ public class CriteoBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bid -> bid.ext(givenBidExt(BidType.banner)))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -154,7 +173,7 @@ public class CriteoBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bid -> bid.ext(givenBidExt(BidType.video)))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -170,7 +189,7 @@ public class CriteoBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bid -> bid.ext(givenBidExt(BidType.banner)))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -189,7 +208,7 @@ public class CriteoBidderTest extends VertxTest {
                                 .ext(givenBidExtWithNetwork("anyNetworkName")))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -209,7 +228,7 @@ public class CriteoBidderTest extends VertxTest {
                         bid -> bid.ext(givenBidExtWithNetwork(null)))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

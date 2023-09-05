@@ -55,8 +55,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                                                                          "adapters.${OPENX.value}.usersync.cookie-family-name": OPENX.value]
     private static final Map<String, String> OPENX_CONFIG = ["adapters.${OPENX.value}.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
                                                              "adapters.${OPENX.value}.enabled" : 'true']
-    private static final Map<String, String> GDPR_VENDOR_LIST_CONFIG = ["gdpr.vendorlist.v2.http-endpoint-template": "$networkServiceContainer.rootUri/v2/vendor-list.json".toString(),
-                                                                        "gdpr.vendorlist.v3.http-endpoint-template": "$networkServiceContainer.rootUri/v3/vendor-list.json".toString()]
+    static final Map<String, String> GDPR_VENDOR_LIST_CONFIG = ["gdpr.vendorlist.v2.http-endpoint-template": "$networkServiceContainer.rootUri/v2/vendor-list.json".toString(),
+                                                                "gdpr.vendorlist.v3.http-endpoint-template": "$networkServiceContainer.rootUri/v3/vendor-list.json".toString()]
     private static final Map<String, String> SETTING_CONFIG = ["settings.enforce-valid-account": 'true']
     private static final PbsPgConfig pgConfig = new PbsPgConfig(networkServiceContainer)
 
