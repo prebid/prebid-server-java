@@ -1899,40 +1899,6 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateUserExtLiverampId() {
-        // given
-        final List<Eid> eids = asList(
-                Eid.of(
-                        "liveramp.com",
-                        asList(
-                                Uid.of("firstId", null, null),
-                                Uid.of("ignored", null, null)),
-                        null),
-                Eid.of(
-                        "liveramp.com",
-                        singletonList(Uid.of("ignored", null, null)),
-                        null));
-        final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.user(User.builder().eids(eids).build()),
-                builder -> builder.video(Video.builder().build()),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = rubiconBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getUser).doesNotContainNull()
-                .containsOnly(User.builder()
-                        .ext(jacksonMapper.fillExtension(
-                                ExtUser.builder().eids(eids).build(),
-                                RubiconUserExt.builder().liverampIdl("firstId").build()))
-                        .build());
-    }
-
-    @Test
     public void makeHttpRequestsShouldIgnoreLiverampIdIfMissingEidUidId() {
         // given
         final ExtUser extUser = ExtUser.builder()

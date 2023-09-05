@@ -8,6 +8,4 @@ import lombok.Value;
 public class RubiconUserExt {
 
     RubiconUserExtRp rp;
-
-    String liverampIdl;
 }
