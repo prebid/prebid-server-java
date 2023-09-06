@@ -45,57 +45,53 @@ import static org.prebid.server.functional.testcontainers.Dependencies.networkSe
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
+import static org.prebid.server.functional.util.privacy.TcfConsent.RUBICON_VENDOR_ID
 
 class CookieSyncSpec extends BaseSpec {
 
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final boolean CORS_SUPPORT = false
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
-    private static final Map<String, String> GDPR_VENDOR_LIST_CONFIG = ["gdpr.vendorlist.v2.http-endpoint-template": "$networkServiceContainer.rootUri/v2/vendor-list.json".toString(),
-                                                                        "gdpr.vendorlist.v3.http-endpoint-template": "$networkServiceContainer.rootUri/v3/vendor-list.json".toString()]
+
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.redirect.url"         : USER_SYNC_URL,
-            "adapters.${GENERIC.value}.usersync.redirect.support-cors": "false",
+            "adapters.${GENERIC.value}.usersync.redirect.support-cors": CORS_SUPPORT as String,
             "adapters.${GENERIC.value}.meta-info.vendor-id"           : GENERIC_VENDOR_ID as String]
     private static final Map<String, String> ACEEX_CONFIG = [
             "adapters.${ACEEX.value}.enabled"                       : "true",
             "adapters.${ACEEX.value}.usersync.cookie-family-name"   : ACEEX.value,
             "adapters.${ACEEX.value}.usersync.redirect.url"         : "https://test.redirect.endpoint.com={{redirect_url}}",
-            "adapters.${ACEEX.value}.usersync.redirect.support-cors": "false"]
+            "adapters.${ACEEX.value}.usersync.redirect.support-cors": CORS_SUPPORT as String]
     private static final Map<String, String> RUBICON_CONFIG = [
             "adapters.${RUBICON.value}.enabled"                       : "true",
-            "adapters.${RUBICON.value}.meta-info.vendor-id"           : 33 as String,
+            "adapters.${RUBICON.value}.meta-info.vendor-id"           : RUBICON_VENDOR_ID as String,
             "adapters.${RUBICON.value}.usersync.cookie-family-name"   : RUBICON.value,
             "adapters.${RUBICON.value}.usersync.redirect.url"         : "https://test.redirect.endpoint.com",
-            "adapters.${RUBICON.value}.usersync.redirect.support-cors": "false",
+            "adapters.${RUBICON.value}.usersync.redirect.support-cors": CORS_SUPPORT as String,
             "adapters.${RUBICON.value}.usersync.iframe.url"           : "https://test.iframe.endpoint.com&redir={{redirect_url}}",
-            "adapters.${RUBICON.value}.usersync.iframe.support-cors"  : "false"]
+            "adapters.${RUBICON.value}.usersync.iframe.support-cors"  : CORS_SUPPORT as String]
     private static final Map<String, String> OPENX_CONFIG = [
             "adapters.${OPENX.value}.enabled"                       : "true",
             "adapters.${OPENX.value}.usersync.cookie-family-name"   : OPENX.value,
             "adapters.${OPENX.value}.usersync.redirect.url"         : USER_SYNC_URL,
-            "adapters.${OPENX.value}.usersync.redirect.support-cors": "false",
+            "adapters.${OPENX.value}.usersync.redirect.support-cors": CORS_SUPPORT as String,
             "adapters.${OPENX.value}.usersync.iframe.url"           : USER_SYNC_URL,
-            "adapters.${OPENX.value}.usersync.iframe.support-cors"  : "false"]
+            "adapters.${OPENX.value}.usersync.iframe.support-cors"  : CORS_SUPPORT as String]
     private static final Map<String, String> APPNEXUS_CONFIG = [
             "adapters.${APPNEXUS.value}.enabled"                       : "true",
             "adapters.${APPNEXUS.value}.usersync.cookie-family-name"   : APPNEXUS.value,
             "adapters.${APPNEXUS.value}.usersync.redirect.url"         : "https://test.appnexus.redirect.com/getuid?{{redirect_url}}",
-            "adapters.${APPNEXUS.value}.usersync.redirect.support-cors": "false",
+            "adapters.${APPNEXUS.value}.usersync.redirect.support-cors": CORS_SUPPORT as String,
             "adapters.${APPNEXUS.value}.usersync.iframe.url"           : "https://test.iframe.endpoint.com",
-            "adapters.${APPNEXUS.value}.usersync.iframe.support-cors"  : "false"]
-    private static final Map<String, String> AAX_CONFIG = ["adapters.${AAX.value}.enabled": "true"]
+            "adapters.${APPNEXUS.value}.usersync.iframe.support-cors"  : CORS_SUPPORT as String]
+    private static final Map<String, String> AAX_CONFIG =       ["adapters.${AAX.value}.enabled": "true"]
     private static final Map<String, String> ACUITYADS_CONFIG = ["adapters.${ACUITYADS.value}.enabled": "true"]
-    private static final Map<String, String> ADKERNEL_CONFIG = ["adapters.${ADKERNEL.value}.enabled": "true"]
+    private static final Map<String, String> ADKERNEL_CONFIG =  ["adapters.${ADKERNEL.value}.enabled": "true"]
 
     private static final Map<String, String> PBS_CONFIG = APPNEXUS_CONFIG + RUBICON_CONFIG + OPENX_CONFIG +
-            GENERIC_CONFIG + ACEEX_CONFIG + AAX_CONFIG + ACUITYADS_CONFIG + ADKERNEL_CONFIG +
-            GDPR_VENDOR_LIST_CONFIG + ["cookie-sync.pri": "grid, ix, adkernel"]
+            GENERIC_CONFIG + ACEEX_CONFIG + AAX_CONFIG + ACUITYADS_CONFIG + ADKERNEL_CONFIG + ["cookie-sync.pri": "grid, ix, adkernel"]
 
     private final PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
-    private final VendorList vendorListResponse = new VendorList(networkServiceContainer).tap {
-        setResponse()
-    }
 
     def "PBS cookie sync request should replace synced as family bidder and fill up response with enabled bidders to the limit in request"() {
         given: "PBS config with alias bidder without cookie family name"
@@ -1627,7 +1623,7 @@ class CookieSyncSpec extends BaseSpec {
         def bidderStatus = response?.bidderStatus?.userSync
         assert bidderStatus?.url
         assert bidderStatus?.type
-        assert bidderStatus?.supportCORS?.every(it -> it == false)
+        assert bidderStatus?.supportCORS?.every(it -> it == CORS_SUPPORT)
     }
 
     def "PBS cookie sync request shouldn't return sync url when active uids cookie is present for bidder"() {
@@ -1675,7 +1671,7 @@ class CookieSyncSpec extends BaseSpec {
         }
         def cookieSyncRequest = new CookieSyncRequest(filterSettings: filterSettings, limit: 0)
 
-        and: "Set up appnexus uids cookie"
+        and: "Set up uids cookie with appnexus"
         def uidsCookie = UidsCookie.getDefaultUidsCookie(APPNEXUS)
 
         when: "PBS processes cookie sync request with generic uid cookies"
@@ -2159,7 +2155,7 @@ class CookieSyncSpec extends BaseSpec {
         assert response.bidderStatus.size() == cookieSyncRequest.limit
     }
 
-    def "PBS cookie sync request should take presence coop sync over coop sync in cofig"() {
+    def "PBS cookie sync request should take presence coop sync over coop sync in config"() {
         given: "Default cookie sync request"
         def accountId = PBSUtils.randomNumber
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
