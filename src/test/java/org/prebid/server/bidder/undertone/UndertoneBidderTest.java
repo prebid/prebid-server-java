@@ -108,7 +108,7 @@ public class UndertoneBidderTest extends VertxTest {
         final ObjectNode impExt = mapper.valueToTree(
                 ExtPrebid.of(null, ExtImpUndertone.of(1234, 12345)));
 
-        impExt.put("gpid","gpid-value");
+        impExt.put("gpid", "gpid-value");
 
         final Imp.ImpBuilder givenImpBuilder = Imp.builder()
                 .id("imp-id")
