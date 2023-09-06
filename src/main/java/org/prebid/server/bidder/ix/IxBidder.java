@@ -20,7 +20,6 @@ import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.ix.model.request.IxDiag;
@@ -144,7 +143,8 @@ public class IxBidder implements Bidder<BidRequest> {
         final Integer w = banner.getW();
         final Integer h = banner.getH();
 
-        if (formats.isEmpty() && h != null && w != null) {
+
+        if (formats == null || formats.isEmpty() && h != null && w != null) {
             final List<Format> newFormats = Collections.singletonList(Format.builder().w(w).h(h).build());
             final Banner modifiedBanner = banner.toBuilder().format(newFormats).build();
             return UpdateResult.updated(modifiedBanner);
@@ -168,12 +168,8 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     private ExtRequest modifyRequestExt(ExtRequest extRequest, Set<String> siteIds) {
-        final IxDiag ixDiag = makeDiagData(extRequest, siteIds);
-        if (ixDiag == null) {
-            return extRequest;
-        }
-
         final ExtRequest modifiedExt;
+
         if (extRequest != null) {
             modifiedExt = ExtRequest.of(extRequest.getPrebid());
             modifiedExt.addProperties(extRequest.getProperties());
@@ -181,7 +177,7 @@ public class IxBidder implements Bidder<BidRequest> {
             modifiedExt = ExtRequest.empty();
         }
 
-        modifiedExt.addProperty("ixdiag", mapper.mapper().valueToTree(ixDiag));
+        modifiedExt.addProperty("ixdiag", mapper.mapper().valueToTree(makeDiagData(extRequest, siteIds)));
         return modifiedExt;
     }
 
@@ -198,9 +194,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 ? siteIds.stream().sorted().collect(Collectors.joining(", "))
                 : null;
 
-        return ObjectUtils.anyNotNull(pbsv, pbjsv, multipleSiteIds)
-                ? IxDiag.of(pbsv, pbjsv, multipleSiteIds)
-                : null;
+        return IxDiag.of(pbsv, pbjsv, multipleSiteIds);
     }
 
     private static Site modifySite(Site site, String id) {
