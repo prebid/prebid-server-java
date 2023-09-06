@@ -7,6 +7,7 @@ import org.prebid.server.spring.config.bidder.model.BidderConfigurationPropertie
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -30,12 +31,13 @@ public class IxConfiguration {
     @Bean
     BidderDeps ixBidderDeps(BidderConfigurationProperties ixConfigurationProperties,
                             @NotBlank @Value("${external-url}") String externalUrl,
+                            PrebidVersionProvider prebidVersionProvider,
                             JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(ixConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new IxBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new IxBidder(config.getEndpoint(), prebidVersionProvider, mapper))
                 .assemble();
     }
 }
