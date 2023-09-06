@@ -257,14 +257,12 @@ public class IxBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
-        final Bid updatedBid;
-        if (bidType == BidType.video || bidType == BidType.xNative) {
-            updatedBid = bidType == BidType.video
-                    ? updateBidWithVideoAttributes(bid)
-                    : bid.toBuilder().adm(updateBidAdmWithNativeAttributes(bid.getAdm())).build();
-        } else {
-            updatedBid = bid;
-        }
+
+        final Bid updatedBid = switch (bidType) {
+            case video -> updateBidWithVideoAttributes(bid);
+            case xNative -> bid.toBuilder().adm(updateBidAdmWithNativeAttributes(bid.getAdm())).build();
+            default -> bid;
+        };
 
         return BidderBid.of(updatedBid, bidType, bidResponse.getCur());
     }
