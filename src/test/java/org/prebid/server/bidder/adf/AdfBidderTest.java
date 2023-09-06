@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -36,12 +35,7 @@ public class AdfBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private AdfBidder bidder;
-
-    @Before
-    public void setup() {
-        bidder = new AdfBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdfBidder target = new AdfBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -56,7 +50,7 @@ public class AdfBidderTest extends VertxTest {
                 givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(request);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(request);
 
         // then
         assertThat(result.getValue()).hasSize(1);
@@ -73,7 +67,7 @@ public class AdfBidderTest extends VertxTest {
         final BidRequest request = givenBidRequest(givenImp(ExtImpAdf.builder().mid("mid").build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(request);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(request);
 
         // then
         assertThat(result.getValue())
@@ -93,7 +87,7 @@ public class AdfBidderTest extends VertxTest {
                 givenImp(ExtImpAdf.builder().priceType("priceType2").build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(request);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(request);
 
         // then
         assertThat(result.getValue())
@@ -113,7 +107,7 @@ public class AdfBidderTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().auctiontimestamp(0L).build())));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(request);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(request);
 
         // then
         assertThat(result.getValue())
@@ -131,7 +125,7 @@ public class AdfBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -148,7 +142,7 @@ public class AdfBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(BidResponse.builder().build());
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -163,7 +157,7 @@ public class AdfBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(givenBidResponse(givenBid(bid -> bid.ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue())
@@ -180,7 +174,7 @@ public class AdfBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(givenBidResponse(givenBid(bid -> bid.ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue())
@@ -199,7 +193,7 @@ public class AdfBidderTest extends VertxTest {
                 givenBid(bid -> bid.ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).hasSize(1);

@@ -13,7 +13,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -40,12 +39,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class RichaudienceBidderTest extends VertxTest {
 
-    private RichaudienceBidder richaudienceBidder;
-
-    @Before
-    public void setUp() {
-        richaudienceBidder = new RichaudienceBidder("https://test.domain.dm/uri", jacksonMapper);
-    }
+    private final RichaudienceBidder target = new RichaudienceBidder("https://test.domain.dm/uri", jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -58,7 +52,7 @@ public class RichaudienceBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(request -> request.device(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = richaudienceBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -71,7 +65,7 @@ public class RichaudienceBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(request -> request.device(Device.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = richaudienceBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -84,7 +78,7 @@ public class RichaudienceBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()), givenImp(imp -> imp.banner(null)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = richaudienceBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(0);
@@ -99,7 +93,7 @@ public class RichaudienceBidderTest extends VertxTest {
                 givenImp(imp -> imp.banner(Banner.builder().build())));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = richaudienceBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(0);
@@ -114,7 +108,7 @@ public class RichaudienceBidderTest extends VertxTest {
                 givenImp(identity()), givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = richaudienceBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(2)
@@ -133,7 +127,7 @@ public class RichaudienceBidderTest extends VertxTest {
                 givenImp(identity()), givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = richaudienceBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(2)
@@ -152,7 +146,7 @@ public class RichaudienceBidderTest extends VertxTest {
                 givenImp(ext -> ext.pid("123"), identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = richaudienceBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(2)
@@ -170,7 +164,7 @@ public class RichaudienceBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(ext -> ext.test(true), identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = richaudienceBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -186,7 +180,7 @@ public class RichaudienceBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(ext -> ext.test(true), identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = richaudienceBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -203,7 +197,7 @@ public class RichaudienceBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = richaudienceBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -227,7 +221,7 @@ public class RichaudienceBidderTest extends VertxTest {
                 givenImp(ext -> ext.bidFloorCur("BYN"), imp -> imp.bidfloorcur("RUB")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = richaudienceBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(4)
@@ -245,7 +239,7 @@ public class RichaudienceBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(ext -> ext.test(true), identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = richaudienceBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -261,7 +255,7 @@ public class RichaudienceBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest("https://domain.dm/uri", givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = richaudienceBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -278,7 +272,7 @@ public class RichaudienceBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("Incorrect body");
 
         // when
-        final Result<List<BidderBid>> result = richaudienceBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -296,7 +290,7 @@ public class RichaudienceBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("null");
 
         // when
-        final Result<List<BidderBid>> result = richaudienceBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -309,7 +303,7 @@ public class RichaudienceBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("{}");
 
         // when
-        final Result<List<BidderBid>> result = richaudienceBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -326,7 +320,7 @@ public class RichaudienceBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = richaudienceBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -344,7 +338,7 @@ public class RichaudienceBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = richaudienceBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -360,7 +354,7 @@ public class RichaudienceBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = richaudienceBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();

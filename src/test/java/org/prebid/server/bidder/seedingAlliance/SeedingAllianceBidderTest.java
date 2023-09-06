@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -33,17 +32,11 @@ public class SeedingAllianceBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://randomurl.com";
 
-    private SeedingAllianceBidder bidder;
-
-    @Before
-    public void setup() {
-        bidder = new SeedingAllianceBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final SeedingAllianceBidder target = new SeedingAllianceBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() ->
-                new SeedingAllianceBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new SeedingAllianceBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -52,7 +45,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -67,7 +60,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -84,7 +77,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder.cur(List.of("EUR")), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -101,7 +94,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder.cur(List.of("USD", "YEN")), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -117,7 +110,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -134,7 +127,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(BidResponse.builder().build());
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -149,7 +142,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(givenBidResponse(givenBid(bid -> bid.ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue())
@@ -169,7 +162,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
                         .ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue())
@@ -187,7 +180,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(givenBidResponse(givenBid(bid -> bid.ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue())
@@ -206,7 +199,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
                 givenBid(bid -> bid.ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).hasSize(1);

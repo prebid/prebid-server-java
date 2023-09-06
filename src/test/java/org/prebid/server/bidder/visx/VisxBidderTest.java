@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -40,12 +39,7 @@ public class VisxBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private VisxBidder visxBidder;
-
-    @Before
-    public void setUp() {
-        visxBidder = new VisxBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final VisxBidder target = new VisxBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -65,7 +59,7 @@ public class VisxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = visxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -80,7 +74,7 @@ public class VisxBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -95,7 +89,7 @@ public class VisxBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -109,7 +103,7 @@ public class VisxBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -123,7 +117,7 @@ public class VisxBidderTest extends VertxTest {
                 givenBidRequest(imp -> imp.banner(Banner.builder().build())),
                 mapper.writeValueAsString(givenVisxResponse(visxBidBuilder -> visxBidBuilder.impid("123"), null)));
         // when
-        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -139,7 +133,7 @@ public class VisxBidderTest extends VertxTest {
                 givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())),
                 mapper.writeValueAsString(givenVisxResponse(visxBidBuilder -> visxBidBuilder.impid("123"), null)));
         // when
-        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -155,7 +149,7 @@ public class VisxBidderTest extends VertxTest {
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(givenVisxResponse(visxBidBuilder -> visxBidBuilder.impid("123"), null)));
         // when
-        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -173,7 +167,7 @@ public class VisxBidderTest extends VertxTest {
                 givenBidRequest(identity()), mapper.writeValueAsString(visxResponse));
 
         // when
-        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -195,7 +189,7 @@ public class VisxBidderTest extends VertxTest {
                 mapper.writeValueAsString(visxResponse));
 
         // when
-        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -214,7 +208,7 @@ public class VisxBidderTest extends VertxTest {
                 mapper.writeValueAsString(visxResponse));
 
         // when
-        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -236,7 +230,7 @@ public class VisxBidderTest extends VertxTest {
                 mapper.writeValueAsString(visxResponse));
 
         // when
-        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -252,7 +246,7 @@ public class VisxBidderTest extends VertxTest {
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(givenVisxResponse(visxBidBuilder -> visxBidBuilder.impid("456"), null)));
         // when
-        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -280,7 +274,7 @@ public class VisxBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(visxResponse));
 
         // when
-        final Result<List<BidderBid>> result = visxBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         final BidderBid expected = BidderBid.of(

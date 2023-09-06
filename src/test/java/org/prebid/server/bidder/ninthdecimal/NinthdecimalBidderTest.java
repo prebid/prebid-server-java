@@ -14,7 +14,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -45,12 +44,7 @@ public class NinthdecimalBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://test/get?pubid=";
 
-    private NinthdecimalBidder ninthdecimalBidder;
-
-    @Before
-    public void setUp() {
-        ninthdecimalBidder = new NinthdecimalBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final NinthdecimalBidder target = new NinthdecimalBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -67,7 +61,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -81,7 +75,7 @@ public class NinthdecimalBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), ExtImpNinthdecimal.of(null, null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -95,7 +89,7 @@ public class NinthdecimalBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), ExtImpNinthdecimal.of(" ", null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -110,7 +104,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(Banner.builder().format(null).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -136,7 +130,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(5)
@@ -154,7 +148,7 @@ public class NinthdecimalBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.xNative(Native.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -169,7 +163,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                 Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
@@ -193,7 +187,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                 ExtImpNinthdecimal.of("pubid", null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -217,7 +211,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                 ExtImpNinthdecimal.of("pubid", "setPlacement"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -242,7 +236,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -267,7 +261,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -292,7 +286,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                 ExtImpNinthdecimal.of("pubid", null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -313,7 +307,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                 ExtImpNinthdecimal.of("pubid", null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ninthdecimalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -329,7 +323,7 @@ public class NinthdecimalBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = ninthdecimalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -345,7 +339,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = ninthdecimalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -359,7 +353,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = ninthdecimalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -377,7 +371,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = ninthdecimalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -395,7 +389,7 @@ public class NinthdecimalBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = ninthdecimalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

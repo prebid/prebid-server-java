@@ -56,11 +56,11 @@ public class StroeerCoreBidderTest extends VertxTest {
     @Mock
     private CurrencyConversionService currencyConversionService;
 
-    private StroeerCoreBidder bidder;
+    private StroeerCoreBidder target;
 
     @Before
     public void setUp() {
-        bidder = new StroeerCoreBidder(ENDPOINT_URL, jacksonMapper, currencyConversionService);
+        target = new StroeerCoreBidder(ENDPOINT_URL, jacksonMapper, currencyConversionService);
     }
 
     @Test
@@ -69,7 +69,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         final BidRequest bidRequest = createBidRequest(createBannerImp("192848"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -83,7 +83,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         final BidRequest bidRequest = createBidRequest(createBannerImp("981287"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
@@ -99,7 +99,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         final BidRequest bidRequest = createBidRequest(createBannerImp("726292"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -113,7 +113,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         final BidRequest bidRequest = createBidRequest(createBannerImp("827194"), createBannerImp("abc"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -130,7 +130,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         final BidRequest invalidBidRequest = createBidRequest(createImpWithNonParsableImpExt("3"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(invalidBidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(invalidBidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -148,7 +148,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         final BidRequest invalidBidRequest = createBidRequest(createVideoImp("123", imp -> imp.id("2")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(invalidBidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(invalidBidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -162,7 +162,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         final BidRequest invalidBidRequest = createBidRequest(createBannerImp(" ", imp -> imp.id("1")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(invalidBidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(invalidBidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -188,7 +188,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(5);
@@ -210,7 +210,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(eurBidFloor);
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         verify(currencyConversionService).convertCurrency(usdBidFloor, bidRequest, "USD", "EUR");
@@ -235,7 +235,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .thenThrow(new PreBidException("no"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         verify(currencyConversionService).convertCurrency(usdBidFloor, bidRequest, "USD", "EUR");
@@ -275,7 +275,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = createHttpCall(response);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         final Bid expectedBid1 = Bid.builder()
@@ -309,7 +309,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = createHttpCall("[]");
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -325,7 +325,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = createHttpCall(StroeerCoreBidResponse.of(emptyList()));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
