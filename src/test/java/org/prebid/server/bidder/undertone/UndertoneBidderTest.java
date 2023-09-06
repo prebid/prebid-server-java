@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.undertone;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -11,6 +12,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.undertone.proto.UndertoneImpExt;
 import org.prebid.server.bidder.undertone.proto.UndertoneRequestExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -103,6 +105,11 @@ public class UndertoneBidderTest extends VertxTest {
                 .id("site-id")
                 .build();
 
+        final ObjectNode impExt = mapper.valueToTree(
+                ExtPrebid.of(null, ExtImpUndertone.of(1234, 12345)));
+
+        impExt.put("gpid","gpid-value");
+
         final Imp.ImpBuilder givenImpBuilder = Imp.builder()
                 .id("imp-id")
                 .banner(Banner.builder()
@@ -110,8 +117,7 @@ public class UndertoneBidderTest extends VertxTest {
                         .w(300)
                         .h(600)
                         .build())
-                .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpUndertone.of(1234, 12345))));
+                .ext(impExt);
 
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
                         .id("req-id")
@@ -141,6 +147,7 @@ public class UndertoneBidderTest extends VertxTest {
                         .h(600)
                         .build())
                 .tagid(String.valueOf(12345))
+                .ext(mapper.valueToTree(UndertoneImpExt.of("gpid-value")))
                 .build();
 
         final BidRequest expectedBidRequest = BidRequest.builder()
