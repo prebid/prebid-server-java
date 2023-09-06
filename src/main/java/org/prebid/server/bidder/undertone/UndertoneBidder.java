@@ -173,7 +173,7 @@ public class UndertoneBidder implements Bidder<BidRequest> {
         return gpid != null ? mapper.mapper().valueToTree(UndertoneImpExt.of(gpid)) : null;
     }
 
-    private String getGpid(ObjectNode impExt) {
+    private static String getGpid(ObjectNode impExt) {
         final JsonNode gpidNode = impExt.get(GPID_FIELD);
         return gpidNode != null && gpidNode.isTextual() ? gpidNode.asText() : null;
     }
