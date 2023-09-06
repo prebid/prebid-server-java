@@ -143,7 +143,6 @@ public class IxBidder implements Bidder<BidRequest> {
         final Integer w = banner.getW();
         final Integer h = banner.getH();
 
-
         if (formats == null || formats.isEmpty() && h != null && w != null) {
             final List<Format> newFormats = Collections.singletonList(Format.builder().w(w).h(h).build());
             final Banner modifiedBanner = banner.toBuilder().format(newFormats).build();
