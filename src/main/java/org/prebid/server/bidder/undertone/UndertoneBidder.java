@@ -169,8 +169,8 @@ public class UndertoneBidder implements Bidder<BidRequest> {
     }
 
     private ObjectNode getImpExt(ObjectNode impExt) {
-        final UndertoneImpExt utImpExt = UndertoneImpExt.of(getGpid(impExt));
-        return mapper.mapper().valueToTree(utImpExt);
+        final String gpid = getGpid(impExt);
+        return gpid != null ? mapper.mapper().valueToTree(UndertoneImpExt.of(gpid)) : null;
     }
 
     private String getGpid(ObjectNode impExt) {
