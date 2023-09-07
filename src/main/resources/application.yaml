@@ -20,6 +20,7 @@ server:
     enabled: true
     port: 8080
     server-instances: 1
+  idle-timeout: 10
   enable-quickack: false
   enable-reuseport: false
 admin:

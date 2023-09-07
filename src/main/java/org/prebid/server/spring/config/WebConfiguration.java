@@ -84,6 +84,7 @@ public class WebConfiguration {
             @Value("#{'${http.ssl:${server.ssl:}}'}") boolean ssl,
             @Value("#{'${http.jks-path:${server.jks-path:}}'}") String jksPath,
             @Value("#{'${http.jks-password:${server.jks-password:}}'}") String jksPassword,
+            @Value("#{'${http.idle-timeout:${server.idle-timeout}}'}") int idleTimeout,
             @Value("#{'${http.enable-quickack:${server.enable-quickack}}'}") boolean enableQuickAck,
             @Value("#{'${http.enable-reuseport:${server.enable-reuseport}}'}") boolean enableReusePort) {
 
@@ -93,7 +94,7 @@ public class WebConfiguration {
                 .setMaxHeaderSize(maxHeaderSize)
                 .setCompressionSupported(true)
                 .setDecompressionSupported(true)
-                .setIdleTimeout(10) // kick off long processing requests
+                .setIdleTimeout(idleTimeout) // kick off long processing requests, value in seconds
                 .setTcpQuickAck(enableQuickAck)
                 .setReusePort(enableReusePort);
         if (ssl) {
