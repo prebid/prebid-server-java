@@ -47,14 +47,13 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request should contain FPD field from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
         verifyAll(bidderRequest) {
             ampStoredRequest.site.id == site.id
             ampStoredRequest.site.name == site.name
             ampStoredRequest.site.domain == site.domain
             ampStoredRequest.site.cat == site.cat
-            ampStoredRequest.site.sectioncat == site.sectioncat
-            ampStoredRequest.site.pagecat == site.pagecat
+            ampStoredRequest.site.sectionCat == site.sectionCat
+            ampStoredRequest.site.pageCat == site.pageCat
             ampStoredRequest.site.page == site.page
             ampStoredRequest.site.ref == site.ref
             ampStoredRequest.site.search == site.search
@@ -67,7 +66,7 @@ class AmpFpdSpec extends BaseSpec {
             ampStoredRequest.site.publisher.domain == site.publisher.domain
             ampStoredRequest.site.keywords == site.keywords
             ampStoredRequest.site.mobile == site.mobile
-            ampStoredRequest.site.privacypolicy == site.privacypolicy
+            ampStoredRequest.site.privacyPolicy == site.privacyPolicy
             ampStoredRequest.site.ext.data.language == site.ext.data.language
 
             ampStoredRequest.user.yob == user.yob
@@ -78,8 +77,13 @@ class AmpFpdSpec extends BaseSpec {
             ampStoredRequest.user.ext.data.keywords == user.ext.data.keywords
             ampStoredRequest.user.ext.data.buyeruid == user.ext.data.buyeruid
             ampStoredRequest.user.ext.data.buyeruids == user.ext.data.buyeruids
+        }
 
-            !imp[0].ext.rp
+        and: "Bidder request shouldn't contain imp[0].ext.rp"
+        bidderRequest.each {
+            verifyAll(it) {
+                !imp[0].ext.rp
+            }
         }
     }
 
@@ -103,7 +107,6 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request should contain FPD data field from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
         assert bidderRequest.user.data.size() == 1
         assert ampStoredRequest.user.data[0].id == bidderRequest.user.data[0].id
         assert ampStoredRequest.user.data[0].name == bidderRequest.user.data[0].name
@@ -139,13 +142,12 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request should contain FPD field from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
         verifyAll(bidderRequest) {
             targeting.site.name == site.name
             targeting.site.domain == site.domain
             targeting.site.cat == site.cat
-            targeting.site.sectioncat == site.sectioncat
-            targeting.site.pagecat == site.pagecat
+            targeting.site.sectionCat == site.sectionCat
+            targeting.site.pageCat == site.pageCat
             targeting.site.page == site.page
             targeting.site.ref == site.ref
             targeting.site.search == site.search
@@ -158,8 +160,13 @@ class AmpFpdSpec extends BaseSpec {
             targeting.user.ext.data.keywords == user.ext.data.keywords
             targeting.user.ext.data.buyeruid == user.ext.data.buyeruid
             targeting.user.ext.data.buyeruids == user.ext.data.buyeruids
+        }
 
-            !imp[0].ext.rp
+        and: "Bidder request shouldn't contain imp[0].ext.rp"
+        bidderRequest.each {
+            verifyAll(it) {
+                !imp[0].ext.rp
+            }
         }
     }
 
@@ -237,13 +244,12 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request should contain FPD field from the targeting"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
         verifyAll(bidderRequest) {
             targeting.site.name == site.name
             targeting.site.domain == site.domain
             targeting.site.cat == site.cat
-            targeting.site.sectioncat == site.sectioncat
-            targeting.site.pagecat == site.pagecat
+            targeting.site.sectionCat == site.sectionCat
+            targeting.site.pageCat == site.pageCat
             targeting.site.page == site.page
             targeting.site.ref == site.ref
             targeting.site.search == site.search
@@ -256,8 +262,13 @@ class AmpFpdSpec extends BaseSpec {
             targeting.user.ext.data.keywords == user.ext.data.keywords
             targeting.user.ext.data.buyeruid == user.ext.data.buyeruid
             targeting.user.ext.data.buyeruids == user.ext.data.buyeruids
+        }
 
-            !imp[0].ext.rp
+        and: "Bidder request shouldn't contain imp[0].ext.rp"
+        bidderRequest.each {
+            verifyAll(it) {
+                !imp[0].ext.rp
+            }
         }
     }
 
@@ -288,8 +299,8 @@ class AmpFpdSpec extends BaseSpec {
             ortb2.site.name == site.name
             ortb2.site.domain == site.domain
             ortb2.site.cat == site.cat
-            ortb2.site.sectioncat == site.sectioncat
-            ortb2.site.pagecat == site.pagecat
+            ortb2.site.sectionCat == site.sectionCat
+            ortb2.site.pageCat == site.pageCat
             ortb2.site.page == site.page
             ortb2.site.ref == site.ref
             ortb2.site.search == site.search
@@ -302,8 +313,13 @@ class AmpFpdSpec extends BaseSpec {
             ortb2.user.ext.data.keywords == user.ext.data.keywords
             ortb2.user.ext.data.buyeruid == user.ext.data.buyeruid
             ortb2.user.ext.data.buyeruids == user.ext.data.buyeruids
+        }
 
-            !imp[0].ext.rp
+        and: "Bidder request shouldn't contain imp[0].ext.rp"
+        bidderRequest.each {
+            verifyAll(it) {
+                !imp[0].ext.rp
+            }
         }
     }
 
@@ -330,7 +346,6 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request should contain FPD field from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
         assert ampStoredRequest.ext.prebid.bidderConfig[0].config.ortb2.site.domain == bidderRequest.site.domain
         assert ampStoredRequest.ext.prebid.bidderConfig[0].config.ortb2.user.keywords == bidderRequest.user.keywords
 
@@ -362,15 +377,14 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request should contain FPD field from the stored request"
         def bidderRequest = bidder.getBidderRequests(ampStoredRequest.id)
-
         bidderRequest.each {
             verifyAll(it) {
                 ampStoredRequest.site.id == site.id
                 ampStoredRequest.site.name == site.name
                 ampStoredRequest.site.domain == site.domain
                 ampStoredRequest.site.cat == site.cat
-                ampStoredRequest.site.sectioncat == site.sectioncat
-                ampStoredRequest.site.pagecat == site.pagecat
+                ampStoredRequest.site.sectionCat == site.sectionCat
+                ampStoredRequest.site.pageCat == site.pageCat
                 ampStoredRequest.site.page == site.page
                 ampStoredRequest.site.ref == site.ref
                 ampStoredRequest.site.search == site.search
@@ -383,7 +397,7 @@ class AmpFpdSpec extends BaseSpec {
                 ampStoredRequest.site.publisher.domain == site.publisher.domain
                 ampStoredRequest.site.keywords == site.keywords
                 ampStoredRequest.site.mobile == site.mobile
-                ampStoredRequest.site.privacypolicy == site.privacypolicy
+                ampStoredRequest.site.privacyPolicy == site.privacyPolicy
 
                 ampStoredRequest.user.yob == user.yob
                 ampStoredRequest.user.gender == user.gender
@@ -393,7 +407,12 @@ class AmpFpdSpec extends BaseSpec {
                 ampStoredRequest.user.ext.data.keywords == user.ext.data.keywords
                 ampStoredRequest.user.ext.data.buyeruid == user.ext.data.buyeruid
                 ampStoredRequest.user.ext.data.buyeruids == user.ext.data.buyeruids
+            }
+        }
 
+        and: "Bidder request shouldn't contain imp[0].ext.rp"
+        bidderRequest.each {
+            verifyAll(it) {
                 !imp[0].ext.rp
             }
         }
@@ -419,7 +438,6 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain certain FPD field from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
         verifyAll(bidderRequest) {
             !site.content.data
             !imp[0].ext.rp
@@ -446,16 +464,15 @@ class AmpFpdSpec extends BaseSpec {
         when: "PBS processes amp request"
         defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder request shouldn't contain certain FPD field from the stored request"
+        then: "Bidder request should contain certain FPD field from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         def ortb2 = ampStoredRequest.ext.prebid.bidderConfig[0].config.ortb2
-
         verifyAll(bidderRequest) {
             ortb2.site.name == site.name
             ortb2.site.domain == site.domain
             ortb2.site.cat == site.cat
-            ortb2.site.sectioncat == site.sectioncat
-            ortb2.site.pagecat == site.pagecat
+            ortb2.site.sectionCat == site.sectionCat
+            ortb2.site.pageCat == site.pageCat
             ortb2.site.page == site.page
             ortb2.site.ref == site.ref
             ortb2.site.search == site.search
@@ -468,8 +485,13 @@ class AmpFpdSpec extends BaseSpec {
             ortb2.user.ext.data.keywords == user.ext.data.keywords
             ortb2.user.ext.data.buyeruid == user.ext.data.buyeruid
             ortb2.user.ext.data.buyeruids == user.ext.data.buyeruids
+        }
 
-            !imp[0].ext.rp
+        and: "Bidder request shouldn't contain imp[0].ext.rp"
+        bidderRequest.each {
+            verifyAll(it) {
+                !imp[0].ext.rp
+            }
         }
     }
 
@@ -524,7 +546,6 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request should contain certain FPD field from the stored request"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
         verifyAll(bidderRequest) {
             user.ext.data.geo.country == fpdGeo.country
             user.ext.data.geo.zip == fpdGeo.zip
@@ -557,7 +578,6 @@ class AmpFpdSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain gpid and rp"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
         assert !bidderRequest.imp[0].ext.gpid
         assert !bidderRequest.imp[0].ext.rp
     }
@@ -578,9 +598,8 @@ class AmpFpdSpec extends BaseSpec {
         when: "PBS processes amp request"
         defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder request shouldn't contain certain FPD field from the stored request"
+        then: "Bidder request should contain in site.page value from amp request body curl"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
         assert bidderRequest.site.page == ampRequest.curl
     }
 
@@ -600,9 +619,8 @@ class AmpFpdSpec extends BaseSpec {
         when: "PBS processes amp request"
         defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Bidder request shouldn't contain certain FPD field from the stored request"
+        then: "Bidder request should contain in site.publisher.id value from amp request body account"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
         assert bidderRequest.site.publisher.id == ampRequest.account
     }
 }
