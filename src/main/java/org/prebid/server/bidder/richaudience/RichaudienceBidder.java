@@ -1,13 +1,15 @@
 package org.prebid.server.bidder.richaudience;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Video;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -27,15 +29,18 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.richaudience.ExtImpRichaudience;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.ObjectUtil;
 
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class RichaudienceBidder implements Bidder<BidRequest> {
 
@@ -43,6 +48,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     private static final String OPENRTB_VERSION = "2.5";
     private static final String DEVICE_IP = "11.222.33.44";
     private static final String DEFAULT_CURRENCY = "USD";
+    private static final String HTTPS = "https";
     private static final TypeReference<ExtPrebid<?, ExtImpRichaudience>> RICHAUDIENCE_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -57,8 +63,6 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final URL url = extractUrl(request);
-        final boolean isSecure = "https".equals(ObjectUtil.getIfNotNull(url, URL::getProtocol));
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         boolean isTest = false;
 
@@ -66,16 +70,10 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
             validateRequest(request);
             for (Imp imp : request.getImp()) {
                 validateImp(imp);
-
-                final ExtImpRichaudience extImpRichaudience = parseImpExt(imp);
-                final Imp modifiedImp = modifyImp(imp, extImpRichaudience, isSecure);
-
-                if (!isTest && BooleanUtils.isTrue(extImpRichaudience.getTest())) {
-                    isTest = true;
-                }
-
-                httpRequests.add(createHttpRequest(
-                        modifyBidRequest(request, url, modifiedImp, isTest)));
+                final ExtImpRichaudience extImp = parseImpExt(imp);
+                isTest = !isTest && BooleanUtils.isTrue(extImp.getTest());
+                final BidRequest modifiedBidRequest = makeRequest(request, imp, extImp, isTest);
+                httpRequests.add(makeHttpRequest(modifiedBidRequest, Set.of(imp.getId())));
             }
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -91,23 +89,25 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static URL extractUrl(BidRequest bidRequest) {
-        try {
-            return new URL(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage));
-        } catch (MalformedURLException e) {
-            return null;
-        }
-    }
-
+    //todo: what if imp is not a banner and not a video?
     private static void validateImp(Imp imp) throws PreBidException {
-        if (!isBannerSizesPresent(imp.getBanner())) {
+        //todo: does it make sense to collect all the errors like in Go?
+        if (imp.getBanner() != null && !isBannerSizesPresent(imp.getBanner())) {
             throw new PreBidException("Banner W/H/Format is required. ImpId: " + imp.getId());
+        }
+
+        if (imp.getVideo() != null && !isVideoSizesPresent(imp.getVideo())) {
+            throw new PreBidException("Video W and H are required. ImpId: " + imp.getId());
         }
     }
 
     private static boolean isBannerSizesPresent(Banner banner) {
-        return banner != null && (ObjectUtils.anyNotNull(banner.getW(), banner.getH())
-                || CollectionUtils.isNotEmpty(banner.getFormat()));
+        return ObjectUtils.anyNotNull(banner.getW(), banner.getH())
+                || CollectionUtils.isNotEmpty(banner.getFormat());
+    }
+
+    private static boolean isVideoSizesPresent(Video video) {
+        return video.getW() != null && video.getW() != 0 && video.getH() != null && video.getH() != 0;
     }
 
     private ExtImpRichaudience parseImpExt(Imp imp) throws PreBidException {
@@ -118,12 +118,51 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static Imp modifyImp(Imp imp, ExtImpRichaudience extImpRichaudience, boolean isSecure) {
-        final String tagId = extImpRichaudience.getPid();
-        final String extBidFloorCur = extImpRichaudience.getBidFloorCur();
+    private static BidRequest makeRequest(BidRequest request, Imp imp, ExtImpRichaudience extImp, boolean isTest) {
+        final Optional<URL> urlOptional = extractUrl(request);
+        final boolean isSecure = urlOptional.map(URL::getProtocol).map(HTTPS::equals).orElse(false);
+        final Imp modifiedImp = modifyImp(imp, extImp, isSecure);
+
+        final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder().imp(List.of(modifiedImp));
+
+        if (isTest) {
+            requestBuilder.test(BID_TEST_REQUEST).device(request.getDevice().toBuilder().ip(DEVICE_IP).build());
+        }
+
+        final Site site = request.getSite();
+        if (site != null) {
+            final Site.SiteBuilder siteBuilder = site.toBuilder().keywords("tagId=" + imp.getTagid());
+            if (urlOptional.isPresent() && StringUtils.isBlank(site.getDomain())) {
+                siteBuilder.domain(urlOptional.get().getHost());
+            }
+            requestBuilder.site(siteBuilder.build());
+        }
+
+        final App app = request.getApp();
+        if (app != null) {
+            requestBuilder.app(app.toBuilder().keywords("tagId=" + imp.getTagid()).build());
+        }
+
+        return requestBuilder.build();
+    }
+
+    private static Optional<URL> extractUrl(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getSite()).map(Site::getPage).map(page -> {
+            try {
+                return new URL(page);
+            } catch (MalformedURLException e) {
+                return null;
+            }
+        });
+    }
+
+    private static Imp modifyImp(Imp imp, ExtImpRichaudience extImp, boolean isSecure) {
+        final String tagId = extImp.getPid();
+        final String extBidFloorCur = extImp.getBidFloorCur();
         final String impBidFloorCur = imp.getBidfloorcur();
 
-        final String bidFloorCur = StringUtils.defaultIfBlank(extBidFloorCur,
+        final String bidFloorCur = StringUtils.defaultIfBlank(
+                extBidFloorCur,
                 StringUtils.defaultIfBlank(impBidFloorCur, DEFAULT_CURRENCY));
 
         return imp.toBuilder()
@@ -133,25 +172,11 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static BidRequest modifyBidRequest(BidRequest bidRequest, URL url, Imp imp, boolean isTest) {
-        final BidRequest.BidRequestBuilder requestBuilder = bidRequest.toBuilder().imp(Collections.singletonList(imp));
-
-        if (isTest) {
-            requestBuilder.test(BID_TEST_REQUEST).device(Device.builder().ip(DEVICE_IP).build());
-        }
-
-        final Site site = bidRequest.getSite();
-        if (url != null && StringUtils.isBlank(site.getDomain())) {
-            requestBuilder.site(site.toBuilder().domain(url.getHost()).build());
-        }
-
-        return requestBuilder.build();
-    }
-
-    private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest) {
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, Set<String> impIds) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .headers(resolveHeaders())
+                .impIds(impIds)
                 .uri(endpointUrl)
                 .body(mapper.encodeToBytes(bidRequest))
                 .payload(bidRequest)
@@ -177,24 +202,34 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
 
+        final Map<String, Imp> impMap = bidRequest.getImp().stream()
+                .collect(Collectors.toMap(Imp::getId, Function.identity()));
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
+                .flatMap(seatBid -> seatBid.getBid().stream())
                 .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid,
-                        resolvedBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                //todo: is it fine to return a bid with unknown bid type? (as the PBS Go does)
+                .filter(bid -> impMap.containsKey(bid.getImpid()))
+                .map(bid -> makeBid(bidResponse, impMap, bid))
                 .toList();
     }
 
-    private static BidType resolvedBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (impId.equals(imp.getId())) {
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                return BidType.banner;
-            }
+    private static BidderBid makeBid(BidResponse bidResponse, Map<String, Imp> impMap, Bid bid) {
+        final Imp imp = impMap.get(bid.getImpid());
+        final BidType bidType = resolveBidType(imp);
+        final Bid.BidBuilder builder = bid.toBuilder();
+
+        if (bidType == BidType.video) {
+            builder.w(imp.getVideo().getW());
+            builder.h(imp.getVideo().getH());
+        }
+        return BidderBid.of(builder.build(), bidType, bidResponse.getCur());
+    }
+
+    private static BidType resolveBidType(Imp imp) {
+        if (imp.getVideo() != null) {
+            return BidType.video;
         }
         return BidType.banner;
     }

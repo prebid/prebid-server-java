@@ -2,6 +2,7 @@ package org.prebid.server.bidder.richaudience;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -23,6 +24,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.richaudience.ExtImpRichaudience;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
@@ -35,7 +37,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class RichaudienceBidderTest extends VertxTest {
 
@@ -73,20 +74,6 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfSomeImpBannerIsAbsent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(givenImp(identity()), givenImp(imp -> imp.banner(null)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(0);
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("Banner W/H/Format is required. ImpId: null"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnErrorIfSomeImpBannerIsInvalid() {
         // given
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()),
@@ -96,9 +83,24 @@ public class RichaudienceBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("Banner W/H/Format is required. ImpId: null"));
+                .containsExactly(BidderError.badInput("Banner W/H/Format is required. ImpId: imp_id"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfSomeImpVideoIsInvalid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()),
+                givenImp(imp -> imp.video(Video.builder().w(null).h(0).build())));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .containsExactly(BidderError.badInput("Video W and H are required. ImpId: imp_id"));
     }
 
     @Test
@@ -143,7 +145,7 @@ public class RichaudienceBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetImpTagIdIfImpExtPidIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()),
-                givenImp(ext -> ext.pid("123"), identity()));
+                givenImp(ext -> ext.pid("imp_id"), identity()));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -154,7 +156,7 @@ public class RichaudienceBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .hasSize(2)
                 .extracting(Imp::getTagid)
-                .containsExactly(null, "123");
+                .containsExactly(null, "imp_id");
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -267,6 +269,48 @@ public class RichaudienceBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetSiteKeywordsAsImpTagIdWhenSiteIsPresent() {
+        // given
+        final Imp imp = givenImp(impBuilder -> impBuilder.id("imp_id").tagid("tag_id"));
+        final BidRequest bidRequest = givenBidRequest(imp)
+                .toBuilder()
+                .site(Site.builder().build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getSite)
+                .extracting(Site::getKeywords)
+                .containsExactly("tagId=tag_id");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetAppKeywordsAsImpTagIdWhenAppIsPresent() {
+        // given
+        final Imp imp = givenImp(impBuilder -> impBuilder.id("imp_id").tagid("tag_id"));
+        final BidRequest bidRequest = givenBidRequest(imp)
+                .toBuilder()
+                .app(App.builder().build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getApp)
+                .extracting(App::getKeywords)
+                .containsExactly("tagId=tag_id");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall("Incorrect body");
@@ -314,10 +358,10 @@ public class RichaudienceBidderTest extends VertxTest {
     public void makeBidsShouldReturnBannerIfPresentInImp() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenImp(impBuilder -> impBuilder.id("123").banner(Banner.builder().build())));
+                givenImp(impBuilder -> impBuilder.id("imp_id").banner(Banner.builder().build())));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("imp_id"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
@@ -325,33 +369,33 @@ public class RichaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("imp_id").build(), banner, null));
     }
 
     @Test
     public void makeBidsShouldReturnVideoTypeIfPresentInImp() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                givenImp(impBuilder -> impBuilder.id("123").video(Video.builder().build())));
+        final Video video = Video.builder().w(100).h(100).build();
+        final BidRequest bidRequest = givenBidRequest(givenImp(impBuilder -> impBuilder.id("imp_id").video(video)));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("imp_id"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, null));
+        assertThat(result.getValue()).containsExactly(
+                BidderBid.of(Bid.builder().w(100).h(100).impid("imp_id").build(), BidType.video, null));
     }
 
     @Test
     public void makeBidsShouldReturnDefaultBannerTypeIfNotPresentAnyTypeInImp() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(Imp.builder().build());
+        final BidRequest bidRequest = givenBidRequest(Imp.builder().id("imp_id").build());
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("imp_id"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
@@ -359,7 +403,22 @@ public class RichaudienceBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+                .containsExactly(BidderBid.of(Bid.builder().impid("imp_id").build(), banner, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnImpWithoutImpsWithUnknownIds() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(Imp.builder().id("imp_id").build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("unknown_imp_id"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).isEmpty();
     }
 
     private BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
@@ -382,6 +441,7 @@ public class RichaudienceBidderTest extends VertxTest {
         final ExtImpRichaudience extImpRichaudience = extCustomizer.apply(ExtImpRichaudience.builder()).build();
         final ObjectNode ext = mapper.valueToTree(ExtPrebid.of(null, extImpRichaudience));
         final Imp.ImpBuilder builder = Imp.builder()
+                .id("imp_id")
                 .banner(Banner.builder().w(21).h(9).build())
                 .ext(ext);
 
