@@ -52,6 +52,8 @@ class CookieSyncSpec extends BaseSpec {
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final boolean CORS_SUPPORT = false
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
+    private static final String ALL_BIDDERS = "*"
+    private static final String DEFAULT_PBS_BIDDERS_SIZE = 8
 
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.redirect.url"         : USER_SYNC_URL,
@@ -84,9 +86,9 @@ class CookieSyncSpec extends BaseSpec {
             "adapters.${APPNEXUS.value}.usersync.redirect.support-cors": CORS_SUPPORT as String,
             "adapters.${APPNEXUS.value}.usersync.iframe.url"           : "https://test.iframe.endpoint.com",
             "adapters.${APPNEXUS.value}.usersync.iframe.support-cors"  : CORS_SUPPORT as String]
-    private static final Map<String, String> AAX_CONFIG =       ["adapters.${AAX.value}.enabled": "true"]
+    private static final Map<String, String> AAX_CONFIG = ["adapters.${AAX.value}.enabled": "true"]
     private static final Map<String, String> ACUITYADS_CONFIG = ["adapters.${ACUITYADS.value}.enabled": "true"]
-    private static final Map<String, String> ADKERNEL_CONFIG =  ["adapters.${ADKERNEL.value}.enabled": "true"]
+    private static final Map<String, String> ADKERNEL_CONFIG = ["adapters.${ADKERNEL.value}.enabled": "true"]
 
     private static final Map<String, String> PBS_CONFIG = APPNEXUS_CONFIG + RUBICON_CONFIG + OPENX_CONFIG +
             GENERIC_CONFIG + ACEEX_CONFIG + AAX_CONFIG + ACUITYADS_CONFIG + ADKERNEL_CONFIG + ["cookie-sync.pri": "grid, ix, adkernel"]
@@ -1481,7 +1483,7 @@ class CookieSyncSpec extends BaseSpec {
     def "PBS cookie sync request should exclude all iframe bidders when asterisk present in bidders filterSettings"() {
         given: "Empty cookie sync request body"
         def filterSettings = new FilterSettings().tap {
-            iframe = new MethodFilter(bidders: "*", filter: EXCLUDE)
+            iframe = new MethodFilter(bidders: ALL_BIDDERS, filter: EXCLUDE)
         }
         def cookieSyncRequest = new CookieSyncRequest(filterSettings: filterSettings, limit: 0)
 
@@ -1501,7 +1503,7 @@ class CookieSyncSpec extends BaseSpec {
     def "PBS cookie sync request should exclude all image bidders when asterisk present in bidders filterSettings"() {
         given: "Empty cookie sync request body"
         def filterSettings = new FilterSettings().tap {
-            image = new MethodFilter(bidders: "*", filter: EXCLUDE)
+            image = new MethodFilter(bidders: ALL_BIDDERS, filter: EXCLUDE)
         }
         def cookieSyncRequest = new CookieSyncRequest(filterSettings: filterSettings, limit: 0)
 
@@ -1821,7 +1823,7 @@ class CookieSyncSpec extends BaseSpec {
         then: "Response should have status 'NO_COOKIE'"
         assert response.status == NO_COOKIE
 
-        and: "Response shouldn't contain proper"
+        and: "Response shouldn't contain amount of invalid bidder"
         assert response.getBidderStatus().size() == 0
 
         where:
@@ -1838,7 +1840,7 @@ class CookieSyncSpec extends BaseSpec {
         then: "Response should have status 'NO_COOKIE'"
         assert response.status == NO_COOKIE
 
-        and: "Response shouldn't contain proper"
+        and: "Response should contain amount of bidder that define in request"
         assert response.getBidderStatus().size() == cookieSyncRequest.limit
 
         where:
@@ -1859,11 +1861,11 @@ class CookieSyncSpec extends BaseSpec {
         then: "Response should have status 'NO_COOKIE'"
         assert response.status == NO_COOKIE
 
-        and: "Response shouldn't contain proper"
+        and: "Response should contain amount of bidder that define in request"
         assert response.getBidderStatus().size() == cookieSyncRequest.limit
     }
 
-    def "PBS cookie sync request should return all users sync bidders when limit is null"() {
+    def "PBS cookie sync request should return eight users sync bidders when limit isn't define"() {
         given: "Empty cookie sync request body"
         def cookieSyncRequest = new CookieSyncRequest().tap {
             limit = null
@@ -1876,8 +1878,8 @@ class CookieSyncSpec extends BaseSpec {
         then: "Response should have status 'NO_COOKIE'"
         assert response.status == NO_COOKIE
 
-        and: "Response should contain configured bidders"
-        assert response?.getBidderStatus()?.size() == 8
+        and: "Response should contain eight bidder by default"
+        assert response?.getBidderStatus()?.size() == DEFAULT_PBS_BIDDERS_SIZE
     }
 
     def "PBS cookie sync request should limit the number of returned bidders"() {

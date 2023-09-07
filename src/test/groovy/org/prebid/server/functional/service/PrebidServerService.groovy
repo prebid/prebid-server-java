@@ -119,7 +119,7 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     @Step("[POST] /cookie_sync without cookie")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request) {
-        def response = postCookieSync(request, null)
+        def response = postCookieSync(request)
 
         checkResponseStatusCode(response)
         response.as(CookieSyncResponse)
@@ -127,7 +127,7 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     @Step("[POST] /cookie_sync with headers")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request, Map<String, String> headers) {
-        def response = postCookieSync(request, headers)
+        def response = postCookieSync(request, null, headers)
 
         checkResponseStatusCode(response)
         response.as(CookieSyncResponse)
@@ -135,7 +135,7 @@ class PrebidServerService implements ObjectMapperWrapper {
 
     @Step("[POST] /cookie_sync with uids cookie")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request, UidsCookie uidsCookie) {
-        def response = postCookieSync(request, uidsCookie, null)
+        def response = postCookieSync(request, uidsCookie)
 
         checkResponseStatusCode(response)
         response.as(CookieSyncResponse)
@@ -318,21 +318,13 @@ class PrebidServerService implements ObjectMapperWrapper {
                                    .post(AUCTION_ENDPOINT)
     }
 
-    private Response postCookieSync(CookieSyncRequest cookieSyncRequest, Map<String, String> header) {
-        postCookieSync(cookieSyncRequest, null, header)
-    }
-
     private Response postCookieSync(CookieSyncRequest cookieSyncRequest,
                                     UidsCookie uidsCookie = null,
                                     Map<String, ?> additionalCookies = null,
                                     Map<String, String> header = null,
                                     String uidsAudit = null) {
 
-        def cookies = [:]
-
-        if (additionalCookies) {
-            cookies.putAll(additionalCookies)
-        }
+        def cookies = additionalCookies ?: [:]
 
         if (uidsCookie) {
             cookies.put(UIDS_COOKIE_NAME, Base64.urlEncoder.encodeToString(encode(uidsCookie).bytes))
