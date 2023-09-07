@@ -12,7 +12,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -45,12 +44,7 @@ public class PwbidBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://bid.pubwise.io/prebid";
 
-    private PwbidBidder target;
-
-    @Before
-    public void setUp() {
-        target = new PwbidBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final PwbidBidder target = new PwbidBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {

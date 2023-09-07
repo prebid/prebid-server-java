@@ -16,7 +16,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.facebook.proto.FacebookExt;
@@ -49,13 +48,12 @@ public class FacebookBidderTest extends VertxTest {
     private static final String DEFAULT_BID_CURRENCY = "USD";
     public static final String TIMEOUT_NOTIFICATION_URL_TEMPLATE = "https://url/?p=%s&a=%s&auction=%s&ortb_loss_code=2";
 
-    private FacebookBidder facebookBidder;
-
-    @Before
-    public void setUp() {
-        facebookBidder = new FacebookBidder(
-                ENDPOINT_URL, PLATFORM_ID, APP_SECRET, TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper);
-    }
+    private final FacebookBidder target = new FacebookBidder(
+            ENDPOINT_URL,
+            PLATFORM_ID,
+            APP_SECRET,
+            TIMEOUT_NOTIFICATION_URL_TEMPLATE,
+            jacksonMapper);
 
     @Test
     public void creationShouldFailOnBlankArguments() {
@@ -86,11 +84,11 @@ public class FacebookBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.user(User.builder().buyeruid(" ").build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> nullUserResult = facebookBidder.makeHttpRequests(nullUserRequest);
+        final Result<List<HttpRequest<BidRequest>>> nullUserResult = target.makeHttpRequests(nullUserRequest);
         final Result<List<HttpRequest<BidRequest>>> nullBuyerUidResult =
-                facebookBidder.makeHttpRequests(nullBuyerUidRequest);
+                target.makeHttpRequests(nullBuyerUidRequest);
         final Result<List<HttpRequest<BidRequest>>> blankBuyerUidResult =
-                facebookBidder.makeHttpRequests(blankBuyerUidRequest);
+                target.makeHttpRequests(blankBuyerUidRequest);
 
         // then
         assertThat(nullUserResult.getValue()).isEmpty();
@@ -114,7 +112,7 @@ public class FacebookBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -132,9 +130,9 @@ public class FacebookBidderTest extends VertxTest {
 
         // when
         final Result<List<HttpRequest<BidRequest>>> nullPlacementResult =
-                facebookBidder.makeHttpRequests(nullPlacementRequest);
+                target.makeHttpRequests(nullPlacementRequest);
         final Result<List<HttpRequest<BidRequest>>> blankPlacementResult =
-                facebookBidder.makeHttpRequests(blankPlacementRequest);
+                target.makeHttpRequests(blankPlacementRequest);
 
         // then
         assertThat(nullPlacementResult.getValue()).isEmpty();
@@ -156,8 +154,8 @@ public class FacebookBidderTest extends VertxTest {
                 extImpFacebook -> ExtImpFacebook.of("placementId", " "));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> nullPubResult = facebookBidder.makeHttpRequests(nullPubRequest);
-        final Result<List<HttpRequest<BidRequest>>> blankPubResult = facebookBidder.makeHttpRequests(blankPubRequest);
+        final Result<List<HttpRequest<BidRequest>>> nullPubResult = target.makeHttpRequests(nullPubRequest);
+        final Result<List<HttpRequest<BidRequest>>> blankPubResult = target.makeHttpRequests(blankPubRequest);
 
         // then
         assertThat(nullPubResult.getValue()).isEmpty();
@@ -177,7 +175,7 @@ public class FacebookBidderTest extends VertxTest {
                 extImpFacebook -> ExtImpFacebook.of("pla_cement_Id", null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -191,7 +189,7 @@ public class FacebookBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -210,7 +208,7 @@ public class FacebookBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -227,7 +225,7 @@ public class FacebookBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -241,7 +239,7 @@ public class FacebookBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -266,7 +264,7 @@ public class FacebookBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -283,7 +281,7 @@ public class FacebookBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.app(App.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -302,7 +300,7 @@ public class FacebookBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -319,7 +317,7 @@ public class FacebookBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -336,7 +334,7 @@ public class FacebookBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.instl(1), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -357,7 +355,7 @@ public class FacebookBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -378,7 +376,7 @@ public class FacebookBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -396,7 +394,7 @@ public class FacebookBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -417,7 +415,7 @@ public class FacebookBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -442,7 +440,7 @@ public class FacebookBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.app(App.builder().publisher(publisher).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> appResult = facebookBidder.makeHttpRequests(appRequest);
+        final Result<List<HttpRequest<BidRequest>>> appResult = target.makeHttpRequests(appRequest);
 
         // then
         assertThat(appResult.getErrors()).isEmpty();
@@ -462,7 +460,7 @@ public class FacebookBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.site(Site.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> siteResult = facebookBidder.makeHttpRequests(siteRequest);
+        final Result<List<HttpRequest<BidRequest>>> siteResult = target.makeHttpRequests(siteRequest);
 
         // then
         assertThat(siteResult.getErrors()).hasSize(1)
@@ -475,7 +473,7 @@ public class FacebookBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = facebookBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -492,7 +490,7 @@ public class FacebookBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -507,7 +505,7 @@ public class FacebookBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -521,7 +519,7 @@ public class FacebookBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -536,7 +534,7 @@ public class FacebookBidderTest extends VertxTest {
                 Bid.builder().id("bid2").adm(" ").build());
 
         // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -552,7 +550,7 @@ public class FacebookBidderTest extends VertxTest {
                 Bid.builder().id("bid1").adm("invalid").build());
 
         // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -568,7 +566,7 @@ public class FacebookBidderTest extends VertxTest {
                 Bid.builder().id("bid2").adm("{\"bid_id\":\" \"}").build());
 
         // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -586,7 +584,7 @@ public class FacebookBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null), identity());
 
         // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -603,7 +601,7 @@ public class FacebookBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
         // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -622,7 +620,7 @@ public class FacebookBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
         // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -643,7 +641,7 @@ public class FacebookBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(null).video(Video.builder().build()), identity());
 
         // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -662,7 +660,7 @@ public class FacebookBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(null).xNative(Native.builder().build()), identity());
 
         // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -681,7 +679,7 @@ public class FacebookBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(null).audio(Audio.builder().build()), identity());
 
         // when
-        final Result<List<BidderBid>> result = facebookBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -702,7 +700,7 @@ public class FacebookBidderTest extends VertxTest {
                 .build();
 
         // when
-        final HttpRequest<Void> notification = facebookBidder.makeTimeoutNotification(httpRequest);
+        final HttpRequest<Void> notification = target.makeTimeoutNotification(httpRequest);
 
         // then
         assertThat(notification.getUri()).isEqualTo("https://url/?p=101&a=test&auction=req1&ortb_loss_code=2");

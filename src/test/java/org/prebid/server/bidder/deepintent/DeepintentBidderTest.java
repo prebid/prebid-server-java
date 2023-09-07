@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -40,12 +39,7 @@ public class DeepintentBidderTest extends VertxTest {
     private static final String IMP_EXT_TAG_ID = "testTagID";
     private static final String CURRENCY = "USD";
 
-    private DeepintentBidder deepintentBidder;
-
-    @Before
-    public void setUp() {
-        deepintentBidder = new DeepintentBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final DeepintentBidder target = new DeepintentBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -61,7 +55,7 @@ public class DeepintentBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = deepintentBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -78,7 +72,7 @@ public class DeepintentBidderTest extends VertxTest {
                 impBuilder -> impBuilder.id("impId").banner(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = deepintentBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -95,7 +89,7 @@ public class DeepintentBidderTest extends VertxTest {
                 impBuilder -> impBuilder.id("impId").banner(Banner.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = deepintentBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -112,7 +106,7 @@ public class DeepintentBidderTest extends VertxTest {
                 .banner(Banner.builder().format(singletonList(Format.builder().w(77).h(88).build())).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = deepintentBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(0);
@@ -132,7 +126,7 @@ public class DeepintentBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = deepintentBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(0);
@@ -158,7 +152,7 @@ public class DeepintentBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = deepintentBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -184,7 +178,7 @@ public class DeepintentBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = deepintentBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(0);
@@ -213,7 +207,7 @@ public class DeepintentBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = deepintentBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -231,7 +225,7 @@ public class DeepintentBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = deepintentBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -245,7 +239,7 @@ public class DeepintentBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = deepintentBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -262,7 +256,7 @@ public class DeepintentBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("notFoundId"))));
 
         // when
-        final Result<List<BidderBid>> result = deepintentBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
@@ -280,7 +274,7 @@ public class DeepintentBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = deepintentBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

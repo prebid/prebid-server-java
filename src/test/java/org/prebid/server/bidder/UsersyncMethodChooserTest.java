@@ -13,11 +13,6 @@ public class UsersyncMethodChooserTest extends VertxTest {
     private static final String BIDDER = "bidder";
 
     @Test
-    public void shouldPreferIframeOverRedirect() {
-
-    }
-
-    @Test
     public void shouldReturnPreferredMethodWhenFilterIsNull() {
         // given and when
         final UsersyncMethod chosenMethod = UsersyncMethodChooser.from(null)

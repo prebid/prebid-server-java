@@ -9,7 +9,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -45,12 +44,7 @@ public class ScreencoreBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://h1.screencore.io/?kp={{AccountId}}&kn={{SourceId}}";
 
-    private ScreencoreBidder target;
-
-    @Before
-    public void setUp() {
-        target = new ScreencoreBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final ScreencoreBidder target = new ScreencoreBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {

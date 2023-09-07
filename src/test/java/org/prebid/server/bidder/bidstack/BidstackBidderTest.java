@@ -51,15 +51,14 @@ public class BidstackBidderTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    private BidstackBidder bidstackBidder;
-
     @Mock
     private CurrencyConversionService currencyConversionService;
 
+    private BidstackBidder target;
+
     @Before
     public void setUp() {
-        bidstackBidder =
-                new BidstackBidder("https://test.endpoint.com", currencyConversionService, jacksonMapper);
+        target = new BidstackBidder("https://test.endpoint.com", currencyConversionService, jacksonMapper);
     }
 
     @Test
@@ -80,7 +79,7 @@ public class BidstackBidderTest extends VertxTest {
                         .bidfloorcur("EUR"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -101,7 +100,7 @@ public class BidstackBidderTest extends VertxTest {
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -122,7 +121,7 @@ public class BidstackBidderTest extends VertxTest {
                         .bidfloor(BigDecimal.ONE));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final ObjectNode expectedExtNode = mapper.valueToTree(ExtPrebid.of(null,
@@ -148,7 +147,7 @@ public class BidstackBidderTest extends VertxTest {
                         .bidfloor(BigDecimal.ONE));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -169,7 +168,7 @@ public class BidstackBidderTest extends VertxTest {
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("USD"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -187,7 +186,7 @@ public class BidstackBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidstackBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -201,7 +200,7 @@ public class BidstackBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = bidstackBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -218,7 +217,7 @@ public class BidstackBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = bidstackBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -236,7 +235,7 @@ public class BidstackBidderTest extends VertxTest {
                         givenBidResponse(identity())));
 
         // when
-        final Result<List<BidderBid>> result = bidstackBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();

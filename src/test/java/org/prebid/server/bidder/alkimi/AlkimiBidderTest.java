@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -32,9 +31,9 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 
 public class AlkimiBidderTest extends VertxTest {
 
@@ -43,15 +42,8 @@ public class AlkimiBidderTest extends VertxTest {
     private static final String DIV_VIDEO_ID = "div_video_1";
     private static final String DIV_AUDIO_ID = "div_audio_1";
     private static final String PUB_TOKEN = "testPubToken";
-    private static final String TYPE_BANNER = "Banner";
-    private static final String TYPE_VIDEO = "Video";
 
-    private AlkimiBidder alkimiBidder;
-
-    @Before
-    public void setUp() {
-        alkimiBidder = new AlkimiBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AlkimiBidder target = new AlkimiBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -61,7 +53,7 @@ public class AlkimiBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldUseCorrectURL() {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()));
-        final Result<List<HttpRequest<BidRequest>>> result = alkimiBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
@@ -72,7 +64,7 @@ public class AlkimiBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldUpdateImps() {
         final BidRequest bidRequest = givenBidRequest();
-        final Result<List<HttpRequest<BidRequest>>> result = alkimiBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         final BidRequest expectedBidRequest = BidRequest.builder()
                 .imp(List.of(Imp.builder()
@@ -169,7 +161,7 @@ public class AlkimiBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
-        final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         assertThat(result.getErrors())
                 .hasSize(1)
@@ -181,7 +173,7 @@ public class AlkimiBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
-        final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
@@ -192,7 +184,7 @@ public class AlkimiBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
-        final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
@@ -203,7 +195,7 @@ public class AlkimiBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(),
                 mapper.writeValueAsString(givenBidResponse()));
-        final Result<List<BidderBid>> result = alkimiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).contains(BidderBid.of(givenBannerBid(identity()), banner, null));

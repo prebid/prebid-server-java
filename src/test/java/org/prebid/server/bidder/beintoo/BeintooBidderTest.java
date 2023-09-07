@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -39,12 +38,7 @@ public class BeintooBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private BeintooBidder beintooBidder;
-
-    @Before
-    public void setUp() {
-        beintooBidder = new BeintooBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final BeintooBidder target = new BeintooBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -62,7 +56,7 @@ public class BeintooBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = beintooBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -82,7 +76,7 @@ public class BeintooBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = beintooBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -103,7 +97,7 @@ public class BeintooBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = beintooBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -124,7 +118,7 @@ public class BeintooBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = beintooBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -145,7 +139,7 @@ public class BeintooBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = beintooBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -166,7 +160,7 @@ public class BeintooBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = beintooBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -187,7 +181,7 @@ public class BeintooBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = beintooBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -210,7 +204,7 @@ public class BeintooBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = beintooBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -244,7 +238,7 @@ public class BeintooBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = beintooBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -279,7 +273,7 @@ public class BeintooBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = beintooBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -303,7 +297,7 @@ public class BeintooBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = beintooBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -322,7 +316,7 @@ public class BeintooBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = beintooBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -337,7 +331,7 @@ public class BeintooBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = beintooBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -355,7 +349,7 @@ public class BeintooBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.id("321").impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = beintooBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

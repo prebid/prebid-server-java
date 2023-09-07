@@ -75,11 +75,11 @@ public class SharethroughBidderTest extends VertxTest {
     @Mock
     private PrebidVersionProvider prebidVersionProvider;
 
-    private SharethroughBidder sharethroughBidder;
+    private SharethroughBidder target;
 
     @Before
     public void setUp() {
-        sharethroughBidder = new SharethroughBidder(ENDPOINT_URL,
+        target = new SharethroughBidder(ENDPOINT_URL,
                 currencyConversionService,
                 prebidVersionProvider,
                 jacksonMapper);
@@ -100,7 +100,7 @@ public class SharethroughBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -119,7 +119,7 @@ public class SharethroughBidderTest extends VertxTest {
 
         // when
         when(prebidVersionProvider.getNameVersionRecord()).thenReturn("v2");
-        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -138,7 +138,7 @@ public class SharethroughBidderTest extends VertxTest {
 
         // when
         when(prebidVersionProvider.getNameVersionRecord()).thenReturn("v2");
-        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -161,7 +161,7 @@ public class SharethroughBidderTest extends VertxTest {
 
         // when
         when(prebidVersionProvider.getNameVersionRecord()).thenReturn("v2");
-        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Map<String, JsonNode> stringJsonNodeMap = expectedResponse();
@@ -180,7 +180,7 @@ public class SharethroughBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -197,7 +197,7 @@ public class SharethroughBidderTest extends VertxTest {
                 .badv(singletonList("req.badv")), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -216,7 +216,7 @@ public class SharethroughBidderTest extends VertxTest {
                 impBuilder -> impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -237,7 +237,7 @@ public class SharethroughBidderTest extends VertxTest {
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -260,7 +260,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .audio(Audio.builder().mimes(List.of("audio/mp4")).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(multiformatBidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(multiformatBidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -320,7 +320,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .audio(Audio.builder().mimes(List.of("audio/mp4")).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sharethroughBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final List<BidderError> errors = result.getErrors();
@@ -335,7 +335,7 @@ public class SharethroughBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -353,7 +353,7 @@ public class SharethroughBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -368,7 +368,7 @@ public class SharethroughBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -387,7 +387,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .build());
 
         // when
-        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -410,7 +410,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).hasSize(0);
@@ -434,7 +434,7 @@ public class SharethroughBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = sharethroughBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).hasSize(1);
