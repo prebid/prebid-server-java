@@ -1,6 +1,5 @@
 package org.prebid.server.bidder;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
@@ -13,17 +12,12 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 public class DisabledBidderTest {
 
-    private DisabledBidder disabledBidder;
-
-    @Before
-    public void setUp() {
-        disabledBidder = new DisabledBidder("error message");
-    }
+    private final DisabledBidder target = new DisabledBidder("error message");
 
     @Test
     public void makeHttpRequestsShouldRespondWithExpectedError() {
         // when
-        final Result<List<HttpRequest<Void>>> result = disabledBidder.makeHttpRequests(null);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -34,12 +28,12 @@ public class DisabledBidderTest {
     @Test
     public void makeBidsShouldBeUnsupported() {
         assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> disabledBidder.makeBids(null, null));
+                .isThrownBy(() -> target.makeBids(null, null));
     }
 
     @Test
     public void extractTargetingShouldBeUnsupported() {
         assertThatExceptionOfType(UnsupportedOperationException.class)
-                .isThrownBy(() -> disabledBidder.extractTargeting(null));
+                .isThrownBy(() -> target.extractTargeting(null));
     }
 }

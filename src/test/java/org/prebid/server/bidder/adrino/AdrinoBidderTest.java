@@ -9,7 +9,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -38,12 +37,7 @@ public class AdrinoBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://prd-prebid-bidder.adrino.io/openrtb/bid";
 
-    private AdrinoBidder target;
-
-    @Before
-    public void setUp() {
-        target = new AdrinoBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdrinoBidder target = new AdrinoBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void makeHttpRequestsShouldReturnHttpRequestWithCorrectBodyHeadersAndMethod() {

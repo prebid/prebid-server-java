@@ -8,7 +8,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -37,12 +36,7 @@ public class InfytvBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://nxs.infy.tv/pbs/openrtb";
 
-    private InfytvBidder target;
-
-    @Before
-    public void setUp() {
-        target = new InfytvBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final InfytvBidder target = new InfytvBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {

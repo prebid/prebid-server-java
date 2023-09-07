@@ -9,7 +9,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -37,17 +36,11 @@ public class TrafficGateBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://{{subdomain}}.domain";
 
-    private TrafficGateBidder trafficGate;
-
-    @Before
-    public void setUp() {
-        trafficGate = new TrafficGateBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final TrafficGateBidder target = new TrafficGateBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() ->
-                new TrafficGateBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new TrafficGateBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -60,7 +53,7 @@ public class TrafficGateBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = trafficGate.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -76,7 +69,7 @@ public class TrafficGateBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = trafficGate.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -93,7 +86,7 @@ public class TrafficGateBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = trafficGate.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -109,7 +102,7 @@ public class TrafficGateBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = trafficGate.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -123,7 +116,7 @@ public class TrafficGateBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = trafficGate.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -141,7 +134,7 @@ public class TrafficGateBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(givenExtPrebidType("video")))));
 
         // when
-        final Result<List<BidderBid>> result = trafficGate.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -160,7 +153,7 @@ public class TrafficGateBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(givenExtPrebidType("banner")))));
 
         // when
-        final Result<List<BidderBid>> result = trafficGate.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -179,7 +172,7 @@ public class TrafficGateBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(givenExtPrebidType("audio")))));
 
         // when
-        final Result<List<BidderBid>> result = trafficGate.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -198,7 +191,7 @@ public class TrafficGateBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(givenExtPrebidType("native")))));
 
         // when
-        final Result<List<BidderBid>> result = trafficGate.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -217,7 +210,7 @@ public class TrafficGateBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(givenExtPrebidType(null)))));
 
         // when
-        final Result<List<BidderBid>> result = trafficGate.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -236,7 +229,7 @@ public class TrafficGateBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(givenExtPrebidType("unknown")))));
 
         // when
-        final Result<List<BidderBid>> result = trafficGate.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -255,7 +248,7 @@ public class TrafficGateBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = trafficGate.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

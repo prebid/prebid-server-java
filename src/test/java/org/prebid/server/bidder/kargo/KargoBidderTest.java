@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -34,12 +33,7 @@ public class KargoBidderTest extends VertxTest {
 
     public static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private KargoBidder kargoBidder;
-
-    @Before
-    public void setUp() {
-        kargoBidder = new KargoBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final KargoBidder target = new KargoBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -52,7 +46,7 @@ public class KargoBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = kargoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -68,7 +62,7 @@ public class KargoBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = kargoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -85,7 +79,7 @@ public class KargoBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = kargoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -99,7 +93,7 @@ public class KargoBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = kargoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -114,7 +108,7 @@ public class KargoBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(identity())));
 
         // when
-        final Result<List<BidderBid>> result = kargoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -131,7 +125,7 @@ public class KargoBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.ext(mediaType))));
 
         // when
-        final Result<List<BidderBid>> result = kargoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -148,7 +142,7 @@ public class KargoBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.ext(mediaType))));
 
         // when
-        final Result<List<BidderBid>> result = kargoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -165,7 +159,7 @@ public class KargoBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.ext(mediaType))));
 
         // when
-        final Result<List<BidderBid>> result = kargoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -182,7 +176,7 @@ public class KargoBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.ext(mediaType))));
 
         // when
-        final Result<List<BidderBid>> result = kargoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -199,7 +193,7 @@ public class KargoBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.ext(mediaType))));
 
         // when
-        final Result<List<BidderBid>> result = kargoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
