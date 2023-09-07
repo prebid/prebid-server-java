@@ -10,12 +10,14 @@ import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
+import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
@@ -264,6 +266,7 @@ public class WebConfiguration {
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             CookieSyncGppService cookieSyncGppProcessor,
+            ActivityInfrastructureCreator activityInfrastructureCreator,
             ApplicationSettings applicationSettings,
             CookieSyncService cookieSyncService,
             PrivacyEnforcementService privacyEnforcementService,
@@ -277,6 +280,7 @@ public class WebConfiguration {
                 logSamplingRate,
                 uidsCookieService,
                 cookieSyncGppProcessor,
+                activityInfrastructureCreator,
                 cookieSyncService,
                 applicationSettings,
                 privacyEnforcementService,
@@ -293,6 +297,8 @@ public class WebConfiguration {
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             PrivacyEnforcementService privacyEnforcementService,
+            SetuidGppService setuidGppService,
+            ActivityInfrastructureCreator activityInfrastructureCreator,
             HostVendorTcfDefinerService tcfDefinerService,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
@@ -304,6 +310,8 @@ public class WebConfiguration {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                setuidGppService,
+                activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporter,
                 metrics,
@@ -373,6 +381,7 @@ public class WebConfiguration {
             UidsCookieService uidsCookieService,
             @Autowired(required = false) ApplicationEventService applicationEventService,
             @Autowired(required = false) UserService userService,
+            ActivityInfrastructureCreator activityInfrastructureCreator,
             AnalyticsReporterDelegator analyticsReporterDelegator,
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
@@ -383,6 +392,7 @@ public class WebConfiguration {
                 uidsCookieService,
                 applicationEventService,
                 userService,
+                activityInfrastructureCreator,
                 analyticsReporterDelegator,
                 timeoutFactory,
                 applicationSettings,

@@ -17,6 +17,7 @@ class Prebid {
     BidAdjustmentFactors bidAdjustmentFactors
     PrebidCurrency currency
     Targeting targeting
+    TraceLevel trace
     PrebidStoredRequest storedRequest
     PrebidCache cache
     ExtRequestPrebidData data

@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.improvedigital.proto.ImprovedigitalBidExt;
@@ -42,12 +41,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/{{PathPrefix}}";
 
-    private ImprovedigitalBidder improvedigitalBidder;
-
-    @Before
-    public void setUp() {
-        improvedigitalBidder = new ImprovedigitalBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final ImprovedigitalBidder target = new ImprovedigitalBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -71,7 +65,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -103,7 +97,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -128,7 +122,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 .id("request_id"), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final ExtUser expectedExtUser = jacksonMapper.fillExtension(extUser,
@@ -155,7 +149,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 bidRequestBuilder.user(User.builder().ext(extUser).build()).id("request_id"), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -178,7 +172,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -195,7 +189,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -213,7 +207,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("No placementId provided"));
@@ -226,7 +220,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(asList(imp, imp)).build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = improvedigitalBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2);
@@ -238,7 +232,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -256,7 +250,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -270,7 +264,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -290,7 +284,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                 )).build()));
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -307,7 +301,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
@@ -324,7 +318,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -344,7 +338,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         );
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -365,7 +359,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -383,7 +377,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -399,7 +393,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("456"))));
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
@@ -423,7 +417,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         );
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -453,7 +447,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         );
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -484,7 +478,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         );
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -515,7 +509,7 @@ public class ImprovedigitalBidderTest extends VertxTest {
         );
 
         // when
-        final Result<List<BidderBid>> result = improvedigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

@@ -2,6 +2,8 @@ package org.prebid.server.metric;
 
 public enum MetricName {
 
+    general,
+
     // connection
     connection_accept_errors,
 
@@ -166,7 +168,11 @@ public enum MetricName {
     delivery_requests,
     delivery_request_failed,
     delivery_request_successful,
-    delivery_request_time;
+    delivery_request_time,
+
+    // activity
+    disallowed_count("disallowed.count"),
+    processed_rules_count("processedrules.count");
 
     private final String name;
 

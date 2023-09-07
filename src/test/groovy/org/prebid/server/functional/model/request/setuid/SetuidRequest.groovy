@@ -15,6 +15,9 @@ class SetuidRequest {
     String gdpr
     @JsonProperty("gdpr_consent")
     String gdprConsent
+    @JsonProperty("gpp_sid")
+    String gppSid
+    String gpp
     @JsonProperty("f")
     Format format
     String account

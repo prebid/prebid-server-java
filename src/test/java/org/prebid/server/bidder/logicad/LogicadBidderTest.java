@@ -8,7 +8,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.assertj.core.api.Assertions;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -32,12 +31,7 @@ public class LogicadBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private LogicadBidder logicadBidder;
-
-    @Before
-    public void setUp() {
-        logicadBidder = new LogicadBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final LogicadBidder target = new LogicadBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -55,7 +49,7 @@ public class LogicadBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = logicadBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -69,7 +63,7 @@ public class LogicadBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), ExtImpLogicad.of(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = logicadBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -83,7 +77,7 @@ public class LogicadBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), ExtImpLogicad.of(" "));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = logicadBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -101,7 +95,7 @@ public class LogicadBidderTest extends VertxTest {
                 ExtImpLogicad.of("tid"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = logicadBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -122,7 +116,7 @@ public class LogicadBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = logicadBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -138,7 +132,7 @@ public class LogicadBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = logicadBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -152,7 +146,7 @@ public class LogicadBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = logicadBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -170,7 +164,7 @@ public class LogicadBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = logicadBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

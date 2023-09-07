@@ -102,6 +102,8 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
         given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
         given(ortb2RequestFactory.updateTimeout(any(), anyLong())).willAnswer(invocation -> invocation.getArgument(0));
+        given(ortb2RequestFactory.activityInfrastructureFrom(any()))
+                .willReturn(Future.succeededFuture());
 
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
@@ -378,7 +380,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         // when
-        Future<WithPodErrors<AuctionContext>> future = target.fromRequest(routingContext, 0L);
+        final Future<WithPodErrors<AuctionContext>> future = target.fromRequest(routingContext, 0L);
 
         // then
         assertThat(future.failed()).isTrue();

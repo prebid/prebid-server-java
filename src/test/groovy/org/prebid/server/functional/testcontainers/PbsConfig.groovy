@@ -27,6 +27,7 @@ LIMIT 1
 """
 
     static final Map<String, String> DEFAULT_ENV = [
+            "logging.sampling-rate"                      : "1.0",
             "auction.ad-server-currency"                 : "USD",
             "auction.stored-requests-timeout-ms"         : "1000",
             "metrics.prefix"                             : "prebid",
@@ -103,9 +104,11 @@ LIMIT 1
 
     // due to a config validation we'll need to circumvent all future aliases this way
     static Map<String, String> getBidderAliasConfig() {
-        ["adapters.generic.aliases.cwire.meta-info.site-media-types": "",
-         "adapters.generic.aliases.blue.meta-info.app-media-types"  : "",
-         "adapters.generic.aliases.blue.meta-info.site-media-types" : ""]
+        ["adapters.generic.aliases.cwire.meta-info.site-media-types"         : "",
+         "adapters.generic.aliases.blue.meta-info.app-media-types"           : "",
+         "adapters.generic.aliases.blue.meta-info.site-media-types"          : "",
+         "adapters.generic.aliases.adsinteractive.meta-info.app-media-types" : "",
+         "adapters.generic.aliases.adsinteractive.meta-info.site-media-types": ""]
     }
 
     private PbsConfig() {}

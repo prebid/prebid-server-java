@@ -113,8 +113,8 @@ public class DeliveryProgressServiceTest extends VertxTest {
                                         now.plusMinutes(1),
                                         singleton(Token.of(1, 200))))));
 
-        LineItem lineItem1 = LineItem.of(firstPlanResponse, null, null, now);
-        LineItem lineItem12 = LineItem.of(secondPlanResponse, null, null, now);
+        final LineItem lineItem1 = LineItem.of(firstPlanResponse, null, null, now);
+        final LineItem lineItem12 = LineItem.of(secondPlanResponse, null, null, now);
 
         given(lineItemService.getLineItems()).willReturn(
                 singletonList(lineItem1),
@@ -415,7 +415,7 @@ public class DeliveryProgressServiceTest extends VertxTest {
 
     private void recordLineItemsServed(int times, String... lineItemIds) {
         final TxnLog txnLog = TxnLog.create();
-        AuctionContext auctionContext = AuctionContext.builder()
+        final AuctionContext auctionContext = AuctionContext.builder()
                 .account(Account.empty("1001"))
                 .txnLog(txnLog)
                 .build();

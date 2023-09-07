@@ -18,6 +18,7 @@
       },
       "ext": {
         "sovrn": {
+          "adunitcode": "sovrn_auc",
           "tagid": "tag_id"
         }
       }

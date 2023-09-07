@@ -1,10 +1,8 @@
 package org.prebid.server.proto.openrtb.ext.request.bidmachine;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtImpBidmachine {
 
     String host;

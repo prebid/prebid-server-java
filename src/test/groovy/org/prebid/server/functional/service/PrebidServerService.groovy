@@ -82,7 +82,7 @@ class PrebidServerService implements ObjectMapperWrapper {
     }
 
     @Step("[POST] /openrtb2/auction")
-    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, String> headers = [:]) {
+    BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, ?> headers = [:]) {
         def response = postAuction(bidRequest, headers)
 
         checkResponseStatusCode(response)
@@ -125,6 +125,14 @@ class PrebidServerService implements ObjectMapperWrapper {
         response.as(CookieSyncResponse)
     }
 
+    @Step("[POST] /cookie_sync with headers")
+    CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request, Map<String, String> headers) {
+        def response = postCookieSync(request, headers)
+
+        checkResponseStatusCode(response)
+        response.as(CookieSyncResponse)
+    }
+
     @Step("[POST] /cookie_sync with uids cookie")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request, UidsCookie uidsCookie) {
         def response = postCookieSync(request, uidsCookie)
@@ -144,11 +152,12 @@ class PrebidServerService implements ObjectMapperWrapper {
     }
 
     @Step("[GET] /setuid")
-    SetuidResponse sendSetUidRequest(SetuidRequest request, UidsCookie uidsCookie) {
+    SetuidResponse sendSetUidRequest(SetuidRequest request, UidsCookie uidsCookie, Map header = [:]) {
         def uidsCookieAsJson = encode(uidsCookie)
         def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
         def response = given(requestSpecification).cookie(UIDS_COOKIE_NAME, uidsCookieAsEncodedJson)
                                                   .queryParams(toMap(request))
+                                                  .headers(header)
                                                   .get(SET_UID_ENDPOINT)
 
         checkResponseStatusCode(response)
@@ -156,6 +165,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         def setuidResponse = new SetuidResponse()
         setuidResponse.uidsCookie = getDecodedUidsCookie(response)
         setuidResponse.responseBody = response.asByteArray()
+        setuidResponse.headers = response.headers()
         setuidResponse
     }
 
@@ -292,7 +302,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         this
     }
 
-    private Response postAuction(BidRequest bidRequest, Map<String, String> headers = [:]) {
+    private Response postAuction(BidRequest bidRequest, Map<String, ?> headers = [:]) {
         def payload = encode(bidRequest)
 
         given(requestSpecification).headers(headers)
@@ -300,9 +310,14 @@ class PrebidServerService implements ObjectMapperWrapper {
                                    .post(AUCTION_ENDPOINT)
     }
 
+    private Response postCookieSync(CookieSyncRequest cookieSyncRequest, Map<String, String> header) {
+        postCookieSync(cookieSyncRequest, null, header)
+    }
+
     private Response postCookieSync(CookieSyncRequest cookieSyncRequest,
                                     UidsCookie uidsCookie = null,
-                                    Map<String, ?> additionalCookies = null) {
+                                    Map<String, ?> additionalCookies = null,
+                                    Map<String, String> header = null) {
 
         def cookies = [:]
 
@@ -314,14 +329,24 @@ class PrebidServerService implements ObjectMapperWrapper {
             cookies.put(UIDS_COOKIE_NAME, Base64.urlEncoder.encodeToString(encode(uidsCookie).bytes))
         }
 
-        postCookieSync(cookieSyncRequest, cookies)
+        postCookieSync(cookieSyncRequest, cookies, header)
     }
 
     private Response postCookieSync(CookieSyncRequest cookieSyncRequest,
-                                    Map<String, ?> cookies) {
-        given(requestSpecification).body(encode(cookieSyncRequest))
-                                   .cookies(cookies)
-                                   .post(COOKIE_SYNC_ENDPOINT)
+                                    Map<String, ?> cookies,
+                                    Map<String, ?> headers) {
+        def requestSpecification = given(requestSpecification)
+                .body(encode(cookieSyncRequest))
+
+        if (cookies) {
+            requestSpecification.cookies(cookies)
+        }
+
+        if (headers) {
+            requestSpecification.headers(headers)
+        }
+
+        requestSpecification.post(COOKIE_SYNC_ENDPOINT)
     }
 
     private Response getAmp(AmpRequest ampRequest, Map<String, String> headers = [:]) {
@@ -372,6 +397,20 @@ class PrebidServerService implements ObjectMapperWrapper {
             }
         }
         filteredLogs
+    }
+
+    <T> T getValueFromContainer(String path, Class<T> clazz) {
+        pbsContainer.copyFileFromContainer(path, { inputStream ->
+            return decode(inputStream, clazz)
+        })
+    }
+
+    Boolean isFileExist(String path) {
+        pbsContainer.execInContainer("test", "-f", path).getExitCode() == 0
+    }
+
+    void deleteFilesInDirectory(String directoryPath) {
+        pbsContainer.execInContainer("find", directoryPath, "-maxdepth", "${Integer.MAX_VALUE}", "-type", "f", "-exec", "rm", "-f", "{}", "+")
     }
 
     private static RequestSpecification buildAndGetRequestSpecification(String uri, AuthenticationScheme authScheme) {

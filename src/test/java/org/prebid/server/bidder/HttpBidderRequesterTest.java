@@ -97,7 +97,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Mock
     private HttpServerRequest httpServerRequest;
 
-    private HttpBidderRequester httpBidderRequester;
+    private HttpBidderRequester target;
 
     private Timeout timeout;
     private Timeout expiredTimeout;
@@ -115,7 +115,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         timeout = timeoutFactory.create(500L);
         expiredTimeout = timeoutFactory.create(clock.instant().minusMillis(1500L).toEpochMilli(), 1000L);
 
-        httpBidderRequester = new HttpBidderRequester(
+        target = new HttpBidderRequester(
                 httpClient, null, bidderErrorNotifier, requestEnricher, jacksonMapper);
         given(bidder.makeBidderResponse(any(BidderCall.class), any(BidRequest.class))).willCallRealMethod();
     }
@@ -132,7 +132,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(
+                target.requestBids(
                                 bidder,
                                 bidderRequest,
                                 bidRejectionTracker,
@@ -163,7 +163,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(
+                target.requestBids(
                                 bidder,
                                 bidderRequest,
                                 bidRejectionTracker,
@@ -200,7 +200,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .build();
 
         // when
-        final BidderSeatBid bidderSeatBid = httpBidderRequester
+        final BidderSeatBid bidderSeatBid = target
                 .requestBids(
                         bidder,
                         bidderRequest,
@@ -245,7 +245,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .build();
 
         // when
-        httpBidderRequester.requestBids(
+        target.requestBids(
                 bidder,
                 bidderRequest,
                 bidRejectionTracker,
@@ -276,7 +276,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .build();
 
         // when
-        httpBidderRequester
+        target
                 .requestBids(
                         bidder,
                         bidderRequest,
@@ -310,7 +310,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .build();
 
         // when
-        httpBidderRequester.requestBids(
+        target.requestBids(
                 bidder,
                 bidderRequest,
                 bidRejectionTracker,
@@ -338,7 +338,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester
+                target
                         .requestBids(
                                 bidder,
                                 bidderRequest,
@@ -370,7 +370,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester
+                target
                         .requestBids(
                                 bidder,
                                 bidderRequest,
@@ -407,7 +407,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester
+                target
                         .requestBids(
                                 bidder,
                                 bidderRequest,
@@ -440,7 +440,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .build();
 
         // when
-        httpBidderRequester.requestBids(
+        target.requestBids(
                         bidder,
                         bidderRequest,
                         bidRejectionTracker,
@@ -459,7 +459,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldNotWaitForResponsesWhenAllDealsIsGathered() throws JsonProcessingException {
         // given
-        httpBidderRequester = new HttpBidderRequester(httpClient, new DealsBidderRequestCompletionTrackerFactory(),
+        target = new HttpBidderRequester(httpClient, new DealsBidderRequestCompletionTrackerFactory(),
                 bidderErrorNotifier, requestEnricher, jacksonMapper);
 
         final BidRequest bidRequest = bidRequestWithDeals("deal1", "deal2");
@@ -513,7 +513,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(
+                target.requestBids(
                                 bidder,
                                 bidderRequest,
                                 bidRejectionTracker,
@@ -559,7 +559,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(
+                target.requestBids(
                                 bidder,
                                 bidderRequest,
                                 bidRejectionTracker,
@@ -613,7 +613,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(
+                target.requestBids(
                                 bidder,
                                 bidderRequest,
                                 bidRejectionTracker,
@@ -690,7 +690,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .build();
 
         // when
-        httpBidderRequester.requestBids(
+        target.requestBids(
                         bidder,
                         bidderRequest,
                         bidRejectionTracker,
@@ -729,7 +729,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester
+                target
                         .requestBids(
                                 bidder,
                                 bidderRequest,
@@ -771,7 +771,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(
+                target.requestBids(
                                 bidder,
                                 bidderRequest,
                                 bidRejectionTracker,
@@ -815,7 +815,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester
+                target
                         .requestBids(
                                 bidder,
                                 bidderRequest,
@@ -860,7 +860,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester
+                target
                         .requestBids(
                                 bidder,
                                 bidderRequest,
@@ -899,7 +899,7 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                httpBidderRequester.requestBids(
+                target.requestBids(
                         bidder,
                         bidderRequest,
                         bidRejectionTracker,
@@ -932,7 +932,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .build();
 
         // when
-        httpBidderRequester
+        target
                 .requestBids(
                         bidder,
                         bidderRequest,
@@ -992,7 +992,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .build();
 
         // when
-        final BidderSeatBid bidderSeatBid = httpBidderRequester
+        final BidderSeatBid bidderSeatBid = target
                 .requestBids(
                         bidder,
                         bidderRequest,
@@ -1031,7 +1031,7 @@ public class HttpBidderRequesterTest extends VertxTest {
                 .build();
 
         // when
-        httpBidderRequester
+        target
                 .requestBids(
                         bidder,
                         bidderRequest,

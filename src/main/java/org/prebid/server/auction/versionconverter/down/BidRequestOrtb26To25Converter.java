@@ -76,6 +76,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 modifiedUser,
                 bidRequest.getWlangb(),
                 bidRequest.getCattax(),
+                bidRequest.getDooh(),
                 modifiedSource,
                 modifiedRegs)
 
@@ -87,6 +88,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 .user(modifiedUser != null ? modifiedUser : user)
                 .wlangb(null)
                 .cattax(null)
+                .dooh(null)
                 .source(modifiedSource != null ? modifiedSource : source)
                 .regs(modifiedRegs != null ? modifiedRegs : regs)
                 .build()
@@ -118,14 +120,23 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         final ObjectNode impExt = imp.getExt();
         final ObjectNode modifiedImpExt = modifyImpExt(impExt, imp.getRwdd());
 
-        return ObjectUtils.anyNotNull(modifiedVideo, modifiedAudio, imp.getSsai(), modifiedImpExt)
+        return ObjectUtils.anyNotNull(modifiedVideo,
+                modifiedAudio,
+                imp.getSsai(),
+                imp.getQty(),
+                imp.getRefresh(),
+                modifiedImpExt)
+
                 ? imp.toBuilder()
                 .video(modifiedVideo != null ? modifiedVideo : video)
                 .audio(modifiedAudio != null ? modifiedAudio : audio)
                 .rwdd(null)
                 .ssai(null)
+                .qty(null)
+                .refresh(null)
                 .ext(modifiedImpExt != null ? modifiedImpExt : impExt)
                 .build()
+
                 : null;
     }
 
@@ -141,7 +152,8 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 video.getPodseq(),
                 video.getRqddurs(),
                 video.getSlotinpod(),
-                video.getMincpmpersec())
+                video.getMincpmpersec(),
+                video.getPlcmt())
 
                 ? video.toBuilder()
                 .maxseq(null)
@@ -151,6 +163,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 .rqddurs(null)
                 .slotinpod(null)
                 .mincpmpersec(null)
+                .plcmt(null)
                 .build()
 
                 : null;
@@ -213,13 +226,21 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         final Content content = site.getContent();
         final Content modifiedContent = modifyContent(content);
 
-        return ObjectUtils.anyNotNull(site.getCattax(), modifiedPublisher, modifiedContent, site.getKwarray())
+        return ObjectUtils.anyNotNull(
+                site.getCattax(),
+                site.getInventorypartnerdomain(),
+                modifiedPublisher,
+                modifiedContent,
+                site.getKwarray())
+
                 ? site.toBuilder()
                 .cattax(null)
+                .inventorypartnerdomain(null)
                 .publisher(modifiedPublisher != null ? nullIfEmpty(modifiedPublisher) : publisher)
                 .content(modifiedContent != null ? nullIfEmpty(modifiedContent) : content)
                 .kwarray(null)
                 .build()
+
                 : null;
     }
 
@@ -294,13 +315,21 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
         final Content content = app.getContent();
         final Content modifiedContent = modifyContent(content);
 
-        return ObjectUtils.anyNotNull(app.getCattax(), modifiedPublisher, modifiedContent, app.getKwarray())
+        return ObjectUtils.anyNotNull(
+                app.getCattax(),
+                app.getInventorypartnerdomain(),
+                modifiedPublisher,
+                modifiedContent,
+                app.getKwarray())
+
                 ? app.toBuilder()
                 .cattax(null)
+                .inventorypartnerdomain(null)
                 .publisher(modifiedPublisher != null ? nullIfEmpty(modifiedPublisher) : publisher)
                 .content(modifiedContent != null ? nullIfEmpty(modifiedContent) : content)
                 .kwarray(null)
                 .build()
+
                 : null;
     }
 
@@ -389,8 +418,10 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
             return null;
         }
 
-        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy);
-        copyProperties(regs.getExt(), extRegs);
+        final ExtRegs originalExtRegs = regs.getExt();
+        final String gpc = originalExtRegs != null ? originalExtRegs.getGpc() : null;
+        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy, gpc);
+        copyProperties(originalExtRegs, extRegs);
 
         return regs.toBuilder()
                 .gdpr(null)

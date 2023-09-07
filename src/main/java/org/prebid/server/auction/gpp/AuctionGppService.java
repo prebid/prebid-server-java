@@ -3,13 +3,16 @@ package org.prebid.server.auction.gpp;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
+import io.vertx.core.Future;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
+import org.prebid.server.auction.gpp.model.GppContextWrapper;
 import org.prebid.server.auction.gpp.model.privacy.TcfEuV2Privacy;
 import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.model.UpdateResult;
-import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
 import java.util.List;
 import java.util.Objects;
@@ -23,23 +26,25 @@ public class AuctionGppService {
         this.gppService = Objects.requireNonNull(gppService);
     }
 
-    public BidRequest apply(BidRequest bidRequest, AuctionContext auctionContext) {
-        final GppContext gppContext = gppService.processContext(contextFrom(bidRequest));
+    public Future<GppContext> contextFrom(AuctionContext auctionContext) {
+        final GppContextWrapper initialGppContextWrapper = contextFrom(auctionContext.getBidRequest());
+        final GppContextWrapper gppContextWrapper = gppService.processContext(initialGppContextWrapper);
 
-        updateAuctionContext(auctionContext, gppContext);
-        return updateBidRequest(bidRequest, gppContext);
+        enrichWithErrors(auctionContext, gppContextWrapper.getErrors());
+
+        return Future.succeededFuture(gppContextWrapper.getGppContext());
     }
 
-    private static GppContext contextFrom(BidRequest bidRequest) {
+    private static GppContextWrapper contextFrom(BidRequest bidRequest) {
         final Regs regs = bidRequest.getRegs();
 
         final String gpp = regs != null ? regs.getGpp() : null;
         final List<Integer> gppSid = regs != null ? regs.getGppSid() : null;
 
-        final Integer gdpr = regs != null ? regs.getGdpr() : null;
-        final String consent = ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getConsent);
+        final Integer gdpr = gdpr(regs);
+        final String consent = consent(bidRequest.getUser());
 
-        final String usPrivacy = regs != null ? regs.getUsPrivacy() : null;
+        final String usPrivacy = usPrivacy(regs);
 
         return GppContextCreator.from(gpp, gppSid)
                 .with(TcfEuV2Privacy.of(gdpr, consent))
@@ -47,13 +52,48 @@ public class AuctionGppService {
                 .build();
     }
 
-    private static void updateAuctionContext(AuctionContext auctionContext, GppContext gppContext) {
+    private static Integer gdpr(Regs regs) {
+        final Optional<Regs> regsOptional = Optional.ofNullable(regs);
+
+        return regsOptional
+                .map(Regs::getGdpr)
+                .or(() -> regsOptional
+                        .map(Regs::getExt)
+                        .map(ExtRegs::getGdpr))
+                .orElse(null);
+    }
+
+    private static String consent(User user) {
+        final Optional<User> userOptional = Optional.ofNullable(user);
+
+        return userOptional
+                .map(User::getConsent)
+                .or(() -> userOptional
+                        .map(User::getExt)
+                        .map(ExtUser::getConsent))
+                .orElse(null);
+    }
+
+    private static String usPrivacy(Regs regs) {
+        final Optional<Regs> regsOptional = Optional.ofNullable(regs);
+
+        return regsOptional
+                .map(Regs::getUsPrivacy)
+                .or(() -> regsOptional
+                        .map(Regs::getExt)
+                        .map(ExtRegs::getUsPrivacy))
+                .orElse(null);
+    }
+
+    private static void enrichWithErrors(AuctionContext auctionContext, List<String> errors) {
         if (auctionContext.getDebugContext().isDebugEnabled()) {
-            auctionContext.getDebugWarnings().addAll(gppContext.errors());
+            auctionContext.getDebugWarnings().addAll(errors);
         }
     }
 
-    private static BidRequest updateBidRequest(BidRequest bidRequest, GppContext gppContext) {
+    public BidRequest updateBidRequest(BidRequest bidRequest, AuctionContext auctionContext) {
+        final GppContext gppContext = auctionContext.getGppContext();
+
         final UpdateResult<User> updatedUser = updateUser(bidRequest.getUser(), gppContext);
         final UpdateResult<Regs> updatedRegs = updateRegs(bidRequest.getRegs(), gppContext);
 
@@ -81,9 +121,10 @@ public class AuctionGppService {
     }
 
     private static UpdateResult<String> updateConsent(User user, GppContext gppContext) {
+        final TcfEuV2Privacy tcfEuV2Privacy = gppContext.regions().getTcfEuV2Privacy();
         return updateResult(
                 user != null ? user.getConsent() : null,
-                gppContext.regions().getTcfEuV2Privacy().getConsent());
+                tcfEuV2Privacy != null ? tcfEuV2Privacy.getConsent() : null);
     }
 
     private static <T> UpdateResult<T> updateResult(T original, T gpp) {
@@ -110,14 +151,16 @@ public class AuctionGppService {
     }
 
     private static UpdateResult<Integer> updateGdpr(Regs regs, GppContext gppContext) {
+        final TcfEuV2Privacy tcfEuV2Privacy = gppContext.regions().getTcfEuV2Privacy();
         return updateResult(
                 regs != null ? regs.getGdpr() : null,
-                gppContext.regions().getTcfEuV2Privacy().getGdpr());
+                tcfEuV2Privacy != null ? tcfEuV2Privacy.getGdpr() : null);
     }
 
     private static UpdateResult<String> updateUsPrivacy(Regs regs, GppContext gppContext) {
+        final UspV1Privacy uspV1Privacy = gppContext.regions().getUspV1Privacy();
         return updateResult(
                 regs != null ? regs.getUsPrivacy() : null,
-                gppContext.regions().getUspV1Privacy().getUsPrivacy());
+                uspV1Privacy != null ? uspV1Privacy.getUsPrivacy() : null);
     }
 }

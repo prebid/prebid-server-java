@@ -91,6 +91,200 @@ Map<Imp, ExtImp> map = getData();
 Map<Imp, ExtImp> impToExt = getData();
 ```
 
+### Immutability in DTO classes
+
+Make data transfer object(DTO) classes immutable with static constructor. 
+This can be achieved by using Lombok and `@Value(staticConstructor="of")`. When constructor uses multiple(more than 4) arguments, use builder instead(`@Builder`).
+If dto must be modified somewhere, use builders annotation `toBuilder=true` parameter and rebuild instance by calling `toBuilder()` method.
+
+```
+// bad
+public class MyDto {
+
+    private final String value;
+    
+    public MyDto(String value) {
+        this.value = value;
+    }
+    
+    public void setValue(String value) {
+        this.value = value;
+    }
+    
+    public String getValue() {
+        return value;
+    }
+}
+
+// and later usage
+final MyDto myDto = new MyDto("value");
+myDto.setValue("newValue");
+
+// good
+@Builder(toBuilder=true)
+@Value(staticConstructor="of")
+public class MyDto {
+    
+    String value;
+}
+
+// and later usage
+final MyDto myDto = MyDto.of("value");
+final MyDto updatedDto = myDto.toBuilder().value("newValue").build();
+```
+
+### Variables types
+
+Although Java supports the `var` keyword at the time of writing this documentation, the maintainers have chosen not to utilize it within the PBS codebase.
+Instead, write full variable type.
+
+```
+// bad
+final var result = getResult();
+
+// good
+final Data result = getResult(); 
+```
+
+### Parenthesis placement
+
+Enclosing parenthesis should be placed on expression end.
+
+```
+// bad
+methodCall(
+    long list of arguments
+);
+
+// good
+methodCall(
+    long list of arguments);
+```
+
+This also applies for nested expressions.
+
+```
+// bad 
+methodCall(
+    nestedCall(
+        long list of arguments
+    )
+);
+
+// good
+methodCall(
+    nestedCall(
+        long list of arguments));
+```
+
+### Method placement
+
+Please, place methods inside a class in call order.
+
+```
+// bad
+public interface Test {
+
+    void a();
+    
+    void b();
+}
+
+public class TestImpl implements Test {
+
+    @Override
+    public void a() {
+        c();
+    }
+    
+    @Override
+    public void b() {
+        d();
+    }
+   
+    private void d() {
+    ...
+    }
+     
+    private void c() {
+    ...
+    }
+}
+
+// good 
+public interface Test {
+
+    void a();
+    
+    void b();
+}
+
+public class TestImpl implements Test {
+
+    @Override
+    public void a() {
+        c();
+    }
+    
+    private void c() {
+    ...
+    }
+    
+    @Override
+    public void b() {
+        d();
+    }
+   
+    private void d() {
+    ...
+    }
+}
+
+Explanation of an example: 
+Define interface first method, then all methods that it is calling, then second method of an interface and all methods that it is calling, and so on.
+```
+
+### Separation of method signature definition and body
+
+Not strict, but methods with long parameters list, that cannot be placed on single line,
+should add empty line before body definition.
+
+```
+// bad
+public static void method(
+    parameters definitions) {
+    start of body definition
+    
+// good
+public static void method(
+    parameters definitions) {
+    
+    start of body definition
+```
+
+### Use special methods for short collections initializations
+
+Use collection literals where it is possible to define and initialize collections.
+
+```
+// bad 
+final List<String> foo = new ArrayList();
+foo.add("bar");
+
+// good 
+final List<String> foo = List.of("bar");
+```
+
+Also, use special methods of Collections class for one - line empty collection creation. This makes developer intention clear and code less error prone.
+
+```
+// bad 
+return List.of();
+
+// good
+return Collections.emptyList();
+```
+
 ### Make variables final
 
 It is recommended to declare variable as `final`- not strict but rather project convention to keep the code safe.
@@ -128,6 +322,18 @@ boolean result = someShortCondition
 
 // good
 boolean result = someShortCondition ? firstResult : secondResult;
+```
+
+### Complex boolean logic
+
+Do not rely on operator precedence in boolean logic, use parenthesis instead. This will make code simpler and less error-prone.
+
+```
+// bad
+final boolean result = a && b || c;
+
+// good
+final boolean result = (a && b) || c;
 ```
 
 ### Nested method calls
@@ -179,6 +385,10 @@ final ExtRequestTargeting targeting = prebid != null ? prebid.getTargeting() : n
 
 For convenience, the `org.prebid.server.util.ObjectUtil` helper can be used for such kind of operations.
 
+### Optional usages
+
+We are trying to get rid of long chains of null checks, which are described in suggestion above, in favor of Java `Optional` usage.
+
 ### Garbage code
 
 Don't leave commented code (don't think about the future).
@@ -194,6 +404,12 @@ You can always add it later when it will be really desired.
 
 It is strictly prohibited to log any kind of private data about publisher, exchanges or similar sensitive information.
 The idea is to keep this open-source project safe as far as possible.
+
+### Bidder implementation
+
+Try to write new bidders in the same manner with existing adapters. Utilize [sample bidder](https://docs.prebid.org/prebid-server/developers/add-new-bidder-java.html#adapter-code) code or use `GenericBidder` as a reference.</br></br>
+This is needed because bidder adapters tend to be modified frequently. In world where each bidder is written using different coding styles and techniques, maintainers would need to spend long time to understand bidders code before adding any modifications.
+On the other hand, if each bidder adapter is written using common constructs, it is easy to review and modify bidders fast.
 
 ### Tests
 
@@ -219,6 +435,168 @@ where:
 - `given` - initial state, data or conditions.
 - `when` - stimulus: some action against the system under test.
 - `then` - expectations/assertions.
+
+#### Testing instance naming
+
+The team decided to use name `target` for class instance under test.
+
+#### Tests granularity
+
+Unit tests should be as granular as possible. Try to split unit tests into smaller ones until this is impossible to do.
+
+```
+// bad
+@Test
+public void testFooBar() {
+    // when
+    final String foo = service.getFoo();
+    final String bar = service.getBar();
+    
+    // then
+    assertThat(foo).isEqualTo("foo");
+    assertThat(bar).isEqualTo("bar");
+}
+
+// good
+@Test
+public void testFoo() {
+    // when
+    final String foo = service.getFoo();
+    
+    // then
+    assertThat(foo).isEqualTo("foo");
+}
+
+@Test
+public void testBar() {
+    // when
+    final String bar = service.getBar();
+    
+    // then
+    assertThat(bar).isEqualTo("bar");
+}
+```
+
+This also applies to cases where same method is tested with different arguments inside single unit test.
+Note: This represents the replacement we have selected for parameterized testing.
+
+```
+// bad
+@Test
+public void testFooFirstSecond() {
+    // when
+    final String foo1 = service.getFoo(1);
+    final String foo2 = service.getFoo(2);
+    
+    // then
+    assertThat(foo1).isEqualTo("foo1");
+    assertThat(foo2).isEqualTo("foo2");
+}
+
+// good
+@Test
+public void testFooFirst() {
+    // when
+    final String foo1 = service.getFoo(1);
+    
+    // then
+    assertThat(foo1).isEqualTo("foo1");
+}
+
+@Test
+public void testFooSecond() {
+    // when
+    final String foo2 = service.getFoo(2);
+    
+    // then
+    assertThat(foo2).isEqualTo("foo2");
+}
+```
+
+#### Unit tests naming
+
+Name unit tests meaningfully. Test names should give brief description of what unit test tries to check.
+It is also recommended to structure test method names with this scheme:
+name of method that is being tested, word `should`, what a method should return.
+If a method should return something based on a certain condition, add word `when` and description of a condition.
+
+```
+// bad
+@Test
+public void doSomethingTest() {
+    // when and then
+    assertThat(service.processData("data")).isEqualTo("result");
+}
+
+// good
+@Test
+public void processDataShouldReturnResultWhenInputIsData() {
+    // when and then
+    assertThat(service.processData("data")).isEqualTo("result");
+}
+```
+
+#### Place test data as close as possible to test
+
+Place data used in test as close as possible to test code. This will make tests easier to read, review and understand.
+
+```
+// bad
+@Test
+public void testFoo() {
+    // given
+    final String fooData = getSpecificFooData();
+    
+    // when and then
+    assertThat(service.processFoo(fooData)).isEqualTo(getSpecificFooResult());
+}
+
+// good
+@Test
+public void testFoo() {
+    // given
+    final String fooData = "fooData";
+    
+    // when and then
+    assertThat(service.processFoo(fooData)).isEqualTo("fooResult");
+}
+```
+
+This point also implies the next one.
+
+#### Avoid class level constants in test classes
+
+Since we are trying to improve test simplicity and readability and place test data close to tests, we decided to avoid usage of top level constants where it is possible.
+Instead, just inline constant values.
+
+```
+// bad
+public class TestClass {
+
+    private static final String CONSTANT_1 = "foo";
+    ...
+    private static final String CONSTANT_N = "bar";
+    
+    // A bunch of other tests
+    
+    @Test
+    public void testFoo() {
+        // when and then
+        assertThat(service.foo(CONSTANT_1)).isEqualTo(CONSTANT_N);
+    }
+}
+
+// good
+public class TestClass {
+    // A bunch of other tests
+    
+    @Test
+    public void testFoo() {
+        // when and then
+        assertThat(service.foo("foo")).isEqualTo("bar");
+    }
+}
+```
 
 #### Real data in tests
 

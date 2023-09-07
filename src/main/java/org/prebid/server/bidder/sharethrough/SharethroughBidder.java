@@ -1,14 +1,21 @@
 package org.prebid.server.bidder.sharethrough;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.Video;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -39,8 +46,8 @@ import java.util.Objects;
 public class SharethroughBidder implements Bidder<BidRequest> {
 
     private static final String ADAPTER_VERSION = "10.0";
-    private static final String DEFAULT_BID_CURRENCY = "USD";
-    private static final BidType DEFAULT_BID_TYPE = BidType.banner;
+    private static final String BID_CURRENCY = "USD";
+    private static final JsonPointer BID_TYPE_POINTER = JsonPointer.valueOf("/prebid/type");
     private static final TypeReference<ExtPrebid<?, ExtImpSharethrough>> SHARETHROUGH_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -66,24 +73,52 @@ public class SharethroughBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
-        for (Imp imp : request.getImp()) {
-            final ExtImpSharethrough extImpSharethrough;
-            final Price bidFloorPrice;
-            try {
-                extImpSharethrough = parseImpExt(imp);
-                bidFloorPrice = resolveBidFloor(imp, request);
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
-                continue;
+        for (Imp originalImpression : request.getImp()) {
+            final List<Imp> impressionsByMediaType = splitImpressionsByMediaType(originalImpression, errors);
+            for (Imp impression : impressionsByMediaType) {
+                final ExtImpSharethrough extImpSharethrough;
+                final Price bidFloorPrice;
+                try {
+                    extImpSharethrough = parseImpExt(impression);
+                    bidFloorPrice = resolveBidFloor(impression, request);
+                } catch (PreBidException e) {
+                    errors.add(BidderError.badInput(e.getMessage()));
+                    continue;
+                }
+
+                final Imp modifiedImp = modifyImp(impression, extImpSharethrough.getPkey(), bidFloorPrice);
+                final BidRequest modifiedBidRequest = modifyRequest(request, modifiedImp, extImpSharethrough);
+
+                httpRequests.add(makeHttpRequest(modifiedBidRequest));
             }
-
-            final Imp modifiedImp = modifyImp(imp, extImpSharethrough.getPkey(), bidFloorPrice);
-            final BidRequest modifiedBidRequest = modifyRequest(request, modifiedImp, extImpSharethrough);
-
-            httpRequests.add(makeHttpRequest(modifiedBidRequest));
         }
 
         return Result.of(httpRequests, errors);
+    }
+
+    private List<Imp> splitImpressionsByMediaType(Imp impression, List<BidderError> errors) {
+        final List<Imp> splitImpressions = new ArrayList<>();
+
+        final Banner banner = impression.getBanner();
+        final Video video = impression.getVideo();
+        final Native xNative = impression.getXNative();
+        if (ObjectUtils.allNull(video, banner, xNative)) {
+            errors.add(BidderError
+                    .badInput("Invalid MediaType. Sharethrough only supports Banner, Video and Native."));
+            return Collections.emptyList();
+        }
+
+        if (video != null) {
+            splitImpressions.add(impression.toBuilder().banner(null).xNative(null).audio(null).build());
+        }
+        if (banner != null) {
+            splitImpressions.add(impression.toBuilder().video(null).xNative(null).audio(null).build());
+        }
+        if (xNative != null) {
+            splitImpressions.add(impression.toBuilder().banner(null).video(null).audio(null).build());
+        }
+
+        return splitImpressions;
     }
 
     private ExtImpSharethrough parseImpExt(Imp imp) {
@@ -106,9 +141,9 @@ public class SharethroughBidder implements Bidder<BidRequest> {
                 bidFloorPrice.getValue(),
                 bidRequest,
                 bidFloorPrice.getCurrency(),
-                DEFAULT_BID_CURRENCY);
+                BID_CURRENCY);
 
-        return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
+        return Price.of(BID_CURRENCY, convertedPrice);
     }
 
     private static Imp modifyImp(Imp imp, String tagId, Price bidFloorPrice) {
@@ -170,22 +205,20 @@ public class SharethroughBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final BidType bidType = resolveBidType(httpCall.getRequest().getPayload());
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final BidResponse bidResponse;
 
-            return Result.withValues(extractBids(bidResponse, bidType));
+        try {
+            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
+
+        final List<BidderError> errors = new ArrayList<>();
+        return Result.of(extractBids(bidResponse, errors), errors);
     }
 
-    private static BidType resolveBidType(BidRequest bidRequest) {
-        return bidRequest.getImp().get(0).getVideo() != null ? BidType.video : DEFAULT_BID_TYPE;
-    }
-
-    private static List<BidderBid> extractBids(BidResponse bidResponse, BidType bidType) {
+    private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -195,7 +228,34 @@ public class SharethroughBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, bidType, DEFAULT_BID_CURRENCY))
+                .filter(Objects::nonNull)
+                .map(bid -> constructBidderBid(bid, errors))
+                .filter(Objects::nonNull)
                 .toList();
+    }
+
+    private BidderBid constructBidderBid(Bid bid, List<BidderError> errors) {
+        final JsonNode extNode = bid.getExt();
+        final JsonNode bidTypeNode = extNode != null ? extNode.at(BID_TYPE_POINTER) : null;
+
+        if (bidTypeNode == null || !bidTypeNode.isTextual()) {
+            errors.add(BidderError.badServerResponse(
+                    "Failed to parse bid media type for impression " + bid.getImpid()));
+            return null;
+        }
+
+        final BidType bidType = parseBidType(bidTypeNode, errors);
+        return bidType != null
+                ? BidderBid.of(bid, bidType, BID_CURRENCY)
+                : null;
+    }
+
+    private BidType parseBidType(JsonNode bidTypeNode, List<BidderError> errors) {
+        try {
+            return mapper.mapper().convertValue(bidTypeNode, BidType.class);
+        } catch (IllegalArgumentException ignore) {
+            errors.add(BidderError.badServerResponse("invalid BidType: " + bidTypeNode.asText()));
+            return null;
+        }
     }
 }

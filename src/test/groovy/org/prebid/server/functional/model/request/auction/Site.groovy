@@ -1,27 +1,31 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.databind.PropertyNamingStrategies
+import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import org.prebid.server.functional.util.PBSUtils
 
 @ToString(includeNames = true, ignoreNulls = true)
+@JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 class Site {
 
     String id
     String name
     String domain
-    Integer cattax
+    Integer catTax
     List<String> cat
-    List<String> sectioncat
-    List<String> pagecat
+    List<String> sectionCat
+    List<String> pageCat
     String page
     String ref
     String search
     OperationState mobile
-    OperationState privacypolicy
+    OperationState privacyPolicy
     Publisher publisher
     Content content
     String keywords
-    List<String> kwarray
+    List<String> kwArray
+    String inventoryPartnerDomain
     SiteExt ext
 
     static Site getDefaultSite() {
@@ -37,8 +41,8 @@ class Site {
             name = PBSUtils.randomString
             domain = PBSUtils.randomString
             cat = [PBSUtils.randomString]
-            sectioncat = [PBSUtils.randomString]
-            pagecat = [PBSUtils.randomString]
+            sectionCat = [PBSUtils.randomString]
+            pageCat = [PBSUtils.randomString]
             page = PBSUtils.randomString
             ref = PBSUtils.randomString
             search = PBSUtils.randomString
@@ -46,7 +50,7 @@ class Site {
             publisher = Publisher.FPDPublisher
             keywords = PBSUtils.randomString
             mobile = PBSUtils.getRandomEnum(OperationState)
-            privacypolicy = PBSUtils.getRandomEnum(OperationState)
+            privacyPolicy = PBSUtils.getRandomEnum(OperationState)
             ext = SiteExt.FPDSiteExt
         }
     }
@@ -56,8 +60,8 @@ class Site {
             name = PBSUtils.randomString
             domain = PBSUtils.randomString
             cat = [PBSUtils.randomString, PBSUtils.randomString]
-            sectioncat = [PBSUtils.randomString, PBSUtils.randomString]
-            pagecat = [PBSUtils.randomString, PBSUtils.randomString]
+            sectionCat = [PBSUtils.randomString, PBSUtils.randomString]
+            pageCat = [PBSUtils.randomString, PBSUtils.randomString]
             page = PBSUtils.randomString
             ref = PBSUtils.randomString
             search = PBSUtils.randomString

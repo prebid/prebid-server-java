@@ -43,14 +43,14 @@ public class HttpBidderRequestEnricherTest {
     @Mock
     private BidderCatalog bidderCatalog;
 
-    private HttpBidderRequestEnricher requestEnricher;
+    private HttpBidderRequestEnricher target;
 
     @Before
     public void setUp() {
         given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(null);
 
-        requestEnricher = new HttpBidderRequestEnricher(prebidVersionProvider, bidderCatalog);
+        target = new HttpBidderRequestEnricher(prebidVersionProvider, bidderCatalog);
     }
 
     @Test
@@ -61,7 +61,7 @@ public class HttpBidderRequestEnricherTest {
         headers.add("header2", "value2");
 
         // when
-        final MultiMap resultHeaders = requestEnricher.enrichHeaders(
+        final MultiMap resultHeaders = target.enrichHeaders(
                 BIDDER_NAME, headers, CaseInsensitiveMultiMap.empty(), bidderAliases, BidRequest.builder().build());
 
         // then
@@ -80,7 +80,7 @@ public class HttpBidderRequestEnricherTest {
                 .build();
 
         // when
-        final MultiMap resultHeaders = requestEnricher.enrichHeaders(
+        final MultiMap resultHeaders = target.enrichHeaders(
                 BIDDER_NAME,
                 MultiMap.caseInsensitiveMultiMap(),
                 originalHeaders,
@@ -101,7 +101,7 @@ public class HttpBidderRequestEnricherTest {
         final MultiMap bidderRequestHeaders = MultiMap.caseInsensitiveMultiMap().add("Sec-GPC", "0");
 
         // when
-        final MultiMap resultHeaders = requestEnricher.enrichHeaders(
+        final MultiMap resultHeaders = target.enrichHeaders(
                 BIDDER_NAME, bidderRequestHeaders, originalHeaders, bidderAliases, BidRequest.builder().build());
 
         // then
@@ -123,7 +123,7 @@ public class HttpBidderRequestEnricherTest {
                 .build();
 
         // when
-        final MultiMap resultHeaders = requestEnricher.enrichHeaders(
+        final MultiMap resultHeaders = target.enrichHeaders(
                 BIDDER_NAME,
                 MultiMap.caseInsensitiveMultiMap(),
                 CaseInsensitiveMultiMap.empty(),
@@ -158,7 +158,7 @@ public class HttpBidderRequestEnricherTest {
         final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder().build();
 
         // when
-        final MultiMap resultHeaders = requestEnricher
+        final MultiMap resultHeaders = target
                 .enrichHeaders(
                         BIDDER_NAME,
                         MultiMap.caseInsensitiveMultiMap(),
@@ -193,7 +193,7 @@ public class HttpBidderRequestEnricherTest {
         final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder().build();
 
         // when
-        final MultiMap resultHeaders = requestEnricher
+        final MultiMap resultHeaders = target
                 .enrichHeaders(
                         BIDDER_ALIAS_NAME,
                         MultiMap.caseInsensitiveMultiMap(),

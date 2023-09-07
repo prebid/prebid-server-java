@@ -19,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
@@ -100,6 +101,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Mock
     private UidsCookieService uidsCookieService;
     @Mock
+    private ActivityInfrastructureCreator activityInfrastructureCreator;
+    @Mock
     private RequestValidator requestValidator;
     @Mock
     private TimeoutResolver timeoutResolver;
@@ -170,6 +173,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                activityInfrastructureCreator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -192,6 +196,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                activityInfrastructureCreator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -233,6 +238,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                activityInfrastructureCreator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -273,6 +279,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                activityInfrastructureCreator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -618,6 +625,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 0.01,
                 BLACKLISTED_ACCOUNTS,
                 uidsCookieService,
+                activityInfrastructureCreator,
                 requestValidator,
                 timeoutResolver,
                 timeoutFactory,
@@ -920,6 +928,79 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .extracting(Device::getGeo)
                 .extracting(Geo::getCountry)
                 .containsExactly("UKR");
+    }
+
+    @Test
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldAddRegionFromPrivacy() {
+        // given
+        given(countryCodeMapper.mapToAlpha3(any())).willReturn(null);
+
+        final Device device = Device.builder()
+                .geo(Geo.builder().region("regionInRequest").build())
+                .build();
+        final BidRequest bidRequest = givenBidRequest(requestCustomizer -> requestCustomizer.device(device));
+        final PrivacyContext privacyContext = PrivacyContext.of(
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
+                TcfContext.builder()
+                        .geoInfo(GeoInfo.builder().vendor("v").region("region").build())
+                        .build(),
+                null);
+
+        final Account account = Account.empty("id");
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(account)
+                .privacyContext(privacyContext)
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getGeo)
+                .extracting(Geo::getRegion)
+                .isEqualTo("REGION");
+    }
+
+    @Test
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldMakeRegionUpperCasedWhenNoPrivateGeoInfoProvided() {
+        // given
+        given(countryCodeMapper.mapToAlpha3(any())).willReturn(null);
+
+        final Device device = Device.builder()
+                .geo(Geo.builder().region("regionInRequest").build())
+                .build();
+        final BidRequest bidRequest = givenBidRequest(requestCustomizer -> requestCustomizer.device(device));
+
+        final Account account = Account.empty("id");
+
+        final PrivacyContext privacyContextWithoutRegion = PrivacyContext.of(
+                null,
+                TcfContext.builder().geoInfo(GeoInfo.builder().vendor("v").build()).build()
+        );
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(account)
+                .privacyContext(privacyContextWithoutRegion)
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getGeo)
+                .extracting(Geo::getRegion)
+                .isEqualTo("REGIONINREQUEST");
     }
 
     @Test

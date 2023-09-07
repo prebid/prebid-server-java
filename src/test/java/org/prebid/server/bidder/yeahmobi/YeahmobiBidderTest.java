@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -38,12 +37,7 @@ public class YeahmobiBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://{{Host}}/prebid/bid";
 
-    private YeahmobiBidder yeahmobiBidder;
-
-    @Before
-    public void setUp() {
-        yeahmobiBidder = new YeahmobiBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final YeahmobiBidder target = new YeahmobiBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -58,7 +52,7 @@ public class YeahmobiBidderTest extends VertxTest {
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("Invalid ExtImpYeahmobi value"));
@@ -75,7 +69,7 @@ public class YeahmobiBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("Impression id=123, has invalid Ext"));
@@ -91,7 +85,7 @@ public class YeahmobiBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -103,9 +97,10 @@ public class YeahmobiBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldAddNativeRequestIfEmpty() {
         // given
-        String nativeRequest = "{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,\"assets\":[{\"id\":2,"
-                + "\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,\"img\":{\"type\":3,\"wmin\""
-                + ":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},{\"id\":7,"
+        final String nativeRequest = "{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,"
+                + "\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,"
+                + "\"img\":{\"type\":3,\"wmin\":128,\"hmin\":128,"
+                + "\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},{\"id\":7,"
                 + "\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}";
 
         final BidRequest bidRequest = givenBidRequest(
@@ -114,12 +109,13 @@ public class YeahmobiBidderTest extends VertxTest {
                         .xNative(Native.builder().request(nativeRequest).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        String expectedNativeRequest = "{\"native\":{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,"
-                + "\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,\"img\":"
-                + "{\"type\":3,\"wmin\":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},"
+        final String expectedNativeRequest = "{\"native\":{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,"
+                + "\"plcmtcnt\":1,\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,"
+                + "\"required\":1,\"img\":{\"type\":3,\"wmin\":128,\"hmin\":128,"
+                + "\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},"
                 + "{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}}";
 
         assertThat(result.getErrors()).isEmpty();
@@ -140,7 +136,7 @@ public class YeahmobiBidderTest extends VertxTest {
                         .xNative(Native.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -155,7 +151,7 @@ public class YeahmobiBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotNativeRequestIfAlreadyExists() {
         // given
-        String nativeRequest = "{\"native\":{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,"
+        final String nativeRequest = "{\"native\":{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,"
                 + "\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,"
                 + "\"img\":{\"type\":3,\"wmin\":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\","
                 + "\"image/png\"]}},{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}}";
@@ -166,12 +162,13 @@ public class YeahmobiBidderTest extends VertxTest {
                         .xNative(Native.builder().request(nativeRequest).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = yeahmobiBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        String expectedNativeRequest = "{\"native\":{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,"
-                + "\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,\"img\":"
-                + "{\"type\":3,\"wmin\":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},"
+        final String expectedNativeRequest = "{\"native\":{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,"
+                + "\"plcmtcnt\":1,\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,"
+                + "\"required\":1,\"img\":{\"type\":3,\"wmin\":128,\"hmin\":128,"
+                + "\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},"
                 + "{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}}";
 
         assertThat(result.getErrors()).isEmpty();
@@ -189,7 +186,7 @@ public class YeahmobiBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = yeahmobiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -207,7 +204,7 @@ public class YeahmobiBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = yeahmobiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -221,7 +218,7 @@ public class YeahmobiBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = yeahmobiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -239,7 +236,7 @@ public class YeahmobiBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = yeahmobiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -258,7 +255,7 @@ public class YeahmobiBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = yeahmobiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -276,7 +273,7 @@ public class YeahmobiBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = yeahmobiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -295,7 +292,7 @@ public class YeahmobiBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = yeahmobiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

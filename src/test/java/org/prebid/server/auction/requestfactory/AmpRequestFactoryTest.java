@@ -48,6 +48,7 @@ import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
@@ -132,7 +133,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
-        given(ampGppService.apply(any(), any()))
+        given(ampGppService.contextFrom(any())).willReturn(Future.succeededFuture());
+        given(ampGppService.updateBidRequest(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.request()).willReturn(httpRequest);
@@ -163,6 +165,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .getArgument(0));
         given(ortb2RequestFactory.populateUserAdditionalInfo(any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
+        given(ortb2RequestFactory.activityInfrastructureFrom(any()))
+                .willReturn(Future.succeededFuture());
 
         given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, true, null));
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
@@ -1484,6 +1488,22 @@ public class AmpRequestFactoryTest extends VertxTest {
                         .gpp("someGppString")
                         .gppSid(List.of(1, 2, 3))
                         .build());
+    }
+
+    @Test
+    public void shouldReturnBidRequestWithGpc() {
+        // given
+        given(implicitParametersExtractor.gpcFrom(any())).willReturn("1");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs()).isEqualTo(Regs.builder()
+                .ext(ExtRegs.of(null, null, "1"))
+                .build());
     }
 
     @Test

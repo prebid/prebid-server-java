@@ -16,8 +16,8 @@ import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.Video
+import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.scaffolding.FloorsProvider
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
@@ -26,23 +26,24 @@ import java.math.RoundingMode
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.INPROGRESS
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 abstract class PriceFloorsBaseSpec extends BaseSpec {
 
     public static final BigDecimal FLOOR_MIN = 0.5
     public static final BigDecimal FLOOR_MAX = 2
-    public static final Map<String, String> floorsConfig = ["price-floors.enabled"           : "true",
-                                                            "settings.default-account-config": encode(defaultAccountConfigSettings)]
-    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(floorsConfig)
+    public static final Map<String, String> FLOORS_CONFIG = ["price-floors.enabled"           : "true",
+                                                             "settings.default-account-config": encode(defaultAccountConfigSettings)]
 
-    protected static final String basicFetchUrl = Dependencies.networkServiceContainer.rootUri +
-            FloorsProvider.FLOORS_ENDPOINT
-    protected static final FloorsProvider floorsProvider = new FloorsProvider(Dependencies.networkServiceContainer)
-
+    protected static final String basicFetchUrl = networkServiceContainer.rootUri + FloorsProvider.FLOORS_ENDPOINT
+    protected static final FloorsProvider floorsProvider = new FloorsProvider(networkServiceContainer)
     protected static final int MAX_MODEL_WEIGHT = 100
+
     private static final int DEFAULT_MODEL_WEIGHT = 1
     private static final int CURRENCY_CONVERSION_PRECISION = 3
     private static final int FLOOR_VALUE_PRECISION = 4
+
+    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG)
 
     def setupSpec() {
         floorsProvider.setResponse()
@@ -130,14 +131,11 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         floorValue.setScale(FLOOR_VALUE_PRECISION, RoundingMode.HALF_EVEN)
     }
 
-    protected BigDecimal getPriceAfterCurrencyConversion(BigDecimal value, Currency currencyFrom, Currency currencyTo) {
-        def currencyRate = getCurrencyRate(currencyFrom, currencyTo)
+    protected BigDecimal getPriceAfterCurrencyConversion(BigDecimal value,
+                                                         Currency currencyFrom, Currency currencyTo,
+                                                         CurrencyRatesResponse currencyRatesResponse) {
+        def currencyRate = currencyRatesResponse.rates[currencyFrom.value][currencyTo.value]
         def convertedValue = value * currencyRate
         convertedValue.setScale(CURRENCY_CONVERSION_PRECISION, RoundingMode.HALF_EVEN)
-    }
-
-    private BigDecimal getCurrencyRate(Currency currencyFrom, Currency currencyTo) {
-        def response = defaultPbsService.sendCurrencyRatesRequest()
-        response.rates[currencyFrom.value][currencyTo.value]
     }
 }

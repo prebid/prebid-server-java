@@ -2,11 +2,8 @@ package org.prebid.server.bidder.alkimi;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
@@ -15,6 +12,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -65,49 +63,20 @@ public class AlkimiBidder implements Bidder<BidRequest> {
     }
 
     private Imp updateImp(Imp imp, ExtImpAlkimi extImpAlkimi) {
-        final Integer position = extImpAlkimi.getPos();
-        final Banner updatedBanner = updateBanner(imp.getBanner(), position);
-        final Video updatedVideo = updateVideo(imp.getVideo(), position);
+        final Price bidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
 
         return imp.toBuilder()
-                .bidfloor(extImpAlkimi.getBidFloor())
-                .banner(updatedBanner)
-                .video(updatedVideo)
-                .ext(makeImpExt(imp, updatedBanner, updatedVideo, extImpAlkimi))
+                .bidfloor(BidderUtil.isValidPrice(bidFloorPrice)
+                        ? bidFloorPrice.getValue()
+                        : extImpAlkimi.getBidFloor())
+                .instl(extImpAlkimi.getInstl())
+                .exp(extImpAlkimi.getExp())
+                .ext(makeImpExt(imp, extImpAlkimi))
                 .build();
     }
 
-    private Banner updateBanner(Banner banner, Integer position) {
-        if (banner == null || CollectionUtils.isEmpty(banner.getFormat())) {
-            return banner;
-        }
-
-        final Format firstFormat = banner.getFormat().get(0);
-        return banner.toBuilder()
-                .w(firstFormat.getW())
-                .h(firstFormat.getH())
-                .pos(position)
-                .build();
-    }
-
-    private Video updateVideo(Video video, Integer position) {
-        return video != null ? video.toBuilder().pos(position).build() : null;
-    }
-
-    private ObjectNode makeImpExt(Imp imp, Banner banner, Video video, ExtImpAlkimi extImpAlkimi) {
+    private ObjectNode makeImpExt(Imp imp, ExtImpAlkimi extImpAlkimi) {
         final ExtImpAlkimi.ExtImpAlkimiBuilder extBuilder = extImpAlkimi.toBuilder();
-
-        if (banner != null) {
-            extBuilder.width(banner.getW());
-            extBuilder.height(banner.getH());
-            extBuilder.impMediaType(TYPE_BANNER);
-        }
-
-        if (video != null) {
-            extBuilder.width(video.getW());
-            extBuilder.height(video.getH());
-            extBuilder.impMediaType(TYPE_VIDEO);
-        }
 
         extBuilder.adUnitCode(imp.getId());
 

@@ -27,7 +27,8 @@ import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnf
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.PurposeTwoBasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesOneStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
-import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV2;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
+import org.prebid.server.privacy.gdpr.vendorlist.VersionedVendorListService;
 import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.Purposes;
@@ -49,30 +50,26 @@ import java.util.Set;
 public class PrivacyServiceConfiguration {
 
     @Bean
-    VendorListServiceV2 vendorListServiceV2(
+    VendorListService vendorListServiceV2(
             @Value("${gdpr.vendorlist.v2.cache-dir}") String cacheDir,
             @Value("${gdpr.vendorlist.v2.http-endpoint-template}") String endpointTemplate,
             @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
             @Value("${gdpr.vendorlist.v2.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
-            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${gdpr.vendorlist.v2.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
             @Value("${gdpr.vendorlist.v2.deprecated}") boolean deprecated,
-            BidderCatalog bidderCatalog,
             Vertx vertx,
             FileSystem fileSystem,
             HttpClient httpClient,
             Metrics metrics,
             JacksonMapper mapper) {
 
-        return new VendorListServiceV2(
+        return new VendorListService(
                 cacheDir,
                 endpointTemplate,
                 defaultTimeoutMs,
                 refreshMissingListPeriodMs,
                 deprecated,
-                hostVendorId,
                 fallbackVendorListPath,
-                bidderCatalog,
                 vertx,
                 fileSystem,
                 httpClient,
@@ -81,13 +78,52 @@ public class PrivacyServiceConfiguration {
     }
 
     @Bean
+    VendorListService vendorListServiceV3(
+            @Value("${gdpr.vendorlist.v3.cache-dir}") String cacheDir,
+            @Value("${gdpr.vendorlist.v3.http-endpoint-template}") String endpointTemplate,
+            @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
+            @Value("${gdpr.vendorlist.v3.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
+            @Value("${gdpr.vendorlist.v3.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
+            @Value("${gdpr.vendorlist.v3.deprecated}") boolean deprecated,
+            Vertx vertx,
+            FileSystem fileSystem,
+            HttpClient httpClient,
+            Metrics metrics,
+            JacksonMapper mapper) {
+
+        return new VendorListService(
+                cacheDir,
+                endpointTemplate,
+                defaultTimeoutMs,
+                refreshMissingListPeriodMs,
+                deprecated,
+                fallbackVendorListPath,
+                vertx,
+                fileSystem,
+                httpClient,
+                metrics,
+                mapper);
+    }
+
+    @Bean
+    VersionedVendorListService versionedVendorListService(VendorListService vendorListServiceV2,
+                                                          VendorListService vendorListServiceV3) {
+
+        return new VersionedVendorListService(vendorListServiceV2, vendorListServiceV3);
+    }
+
+    @Bean
     Tcf2Service tcf2Service(GdprConfig gdprConfig,
                             List<PurposeStrategy> purposeStrategies,
                             List<SpecialFeaturesStrategy> specialFeaturesStrategies,
-                            VendorListServiceV2 vendorListServiceV2,
+                            VersionedVendorListService versionedVendorListService,
                             BidderCatalog bidderCatalog) {
 
-        return new Tcf2Service(gdprConfig, purposeStrategies, specialFeaturesStrategies, vendorListServiceV2,
+        return new Tcf2Service(
+                gdprConfig,
+                purposeStrategies,
+                specialFeaturesStrategies,
+                versionedVendorListService,
                 bidderCatalog);
     }
 

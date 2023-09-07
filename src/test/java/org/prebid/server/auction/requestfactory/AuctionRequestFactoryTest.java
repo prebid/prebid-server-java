@@ -8,6 +8,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import io.vertx.core.Future;
@@ -43,6 +44,7 @@ import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
@@ -132,7 +134,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
-        given(auctionGppService.apply(any(), any()))
+        given(auctionGppService.contextFrom(any())).willReturn(Future.succeededFuture());
+        given(auctionGppService.updateBidRequest(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.request()).willReturn(httpRequest);
@@ -171,6 +174,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
+        given(ortb2RequestFactory.activityInfrastructureFrom(any()))
+                .willReturn(Future.succeededFuture());
 
         target = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
@@ -244,6 +249,32 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages()).hasSize(1)
                 .element(0).asString().startsWith("Error decoding bidRequest: Unrecognized token 'body'");
+    }
+
+    @Test
+    public void shouldFillBidRequestWithValuesFromHttpRequest() {
+        // given
+        final BidRequest receivedBidRequest = BidRequest.builder()
+                .regs(Regs.builder()
+                        .ext(ExtRegs.of(0, "us_privacy", null))
+                        .build())
+                .build();
+
+        givenBidRequest(receivedBidRequest);
+        given(paramsExtractor.gpcFrom(any())).willReturn("1");
+
+        // when
+        target.fromRequest(routingContext, 0L);
+
+        // then
+        final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(ortb2RequestFactory).enrichAuctionContext(any(), any(), captor.capture(), anyLong());
+
+        final BidRequest capturedRequest = captor.getValue();
+        assertThat(capturedRequest.getRegs())
+                .extracting(Regs::getExt)
+                .extracting(ExtRegs::getGdpr, ExtRegs::getUsPrivacy, ExtRegs::getGpc)
+                .containsExactly(0, "us_privacy", "1");
     }
 
     @Test
@@ -417,7 +448,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final JsonNode eidPermissionNode = mapper.convertValue(
                 ExtRequestPrebidDataEidPermissions.of("source", emptyList()), JsonNode.class);
 
-        requestNode.with("ext").with("prebid").with("data").set("eidpermissions", eidPermissionNode);
+        requestNode
+                .putObject("ext")
+                .putObject("prebid")
+                .putObject("data")
+                .set("eidpermissions", eidPermissionNode);
 
         given(routingContext.getBodyAsString()).willReturn(requestNode.toString());
 
@@ -449,9 +484,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         eidPermissionNode.put("bidders", "notArrayValue");
 
         final ArrayNode arrayNode = requestNode
-                .with("ext")
-                .with("prebid")
-                .with("data")
+                .putObject("ext")
+                .putObject("prebid")
+                .putObject("data")
                 .putArray("eidpermissions");
         arrayNode.add(eidPermissionNode);
 

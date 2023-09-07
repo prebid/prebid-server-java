@@ -9,6 +9,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncMethod;
@@ -55,6 +58,7 @@ import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
@@ -83,6 +87,8 @@ public class CookieSyncServiceTest extends VertxTest {
     private UsersyncMethodChooser usersyncMethodChooser;
     @Mock
     private RoutingContext routingContext;
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
 
     private CookieSyncService target;
 
@@ -93,6 +99,8 @@ public class CookieSyncServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HostVendorTcfResponse.allowedVendor()));
         given(hostVendorTcfDefinerService.resultForBidderNames(anySet(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(false, emptyMap(), "country")));
+        given(activityInfrastructure.isAllowed(any(), any()))
+                .willReturn(true);
 
         givenCookieSyncService(Integer.MAX_VALUE, Integer.MAX_VALUE);
     }
@@ -496,6 +504,36 @@ public class CookieSyncServiceTest extends VertxTest {
                 .extracting(CookieSyncContext::getBiddersContext)
                 .extracting(BiddersContext::rejectedBidders)
                 .isEqualTo(Map.of("requested-bidder", RejectionReason.ALREADY_IN_SYNC));
+    }
+
+    @Test
+    public void processContextShouldFilterDisallowedByActivityInfrastructureBidders() {
+        // given
+        givenCoopSyncBidders("coop-sync-bidder");
+
+        givenValidActiveBidders("requested-bidder", "coop-sync-bidder");
+        givenUsersyncersForBidders("requested-bidder", "coop-sync-bidder");
+
+        givenAllAllowedTcfResultForBidders("requested-bidder", "coop-sync-bidder");
+
+        given(activityInfrastructure.isAllowed(
+                eq(Activity.SYNC_USER),
+                argThat(argument -> argument.componentType().equals(ComponentType.BIDDER)
+                        && argument.componentName().equals("requested-bidder"))))
+                .willReturn(false);
+
+        final CookieSyncContext cookieSyncContext = givenCookieSyncContext(builder ->
+                builder.cookieSyncRequest(givenCookieSyncRequest("requested-bidder")));
+
+        // when
+        final Future<CookieSyncContext> result = target.processContext(cookieSyncContext);
+
+        // then
+        assertThat(result).isSucceeded()
+                .unwrap()
+                .extracting(CookieSyncContext::getBiddersContext)
+                .extracting(BiddersContext::rejectedBidders)
+                .isEqualTo(Map.of("requested-bidder", RejectionReason.DISALLOWED_ACTIVITY));
     }
 
     @Test
@@ -1161,7 +1199,8 @@ public class CookieSyncServiceTest extends VertxTest {
                 .biddersContext(biddersContext)
                 .usersyncMethodChooser(usersyncMethodChooser)
                 .limit(Integer.MAX_VALUE)
-                .account(givenEmptyAccount());
+                .account(givenEmptyAccount())
+                .activityInfrastructure(activityInfrastructure);
 
         return cookieSyncContextModifier.apply(builder).build();
     }

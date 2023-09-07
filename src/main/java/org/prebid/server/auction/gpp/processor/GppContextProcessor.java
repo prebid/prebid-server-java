@@ -1,8 +1,9 @@
 package org.prebid.server.auction.gpp.processor;
 
 import org.prebid.server.auction.gpp.model.GppContext;
+import org.prebid.server.auction.gpp.model.GppContextWrapper;
 
 public interface GppContextProcessor {
 
-    GppContext process(GppContext gppContext);
+    GppContextWrapper process(GppContext gppContext);
 }

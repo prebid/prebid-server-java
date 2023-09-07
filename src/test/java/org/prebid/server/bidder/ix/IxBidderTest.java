@@ -17,7 +17,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.ix.model.response.NativeV11Wrapper;
@@ -50,12 +49,7 @@ public class IxBidderTest extends VertxTest {
     private static final int REQUEST_LIMIT = 20;
     private static final String SITE_ID = "site id";
 
-    private IxBidder ixBidder;
-
-    @Before
-    public void setUp() {
-        ixBidder = new IxBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final IxBidder target = new IxBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -70,7 +64,7 @@ public class IxBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2);
@@ -85,7 +79,7 @@ public class IxBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(null).video(Video.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -100,7 +94,7 @@ public class IxBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(banner));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -122,7 +116,7 @@ public class IxBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -143,7 +137,7 @@ public class IxBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -173,7 +167,7 @@ public class IxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -195,7 +189,7 @@ public class IxBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -218,7 +212,7 @@ public class IxBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -230,14 +224,14 @@ public class IxBidderTest extends VertxTest {
         // given
         final List<Imp> imps = new ArrayList<>();
         for (int i = 0; i < 21; i++) {
-            int value = i;
+            final int value = i;
             imps.add(givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                     .format(singletonList(Format.builder().w(value).h(value).build())).build())));
         }
         final BidRequest bidRequest = givenBidRequest(requestBuilder -> requestBuilder.imp(imps), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -263,7 +257,7 @@ public class IxBidderTest extends VertxTest {
                 requestBuilder.imp(imps).site(Site.builder().build()), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -280,7 +274,7 @@ public class IxBidderTest extends VertxTest {
         // given
         final List<Imp> imps = new ArrayList<>();
         for (int i = 0; i < 21; i++) {
-            int value = i;
+            final int value = i;
             imps.add(givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                     .format(asList(
                             Format.builder().w(value).h(value).build(),
@@ -291,7 +285,7 @@ public class IxBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -303,8 +297,8 @@ public class IxBidderTest extends VertxTest {
         // given
         final List<Imp> imps = new ArrayList<>();
         for (int i = 0; i <= REQUEST_LIMIT; i++) {
-            int priority = i;
-            int other = i + 25;
+            final int priority = i;
+            final int other = i + 25;
             imps.add(givenImp(impBuilder -> impBuilder.banner(Banner.builder()
                     .format(asList(
                             Format.builder().w(priority).h(priority).build(),
@@ -314,7 +308,7 @@ public class IxBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(requestBuilder -> requestBuilder.imp(imps), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final List<Integer> expected = new ArrayList<>();
@@ -338,7 +332,7 @@ public class IxBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -354,7 +348,7 @@ public class IxBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -368,7 +362,7 @@ public class IxBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -386,7 +380,7 @@ public class IxBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -405,7 +399,7 @@ public class IxBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -424,7 +418,7 @@ public class IxBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -443,7 +437,7 @@ public class IxBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("489"))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -467,7 +461,7 @@ public class IxBidderTest extends VertxTest {
                                                 .build())))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -501,7 +495,7 @@ public class IxBidderTest extends VertxTest {
                         .adm(adm))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         final Response expectedNativeResponse = Response.builder()
@@ -540,7 +534,7 @@ public class IxBidderTest extends VertxTest {
                         .adm(adm))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         final Response expectedNativeResponse = Response.builder()
@@ -583,7 +577,7 @@ public class IxBidderTest extends VertxTest {
                         .adm(adm))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -617,7 +611,7 @@ public class IxBidderTest extends VertxTest {
                         .adm(adm))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         final NativeV11Wrapper expectedNativeResponse = NativeV11Wrapper.of(Response.builder()
@@ -655,7 +649,7 @@ public class IxBidderTest extends VertxTest {
                                         .mtype(1))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -683,7 +677,7 @@ public class IxBidderTest extends VertxTest {
                                         .mtype(2))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -711,7 +705,7 @@ public class IxBidderTest extends VertxTest {
                                         .mtype(3))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -739,7 +733,7 @@ public class IxBidderTest extends VertxTest {
                                         .mtype(4))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -768,7 +762,7 @@ public class IxBidderTest extends VertxTest {
                                                 .set("prebid", mapper.createObjectNode().put("type", "video"))))));
 
         // when
-        final Result<List<BidderBid>> result = ixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

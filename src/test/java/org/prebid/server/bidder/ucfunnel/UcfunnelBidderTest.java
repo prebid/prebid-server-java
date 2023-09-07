@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -33,12 +32,7 @@ public class UcfunnelBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private UcfunnelBidder ucfunnelBidder;
-
-    @Before
-    public void setUp() {
-        ucfunnelBidder = new UcfunnelBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final UcfunnelBidder target = new UcfunnelBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -53,7 +47,7 @@ public class UcfunnelBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ucfunnelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -71,7 +65,7 @@ public class UcfunnelBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ucfunnelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -89,7 +83,7 @@ public class UcfunnelBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ucfunnelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -107,7 +101,7 @@ public class UcfunnelBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = ucfunnelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -121,7 +115,7 @@ public class UcfunnelBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("false");
 
         // when
-        final Result<List<BidderBid>> result = ucfunnelBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
@@ -136,7 +130,7 @@ public class UcfunnelBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = ucfunnelBidder.makeBids(httpCall,
+        final Result<List<BidderBid>> result = target.makeBids(httpCall,
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build());
@@ -155,7 +149,7 @@ public class UcfunnelBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = ucfunnelBidder.makeBids(httpCall,
+        final Result<List<BidderBid>> result = target.makeBids(httpCall,
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
                         .build());

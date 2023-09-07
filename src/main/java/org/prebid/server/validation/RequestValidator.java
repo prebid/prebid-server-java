@@ -562,10 +562,6 @@ public class RequestValidator {
 
             final List<Eid> eids = user.getEids();
             if (eids != null) {
-                if (eids.isEmpty()) {
-                    throw new ValidationException(
-                            "request.user.eids must contain at least one element or be undefined");
-                }
                 for (int index = 0; index < eids.size(); index++) {
                     final Eid eid = eids.get(index);
                     if (StringUtils.isBlank(eid.getSource())) {
@@ -899,7 +895,7 @@ public class RequestValidator {
             }
 
             for (int methodIndex = 0; methodIndex < methods.size(); methodIndex++) {
-                int method = methods.get(methodIndex) != null ? methods.get(methodIndex) : 0;
+                final int method = methods.get(methodIndex) != null ? methods.get(methodIndex) : 0;
                 if (method < EventTrackingMethod.IMAGE.getValue() || (method > EventTrackingMethod.JS.getValue()
                         && event < NATIVE_EXCHANGE_SPECIFIC_LOWER_BOUND)) {
                     throw new ValidationException(

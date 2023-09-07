@@ -16,7 +16,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import lombok.Value;
 import org.assertj.core.groups.Tuple;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.Endpoint;
@@ -69,12 +68,11 @@ public class AppnexusBidderTest extends VertxTest {
     private static final Integer AUDIO_TYPE = 2;
     private static final Integer NATIVE_TYPE = 3;
 
-    private AppnexusBidder appnexusBidder;
-
-    @Before
-    public void setUp() {
-        appnexusBidder = new AppnexusBidder(ENDPOINT_URL, null, Map.of(10, "IAB4-5"), jacksonMapper);
-    }
+    private final AppnexusBidder target = new AppnexusBidder(
+            ENDPOINT_URL,
+            null,
+            Map.of(10, "IAB4-5"),
+            jacksonMapper);
 
     @Test
     public void makeHttpRequestsShouldSetImpDisplaymanagerverFromAppExtPrebidIfAbsent() {
@@ -88,7 +86,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -111,7 +109,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -134,7 +132,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -157,7 +155,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -180,7 +178,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -202,7 +200,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -222,7 +220,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(null).member(null).invCode(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -239,7 +237,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -262,7 +260,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .reserve(BigDecimal.TEN));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -282,7 +280,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).position("above"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -300,7 +298,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).position("below"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -323,7 +321,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .privateSizes(mapper.createObjectNode()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -355,7 +353,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(1).keywords(keywords));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -390,7 +388,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .legacyTrafficSourceCode("legacyTrafficSourceCode1"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -415,7 +413,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .reserve(BigDecimal.TEN));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -440,7 +438,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .reserve(BigDecimal.valueOf(123)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -461,7 +459,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .reserve(BigDecimal.valueOf(123)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -482,7 +480,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .reserve(BigDecimal.valueOf(123)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -504,7 +502,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(List.of(imp1, imp2)).build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1);
@@ -529,7 +527,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -555,7 +553,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid").member("member_param"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -572,7 +570,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -589,7 +587,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -607,7 +605,7 @@ public class AppnexusBidderTest extends VertxTest {
                 extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -628,7 +626,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(4)
@@ -656,7 +654,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -686,7 +684,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(2)
@@ -718,7 +716,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(2)
@@ -750,7 +748,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(4)
@@ -782,7 +780,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -813,7 +811,7 @@ public class AppnexusBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = appnexusBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -833,7 +831,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -849,7 +847,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(BANNER_TYPE));
 
         // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -868,7 +866,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(VIDEO_TYPE));
 
         // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -887,7 +885,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(AUDIO_TYPE));
 
         // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -906,7 +904,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(NATIVE_TYPE));
 
         // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -926,7 +924,7 @@ public class AppnexusBidderTest extends VertxTest {
                 givenBidResponse(bidExtCustomizer -> bidExtCustomizer.brandCategoryId(10).bidAdType(1)));
 
         // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -946,7 +944,7 @@ public class AppnexusBidderTest extends VertxTest {
                 bidExtCustomizer -> bidExtCustomizer.brandCategoryId(350).bidAdType(1)));
 
         // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -965,7 +963,7 @@ public class AppnexusBidderTest extends VertxTest {
                 givenBidResponse(builder -> builder.cur("JPY"), identity(), identity()));
 
         // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -980,7 +978,7 @@ public class AppnexusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(42));
         // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1002,7 +1000,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .build()))
                 .build()));
         // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1024,7 +1022,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .build()))
                 .build()));
         // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -1046,7 +1044,7 @@ public class AppnexusBidderTest extends VertxTest {
                         .build()))
                 .build()));
         // when
-        final Result<List<BidderBid>> result = appnexusBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)

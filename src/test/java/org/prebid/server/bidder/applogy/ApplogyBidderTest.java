@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -41,12 +40,7 @@ public class ApplogyBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private ApplogyBidder applogyBidder;
-
-    @Before
-    public void setUp() {
-        applogyBidder = new ApplogyBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final ApplogyBidder target = new ApplogyBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -61,7 +55,7 @@ public class ApplogyBidderTest extends VertxTest {
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = applogyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -78,7 +72,7 @@ public class ApplogyBidderTest extends VertxTest {
                                 ExtImpApplogy.of(null)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = applogyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("token is empty"));
@@ -87,14 +81,13 @@ public class ApplogyBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldSkipInvalidImpressionAndAddError() {
         // given
-        ExtPrebid<?, ExtImpApplogy> ext = ExtPrebid.of(null, ExtImpApplogy.of("token1"));
-        Imp imp = givenImp(
+        final ExtPrebid<?, ExtImpApplogy> ext = ExtPrebid.of(null, ExtImpApplogy.of("token1"));
+        final Imp imp = givenImp(
                 impBuilder -> impBuilder
                         .banner(null)
                         .id("2")
                         .ext(mapper.valueToTree(ext))
-                        .banner(Banner.builder().w(300).h(400).build())
-        );
+                        .banner(Banner.builder().w(300).h(400).build()));
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(
                         imp,
@@ -106,7 +99,7 @@ public class ApplogyBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = applogyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -129,7 +122,7 @@ public class ApplogyBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = applogyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -149,7 +142,7 @@ public class ApplogyBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = applogyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -169,7 +162,7 @@ public class ApplogyBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = applogyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -192,7 +185,7 @@ public class ApplogyBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = applogyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -214,7 +207,7 @@ public class ApplogyBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = applogyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -228,7 +221,7 @@ public class ApplogyBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -244,7 +237,7 @@ public class ApplogyBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -261,7 +254,7 @@ public class ApplogyBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -279,7 +272,7 @@ public class ApplogyBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -297,7 +290,7 @@ public class ApplogyBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -312,7 +305,7 @@ public class ApplogyBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -330,7 +323,7 @@ public class ApplogyBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -349,7 +342,7 @@ public class ApplogyBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = applogyBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

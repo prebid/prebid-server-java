@@ -1,0 +1,16 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "mtype": 1,
+          "impid": "imp_id",
+          "price": 3.33,
+          "crid": "creativeId"
+        }
+      ]
+    }
+  ]
+}

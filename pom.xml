@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.116.0-SNAPSHOT</version>
+        <version>1.129.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -57,6 +57,7 @@
         <hikari.version>5.0.1</hikari.version>
         <gpp-encoder.version>3.0.10</gpp-encoder.version>
         <protobuf.version>3.21.7</protobuf.version>
+        <protoc.version>3.17.0</protoc.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
@@ -65,9 +66,9 @@
         <assertj.version>3.24.2</assertj.version>
         <wiremock.version>2.35.0</wiremock.version>
         <awaitility.version>4.2.0</awaitility.version>
-        <jetty.version>9.4.48.v20220622</jetty.version>
+        <jetty.version>9.4.51.v20230217</jetty.version>
         <restassured.version>4.4.0</restassured.version>
-        <h2.version>2.1.214</h2.version>
+        <h2.version>2.2.220</h2.version>
         <spock.version>2.4-M1-groovy-3.0</spock.version>
         <groovy.version>3.0.14</groovy.version>
         <testcontainers.version>1.17.4</testcontainers.version>
@@ -698,7 +699,7 @@
                         <additionalProtoPathElement>${project.basedir}/src/main/proto</additionalProtoPathElement>
                         <additionalProtoPathElement>${project.basedir}/src/test/proto</additionalProtoPathElement>
                     </additionalProtoPathElements>
-                    <protocArtifact>com.google.protobuf:protoc:3.17.0:exe:${os.detected.classifier}</protocArtifact>
+                    <protocArtifact>com.google.protobuf:protoc:${protoc.version}:exe:${os.detected.classifier}</protocArtifact>
                 </configuration>
             </plugin>
             <plugin>
@@ -953,6 +954,20 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <!-- This profile will make sure that when you have Apple M-family CPU, you will fall back to Intel protoc
+            as Google doesn't provide ARM-based one for Mac. This requires Rosetta to be installed. -->
+            <id>Apple M silicon</id>
+            <activation>
+                <os>
+                    <family>Mac</family>
+                    <arch>aarch64</arch>
+                </os>
+            </activation>
+            <properties>
+                <os.detected.classifier>osx-x86_64</os.detected.classifier>
+            </properties>
         </profile>
     </profiles>
 </project>
