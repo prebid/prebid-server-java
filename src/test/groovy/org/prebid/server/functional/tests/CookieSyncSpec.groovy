@@ -15,7 +15,6 @@ import org.prebid.server.functional.model.request.cookiesync.MethodFilter
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.scaffolding.VendorList
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
@@ -53,7 +52,7 @@ class CookieSyncSpec extends BaseSpec {
     private static final boolean CORS_SUPPORT = false
     private static final String USER_SYNC_URL = "$networkServiceContainer.rootUri/generic-usersync"
     private static final String ALL_BIDDERS = "*"
-    private static final String DEFAULT_PBS_BIDDERS_SIZE = 8
+    private static final Integer DEFAULT_PBS_BIDDERS_SIZE = 8
 
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.redirect.url"         : USER_SYNC_URL,
