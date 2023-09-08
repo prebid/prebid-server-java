@@ -3,10 +3,12 @@ package org.prebid.server.bidder.richaudience;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -29,6 +31,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
@@ -76,31 +79,65 @@ public class RichaudienceBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfSomeImpBannerIsInvalid() {
         // given
-        final BidRequest bidRequest = givenBidRequest(givenImp(identity()),
-                givenImp(imp -> imp.banner(Banner.builder().build())));
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(impBuilder -> impBuilder.id("imp_id1").banner(Banner.builder().w(100).h(200).build())),
+                givenImp(impBuilder -> impBuilder.id("imp_id2").banner(Banner.builder().build())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(request -> request.getPayload().getImp().get(0).getId(), HttpRequest::getImpIds)
+                .containsExactly(tuple("imp_id1", Set.of("imp_id1")));
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("Banner W/H/Format is required. ImpId: imp_id"));
+                .containsExactly(BidderError.badInput("Banner W/H/Format is required. ImpId: imp_id2"));
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfSomeImpVideoIsInvalid() {
         // given
-        final BidRequest bidRequest = givenBidRequest(givenImp(identity()),
-                givenImp(imp -> imp.video(Video.builder().w(null).h(0).build())));
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(impBuilder -> impBuilder.id("imp_id1").video(Video.builder().w(100).h(200).build())),
+                givenImp(impBuilder -> impBuilder.id("imp_id2").video(Video.builder().build())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(request -> request.getPayload().getImp().get(0).getId(), HttpRequest::getImpIds)
+                .containsExactly(tuple("imp_id1", Set.of("imp_id1")));
         assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badInput("Video W and H are required. ImpId: imp_id"));
+                .containsExactly(BidderError.badInput("Video W and H are required. ImpId: imp_id2"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfSomeImpsAreInvalid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(impBuilder -> impBuilder.id("imp_id1").video(Video.builder().w(100).h(200).build())),
+                givenImp(impBuilder -> impBuilder.id("imp_id2").video(Video.builder().build())),
+                givenImp(impBuilder -> impBuilder.id("imp_id3").audio(Audio.builder().build())),
+                givenImp(impBuilder -> impBuilder.id("imp_id4").banner(Banner.builder().w(100).h(200).build())),
+                givenImp(impBuilder -> impBuilder.id("imp_id5").banner(Banner.builder().build())),
+                givenImp(impBuilder -> impBuilder.id("imp_id6").xNative(Native.builder().build())));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(4)
+                .extracting(request -> request.getPayload().getImp().get(0).getId(), HttpRequest::getImpIds)
+                .containsExactly(
+                        tuple("imp_id1", Set.of("imp_id1")),
+                        tuple("imp_id3", Set.of("imp_id3")),
+                        tuple("imp_id4", Set.of("imp_id4")),
+                        tuple("imp_id6", Set.of("imp_id6")));
+        assertThat(result.getErrors()).hasSize(2)
+                .containsExactly(
+                        BidderError.badInput("Video W and H are required. ImpId: imp_id2"),
+                        BidderError.badInput("Banner W/H/Format is required. ImpId: imp_id5"));
     }
 
     @Test

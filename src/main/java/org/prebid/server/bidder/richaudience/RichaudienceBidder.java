@@ -64,22 +64,29 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
         boolean isTest = false;
 
         try {
             validateRequest(request);
-            for (Imp imp : request.getImp()) {
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
+        }
+
+        for (Imp imp : request.getImp()) {
+            try {
                 validateImp(imp);
                 final ExtImpRichaudience extImp = parseImpExt(imp);
                 isTest = !isTest && BooleanUtils.isTrue(extImp.getTest());
                 final BidRequest modifiedBidRequest = makeRequest(request, imp, extImp, isTest);
                 httpRequests.add(makeHttpRequest(modifiedBidRequest, Set.of(imp.getId())));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
             }
-        } catch (PreBidException e) {
-            return Result.withError(BidderError.badInput(e.getMessage()));
         }
-
-        return Result.withValues(httpRequests);
+        return httpRequests.isEmpty()
+                ? Result.withErrors(errors)
+                : Result.of(httpRequests, errors);
     }
 
     private static void validateRequest(BidRequest bidRequest) throws PreBidException {
