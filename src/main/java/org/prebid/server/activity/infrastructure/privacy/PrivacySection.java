@@ -1,4 +1,4 @@
-package org.prebid.server.activity.infrastructure.creator.privacy.usnat;
+package org.prebid.server.activity.infrastructure.privacy;
 
 import com.iab.gpp.encoder.section.UspCaV1;
 import com.iab.gpp.encoder.section.UspCoV1;
@@ -7,7 +7,9 @@ import com.iab.gpp.encoder.section.UspNatV1;
 import com.iab.gpp.encoder.section.UspUtV1;
 import com.iab.gpp.encoder.section.UspVaV1;
 
-public enum USNatSection {
+import java.util.Set;
+
+public enum PrivacySection {
 
     NATIONAL(UspNatV1.ID),
     CALIFORNIA(UspCaV1.ID),
@@ -16,9 +18,17 @@ public enum USNatSection {
     UTAH(UspUtV1.ID),
     CONNECTICUT(UspCtV1.ID);
 
+    public static final Set<PrivacySection> US_PRIVACY_SECTIONS = Set.of(
+            NATIONAL,
+            CALIFORNIA,
+            VIRGINIA,
+            COLORADO,
+            UTAH,
+            CONNECTICUT);
+
     private final int sectionId;
 
-    USNatSection(int sectionId) {
+    PrivacySection(int sectionId) {
         this.sectionId = sectionId;
     }
 
@@ -26,8 +36,8 @@ public enum USNatSection {
         return sectionId;
     }
 
-    public static USNatSection from(int sectionId) {
-        final USNatSection[] values = USNatSection.values();
+    public static PrivacySection from(int sectionId) {
+        final PrivacySection[] values = PrivacySection.values();
         if (sectionId < NATIONAL.sectionId || sectionId > CONNECTICUT.sectionId) {
             throw new IllegalArgumentException("US sectionId must be in [%s, %s]."
                     .formatted(NATIONAL.sectionId, CONNECTICUT.sectionId));

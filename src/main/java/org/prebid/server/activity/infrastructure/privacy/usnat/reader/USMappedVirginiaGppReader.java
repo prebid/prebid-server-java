@@ -2,29 +2,40 @@ package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
 
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.section.UspVaV1;
+import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
 
-public class USVirginiaGppReader implements USNatGppReader {
+public class USMappedVirginiaGppReader implements USNatGppReader, USCustomLogicGppReader {
 
     private static final List<Integer> CHILD_SENSITIVE_DATA = List.of(1, 1);
     private static final List<Integer> NON_CHILD_SENSITIVE_DATA = List.of(0, 0);
 
     private final UspVaV1 consent;
 
-    public USVirginiaGppReader(GppModel gppModel) {
+    public USMappedVirginiaGppReader(GppModel gppModel) {
         this.consent = gppModel != null ? gppModel.getUspVaV1Section() : null;
     }
 
     @Override
-    public Integer getMspaServiceProviderMode() {
-        return ObjectUtil.getIfNotNull(consent, UspVaV1::getMspaServiceProviderMode);
+    public Integer getVersion() {
+        return ObjectUtil.getIfNotNull(consent, UspVaV1::getVersion);
     }
 
     @Override
     public Boolean getGpc() {
+        return null;
+    }
+
+    @Override
+    public Boolean getGpcSegmentType() {
+        return null;
+    }
+
+    @Override
+    public Boolean getGpcSegmentIncluded() {
         return null;
     }
 
@@ -69,13 +80,13 @@ public class USVirginiaGppReader implements USNatGppReader {
     }
 
     @Override
-    public Integer getSensitiveDataProcessingOptOutNotice() {
-        return null;
+    public List<Integer> getSensitiveDataProcessing() {
+        return ObjectUtil.getIfNotNull(consent, UspVaV1::getSensitiveDataProcessing);
     }
 
     @Override
-    public List<Integer> getSensitiveDataProcessing() {
-        return ObjectUtil.getIfNotNull(consent, UspVaV1::getSensitiveDataProcessing);
+    public Integer getSensitiveDataProcessingOptOutNotice() {
+        return null;
     }
 
     @Override
@@ -93,5 +104,20 @@ public class USVirginiaGppReader implements USNatGppReader {
     @Override
     public Integer getPersonalDataConsents() {
         return null;
+    }
+
+    @Override
+    public Integer getMspaCoveredTransaction() {
+        return ObjectUtil.getIfNotNull(consent, UspVaV1::getMspaCoveredTransaction);
+    }
+
+    @Override
+    public Integer getMspaServiceProviderMode() {
+        return ObjectUtil.getIfNotNull(consent, UspVaV1::getMspaServiceProviderMode);
+    }
+
+    @Override
+    public Integer getMspaOptOutOptionMode() {
+        return ObjectUtil.getIfNotNull(consent, UspVaV1::getMspaOptOutOptionMode);
     }
 }

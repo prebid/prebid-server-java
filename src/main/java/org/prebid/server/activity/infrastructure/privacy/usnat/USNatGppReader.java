@@ -4,9 +4,13 @@ import java.util.List;
 
 public interface USNatGppReader {
 
-    Integer getMspaServiceProviderMode();
+    Integer getVersion();
 
     Boolean getGpc();
+
+    Boolean getGpcSegmentType();
+
+    Boolean getGpcSegmentIncluded();
 
     Integer getSaleOptOut();
 
@@ -24,11 +28,17 @@ public interface USNatGppReader {
 
     Integer getSensitiveDataLimitUseNotice();
 
-    Integer getSensitiveDataProcessingOptOutNotice();
-
     List<Integer> getSensitiveDataProcessing();
+
+    Integer getSensitiveDataProcessingOptOutNotice();
 
     List<Integer> getKnownChildSensitiveDataConsents();
 
     Integer getPersonalDataConsents();
+
+    Integer getMspaCoveredTransaction();
+
+    Integer getMspaServiceProviderMode();
+
+    Integer getMspaOptOutOptionMode();
 }
