@@ -1,6 +1,5 @@
 package org.prebid.server.json;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicParseException;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicParser;
@@ -18,8 +17,12 @@ public class JsonLogic {
         evaluator = Objects.requireNonNull(jsonLogicEvaluator);
     }
 
-    public JsonLogicNode parse(JsonNode jsonNode) throws JsonLogicParseException {
-        return JsonLogicParser.parse(jsonNode.toString());
+    public JsonLogicNode parse(String jsonNode) {
+        try {
+            return JsonLogicParser.parse(jsonNode);
+        } catch (JsonLogicParseException e) {
+            throw new DecodeException(e.getMessage());
+        }
     }
 
     public boolean evaluate(JsonLogicNode jsonLogicNode, Map<String, Object> data) throws JsonLogicEvaluationException {

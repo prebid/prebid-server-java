@@ -1,10 +1,8 @@
 package org.prebid.server.json;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicNull;
-import io.github.jamsesso.jsonlogic.ast.JsonLogicParseException;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicString;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicVariable;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
@@ -20,9 +18,9 @@ public class JsonLogicTest {
     private final JsonLogic jsonLogic = JsonLogicProvider.jsonLogic();
 
     @Test
-    public void parseShouldReturnExpectedResult() throws JsonLogicParseException {
+    public void parseShouldReturnExpectedResult() {
         // given
-        final JsonNode jsonNode = mapper.valueToTree(Map.of("var", "a"));
+        final String jsonNode = mapper.valueToTree(Map.of("var", "a")).toString();
 
         // when
         final JsonLogicNode jsonLogicNode = jsonLogic.parse(jsonNode);
