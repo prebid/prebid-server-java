@@ -64,7 +64,7 @@
         <junit-jupiter.version>5.9.2</junit-jupiter.version>
         <mockito.version>4.11.0</mockito.version>
         <assertj.version>3.24.2</assertj.version>
-        <wiremock.version>2.35.0</wiremock.version>
+        <wiremock.version>2.35.1</wiremock.version>
         <awaitility.version>4.2.0</awaitility.version>
         <jetty.version>9.4.51.v20230217</jetty.version>
         <restassured.version>4.4.0</restassured.version>
