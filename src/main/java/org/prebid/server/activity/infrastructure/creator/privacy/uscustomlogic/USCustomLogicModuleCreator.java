@@ -101,8 +101,9 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
     }
 
     private static boolean normalizeSection(AccountUSCustomLogicModuleConfig moduleConfig) {
-        final Boolean configValue = moduleConfig.getConfig().getNormalizeFlags();
-        return configValue == null || configValue;
+        return Optional.ofNullable(moduleConfig.getConfig())
+                .map(AccountUSCustomLogicModuleConfig.Config::getNormalizeFlags)
+                .orElse(true);
     }
 
     private static boolean shouldApplyPrivacy(Integer sectionId, AccountUSCustomLogicModuleConfig moduleConfig) {
