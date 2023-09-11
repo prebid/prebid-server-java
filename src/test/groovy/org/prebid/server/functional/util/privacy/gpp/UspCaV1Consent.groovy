@@ -69,14 +69,8 @@ class UspCaV1Consent extends UsConsent {
             case [0, 0]:
                 // No change needed
                 return childConsents
-            case [2, 2]:
-                // Consent from ages 13-16, no consent from under age 13
-                return [2, 1]
-            case []:
-                // Set consent to 1 if not yet set
-                return [1, 1]
             default:
-                childConsents
+                return [1, 1]
         }
     }
 

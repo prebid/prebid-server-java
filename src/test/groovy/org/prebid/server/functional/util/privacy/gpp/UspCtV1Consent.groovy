@@ -60,20 +60,16 @@ class UspCtV1Consent extends UsConsent {
 
     @Override
     protected List<Integer> normalizeChildConsents(EncodableSection uspCtV1) {
-        List<Integer> childDataConsents = ((UspCtV1)uspCtV1).knownChildSensitiveDataConsents
-        // no consent (2) for under 13
-        Integer childUnder13 = childDataConsents[1] != 0 ? 1 : 0
-        Integer childFrom13to16 = 1
-
-        if (childDataConsents[1] == 0 && childDataConsents[2] == 0) {
-            // when child from13 to 16 is not applicable (0)
-            childFrom13to16 = 0
+        def childDataConsents = ((UspCtV1)uspCtV1).knownChildSensitiveDataConsents
+        // all 0 then assume the user is not a child
+        if (childDataConsents == [0,0,0]) {
+            [0,0]
+            // ages 13-16 state their consent
         } else if (childDataConsents[1] == 2 && childDataConsents[2] == 2) {
-            // when child from13 to 16 is consent (2)
-            childFrom13to16 = 2
+            [2, 1]
+        } else {
+            [1, 1]
         }
-
-        [childFrom13to16, childUnder13]
     }
 
     static class Builder extends GppConsent.Builder {

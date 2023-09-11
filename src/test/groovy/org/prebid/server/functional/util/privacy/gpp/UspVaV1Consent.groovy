@@ -59,7 +59,7 @@ class UspVaV1Consent extends UsConsent {
 
     @Override
     protected List<Integer> normalizeChildConsents(EncodableSection uspVaV1) {
-        (((UspVaV1)uspVaV1).knownChildSensitiveDataConsents != 0) ? [0, 1] : [0, 0]
+        (((UspVaV1)uspVaV1).knownChildSensitiveDataConsents != 0) ? [1, 1] : [0, 0]
     }
 
     static class Builder extends GppConsent.Builder {

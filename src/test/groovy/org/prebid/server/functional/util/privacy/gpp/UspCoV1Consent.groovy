@@ -64,7 +64,7 @@ class UspCoV1Consent extends UsConsent {
     @Override
     protected List<Integer> normalizeChildConsents(EncodableSection uspCoV1) {
         // value 1 or 2 then n/a for 13-16 and no consent for under age 13
-        (((UspCoV1)uspCoV1).knownChildSensitiveDataConsents != 0) ? [0, 1] : [0, 0]
+        (((UspCoV1)uspCoV1).knownChildSensitiveDataConsents != 0) ? [1, 1] : [0, 0]
     }
 
     static class Builder extends GppConsent.Builder {
