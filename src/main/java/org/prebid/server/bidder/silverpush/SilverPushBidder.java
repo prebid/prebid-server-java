@@ -18,6 +18,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -42,6 +43,7 @@ import org.prebid.server.util.HttpUtil;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -199,8 +201,8 @@ public class SilverPushBidder implements Bidder<BidRequest> {
 
     private static ExtRequest resolveExtRequest(String publisherId) {
         final ExtRequest extRequest = ExtRequest.empty();
-        extRequest.addProperty(BIDDER_CONFIG_PROPERTY, new TextNode(BIDDER_CONFIG + "_" + BIDDER_VERSION));
-        extRequest.addProperty(PUBLISHER_ID_PROPERTY, new TextNode(publisherId));
+        extRequest.addProperty(BIDDER_CONFIG_PROPERTY, TextNode.valueOf(BIDDER_CONFIG + "_" + BIDDER_VERSION));
+        extRequest.addProperty(PUBLISHER_ID_PROPERTY, TextNode.valueOf(publisherId));
 
         return extRequest;
     }
@@ -218,7 +220,7 @@ public class SilverPushBidder implements Bidder<BidRequest> {
     }
 
     private static Banner resolveBanner(Banner banner) {
-        if (banner == null || (isValidSizeValue(banner.getW()) && isValidSizeValue(banner.getH()))) {
+        if (banner == null || (isNonNegative(banner.getW()) && isNonNegative(banner.getH()))) {
             return banner;
         }
 
@@ -233,10 +235,6 @@ public class SilverPushBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static boolean isValidSizeValue(Integer value) {
-        return value != null && value > 0;
-    }
-
     private static Video resolveVideo(Video video) {
         if (video == null) {
             return null;
@@ -247,17 +245,17 @@ public class SilverPushBidder implements Bidder<BidRequest> {
         if (CollectionUtils.isEmpty(video.getApi())
                 || CollectionUtils.isEmpty(video.getMimes())
                 || CollectionUtils.isEmpty(video.getProtocols())
-                || (minDuration == null || minDuration < 0)) {
+                || !isNonNegative(minDuration)) {
 
             throw new PreBidException("Invalid or missing video field(s)");
         }
 
-        final boolean validMaxDuration = maxDuration != null && maxDuration > 0;
+        final boolean validMaxDuration = isNonNegative(maxDuration);
         if (validMaxDuration && maxDuration > minDuration) {
             return video;
         }
 
-        final Integer resolvedMaxDuration = validMaxDuration
+        final Integer resolvedMaxDuration = validMaxDuration && maxDuration != 0
                 ? maxDuration
                 : DEFAULT_MAX_DURATION;
 
@@ -267,10 +265,12 @@ public class SilverPushBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static BigDecimal resolveBidFloor(BigDecimal extBidFloor, boolean bannerPresent) {
-        final boolean bidFloorValid = BidderUtil.isValidPrice(extBidFloor);
+    private static boolean isNonNegative(Integer value) {
+        return value != null && value >= 0;
+    }
 
-        return bidFloorValid
+    private static BigDecimal resolveBidFloor(BigDecimal extBidFloor, boolean bannerPresent) {
+        return BidderUtil.isValidPrice(extBidFloor)
                 ? extBidFloor
                 : bannerPresent
                 ? BigDecimal.valueOf(BANNER_BIDFLOOR)
@@ -312,9 +312,12 @@ public class SilverPushBidder implements Bidder<BidRequest> {
             throw new PreBidException("Empty SeatBid array");
         }
 
-        return bidResponse.getSeatbid()
-                .stream()
-                .flatMap(seatBid -> Optional.ofNullable(seatBid.getBid()).orElse(List.of()).stream())
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur()))
                 .toList();
     }
