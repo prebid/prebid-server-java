@@ -54,8 +54,8 @@ public class SilverPushBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpSilverPush>> TYPE_REFERENCE = new TypeReference<>() {
     };
     private static final String X_OPENRTB_VERSION = "2.5";
-    private static final double BANNER_BIDFLOOR = 0.05;
-    private static final double VIDEO_BIDFLOOR = 0.1;
+    private static final BigDecimal BANNER_BIDFLOOR = BigDecimal.valueOf(0.05);
+    private static final BigDecimal VIDEO_BIDFLOOR = BigDecimal.valueOf(0.1);
     private static final int DEFAULT_MAX_DURATION = 120;
     private static final int DEFAULT_MIN_DURATION = 0;
     private static final String BIDDER_CONFIG = "sp_pb_ortb";
@@ -211,11 +211,13 @@ public class SilverPushBidder implements Bidder<BidRequest> {
         final Banner banner = resolveBanner(imp.getBanner());
         final boolean bannerPresent = banner != null;
         final Video video = bannerPresent ? null : resolveVideo(imp.getVideo());
+        final BigDecimal extBidFloor = extImpSilverPush.getBidFloor();
+        final BigDecimal bidFloorFallback = bannerPresent ? BANNER_BIDFLOOR : VIDEO_BIDFLOOR;
 
         return imp.toBuilder()
                 .banner(banner)
                 .video(video)
-                .bidfloor(resolveBidFloor(extImpSilverPush.getBidFloor(), bannerPresent))
+                .bidfloor(BidderUtil.isValidPrice(extBidFloor) ? extBidFloor : bidFloorFallback)
                 .build();
     }
 
@@ -267,14 +269,6 @@ public class SilverPushBidder implements Bidder<BidRequest> {
 
     private static boolean isNonNegative(Integer value) {
         return value != null && value >= 0;
-    }
-
-    private static BigDecimal resolveBidFloor(BigDecimal extBidFloor, boolean bannerPresent) {
-        return BidderUtil.isValidPrice(extBidFloor)
-                ? extBidFloor
-                : bannerPresent
-                ? BigDecimal.valueOf(BANNER_BIDFLOOR)
-                : BigDecimal.valueOf(VIDEO_BIDFLOOR);
     }
 
     private HttpRequest<BidRequest> createRequest(BidRequest request) {
