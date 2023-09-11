@@ -220,7 +220,10 @@ public class AlkimiBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getNurl, Bid::getAdm)
-                .containsExactly(tuple("nurl:10", "adm:10", "nurl:10", "adm:10", "nurl:10", "adm:10"));
+                .containsExactly(
+                        tuple("nurl:10", "adm:10"),
+                        tuple("nurl:10", "adm:10"),
+                        tuple("nurl:10", "adm:10"));
     }
 
     private static BidRequest givenBidRequest() {
