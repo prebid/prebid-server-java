@@ -51,8 +51,8 @@ public class ActivityInfrastructureConfiguration {
             USCustomLogicModuleCreator usCustomLogicModuleCreator(
                     USCustomLogicGppReaderFactory gppReaderFactory,
                     JsonLogic jsonLogic,
-                    @Value("${settings.in-memory-cache.ttl-seconds:null}") Integer ttlSeconds,
-                    @Value("${settings.in-memory-cache.cache-size:null}") Integer cacheSize) {
+                    @Value("${settings.in-memory-cache.ttl-seconds:#{null}}") Integer ttlSeconds,
+                    @Value("${settings.in-memory-cache.cache-size:#{null}}") Integer cacheSize) {
 
                 return new USCustomLogicModuleCreator(gppReaderFactory, jsonLogic, ttlSeconds, cacheSize);
             }
