@@ -87,6 +87,7 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
                 .flatMap(Collection::stream)
                 .filter(activityConfig -> containsActivity(activityConfig, activity))
                 .map(AccountUSCustomLogicModuleConfig.ActivityConfig::getJsonLogicNode)
+                .filter(Objects::nonNull)
                 .findFirst()
                 .orElse(null);
     }
@@ -102,7 +103,7 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
 
     private static boolean normalizeSection(AccountUSCustomLogicModuleConfig moduleConfig) {
         return Optional.ofNullable(moduleConfig.getConfig())
-                .map(AccountUSCustomLogicModuleConfig.Config::getNormalizeFlags)
+                .map(AccountUSCustomLogicModuleConfig.Config::getNormalizeSections)
                 .orElse(true);
     }
 

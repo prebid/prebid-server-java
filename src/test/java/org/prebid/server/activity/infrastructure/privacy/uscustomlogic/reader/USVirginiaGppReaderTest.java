@@ -1,4 +1,4 @@
-package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
+package org.prebid.server.activity.infrastructure.privacy.uscustomlogic.reader;
 
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.section.UspVaV1;
@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-public class USMappedVirginiaGppReaderTest {
+public class USVirginiaGppReaderTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -27,13 +27,13 @@ public class USMappedVirginiaGppReaderTest {
     @Mock
     private UspVaV1 uspVaV1;
 
-    private USMappedVirginiaGppReader gppReader;
+    private USVirginiaGppReader gppReader;
 
     @Before
     public void setUp() {
         given(gppModel.getUspVaV1Section()).willReturn(uspVaV1);
 
-        gppReader = new USMappedVirginiaGppReader(gppModel);
+        gppReader = new USVirginiaGppReader(gppModel);
     }
 
     @Test
@@ -150,30 +150,12 @@ public class USMappedVirginiaGppReaderTest {
     }
 
     @Test
-    public void getKnownChildSensitiveDataConsentsShouldReturnChildResultOn1() {
+    public void getKnownChildSensitiveDataConsentsShouldReturnExpectedResult() {
         // given
         given(uspVaV1.getKnownChildSensitiveDataConsents()).willReturn(1);
 
         // when and then
-        assertThat(gppReader.getKnownChildSensitiveDataConsents()).containsExactly(1, 1);
-    }
-
-    @Test
-    public void getKnownChildSensitiveDataConsentsShouldReturnChildResultOn2() {
-        // given
-        given(uspVaV1.getKnownChildSensitiveDataConsents()).willReturn(2);
-
-        // when and then
-        assertThat(gppReader.getKnownChildSensitiveDataConsents()).containsExactly(1, 1);
-    }
-
-    @Test
-    public void getKnownChildSensitiveDataConsentsShouldReturnNonChildResultOn0() {
-        // given
-        given(uspVaV1.getKnownChildSensitiveDataConsents()).willReturn(0);
-
-        // when and then
-        assertThat(gppReader.getKnownChildSensitiveDataConsents()).containsExactly(0, 0);
+        assertThat(gppReader.getKnownChildSensitiveDataConsents()).isEqualTo(1);
     }
 
     @Test
@@ -213,7 +195,7 @@ public class USMappedVirginiaGppReaderTest {
     @Test
     public void gppReaderShouldReturnExpectedResultsIfSectionAbsent() {
         // given
-        gppReader = new USMappedVirginiaGppReader(null);
+        gppReader = new USVirginiaGppReader(null);
 
         // when and then
         assertThat(gppReader.getVersion()).isNull();

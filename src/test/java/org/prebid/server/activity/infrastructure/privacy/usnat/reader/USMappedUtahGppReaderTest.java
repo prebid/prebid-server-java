@@ -37,18 +37,32 @@ public class USMappedUtahGppReaderTest {
     }
 
     @Test
-    public void getMspaServiceProviderModeShouldReturnExpectedResult() {
+    public void getVersionShouldReturnExpectedResult() {
         // given
-        given(uspUtV1.getMspaServiceProviderMode()).willReturn(1);
+        given(uspUtV1.getVersion()).willReturn(1);
 
         // when and then
-        assertThat(gppReader.getMspaServiceProviderMode()).isEqualTo(1);
+        assertThat(gppReader.getVersion()).isEqualTo(1);
     }
 
     @Test
     public void getGpcShouldReturnExpectedResult() {
         // when and then
         assertThat(gppReader.getGpc()).isNull();
+        verifyNoInteractions(uspUtV1);
+    }
+
+    @Test
+    public void getGpcSegmentTypeShouldReturnExpectedResult() {
+        // when and then
+        assertThat(gppReader.getGpcSegmentType()).isNull();
+        verifyNoInteractions(uspUtV1);
+    }
+
+    @Test
+    public void getGpcSegmentIncludedShouldReturnExpectedResult() {
+        // when and then
+        assertThat(gppReader.getGpcSegmentIncluded()).isNull();
         verifyNoInteractions(uspUtV1);
     }
 
@@ -119,15 +133,6 @@ public class USMappedUtahGppReaderTest {
     }
 
     @Test
-    public void getSensitiveDataProcessingOptOutNoticeShouldReturnExpectedResult() {
-        // given
-        given(uspUtV1.getSensitiveDataProcessingOptOutNotice()).willReturn(1);
-
-        // when and then
-        assertThat(gppReader.getSensitiveDataProcessingOptOutNotice()).isEqualTo(1);
-    }
-
-    @Test
     public void getSensitiveDataProcessingShouldReturnExpectedResult() {
         // given
         given(uspUtV1.getSensitiveDataProcessing()).willReturn(asList(0, 1, 2, 3, 4, 5, 6, 7));
@@ -135,6 +140,15 @@ public class USMappedUtahGppReaderTest {
         // when and then
         assertThat(gppReader.getSensitiveDataProcessing())
                 .containsExactly(0, 1, 4, 2, 3, 5, 6, 7);
+    }
+
+    @Test
+    public void getSensitiveDataProcessingOptOutNoticeShouldReturnExpectedResult() {
+        // given
+        given(uspUtV1.getSensitiveDataProcessingOptOutNotice()).willReturn(1);
+
+        // when and then
+        assertThat(gppReader.getSensitiveDataProcessingOptOutNotice()).isEqualTo(1);
     }
 
     @Test
@@ -172,24 +186,63 @@ public class USMappedUtahGppReaderTest {
     }
 
     @Test
+    public void getMspaCoveredTransactionShouldReturnExpectedResult() {
+        // given
+        given(uspUtV1.getMspaCoveredTransaction()).willReturn(1);
+
+        // when and then
+        assertThat(gppReader.getMspaCoveredTransaction()).isEqualTo(1);
+    }
+
+    @Test
+    public void getMspaServiceProviderModeShouldReturnExpectedResult() {
+        // given
+        given(uspUtV1.getMspaServiceProviderMode()).willReturn(1);
+
+        // when and then
+        assertThat(gppReader.getMspaServiceProviderMode()).isEqualTo(1);
+    }
+
+    @Test
+    public void getMspaOptOutOptionModeShouldReturnExpectedResult() {
+        // given
+        given(uspUtV1.getMspaOptOutOptionMode()).willReturn(1);
+
+        // when and then
+        assertThat(gppReader.getMspaOptOutOptionMode()).isEqualTo(1);
+    }
+
+    @Test
     public void gppReaderShouldReturnExpectedResultsIfSectionAbsent() {
         // given
         gppReader = new USMappedUtahGppReader(null);
 
         // when and then
-        assertThat(gppReader.getMspaServiceProviderMode()).isNull();
+        assertThat(gppReader.getVersion()).isNull();
+
         assertThat(gppReader.getGpc()).isNull();
+        assertThat(gppReader.getGpcSegmentType()).isNull();
+        assertThat(gppReader.getGpcSegmentIncluded()).isNull();
+
         assertThat(gppReader.getSaleOptOut()).isNull();
         assertThat(gppReader.getSaleOptOutNotice()).isNull();
+
         assertThat(gppReader.getSharingNotice()).isNull();
         assertThat(gppReader.getSharingOptOut()).isNull();
         assertThat(gppReader.getSharingOptOutNotice()).isNull();
+
         assertThat(gppReader.getTargetedAdvertisingOptOut()).isNull();
         assertThat(gppReader.getTargetedAdvertisingOptOutNotice()).isNull();
+
         assertThat(gppReader.getSensitiveDataLimitUseNotice()).isNull();
-        assertThat(gppReader.getSensitiveDataProcessingOptOutNotice()).isNull();
         assertThat(gppReader.getSensitiveDataProcessing()).isEqualTo(Collections.nCopies(8, null));
+        assertThat(gppReader.getSensitiveDataProcessingOptOutNotice()).isNull();
+
         assertThat(gppReader.getKnownChildSensitiveDataConsents()).isNull();
         assertThat(gppReader.getPersonalDataConsents()).isNull();
+
+        assertThat(gppReader.getMspaCoveredTransaction()).isNull();
+        assertThat(gppReader.getMspaServiceProviderMode()).isNull();
+        assertThat(gppReader.getMspaOptOutOptionMode()).isNull();
     }
 }

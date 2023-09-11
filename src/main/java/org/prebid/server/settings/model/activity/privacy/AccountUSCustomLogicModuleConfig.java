@@ -30,7 +30,7 @@ public class AccountUSCustomLogicModuleConfig implements AccountPrivacyModuleCon
         Set<Integer> sids;
 
         @JsonProperty("normalizeFlags")
-        Boolean normalizeFlags;
+        Boolean normalizeSections;
 
         @JsonProperty("activityConfig")
         List<ActivityConfig> activitiesConfigs;
