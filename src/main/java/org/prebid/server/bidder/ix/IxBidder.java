@@ -157,7 +157,12 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest modifyBidRequest(BidRequest bidRequest, List<Imp> imps, Set<String> siteIds) {
-        final String publisherId = siteIds.size() == 1 ? siteIds.stream().findAny().orElse(null) : null;
+        final String publisherId = Optional.of(siteIds)
+                .filter(siteIdsSet -> siteIdsSet.size() == 1)
+                .map(Collection::stream)
+                .flatMap(Stream::findFirst)
+                .orElse(null);
+
         return bidRequest.toBuilder()
                 .imp(imps)
                 .site(modifySite(bidRequest.getSite(), publisherId))
