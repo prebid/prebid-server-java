@@ -206,7 +206,8 @@ public class AlkimiBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnBidWithResolvedMacros() throws JsonProcessingException {
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(),
                 mapper.writeValueAsString(givenBidResponse(
                         bidBuilder -> bidBuilder
                                 .nurl("nurl:${AUCTION_PRICE}")
