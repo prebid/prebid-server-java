@@ -9,7 +9,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.apacdex.proto.ExtImpApacdex;
@@ -44,12 +43,7 @@ public class ApacdexBidderTest extends VertxTest {
 
     public static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private ApacdexBidder apacdexBidder;
-
-    @Before
-    public void setUp() {
-        apacdexBidder = new ApacdexBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final ApacdexBidder target = new ApacdexBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -63,7 +57,7 @@ public class ApacdexBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = apacdexBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -83,7 +77,7 @@ public class ApacdexBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = apacdexBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -102,7 +96,7 @@ public class ApacdexBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = apacdexBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -121,7 +115,7 @@ public class ApacdexBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = apacdexBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -137,7 +131,7 @@ public class ApacdexBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = apacdexBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -155,7 +149,7 @@ public class ApacdexBidderTest extends VertxTest {
                 givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = apacdexBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -169,7 +163,7 @@ public class ApacdexBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = apacdexBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -189,7 +183,7 @@ public class ApacdexBidderTest extends VertxTest {
                         .build());
 
         // when
-        final Result<List<BidderBid>> result = apacdexBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -213,7 +207,7 @@ public class ApacdexBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = apacdexBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).hasSize(0);
@@ -237,7 +231,7 @@ public class ApacdexBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = apacdexBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).hasSize(1);

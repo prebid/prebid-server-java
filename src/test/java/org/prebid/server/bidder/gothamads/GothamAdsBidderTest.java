@@ -10,7 +10,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.gotthamads.GothamAdsBidder;
@@ -49,12 +48,7 @@ public class GothamAdsBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test-url.com/?pass={{AccountId}}";
 
-    private GothamAdsBidder target;
-
-    @BeforeEach
-    public void setUp() {
-        target = new GothamAdsBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final GothamAdsBidder target = new GothamAdsBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {

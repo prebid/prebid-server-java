@@ -10,7 +10,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adoppler.model.AdopplerResponseAdsExt;
@@ -40,12 +39,7 @@ public class AdopplerBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://{{AccountID}}.test.com/some/path/{{AdUnit}}";
 
-    private AdopplerBidder adopplerBidder;
-
-    @Before
-    public void setUp() {
-        adopplerBidder = new AdopplerBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdopplerBidder target = new AdopplerBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -59,7 +53,7 @@ public class AdopplerBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of(null, null)))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adopplerBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -72,7 +66,7 @@ public class AdopplerBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adopplerBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -88,7 +82,7 @@ public class AdopplerBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdoppler.of("adUnit", "")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adopplerBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -102,7 +96,7 @@ public class AdopplerBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adopplerBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -126,7 +120,7 @@ public class AdopplerBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid(null))));
 
         // when
-        final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -147,7 +141,7 @@ public class AdopplerBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ext)))));
 
         // when
-        final Result<List<BidderBid>> result = adopplerBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors())

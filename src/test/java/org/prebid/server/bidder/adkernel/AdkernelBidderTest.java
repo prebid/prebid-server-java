@@ -14,7 +14,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -44,12 +43,7 @@ public class AdkernelBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.com?zone=%s";
 
-    private AdkernelBidder adkernelBidder;
-
-    @Before
-    public void setUp() {
-        adkernelBidder = new AdkernelBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdkernelBidder target = new AdkernelBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -65,7 +59,7 @@ public class AdkernelBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -85,7 +79,7 @@ public class AdkernelBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -100,7 +94,7 @@ public class AdkernelBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), extImpAdkernel -> ExtImpAdkernel.of(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -114,7 +108,7 @@ public class AdkernelBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), extImpAdkernel -> ExtImpAdkernel.of(0));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -128,7 +122,7 @@ public class AdkernelBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -151,7 +145,7 @@ public class AdkernelBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -172,7 +166,7 @@ public class AdkernelBidderTest extends VertxTest {
                         .audio(Audio.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -192,7 +186,7 @@ public class AdkernelBidderTest extends VertxTest {
                         .audio(Audio.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -212,7 +206,7 @@ public class AdkernelBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -232,7 +226,7 @@ public class AdkernelBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adkernelBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -248,7 +242,7 @@ public class AdkernelBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = adkernelBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -265,7 +259,7 @@ public class AdkernelBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = adkernelBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -279,7 +273,7 @@ public class AdkernelBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = adkernelBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -293,7 +287,7 @@ public class AdkernelBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
-        final Result<List<BidderBid>> result = adkernelBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
@@ -311,7 +305,7 @@ public class AdkernelBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = adkernelBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -330,7 +324,7 @@ public class AdkernelBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = adkernelBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

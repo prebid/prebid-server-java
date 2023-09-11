@@ -8,7 +8,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import lombok.Value;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -38,12 +37,7 @@ public class VoxBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test-url.com";
 
-    private VoxBidder target;
-
-    @Before
-    public void setUp() {
-        target = new VoxBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final VoxBidder target = new VoxBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void shouldFailOnBidderCreation() {

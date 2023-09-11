@@ -42,17 +42,17 @@ public class PrecisoBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private PrecisoBidder precisoBidder;
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private CurrencyConversionService currencyConversionService;
 
+    private PrecisoBidder target;
+
     @Before
     public void setUp() {
-        precisoBidder = new PrecisoBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
+        target = new PrecisoBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
     }
 
     @Test
@@ -71,7 +71,7 @@ public class PrecisoBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = precisoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -89,7 +89,7 @@ public class PrecisoBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = precisoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -104,7 +104,7 @@ public class PrecisoBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = precisoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -119,7 +119,7 @@ public class PrecisoBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bid -> bid.ext(givenBidExt(BidType.banner)))));
 
         // when
-        final Result<List<BidderBid>> result = precisoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -140,7 +140,7 @@ public class PrecisoBidderTest extends VertxTest {
                         .id("request_id").build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = precisoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -162,7 +162,7 @@ public class PrecisoBidderTest extends VertxTest {
                 .id("request_id").build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = precisoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -184,7 +184,7 @@ public class PrecisoBidderTest extends VertxTest {
                 .id("request_id").build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = precisoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -206,7 +206,7 @@ public class PrecisoBidderTest extends VertxTest {
                   .id("request_id").build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = precisoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).allSatisfy(bidderError -> {

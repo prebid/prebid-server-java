@@ -14,7 +14,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -53,12 +52,7 @@ public class OpenxBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://test/auction";
 
-    private OpenxBidder openxBidder;
-
-    @Before
-    public void setUp() {
-        openxBidder = new OpenxBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final OpenxBidder target = new OpenxBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnNullArguments() {
@@ -73,7 +67,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -90,7 +84,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -111,7 +105,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -132,7 +126,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -151,7 +145,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -171,7 +165,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -190,7 +184,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -253,7 +247,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -368,7 +362,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         final ObjectNode expectedImpExt = mapper.valueToTree(
                 Map.of(
@@ -406,7 +400,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -430,7 +424,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -453,7 +447,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = openxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -469,7 +463,7 @@ public class OpenxBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
-        final CompositeBidderResponse result = openxBidder.makeBidderResponse(httpCall, BidRequest.builder().build());
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -505,7 +499,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final CompositeBidderResponse result = openxBidder.makeBidderResponse(httpCall, bidRequest);
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -544,7 +538,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final CompositeBidderResponse result = openxBidder.makeBidderResponse(httpCall, bidRequest);
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -583,7 +577,7 @@ public class OpenxBidderTest extends VertxTest {
                 .build();
 
         // when
-        final CompositeBidderResponse result = openxBidder.makeBidderResponse(httpCall, bidRequest);
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -608,7 +602,7 @@ public class OpenxBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final CompositeBidderResponse result = openxBidder.makeBidderResponse(httpCall, BidRequest.builder().build());
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).isEmpty();

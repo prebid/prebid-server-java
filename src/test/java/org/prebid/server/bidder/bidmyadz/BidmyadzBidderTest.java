@@ -8,7 +8,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -38,12 +37,7 @@ public class BidmyadzBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private BidmyadzBidder bidmyadzBidder;
-
-    @Before
-    public void setUp() {
-        bidmyadzBidder = new BidmyadzBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final BidmyadzBidder target = new BidmyadzBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndPointUrl() {
@@ -57,7 +51,7 @@ public class BidmyadzBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidmyadzBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -73,7 +67,7 @@ public class BidmyadzBidderTest extends VertxTest {
                 Device.builder().ua("ua").build()), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidmyadzBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("IP/IPv6 is a required field"));
@@ -86,7 +80,7 @@ public class BidmyadzBidderTest extends VertxTest {
                 Device.builder().ip("ip").ipv6("ipv6").build()), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidmyadzBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("User-Agent is a required field"));
@@ -98,7 +92,7 @@ public class BidmyadzBidderTest extends VertxTest {
         final BidRequest bidRequestWithTwoImps = givenBidRequest(identity(), identity()).toBuilder()
                 .imp(asList(Imp.builder().build(), Imp.builder().build())).build();
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidmyadzBidder.makeHttpRequests(bidRequestWithTwoImps);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequestWithTwoImps);
 
         // then
         assertThat(result.getErrors())
@@ -111,7 +105,7 @@ public class BidmyadzBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidmyadzBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -131,7 +125,7 @@ public class BidmyadzBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = bidmyadzBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
@@ -154,7 +148,7 @@ public class BidmyadzBidderTest extends VertxTest {
                                 .ext(mapper.createObjectNode().put("mediaType", "banner")))));
 
         // when
-        final Result<List<BidderBid>> result = bidmyadzBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -171,7 +165,7 @@ public class BidmyadzBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
-        final Result<List<BidderBid>> result = bidmyadzBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Empty SeatBid"));
@@ -189,7 +183,7 @@ public class BidmyadzBidderTest extends VertxTest {
                         .seatbid(singletonList(SeatBid.builder().bid(emptyList()).build())).build()));
 
         // when
-        final Result<List<BidderBid>> result = bidmyadzBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Empty SeatBid.Bids"));
@@ -208,7 +202,7 @@ public class BidmyadzBidderTest extends VertxTest {
                                 .ext(mapper.createObjectNode().put("mediaType", "unknown")))));
 
         // when
-        final Result<List<BidderBid>> result = bidmyadzBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse(
