@@ -23,6 +23,9 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 
 class TargetingSpec extends BaseSpec {
 
+    private static final Integer TARGETING_PARAM_NAME_MAX_LENGTH = 20
+    private static final Integer MAX_AMP_TARGETING_TRUNCATION_LENGTH = 11
+
     def "PBS should include targeting bidder specific keys when alwaysIncludeDeals is true and deal bid wins"() {
         given: "Bid request with alwaysIncludeDeals = true"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -188,9 +191,6 @@ class TargetingSpec extends BaseSpec {
         false             || true           || "hb_deal_" + GENERIC.value || "hb_deal"
         true              || false          || "hb_deal"                  || "hb_deal_" + GENERIC.value
     }
-
-    private static final Integer TARGETING_PARAM_NAME_MAX_LENGTH = 20
-    private static final Integer MAX_AMP_TARGETING_TRUNCATION_LENGTH = 11
 
     def "PBS should copy amp query params to ext.prebid.amp.data when amp request specified"() {
         given: "Default AmpRequest"
