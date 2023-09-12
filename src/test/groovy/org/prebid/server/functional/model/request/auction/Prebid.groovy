@@ -31,6 +31,7 @@ class Prebid {
     ExtPrebidFloors floors
     Map passThrough
     Events events
+    List<AdServerTargeting> adServerTargeting
 
     static class Channel {
 
