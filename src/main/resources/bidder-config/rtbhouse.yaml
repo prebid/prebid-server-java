@@ -7,6 +7,7 @@ adapters:
       app-media-types:
       site-media-types:
         - banner
+        - native
       supported-vendors:
       vendor-id: 16
     usersync:

@@ -1,10 +1,13 @@
 package org.prebid.server.bidder.rtbhouse;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -83,14 +86,16 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
+            final List<BidderError> bidderErrors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
-        } catch (DecodeException e) {
+            return Result.of(extractBids(bidRequest, bidResponse, bidderErrors), Collections.emptyList());
+        } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidRequest bidRequest,
+            BidResponse bidResponse, List<BidderError> bidderErrors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -101,8 +106,58 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
+                .map(bid -> resolveBidderBid(bid, bidRequest, bidResponse, bidderErrors))
                 .toList();
+    }
+
+    private BidderBid resolveBidderBid(Bid bid, BidRequest bidRequest,
+                BidResponse bidResponse, List<BidderError> bidderErrors) {
+        final String currency = bidResponse.getCur();
+        final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
+        final String bidAdm = bid.getAdm();
+        final String resolvedAdm = bidAdm != null && bidType == BidType.xNative
+                ? resolveNativeAdm(bidAdm, bidderErrors)
+                : bidAdm;
+        final Bid updatedBid = bid.toBuilder()
+                .adm(resolvedAdm)
+                .build();
+
+        return BidderBid.builder()
+                .bid(updatedBid)
+                .type(bidType)
+                .bidCurrency(currency)
+                .build();
+    }
+
+    private String resolveNativeAdm(String adm, List<BidderError> bidderErrors) {
+        final JsonNode admNode;
+        try {
+            admNode = mapper.mapper().readTree(adm);
+        } catch (JsonProcessingException e) {
+            bidderErrors.add(BidderError.badServerResponse("Unable to parse native adm: %s".formatted(adm)));
+            return null;
+        }
+
+        final JsonNode nativeNode = admNode.get("native");
+        if (!nativeNode.isMissingNode()) {
+            return nativeNode.toString();
+        }
+
+        return adm;
+    }
+
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        BidType bidType = BidType.banner;
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return bidType;
+                } else if (imp.getXNative() != null) {
+                    bidType = BidType.xNative;
+                }
+            }
+        }
+        return bidType;
     }
 
     private ExtImpRtbhouse parseImpExt(Imp imp) {
