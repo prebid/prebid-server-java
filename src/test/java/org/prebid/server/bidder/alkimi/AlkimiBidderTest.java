@@ -31,6 +31,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
@@ -201,6 +202,28 @@ public class AlkimiBidderTest extends VertxTest {
         assertThat(result.getValue()).contains(BidderBid.of(givenBannerBid(identity()), banner, null));
         assertThat(result.getValue()).contains(BidderBid.of(givenVideoBid(identity()), video, null));
         assertThat(result.getValue()).contains(BidderBid.of(givenAudioBid(identity()), audio, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidWithResolvedMacros() throws JsonProcessingException {
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(),
+                mapper.writeValueAsString(givenBidResponse(
+                        bidBuilder -> bidBuilder
+                                .nurl("nurl:${AUCTION_PRICE}")
+                                .adm("adm:${AUCTION_PRICE}")
+                                .price(BigDecimal.TEN))));
+
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm)
+                .containsExactly(
+                        tuple("nurl:10", "adm:10"),
+                        tuple("nurl:10", "adm:10"),
+                        tuple("nurl:10", "adm:10"));
     }
 
     private static BidRequest givenBidRequest() {
