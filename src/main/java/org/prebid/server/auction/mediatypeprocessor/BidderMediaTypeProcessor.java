@@ -25,6 +25,8 @@ import java.util.stream.Stream;
  */
 public class BidderMediaTypeProcessor implements MediaTypeProcessor {
 
+    private static final EnumSet<MediaType> NONE_OF_MEDIA_TYPES = EnumSet.noneOf(MediaType.class);
+
     private final BidderCatalog bidderCatalog;
 
     public BidderMediaTypeProcessor(BidderCatalog bidderCatalog) {
@@ -64,7 +66,7 @@ public class BidderMediaTypeProcessor implements MediaTypeProcessor {
                 .map(BidderInfo.PlatformInfo::getMediaTypes)
                 .filter(mediaTypes -> !mediaTypes.isEmpty())
                 .map(EnumSet::copyOf)
-                .orElseGet(() -> EnumSet.noneOf(MediaType.class));
+                .orElse(NONE_OF_MEDIA_TYPES);
     }
 
     private BidRequest processBidRequest(BidRequest bidRequest,

@@ -918,17 +918,17 @@ public class ExchangeService {
         final Site preparedSite = prepareSite(site, fpdSite, useFirstPartyData);
         final Dooh preparedDooh = prepareDooh(dooh, fpdDooh, useFirstPartyData);
 
-        final long distributionChannelsCount = Stream.of(preparedSite, preparedDooh, preparedApp)
-                .filter(Objects::nonNull)
-                .count();
+        final List<String> distributionChannels = new ArrayList<>();
+        ObjectUtil.getIfNotNull(preparedSite, ignored -> distributionChannels.add("site"));
+        ObjectUtil.getIfNotNull(preparedDooh, ignored -> distributionChannels.add("dooh"));
+        ObjectUtil.getIfNotNull(preparedApp, ignored -> distributionChannels.add("app"));
 
-        if (distributionChannelsCount > 1) {
+        if (distributionChannels.size() > 1) {
             metrics.updateAlertsMetrics(MetricName.general);
-            //todo: do we need more info in the log?
             conditionalLogger.error("More than one distribution channel is present", logSamplingRate);
             throw new InvalidRequestException(
-                    "No more than one of request.site or request.app or request.dooh can be defined"
-            );
+                    String.join(" and ", distributionChannels) + " are present, "
+                            + "but no more than one of site or app or dooh can be defined");
         }
 
         return bidRequest.toBuilder()
@@ -936,7 +936,9 @@ public class ExchangeService {
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, bidRequest, useFirstPartyData, context.getAccount()))
-                .app(preparedApp).dooh(preparedDooh).site(preparedSite)
+                .app(preparedApp)
+                .dooh(preparedDooh)
+                .site(preparedSite)
                 .source(prepareSource(bidder, bidRequest))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build();

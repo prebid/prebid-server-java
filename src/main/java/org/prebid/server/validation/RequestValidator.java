@@ -61,6 +61,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -172,15 +173,17 @@ public class RequestValidator {
                 validateImp(bidRequest.getImp().get(index), aliases, index, warnings);
             }
 
-            final long channelCount = Stream.of(bidRequest.getSite(), bidRequest.getApp(), bidRequest.getDooh())
-                    .filter(Objects::nonNull).count();
+            final List<String> channels = new ArrayList<>();
+            ObjectUtil.getIfNotNull(bidRequest.getSite(), ignored -> channels.add("request.site"));
+            ObjectUtil.getIfNotNull(bidRequest.getDooh(), ignored -> channels.add("request.dooh"));
+            ObjectUtil.getIfNotNull(bidRequest.getApp(), ignored -> channels.add("request.app"));
 
-            if (channelCount == 0) {
+            if (channels.size() == 0) {
                 throw new ValidationException(
                         "One of request.site or request.app or request.dooh must be defined");
-            } else if (channelCount > 1) {
-                throw new ValidationException(
-                        "No more than one of request.site or request.app or request.dooh can be defined");
+            } else if (channels.size() > 1) {
+                throw new ValidationException(String.join(" and ", channels) + " are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
             }
 
             if (bidRequest.getSite() != null) {

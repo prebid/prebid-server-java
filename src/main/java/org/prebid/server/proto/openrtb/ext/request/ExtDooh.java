@@ -20,7 +20,7 @@ public class ExtDooh extends FlexibleExtension {
     private static final ExtDooh EMPTY = ExtDooh.of(null);
 
     /**
-     * Defines the contract for bidrequest.app.dooh.data.
+     * Defines the contract for bidrequest.dooh.ext.data.
      */
     ObjectNode data;
 
