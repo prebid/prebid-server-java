@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Content
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Dooh
+import org.prebid.server.functional.model.request.auction.DoohExt
 import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.Network
 import org.prebid.server.functional.model.request.auction.Producer
@@ -27,6 +28,7 @@ import spock.lang.Shared
 
 import static org.prebid.server.functional.model.request.auction.Content.Channel
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 
 class OrtbConverterSpec extends BaseSpec {
 
@@ -1181,7 +1183,7 @@ class OrtbConverterSpec extends BaseSpec {
 
     def "PBS should remove bidRequest.dooh when PBS don't support ortb 2.6"() {
         given: "Default bid request with bidRequest.dooh"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.getDefaultBidRequest(DOOH).tap {
             dooh = new Dooh().tap {
                 id = PBSUtils.randomString
                 name = PBSUtils.randomString
@@ -1191,6 +1193,7 @@ class OrtbConverterSpec extends BaseSpec {
                 domain = PBSUtils.randomString
                 keywords = PBSUtils.randomString
                 content = Content.defaultContent
+                ext = DoohExt.defaultDoohExt
             }
         }
 
@@ -1205,7 +1208,7 @@ class OrtbConverterSpec extends BaseSpec {
 
     def "PBS shouldn't remove bidRequest.dooh when PBS support ortb 2.6"() {
         given: "Default bid request with bidRequest.dooh"
-        def bidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.getDefaultBidRequest(DOOH).tap {
             dooh = new Dooh().tap {
                 id = PBSUtils.randomString
                 name = PBSUtils.randomString
@@ -1215,6 +1218,7 @@ class OrtbConverterSpec extends BaseSpec {
                 domain = PBSUtils.randomString
                 keywords = PBSUtils.randomString
                 content = Content.defaultContent
+                ext = DoohExt.defaultDoohExt
             }
         }
 
@@ -1231,6 +1235,7 @@ class OrtbConverterSpec extends BaseSpec {
             dooh.domain == bidRequest.dooh.domain
             dooh.keywords == bidRequest.dooh.keywords
             dooh.content.id == bidRequest.dooh.content.id
+            dooh.ext.data == bidRequest.dooh.ext.data
         }
     }
 

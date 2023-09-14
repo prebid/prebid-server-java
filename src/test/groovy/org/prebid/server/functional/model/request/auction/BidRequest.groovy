@@ -6,6 +6,7 @@ import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
@@ -63,6 +64,9 @@ class BidRequest {
             }
             if (channel == APP) {
                 app = App.defaultApp
+            }
+            if (channel == DOOH) {
+                dooh = Dooh.defaultDooh
             }
         }
     }
