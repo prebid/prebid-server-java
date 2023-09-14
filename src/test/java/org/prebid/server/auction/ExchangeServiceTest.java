@@ -303,7 +303,7 @@ public class ExchangeServiceTest extends VertxTest {
 
     private Clock clock;
 
-    private ExchangeService exchangeService;
+    private ExchangeService target;
 
     @SuppressWarnings("unchecked")
     @Before
@@ -419,7 +419,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
-        exchangeService = new ExchangeService(
+        target = new ExchangeService(
                 0,
                 90,
                 bidderCatalog,
@@ -493,7 +493,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(null));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         verifyNoInteractions(bidderCatalog);
@@ -509,7 +509,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("invalid", 0)));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         verify(bidderCatalog, times(2)).isValidName(eq("invalid"));
@@ -529,7 +529,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("disallowed", 0)));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         verifyNoInteractions(httpBidderRequester);
@@ -544,7 +544,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -567,7 +567,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.id("requestId").tmax(500L));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -609,7 +609,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .tmax(500L));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -642,7 +642,7 @@ public class ExchangeServiceTest extends VertxTest {
                 givenImp(singletonMap("bidder1", 3), identity())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -670,7 +670,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)), identity());
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         verifyNoInteractions(httpBidderRequester);
@@ -689,7 +689,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)), identity());
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -710,7 +710,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(bidder, 1)), identity());
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<List<AuctionParticipation>> auctionParticipationCaptor =
@@ -740,7 +740,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap(bidder, 1)), identity());
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<List<AuctionParticipation>> auctionParticipationCaptor =
@@ -773,7 +773,7 @@ public class ExchangeServiceTest extends VertxTest {
                         imp -> imp.id("imp2"))));
 
         // when
-        final Future<AuctionContext> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
+        final Future<AuctionContext> result = target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -814,7 +814,7 @@ public class ExchangeServiceTest extends VertxTest {
                 });
 
         // when
-        final Future<AuctionContext> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
+        final Future<AuctionContext> result = target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         assertThat(result.result())
@@ -861,7 +861,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.ext(extRequest));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -927,7 +927,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(supplyChainResolver.resolveForBidder(eq("bidder3"), same(bidRequest))).willReturn(generalSchain);
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequest1Captor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -972,7 +972,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .regs(Regs.builder().gdpr(1).build()));
 
         // when
-        final Future<?> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
+        final Future<?> result = target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         assertThat(result.failed()).isTrue();
@@ -999,7 +999,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         verifyNoInteractions(httpBidderRequester);
@@ -1032,7 +1032,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -1056,7 +1056,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -1081,7 +1081,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -1105,7 +1105,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidResponseCreator(emptyMap());
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         assertThat(result.getBidResponse().getSeatbid()).isEmpty();
@@ -1173,7 +1173,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build()));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         verify(httpBidderRequester, times(2))
@@ -1205,7 +1205,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         verify(httpBidderRequester, times(1))
                 .requestBids(any(), any(), any(), any(), any(), any(), anyBoolean());
@@ -1255,7 +1255,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
         verify(httpBidderRequester).requestBids(any(), any(), any(), any(), any(), any(), eq(true));
@@ -1292,7 +1292,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(true);
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
         verify(httpBidderRequester).requestBids(any(), any(), any(), any(), any(), any(), eq(true));
@@ -1323,7 +1323,7 @@ public class ExchangeServiceTest extends VertxTest {
                 Future.succeededFuture(BidResponse.builder().ext(ExtBidResponse.builder().build()).build()));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
         verify(httpBidderRequester).requestBids(any(), any(), any(), any(), any(), any(), eq(false));
@@ -1354,7 +1354,7 @@ public class ExchangeServiceTest extends VertxTest {
                 Future.succeededFuture(BidResponse.builder().ext(ExtBidResponse.builder().build()).build()));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
         verify(httpBidderRequester).requestBids(any(), any(), any(), any(), any(), any(), eq(false));
@@ -1408,7 +1408,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
         // when
-        exchangeService.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
         final BidRequestCacheInfo expectedCacheInfo = BidRequestCacheInfo.builder()
@@ -1500,7 +1500,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<AuctionContext> auctionContextArgumentCaptor =
@@ -1539,7 +1539,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         verify(bidResponseCreator).create(any(), eq(BidRequestCacheInfo.builder().build()), eq(emptyMap()));
@@ -1555,7 +1555,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.ext(jacksonMapper.fillExtension(ExtRequest.empty(), singletonMap("someField", 1))));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         assertThat(result.getBidResponse().getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -1576,7 +1576,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         assertThat(result.getBidResponse().getSeatbid()).flatExtracting(SeatBid::getBid)
@@ -1604,7 +1604,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidResponseCreator(singletonList(Bid.builder().build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final List<AuctionParticipation> auctionParticipations = captureAuctionParticipations();
@@ -1641,7 +1641,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidResponseCreator(singletonList(Bid.builder().build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final List<AuctionParticipation> auctionParticipations = captureAuctionParticipations();
@@ -1681,7 +1681,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidResponseCreator(singletonMap("bidder1", bidderErrors));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         final BidResponse bidResponse = result.getBidResponse();
@@ -1720,7 +1720,7 @@ public class ExchangeServiceTest extends VertxTest {
                                         .build()))), emptyList(), emptyMap())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -1762,7 +1762,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidResponseCreator(singletonList(Bid.builder().id("bidId1").build()));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         assertThat(result.getBidResponse().getSeatbid())
@@ -1786,7 +1786,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.id("requestId").tmax(500L));
 
         // when
-        final Future<?> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
+        final Future<?> result = target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         assertThat(result.failed()).isTrue();
@@ -1810,7 +1810,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.id("requestId").tmax(500L));
 
         // when
-        final Future<?> result = exchangeService.holdAuction(givenRequestContext(bidRequest));
+        final Future<?> result = target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         assertThat(result.failed()).isTrue();
@@ -1833,7 +1833,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final User capturedBidRequestUser = captureBidRequest().getUser();
@@ -1856,7 +1856,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .regs(regs));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final Regs capturedRegs = captureBidRequest().getRegs();
@@ -1897,7 +1897,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .put("otherField", "value")));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -1938,7 +1938,7 @@ public class ExchangeServiceTest extends VertxTest {
                         givenBidderBid(Bid.builder().price(TEN).build())))));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -1974,7 +1974,7 @@ public class ExchangeServiceTest extends VertxTest {
                         givenBidderBid(Bid.builder().price(TEN).build())))));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -1998,7 +1998,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ExtRequest capturedRequest = captureBidRequest().getExt();
@@ -2017,7 +2017,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ExtRequest capturedRequest = captureBidRequest().getExt();
@@ -2036,7 +2036,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ExtRequest extRequest = captureBidRequest().getExt();
@@ -2056,7 +2056,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ExtRequest extRequest = captureBidRequest().getExt();
@@ -2080,7 +2080,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ExtRequest capturedRequest = captureBidRequest().getExt();
@@ -2121,7 +2121,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2215,7 +2215,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2251,7 +2251,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2287,7 +2287,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2323,7 +2323,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2363,7 +2363,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2404,7 +2404,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2449,7 +2449,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2502,7 +2502,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2556,7 +2556,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2604,7 +2604,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2641,7 +2641,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2692,7 +2692,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveSite(any(), any())).willReturn(mergedSite);
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2741,7 +2741,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveDooh(any(), any())).willReturn(mergedDooh);
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2790,7 +2790,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveApp(any(), any())).willReturn(mergedApp);
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2833,7 +2833,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveUser(any(), any())).willReturn(mergedUser);
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -2858,7 +2858,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.user(User.builder().id("userId").build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final User capturedUser = captureBidRequest().getUser();
@@ -2876,7 +2876,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final User capturedUser = captureBidRequest().getUser();
@@ -2894,10 +2894,10 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveSite(any(), any())).willReturn(Site.builder().build());
 
         // when
-        final Throwable cause = exchangeService.holdAuction(givenRequestContext(bidRequest)).cause();
+        final Throwable cause = target.holdAuction(givenRequestContext(bidRequest)).cause();
 
-        assertThat(cause.getMessage())
-                .isEqualTo("No more than one of request.site or request.app or request.dooh can be defined");
+        assertThat(cause.getMessage()).isEqualTo(
+                "site and dooh are present, but no more than one of site or app or dooh can be defined");
 
         verify(metrics).updateAlertsMetrics(MetricName.general);
     }
@@ -2914,11 +2914,11 @@ public class ExchangeServiceTest extends VertxTest {
                         .dooh(Dooh.builder().build()));
 
         // when
-        final Throwable cause = exchangeService.holdAuction(givenRequestContext(bidRequest)).cause();
+        final Throwable cause = target.holdAuction(givenRequestContext(bidRequest)).cause();
 
         //then
-        assertThat(cause.getMessage())
-                .isEqualTo("No more than one of request.site or request.app or request.dooh can be defined");
+        assertThat(cause.getMessage()).isEqualTo(
+                "site and dooh and app are present, but no more than one of site or app or dooh can be defined");
         verify(metrics).updateAlertsMetrics(MetricName.general);
     }
 
@@ -2938,7 +2938,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidResponseCreator(singletonList(Bid.builder().price(updatedPrice).build()));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         assertThat(result.getBidResponse().getSeatbid())
@@ -2960,7 +2960,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(TEN);
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         verify(storedResponseProcessor).updateStoredBidResponse(any());
@@ -2981,7 +2981,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         assertThat(result.getBidResponse().getSeatbid())
@@ -3007,7 +3007,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext givenContext = givenRequestContext(bidRequest);
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenContext).result();
+        final AuctionContext result = target.holdAuction(givenContext).result();
 
         // then
         assertThat(result.getBidResponse().getSeatbid())
@@ -3035,7 +3035,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willThrow(new PreBidException("Unable to convert bid currency CUR to desired ad server currency USD"));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final List<AuctionParticipation> auctionParticipations = captureAuctionParticipations();
@@ -3072,7 +3072,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(TEN);
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final List<AuctionParticipation> auctionParticipations = captureAuctionParticipations();
@@ -3105,7 +3105,7 @@ public class ExchangeServiceTest extends VertxTest {
                         new PreBidException("Unable to convert bid currency CUR2 to desired ad server currency USD"));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<AuctionContext> contextArgumentCaptor = ArgumentCaptor.forClass(AuctionContext.class);
@@ -3150,7 +3150,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willThrow(new PreBidException("Unable to convert bid currency CUR to desired ad server currency BAD"));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<AuctionContext> contextArgumentCaptor = ArgumentCaptor.forClass(AuctionContext.class);
@@ -3197,7 +3197,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(currencyService.convertCurrency(any(), any(), any(), any())).willReturn(updatedPrice);
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<AuctionContext> contextArgumentCaptor = ArgumentCaptor.forClass(AuctionContext.class);
@@ -3243,7 +3243,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(currencyService.convertCurrency(any(), any(), eq("USD"), any())).willReturn(bidder3Price);
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<AuctionContext> contextArgumentCaptor = ArgumentCaptor.forClass(AuctionContext.class);
@@ -3277,7 +3277,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .publisher(Publisher.builder().id("1001").build()).build()));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         assertThat(result.getBidResponse().getSeatbid()).hasSize(1)
@@ -3301,7 +3301,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         verify(metrics).updateRequestBidderCardinalityMetric(1);
@@ -3321,7 +3321,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder.app(App.builder().build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         verify(metrics).updateAdapterRequestTypeAndNoCookieMetrics(
@@ -3338,7 +3338,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Account account = Account.builder().id("").build();
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest, account));
+        target.holdAuction(givenRequestContext(bidRequest, account));
 
         // then
         verify(metrics).updateAccountRequestMetrics(eq(Account.empty("")), eq(MetricName.openrtb2web));
@@ -3353,7 +3353,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         verify(metrics).updateAdapterRequestNobidMetrics(eq("someBidder"), any());
@@ -3378,7 +3378,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         verify(metrics).updateAdapterRequestGotbidsMetrics(eq("someBidder"), any());
@@ -3395,7 +3395,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(emptyList());
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         verify(bidResponsePostProcessor).postProcess(
@@ -3431,7 +3431,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final List<AuctionParticipation> capturedParticipations = captureAuctionParticipations();
@@ -3467,7 +3467,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final List<AuctionParticipation> capturedParticipations = captureAuctionParticipations();
@@ -3503,7 +3503,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final List<AuctionParticipation> capturedParticipations = captureAuctionParticipations();
@@ -3537,7 +3537,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         final List<AuctionParticipation> capturedParticipations = captureAuctionParticipations();
@@ -3571,7 +3571,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         final List<AuctionParticipation> capturedParticipations = captureAuctionParticipations();
@@ -3608,7 +3608,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final List<AuctionParticipation> capturedParticipations = captureAuctionParticipations();
@@ -3644,7 +3644,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final List<AuctionParticipation> capturedParticipations = captureAuctionParticipations();
@@ -3677,7 +3677,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         assertThat(result.getBidResponse().getSeatbid())
@@ -3710,7 +3710,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build());
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final List<AuctionParticipation> capturedParticipations = captureAuctionParticipations();
@@ -3735,7 +3735,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("bidder", 2)));
 
         // when
-        final AuctionContext auctionContext = exchangeService.holdAuction(givenRequestContext(bidRequest)).result();
+        final AuctionContext auctionContext = target.holdAuction(givenRequestContext(bidRequest)).result();
 
         // then
         assertThat(auctionContext.getBidResponse())
@@ -3752,7 +3752,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
         final BidResponse emptyResponse = BidResponse.builder()
@@ -3779,7 +3779,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
         final BidResponse bidResponse = result.getBidResponse();
@@ -3847,7 +3847,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
         final BidResponse bidResponse = result.getBidResponse();
@@ -3941,7 +3941,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
         final BidResponse bidResponse = result.getBidResponse();
@@ -3985,7 +3985,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
         final ExtModulesTraceAnalyticsTags givenExtModulesTraceAnalyticsTags =
@@ -4026,7 +4026,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
         final BidResponse bidResponse = result.getBidResponse();
@@ -4064,7 +4064,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
         final BidResponse bidResponse = result.getBidResponse();
@@ -4087,7 +4087,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
         final BidResponse bidResponse = result.getBidResponse();
@@ -4115,7 +4115,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionContext result = exchangeService.holdAuction(auctionContext).result();
+        final AuctionContext result = target.holdAuction(auctionContext).result();
 
         // then
         final BidResponse bidResponse = result.getBidResponse();
@@ -4134,7 +4134,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
 
         // when
-        exchangeService.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
         verify(metrics, times(6)).updateHooksMetrics(anyString(), any(), any(), any(), any(), any());
@@ -4199,7 +4199,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
 
         // when
-        exchangeService.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
         verify(metrics, times(6)).updateHooksMetrics(anyString(), any(), any(), any(), any(), any());
@@ -4250,7 +4250,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
         // when
-        exchangeService.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
         final ArgumentCaptor<AuctionContext> argumentCaptor = ArgumentCaptor.forClass(AuctionContext.class);
@@ -4294,7 +4294,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
         // when
-        exchangeService.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
         final ArgumentCaptor<AuctionContext> argumentCaptor = ArgumentCaptor.forClass(AuctionContext.class);
@@ -4325,7 +4325,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -4359,7 +4359,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        final Future<AuctionContext> result = exchangeService.holdAuction(auctionContext);
+        final Future<AuctionContext> result = target.holdAuction(auctionContext);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -4385,7 +4385,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .build())));
 
         // when
-        exchangeService.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -4407,7 +4407,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .build();
 
         // when
-        exchangeService.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
         final BidRequest capturedBidRequest = captureBidRequest();
@@ -4439,7 +4439,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
 
         // when
-        exchangeService.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
         final ArgumentCaptor<AuctionContext> contextArgumentCaptor = ArgumentCaptor.forClass(AuctionContext.class);
@@ -4471,7 +4471,7 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(givenSeatBid(emptyList()));
 
         // when
-        exchangeService.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
         final ArgumentCaptor<AuctionContext> contextArgumentCaptor = ArgumentCaptor.forClass(AuctionContext.class);
@@ -4507,7 +4507,7 @@ public class ExchangeServiceTest extends VertxTest {
                 any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder().id("uniqId").build()));
 
-        exchangeService = new ExchangeService(
+        target = new ExchangeService(
                 0,
                 90,
                 bidderCatalog,
@@ -4539,7 +4539,7 @@ public class ExchangeServiceTest extends VertxTest {
                 criteriaLogManager);
 
         // when
-        final Future<AuctionContext> result = exchangeService.holdAuction(auctionContext);
+        final Future<AuctionContext> result = target.holdAuction(auctionContext);
 
         // then
         assertThat(result.result())
@@ -4562,7 +4562,7 @@ public class ExchangeServiceTest extends VertxTest {
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
         // when
-        exchangeService.holdAuction(auctionContext);
+        target.holdAuction(auctionContext);
 
         // then
         final ArgumentCaptor<BidderRequest> argumentCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -4588,7 +4588,7 @@ public class ExchangeServiceTest extends VertxTest {
                 request -> request.source(Source.builder().tid("uniqTid").build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
@@ -4802,7 +4802,7 @@ public class ExchangeServiceTest extends VertxTest {
                                 .build()));
 
         // when
-        exchangeService.holdAuction(givenRequestContext(bidRequest));
+        target.holdAuction(givenRequestContext(bidRequest));
 
         // then
         final ArgumentCaptor<BidderRequest> bidderRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);

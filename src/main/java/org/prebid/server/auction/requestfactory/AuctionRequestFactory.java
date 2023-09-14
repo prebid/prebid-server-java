@@ -234,10 +234,10 @@ public class AuctionRequestFactory {
     private static MetricName requestTypeMetric(BidRequest bidRequest) {
         if (bidRequest.getApp() != null) {
             return MetricName.openrtb2app;
-        } else if (bidRequest.getDooh() != null) {
-            return MetricName.openrtb2dooh;
-        } else {
+        } else if (bidRequest.getSite() != null) {
             return MetricName.openrtb2web;
+        } else {
+            return MetricName.openrtb2dooh;
         }
     }
 }

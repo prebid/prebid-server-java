@@ -1120,7 +1120,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("No more than one of request.site or request.app or request.dooh can be defined");
+                .containsOnly("request.site and request.dooh and request.app are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
     }
 
     @Test
@@ -1134,7 +1135,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("No more than one of request.site or request.app or request.dooh can be defined");
+                .containsOnly("request.site and request.app are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
     }
 
     @Test
@@ -1148,7 +1150,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("No more than one of request.site or request.app or request.dooh can be defined");
+                .containsOnly("request.site and request.dooh are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
     }
 
     @Test
@@ -1162,7 +1165,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("No more than one of request.site or request.app or request.dooh can be defined");
+                .containsOnly("request.site and request.dooh and request.app are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
     }
 
     @Test
