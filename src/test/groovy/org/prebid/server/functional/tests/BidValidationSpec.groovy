@@ -46,8 +46,7 @@ class BidValidationSpec extends BaseSpec {
         then: "PBS throws an exception"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 400
-        assert exception.responseBody.contains("Invalid request format: No more than one of request.site " +
-                "or request.app or request.dooh can be defined")
+        assert exception.responseBody.contains("no more than one of request.site or request.app or request.dooh can be defined")
 
         where:
         bidRequest << [BidRequest.defaultBidRequest.tap { it.app = App.defaultApp },

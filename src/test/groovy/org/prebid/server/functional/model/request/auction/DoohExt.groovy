@@ -1,17 +1,15 @@
 package org.prebid.server.functional.model.request.auction
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies
-import com.fasterxml.jackson.databind.annotation.JsonNaming
+import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
-import org.prebid.server.functional.util.PBSUtils
 
 @ToString(includeNames = true, ignoreNulls = true)
-@JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
+@EqualsAndHashCode
 class DoohExt {
 
-    Map<String, String> data
+    DoohExtData data
 
     static DoohExt getDefaultDoohExt() {
-        new DoohExt(data: ["data": PBSUtils.randomString])
+        new DoohExt(data: DoohExtData.defaultDoohExtData)
     }
 }
