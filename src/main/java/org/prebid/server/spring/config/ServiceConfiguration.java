@@ -12,6 +12,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
+import org.prebid.server.auction.AuctionThrottler;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.DebugResolver;
@@ -779,6 +780,7 @@ public class ServiceConfiguration {
     ExchangeService exchangeService(
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
+            AuctionThrottler auctionThrottler,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
             @Autowired(required = false) DealsService dealsService,
@@ -810,6 +812,7 @@ public class ServiceConfiguration {
         return new ExchangeService(
                 logSamplingRate,
                 timeoutAdjustmentFactor,
+                auctionThrottler,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsService,
@@ -1003,6 +1006,13 @@ public class ServiceConfiguration {
     @Bean
     AmpResponsePostProcessor ampResponsePostProcessor() {
         return AmpResponsePostProcessor.noOp();
+    }
+
+    @Bean
+    AuctionThrottler auctionThrottler(@Value("${auction.shedding.soft-threshold:1.0}") double softThreshold,
+                                      @Value("${auction.shedding.hard-threshold:1.0}") double hardThreshold) {
+
+        return new AuctionThrottler(softThreshold, hardThreshold);
     }
 
     @Bean
