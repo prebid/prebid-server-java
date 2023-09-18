@@ -28,7 +28,11 @@ public class USNationalGppReader implements USNatGppReader, USCustomLogicGppRead
 
     @Override
     public Boolean getGpcSegmentType() {
-        return ObjectUtil.getIfNotNull(consent, UspNatV1::getGpcSegmentType);
+        /*
+        TODO: return the GpcSegmentType field when the issue is resolved
+         https://github.com/IABTechLab/iabgpp-java/issues/28
+         */
+        return null;
     }
 
     @Override

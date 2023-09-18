@@ -57,11 +57,9 @@ public class USMappedConnecticutGppReaderTest {
 
     @Test
     public void getGpcSegmentTypeShouldReturnExpectedResult() {
-        // given
-        given(uspCtV1.getGpcSegmentType()).willReturn(true);
-
         // when and then
-        assertThat(gppReader.getGpcSegmentType()).isTrue();
+        assertThat(gppReader.getGpcSegmentType()).isNull();
+        verifyNoInteractions(uspCtV1);
     }
 
     @Test

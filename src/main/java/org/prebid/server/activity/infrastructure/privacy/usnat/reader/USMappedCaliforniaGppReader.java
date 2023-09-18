@@ -33,7 +33,7 @@ public class USMappedCaliforniaGppReader implements USNatGppReader, USCustomLogi
 
     @Override
     public Boolean getGpcSegmentType() {
-        return ObjectUtil.getIfNotNull(consent, UspCaV1::getGpcSegmentType);
+        return null;
     }
 
     @Override

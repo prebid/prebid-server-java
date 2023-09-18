@@ -31,7 +31,7 @@ public class USMappedColoradoGppReader implements USNatGppReader, USCustomLogicG
 
     @Override
     public Boolean getGpcSegmentType() {
-        return ObjectUtil.getIfNotNull(consent, UspCoV1::getGpcSegmentType);
+        return null;
     }
 
     @Override

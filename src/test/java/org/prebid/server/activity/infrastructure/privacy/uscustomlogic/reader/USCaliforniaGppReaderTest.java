@@ -56,11 +56,9 @@ public class USCaliforniaGppReaderTest {
 
     @Test
     public void getGpcSegmentTypeShouldReturnExpectedResult() {
-        // given
-        given(uspCaV1.getGpcSegmentType()).willReturn(true);
-
         // when and then
-        assertThat(gppReader.getGpcSegmentType()).isTrue();
+        assertThat(gppReader.getGpcSegmentType()).isNull();
+        verifyNoInteractions(uspCaV1);
     }
 
     @Test

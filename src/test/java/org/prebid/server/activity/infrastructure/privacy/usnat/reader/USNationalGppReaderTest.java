@@ -14,6 +14,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class USNationalGppReaderTest {
 
@@ -55,11 +56,9 @@ public class USNationalGppReaderTest {
 
     @Test
     public void getGpcSegmentTypeShouldReturnExpectedResult() {
-        // given
-        given(uspNatV1.getGpcSegmentType()).willReturn(true);
-
         // when and then
-        assertThat(gppReader.getGpcSegmentType()).isTrue();
+        assertThat(gppReader.getGpcSegmentType()).isNull();
+        verifyNoInteractions(uspNatV1);
     }
 
     @Test
