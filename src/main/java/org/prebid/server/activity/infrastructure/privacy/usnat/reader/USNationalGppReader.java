@@ -1,6 +1,7 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
 
 import com.iab.gpp.encoder.GppModel;
+import com.iab.gpp.encoder.field.UspNatV1Field;
 import com.iab.gpp.encoder.section.UspNatV1;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
@@ -28,7 +29,12 @@ public class USNationalGppReader implements USNatGppReader, USCustomLogicGppRead
 
     @Override
     public Boolean getGpcSegmentType() {
-        return ObjectUtil.getIfNotNull(consent, UspNatV1::getGpcSegmentType);
+        /*
+        TODO: return the GpcSegmentType field when the issue is resolved
+         https://github.com/IABTechLab/iabgpp-java/issues/28
+         */
+        consent.getFieldValue(UspNatV1Field.GPC_SEGMENT_TYPE);
+        return null;
     }
 
     @Override

@@ -56,11 +56,9 @@ public class USMappedColoradoGppReaderTest {
 
     @Test
     public void getGpcSegmentTypeShouldReturnExpectedResult() {
-        // given
-        given(uspCoV1.getGpcSegmentType()).willReturn(true);
-
         // when and then
-        assertThat(gppReader.getGpcSegmentType()).isTrue();
+        assertThat(gppReader.getGpcSegmentType()).isNull();
+        verifyNoInteractions(uspCoV1);
     }
 
     @Test

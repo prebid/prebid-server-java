@@ -27,7 +27,7 @@ public class USConnecticutGppReader implements USCustomLogicGppReader {
 
     @Override
     public Boolean getGpcSegmentType() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getGpcSegmentType);
+        return null;
     }
 
     @Override

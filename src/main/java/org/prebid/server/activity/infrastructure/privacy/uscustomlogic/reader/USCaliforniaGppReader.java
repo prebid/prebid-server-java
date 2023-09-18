@@ -27,7 +27,7 @@ public class USCaliforniaGppReader implements USCustomLogicGppReader {
 
     @Override
     public Boolean getGpcSegmentType() {
-        return ObjectUtil.getIfNotNull(consent, UspCaV1::getGpcSegmentType);
+        return null;
     }
 
     @Override
