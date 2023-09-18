@@ -1,8 +1,22 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.annotation.JsonValue
+
 enum ActivityType {
 
-    SYNC_USER, FETCH_BIDS, ENRICH_UFPD, REPORT_ANALYTICS, TRANSMIT_UFPD, TRANSMIT_PRECISE_GEO
+    SYNC_USER("syncUser"),
+    FETCH_BIDS("fetchBids"),
+    ENRICH_UFPD("enrichUfpd"),
+    REPORT_ANALYTICS("reportAnalytics"),
+    TRANSMIT_UFPD("transmitUfpd"),
+    TRANSMIT_PRECISE_GEO("transmitPreciseGeo")
+
+    @JsonValue
+    String value
+
+    ActivityType(String value) {
+        this.value = value
+    }
 
     String getMetricValue() {
         name().toLowerCase()

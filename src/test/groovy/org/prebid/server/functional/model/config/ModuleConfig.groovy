@@ -8,7 +8,7 @@ class ModuleConfig {
 
     List<GppSectionId> sids
     Boolean normalizeFlags
-    ActivityConfig activityConfig
+    List<ActivityConfig> activityConfig
 
     static ModuleConfig getDefaultModuleConfig(ActivityConfig activityConfig = ActivityConfig.configWithDefaultUsNatDisallowLogic,
                                                List<GppSectionId> sids = [GppSectionId.USP_NAT_V1],
@@ -16,7 +16,7 @@ class ModuleConfig {
         new ModuleConfig().tap {
             it.sids = sids
             it.normalizeFlags = normalizeFlags
-            it.activityConfig = activityConfig
+            it.activityConfig = [activityConfig]
         }
     }
 }
