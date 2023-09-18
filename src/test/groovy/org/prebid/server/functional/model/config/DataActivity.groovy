@@ -3,9 +3,12 @@ package org.prebid.server.functional.model.config
 import com.fasterxml.jackson.annotation.JsonValue
 
 enum DataActivity {
+
     NOT_APPLICABLE(0),
-    CONSENT(1),
-    NO_CONSENT(2),
+    NOTICE_PROVIDED(1),
+    NOTICE_NOT_PROVIDED(2),
+    NO_CONSENT(1),
+    CONSENT(2),
     INVALID(-1),
 
     @JsonValue

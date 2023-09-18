@@ -42,7 +42,7 @@ import org.prebid.server.functional.util.privacy.gpp.data.UsVirginiaSensitiveDat
 import java.time.Instant
 
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
-import static org.prebid.server.functional.model.config.DataActivity.CONSENT
+import static org.prebid.server.functional.model.config.DataActivity.NOTICE_PROVIDED
 import static org.prebid.server.functional.model.config.DataActivity.INVALID
 import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.AND
 import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.OR
@@ -1202,7 +1202,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def rule = new ActivityRule().tap {
             it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
         }
-
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
@@ -1242,10 +1241,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         where:
         gpcValue | accountLogic
         true     | generateSolidRestriction(OR, [])
-        false    | generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT)])
-        true     | generateSolidRestriction(OR, [new InequalityValueRule(GPC, CONSENT)])
-        true     | generateSolidRestriction(AND, [new EqualityValueRule(GPC, CONSENT),
-                                                  new EqualityValueRule(SHARING_NOTICE, CONSENT)])
+        false    | generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                  new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
     }
 
     def "PBS auction call when privacy regulation match custom requirement should remove UFPD fields in request"() {
@@ -1261,7 +1260,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def rule = new ActivityRule().tap {
             it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
         }
-
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
@@ -1300,10 +1298,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT)])
-        false    | generateSolidRestriction(OR, [new InequalityValueRule(GPC, CONSENT)])
-        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT),
-                                                 new EqualityValueRule(SHARING_NOTICE, CONSENT)])
+        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        false    | generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                 new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
     }
 
     def "PBS auction call when custom privacy regulation have invalid setup should leave UFPD fields in request with warning and add alert metric"() {
@@ -2399,7 +2397,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def rule = new ActivityRule().tap {
             it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
         }
-
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
@@ -2443,10 +2440,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         where:
         gpcValue | accountLogic
         true     | generateSolidRestriction(OR, [])
-        false    | generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT)])
-        true     | generateSolidRestriction(OR, [new InequalityValueRule(GPC, CONSENT)])
-        true     | generateSolidRestriction(AND, [new EqualityValueRule(GPC, CONSENT),
-                                                  new EqualityValueRule(SHARING_NOTICE, CONSENT)])
+        false    | generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                  new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
     }
 
     def "PBS amp call when privacy regulation match custom requirement should remove UFPD fields from request"() {
@@ -2468,7 +2465,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def rule = new ActivityRule().tap {
             it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
         }
-
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
@@ -2511,10 +2507,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT)])
-        false    | generateSolidRestriction(OR, [new InequalityValueRule(GPC, CONSENT)])
-        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT),
-                                                 new EqualityValueRule(SHARING_NOTICE, CONSENT)])
+        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        false    | generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                 new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
     }
 
     def "PBS amp call when custom privacy regulation have invalid setup should leave UFPD fields in request with warning and add alert metric"() {

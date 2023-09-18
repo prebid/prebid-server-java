@@ -17,9 +17,23 @@ abstract class ValueRestrictedRule {
 
     protected static final String JSON_LOGIC_VALUE_FIELD = "var"
 
-    ValueRestrictedRule(UsNationalPrivacySection privacySection, DataActivity value) {
+    ValueRestrictedRule(UsNationalPrivacySection privacySection, DataActivity dataActivity) {
+        validateDataActivity(privacySection, dataActivity)
         this.privacySection = privacySection
-        this.value = value
+        this.value = dataActivity
+    }
+
+    static void validateDataActivity(UsNationalPrivacySection privacySection, DataActivity dataActivity) {
+        if (privacySection in [UsNationalPrivacySection.SENSITIVE_DATA_RACIAL_RANDOM,
+                               UsNationalPrivacySection.SENSITIVE_DATA_PROCESSING_ALL,
+                               UsNationalPrivacySection.CHILD_CONSENTS_FROM_RANDOM,
+                               UsNationalPrivacySection.PERSONAL_DATA_CONSENTS]) {
+            if (dataActivity == DataActivity.NOTICE_PROVIDED || dataActivity == DataActivity.NOTICE_NOT_PROVIDED) {
+                throw new IllegalStateException("$privacySection doesn't support NOTICE_PROVIDED and NOTICE_NOT_PROVIDED types")
+            }
+        } else if (dataActivity == DataActivity.NO_CONSENT && dataActivity == DataActivity.CONSENT) {
+            throw new IllegalStateException("$privacySection doesn't support NO_CONSENT and CONSENT types")
+        }
     }
 
     static class ValueRestrictedRuleSerializer extends JsonSerializer<ValueRestrictedRule> {
