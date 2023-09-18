@@ -49,6 +49,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     private static final String DEVICE_IP = "11.222.33.44";
     private static final String DEFAULT_CURRENCY = "USD";
     private static final String HTTPS = "https";
+    private static final String TAG_ID_KEY = "tagId";
     private static final TypeReference<ExtPrebid<?, ExtImpRichaudience>> RICHAUDIENCE_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -65,7 +66,6 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
-        boolean isTest = false;
 
         try {
             validateRequest(request);
@@ -77,8 +77,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
             try {
                 validateImp(imp);
                 final ExtImpRichaudience extImp = parseImpExt(imp);
-                isTest = !isTest && BooleanUtils.isTrue(extImp.getTest());
-                final BidRequest modifiedBidRequest = makeRequest(request, imp, extImp, isTest);
+                final BidRequest modifiedBidRequest = makeRequest(request, imp, extImp);
                 httpRequests.add(makeHttpRequest(modifiedBidRequest, Set.of(imp.getId())));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -96,9 +95,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         }
     }
 
-    //todo: what if imp is not a banner and not a video?
     private static void validateImp(Imp imp) throws PreBidException {
-        //todo: does it make sense to collect all the errors like in Go?
         if (imp.getBanner() != null && !isBannerSizesPresent(imp.getBanner())) {
             throw new PreBidException("Banner W/H/Format is required. ImpId: " + imp.getId());
         }
@@ -125,36 +122,48 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static BidRequest makeRequest(BidRequest request, Imp imp, ExtImpRichaudience extImp, boolean isTest) {
-        final Optional<URL> urlOptional = extractUrl(request);
+    private static BidRequest makeRequest(BidRequest request, Imp imp, ExtImpRichaudience extImp) {
+        final Site originalSite = request.getSite();
+
+        final Optional<URL> urlOptional = extractUrl(originalSite);
         final boolean isSecure = urlOptional.map(URL::getProtocol).map(HTTPS::equals).orElse(false);
         final Imp modifiedImp = modifyImp(imp, extImp, isSecure);
+        final Site modifiedSite = urlOptional
+                .map(url -> modifySite(originalSite, imp.getTagid(), url))
+                .orElseGet(() -> modifySite(originalSite, imp.getTagid()));
+        final App modifiedApp = modifyApp(request.getApp(), imp.getTagid());
+        final boolean isTest = BooleanUtils.isTrue(extImp.getTest());
 
-        final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder().imp(List.of(modifiedImp));
-
-        if (isTest) {
-            requestBuilder.test(BID_TEST_REQUEST).device(request.getDevice().toBuilder().ip(DEVICE_IP).build());
-        }
-
-        final Site site = request.getSite();
-        if (site != null) {
-            final Site.SiteBuilder siteBuilder = site.toBuilder().keywords("tagId=" + imp.getTagid());
-            if (urlOptional.isPresent() && StringUtils.isBlank(site.getDomain())) {
-                siteBuilder.domain(urlOptional.get().getHost());
-            }
-            requestBuilder.site(siteBuilder.build());
-        }
-
-        final App app = request.getApp();
-        if (app != null) {
-            requestBuilder.app(app.toBuilder().keywords("tagId=" + imp.getTagid()).build());
-        }
-
-        return requestBuilder.build();
+        return request.toBuilder()
+                .imp(List.of(modifiedImp))
+                .site(modifiedSite)
+                .app(modifiedApp)
+                .test(isTest ? BID_TEST_REQUEST : null)
+                .device(isTest ? request.getDevice().toBuilder().ip(DEVICE_IP).build() : request.getDevice())
+                .build();
     }
 
-    private static Optional<URL> extractUrl(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest.getSite()).map(Site::getPage).map(page -> {
+    private static Site modifySite(Site originalSite, String tagId, URL url) {
+        return originalSite.toBuilder()
+                .keywords(TAG_ID_KEY + "=" + tagId)
+                .domain(StringUtils.isBlank(originalSite.getDomain()) ? url.getHost() : originalSite.getDomain())
+                .build();
+    }
+
+    private static Site modifySite(Site originalSite, String tagId) {
+        return Optional.ofNullable(originalSite)
+                .map(site -> site.toBuilder().keywords(TAG_ID_KEY + "=" + tagId).build())
+                .orElse(originalSite);
+    }
+
+    private static App modifyApp(App originalApp, String tagId) {
+        return Optional.ofNullable(originalApp)
+                .map(app -> app.toBuilder().keywords(TAG_ID_KEY + "=" + tagId).build())
+                .orElse(originalApp);
+    }
+
+    private static Optional<URL> extractUrl(Site site) {
+        return Optional.ofNullable(site).map(Site::getPage).map(page -> {
             try {
                 return new URL(page);
             } catch (MalformedURLException e) {
