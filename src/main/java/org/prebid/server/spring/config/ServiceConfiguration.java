@@ -12,7 +12,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
-import org.prebid.server.auction.AuctionThrottler;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.DebugResolver;
@@ -98,6 +97,8 @@ import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.util.VersionInfo;
+import org.prebid.server.util.system.CpuLoadAverageStats;
+import org.prebid.server.util.system.CpuLoadThrottler;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -780,7 +781,7 @@ public class ServiceConfiguration {
     ExchangeService exchangeService(
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
-            AuctionThrottler auctionThrottler,
+            CpuLoadThrottler auctionThrottler,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
             @Autowired(required = false) DealsService dealsService,
@@ -1009,10 +1010,23 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    AuctionThrottler auctionThrottler(@Value("${auction.shedding.soft-threshold:1.0}") double softThreshold,
-                                      @Value("${auction.shedding.hard-threshold:1.0}") double hardThreshold) {
+    @ConditionalOnProperty(prefix = "server.cpu-load-monitoring", name = "enabled", havingValue = "true")
+    CpuLoadAverageStats cpuLoadAverageStats(
+            Vertx vertx,
+            @Value("${server.cpu-load-monitoring.measurement-interval-ms:2000}") long measurementIntervalMillis,
+            @Value("${server.cpu-load-monitoring.window-size:60}") int maxWindowSize) {
 
-        return new AuctionThrottler(softThreshold, hardThreshold);
+        return new CpuLoadAverageStats(vertx, measurementIntervalMillis, maxWindowSize);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "auction.shedding", name = "enabled", havingValue = "true")
+    CpuLoadThrottler cpuLoadThrottler(
+            CpuLoadAverageStats cpuLoadAverageStats,
+            @Value("${auction.shedding.soft-threshold:1.0}") double softThreshold,
+            @Value("${auction.shedding.hard-threshold:1.0}") double hardThreshold) {
+
+        return new CpuLoadThrottler(cpuLoadAverageStats, softThreshold, hardThreshold);
     }
 
     @Bean

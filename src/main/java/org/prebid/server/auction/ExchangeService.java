@@ -120,6 +120,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.LineItemUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
+import org.prebid.server.util.system.CpuLoadThrottler;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -164,7 +165,7 @@ public class ExchangeService {
 
     private final double logSamplingRate;
     private final int timeoutAdjustmentFactor;
-    private final AuctionThrottler auctionThrottler;
+    private final CpuLoadThrottler auctionThrottler;
     private final BidderCatalog bidderCatalog;
     private final StoredResponseProcessor storedResponseProcessor;
     private final DealsService dealsService;
@@ -195,7 +196,7 @@ public class ExchangeService {
 
     public ExchangeService(double logSamplingRate,
                            int timeoutAdjustmentFactor,
-                           AuctionThrottler auctionThrottler,
+                           CpuLoadThrottler auctionThrottler,
                            BidderCatalog bidderCatalog,
                            StoredResponseProcessor storedResponseProcessor,
                            DealsService dealsService,
@@ -264,16 +265,17 @@ public class ExchangeService {
      * response containing returned bids and additional information in extensions.
      */
     public Future<AuctionContext> holdAuction(AuctionContext context) {
-        final AuctionThrottler.ThrottlingResult throttlingResult = auctionThrottler.getThrottlingStatus();
-        logger.info("CPU load average is %s".formatted(auctionThrottler.getCpuLoadAveragePercentage()));
+        final CpuLoadThrottler.ThrottlingResult throttlingResult = auctionThrottler.getThrottlingStatus();
 
-        if (throttlingResult instanceof AuctionThrottler.ThrottleRequired) {
-            final double amount = ((AuctionThrottler.ThrottleRequired) throttlingResult).getAmount();
+        if (throttlingResult instanceof CpuLoadThrottler.ThrottleRequired) {
+            final double amount = ((CpuLoadThrottler.ThrottleRequired) throttlingResult).getAmount();
             logger.info("Throttling amount: %s".formatted(amount));
-            return ThreadLocalRandom.current().nextDouble(1.0) <= amount
-                    ? Future.succeededFuture(context.with(emptyResponse()))
-                    : processAuctionRequest(context);
+            if (ThreadLocalRandom.current().nextDouble(1.0) <= amount) {
+                logger.info("Throttled request with id: %s".formatted(context.getBidRequest().getId()));
+                return Future.succeededFuture(context.with(emptyResponse()));
+            }
         }
+
         return processAuctionRequest(context)
                 .compose(this::invokeResponseHooks)
                 .map(this::enrichWithHooksDebugInfo)

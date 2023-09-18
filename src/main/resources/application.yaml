@@ -20,6 +20,10 @@ server:
     enabled: true
     port: 8080
     server-instances: 1
+  cpu-load-monitoring:
+    enabled: true
+    measurement-interval-ms: 5000
+    window-size: 30
 admin:
   port: 8060
 admin-endpoints:
@@ -119,8 +123,9 @@ auction:
   blacklisted-accounts:
   blacklisted-apps:
   shedding:
-      soft-threshold: 0.05
-      hard-threshold: 0.7
+    enabled: true
+    soft-threshold: 0.05
+    hard-threshold: 0.99
   biddertmax:
     min: 50
     max: 5000
