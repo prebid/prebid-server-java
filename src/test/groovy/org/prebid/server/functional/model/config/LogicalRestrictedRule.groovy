@@ -7,17 +7,20 @@ import groovy.transform.ToString
 class LogicalRestrictedRule {
 
     @JsonProperty("==")
-    ValueRestrictedRule equalRule
+    EqualityValueRule equalRule
 
     @JsonProperty("!=")
-    ValueRestrictedRule notEqualRule
+    InequalityValueRule inequalityRule
 
     List<LogicalRestrictedRule> or
     List<LogicalRestrictedRule> and
 
     LogicalRestrictedRule(ValueRestrictedRule valueOperation) {
-        equalRule = valueOperation?.shouldBeEqual ? valueOperation : null
-        notEqualRule = equalRule ? null : valueOperation
+        if (valueOperation instanceof EqualityValueRule) {
+            equalRule = valueOperation
+        } else if (valueOperation instanceof InequalityValueRule) {
+            inequalityRule = valueOperation
+        }
     }
 
     private LogicalRestrictedRule() {

@@ -2,11 +2,12 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.ActivityConfig
+import org.prebid.server.functional.model.config.EqualityValueRule
+import org.prebid.server.functional.model.config.InequalityValueRule
 import org.prebid.server.functional.model.config.LogicalRestrictedRule
 import org.prebid.server.functional.model.config.ModuleConfig
 import org.prebid.server.functional.model.config.SidsConfig
 import org.prebid.server.functional.model.config.UsNationalPrivacySection
-import org.prebid.server.functional.model.config.ValueRestrictedRule
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.Activity
@@ -746,10 +747,10 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         where:
         gpcValue | accountLogic
         true     | LogicalRestrictedRule.generateSolidRestriction(OR, [])
-        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new ValueRestrictedRule(true, GPC, CONSENT)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new ValueRestrictedRule(false, GPC, CONSENT)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new ValueRestrictedRule(true, GPC, CONSENT),
-                                                                        new ValueRestrictedRule(true, SHARING_NOTICE, CONSENT)])
+        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, CONSENT)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new EqualityValueRule(GPC, CONSENT),
+                                                                        new EqualityValueRule(SHARING_NOTICE, CONSENT)])
     }
 
     def "PBS auction call when privacy regulation match custom requirement should ignore call to bidder"() {
@@ -789,10 +790,10 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new ValueRestrictedRule(true, GPC, CONSENT)])
-        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new ValueRestrictedRule(false, GPC, CONSENT)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new ValueRestrictedRule(true, GPC, CONSENT),
-                                                                       new ValueRestrictedRule(true, SHARING_NOTICE, CONSENT)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT)])
+        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, CONSENT)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT),
+                                                                       new EqualityValueRule(SHARING_NOTICE, CONSENT)])
     }
 
     def "PBS auction call when custom privacy regulation have invalid setup should call to bidder with warning and add alert metric"() {
@@ -813,7 +814,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Custom logic for gpp with invalid setup"
-        def invalidRestrictedSetup = new ValueRestrictedRule(true, accountLogic as UsNationalPrivacySection, INVALID)
+        def invalidRestrictedSetup = new EqualityValueRule(accountLogic as UsNationalPrivacySection, INVALID)
         def restrictedRule = LogicalRestrictedRule.generateSolidRestriction(OR, [invalidRestrictedSetup])
 
         and: "Account gpp configuration with sid skip"
@@ -1504,10 +1505,10 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         where:
         gpcValue | accountLogic
         true     | LogicalRestrictedRule.generateSolidRestriction(OR, [])
-        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new ValueRestrictedRule(true, GPC, CONSENT)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new ValueRestrictedRule(false, GPC, CONSENT)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new ValueRestrictedRule(true, GPC, CONSENT),
-                                                                        new ValueRestrictedRule(true, SHARING_NOTICE, CONSENT)])
+        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, CONSENT)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new EqualityValueRule(GPC, CONSENT),
+                                                                        new EqualityValueRule(SHARING_NOTICE, CONSENT)])
     }
 
     def "PBS amp call when privacy regulation match custom requirement should ignore call to bidder"() {
@@ -1557,10 +1558,10 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new ValueRestrictedRule(true, GPC, CONSENT)])
-        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new ValueRestrictedRule(false, GPC, CONSENT)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new ValueRestrictedRule(true, GPC, CONSENT),
-                                                                       new ValueRestrictedRule(true, SHARING_NOTICE, CONSENT)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT)])
+        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, CONSENT)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT),
+                                                                       new EqualityValueRule(SHARING_NOTICE, CONSENT)])
     }
 
     def "PBS amp call when custom privacy regulation have invalid setup should call to bidder with warning and add alert metric"() {
@@ -1586,7 +1587,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Custom logic for gpp with invalid setup"
-        def invalidRestrictedSetup = new ValueRestrictedRule(true, accountLogic as UsNationalPrivacySection, INVALID)
+        def invalidRestrictedSetup = new EqualityValueRule(accountLogic as UsNationalPrivacySection, INVALID)
         def restrictedRule = LogicalRestrictedRule.generateSolidRestriction(OR, [invalidRestrictedSetup])
 
         and: "Account gpp configuration with sid skip"

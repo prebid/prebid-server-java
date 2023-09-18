@@ -2,11 +2,12 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.ActivityConfig
+import org.prebid.server.functional.model.config.EqualityValueRule
+import org.prebid.server.functional.model.config.InequalityValueRule
 import org.prebid.server.functional.model.config.LogicalRestrictedRule
 import org.prebid.server.functional.model.config.ModuleConfig
 import org.prebid.server.functional.model.config.SidsConfig
 import org.prebid.server.functional.model.config.UsNationalPrivacySection
-import org.prebid.server.functional.model.config.ValueRestrictedRule
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
@@ -1114,11 +1115,11 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        true     | generateSolidRestriction(OR, [])
-        false    | generateSolidRestriction(OR, [new ValueRestrictedRule(true, GPC, CONSENT)])
-        true     | generateSolidRestriction(OR, [new ValueRestrictedRule(false, GPC, CONSENT)])
-        true     | generateSolidRestriction(AND, [new ValueRestrictedRule(true, GPC, CONSENT),
-                                                  new ValueRestrictedRule(true, SHARING_NOTICE, CONSENT)])
+        true  | generateSolidRestriction(OR, [])
+        false | generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT)])
+        true  | generateSolidRestriction(OR, [new InequalityValueRule(GPC, CONSENT)])
+        true  | generateSolidRestriction(AND, [new EqualityValueRule(GPC, CONSENT),
+                                               new EqualityValueRule(SHARING_NOTICE, CONSENT)])
     }
 
     def "PBS auction call when privacy regulation match custom requirement should round lat/lon data to 2 digits"() {
@@ -1167,10 +1168,10 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        true     | generateSolidRestriction(OR, [new ValueRestrictedRule(true, GPC, CONSENT)])
-        false    | generateSolidRestriction(OR, [new ValueRestrictedRule(false, GPC, CONSENT)])
-        true     | generateSolidRestriction(OR, [new ValueRestrictedRule(true, GPC, CONSENT),
-                                                 new ValueRestrictedRule(true, SHARING_NOTICE, CONSENT)])
+        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT)])
+        false    | generateSolidRestriction(OR, [new InequalityValueRule(GPC, CONSENT)])
+        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT),
+                                                 new EqualityValueRule(SHARING_NOTICE, CONSENT)])
     }
 
     def "PBS auction call when custom privacy regulation have invalid setup should not round lat/lon data in request with warning and add alert metric"() {
@@ -1191,7 +1192,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Custom logic for gpp with invalid setup"
-        def invalidRestrictedSetup = new ValueRestrictedRule(true, accountLogic as UsNationalPrivacySection, INVALID)
+        def invalidRestrictedSetup = new EqualityValueRule(accountLogic as UsNationalPrivacySection, INVALID)
         def restrictedRule = generateSolidRestriction(OR, [invalidRestrictedSetup])
 
         and: "Account gpp configuration with sid skip"
@@ -2152,10 +2153,10 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         where:
         gpcValue | accountLogic
         true     | generateSolidRestriction(OR, [])
-        false    | generateSolidRestriction(OR, [new ValueRestrictedRule(true, GPC, CONSENT)])
-        true     | generateSolidRestriction(OR, [new ValueRestrictedRule(false, GPC, CONSENT)])
-        true     | generateSolidRestriction(AND, [new ValueRestrictedRule(true, GPC, CONSENT),
-                                                  new ValueRestrictedRule(true, SHARING_NOTICE, CONSENT)])
+        false    | generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT)])
+        true     | generateSolidRestriction(OR, [new InequalityValueRule(GPC, CONSENT)])
+        true     | generateSolidRestriction(AND, [new EqualityValueRule(GPC, CONSENT),
+                                                  new EqualityValueRule(SHARING_NOTICE, CONSENT)])
     }
 
     def "PBS amp call when privacy regulation match custom requirement should round lat/lon data to 2 digits"() {
@@ -2214,10 +2215,10 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        true     | generateSolidRestriction(OR, [new ValueRestrictedRule(true, GPC, CONSENT)])
-        false    | generateSolidRestriction(OR, [new ValueRestrictedRule(false, GPC, CONSENT)])
-        true     | generateSolidRestriction(OR, [new ValueRestrictedRule(true, GPC, CONSENT),
-                                                 new ValueRestrictedRule(true, SHARING_NOTICE, CONSENT)])
+        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT)])
+        false    | generateSolidRestriction(OR, [new InequalityValueRule(GPC, CONSENT)])
+        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, CONSENT),
+                                                 new EqualityValueRule(SHARING_NOTICE, CONSENT)])
     }
 
     def "PBS amp call when custom privacy regulation have invalid setup should not round lat/lon data in request with warning and add alert metric"() {
@@ -2243,7 +2244,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Custom logic for gpp with invalid setup"
-        def invalidRestrictedSetup = new ValueRestrictedRule(true, accountLogic as UsNationalPrivacySection, INVALID)
+        def invalidRestrictedSetup = new EqualityValueRule(accountLogic as UsNationalPrivacySection, INVALID)
         def restrictedRule = generateSolidRestriction(OR, [invalidRestrictedSetup])
 
         and: "Account gpp configuration with sid skip"
