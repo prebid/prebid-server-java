@@ -1,0 +1,467 @@
+package org.prebid.server.bidder.adgeneration;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Banner;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.Bid;
+import io.vertx.core.MultiMap;
+import org.junit.Test;
+import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.adgeneration.model.AdgenerationResponse;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
+import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.HttpResponse;
+import org.prebid.server.bidder.model.Result;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.adgeneration.ExtImpAdgeneration;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static java.util.function.Function.identity;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
+
+public class AdgenerationBidderTest extends VertxTest {
+
+    private static final String ENDPOINT_URL = "https://test.endpoint.com/";
+
+    private final AdgenerationBidder target = new AdgenerationBidder(ENDPOINT_URL, jacksonMapper);
+
+    @Test
+    public void creationShouldFailOnInvalidEndpointUrl() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new AdgenerationBidder("invalid_url", jacksonMapper))
+                .withMessage("URL supplied is not valid: invalid_url");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfIdIsEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdgeneration.of(null)))));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly(BidderError.badInput("No Location ID in ExtImpAdgeneration."));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRequestWithExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .device(Device.builder().ip("123").ua("test").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactly(
+                        tuple("Content-Type", "application/json;charset=utf-8"),
+                        tuple("Accept", "application/json"),
+                        tuple("User-Agent", "test"),
+                        tuple("X-Forwarded-For", "123"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfAtLeastOneImpIsSecured() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .cur(asList("JPY", "USD"))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=0");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfDefaultCurrencyIsAbsent() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .cur(asList("GBR", "USD"))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=GBR&sdkname=prebidserver&adapterver=1.0.3&sdktype=0");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfDeviceOsIsAndroid() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .device(Device.builder().os("android").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=1");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfDeviceOsIsIos() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .device(Device.builder().os("ios").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=2");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfAppHasBundle() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .app(App.builder().bundle("test").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&currency=JPY&"
+                        + "sdkname=prebidserver&adapterver=1.0.3&appbundle=test&sdktype=0");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfAppHasAppName() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .app(App.builder().name("test").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&currency=JPY&"
+                        + "sdkname=prebidserver&adapterver=1.0.3&appname=test&sdktype=0");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfDeviceHasIfaAndOsIsIos() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .device(Device.builder().ifa("51s").os("ios").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=2&idfa=51s");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfDeviceHasIfaAndOsIsAndroid() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .device(Device.builder().ifa("51s").os("android").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sdktype=1&advertising_id=51s");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfSitePageIsNotEmpty() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .site(Site.builder().page("http://www.example.com").build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true"
+                        + "&t=json3&currency=JPY&sdkname=prebidserver&adapterver=1.0.3"
+                        + "&tp=http%3A%2F%2Fwww.example.com&sdktype=0");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnHttpsUrlIfAdSizeIsNotEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(300).h(500).build()))
+                                .w(200)
+                                .h(150)
+                                .build()));
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/?posall=SSPLOC&id=123&hb=true&t=json3&"
+                        + "currency=JPY&sdkname=prebidserver&adapterver=1.0.3&sizes=300x500&sdktype=0");
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+        // given
+        final BidderCall<Void> httpCall = givenHttpCall("invalid");
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .build();
+        final AdgenerationResponse adgenerationResponse = AdgenerationResponse.of("123", "dealid", "ad", "beacon",
+                "baconurl", BigDecimal.valueOf(10), "creativeid", 100, 200, 50, "vastxml", "landingUrl",
+                "scheduleid", Collections.singletonList(mapper.createObjectNode()));
+
+        final BidderCall<Void> httpCall = givenHttpCall(
+                mapper.writeValueAsString(adgenerationResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        final String adm = """
+                <div id="apvad-123"></div>
+                <script type="text/javascript" id="apv" src="https://cdn.apvdr.com/js/VideoAd.min.js"></script>
+                <script type="text/javascript">
+                (function() {
+                    new APV.VideoAd({s:"123"}).load('vastxml');
+                })();
+                </script>
+                beacon</body>""";
+        final BidderBid expected = BidderBid.of(
+                Bid.builder()
+                        .id("123")
+                        .impid("123")
+                        .price(BigDecimal.valueOf(10))
+                        .crid("creativeid")
+                        .dealid("dealid")
+                        .w(200)
+                        .h(100)
+                        .adm(adm)
+                        .build(),
+                BidType.banner, "JPY");
+
+        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).doesNotContainNull()
+                .hasSize(1).element(0).isEqualTo(expected);
+    }
+
+    @Test
+    public void makeBidsShouldReturnCorrectAdmIfBodyTagOfAdIsAbsent() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .build();
+        final AdgenerationResponse adgenerationResponse = AdgenerationResponse.of("123", "dealid", "ad", "beacon",
+                "baconurl", BigDecimal.valueOf(10), "creativeid", 100, 200, 50, "", "landingUrl",
+                "scheduleid", Collections.singletonList(mapper.createObjectNode()));
+
+        final BidderCall<Void> httpCall = givenHttpCall(
+                mapper.writeValueAsString(adgenerationResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        final String adm = "ad";
+        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+    }
+
+    @Test
+    public void makeBidsShouldReturnCorrectAdmIfBodyTagExistsInAd() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .build();
+        final AdgenerationResponse adgenerationResponse = AdgenerationResponse.of("123", "dealid",
+                "ad<body>script</body>", "beacon", "baconurl", BigDecimal.valueOf(10),
+                "creativeid", 100, 200, 50, "", "landingUrl",
+                "scheduleid", Collections.singletonList(mapper.createObjectNode()));
+
+        final BidderCall<Void> httpCall = givenHttpCall(
+                mapper.writeValueAsString(adgenerationResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        final String adm = "adscriptbeacon</body>";
+        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+    }
+
+    @Test
+    public void makeBidsShouldReturnCorrectAdmIfBeaconIsBlank() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(givenImp(identity())))
+                .build();
+        final AdgenerationResponse adgenerationResponse = AdgenerationResponse.of("123", "dealid",
+                "ad<body>script</body>", "", "baconurl", BigDecimal.valueOf(10), "creativeid",
+                100, 200, 50, "", "landingUrl", "scheduleid",
+                Collections.singletonList(mapper.createObjectNode()));
+
+        final BidderCall<Void> httpCall = givenHttpCall(
+                mapper.writeValueAsString(adgenerationResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        final String adm = "adscript</body>";
+        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+    }
+
+    @Test
+    public void makeBidsShouldReturnIfImpExtCouldNotBeParsed() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+
+        final AdgenerationResponse adgenerationResponse = AdgenerationResponse.of("123", "dealid",
+                "ad<body>script</body>", "", "baconurl", BigDecimal.valueOf(10), "creativeid",
+                100, 200, 50, "", "landingUrl", "scheduleid",
+                Collections.singletonList(mapper.createObjectNode()));
+
+        final BidderCall<Void> httpCall = givenHttpCall(
+                mapper.writeValueAsString(adgenerationResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .imp(singletonList(givenImp(impCustomizer))))
+                .build();
+    }
+
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
+    }
+
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                        .id("123")
+                        .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdgeneration.of("123")))))
+                .build();
+    }
+
+    private static BidderCall<Void> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(
+                HttpRequest.<Void>builder().build(),
+                HttpResponse.of(200, null, body),
+                null);
+    }
+}
