@@ -13,8 +13,13 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 @JsonSubTypes({
         @JsonSubTypes.Type(
                 value = AccountUSNatModuleConfig.class,
-                name = PrivacyModuleQualifier.Names.US_NAT)})
-public sealed interface AccountPrivacyModuleConfig permits AccountUSNatModuleConfig {
+                name = PrivacyModuleQualifier.Names.US_NAT),
+        @JsonSubTypes.Type(
+                value = AccountUSCustomLogicModuleConfig.class,
+                name = PrivacyModuleQualifier.Names.US_CUSTOM_LOGIC)})
+public sealed interface AccountPrivacyModuleConfig permits
+        AccountUSNatModuleConfig,
+        AccountUSCustomLogicModuleConfig {
 
     PrivacyModuleQualifier getCode();
 

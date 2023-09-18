@@ -2,13 +2,14 @@ package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
 
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.section.UspCtV1;
+import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.List;
 import java.util.Objects;
 
-public class USConnecticutGppReader implements USNatGppReader {
+public class USMappedConnecticutGppReader implements USNatGppReader, USCustomLogicGppReader {
 
     private static final List<Integer> NON_CHILD_SENSITIVE_DATA = List.of(0, 0);
     private static final List<Integer> MIXED_CHILD_SENSITIVE_DATA = List.of(2, 1);
@@ -16,18 +17,28 @@ public class USConnecticutGppReader implements USNatGppReader {
 
     private final UspCtV1 consent;
 
-    public USConnecticutGppReader(GppModel gppModel) {
+    public USMappedConnecticutGppReader(GppModel gppModel) {
         consent = gppModel != null ? gppModel.getUspCtV1Section() : null;
     }
 
     @Override
-    public Integer getMspaServiceProviderMode() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getMspaServiceProviderMode);
+    public Integer getVersion() {
+        return ObjectUtil.getIfNotNull(consent, UspCtV1::getVersion);
     }
 
     @Override
     public Boolean getGpc() {
         return ObjectUtil.getIfNotNull(consent, UspCtV1::getGpc);
+    }
+
+    @Override
+    public Boolean getGpcSegmentType() {
+        return ObjectUtil.getIfNotNull(consent, UspCtV1::getGpcSegmentType);
+    }
+
+    @Override
+    public Boolean getGpcSegmentIncluded() {
+        return ObjectUtil.getIfNotNull(consent, UspCtV1::getGpcSegmentIncluded);
     }
 
     @Override
@@ -71,13 +82,13 @@ public class USConnecticutGppReader implements USNatGppReader {
     }
 
     @Override
-    public Integer getSensitiveDataProcessingOptOutNotice() {
-        return null;
+    public List<Integer> getSensitiveDataProcessing() {
+        return ObjectUtil.getIfNotNull(consent, UspCtV1::getSensitiveDataProcessing);
     }
 
     @Override
-    public List<Integer> getSensitiveDataProcessing() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getSensitiveDataProcessing);
+    public Integer getSensitiveDataProcessingOptOutNotice() {
+        return null;
     }
 
     @Override
@@ -101,5 +112,20 @@ public class USConnecticutGppReader implements USNatGppReader {
     @Override
     public Integer getPersonalDataConsents() {
         return null;
+    }
+
+    @Override
+    public Integer getMspaCoveredTransaction() {
+        return ObjectUtil.getIfNotNull(consent, UspCtV1::getMspaCoveredTransaction);
+    }
+
+    @Override
+    public Integer getMspaServiceProviderMode() {
+        return ObjectUtil.getIfNotNull(consent, UspCtV1::getMspaServiceProviderMode);
+    }
+
+    @Override
+    public Integer getMspaOptOutOptionMode() {
+        return ObjectUtil.getIfNotNull(consent, UspCtV1::getMspaOptOutOptionMode);
     }
 }
