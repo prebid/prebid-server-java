@@ -1188,7 +1188,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         assert error.responseBody == "Unauthorized account id: ${accountId}"
     }
 
-//    @IgnoreRest
     def "PBS auction call when privacy regulation don't match custom requirement should leave UFPD fields in request"() {
         given: "Default basic generic BidRequest"
         def gppConsent = new UspNatV1Consent.Builder().setGpc(gpcValue).build()
@@ -1408,8 +1407,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         def response = activityPbsService.sendAuctionRequest(genericBidRequest)
 
-        then: "Response should contain proper warning"
-        assert !response.ext.warnings[ErrorType.PREBID].collect { it.message }
+        then: "Response should not contain warning"
+        assert !response.ext?.warnings
 
         and: "Generic bidder request should have data in UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
@@ -1454,7 +1453,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_UFPD], restrictedRule), [USP_CT_V1], true)
+            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(ActivityConfig.getConfigWithDefaultRestrictRules([TRANSMIT_UFPD]), [USP_CT_V1], true)
         }
 
         and: "Flush metrics"
@@ -2635,8 +2634,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp requests"
         def response = activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should contain proper warning"
-        assert !response.ext.warnings[ErrorType.PREBID].collect { it.message }
+        then: "Response should not contain warning"
+        assert !response.ext?.warnings
 
         then: "Generic bidder request should have data in UFPD fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)

@@ -10,7 +10,7 @@ class ModuleConfig {
     Boolean normalizeFlags
     List<ActivityConfig> activityConfig
 
-    static ModuleConfig getDefaultModuleConfig(ActivityConfig activityConfig = ActivityConfig.configWithDefaultUsNatDisallowLogic,
+    static ModuleConfig getDefaultModuleConfig(ActivityConfig activityConfig = ActivityConfig.configWithDefaultRestrictRules,
                                                List<GppSectionId> sids = [GppSectionId.USP_NAT_V1],
                                                Boolean normalizeFlags = true) {
         new ModuleConfig().tap {

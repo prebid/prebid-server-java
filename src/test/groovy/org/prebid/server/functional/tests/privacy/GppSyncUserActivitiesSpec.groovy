@@ -1663,7 +1663,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         accountLogic << UsNationalPrivacySection.values()
     }
 
-    def "PBS setuid call when custom privacy regulation empty and normalize is disabled should call to bidder without warning"() {
+    def "PBS setuid call when custom privacy regulation empty and normalize is disabled should call to bidder without error"() {
         given: "Cookie sync SetuidRequest with accountId"
         def accountId = PBSUtils.randomString
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {

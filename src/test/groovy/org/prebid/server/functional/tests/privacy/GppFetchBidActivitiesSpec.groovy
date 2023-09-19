@@ -884,8 +884,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         def response = activityPbsService.sendAuctionRequest(generalBidRequest)
 
-        then: "Response should contain proper warning"
-        assert !response.ext.warnings[ErrorType.PREBID].collect { it.message }
+        then: "Response should not contain warning"
+        assert !response.ext?.warnings
 
         and: "Generic bidder should be called due to invalid setup for gpp restriction"
         assert bidder.getBidderRequest(generalBidRequest.id)
@@ -1668,8 +1668,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp requests"
         def response = activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should contain proper warning"
-        assert !response.ext.warnings[ErrorType.PREBID].collect { it.message }
+        then: "Response should not contain warning"
+        assert !response.ext?.warnings
 
         and: "Generic bidder should be called"
         assert bidder.getBidderRequest(ampStoredRequest.id)

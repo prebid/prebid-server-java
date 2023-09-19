@@ -3,6 +3,10 @@ package org.prebid.server.functional.model.config
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.auction.ActivityType
 
+import static org.prebid.server.functional.model.config.DataActivity.INVALID
+import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.OR
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.GPC
+
 @ToString(includeNames = true, ignoreNulls = true)
 class ActivityConfig {
 
@@ -17,10 +21,10 @@ class ActivityConfig {
         this.restrictIfTrue = restrictIfTrue
     }
 
-    static ActivityConfig getConfigWithDefaultUsNatDisallowLogic(List<ActivityType> activities = ActivityType.values()) {
+    static ActivityConfig getConfigWithDefaultRestrictRules(List<ActivityType> activities = ActivityType.values()) {
         new ActivityConfig().tap {
             it.activities = activities
-            it.restrictIfTrue = LogicalRestrictedRule.rootLogicalRestricted
+            it.restrictIfTrue = LogicalRestrictedRule.generateSolidRestriction(OR, [new  InequalityValueRule(GPC, INVALID)])
         }
     }
 }

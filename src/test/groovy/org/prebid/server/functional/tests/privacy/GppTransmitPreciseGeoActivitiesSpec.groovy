@@ -1275,8 +1275,8 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         def response = activityPbsService.sendAuctionRequest(generalBidRequest)
 
-        then: "Response should contain proper warning"
-        assert !response.ext.warnings[ErrorType.PREBID].collect { it.message }
+        then: "Response should not contain warning"
+        assert !response.ext?.warnings
 
         and: "Generic bidder should be called due to invalid setup for gpp restriction"
         assert bidder.getBidderRequest(generalBidRequest.id)
@@ -2338,8 +2338,8 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp requests"
         def response = activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should contain proper warning"
-        assert !response.ext.warnings[ErrorType.PREBID].collect { it.message }
+        then: "Response should not contain warnings"
+        assert !response.ext.warnings
 
         then: "Bidder request should contain not rounded geo data for device and user"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
