@@ -8,17 +8,13 @@
         "h": 250
       },
       "ext": {
-        "undertone": {
-          "placementId": 12345,
-          "publisherId": 1234
-        },
-        "gpid": "gpid-value"
+        "silverpush": {
+          "publisherId": "testPublisherId",
+          "bidfloor": 2
+        }
       }
     }
   ],
-  "app": {
-    "bundle": "bundle"
-  },
   "tmax": 5000,
   "regs": {
     "ext": {

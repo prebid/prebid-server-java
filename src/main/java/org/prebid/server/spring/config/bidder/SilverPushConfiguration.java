@@ -1,13 +1,12 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.ix.IxBidder;
+import org.prebid.server.bidder.silverpush.SilverPushBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
 import org.prebid.server.spring.config.bidder.util.UsersyncerCreator;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.prebid.server.version.PrebidVersionProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -17,27 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/ix.yaml", factory = YamlPropertySourceFactory.class)
-public class IxConfiguration {
+@PropertySource(value = "classpath:/bidder-config/silverpush.yaml", factory = YamlPropertySourceFactory.class)
+public class SilverPushConfiguration {
 
-    private static final String BIDDER_NAME = "ix";
+    private static final String BIDDER_NAME = "silverpush";
 
-    @Bean("ixConfigurationProperties")
-    @ConfigurationProperties("adapters.ix")
+    @Bean("silverpushConfigurationProperties")
+    @ConfigurationProperties("adapters.silverpush")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps ixBidderDeps(BidderConfigurationProperties ixConfigurationProperties,
-                            @NotBlank @Value("${external-url}") String externalUrl,
-                            PrebidVersionProvider prebidVersionProvider,
-                            JacksonMapper mapper) {
+    BidderDeps silverpushBidderDeps(BidderConfigurationProperties silverpushConfigurationProperties,
+                                    @NotBlank @Value("${external-url}") String externalUrl,
+                                    JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(ixConfigurationProperties)
+                .withConfig(silverpushConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new IxBidder(config.getEndpoint(), prebidVersionProvider, mapper))
+                .bidderCreator(config -> new SilverPushBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

@@ -4,20 +4,16 @@
     {
       "id": "imp_id",
       "secure": 1,
+      "bidfloor": 2,
       "banner": {
-        "format": [
-          {
-            "h": 250,
-            "w": 300
-          }
-        ],
         "w": 300,
         "h": 250
       },
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "siteId": "10002"
+          "publisherId": "testPublisherId",
+          "bidfloor": 2
         }
       }
     }
@@ -29,7 +25,7 @@
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "10002",
+      "id" : "testPublisherId",
       "domain": "example.com"
     },
     "ext": {
@@ -38,7 +34,9 @@
   },
   "device": {
     "ua": "userAgent",
-    "ip": "193.168.244.1"
+    "ip": "193.168.244.1",
+    "devicetype" : 2,
+    "os" : "Unknown"
   },
   "at": 1,
   "tmax": "${json-unit.any-number}",
@@ -51,16 +49,7 @@
     }
   },
   "ext": {
-    "prebid": {
-      "server": {
-        "externalurl": "http://localhost:8080",
-        "gvlid": 1,
-        "datacenter": "local",
-        "endpoint": "/openrtb2/auction"
-      }
-    },
-    "ixdiag": {
-        "pbsv": "{{ pbs.java.version }}"
-    }
+    "bc" : "sp_pb_ortb_1.0.0",
+    "publisherId" : "testPublisherId"
   }
 }
