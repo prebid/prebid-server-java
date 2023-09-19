@@ -11,7 +11,36 @@ adapters:
       supported-vendors:
       vendor-id: 856
     extra-info:
+      # todo: to be removed or moved to test properties
       pkgNameConvert:
+        -
+          convertedPkgName: com.example.pkgname1
+          unconvertedPkgNames:
+            - com.example.p1
+            - com.example.p2
+          unconvertedPkgNameKeyWords:
+            - p3
+            - p4
+          unconvertedPkgNamePrefixs:
+            - com.example1
+            - com.example2
+          exceptionPkgNames:
+            - com.example.p7
+            - com.example.p8
+        -
+          convertedPkgName: com.example.pkgname2
+          unconvertedPkgNames:
+            - com.example.p9
+            - com.example.p10
+          unconvertedPkgNameKeyWords:
+            - p11
+            - p12
+          unconvertedPkgNamePrefixs:
+            - com.example3
+            - com.example4
+          exceptionPkgNames:
+            - com.example.p15
+            - com.example3.unchanged
       closeSiteSelectionByCountry:
       chineseEndpoint: https://acd.op.hicloud.com/ppsadx/getResult
       russianEndpoint: https://adx-drru.op.hicloud.com/ppsadx/getResult

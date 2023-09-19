@@ -1,0 +1,41 @@
+{
+  "cur": "USD",
+  "ext": {
+    "prebid": {
+      "auctiontimestamp": 1684937383843
+    },
+    "responsetimemillis": {
+      "huaweiads": "{{ huaweiads.response_time_ms }}"
+    },
+    "tmaxrequest": 5000
+  },
+  "id": "test-req-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "adm": "{\"ver\":\"1.2\",\"assets\":[{\"id\":100,\"title\":{\"text\":\"/test/\",\"len\":6}},{\"id\":101,\"img\":{\"type\":3,\"url\":\"http://image1.jpg\",\"w\":400,\"h\":350}},{\"id\":102,\"img\":{\"type\":1,\"url\":\"https://icon1.png\",\"w\":160,\"h\":160}},{\"id\":103,\"img\":{\"type\":3,\"url\":\"http://image2.jpg\",\"w\":400,\"h\":300}},{\"id\":105,\"data\":{\"type\":2,\"value\":\"this is a test ad\",\"label\":\"desc\"}}],\"link\":{\"url\":\"https://ads.huawei.com/usermgtportal/home/index.html#/\",\"clicktrackers\":[\"http://test/click\"]},\"eventtrackers\":[{\"event\":1,\"method\":1,\"url\":\"http://test/imp\"}]}",
+          "adomain": [
+            "huaweiads"
+          ],
+          "crid": "58022259",
+          "id": "test-imp-id",
+          "impid": "test-imp-id",
+          "price": 0.404,
+          "h": 350,
+          "w": 400,
+          "nurl": "",
+          "ext": {
+            "origbidcpm": 2.8,
+            "origbidcur": "CNY",
+            "prebid": {
+              "type": "native"
+            }
+          }
+        }
+      ],
+      "group": 0,
+      "seat": "huaweiads"
+    }
+  ]
+}

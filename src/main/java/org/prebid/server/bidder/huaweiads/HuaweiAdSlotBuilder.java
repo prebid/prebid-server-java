@@ -3,7 +3,6 @@ package org.prebid.server.bidder.huaweiads;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Asset;
 import com.iab.openrtb.request.Banner;
-import com.iab.openrtb.request.ImageObject;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Request;
@@ -91,28 +90,15 @@ public class HuaweiAdSlotBuilder {
     }
 
     private AdSlot30 makeNativeAdSlot(Native xNative) {
-        final AdSlot30.AdSlot30Builder builder = AdSlot30.builder();
         final List<Asset> assets = parseNativeRequestAssets(xNative);
-        // only compute the main image number
-        final List<ImageObject> images = assets.stream().map(Asset::getImg).filter(Objects::nonNull)
-                .filter(img -> IMAGE_ASSET_TYPE_MAIN.equals(img.getType()))
-                .toList();
-        // every image has the same W, H.
-        //todo: make sense to try to take format from all the image types as well if main ones are absent
-        images.forEach(image -> {
-            if (HuaweiUtils.isFormatDefined(image.getW(), image.getH())) {
-                builder.w(image.getW()).h(image.getH());
-            } else if (HuaweiUtils.isFormatDefined(image.getWmin(), image.getHmin())) {
-                builder.w(image.getWmin()).h(image.getHmin());
-            }
-        });
-
         // Only one of the {title,img,video,data} objects should be present in each object.
         final long numVideo = assets.stream().map(Asset::getVideo).filter(Objects::nonNull).count();
-        final long numImage = images.size();
-        builder.detailedCreativeTypeList(makeDetailedCreativeTypeList(numVideo, numImage));
-
-        return builder.build();
+        final long numImage = assets.stream().map(Asset::getImg).filter(Objects::nonNull)
+                .filter(img -> IMAGE_ASSET_TYPE_MAIN.equals(img.getType()))
+                .count();
+        return AdSlot30.builder()
+                .detailedCreativeTypeList(makeDetailedCreativeTypeList(numVideo, numImage))
+                .build();
     }
 
     private AdSlot30 makeBannerAdSlot(Banner banner) {

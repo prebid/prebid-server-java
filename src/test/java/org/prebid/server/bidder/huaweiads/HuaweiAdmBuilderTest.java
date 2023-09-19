@@ -200,7 +200,7 @@ public class HuaweiAdmBuilderTest extends VertxTest {
                 .contentId("contentId")
                 .metaData(metadata)
                 .monitorList(List.of(
-                        Monitor.of("userClose", List.of("userCloseUrl1", "userCloseUrl2")),
+                        Monitor.of("userclose", List.of("userCloseUrl1", "userCloseUrl2")),
                         Monitor.of("vastError", List.of("vastErrorUrl1", "vastErrorUrl2")),
                         Monitor.of("imp", List.of("impUrl1", "impUrl2")),
                         Monitor.of("click", List.of("clickUrl1", "clickUrl2"))))
@@ -452,7 +452,7 @@ public class HuaweiAdmBuilderTest extends VertxTest {
                 .contentId("contentId")
                 .metaData(metadata)
                 .monitorList(List.of(
-                        Monitor.of("userClose", List.of("userCloseUrl1", "userCloseUrl2")),
+                        Monitor.of("userclose", List.of("userCloseUrl1", "userCloseUrl2")),
                         Monitor.of("imp", List.of("impUrl1", "impUrl2")),
                         Monitor.of("imp", List.of("impUrl3")),
                         Monitor.of("click", List.of("clickUrl1", "clickUrl2")),
@@ -761,7 +761,7 @@ public class HuaweiAdmBuilderTest extends VertxTest {
                 .contentId("contentId")
                 .metaData(metadata)
                 .monitorList(List.of(
-                        Monitor.of("userClose", List.of("userCloseUrl1", "userCloseUrl2")),
+                        Monitor.of("userclose", List.of("userCloseUrl1", "userCloseUrl2")),
                         Monitor.of("vastError", List.of("vastErrorUrl1", "vastErrorUrl2")),
                         Monitor.of("imp", List.of("impUrl1", "impUrl2")),
                         Monitor.of("click", List.of("clickUrl1", "clickUrl2"))))
@@ -890,7 +890,7 @@ public class HuaweiAdmBuilderTest extends VertxTest {
                 .contentId("contentId")
                 .metaData(metadata)
                 .monitorList(List.of(
-                        Monitor.of("userClose", List.of("userCloseUrl1", "userCloseUrl2")),
+                        Monitor.of("userclose", List.of("userCloseUrl1", "userCloseUrl2")),
                         Monitor.of("vastError", List.of("vastErrorUrl1", "vastErrorUrl2")),
                         Monitor.of("imp", List.of("impUrl1", "impUrl2")),
                         Monitor.of("click", List.of("clickUrl1", "clickUrl2"))))
@@ -1456,7 +1456,7 @@ public class HuaweiAdmBuilderTest extends VertxTest {
                         Monitor.of("click", List.of("clickUrl1", "clickUrl2")),
                         Monitor.of("imp", List.of("impUrl3", "impUrl4")),
                         Monitor.of("click", List.of("clickUrl3")),
-                        Monitor.of("userClose", List.of("userCloseUrl1", "userCloseUrl2")),
+                        Monitor.of("userclose", List.of("userCloseUrl1", "userCloseUrl2")),
                         Monitor.of("vastError", List.of("vastErrorUrl1", "vastErrorUrl2"))
                 ))
                 .metaData(metaData).build();
@@ -1476,7 +1476,10 @@ public class HuaweiAdmBuilderTest extends VertxTest {
                 + "<AdTitle></AdTitle>"
                 + "<Error><![CDATA[vastErrorUrl1&et=[ERRORCODE]]]></Error>"
                 + "<Error><![CDATA[vastErrorUrl2&et=[ERRORCODE]]]></Error>"
-                + "<Impression><![CDATA[impUrl3]]></Impression><Impression><![CDATA[impUrl4]]></Impression>"
+                + "<Impression><![CDATA[impUrl1]]></Impression>"
+                + "<Impression><![CDATA[impUrl2]]></Impression>"
+                + "<Impression><![CDATA[impUrl3]]></Impression>"
+                + "<Impression><![CDATA[impUrl4]]></Impression>"
                 + "<Creatives>"
                 + "<Creative adId=\\\"contentId\\\" id=\\\"contentId\\\">"
                 + "<Linear>"
@@ -1489,6 +1492,8 @@ public class HuaweiAdmBuilderTest extends VertxTest {
                 + "</TrackingEvents>"
                 + "<VideoClicks>"
                 + "<ClickThrough><![CDATA[clickUrl]]></ClickThrough>"
+                + "<ClickTracking><![CDATA[clickUrl1]]></ClickTracking>"
+                + "<ClickTracking><![CDATA[clickUrl2]]></ClickTracking>"
                 + "<ClickTracking><![CDATA[clickUrl3]]></ClickTracking>"
                 + "</VideoClicks>"
                 + "<MediaFiles>"
@@ -1564,15 +1569,17 @@ public class HuaweiAdmBuilderTest extends VertxTest {
     public void buildNativeShouldBuildNativeWithDataAssets() throws JsonProcessingException {
         // given
         final MetaData metaData = MetaData.builder()
-                .title("title%20title")
+                .description("description%20description")
                 .clickUrl("clickUrl")
+                .cta("cta%20cta")
                 .build();
         final Content content = Content.builder().metaData(metaData).build();
         final Request nativeRequest = Request.builder()
                 .assets(List.of(
                         Asset.builder().id(12).data(DataObject.builder().type(2).build()).build(),
                         Asset.builder().id(13).data(DataObject.builder().type(10).build()).build(),
-                        Asset.builder().id(14).data(DataObject.builder().type(3).build()).build()
+                        Asset.builder().id(14).data(DataObject.builder().type(3).build()).build(),
+                        Asset.builder().id(15).data(DataObject.builder().type(12).build()).build()
                 ))
                 .build();
         final Native xNative = Native.builder().request(mapper.writeValueAsString(nativeRequest)).build();
@@ -1584,9 +1591,10 @@ public class HuaweiAdmBuilderTest extends VertxTest {
         final String expectedAdm = "{"
                 + "\"ver\":\"1.1\","
                 + "\"assets\":["
-                + "{\"id\":12,\"data\":{\"value\":\"title title\",\"label\":\"desc\"}},"
-                + "{\"id\":13,\"data\":{\"value\":\"title title\",\"label\":\"desc\"}},"
-                + "{\"id\":14,\"data\":{\"value\":\"\",\"label\":\"\"}}"
+                + "{\"id\":12,\"data\":{\"value\":\"description description\",\"label\":\"desc\"}},"
+                + "{\"id\":13,\"data\":{\"value\":\"description description\",\"label\":\"desc\"}},"
+                + "{\"id\":14,\"data\":{\"value\":\"\",\"label\":\"\"}},"
+                + "{\"id\":15,\"data\":{\"type\":12,\"value\":\"cta cta\",\"label\":\"\"}}"
                 + "],"
                 + "\"link\":{\"url\":\"clickUrl\",\"clicktrackers\":[]},"
                 + "\"eventtrackers\":[]"
@@ -1609,6 +1617,8 @@ public class HuaweiAdmBuilderTest extends VertxTest {
         final MetaData metaData = MetaData.builder()
                 .title("title%20title")
                 .clickUrl("clickUrl")
+                .cta("cta%20cta")
+                .description("description%20description")
                 .iconList(List.of(
                         Icon.builder().url("iconUrl").build(),
                         Icon.builder().url("").width(100).height(100).build()))
@@ -1640,6 +1650,7 @@ public class HuaweiAdmBuilderTest extends VertxTest {
                         Asset.builder().id(21).data(DataObject.builder().type(2).build()).build(),
                         Asset.builder().id(22).data(DataObject.builder().type(10).build()).build(),
                         Asset.builder().id(23).data(DataObject.builder().type(3).build()).build(),
+                        Asset.builder().id(24).data(DataObject.builder().type(12).build()).build(),
 
                         Asset.builder().id(31).title(TitleObject.builder().build()).build(),
 
@@ -1661,7 +1672,10 @@ public class HuaweiAdmBuilderTest extends VertxTest {
                 + "<AdTitle>title title</AdTitle>"
                 + "<Error><![CDATA[vastErrorUrl1&et=[ERRORCODE]]]></Error>"
                 + "<Error><![CDATA[vastErrorUrl2&et=[ERRORCODE]]]></Error>"
-                + "<Impression><![CDATA[impUrl3]]></Impression><Impression><![CDATA[impUrl4]]></Impression>"
+                + "<Impression><![CDATA[impUrl1]]></Impression>"
+                + "<Impression><![CDATA[impUrl2]]></Impression>"
+                + "<Impression><![CDATA[impUrl3]]></Impression>"
+                + "<Impression><![CDATA[impUrl4]]></Impression>"
                 + "<Creatives>"
                 + "<Creative adId=\\\"contentId\\\" id=\\\"contentId\\\">"
                 + "<Linear>"
@@ -1672,6 +1686,8 @@ public class HuaweiAdmBuilderTest extends VertxTest {
                 + "</TrackingEvents>"
                 + "<VideoClicks>"
                 + "<ClickThrough><![CDATA[clickUrl]]></ClickThrough>"
+                + "<ClickTracking><![CDATA[clickUrl1]]></ClickTracking>"
+                + "<ClickTracking><![CDATA[clickUrl2]]></ClickTracking>"
                 + "<ClickTracking><![CDATA[clickUrl3]]></ClickTracking>"
                 + "</VideoClicks>"
                 + "<MediaFiles>"
@@ -1691,9 +1707,10 @@ public class HuaweiAdmBuilderTest extends VertxTest {
                 + "{\"id\":12,\"img\":{\"type\":1,\"url\":\"\",\"w\":100,\"h\":100}},"
                 + "{\"id\":13,\"img\":{\"type\":2,\"url\":\"imageInfoUrl\",\"w\":200,\"h\":0}},"
                 + "{\"id\":14,\"img\":{\"type\":3,\"w\":200,\"h\":200}},"
-                + "{\"id\":21,\"data\":{\"value\":\"title title\",\"label\":\"desc\"}},"
-                + "{\"id\":22,\"data\":{\"value\":\"title title\",\"label\":\"desc\"}},"
+                + "{\"id\":21,\"data\":{\"value\":\"description description\",\"label\":\"desc\"}},"
+                + "{\"id\":22,\"data\":{\"value\":\"description description\",\"label\":\"desc\"}},"
                 + "{\"id\":23,\"data\":{\"value\":\"\",\"label\":\"\"}},"
+                + "{\"id\":24,\"data\":{\"type\":12,\"value\":\"cta cta\",\"label\":\"\"}},"
                 + "{\"id\":31,\"title\":{\"text\":\"title title\",\"len\":11}},"
                 + "{\"id\":41,\"video\":{\"vasttag\":\"" + expectedVideoAssetAdm + "\"}},"
                 + "{\"id\":51}"

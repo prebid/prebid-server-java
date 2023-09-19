@@ -39,4 +39,8 @@ public class MetaData {
 
     @JsonProperty("mediaFile")
     MediaFile mediaFile;
+
+    @JsonProperty("cta")
+    String cta;
+
 }

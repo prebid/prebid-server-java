@@ -375,6 +375,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .clientAdRequestId("bid_request_id")
                 .multislot(List.of(AdSlot30.builder().slotId("slotId").build()))
                 .version("3.4")
+                .regs(Regs.of(null))
                 .build();
 
         assertThat(result.getValue()).hasSize(1).first()
@@ -408,6 +409,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .clientAdRequestId("bid_request_id")
                 .multislot(List.of(AdSlot30.builder().slotId("slotId").build()))
                 .geo(Geo.of(10.1f, 10.2f, 0, 1))
+                .regs(Regs.of(null))
                 .device(defaultDevice)
                 .network(defaultNetwork)
                 .version("3.4")
@@ -440,6 +442,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .device(defaultDevice)
                 .network(defaultNetwork)
                 .version("3.4")
+                .regs(Regs.of(null))
                 .build();
 
         assertThat(result.getValue()).hasSize(1).first()
@@ -467,6 +470,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .clientAdRequestId("bid_request_id")
                 .multislot(List.of(AdSlot30.builder().slotId("slotId").build()))
                 .consent("consent")
+                .regs(Regs.of(null))
                 .version("3.4")
                 .build();
 
@@ -495,6 +499,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .clientAdRequestId("bid_request_id")
                 .multislot(List.of(AdSlot30.builder().slotId("slotId").build()))
                 .version("3.4")
+                .regs(Regs.of(null))
                 .build();
 
         assertThat(result.getValue()).hasSize(1).first()
@@ -529,6 +534,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         AdSlot30.builder().slotId("banner_slot_id").build(),
                         AdSlot30.builder().slotId("native_slot_id").build()))
                 .version("3.4")
+                .regs(Regs.of(null))
                 .build();
 
         verify(adSlotBuilder, times(3)).build(any(Imp.class), any(ExtImpHuaweiAds.class));
@@ -567,6 +573,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .device(defaultDevice)
                 .network(defaultNetwork)
                 .version("3.4")
+                .regs(Regs.of(null))
                 .build();
 
         verify(appBuilder).build(app, "ZA");

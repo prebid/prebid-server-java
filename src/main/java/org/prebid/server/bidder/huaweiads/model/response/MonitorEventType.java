@@ -37,7 +37,7 @@ public enum MonitorEventType {
         result.put("imp", IMP);
         result.put("click", CLICK);
         result.put("vastError", VAST_ERROR);
-        result.put("userClose", USER_CLOSE);
+        result.put("userclose", USER_CLOSE);
         result.put("playStart", PLAY_START);
         result.put("playEnd", PLAY_END);
         result.put("playResume", PLAY_RESUME);

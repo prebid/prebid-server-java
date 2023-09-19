@@ -46,7 +46,8 @@ import java.util.stream.Collectors;
 
 public class HuaweiAdmBuilder {
 
-    private static final Set<Integer> DATA_ASSET_TYPES = Set.of(2, 10);
+    private static final Integer DATA_ASSET_CTA_TEXT_TYPE = 12;
+    private static final Set<Integer> DATA_ASSET_DESC_TYPES = Set.of(2, 10);
     private static final int IMAGE_ASSET_TYPE_ICON = 1;
     private static final int APP_PROMOTION_INTERACTION_TYPE = 3;
     private static final String DEFAULT_NATIVE_VERSION = "1.1";
@@ -145,26 +146,33 @@ public class HuaweiAdmBuilder {
         videoAdmBuilder.height(adHeight);
         videoAdmBuilder.width(adWidth);
 
+        final List<String> trackingEvents = new ArrayList<>();
+        final List<String> errorTracking = new ArrayList<>();
+        final List<String> dspImpTracking = new ArrayList<>();
+        final List<String> dspClickTracking = new ArrayList<>();
+
         if (content.getMonitorList() != null) {
             for (Monitor monitor : content.getMonitorList()) {
                 final List<String> urls = monitor.getUrlList();
                 if (CollectionUtils.isNotEmpty(urls)) {
                     final MonitorEventType eventType = MonitorEventType.of(monitor.getEventType());
                     switch (eventType) {
-                        //todo: maybe addAll?
                         case USER_CLOSE, PLAY_START, PLAY_END, PLAY_RESUME,
                                 PLAY_PAUSE, SOUND_CLICK_OFF, SOUND_CLICK_ON ->
-                                videoAdmBuilder.trackingEvents(getVastEventTrackingUrls(urls, eventType));
-                        case VAST_ERROR ->
-                                videoAdmBuilder.errorTracking(getVastImpClickErrorTrackingUrls(urls, eventType));
-                        case IMP -> videoAdmBuilder.dspImpTracking(getVastImpClickErrorTrackingUrls(urls, eventType));
-                        case CLICK ->
-                                videoAdmBuilder.dspClickTracking(getVastImpClickErrorTrackingUrls(urls, eventType));
+                                trackingEvents.add(getVastEventTrackingUrls(urls, eventType));
+                        case VAST_ERROR -> errorTracking.add(getVastImpClickErrorTrackingUrls(urls, eventType));
+                        case IMP -> dspImpTracking.add(getVastImpClickErrorTrackingUrls(urls, eventType));
+                        case CLICK -> dspClickTracking.add(getVastImpClickErrorTrackingUrls(urls, eventType));
 
                     }
                 }
             }
         }
+
+        videoAdmBuilder.trackingEvents(String.join("", trackingEvents));
+        videoAdmBuilder.errorTracking(String.join("", errorTracking));
+        videoAdmBuilder.dspImpTracking(String.join("", dspImpTracking));
+        videoAdmBuilder.dspClickTracking(String.join("", dspClickTracking));
 
         if (adType == AdsType.REWARDED) {
             videoAdmBuilder.rewardedVideoPart(buildRewardedVideoPart(content, adWidth, adHeight, clickUrl));
@@ -353,10 +361,19 @@ public class HuaweiAdmBuilder {
 
                 responseAssetBuilder.img(imageObject);
             } else if (asset.getData() != null) {
-                final boolean isDataAssetType = DATA_ASSET_TYPES.contains(asset.getData().getType());
+                final boolean isDataAssetType = DATA_ASSET_DESC_TYPES.contains(asset.getData().getType());
+                final boolean isDataAssetCtaTextType = DATA_ASSET_CTA_TEXT_TYPE.equals(asset.getData().getType());
+
+                final String value = isDataAssetType
+                        ? metaData.getDescription()
+                        : isDataAssetCtaTextType
+                            ? metaData.getCta()
+                            : null;
+
                 final DataObject dataObject = DataObject.builder()
-                        .value(isDataAssetType ? decode(metaData.getTitle()) : StringUtils.EMPTY)
+                        .value(decode(value))
                         .label(isDataAssetType ? "desc" : StringUtils.EMPTY)
+                        .type(isDataAssetCtaTextType ? DATA_ASSET_CTA_TEXT_TYPE : null)
                         .build();
                 responseAssetBuilder.data(dataObject);
             }
@@ -373,15 +390,13 @@ public class HuaweiAdmBuilder {
                 if (CollectionUtils.isNotEmpty(monitor.getUrlList())) {
                     final MonitorEventType eventType = MonitorEventType.of(monitor.getEventType());
                     switch (eventType) {
-                        case IMP -> {
-                            eventTrackers.addAll(monitor.getUrlList().stream()
-                                    .map(url -> EventTracker.builder()
-                                            .event(IMPRESSION_EVENT_TYPE)
-                                            .method(EVENT_TRACKING_IMAGE_METHOD)
-                                            .url(url)
-                                            .build())
-                                    .toList());
-                        }
+                        case IMP -> eventTrackers.addAll(monitor.getUrlList().stream()
+                                .map(url -> EventTracker.builder()
+                                        .event(IMPRESSION_EVENT_TYPE)
+                                        .method(EVENT_TRACKING_IMAGE_METHOD)
+                                        .url(url)
+                                        .build())
+                                .toList());
                         case CLICK -> clickTrackers.addAll(monitor.getUrlList());
                     }
                 }

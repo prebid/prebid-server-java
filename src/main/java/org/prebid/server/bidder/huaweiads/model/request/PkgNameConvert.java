@@ -1,12 +1,16 @@
 package org.prebid.server.bidder.huaweiads.model.request;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+@Data
+@NoArgsConstructor
 @Builder(toBuilder = true)
-@Value
+@AllArgsConstructor
 public class PkgNameConvert {
 
     String convertedPkgName;
