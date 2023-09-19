@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -41,12 +40,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private ThirtyThreeAcrossBidder thirtyThreeAcrossBidder;
-
-    @Before
-    public void setUp() {
-        thirtyThreeAcrossBidder = new ThirtyThreeAcrossBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final ThirtyThreeAcrossBidder target = new ThirtyThreeAcrossBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -62,7 +56,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(request -> request.ext(ext), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1);
@@ -77,7 +71,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final ExtRequest ext = ExtRequest.empty();
@@ -98,7 +92,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(request -> request.ext(ext), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final ExtRequest updatedExt = ExtRequest.empty();
@@ -119,7 +113,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -137,7 +131,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 bidRequestBuilder.site(null), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -153,7 +147,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -171,7 +165,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -194,7 +188,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -214,7 +208,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -238,7 +232,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -262,7 +256,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -282,7 +276,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = thirtyThreeAcrossBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -296,7 +290,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = thirtyThreeAcrossBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
@@ -314,7 +308,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = thirtyThreeAcrossBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -328,7 +322,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = thirtyThreeAcrossBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -346,7 +340,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = thirtyThreeAcrossBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -366,7 +360,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = thirtyThreeAcrossBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -387,7 +381,7 @@ public class ThirtyThreeAcrossBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = thirtyThreeAcrossBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -36,12 +35,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://randomurl.com";
 
-    private FreewheelSSPBidder freewheelSSPBidder;
-
-    @Before
-    public void setUp() {
-        freewheelSSPBidder = new FreewheelSSPBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final FreewheelSSPBidder target = new FreewheelSSPBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -54,7 +48,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = freewheelSSPBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -70,7 +64,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpFreewheelSSP.of(123456789)))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = freewheelSSPBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -88,7 +82,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = freewheelSSPBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -105,7 +99,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = freewheelSSPBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -119,7 +113,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = freewheelSSPBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -134,7 +128,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = freewheelSSPBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -150,7 +144,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = freewheelSSPBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -166,7 +160,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = freewheelSSPBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -182,7 +176,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = freewheelSSPBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -199,7 +193,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = freewheelSSPBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

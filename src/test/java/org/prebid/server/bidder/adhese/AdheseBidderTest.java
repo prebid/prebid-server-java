@@ -10,7 +10,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adhese.model.AdheseOriginData;
@@ -39,12 +38,7 @@ public class AdheseBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://ads-{{AccountId}}.adhese.com/openrtb2";
 
-    private AdheseBidder adheseBidder;
-
-    @Before
-    public void setUp() {
-        adheseBidder = new AdheseBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdheseBidder target = new AdheseBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -59,7 +53,7 @@ public class AdheseBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adheseBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -76,7 +70,7 @@ public class AdheseBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adheseBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -103,7 +97,7 @@ public class AdheseBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adheseBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         final TreeMap<String, List<String>> expectedParameters = new TreeMap<>();
         expectedParameters.put("ag", singletonList("55"));
@@ -136,7 +130,7 @@ public class AdheseBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -152,7 +146,7 @@ public class AdheseBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(BidResponse.builder().build());
 
         // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -165,7 +159,7 @@ public class AdheseBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(BidResponse.builder().seatbid(emptyList()).build());
 
         // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -181,7 +175,7 @@ public class AdheseBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -197,7 +191,7 @@ public class AdheseBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -232,7 +226,7 @@ public class AdheseBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(response, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(response, bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -272,7 +266,7 @@ public class AdheseBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(response, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(response, bidRequest);
 
         // then
         final Bid expectedBid = bid.toBuilder()

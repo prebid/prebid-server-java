@@ -17,7 +17,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -62,12 +61,7 @@ public class PubmaticBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://test.endpoint.com/translator?source=prebid-server";
 
-    private PubmaticBidder pubmaticBidder;
-
-    @Before
-    public void setUp() {
-        pubmaticBidder = new PubmaticBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final PubmaticBidder target = new PubmaticBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -81,7 +75,7 @@ public class PubmaticBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -97,7 +91,7 @@ public class PubmaticBidderTest extends VertxTest {
                 .ext(givenExtImpWithKadfloor("invalid")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -114,7 +108,7 @@ public class PubmaticBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(givenExtImpWithKadfloor("12.5")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -132,7 +126,7 @@ public class PubmaticBidderTest extends VertxTest {
                 givenBidRequest(impBuilder -> impBuilder.ext(givenExtImpWithKadfloor("  12.5  ")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -152,7 +146,7 @@ public class PubmaticBidderTest extends VertxTest {
                         .bidfloor(BigDecimal.ONE));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -176,7 +170,7 @@ public class PubmaticBidderTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -198,7 +192,7 @@ public class PubmaticBidderTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final ExtRequest expectedExtRequest = ExtRequest.empty();
@@ -221,7 +215,7 @@ public class PubmaticBidderTest extends VertxTest {
                 extBuilder -> extBuilder.wrapper(PubmaticWrapper.of(321, 456)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -238,7 +232,7 @@ public class PubmaticBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(null).xNative(Native.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -252,7 +246,7 @@ public class PubmaticBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -273,7 +267,7 @@ public class PubmaticBidderTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder.ext(bidRequestExt), identity(), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -291,7 +285,7 @@ public class PubmaticBidderTest extends VertxTest {
                 extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot("invalid ad slot@"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -307,7 +301,7 @@ public class PubmaticBidderTest extends VertxTest {
                 extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot("slot@300x200x100"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -323,7 +317,7 @@ public class PubmaticBidderTest extends VertxTest {
                 extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot("slot@widthx200"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -339,7 +333,7 @@ public class PubmaticBidderTest extends VertxTest {
                 extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot("slot@300xHeight:1"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -354,7 +348,7 @@ public class PubmaticBidderTest extends VertxTest {
                 impBuilder -> impBuilder.audio(Audio.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -370,7 +364,7 @@ public class PubmaticBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -394,7 +388,7 @@ public class PubmaticBidderTest extends VertxTest {
                 .build()), extImpPubmaticBuilder -> extImpPubmaticBuilder.adSlot(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -416,7 +410,7 @@ public class PubmaticBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -434,7 +428,7 @@ public class PubmaticBidderTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder.banner(null).video(Video.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -453,7 +447,7 @@ public class PubmaticBidderTest extends VertxTest {
                         .adSlot("adSlot"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -470,7 +464,7 @@ public class PubmaticBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -488,7 +482,7 @@ public class PubmaticBidderTest extends VertxTest {
                 extImpPubmaticBuilder -> extImpPubmaticBuilder.keywords(emptyList()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -508,7 +502,7 @@ public class PubmaticBidderTest extends VertxTest {
                                 ExtImpPubmaticKeyVal.of("key2", asList("value1", "value2")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final ObjectNode expectedImpExt = mapper.createObjectNode();
@@ -537,7 +531,7 @@ public class PubmaticBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final ObjectNode expectedImpExt = mapper.createObjectNode();
@@ -565,7 +559,7 @@ public class PubmaticBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final ObjectNode expectedImpExt = mapper.createObjectNode();
@@ -589,7 +583,7 @@ public class PubmaticBidderTest extends VertxTest {
                                 ExtImpPubmaticKeyVal.of("key2", asList("value1", "value2")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final ObjectNode expectedImpExt = mapper.createObjectNode();
@@ -611,7 +605,7 @@ public class PubmaticBidderTest extends VertxTest {
                         .wrapper(PubmaticWrapper.of(1, 1)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -630,7 +624,7 @@ public class PubmaticBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -649,7 +643,7 @@ public class PubmaticBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -672,7 +666,7 @@ public class PubmaticBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -693,7 +687,7 @@ public class PubmaticBidderTest extends VertxTest {
                 extImpPubmaticBuilder -> extImpPubmaticBuilder.publisherId("  pubId  "));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -716,7 +710,7 @@ public class PubmaticBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -736,7 +730,7 @@ public class PubmaticBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -759,7 +753,7 @@ public class PubmaticBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -777,7 +771,7 @@ public class PubmaticBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).doesNotContainNull()
@@ -797,7 +791,7 @@ public class PubmaticBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -813,7 +807,7 @@ public class PubmaticBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -827,7 +821,7 @@ public class PubmaticBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -841,7 +835,7 @@ public class PubmaticBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -858,7 +852,7 @@ public class PubmaticBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(bidType))));
 
         // when
-        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -875,7 +869,7 @@ public class PubmaticBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(bidType))));
 
         // when
-        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -893,7 +887,7 @@ public class PubmaticBidderTest extends VertxTest {
                                         PubmaticBidExt.of(null, VideoCreativeInfo.of(1), null))))));
 
         // when
-        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -915,7 +909,7 @@ public class PubmaticBidderTest extends VertxTest {
                                         PubmaticBidExt.of(null, VideoCreativeInfo.of(null), null))))));
 
         // when
-        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -936,7 +930,7 @@ public class PubmaticBidderTest extends VertxTest {
                                         PubmaticBidExt.of(null, null, null))))));
 
         // when
-        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -956,7 +950,7 @@ public class PubmaticBidderTest extends VertxTest {
                                         PubmaticBidExt.of(null, null, 12))))));
 
         // when
-        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -981,7 +975,7 @@ public class PubmaticBidderTest extends VertxTest {
                                         PubmaticBidExt.of(2, null, 12))))));
 
         // when
-        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1001,7 +995,7 @@ public class PubmaticBidderTest extends VertxTest {
                                 .cat(asList("cat1", "cat2")))));
 
         // when
-        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1020,7 +1014,7 @@ public class PubmaticBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(bidType))));
 
         // when
-        final Result<List<BidderBid>> result = pubmaticBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -1037,7 +1031,7 @@ public class PubmaticBidderTest extends VertxTest {
                         .keywords(singletonList(ExtImpPubmaticKeyVal.of("key_val", asList("value1", "value2")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Map<String, String> expectedKeyWords = singletonMap("key_val", "dctr");
@@ -1058,7 +1052,7 @@ public class PubmaticBidderTest extends VertxTest {
                         .keywords(singletonList(ExtImpPubmaticKeyVal.of("pmZoneId", asList("value1", "value2")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Map<String, String> expectedKeyWords = singletonMap("pmZoneId", "pmzoneid");
@@ -1079,7 +1073,7 @@ public class PubmaticBidderTest extends VertxTest {
                         .keywords(singletonList(ExtImpPubmaticKeyVal.of("pmZoneID", asList("value1", "value2")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubmaticBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Map<String, String> expectedKeyWords = singletonMap("pmZoneId", "value1,value2");
