@@ -7,7 +7,6 @@ import org.prebid.server.functional.model.config.InequalityValueRule
 import org.prebid.server.functional.model.config.LogicalRestrictedRule
 import org.prebid.server.functional.model.config.ModuleConfig
 import org.prebid.server.functional.model.config.SidsConfig
-import org.prebid.server.functional.model.config.UsNationalPrivacySection
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
@@ -22,10 +21,8 @@ import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtData
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.gpp.UsConsent
 import org.prebid.server.functional.util.privacy.gpp.UspCaV1Consent
 import org.prebid.server.functional.util.privacy.gpp.UspCoV1Consent
 import org.prebid.server.functional.util.privacy.gpp.UspCtV1Consent
@@ -33,21 +30,33 @@ import org.prebid.server.functional.util.privacy.gpp.UspNatV1Consent
 import org.prebid.server.functional.util.privacy.gpp.UspUtV1Consent
 import org.prebid.server.functional.util.privacy.gpp.UspVaV1Consent
 import org.prebid.server.functional.util.privacy.gpp.data.UsCaliforniaSensitiveData
-import org.prebid.server.functional.util.privacy.gpp.data.UsColoradoSensitiveData
-import org.prebid.server.functional.util.privacy.gpp.data.UsConnecticutSensitiveData
 import org.prebid.server.functional.util.privacy.gpp.data.UsNationalSensitiveData
 import org.prebid.server.functional.util.privacy.gpp.data.UsUtahSensitiveData
-import org.prebid.server.functional.util.privacy.gpp.data.UsVirginiaSensitiveData
 
 import java.time.Instant
 
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
+import static org.prebid.server.functional.model.config.DataActivity.CONSENT
+import static org.prebid.server.functional.model.config.DataActivity.NOTICE_NOT_PROVIDED
 import static org.prebid.server.functional.model.config.DataActivity.NOTICE_PROVIDED
-import static org.prebid.server.functional.model.config.DataActivity.INVALID
+import static org.prebid.server.functional.model.config.DataActivity.NOT_APPLICABLE
+import static org.prebid.server.functional.model.config.DataActivity.NO_CONSENT
 import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.AND
 import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.OR
-import static org.prebid.server.functional.model.config.LogicalRestrictedRule.generateSolidRestriction
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_BELOW_13
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_FROM_13_TO_16
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.GPC
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_ACCOUNT_INFO
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_BIOMETRIC_ID
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_CITIZENSHIP_STATUS
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_COMMUNICATION_CONTENTS
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_GENETIC_ID
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_GEOLOCATION
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_HEALTH_INFO
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_ID_NUMBERS
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_ORIENTATION
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_RELIGIOUS_BELIEFS
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
@@ -1239,16 +1248,14 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        true     | generateSolidRestriction(OR, [])
-        false    | generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
                                                   new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
     }
 
     def "PBS auction call when privacy regulation match custom requirement should remove UFPD fields in request"() {
         given: "Default basic generic BidRequest"
-        def gppConsent = new UspNatV1Consent.Builder().setGpc(gpcValue).build()
         def accountId = PBSUtils.randomNumber as String
         def generalBidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
             regs.gppSid = [USP_NAT_V1.intValue]
@@ -1262,6 +1269,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
+        def accountLogic = LogicalRestrictedRule.generateSolidRestriction(OR, valueRules)
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
@@ -1296,80 +1304,14 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
 
         where:
-        gpcValue | accountLogic
-        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
-        false    | generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                 new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
-    }
-
-    def "PBS auction call when custom privacy regulation have invalid setup should leave UFPD fields in request with warning and add alert metric"() {
-        given: "Generic BidRequest with gpp and account setup"
-        def gppConsent = new UspNatV1Consent.Builder().setGpc(true).build()
-        def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
-            ext.prebid.trace = VERBOSE
-            regs.gppSid = [USP_NAT_V1.intValue]
-            regs.gpp = gppConsent
-        }
-
-        and: "Activities set with privacy regulation"
-        def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
-        }
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric]))
-
-        and: "Custom logic for gpp with invalid setup"
-        def invalidRestrictedSetup = new EqualityValueRule(accountLogic as UsNationalPrivacySection, INVALID)
-        def restrictedRule = generateSolidRestriction(OR, [invalidRestrictedSetup])
-
-        and: "Account gpp configuration with sid skip"
-        def accountGppConfig = new AccountGppConfig().tap {
-            it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
-            it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_UFPD], restrictedRule))
-        }
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
-        and: "Existed account with gpp regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        def response = activityPbsService.sendAuctionRequest(genericBidRequest)
-
-        then: "Response should contain proper warning"
-        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } ==
-                ["Invalid allowActivities config for account: ${accountId}"] // TODO replace with actual error message
-
-        and: "Metrics processed across activities should be updated"
-        def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
-
-        and: "Generic bidder request should have data in UFPD fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-        verifyAll {
-            genericBidderRequest.device.didsha1 == genericBidRequest.device.didsha1
-            genericBidderRequest.device.didmd5 == genericBidRequest.device.didmd5
-            genericBidderRequest.device.dpidsha1 == genericBidRequest.device.dpidsha1
-            genericBidderRequest.device.ifa == genericBidRequest.device.ifa
-            genericBidderRequest.device.macsha1 == genericBidRequest.device.macsha1
-            genericBidderRequest.device.macmd5 == genericBidRequest.device.macmd5
-            genericBidderRequest.device.dpidmd5 == genericBidRequest.device.dpidmd5
-            genericBidderRequest.user.id == genericBidRequest.user.id
-            genericBidderRequest.user.buyeruid == genericBidRequest.user.buyeruid
-            genericBidderRequest.user.yob == genericBidRequest.user.yob
-            genericBidderRequest.user.gender == genericBidRequest.user.gender
-            genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
-            genericBidderRequest.user.data == genericBidRequest.user.data
-            genericBidderRequest.user.ext.data.buyeruid == genericBidRequest.user.ext.data.buyeruid
-        }
-
-        where:
-        accountLogic << UsNationalPrivacySection.values()
+        gppConsent                                                | valueRules
+        new UspNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(false).build()       | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                     new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UspNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                     new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
     }
 
     def "PBS auction call when custom privacy regulation empty and normalize is disabled should call to bidder without warning"() {
@@ -1430,13 +1372,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
     }
 
-    def "PBS auction call when custom privacy regulation with normalizing should change request consent and call to bidder"() {
+    def "PBS auction call when custom privacy regulation with normalizing that match custom config should have empty UFPD fields"() {
         given: "Generic BidRequest with gpp and account setup"
         def accountId = PBSUtils.randomNumber as String
         def generalBidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
             ext.prebid.trace = VERBOSE
-            regs.gppSid = [USP_CT_V1.intValue]
-            regs.gpp = gppStateConsent
+            regs.gppSid = [gppSid.intValue]
+            regs.gpp = gppStateConsent.build()
         }
 
         and: "Activities set with privacy regulation"
@@ -1445,15 +1387,15 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric]))
 
-        and: "Empty custom logic"
-        def restrictedRule = LogicalRestrictedRule.rootLogicalRestricted
+        and: "Activity config"
+        def activityConfig = new ActivityConfig([TRANSMIT_UFPD], LogicalRestrictedRule.generateSolidRestriction(AND, equalityValueRules))
 
         and: "Account gpp configuration with enabled normalizeFlag"
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(ActivityConfig.getConfigWithDefaultRestrictRules([TRANSMIT_UFPD]), [USP_CT_V1], true)
+            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
         }
 
         and: "Flush metrics"
@@ -1466,40 +1408,95 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         activityPbsService.sendAuctionRequest(generalBidRequest)
 
-        then: "Generic bidder should be called and contain normalized gpp string"
-        def bidderRequest = bidder.getBidderRequest(generalBidRequest.id)
-        assert bidderRequest.regs.gpp == ((UsConsent) gppStateConsent).normaliseToNational().toString()
+        then: "Generic bidder request should have empty UFPD fields"
+        def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
+        verifyAll {
+            !genericBidderRequest.device.didsha1
+            !genericBidderRequest.device.didmd5
+            !genericBidderRequest.device.dpidsha1
+            !genericBidderRequest.device.ifa
+            !genericBidderRequest.device.macsha1
+            !genericBidderRequest.device.macmd5
+            !genericBidderRequest.device.dpidmd5
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
+        }
 
         where:
-        gppStateConsent
-                << [new UspCaV1Consent.Builder()
-                            .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), PBSUtils.getRandomNumber(0, 2))
-                            .setSensitiveDataProcessing(UsCaliforniaSensitiveData.generateRandomSensitiveData())
-                            .setMspaServiceProviderMode(PBSUtils.getRandomNumber(0, 2))
-                            .build(),
-                    new UspVaV1Consent.Builder()
-                            .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2))
-                            .setSensitiveDataProcessing(UsVirginiaSensitiveData.generateRandomSensitiveData())
-                            .setMspaServiceProviderMode(PBSUtils.getRandomNumber(0, 2))
-                            .build(),
-                    new UspCoV1Consent.Builder()
-                            .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2))
-                            .setSensitiveDataProcessing(UsColoradoSensitiveData.generateRandomSensitiveData())
-                            .setMspaServiceProviderMode(PBSUtils.getRandomNumber(0, 2))
-                            .build(),
-                    new UspUtV1Consent.Builder()
-                            .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2))
-                            .setSensitiveDataProcessing(UsUtahSensitiveData.generateRandomSensitiveData())
-                            .setMspaServiceProviderMode(PBSUtils.getRandomNumber(0, 2))
-                            .build(),
-                    new UspCtV1Consent.Builder()
-                            .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 
-                                    PBSUtils.getRandomNumber(0, 2), 
-                                    PBSUtils.getRandomNumber(0, 2))
-                            .setSensitiveDataProcessing(UsConnecticutSensitiveData.generateRandomSensitiveData())
-                            .setMspaServiceProviderMode(PBSUtils.getRandomNumber(0, 2))
-                            .build()
-        ]
+        gppSid    | equalityValueRules                                                      | gppStateConsent
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(idNumbers: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(accountInfo: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geolocation: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(racialEthnicOrigin: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(communicationContents: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geneticId: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(biometricId: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(healthInfo: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(orientation: 2))
+        USP_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(0, 0)
+        USP_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2), PBSUtils.getRandomNumber(1, 2))
+
+        USP_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspVaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspVaV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCoV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCoV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(racialEthnicOrigin: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]      | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(religiousBeliefs: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(orientation: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]     | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(citizenshipStatus: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(healthInfo: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geneticId: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(biometricId: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geolocation: 2))
+        USP_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspUtV1Consent.Builder().setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspUtV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 0, 0)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | new UspCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2, 2)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCtV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), PBSUtils.getRandomNumber(0, 2), 1)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCtV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 1, PBSUtils.getRandomNumber(0, 2))
     }
 
     def "PBS amp call when transmit UFPD activities is allowing request should leave UFPD fields field in active request and update proper metrics"() {
@@ -2438,17 +2435,15 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        true     | generateSolidRestriction(OR, [])
-        false    | generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                  new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                        new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
     }
 
     def "PBS amp call when privacy regulation match custom requirement should remove UFPD fields from request"() {
         given: "Store bid request with gpp string and link for account"
         def accountId = PBSUtils.randomNumber as String
-        def gppConsent = new UspNatV1Consent.Builder().setGpc(gpcValue).build()
         def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
             regs.gppSid = [USP_NAT_V1.intValue]
             regs.gpp = gppConsent
@@ -2467,6 +2462,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
+        def accountLogic = LogicalRestrictedRule.generateSolidRestriction(OR, valueRules)
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
@@ -2505,95 +2501,20 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
 
         where:
-        gpcValue | accountLogic
-        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
-        false    | generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                 new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
-    }
-
-    def "PBS amp call when custom privacy regulation have invalid setup should leave UFPD fields in request with warning and add alert metric"() {
-        given: "Store bid request with gpp string and link for account"
-        def accountId = PBSUtils.randomNumber as String
-        def gppConsent = new UspNatV1Consent.Builder().setGpc(true).build()
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
-            regs.gppSid = [USP_NAT_V1.intValue]
-            regs.gpp = gppConsent
-        }
-
-        and: "amp request with link to account and gppSid"
-        def ampRequest = AmpRequest.defaultAmpRequest.tap {
-            it.account = accountId
-            it.gppSid = USP_NAT_V1.value
-        }
-
-        and: "Activities set with privacy regulation"
-        def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
-        }
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric]))
-
-        and: "Custom logic for gpp with invalid setup"
-        def invalidRestrictedSetup = new EqualityValueRule(accountLogic as UsNationalPrivacySection, INVALID)
-        def restrictedRule = generateSolidRestriction(OR, [invalidRestrictedSetup])
-
-        and: "Account gpp configuration with sid skip"
-        def accountGppConfig = new AccountGppConfig().tap {
-            it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
-            it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_UFPD], restrictedRule))
-        }
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
-        and: "Existed account with gpp regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes auction requests"
-        def response = activityPbsService.sendAmpRequest(ampRequest)
-
-        then: "Response should contain proper warning"
-        assert response.ext.warnings[ErrorType.PREBID].collect { it.message } ==
-                ["Invalid allowActivities config for account: ${accountId}"] // TODO replace with actual error message
-
-        and: "Metrics processed across activities should be updated"
-        def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
-
-        then: "Generic bidder request should have data in UFPD fields"
-        def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        verifyAll {
-            genericBidderRequest.device.didsha1 == ampStoredRequest.device.didsha1
-            genericBidderRequest.device.didmd5 == ampStoredRequest.device.didmd5
-            genericBidderRequest.device.dpidsha1 == ampStoredRequest.device.dpidsha1
-            genericBidderRequest.device.ifa == ampStoredRequest.device.ifa
-            genericBidderRequest.device.macsha1 == ampStoredRequest.device.macsha1
-            genericBidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
-            genericBidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
-            genericBidderRequest.user.id == ampStoredRequest.user.id
-            genericBidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
-            genericBidderRequest.user.yob == ampStoredRequest.user.yob
-            genericBidderRequest.user.gender == ampStoredRequest.user.gender
-            genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
-            genericBidderRequest.user.data == ampStoredRequest.user.data
-            genericBidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
-        }
-
-        where:
-        accountLogic << UsNationalPrivacySection.values()
+        gppConsent                                                | valueRules
+        new UspNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(false).build()       | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                     new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UspNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                     new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
     }
 
     def "PBS amp call when custom privacy regulation empty and normalize is disabled should leave UFPD fields in request"() {
         given: "Store bid request with gpp string and link for account"
         def accountId = PBSUtils.randomNumber as String
-        def gppConsent = new UspNatV1Consent.Builder().build()
+        def gppConsent = new UspNatV1Consent.Builder().setGpc(true).build()
         def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
             it.regs.gppSid = [USP_CT_V1.intValue]
             it.regs.gpp = gppConsent
@@ -2661,14 +2582,14 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         given: "Store bid request with gpp string and link for account"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
-            it.regs.gppSid = [USP_CT_V1.intValue]
-            it.regs.gpp = gppStateConsent
+            it.regs.gppSid = [gppSid.intValue]
+            it.regs.gpp = gppStateConsent.build()
         }
 
         and: "amp request with link to account and gppSid"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
-            it.gppSid = USP_CT_V1.intValue
+            it.gppSid = gppSid.intValue
         }
 
         and: "Activities set with privacy regulation"
@@ -2677,15 +2598,15 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         }
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric]))
 
-        and: "Empty custom logic"
-        def restrictedRule = LogicalRestrictedRule.rootLogicalRestricted
+        and: "Activity config"
+        def activityConfig = new ActivityConfig([TRANSMIT_UFPD], LogicalRestrictedRule.generateSolidRestriction(AND, equalityValueRules))
 
         and: "Account gpp configuration with enabled normalizeFlag"
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_UFPD], restrictedRule), [USP_CT_V1], true)
+            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
         }
 
         and: "Flush metrics"
@@ -2702,40 +2623,95 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp requests"
         activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Generic bidder should be called and contain normalized gpp string"
-        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        assert bidderRequest.regs.gpp == ((UsConsent) gppStateConsent).normaliseToNational().toString()
+        then: "Generic bidder request should have empty UFPD fields"
+        def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        verifyAll {
+            !genericBidderRequest.device.didsha1
+            !genericBidderRequest.device.didmd5
+            !genericBidderRequest.device.dpidsha1
+            !genericBidderRequest.device.ifa
+            !genericBidderRequest.device.macsha1
+            !genericBidderRequest.device.macmd5
+            !genericBidderRequest.device.dpidmd5
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
+        }
 
         where:
-        gppStateConsent
-                << [new UspCaV1Consent.Builder()
-                            .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), PBSUtils.getRandomNumber(0, 2))
-                            .setSensitiveDataProcessing(UsCaliforniaSensitiveData.generateRandomSensitiveData())
-                            .setMspaServiceProviderMode(PBSUtils.getRandomNumber(0, 2))
-                            .build(),
-                    new UspVaV1Consent.Builder()
-                            .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2))
-                            .setSensitiveDataProcessing(UsVirginiaSensitiveData.generateRandomSensitiveData())
-                            .setMspaServiceProviderMode(PBSUtils.getRandomNumber(0, 2))
-                            .build(),
-                    new UspCoV1Consent.Builder()
-                            .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2))
-                            .setSensitiveDataProcessing(UsColoradoSensitiveData.generateRandomSensitiveData())
-                            .setMspaServiceProviderMode(PBSUtils.getRandomNumber(0, 2))
-                            .build(),
-                    new UspUtV1Consent.Builder()
-                            .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2))
-                            .setSensitiveDataProcessing(UsUtahSensitiveData.generateRandomSensitiveData())
-                            .setMspaServiceProviderMode(PBSUtils.getRandomNumber(0, 2))
-                            .build(),
-                    new UspCtV1Consent.Builder()
-                            .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2),
-                                    PBSUtils.getRandomNumber(0, 2),
-                                    PBSUtils.getRandomNumber(0, 2))
-                            .setSensitiveDataProcessing(UsConnecticutSensitiveData.generateRandomSensitiveData())
-                            .setMspaServiceProviderMode(PBSUtils.getRandomNumber(0, 2))
-                            .build()
-        ]
+        gppSid    | equalityValueRules                                                      | gppStateConsent
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(idNumbers: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(accountInfo: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geolocation: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(racialEthnicOrigin: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(communicationContents: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geneticId: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(biometricId: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(healthInfo: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(orientation: 2))
+        USP_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(0, 0)
+        USP_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2), PBSUtils.getRandomNumber(1, 2))
+
+        USP_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspVaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspVaV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCoV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCoV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(racialEthnicOrigin: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]      | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(religiousBeliefs: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(orientation: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]     | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(citizenshipStatus: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(healthInfo: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geneticId: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(biometricId: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geolocation: 2))
+        USP_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspUtV1Consent.Builder().setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspUtV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 0, 0)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | new UspCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2, 2)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCtV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), PBSUtils.getRandomNumber(0, 2), 1)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCtV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 1, PBSUtils.getRandomNumber(0, 2))
     }
 
     private BidRequest givenBidRequestWithAccountAndUfpdData(String accountId) {

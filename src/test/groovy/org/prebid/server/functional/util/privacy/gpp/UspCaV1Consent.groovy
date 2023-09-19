@@ -1,12 +1,9 @@
 package org.prebid.server.functional.util.privacy.gpp
 
 import com.iab.gpp.encoder.field.UspCaV1Field
-import com.iab.gpp.encoder.section.EncodableSection
-import com.iab.gpp.encoder.section.UspCaV1
 import org.prebid.server.functional.util.privacy.gpp.data.UsCaliforniaSensitiveData
-import org.prebid.server.functional.util.privacy.gpp.data.UsNationalSensitiveData
 
-class UspCaV1Consent extends UsConsent {
+class UspCaV1Consent extends GppConsent {
 
     private static final Section SECTION = Section.USP_CA_V1
 
@@ -17,61 +14,6 @@ class UspCaV1Consent extends UsConsent {
     @Override
     protected String encodeSection() {
         gppModel.encodeSection(SECTION.name)
-    }
-
-    @Override
-    UspNatV1Consent normaliseToNational() {
-        def UspCaV1 = ((UspCaV1) this.gppModel.getSection(SECTION.name))
-
-        new UspNatV1Consent.Builder()
-                .setSensitiveDataProcessing(normaliseSensitiveData(UspCaV1))
-                .setKnownChildSensitiveDataConsents(normalizeChildConsents(UspCaV1))
-                .setSaleOptOutNotice(UspCaV1.saleOptOutNotice)
-                .setSharingOptOutNotice(UspCaV1.sharingOptOutNotice)
-                .setSensitiveDataLimitUseNotice(UspCaV1.sensitiveDataLimitUseNotice)
-                .setSaleOptOut(UspCaV1.saleOptOut)
-                .setSharingOptOut(UspCaV1.sharingOptOut)
-                .setPersonalDataConsents(UspCaV1.personalDataConsents)
-                .setMspaCoveredTransaction(UspCaV1.mspaCoveredTransaction)
-                .setMspaOptOutOptionMode(UspCaV1.mspaOptOutOptionMode)
-                .setMspaServiceProviderMode(UspCaV1.mspaServiceProviderMode)
-//                .setGpcSegmentType(UspCaV1.gpcSegmentType)
-                .setGpcSegmentIncluded(UspCaV1.gpcSegmentIncluded)
-                .setGpc(UspCaV1.gpc)
-                .build() as UspNatV1Consent
-    }
-
-    @Override
-    protected UsNationalSensitiveData normaliseSensitiveData(EncodableSection uspCaV1) {
-        def californiaSensitiveData = UsCaliforniaSensitiveData.fromList(((UspCaV1)uspCaV1).sensitiveDataProcessing)
-
-        new UsNationalSensitiveData().tap {
-            racialEthnicOrigin = californiaSensitiveData.racialEthnicOrigin
-            healthInfo = californiaSensitiveData.healthInfo
-            orientation = californiaSensitiveData.orientation
-            geneticId = californiaSensitiveData.geneticId
-            biometricId = californiaSensitiveData.biometricId
-            geolocation = californiaSensitiveData.geolocation
-            idNumbers = californiaSensitiveData.idNumbers
-            accountInfo = californiaSensitiveData.accountInfo
-            communicationContents = californiaSensitiveData.communicationContents
-            //
-            religiousBeliefs = 0
-            citizenshipStatus = 0
-            unionMembership = 0
-        }
-    }
-
-    @Override
-    protected List<Integer> normalizeChildConsents(EncodableSection uspCaV1) {
-        def childConsents = ((UspCaV1)uspCaV1).knownChildSensitiveDataConsents
-        switch (childConsents) {
-            case [0, 0]:
-                // No change needed
-                return childConsents
-            default:
-                return [1, 1]
-        }
     }
 
     static class Builder extends GppConsent.Builder {

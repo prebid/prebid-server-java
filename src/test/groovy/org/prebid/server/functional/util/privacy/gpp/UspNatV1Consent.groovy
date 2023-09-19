@@ -1,11 +1,9 @@
 package org.prebid.server.functional.util.privacy.gpp
 
 import com.iab.gpp.encoder.field.UspNatV1Field
-import com.iab.gpp.encoder.section.EncodableSection
-import com.iab.gpp.encoder.section.UspNatV1
 import org.prebid.server.functional.util.privacy.gpp.data.UsNationalSensitiveData
 
-class UspNatV1Consent extends UsConsent {
+class UspNatV1Consent extends GppConsent {
 
     private static final Section SECTION = Section.USP_NAT_V1
 
@@ -16,21 +14,6 @@ class UspNatV1Consent extends UsConsent {
     @Override
     protected String encodeSection() {
         gppModel.encodeSection(SECTION.name)
-    }
-
-    @Override
-    UspNatV1Consent normaliseToNational() {
-        this
-    }
-
-    @Override
-    protected UsNationalSensitiveData normaliseSensitiveData(EncodableSection usNat) {
-        UsNationalSensitiveData.fromList(((UspNatV1) usNat).sensitiveDataProcessing)
-    }
-
-    @Override
-    protected List<Integer> normalizeChildConsents(EncodableSection usNat) {
-        ((UspNatV1) usNat).knownChildSensitiveDataConsents
     }
 
     static class Builder extends GppConsent.Builder {

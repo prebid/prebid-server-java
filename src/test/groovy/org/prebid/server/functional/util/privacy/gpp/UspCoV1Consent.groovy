@@ -1,13 +1,9 @@
 package org.prebid.server.functional.util.privacy.gpp
 
 import com.iab.gpp.encoder.field.UspCoV1Field
-import com.iab.gpp.encoder.section.EncodableSection
-import com.iab.gpp.encoder.section.UspCoV1
 import org.prebid.server.functional.util.privacy.gpp.data.UsColoradoSensitiveData
-import org.prebid.server.functional.util.privacy.gpp.data.UsNationalSensitiveData
-import org.prebid.server.functional.util.privacy.gpp.data.UsVirginiaSensitiveData
 
-class UspCoV1Consent extends UsConsent {
+class UspCoV1Consent extends GppConsent {
 
     private static final Section SECTION = Section.USP_CO_V1
 
@@ -18,53 +14,6 @@ class UspCoV1Consent extends UsConsent {
     @Override
     protected String encodeSection() {
         gppModel.encodeSection(Section.USP_CO_V1.name)
-    }
-
-    @Override
-    UspNatV1Consent normaliseToNational() {
-        def uspCoV1 = ((UspCoV1) this.gppModel.getSection(SECTION.name))
-
-        new UspNatV1Consent.Builder()
-                .setSensitiveDataProcessing(normaliseSensitiveData(uspCoV1))
-                .setKnownChildSensitiveDataConsents(normalizeChildConsents(uspCoV1))
-                .setSaleOptOutNotice(uspCoV1.saleOptOutNotice)
-                .setTargetedAdvertisingOptOutNotice(uspCoV1.targetedAdvertisingOptOutNotice)
-                .setTargetedAdvertisingOptOut(uspCoV1.targetedAdvertisingOptOut)
-                .setSharingNotice(uspCoV1.sharingNotice)
-                .setSaleOptOut(uspCoV1.saleOptOut)
-                .setMspaCoveredTransaction(uspCoV1.mspaCoveredTransaction)
-                .setMspaOptOutOptionMode(uspCoV1.mspaOptOutOptionMode)
-                .setMspaServiceProviderMode(uspCoV1.mspaServiceProviderMode)
-//                .setGpcSegmentType(uspCoV1.gpcSegmentType)
-                .setGpcSegmentIncluded(uspCoV1.gpcSegmentIncluded)
-                .setGpc(uspCoV1.gpc)
-                .build() as UspNatV1Consent
-    }
-
-    @Override
-    protected UsNationalSensitiveData normaliseSensitiveData(EncodableSection uspCoV1) {
-        def coloradoSensitiveData = UsColoradoSensitiveData.fromList(((UspCoV1)uspCoV1).sensitiveDataProcessing)
-
-        new UsNationalSensitiveData().tap {
-            racialEthnicOrigin = coloradoSensitiveData.racialEthnicOrigin
-            religiousBeliefs = coloradoSensitiveData.religiousBeliefs
-            healthInfo = coloradoSensitiveData.healthInfo
-            orientation = coloradoSensitiveData.orientation
-            citizenshipStatus = coloradoSensitiveData.citizenshipStatus
-            geneticId = coloradoSensitiveData.geneticId
-            biometricId = coloradoSensitiveData.biometricId
-            geolocation = 0
-            idNumbers = 0
-            accountInfo = 0
-            unionMembership = 0
-            communicationContents = 0
-        }
-    }
-
-    @Override
-    protected List<Integer> normalizeChildConsents(EncodableSection uspCoV1) {
-        // value 1 or 2 then n/a for 13-16 and no consent for under age 13
-        (((UspCoV1)uspCoV1).knownChildSensitiveDataConsents != 0) ? [1, 1] : [0, 0]
     }
 
     static class Builder extends GppConsent.Builder {
