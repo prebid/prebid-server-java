@@ -79,15 +79,15 @@ public class USCustomLogicDataSupplierTest {
         // then
         assertThat(result).containsAllEntriesOf(Map.of(
                 "Version", 0,
-                "KnownChildSensitiveDataConsents0", 9,
-                "KnownChildSensitiveDataConsents1", 8,
-                "KnownChildSensitiveDataConsents2", 7,
-                "KnownChildSensitiveDataConsents3", 6,
-                "KnownChildSensitiveDataConsents4", 5,
-                "KnownChildSensitiveDataConsents5", 4,
-                "KnownChildSensitiveDataConsents6", 3,
-                "KnownChildSensitiveDataConsents7", 2,
-                "KnownChildSensitiveDataConsents8", 1));
+                "KnownChildSensitiveDataConsents1", 9,
+                "KnownChildSensitiveDataConsents2", 8,
+                "KnownChildSensitiveDataConsents3", 7,
+                "KnownChildSensitiveDataConsents4", 6,
+                "KnownChildSensitiveDataConsents5", 5,
+                "KnownChildSensitiveDataConsents6", 4,
+                "KnownChildSensitiveDataConsents7", 3,
+                "KnownChildSensitiveDataConsents8", 2,
+                "KnownChildSensitiveDataConsents9", 1));
     }
 
     @NonNull
