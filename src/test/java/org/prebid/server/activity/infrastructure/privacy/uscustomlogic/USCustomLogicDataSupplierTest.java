@@ -10,6 +10,7 @@ import org.mockito.junit.MockitoRule;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
@@ -64,6 +65,29 @@ public class USCustomLogicDataSupplierTest {
 
         // then
         assertThat(result).containsExactlyEntriesOf(expectedData());
+    }
+
+    @Test
+    public void getShouldCorrectlyHandleLists() {
+        // given
+        given(gppReader.getVersion()).willReturn(0);
+        given(gppReader.getKnownChildSensitiveDataConsents()).willReturn(asList(9, 8, 7, 6, 5, 4, 3, 2, 1));
+
+        // when
+        final Map<String, Object> result = target.get();
+
+        // then
+        assertThat(result).containsAllEntriesOf(Map.of(
+                "Version", 0,
+                "KnownChildSensitiveDataConsents0", 9,
+                "KnownChildSensitiveDataConsents1", 8,
+                "KnownChildSensitiveDataConsents2", 7,
+                "KnownChildSensitiveDataConsents3", 6,
+                "KnownChildSensitiveDataConsents4", 5,
+                "KnownChildSensitiveDataConsents5", 4,
+                "KnownChildSensitiveDataConsents6", 3,
+                "KnownChildSensitiveDataConsents7", 2,
+                "KnownChildSensitiveDataConsents8", 1));
     }
 
     @NonNull

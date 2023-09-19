@@ -1,6 +1,8 @@
 package org.prebid.server.activity.infrastructure.privacy.uscustomlogic;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -19,36 +21,55 @@ public class USCustomLogicDataSupplier implements Supplier<Map<String, Object>> 
 
     @Override
     public Map<String, Object> get() {
-        final Map<String, Object> data = new HashMap<>();
+        final DataAggregator dataAggregator = new DataAggregator();
 
-        data.put("Version", gppReader.getVersion());
+        dataAggregator.put("Version", gppReader.getVersion());
 
-        data.put("Gpc", gppReader.getGpc());
-        data.put("GpcSegmentType", gppReader.getGpcSegmentType());
-        data.put("GpcSegmentIncluded", gppReader.getGpcSegmentIncluded());
+        dataAggregator.put("Gpc", gppReader.getGpc());
+        dataAggregator.put("GpcSegmentType", gppReader.getGpcSegmentType());
+        dataAggregator.put("GpcSegmentIncluded", gppReader.getGpcSegmentIncluded());
 
-        data.put("SaleOptOut", gppReader.getSaleOptOut());
-        data.put("SaleOptOutNotice", gppReader.getSaleOptOutNotice());
+        dataAggregator.put("SaleOptOut", gppReader.getSaleOptOut());
+        dataAggregator.put("SaleOptOutNotice", gppReader.getSaleOptOutNotice());
 
-        data.put("SharingNotice", gppReader.getSharingNotice());
-        data.put("SharingOptOut", gppReader.getSharingOptOut());
-        data.put("SharingOptOutNotice", gppReader.getSharingOptOutNotice());
+        dataAggregator.put("SharingNotice", gppReader.getSharingNotice());
+        dataAggregator.put("SharingOptOut", gppReader.getSharingOptOut());
+        dataAggregator.put("SharingOptOutNotice", gppReader.getSharingOptOutNotice());
 
-        data.put("TargetedAdvertisingOptOut", gppReader.getTargetedAdvertisingOptOut());
-        data.put("TargetedAdvertisingOptOutNotice", gppReader.getTargetedAdvertisingOptOutNotice());
+        dataAggregator.put("TargetedAdvertisingOptOut", gppReader.getTargetedAdvertisingOptOut());
+        dataAggregator.put("TargetedAdvertisingOptOutNotice", gppReader.getTargetedAdvertisingOptOutNotice());
 
-        data.put("SensitiveDataLimitUseNotice", gppReader.getSensitiveDataLimitUseNotice());
-        data.put("SensitiveDataProcessing", gppReader.getSensitiveDataProcessing());
-        data.put("SensitiveDataProcessingOptOutNotice", gppReader.getSensitiveDataProcessingOptOutNotice());
+        dataAggregator.put("SensitiveDataLimitUseNotice", gppReader.getSensitiveDataLimitUseNotice());
+        dataAggregator.put("SensitiveDataProcessing", gppReader.getSensitiveDataProcessing());
+        dataAggregator.put("SensitiveDataProcessingOptOutNotice", gppReader.getSensitiveDataProcessingOptOutNotice());
 
-        data.put("KnownChildSensitiveDataConsents", gppReader.getKnownChildSensitiveDataConsents());
+        dataAggregator.put("KnownChildSensitiveDataConsents", gppReader.getKnownChildSensitiveDataConsents());
 
-        data.put("PersonalDataConsents", gppReader.getPersonalDataConsents());
+        dataAggregator.put("PersonalDataConsents", gppReader.getPersonalDataConsents());
 
-        data.put("MspaCoveredTransaction", gppReader.getMspaCoveredTransaction());
-        data.put("MspaServiceProviderMode", gppReader.getMspaServiceProviderMode());
-        data.put("MspaOptOutOptionMode", gppReader.getMspaOptOutOptionMode());
+        dataAggregator.put("MspaCoveredTransaction", gppReader.getMspaCoveredTransaction());
+        dataAggregator.put("MspaServiceProviderMode", gppReader.getMspaServiceProviderMode());
+        dataAggregator.put("MspaOptOutOptionMode", gppReader.getMspaOptOutOptionMode());
 
-        return data;
+        return dataAggregator.data();
+    }
+
+    private static class DataAggregator {
+
+        private final Map<String, Object> data = new HashMap<>();
+
+        public void put(String key, Object value) {
+            if (value instanceof List<?> list) {
+                for (int i = 0; i < list.size(); i++) {
+                    data.put(key + i, list.get(i));
+                }
+            } else {
+                data.put(key, value);
+            }
+        }
+
+        public Map<String, Object> data() {
+            return Collections.unmodifiableMap(data);
+        }
     }
 }
