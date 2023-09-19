@@ -1657,7 +1657,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp requests"
         activityPbsService.sendAmpRequest(ampRequest)
 
-        and: "Generic bidder should not be called"
+        then: "Generic bidder should not be called"
         assert !bidder.getBidderRequests(ampStoredRequest.id)
 
         where:

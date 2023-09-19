@@ -711,7 +711,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert !response.warnings
     }
 
-    def "PBS cookie sync when privacy regulation match custom requirement should exclude bidders URLs"() {
+    def "PBS cookie sync when custom privacy regulation with normalizing should exclude bidders URLs"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
@@ -1731,7 +1731,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert response.responseBody
     }
 
-    def "PBS setuid call when privacy regulation match custom requirement should reject bidders with status code invalidStatusCode"() {
+    def "PBS setuid call when custom privacy regulation with normalizing should reject bidders with status code invalidStatusCode"() {
         given: "Cookie sync SetuidRequest with accountId"
         def accountId = PBSUtils.randomNumber as String
         def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
