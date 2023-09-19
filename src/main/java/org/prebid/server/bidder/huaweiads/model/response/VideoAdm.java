@@ -8,18 +8,31 @@ import lombok.Value;
 public class VideoAdm {
 
     String adId;
+
     String creativeId;
+
     String adTitle;
+
     String duration;
+
     Integer height;
+
     Integer width;
+
     String resourceUrl;
+
     String clickUrl;
+
     String mime;
+
     String trackingEvents;
+
     String errorTracking;
+
     String dspImpTracking;
+
     String dspClickTracking;
+
     String rewardedVideoPart;
 
     public String toString() {

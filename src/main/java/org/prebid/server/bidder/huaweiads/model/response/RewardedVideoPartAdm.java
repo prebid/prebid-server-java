@@ -8,10 +8,15 @@ import lombok.Value;
 public class RewardedVideoPartAdm {
 
     String adId;
+
     String id;
+
     Integer staticImageWidth;
+
     Integer staticImageHeight;
+
     String staticImageUrl;
+
     String clickUrl;
 
     public String toString() {

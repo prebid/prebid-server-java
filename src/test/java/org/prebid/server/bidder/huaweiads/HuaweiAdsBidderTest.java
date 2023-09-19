@@ -54,6 +54,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
@@ -97,6 +98,8 @@ public class HuaweiAdsBidderTest extends VertxTest {
     private HuaweiNetworkBuilder networkBuilder;
     @Mock
     private HuaweiAdmBuilder admBuilder;
+    @Mock
+    private CountryCodeResolver countryCodeResolver;
 
     private HuaweiAdsBidder target;
 
@@ -118,8 +121,10 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 appBuilder,
                 deviceBuilder,
                 networkBuilder,
-                admBuilder);
+                admBuilder,
+                countryCodeResolver);
 
+        given(countryCodeResolver.resolve(any(BidRequest.class))).willReturn(Optional.empty());
         given(adSlotBuilder.build(any(Imp.class), any(ExtImpHuaweiAds.class)))
                 .willAnswer(invocation -> AdSlot30.builder()
                         .slotId(((ExtImpHuaweiAds) invocation.getArgument(1)).getSlotId())
@@ -156,7 +161,8 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         appBuilder,
                         deviceBuilder,
                         networkBuilder,
-                        admBuilder));
+                        admBuilder,
+                        countryCodeResolver));
     }
 
     @Test
@@ -174,7 +180,8 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         appBuilder,
                         deviceBuilder,
                         networkBuilder,
-                        admBuilder));
+                        admBuilder,
+                        countryCodeResolver));
     }
 
     @Test
@@ -192,7 +199,8 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         appBuilder,
                         deviceBuilder,
                         networkBuilder,
-                        admBuilder));
+                        admBuilder,
+                        countryCodeResolver));
     }
 
     @Test
@@ -210,7 +218,8 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         appBuilder,
                         deviceBuilder,
                         networkBuilder,
-                        admBuilder));
+                        admBuilder,
+                        countryCodeResolver));
     }
 
     @Test
@@ -228,7 +237,8 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         appBuilder,
                         deviceBuilder,
                         networkBuilder,
-                        admBuilder));
+                        admBuilder,
+                        countryCodeResolver));
     }
 
     @Test
@@ -604,7 +614,9 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 adSlotBuilder,
                 appBuilder,
                 deviceBuilder,
-                networkBuilder, admBuilder);
+                networkBuilder,
+                admBuilder,
+                countryCodeResolver);
 
         // when
         final Result<List<HttpRequest<HuaweiAdsRequest>>> result = target.makeHttpRequests(givenBidRequest(identity()));
@@ -618,6 +630,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnChineseEndpointWhenCountryComesFromChina() {
         // given
+        given(countryCodeResolver.resolve(any(BidRequest.class))).willReturn(Optional.of("CN"));
         final BidRequest bidRequest = givenBidRequest(identity())
                 .toBuilder()
                 .device(com.iab.openrtb.request.Device.builder()
@@ -637,6 +650,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRussianEndpointWhenCountryComesFromrussia() {
         // given
+        given(countryCodeResolver.resolve(any(BidRequest.class))).willReturn(Optional.of("RU"));
         final BidRequest bidRequest = givenBidRequest(identity())
                 .toBuilder()
                 .device(com.iab.openrtb.request.Device.builder()
@@ -656,6 +670,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnEuropeanEndpointWhenCountryComesFromUkraine() {
         // given
+        given(countryCodeResolver.resolve(any(BidRequest.class))).willReturn(Optional.of("UA"));
         final BidRequest bidRequest = givenBidRequest(identity())
                 .toBuilder()
                 .device(com.iab.openrtb.request.Device.builder()
@@ -675,6 +690,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnAsianEndpointWhenCountryComesFromJapan() {
         // given
+        given(countryCodeResolver.resolve(any(BidRequest.class))).willReturn(Optional.of("JP"));
         final BidRequest bidRequest = givenBidRequest(identity())
                 .toBuilder()
                 .device(com.iab.openrtb.request.Device.builder()

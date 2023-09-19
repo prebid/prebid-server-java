@@ -6,7 +6,9 @@ import lombok.Value;
 public class HuaweiAdm {
 
     String adm;
+
     Integer width;
+
     Integer height;
 
 }

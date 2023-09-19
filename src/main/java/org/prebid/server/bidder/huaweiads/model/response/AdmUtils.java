@@ -5,7 +5,6 @@ import org.apache.commons.lang3.StringUtils;
 class AdmUtils {
 
     private AdmUtils() {
-
     }
 
     public static <T> String getOrEmpty(T value) {

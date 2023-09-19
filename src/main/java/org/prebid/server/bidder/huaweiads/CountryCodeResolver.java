@@ -5,58 +5,60 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.User;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.geolocation.CountryCodeMapper;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
-class CountryCodeResolver {
+public class CountryCodeResolver {
 
-    private static final Map<String, String> ALPHA3_TO_ALPHA2_COUNTRY_CODE_MAP = createAlpha3ToAlpha2CountryCodeMap();
     private static final Map<Integer, String> MCC_TO_COUNTRY_CODE_MAP = createMccToAlpha2CountryCodeMap();
 
-    private CountryCodeResolver() {
+    //todo: in PBS Go ATA gonna be resolved into AT, because ATA doesn't have any mapping, so first 2 letters are taken
+    // BUT in the same mapping there is AUT, that will be resolved in AT as well
+    // AND in real world ATA is AQ (that's what country code mapper returns)
+    // so, what we gonna do? ¯\_(ツ)_/¯
+    private final CountryCodeMapper countryCodeMapper;
 
+    public CountryCodeResolver(CountryCodeMapper countryCodeMapper) {
+        this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
     }
 
     //expects Alpha3 country code
-    public static Optional<String> resolve(BidRequest bidRequest) {
+    public Optional<String> resolve(BidRequest bidRequest) {
         final Optional<String> countryOfDevice = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getGeo)
                 .map(Geo::getCountry)
                 .filter(StringUtils::isNotBlank)
-                .filter(countryCode -> countryCode.length() >= 2)
-                .map(CountryCodeResolver::convertAlpha3ToAlpha2CountryCode);
+                .flatMap(this::convertCountryCode);
 
         final Optional<String> countryOfUser = Optional.ofNullable(bidRequest.getUser())
                 .map(User::getGeo)
                 .map(Geo::getCountry)
                 .filter(StringUtils::isNotBlank)
-                .filter(countryCode -> countryCode.length() >= 2)
-                .map(CountryCodeResolver::convertAlpha3ToAlpha2CountryCode);
+                .flatMap(this::convertCountryCode);
 
         final Optional<String> countryOfMcc = Optional.ofNullable(bidRequest.getDevice())
                 .map(Device::getMccmnc)
                 .filter(StringUtils::isNotBlank)
                 //mcc-mnc format
-                //todo: what if out of bound
                 .map(mccmnc -> mccmnc.split("-")[0])
                 .flatMap(CountryCodeResolver::countryFromMcc);
 
-        //todo: logic is slighty enhanced comparing to the PBS Go,
-        // if a country code of the device is invalid (has less than 3 symbols) I try to get the country from the user
-        // if the country of the user is invalid (has less than 3 symbols) I try to get the country from the MCC
-        // PBS Go returns default country code instead without trying to try to resolve code further
         return countryOfDevice
                 .or(() -> countryOfUser)
                 .or(() -> countryOfMcc);
     }
 
-    // convertCountryCode: ISO 3166-1 Alpha3 -> Alpha2, Some countries may use
-    private static String convertAlpha3ToAlpha2CountryCode(String countryCode) {
-        //todo: taking first two letters are not robust; is case ignored?
-        return ALPHA3_TO_ALPHA2_COUNTRY_CODE_MAP.getOrDefault(countryCode, countryCode.substring(0, 2));
+    private Optional<String> convertCountryCode(String countryCode) {
+        return switch (countryCode.length()) {
+            case 1 -> Optional.empty();
+            case 2 -> Optional.of(countryCode);
+            default -> Optional.ofNullable(countryCodeMapper.mapToAlpha2(countryCode));
+        };
     }
 
     private static Optional<String> countryFromMcc(String mcc) {
@@ -65,53 +67,6 @@ class CountryCodeResolver {
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
-    }
-
-    private static Map<String, String> createAlpha3ToAlpha2CountryCodeMap() {
-        final Map<String, String> result = new HashMap<>();
-        result.put("AND", "AD");
-        result.put("AGO", "AO");
-        result.put("AUT", "AT");
-        result.put("BGD", "BD");
-        result.put("BLR", "BY");
-        result.put("CAF", "CF");
-        result.put("TCD", "TD");
-        result.put("CHL", "CL");
-        result.put("CHN", "CN");
-        result.put("COG", "CG");
-        result.put("COD", "CD");
-        result.put("DNK", "DK");
-        result.put("GNQ", "GQ");
-        result.put("EST", "EE");
-        result.put("GIN", "GN");
-        result.put("GNB", "GW");
-        result.put("GUY", "GY");
-        result.put("IRQ", "IQ");
-        result.put("IRL", "IE");
-        result.put("ISR", "IL");
-        result.put("KAZ", "KZ");
-        result.put("LBY", "LY");
-        result.put("MDG", "MG");
-        result.put("MDV", "MV");
-        result.put("MEX", "MX");
-        result.put("MNE", "ME");
-        result.put("MOZ", "MZ");
-        result.put("PAK", "PK");
-        result.put("PNG", "PG");
-        result.put("PRY", "PY");
-        result.put("POL", "PL");
-        result.put("PRT", "PT");
-        result.put("SRB", "RS");
-        result.put("SVK", "SK");
-        result.put("SVN", "SI");
-        result.put("SWE", "SE");
-        result.put("TUN", "TN");
-        result.put("TUR", "TR");
-        result.put("TKM", "TM");
-        result.put("UKR", "UA");
-        result.put("ARE", "AE");
-        result.put("URY", "UY");
-        return Collections.unmodifiableMap(result);
     }
 
     @SuppressWarnings("MethodLength")

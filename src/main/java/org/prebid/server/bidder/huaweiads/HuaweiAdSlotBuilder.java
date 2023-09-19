@@ -15,10 +15,12 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.huaweiads.ExtImpHuaweiAds;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 public class HuaweiAdSlotBuilder {
 
@@ -65,8 +67,6 @@ public class HuaweiAdSlotBuilder {
         return adSlot.toBuilder()
                 .slotId(impExt.getSlotId())
                 .adType(adsType.getType())
-                //todo: IsTestAuthorization looks unclear, also BidRequest also has test object, what's better to use?
-                //todo: does make sense to make it more robust (at least case insensitive)
                 .test(TEST_AUTH_ENABLED.equals(impExt.getIsTestAuthorization()) ? 1 : 0)
                 .build();
     }
@@ -102,24 +102,24 @@ public class HuaweiAdSlotBuilder {
     }
 
     private AdSlot30 makeBannerAdSlot(Banner banner) {
-        final AdSlot30.AdSlot30Builder builder = AdSlot30.builder();
         final Integer bannerWidth = banner.getW();
         final Integer bannerHeight = banner.getH();
-        if (HuaweiUtils.isFormatDefined(bannerWidth, bannerHeight)) {
-            builder.w(bannerWidth).h(bannerHeight);
-        }
-        builder.format(getBannerFormats(banner).orElse(Collections.emptyList()));
+        final boolean validFormat = HuaweiUtils.isFormatDefined(bannerWidth, bannerHeight);
 
-        return builder.build();
+        return AdSlot30.builder()
+                .w(validFormat ? bannerWidth : null)
+                .h(validFormat ? bannerHeight : null)
+                .format(getBannerFormats(banner))
+                .build();
     }
 
-    private static Optional<List<Format>> getBannerFormats(Banner banner) {
-        return Optional.ofNullable(banner.getFormat())
-                .filter(formats -> !formats.isEmpty())
-                .map(formats -> formats.stream()
-                        .filter(format -> HuaweiUtils.isFormatDefined(format.getW(), format.getH()))
-                        .map(format -> Format.of(format.getW(), format.getH()))
-                        .toList());
+    private static List<Format> getBannerFormats(Banner banner) {
+        return Stream.ofNullable(banner.getFormat())
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .filter(format -> HuaweiUtils.isFormatDefined(format.getW(), format.getH()))
+                .map(format -> Format.of(format.getW(), format.getH()))
+                .toList();
     }
 
     private List<Asset> parseNativeRequestAssets(Native xNative) {
@@ -133,7 +133,9 @@ public class HuaweiAdSlotBuilder {
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage());
         }
-        return nativePayload.getAssets() == null ? Collections.emptyList() : nativePayload.getAssets();
+        return Optional.ofNullable(nativePayload)
+                .map(Request::getAssets)
+                .orElseGet(Collections::emptyList);
     }
 
     private static List<String> makeDetailedCreativeTypeList(long numVideo, long numImage) {

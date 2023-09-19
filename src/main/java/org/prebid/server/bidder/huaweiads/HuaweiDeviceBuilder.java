@@ -22,9 +22,11 @@ public class HuaweiDeviceBuilder {
     private static final String DEFAULT_MODEL_NAME = "HUAWEI";
 
     private final JacksonMapper mapper;
+    private final ClientTimeFormatter clientTimeFormatter;
 
-    public HuaweiDeviceBuilder(JacksonMapper mapper) {
+    public HuaweiDeviceBuilder(JacksonMapper mapper, ClientTimeFormatter clientTimeFormatter) {
         this.mapper = Objects.requireNonNull(mapper);
+        this.clientTimeFormatter = clientTimeFormatter;
     }
 
     public Device build(com.iab.openrtb.request.Device device, User user, String countryCode) throws PreBidException {
@@ -59,7 +61,7 @@ public class HuaweiDeviceBuilder {
         final Optional<String> deviceIfa = Optional.ofNullable(device)
                 .flatMap(dev -> HuaweiUtils.getIfNotBlank(dev.getIfa()));
         if (user == null || user.getExt() == null) {
-            return deviceIfa.map(gaid -> Device.builder().gaid(gaid).clientTime(ClientTimeFormatter.now()).build())
+            return deviceIfa.map(gaid -> Device.builder().gaid(gaid).clientTime(clientTimeFormatter.now()).build())
                     .orElseThrow(() -> new PreBidException("getDeviceID: openRTBRequest.User.Ext is nil "
                             + "and device.Gaid is not specified."));
 
@@ -82,8 +84,8 @@ public class HuaweiDeviceBuilder {
         final String imei = isImeiEmpty ? null : userData.getImei().get(0);
         final String clientTime = Optional.ofNullable(userData)
                 .map(ExtUserDataDeviceIdHuaweiAds::getClientTime)
-                .map(HuaweiDeviceBuilder::formatClientTime)
-                .orElseGet(ClientTimeFormatter::now);
+                .map(this::formatClientTime)
+                .orElseGet(clientTimeFormatter::now);
 
         return Device.builder()
                 .clientTime(clientTime)
@@ -101,8 +103,8 @@ public class HuaweiDeviceBuilder {
         }
     }
 
-    private static String formatClientTime(List<String> clientTimes) {
-        return CollectionUtils.isEmpty(clientTimes) ? null : ClientTimeFormatter.format(clientTimes.get(0));
+    private String formatClientTime(List<String> clientTimes) {
+        return CollectionUtils.isEmpty(clientTimes) ? null : clientTimeFormatter.format(clientTimes.get(0));
     }
 
 }

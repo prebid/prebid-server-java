@@ -4,6 +4,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
+import org.prebid.server.bidder.huaweiads.ClientTimeFormatter;
+import org.prebid.server.bidder.huaweiads.CountryCodeResolver;
 import org.prebid.server.bidder.huaweiads.HuaweiAdSlotBuilder;
 import org.prebid.server.bidder.huaweiads.HuaweiAdmBuilder;
 import org.prebid.server.bidder.huaweiads.HuaweiAdsBidder;
@@ -11,6 +13,7 @@ import org.prebid.server.bidder.huaweiads.HuaweiAppBuilder;
 import org.prebid.server.bidder.huaweiads.HuaweiDeviceBuilder;
 import org.prebid.server.bidder.huaweiads.HuaweiNetworkBuilder;
 import org.prebid.server.bidder.huaweiads.model.request.PkgNameConvert;
+import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -26,6 +29,7 @@ import org.springframework.validation.annotation.Validated;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.time.Clock;
 import java.util.List;
 
 @Configuration
@@ -42,6 +46,8 @@ public class HuaweiAdsConfiguration {
 
     @Bean
     BidderDeps huaweiAdsBidderDeps(HuaweiAdsConfigurationProperties huaweiadsConfigurationProperties,
+                                   CountryCodeMapper countryCodeMapper,
+                                   Clock clock,
                                    @NotBlank @Value("${external-url}") String externalUrl,
                                    JacksonMapper mapper) {
 
@@ -60,9 +66,10 @@ public class HuaweiAdsConfiguration {
                             mapper,
                             new HuaweiAdSlotBuilder(mapper),
                             new HuaweiAppBuilder(extraInfo.getPkgNameConvert()),
-                            new HuaweiDeviceBuilder(mapper),
+                            new HuaweiDeviceBuilder(mapper, new ClientTimeFormatter(clock)),
                             new HuaweiNetworkBuilder(),
-                            new HuaweiAdmBuilder(mapper));
+                            new HuaweiAdmBuilder(mapper),
+                            new CountryCodeResolver(countryCodeMapper));
                 })
                 .assemble();
     }

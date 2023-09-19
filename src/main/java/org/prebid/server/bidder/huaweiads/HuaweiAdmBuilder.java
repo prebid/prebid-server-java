@@ -37,12 +37,14 @@ import java.time.Duration;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class HuaweiAdmBuilder {
 
@@ -54,6 +56,7 @@ public class HuaweiAdmBuilder {
     private static final String DEFAULT_VIDEO_MIME_TYPE = "video/mp4";
     private static final int EVENT_TRACKING_IMAGE_METHOD = 1;
     private static final int IMPRESSION_EVENT_TYPE = 1;
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
     private final JacksonMapper mapper;
 
@@ -211,24 +214,24 @@ public class HuaweiAdmBuilder {
                 .clickUrl(clickUrl);
 
         final List<Icon> iconList = metaData.getIconList();
-        if (CollectionUtils.isNotEmpty(iconList) && StringUtils.isNotBlank(iconList.get(0).getUrl())) {
-            final Icon icon = iconList.get(0);
-            final boolean isFormatDefined = HuaweiUtils.isFormatDefined(icon.getWidth(), icon.getHeight());
+        final Icon firstIcon = CollectionUtils.isNotEmpty(iconList) ? iconList.get(0) : null;
+        if (firstIcon != null && StringUtils.isNotBlank(firstIcon.getUrl())) {
+            final boolean isFormatDefined = HuaweiUtils.isFormatDefined(firstIcon.getWidth(), firstIcon.getHeight());
             return admBuilder
-                    .staticImageUrl(icon.getUrl())
-                    .staticImageHeight(isFormatDefined ? icon.getHeight() : adHeight)
-                    .staticImageWidth(isFormatDefined ? icon.getWidth() : adWidth)
+                    .staticImageUrl(firstIcon.getUrl())
+                    .staticImageHeight(isFormatDefined ? firstIcon.getHeight() : adHeight)
+                    .staticImageWidth(isFormatDefined ? firstIcon.getWidth() : adWidth)
                     .build().toString();
         }
 
         final List<ImageInfo> imageInfoList = metaData.getImageInfoList();
-        if (CollectionUtils.isNotEmpty(imageInfoList) && StringUtils.isNotBlank(imageInfoList.get(0).getUrl())) {
-            final ImageInfo imageInfo = imageInfoList.get(0);
-            final boolean isFormatDefined = HuaweiUtils.isFormatDefined(imageInfo.getWidth(), imageInfo.getHeight());
+        final ImageInfo firstImage = CollectionUtils.isNotEmpty(imageInfoList) ? imageInfoList.get(0) : null;
+        if (firstImage != null && StringUtils.isNotBlank(firstImage.getUrl())) {
+            final boolean isFormatDefined = HuaweiUtils.isFormatDefined(firstImage.getWidth(), firstImage.getHeight());
             return admBuilder
-                    .staticImageUrl(imageInfo.getUrl())
-                    .staticImageHeight(isFormatDefined ? imageInfo.getHeight() : adHeight)
-                    .staticImageWidth(isFormatDefined ? imageInfo.getWidth() : adWidth)
+                    .staticImageUrl(firstImage.getUrl())
+                    .staticImageHeight(isFormatDefined ? firstImage.getHeight() : adHeight)
+                    .staticImageWidth(isFormatDefined ? firstImage.getWidth() : adWidth)
                     .build().toString();
         }
 
@@ -241,8 +244,10 @@ public class HuaweiAdmBuilder {
             throw new PreBidException("Content.MetaData is empty");
         }
 
-        final ImageInfo imageInfo = Optional.ofNullable(metaData.getImageInfoList())
-                .flatMap(imageInfos -> imageInfos.stream().findFirst())
+        final ImageInfo imageInfo = Stream.ofNullable(metaData.getImageInfoList())
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .findFirst()
                 .orElseThrow(() -> new PreBidException("content.MetaData.ImageInfo is empty"));
 
         if (!HuaweiUtils.isFormatDefined(imageInfo.getWidth(), imageInfo.getHeight())) {
@@ -263,25 +268,32 @@ public class HuaweiAdmBuilder {
     }
 
     private static String makeDspClickTrackings(Content content) {
-        return Optional.ofNullable(content.getMonitorList()).flatMap(list -> list.stream()
-                        .filter(monitor -> CollectionUtils.isNotEmpty(monitor.getUrlList())
-                                && MonitorEventType.of(monitor.getEventType()) == MonitorEventType.CLICK)
-                        .map(Monitor::getUrlList)
-                        //todo: maybe addAll?
-                        .findFirst())
+        return Stream.ofNullable(content.getMonitorList())
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .filter(monitor -> CollectionUtils.isNotEmpty(monitor.getUrlList())
+                        && MonitorEventType.of(monitor.getEventType()) == MonitorEventType.CLICK)
+                .map(Monitor::getUrlList)
+                .filter(Objects::nonNull)
+                //todo: maybe addAll?
+                .findFirst()
                 .map(list -> list.stream()
+                        .filter(Objects::nonNull)
                         .map(tracking -> "\"" + tracking + "\"")
                         .collect(Collectors.joining(",")))
                 .orElse("");
     }
 
     private static String makeDspImpTrackings(Content content) {
-        return Optional.ofNullable(content.getMonitorList()).flatMap(list -> list.stream()
-                        .filter(monitor -> CollectionUtils.isNotEmpty(monitor.getUrlList())
-                                && MonitorEventType.of(monitor.getEventType()) == MonitorEventType.IMP)
-                        .map(Monitor::getUrlList)
-                        //todo: maybe addAll?
-                        .findFirst())
+        return Stream.ofNullable(content.getMonitorList())
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .filter(monitor -> CollectionUtils.isNotEmpty(monitor.getUrlList())
+                        && MonitorEventType.of(monitor.getEventType()) == MonitorEventType.IMP)
+                .map(Monitor::getUrlList)
+                .filter(Objects::nonNull)
+                //todo: maybe addAll?
+                .findFirst()
                 .map(list -> list.stream()
                         .map(tracking -> "<img height=\"1\" width=\"1\" src='" + tracking + "' >  ")
                         .collect(Collectors.joining()))
@@ -301,9 +313,9 @@ public class HuaweiAdmBuilder {
         final String clickUrl = getClickUrl(content);
 
         final Request nativePayload = parseNativeRequest(xNative);
-        final List<Asset> assets = nativePayload.getAssets() == null
-                ? Collections.emptyList()
-                : nativePayload.getAssets();
+        final List<Asset> assets = Optional.ofNullable(nativePayload)
+                .map(Request::getAssets)
+                .orElseGet(Collections::emptyList);
 
         Integer adHeight = null;
         Integer adWidth = null;
@@ -450,7 +462,7 @@ public class HuaweiAdmBuilder {
         return Optional.ofNullable(duration)
                 .map(Duration::ofMillis)
                 .map(LocalTime.MIDNIGHT::plus)
-                .map(time -> time.format(DateTimeFormatter.ofPattern("HH:mm:ss.SSS")))
+                .map(time -> time.format(DATE_TIME_FORMATTER))
                 .orElseThrow(() -> new PreBidException("Content.MetaData.VideoInfo duration is empty"));
     }
 

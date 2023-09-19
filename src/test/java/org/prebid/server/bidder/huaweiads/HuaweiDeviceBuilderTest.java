@@ -2,7 +2,12 @@ package org.prebid.server.bidder.huaweiads;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.User;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.huaweiads.model.request.Device;
 import org.prebid.server.exception.PreBidException;
@@ -12,10 +17,26 @@ import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 public class HuaweiDeviceBuilderTest extends VertxTest {
 
-    private final HuaweiDeviceBuilder target = new HuaweiDeviceBuilder(jacksonMapper);
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Mock
+    private ClientTimeFormatter clientTimeFormatter;
+
+    private HuaweiDeviceBuilder target;
+
+    @Before
+    public void before() {
+        target = new HuaweiDeviceBuilder(jacksonMapper, clientTimeFormatter);
+        given(clientTimeFormatter.now()).willReturn("clientTimeNow");
+        given(clientTimeFormatter.format(anyString())).willReturn("clientTime");
+    }
 
     @Test
     public void buildShouldFailWhenUserAndDeviceIsAbsent() {
@@ -52,10 +73,10 @@ public class HuaweiDeviceBuilderTest extends VertxTest {
                 .model("HUAWEI")
                 .localeCountry("DE")
                 .belongCountry("DE")
+                .clientTime("clientTimeNow")
                 .build();
 
-        assertThat(actual).usingRecursiveComparison().ignoringFields("clientTime").isEqualTo(expected);
-        assertThat(actual.getClientTime()).isNotNull();
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -104,10 +125,12 @@ public class HuaweiDeviceBuilderTest extends VertxTest {
                 .gaid("gaid1")
                 .imei("imei1")
                 .oaid("oaid1")
-                .clientTime("2022-02-24 04:00:05.000+0200")
+                .clientTime("clientTime")
                 .build();
 
         assertThat(actual).isEqualTo(expected);
+
+        verify(clientTimeFormatter).format("2022-02-24 04:00:05.000+0200");
     }
 
     @Test
@@ -133,10 +156,10 @@ public class HuaweiDeviceBuilderTest extends VertxTest {
                 .model("HUAWEI")
                 .localeCountry("DE")
                 .belongCountry("DE")
+                .clientTime("clientTimeNow")
                 .build();
 
-        assertThat(actual).usingRecursiveComparison().ignoringFields("clientTime").isEqualTo(expected);
-        assertThat(actual.getClientTime()).isNotNull();
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -174,7 +197,7 @@ public class HuaweiDeviceBuilderTest extends VertxTest {
                 .gaid("gaid1")
                 .imei("imei1")
                 .oaid("oaid1")
-                .clientTime("2022-02-24 04:00:05.000+0200")
+                .clientTime("clientTime")
                 .gaid("ifa")
                 .model("HUAWEI")
                 .localeCountry("DE")
@@ -195,6 +218,8 @@ public class HuaweiDeviceBuilderTest extends VertxTest {
                 .build();
 
         assertThat(actual).isEqualTo(expected);
+
+        verify(clientTimeFormatter).format("2022-02-24 04:00:05.000+0200");
     }
 
 }

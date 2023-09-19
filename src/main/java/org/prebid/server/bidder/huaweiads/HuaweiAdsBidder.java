@@ -43,12 +43,14 @@ import org.prebid.server.util.HttpUtil;
 import javax.crypto.Mac;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Stream;
 
 public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
 
@@ -82,6 +84,7 @@ public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
     private final HuaweiDeviceBuilder deviceBuilder;
     private final HuaweiNetworkBuilder networkBuilder;
     private final HuaweiAdmBuilder admBuilder;
+    private final CountryCodeResolver countryCodeResolver;
 
     public HuaweiAdsBidder(String endpoint,
                            String chineseEndpoint,
@@ -94,7 +97,8 @@ public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
                            HuaweiAppBuilder appBuilder,
                            HuaweiDeviceBuilder deviceBuilder,
                            HuaweiNetworkBuilder networkBuilder,
-                           HuaweiAdmBuilder admBuilder) {
+                           HuaweiAdmBuilder admBuilder,
+                           CountryCodeResolver countryCodeResolver) {
 
         this.endpointUrl = HttpUtil.validateUrl(endpoint);
         this.closeSiteSelectionByCountry = Objects.requireNonNull(closeSiteSelectionByCountry);
@@ -108,12 +112,13 @@ public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
         this.deviceBuilder = Objects.requireNonNull(deviceBuilder);
         this.networkBuilder = Objects.requireNonNull(networkBuilder);
         this.admBuilder = Objects.requireNonNull(admBuilder);
+        this.countryCodeResolver = countryCodeResolver;
     }
 
     @Override
     public Result<List<HttpRequest<HuaweiAdsRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final HuaweiAdsRequest huaweiAdsRequest;
-        final String countryCode = CountryCodeResolver.resolve(bidRequest).orElse(DEFAULT_COUNTRY_CODE);
+        final String countryCode = countryCodeResolver.resolve(bidRequest).orElse(DEFAULT_COUNTRY_CODE);
 
         ExtImpHuaweiAds impExt = null;
         try {
@@ -380,12 +385,13 @@ public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
     }
 
     private String getNurl(List<Monitor> monitorList) {
-        return Optional.ofNullable(monitorList)
-                .flatMap(monitors -> monitors.stream()
-                        .filter(monitor -> MonitorEventType.of(monitor.getEventType()) == MonitorEventType.WIN
-                                && CollectionUtils.isNotEmpty(monitor.getUrlList()))
-                        .flatMap(monitor -> monitor.getUrlList().stream())
-                        .findFirst())
+        return Stream.ofNullable(monitorList)
+                .flatMap(Collection::stream)
+                .filter(monitor -> MonitorEventType.of(monitor.getEventType()) == MonitorEventType.WIN
+                        && CollectionUtils.isNotEmpty(monitor.getUrlList()))
+                .map(Monitor::getUrlList)
+                .flatMap(Collection::stream)
+                .findFirst()
                 .orElse("");
     }
 

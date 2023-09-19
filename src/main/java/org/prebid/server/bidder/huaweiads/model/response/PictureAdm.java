@@ -8,11 +8,17 @@ import lombok.Value;
 public class PictureAdm {
 
     String imageTitle;
+
     String imageInfoUrl;
+
     String clickUrl;
+
     Integer width;
+
     Integer height;
+
     String dspClickTrackings;
+
     String dspImpTrackings;
 
     public String toString() {
