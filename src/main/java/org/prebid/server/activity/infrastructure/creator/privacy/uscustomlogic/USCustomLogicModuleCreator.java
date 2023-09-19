@@ -14,7 +14,11 @@ import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomL
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicModule;
 import org.prebid.server.activity.infrastructure.rule.AndRule;
 import org.prebid.server.auction.gpp.model.GppContext;
+import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JsonLogic;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.model.activity.privacy.AccountUSCustomLogicModuleConfig;
 
@@ -38,14 +42,17 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
     private final USCustomLogicGppReaderFactory gppReaderFactory;
     private final JsonLogic jsonLogic;
     private final Map<String, JsonLogicNode> jsonLogicNodesCache;
+    private final Metrics metrics;
 
     public USCustomLogicModuleCreator(USCustomLogicGppReaderFactory gppReaderFactory,
                                       JsonLogic jsonLogic,
                                       Integer cacheTtl,
-                                      Integer cacheSize) {
+                                      Integer cacheSize,
+                                      Metrics metrics) {
 
         this.gppReaderFactory = Objects.requireNonNull(gppReaderFactory);
         this.jsonLogic = Objects.requireNonNull(jsonLogic);
+        this.metrics = Objects.requireNonNull(metrics);
 
         jsonLogicNodesCache = cacheTtl != null && cacheSize != null
                 ? SettingsCache.createCache(cacheTtl, cacheSize)
@@ -126,7 +133,16 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
     private JsonLogicNode jsonLogicNode(ObjectNode jsonLogicConfig) {
         final String jsonAsString = jsonLogicConfig.toString();
         return jsonLogicNodesCache != null
-                ? jsonLogicNodesCache.computeIfAbsent(jsonAsString, jsonLogic::parse)
-                : jsonLogic.parse(jsonAsString);
+                ? jsonLogicNodesCache.computeIfAbsent(jsonAsString, this::parseJsonLogicNode)
+                : parseJsonLogicNode(jsonAsString);
+    }
+
+    private JsonLogicNode parseJsonLogicNode(String jsonLogicConfig) {
+        try {
+            metrics.updateAlertsMetrics(MetricName.general);
+            return jsonLogic.parse(jsonLogicConfig);
+        } catch (DecodeException e) {
+            throw new PreBidException("JsonLogic exception: " + e.getMessage());
+        }
     }
 }

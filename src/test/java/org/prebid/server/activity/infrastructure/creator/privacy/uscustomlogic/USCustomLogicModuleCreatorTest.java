@@ -16,7 +16,11 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USNationalGppReader;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
+import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JsonLogic;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.model.activity.privacy.AccountUSCustomLogicModuleConfig;
 
 import java.util.List;
@@ -27,6 +31,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -48,6 +53,9 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
     @Mock
     private JsonLogic jsonLogic;
 
+    @Mock
+    private Metrics metrics;
+
     private USCustomLogicModuleCreator target;
 
     @Before
@@ -56,13 +64,14 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
                 .willReturn(new USNationalGppReader(null));
         given(jsonLogic.parse(any())).willReturn(JsonLogicBoolean.TRUE);
 
-        target = new USCustomLogicModuleCreator(gppReaderFactory, jsonLogic, null, null);
+        target = new USCustomLogicModuleCreator(gppReaderFactory, jsonLogic, null, null, metrics);
     }
 
     @Test
     public void qualifierShouldReturnExpectedResult() {
         // when and then
         assertThat(target.qualifier()).isEqualTo(PrivacyModuleQualifier.US_CUSTOM_LOGIC);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -79,6 +88,7 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
         assertThat(privacyModule.proceed(null)).isEqualTo(Rule.Result.ABSTAIN);
         verifyNoInteractions(gppReaderFactory);
         verifyNoInteractions(jsonLogic);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -95,6 +105,7 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
         assertThat(privacyModule.proceed(null)).isEqualTo(Rule.Result.ABSTAIN);
         verifyNoInteractions(gppReaderFactory);
         verifyNoInteractions(jsonLogic);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -111,6 +122,7 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
         assertThat(privacyModule.proceed(null)).isEqualTo(Rule.Result.ABSTAIN);
         verifyNoInteractions(gppReaderFactory);
         verifyNoInteractions(jsonLogic);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -135,6 +147,7 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
         verify(jsonLogic, times(6)).parse(eq("{}"));
         verify(jsonLogic, times(6)).evaluate(any(), any());
         verifyNoMoreInteractions(jsonLogic);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -154,6 +167,7 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
         verify(jsonLogic).parse(eq("{}"));
         verify(jsonLogic).evaluate(any(), any());
         verifyNoMoreInteractions(jsonLogic);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -170,6 +184,7 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
         assertThat(privacyModule.proceed(null)).isEqualTo(Rule.Result.ABSTAIN);
         verifyNoInteractions(gppReaderFactory);
         verifyNoInteractions(jsonLogic);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -186,6 +201,7 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
         assertThat(privacyModule.proceed(null)).isEqualTo(Rule.Result.ABSTAIN);
         verifyNoInteractions(gppReaderFactory);
         verifyNoInteractions(jsonLogic);
+        verifyNoInteractions(metrics);
     }
 
     @Test
@@ -205,6 +221,27 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
         verify(jsonLogic).parse(eq("{}"));
         verify(jsonLogic).evaluate(any(), any());
         verifyNoMoreInteractions(jsonLogic);
+        verifyNoInteractions(metrics);
+    }
+
+    @Test
+    public void fromShouldThrowExceptionAndEmitMetricsOnInvalidJsonLogicConfig() {
+        // given
+        given(jsonLogic.parse(any())).willThrow(new DecodeException("Test exception"));
+
+        final PrivacyModuleCreationContext creationContext = givenCreationContext(
+                singletonList(7),
+                givenConfig(singleton(7), null, Activity.CALL_BIDDER, mapper.createObjectNode()));
+
+        // when and then
+        assertThatExceptionOfType(PreBidException.class).isThrownBy(() -> target.from(creationContext));
+
+        verify(jsonLogic).parse(any());
+        verify(metrics).updateAlertsMetrics(eq(MetricName.general));
+
+        verifyNoInteractions(gppReaderFactory);
+        verifyNoMoreInteractions(jsonLogic);
+        verifyNoMoreInteractions(metrics);
     }
 
     private static PrivacyModuleCreationContext givenCreationContext(List<Integer> sectionsIds,
