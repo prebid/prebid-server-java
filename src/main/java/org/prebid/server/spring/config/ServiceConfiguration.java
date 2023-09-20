@@ -98,7 +98,6 @@ import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.util.VersionInfo;
 import org.prebid.server.util.system.CpuLoadAverageStats;
-import org.prebid.server.util.system.CpuLoadThrottler;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -1014,16 +1013,6 @@ public class ServiceConfiguration {
             @Value("${server.cpu-load-monitoring.measurement-interval-ms:2000}") long measurementIntervalMillis) {
 
         return new CpuLoadAverageStats(vertx, measurementIntervalMillis);
-    }
-
-    @Bean
-    @ConditionalOnProperty(prefix = "auction.shedding", name = "enabled", havingValue = "true")
-    CpuLoadThrottler cpuLoadThrottler(
-            CpuLoadAverageStats cpuLoadAverageStats,
-            @Value("${auction.shedding.soft-threshold:1.0}") double softThreshold,
-            @Value("${auction.shedding.hard-threshold:1.0}") double hardThreshold) {
-
-        return new CpuLoadThrottler(cpuLoadAverageStats, softThreshold, hardThreshold);
     }
 
     @Bean

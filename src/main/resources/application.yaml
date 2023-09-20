@@ -121,10 +121,6 @@ auction:
   ad-server-currency: USD
   blacklisted-accounts:
   blacklisted-apps:
-  shedding:
-    enabled: true
-    soft-threshold: 0.05
-    hard-threshold: 0.99
   biddertmax:
     min: 50
     max: 5000

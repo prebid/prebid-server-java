@@ -42,7 +42,6 @@ import org.prebid.server.handler.VtrackHandler;
 import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
 import org.prebid.server.handler.openrtb2.AmpHandler;
-import org.prebid.server.handler.openrtb2.AuctionHandler;
 import org.prebid.server.handler.openrtb2.VideoHandler;
 import org.prebid.server.health.HealthChecker;
 import org.prebid.server.health.PeriodicHealthChecker;
@@ -116,7 +115,7 @@ public class WebConfiguration {
     Router router(BodyHandler bodyHandler,
                   NoCacheHandler noCacheHandler,
                   CorsHandler corsHandler,
-                  AuctionHandler openrtbAuctionHandler,
+                  org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler,
                   AmpHandler openrtbAmpHandler,
                   VideoHandler openrtbVideoHandler,
                   StatusHandler statusHandler,
