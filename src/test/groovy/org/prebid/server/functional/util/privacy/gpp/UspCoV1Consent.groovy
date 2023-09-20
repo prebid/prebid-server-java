@@ -13,7 +13,7 @@ class UspCoV1Consent extends GppConsent {
 
     @Override
     protected String encodeSection() {
-        gppModel.encodeSection(SECTION.name)
+        gppModel.encodeSection(Section.USP_CO_V1.name)
     }
 
     static class Builder extends GppConsent.Builder {

@@ -8,6 +8,7 @@ enum PrivacyModule {
 
     IAB_TFC_EU("iab.tcfeu"),
     IAB_US_GENERAL("iab.usgeneral"),
+    IAB_US_CUSTOM_LOGIC("iab.uscustomlogic"),
     IAB_ALL("iab.*"),
     CUSTOM_US_UTAH("custom.usutah"),
     ALL("*")
