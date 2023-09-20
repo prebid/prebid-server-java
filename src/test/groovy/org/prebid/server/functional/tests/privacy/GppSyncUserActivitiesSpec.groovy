@@ -712,7 +712,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         then: "Response should contain error"
         def error = thrown(PrebidServerException)
         assert error.statusCode == BAD_REQUEST.code()
-        assert error.responseBody == "JsonLogic exception: objects must have exactly 1 key defined, found 0"
+        assert error.responseBody == "Invalid account configuration: JsonLogic exception: " +
+                "objects must have exactly 1 key defined, found 0"
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -1527,7 +1528,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         then: "Response should contain error"
         def error = thrown(PrebidServerException)
         assert error.statusCode == BAD_REQUEST.code()
-        assert error.responseBody == "JsonLogic exception: objects must have exactly 1 key defined, found 0"
+        assert error.responseBody == "Invalid account configuration: JsonLogic exception: " +
+                "objects must have exactly 1 key defined, found 0"
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
