@@ -30,6 +30,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
@@ -258,6 +259,27 @@ public class SetuidHandlerTest extends VertxTest {
         // then
         verify(httpResponse).setStatusCode(eq(451));
         verify(httpResponse).end(eq("Unavailable For Legal Reasons."));
+    }
+
+    @Test
+    public void shouldRespondWithErrorOnInvalidAccountConfigException() {
+        // given
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("account")).willReturn("accountId");
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
+                .willReturn(emptyUidsCookie());
+        given(applicationSettings.getAccountById(eq("accountId"), any()))
+                .willReturn(Future.succeededFuture(Account.builder().build()));
+
+        given(gppService.contextFrom(any()))
+                .willReturn(Future.failedFuture(new InvalidAccountConfigException("Message")));
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).end(eq("Invalid account configuration: Message"));
     }
 
     @Test
