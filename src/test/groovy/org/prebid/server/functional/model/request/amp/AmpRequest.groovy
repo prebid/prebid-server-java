@@ -10,6 +10,7 @@ import org.prebid.server.functional.util.PBSUtils
 class AmpRequest {
 
     String tagId
+    String targeting
     String debug
     Integer ow
     Integer oh
