@@ -24,6 +24,7 @@ import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.model.BiddersContext;
 import org.prebid.server.cookie.model.CookieSyncContext;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
@@ -223,6 +224,11 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
             body = "Unauthorized: " + message;
 
             metrics.updateUserSyncOptoutMetric();
+        } else if (error instanceof InvalidAccountConfigException) {
+            status = HttpResponseStatus.BAD_REQUEST;
+            body = "Invalid account configuration: " + message;
+
+            BAD_REQUEST_LOGGER.info(message, logSamplingRate);
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
             body = "Unexpected setuid processing error: " + message;

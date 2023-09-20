@@ -226,7 +226,8 @@ public class WebConfiguration {
                 ampResponsePostProcessor,
                 httpInteractionLogger,
                 prebidVersionProvider,
-                mapper);
+                mapper,
+                logSamplingRate);
     }
 
     @Bean

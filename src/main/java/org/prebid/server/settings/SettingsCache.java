@@ -28,7 +28,7 @@ public class SettingsCache implements CacheNotificationListener {
         impCache = createCache(ttl, size);
     }
 
-    static <T> Map<String, T> createCache(int ttl, int size) {
+    public static <T> Map<String, T> createCache(int ttl, int size) {
         return Caffeine.newBuilder()
                 .expireAfterWrite(ttl, TimeUnit.SECONDS)
                 .maximumSize(size)

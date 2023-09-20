@@ -58,6 +58,7 @@
         <gpp-encoder.version>3.0.10</gpp-encoder.version>
         <protobuf.version>3.21.7</protobuf.version>
         <protoc.version>3.17.0</protoc.version>
+        <json-logic.version>1.0.7</json-logic.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
@@ -379,6 +380,11 @@
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
             <version>${protobuf.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.jamsesso</groupId>
+            <artifactId>json-logic-java</artifactId>
+            <version>${json-logic.version}</version>
         </dependency>
         <!-- Test -->
         <dependency>
