@@ -23,7 +23,7 @@ public class USCustomLogicModule implements PrivacyModule {
                     ? Result.DISALLOW
                     : Result.ALLOW;
         } catch (JsonLogicEvaluationException e) {
-            throw new PreBidException("An error occurred while evaluating the JsonLogic expression:" + e.getMessage());
+            throw new PreBidException("An error occurred while evaluating the JsonLogic expression: " + e.getMessage());
         }
     }
 
