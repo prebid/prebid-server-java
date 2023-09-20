@@ -14,7 +14,7 @@ import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomL
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicModule;
 import org.prebid.server.activity.infrastructure.rule.AndRule;
 import org.prebid.server.auction.gpp.model.GppContext;
-import org.prebid.server.exception.PreBidException;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JsonLogic;
 import org.prebid.server.metric.MetricName;
@@ -142,7 +142,7 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
             metrics.updateAlertsMetrics(MetricName.general);
             return jsonLogic.parse(jsonLogicConfig);
         } catch (DecodeException e) {
-            throw new PreBidException("JsonLogic exception: " + e.getMessage());
+            throw new InvalidAccountConfigException("JsonLogic exception: " + e.getMessage());
         }
     }
 }

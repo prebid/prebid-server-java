@@ -16,7 +16,7 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USNationalGppReader;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
-import org.prebid.server.exception.PreBidException;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JsonLogic;
 import org.prebid.server.metric.MetricName;
@@ -234,7 +234,7 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
                 givenConfig(singleton(7), null, Activity.CALL_BIDDER, mapper.createObjectNode()));
 
         // when and then
-        assertThatExceptionOfType(PreBidException.class).isThrownBy(() -> target.from(creationContext));
+        assertThatExceptionOfType(InvalidAccountConfigException.class).isThrownBy(() -> target.from(creationContext));
 
         verify(jsonLogic).parse(any());
         verify(metrics).updateAlertsMetrics(eq(MetricName.general));
