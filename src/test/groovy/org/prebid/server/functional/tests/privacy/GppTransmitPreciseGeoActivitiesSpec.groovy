@@ -1253,9 +1253,6 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         and: "Activity config"
         def activityConfig = new ActivityConfig([TRANSMIT_PRECISE_GEO], LogicalRestrictedRule.generateSingleRestrictedRule(AND, equalityValueRules))
 
-        and: "Empty custom logic"
-        def restrictedRule = LogicalRestrictedRule.rootLogicalRestricted
-
         and: "Account gpp configuration with enabled normalizeFlag"
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
@@ -2272,7 +2269,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp requests"
-        def response = activityPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
         then: "Response should contain error"
         def error = thrown(PrebidServerException)
