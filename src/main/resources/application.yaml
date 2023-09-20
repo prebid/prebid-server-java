@@ -21,8 +21,8 @@ server:
     port: 8080
     server-instances: 1
   idle-timeout: 10
-  enable-quickack: false
-  enable-reuseport: false
+  enable-quickack: null
+  enable-reuseport: null
 admin:
   port: 8060
 admin-endpoints:

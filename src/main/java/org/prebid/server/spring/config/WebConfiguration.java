@@ -66,6 +66,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Configuration
@@ -85,8 +86,8 @@ public class WebConfiguration {
             @Value("#{'${http.jks-path:${server.jks-path:}}'}") String jksPath,
             @Value("#{'${http.jks-password:${server.jks-password:}}'}") String jksPassword,
             @Value("#{'${http.idle-timeout:${server.idle-timeout}}'}") int idleTimeout,
-            @Value("#{'${http.enable-quickack:${server.enable-quickack}}'}") boolean enableQuickAck,
-            @Value("#{'${http.enable-reuseport:${server.enable-reuseport}}'}") boolean enableReusePort) {
+            @Value("${server.enable-quickack:#{null}}") Optional<Boolean> enableQuickAck,
+            @Value("${server.enable-reuseport:#{null}}") Optional<Boolean> enableReusePort) {
 
         final HttpServerOptions httpServerOptions = new HttpServerOptions()
                 .setHandle100ContinueAutomatically(true)
@@ -94,9 +95,9 @@ public class WebConfiguration {
                 .setMaxHeaderSize(maxHeaderSize)
                 .setCompressionSupported(true)
                 .setDecompressionSupported(true)
-                .setIdleTimeout(idleTimeout) // kick off long processing requests, value in seconds
-                .setTcpQuickAck(enableQuickAck)
-                .setReusePort(enableReusePort);
+                .setIdleTimeout(idleTimeout); // kick off long processing requests, value in seconds
+        enableQuickAck.ifPresent(httpServerOptions::setTcpQuickAck);
+        enableReusePort.ifPresent(httpServerOptions::setReusePort);
         if (ssl) {
             final JksOptions jksOptions = new JksOptions()
                     .setPath(jksPath)
