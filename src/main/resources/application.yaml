@@ -21,7 +21,7 @@ server:
     port: 8080
     server-instances: 1
   cpu-load-monitoring:
-    enabled: true
+    enabled: false
     measurement-interval-ms: 60000
 admin:
   port: 8060
