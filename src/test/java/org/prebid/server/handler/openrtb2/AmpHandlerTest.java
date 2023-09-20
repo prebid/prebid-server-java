@@ -35,6 +35,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
@@ -151,8 +152,8 @@ public class AmpHandlerTest extends VertxTest {
                 new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(),
                 httpInteractionLogger,
                 prebidVersionProvider,
-                jacksonMapper
-        );
+                jacksonMapper,
+                0);
     }
 
     @Test
@@ -307,6 +308,28 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
                         tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("Account id is not provided"));
+    }
+
+    @Test
+    public void shouldRespondWithBadRequestOnInvalidAccountConfigException() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new InvalidAccountConfigException("Account is invalid")));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verifyNoInteractions(exchangeService);
+        verify(httpResponse).setStatusCode(eq(400));
+
+        assertThat(httpResponse.headers())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+        verify(httpResponse).end(eq("Invalid account configuration: Account is invalid"));
     }
 
     @Test
