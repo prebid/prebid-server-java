@@ -30,7 +30,7 @@ class LogicalRestrictedRule {
         new LogicalRestrictedRule()
     }
 
-    static LogicalRestrictedRule generateLogicalRestrictedRule(LogicalOperation logicalOperator, List<ValueRestrictedRule> valueOperations) {
+    static LogicalRestrictedRule generateSingleRestrictedRule(LogicalOperation logicalOperator, List<ValueRestrictedRule> valueOperations) {
         valueOperations.inject(new LogicalRestrictedRule()) { logicalRestrictedRule, value ->
             logicalRestrictedRule.includeSubRestriction(logicalOperator, value)
             logicalRestrictedRule

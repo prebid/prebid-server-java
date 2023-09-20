@@ -24,7 +24,7 @@ class ActivityConfig {
     static ActivityConfig getConfigWithDefaultRestrictRules(List<ActivityType> activities = ActivityType.values()) {
         new ActivityConfig().tap {
             it.activities = activities
-            it.restrictIfTrue = LogicalRestrictedRule.generateLogicalRestrictedRule(OR, [new  InequalityValueRule(GPC, INVALID)])
+            it.restrictIfTrue = LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new  InequalityValueRule(GPC, INVALID)])
         }
     }
 }
