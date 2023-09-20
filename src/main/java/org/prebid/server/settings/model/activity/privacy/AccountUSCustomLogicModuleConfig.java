@@ -16,7 +16,6 @@ public class AccountUSCustomLogicModuleConfig implements AccountPrivacyModuleCon
     @Accessors(fluent = true)
     Boolean enabled;
 
-    @JsonProperty("moduleConfig")
     Config config;
 
     @Override
