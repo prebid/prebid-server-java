@@ -1,7 +1,6 @@
 package org.prebid.server.util.system;
 
 import io.vertx.core.Vertx;
-import lombok.extern.slf4j.Slf4j;
 import org.prebid.server.util.system.movingaverage.MovingAverage;
 import org.prebid.server.vertx.Initializable;
 import oshi.SystemInfo;
@@ -10,7 +9,6 @@ import oshi.hardware.HardwareAbstractionLayer;
 
 import java.util.Objects;
 
-@Slf4j
 public class CpuLoadAverageStats implements Initializable {
 
     private final SystemInfo systemInfo = new SystemInfo();
@@ -42,8 +40,6 @@ public class CpuLoadAverageStats implements Initializable {
     private void measureCpuLoad() {
         cpuLoadMovingAverage.record(cpu.getSystemCpuLoadBetweenTicks(prevTicks));
         prevTicks = cpu.getSystemCpuLoadTicks();
-
-        log.info("CPU load average is: %s".formatted(cpuLoadMovingAverage.getAverage()));
     }
 
     public double getCpuLoadAverage() {

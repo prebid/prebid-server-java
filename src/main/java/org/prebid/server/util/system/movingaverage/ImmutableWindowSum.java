@@ -28,7 +28,7 @@ public class ImmutableWindowSum {
 
     public ImmutableWindowSum record(double measurement) {
         double newSum = sum + measurement;
-        Queue<Double> windowCopy = new ArrayDeque<>(window);
+        final Queue<Double> windowCopy = new ArrayDeque<>(window);
         windowCopy.add(measurement);
 
         if (windowCopy.size() > maxWindowSize) {

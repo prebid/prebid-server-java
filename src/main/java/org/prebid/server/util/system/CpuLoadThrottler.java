@@ -3,11 +3,9 @@ package org.prebid.server.util.system;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.Value;
-import lombok.extern.slf4j.Slf4j;
 
 import java.util.Objects;
 
-@Slf4j
 public class CpuLoadThrottler {
 
     private final double softThreshold;

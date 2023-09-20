@@ -120,7 +120,6 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.LineItemUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
-import org.prebid.server.util.system.CpuLoadThrottler;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -138,7 +137,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -165,7 +163,6 @@ public class ExchangeService {
 
     private final double logSamplingRate;
     private final int timeoutAdjustmentFactor;
-    private final CpuLoadThrottler auctionThrottler;
     private final BidderCatalog bidderCatalog;
     private final StoredResponseProcessor storedResponseProcessor;
     private final DealsService dealsService;
@@ -196,7 +193,6 @@ public class ExchangeService {
 
     public ExchangeService(double logSamplingRate,
                            int timeoutAdjustmentFactor,
-                           CpuLoadThrottler auctionThrottler,
                            BidderCatalog bidderCatalog,
                            StoredResponseProcessor storedResponseProcessor,
                            DealsService dealsService,
@@ -228,7 +224,6 @@ public class ExchangeService {
         if (timeoutAdjustmentFactor < 0 || timeoutAdjustmentFactor > 100) {
             throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 100].");
         }
-        this.auctionThrottler = Objects.requireNonNull(auctionThrottler);
         this.logSamplingRate = logSamplingRate;
         this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
@@ -265,17 +260,6 @@ public class ExchangeService {
      * response containing returned bids and additional information in extensions.
      */
     public Future<AuctionContext> holdAuction(AuctionContext context) {
-        final CpuLoadThrottler.ThrottlingResult throttlingResult = auctionThrottler.getThrottlingStatus();
-
-        if (throttlingResult instanceof CpuLoadThrottler.ThrottleRequired) {
-            final double amount = ((CpuLoadThrottler.ThrottleRequired) throttlingResult).getAmount();
-            logger.info("Throttling amount: %s".formatted(amount));
-            if (ThreadLocalRandom.current().nextDouble(1.0) <= amount) {
-                logger.info("Throttled request with id: %s".formatted(context.getBidRequest().getId()));
-                return Future.succeededFuture(context.with(emptyResponse()));
-            }
-        }
-
         return processAuctionRequest(context)
                 .compose(this::invokeResponseHooks)
                 .map(this::enrichWithHooksDebugInfo)

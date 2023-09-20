@@ -781,7 +781,6 @@ public class ServiceConfiguration {
     ExchangeService exchangeService(
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
-            CpuLoadThrottler auctionThrottler,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
             @Autowired(required = false) DealsService dealsService,
@@ -813,7 +812,6 @@ public class ServiceConfiguration {
         return new ExchangeService(
                 logSamplingRate,
                 timeoutAdjustmentFactor,
-                auctionThrottler,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsService,
