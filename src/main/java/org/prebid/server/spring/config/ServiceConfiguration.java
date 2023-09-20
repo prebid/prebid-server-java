@@ -1010,7 +1010,7 @@ public class ServiceConfiguration {
     @ConditionalOnProperty(prefix = "server.cpu-load-monitoring", name = "enabled", havingValue = "true")
     CpuLoadAverageStats cpuLoadAverageStats(
             Vertx vertx,
-            @Value("${server.cpu-load-monitoring.measurement-interval-ms:2000}") long measurementIntervalMillis) {
+            @Value("${server.cpu-load-monitoring.measurement-interval-ms:60000}") long measurementIntervalMillis) {
 
         return new CpuLoadAverageStats(vertx, measurementIntervalMillis);
     }
