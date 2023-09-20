@@ -27,6 +27,7 @@ import org.prebid.server.functional.util.privacy.gpp.data.UsUtahSensitiveData
 
 import java.time.Instant
 
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.DataActivity.CONSENT
 import static org.prebid.server.functional.model.config.DataActivity.NOTICE_NOT_PROVIDED
@@ -673,13 +674,14 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
                                                                      new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
     }
 
-    def "PBS cookie sync call when custom privacy regulation empty and normalize is disabled should call to bidder without warning"() {
+    def "PBS cookie sync call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
         given: "Generic BidRequest with gpp and account setup"
         def gppConsent = new UspNatV1Consent.Builder().setGpc(true).build()
         def accountId = PBSUtils.randomNumber as String
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.gppSid = USP_NAT_V1.intValue
             it.gpp = gppConsent
+            setAccount(accountId)
         }
 
         and: "Activities set with privacy regulation"
@@ -694,7 +696,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
             it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], restrictedRule), [USP_CT_V1], false)
+            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], restrictedRule), [USP_NAT_V1], false)
         }
 
         and: "Flush metrics"
@@ -705,17 +707,23 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+        activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should not contain warning"
-        assert !response.warnings
+        then: "Response should contain error"
+        def error = thrown(PrebidServerException)
+        assert error.statusCode == BAD_REQUEST.code()
+        assert error.responseBody == "JsonLogic exception: objects must have exactly 1 key defined, found 0"
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS cookie sync when custom privacy regulation with normalizing should exclude bidders URLs"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
-            it.gppSid = USP_NAT_V1.intValue
+            it.gppSid = gppSid.intValue
             it.account = accountId
             it.gpp = gppStateConsent.build()
         }
@@ -1381,6 +1389,264 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert response.responseBody
     }
 
+
+    def "PBS setuid call when privacy regulation don't match custom requirement should respond with required UIDs cookies"() {
+        given: "Cookie sync SetuidRequest with accountId"
+        def accountId = PBSUtils.randomNumber as String
+        def gppConsent = new UspNatV1Consent.Builder().setGpc(gpcValue).build()
+
+        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
+            it.gppSid = USP_NAT_V1.intValue
+            it.account = accountId
+            it.gpp = gppConsent
+        }
+
+        and: "UIDs cookies"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Activities set for transmit ufpd with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
+        }
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration with sid skip"
+        def accountGppConfig = new AccountGppConfig().tap {
+            it.code = IAB_US_CUSTOM_LOGIC
+            it.config = new SidsConfig().tap { it.skipSids = [] }
+            it.enabled = true
+            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], accountLogic))
+        }
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes setuid request"
+        def response = activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
+
+        then: "Response should contain uids cookie"
+        assert response.responseBody
+
+        where:
+        gpcValue | accountLogic
+        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                        new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
+    }
+
+    def "PBS setuid call when privacy regulation match custom requirement should reject bidders with status code invalidStatusCode"() {
+        given: "Cookie sync SetuidRequest with accountId"
+        def accountId = PBSUtils.randomNumber as String
+        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
+            it.gppSid = USP_NAT_V1.intValue
+            it.account = accountId
+            it.gpp = gppConsent
+        }
+
+        and: "UIDs cookies"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Activities set for transmit ufpd with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
+        }
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration with sid skip"
+        def accountLogic = LogicalRestrictedRule.generateSolidRestriction(OR, valueRules)
+        def accountGppConfig = new AccountGppConfig().tap {
+            it.code = IAB_US_CUSTOM_LOGIC
+            it.config = new SidsConfig().tap { it.skipSids = [] }
+            it.enabled = true
+            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], accountLogic))
+        }
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes setuid request"
+        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == INVALID_STATUS_CODE
+        assert exception.responseBody == INVALID_STATUS_MESSAGE
+
+        where:
+        gppConsent                                                | valueRules
+        new UspNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(false).build()       | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                     new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UspNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                     new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+    }
+
+    def "PBS setuid call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
+        given: "Cookie sync SetuidRequest with accountId"
+        def accountId = PBSUtils.randomString
+        def gppConsent = new UspNatV1Consent.Builder().setGpc(true).build()
+        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
+            it.account = accountId
+            it.gpp = gppConsent
+            it.gppSid = USP_NAT_V1.value
+        }
+
+        and: "UIDS Cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Activities set with privacy regulation"
+        def ruleUsGeneric = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
+        }
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([ruleUsGeneric]))
+
+        and: "Account gpp configuration with empty Custom logic"
+        def restrictedRule = LogicalRestrictedRule.rootLogicalRestricted
+        def accountGppConfig = new AccountGppConfig().tap {
+            it.code = IAB_US_CUSTOM_LOGIC
+            it.config = new SidsConfig().tap { it.skipSids = [] }
+            it.enabled = true
+            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], restrictedRule), [USP_NAT_V1], false)
+        }
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Existed account with gpp regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes setuid request"
+        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
+
+        then: "Response should contain error"
+        def error = thrown(PrebidServerException)
+        assert error.statusCode == BAD_REQUEST.code()
+        assert error.responseBody == "JsonLogic exception: objects must have exactly 1 key defined, found 0"
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
+    }
+
+    def "PBS setuid call when custom privacy regulation with normalizing should reject bidders with status code invalidStatusCode"() {
+        given: "Cookie sync SetuidRequest with accountId"
+        def accountId = PBSUtils.randomNumber as String
+        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
+            it.gppSid = gppSid.intValue
+            it.account = accountId
+            it.gpp = gppStateConsent.build()
+        }
+
+        and: "UIDs cookies"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Activities set for transmit ufpd with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
+        }
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        and: "Activity config"
+        def activityConfig = new ActivityConfig([SYNC_USER], LogicalRestrictedRule.generateSolidRestriction(AND, equalityValueRules))
+
+        and: "Account gpp configuration with sid skip"
+        def accountGppConfig = new AccountGppConfig().tap {
+            it.code = IAB_US_CUSTOM_LOGIC
+            it.config = new SidsConfig().tap { it.skipSids = [] }
+            it.enabled = true
+            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
+        }
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes setuid request"
+        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == INVALID_STATUS_CODE
+        assert exception.responseBody == INVALID_STATUS_MESSAGE
+
+        where:
+        gppSid    | equalityValueRules                                                      | gppStateConsent
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(idNumbers: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(accountInfo: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geolocation: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(racialEthnicOrigin: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(communicationContents: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geneticId: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(biometricId: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(healthInfo: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(orientation: 2))
+        USP_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(0, 0)
+        USP_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2), PBSUtils.getRandomNumber(1, 2))
+
+        USP_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspVaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspVaV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCoV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCoV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(racialEthnicOrigin: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]      | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(religiousBeliefs: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(orientation: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]     | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(citizenshipStatus: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(healthInfo: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geneticId: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(biometricId: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geolocation: 2))
+        USP_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspUtV1Consent.Builder().setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspUtV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 0, 0)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | new UspCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2, 2)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCtV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), PBSUtils.getRandomNumber(0, 2), 1)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCtV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 1, PBSUtils.getRandomNumber(0, 2))
+    }
+
     def "PBS cookie sync should process rule when geo doesn't intersection"() {
         given: "Pbs config with geo location"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
@@ -1587,260 +1853,5 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         countyConfig | regionConfig         | conditionGeo
         USA.value    | null                 | [USA.value]
         USA.value    | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
-    }
-
-    def "PBS setuid call when privacy regulation don't match custom requirement should respond with required UIDs cookies"() {
-        given: "Cookie sync SetuidRequest with accountId"
-        def accountId = PBSUtils.randomNumber as String
-        def gppConsent = new UspNatV1Consent.Builder().setGpc(gpcValue).build()
-
-        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
-            it.gppSid = USP_NAT_V1.intValue
-            it.account = accountId
-            it.gpp = gppConsent
-        }
-
-        and: "UIDs cookies"
-        def uidsCookie = UidsCookie.defaultUidsCookie
-
-        and: "Activities set for transmit ufpd with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
-        }
-        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
-
-        and: "Account gpp configuration with sid skip"
-        def accountGppConfig = new AccountGppConfig().tap {
-            it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
-            it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], accountLogic))
-        }
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        when: "PBS processes setuid request"
-        def response = activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
-
-        then: "Response should contain uids cookie"
-        assert response.responseBody
-
-        where:
-        gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                        new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
-    }
-
-    def "PBS setuid call when privacy regulation match custom requirement should reject bidders with status code invalidStatusCode"() {
-        given: "Cookie sync SetuidRequest with accountId"
-        def accountId = PBSUtils.randomNumber as String
-        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
-            it.gppSid = USP_NAT_V1.intValue
-            it.account = accountId
-            it.gpp = gppConsent
-        }
-
-        and: "UIDs cookies"
-        def uidsCookie = UidsCookie.defaultUidsCookie
-
-        and: "Activities set for transmit ufpd with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
-        }
-        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
-
-        and: "Account gpp configuration with sid skip"
-        def accountLogic = LogicalRestrictedRule.generateSolidRestriction(OR, valueRules)
-        def accountGppConfig = new AccountGppConfig().tap {
-            it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
-            it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], accountLogic))
-        }
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        when: "PBS processes setuid request"
-        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
-
-        then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == INVALID_STATUS_CODE
-        assert exception.responseBody == INVALID_STATUS_MESSAGE
-
-        where:
-        gppConsent                                                | valueRules
-        new UspNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UspNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
-        new UspNatV1Consent.Builder().setGpc(false).build()       | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
-        new UspNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                     new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UspNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                     new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-    }
-
-    def "PBS setuid call when custom privacy regulation empty and normalize is disabled should call to bidder without error"() {
-        given: "Cookie sync SetuidRequest with accountId"
-        def accountId = PBSUtils.randomString
-        def gppConsent = new UspNatV1Consent.Builder().setGpc(true).build()
-        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
-            it.account = accountId
-            it.account = accountId
-            it.gpp = gppConsent
-        }
-
-        and: "UIDS Cookie"
-        def uidsCookie = UidsCookie.defaultUidsCookie
-
-        and: "Activities set with privacy regulation"
-        def ruleUsGeneric = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
-        }
-        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([ruleUsGeneric]))
-
-        and: "Account gpp configuration with empty Custom logic"
-        def restrictedRule = LogicalRestrictedRule.rootLogicalRestricted
-        def accountGppConfig = new AccountGppConfig().tap {
-            it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
-            it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], restrictedRule), [USP_CT_V1], false)
-        }
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
-        and: "Existed account with gpp regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        when: "PBS processes setuid request"
-        def response = activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
-
-        then: "No exception was thrown"
-        def thrown = noExceptionThrown()
-        assert !thrown
-
-        and: "Response should not contain warning"
-        assert response.responseBody
-    }
-
-    def "PBS setuid call when custom privacy regulation with normalizing should reject bidders with status code invalidStatusCode"() {
-        given: "Cookie sync SetuidRequest with accountId"
-        def accountId = PBSUtils.randomNumber as String
-        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
-            it.gppSid = USP_NAT_V1.intValue
-            it.account = accountId
-            it.gpp = gppStateConsent.build()
-        }
-
-        and: "UIDs cookies"
-        def uidsCookie = UidsCookie.defaultUidsCookie
-
-        and: "Activities set for transmit ufpd with allowing privacy regulation"
-        def rule = new ActivityRule().tap {
-            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
-        }
-        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
-
-        and: "Activity config"
-        def activityConfig = new ActivityConfig([SYNC_USER], LogicalRestrictedRule.generateSolidRestriction(AND, equalityValueRules))
-
-        and: "Account gpp configuration with sid skip"
-        def accountGppConfig = new AccountGppConfig().tap {
-            it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
-            it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
-        }
-
-        and: "Existed account with privacy regulation setup"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
-        accountDao.save(account)
-
-        when: "PBS processes setuid request"
-        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
-
-        then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == INVALID_STATUS_CODE
-        assert exception.responseBody == INVALID_STATUS_MESSAGE
-
-        where:
-        gppSid    | equalityValueRules                                                      | gppStateConsent
-        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | new UspCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(idNumbers: 2))
-        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | new UspCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(accountInfo: 2))
-        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UspCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geolocation: 2))
-        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UspCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(racialEthnicOrigin: 2))
-        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | new UspCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(communicationContents: 2))
-        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UspCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geneticId: 2))
-        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UspCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(biometricId: 2))
-        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UspCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(healthInfo: 2))
-        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UspCaV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(orientation: 2))
-        USP_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(0, 0)
-        USP_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2), PBSUtils.getRandomNumber(1, 2))
-
-        USP_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspVaV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
-        USP_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspVaV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
-
-        USP_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCoV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
-        USP_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCoV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
-
-        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UspUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(racialEthnicOrigin: 2))
-        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]      | new UspUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(religiousBeliefs: 2))
-        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UspUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(orientation: 2))
-        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]     | new UspUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(citizenshipStatus: 2))
-        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UspUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(healthInfo: 2))
-        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UspUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geneticId: 2))
-        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UspUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(biometricId: 2))
-        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UspUtV1Consent.Builder()
-                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geolocation: 2))
-        USP_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspUtV1Consent.Builder().setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
-        USP_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspUtV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
-
-        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
-                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 0, 0)
-        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | new UspCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2, 2)
-        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCtV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), PBSUtils.getRandomNumber(0, 2), 1)
-        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
-                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCtV1Consent.Builder()
-                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 1, PBSUtils.getRandomNumber(0, 2))
     }
 }

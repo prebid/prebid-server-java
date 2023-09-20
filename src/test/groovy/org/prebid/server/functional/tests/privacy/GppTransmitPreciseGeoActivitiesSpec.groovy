@@ -28,6 +28,7 @@ import org.prebid.server.functional.util.privacy.gpp.data.UsUtahSensitiveData
 
 import java.time.Instant
 
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.DataActivity.CONSENT
@@ -63,6 +64,7 @@ import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_VA_V1
 import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.*
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
@@ -1185,7 +1187,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
                                                                      new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
     }
 
-    def "PBS auction call when custom privacy regulation empty and normalize is disabled should call to bidder without warning"() {
+    def "PBS auction call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
         given: "Generic BidRequest with gpp and account setup"
         def gppConsent = new UspNatV1Consent.Builder().setGpc(true).build()
         def accountId = PBSUtils.randomNumber as String
@@ -1221,13 +1223,16 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        def response = activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(generalBidRequest)
 
-        then: "Response should not contain warning"
-        assert !response.ext?.warnings
+        then: "Response should contain error"
+        def error = thrown(PrebidServerException)
+        assert error.statusCode == BAD_REQUEST.code()
+        assert error.responseBody == "JsonLogic exception: objects must have exactly 1 key defined, found 0"
 
-        and: "Generic bidder should be called due to invalid setup for gpp restriction"
-        assert bidder.getBidderRequest(generalBidRequest.id)
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS auction call when custom privacy regulation with normalizing should change request consent and call to bidder"() {
@@ -2103,8 +2108,6 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def gppConsent = new UspNatV1Consent.Builder().setGpc(gpcValue).build()
         def ampStoredRequest = bidRequestWithGeo.tap {
-            regs.gppSid = [USP_NAT_V1.intValue]
-            regs.gpp = gppConsent
             setAccountId(accountId)
         }
 
@@ -2112,6 +2115,8 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = USP_NAT_V1.value
+            it.consentString = gppConsent
+            it.consentType = GPP
         }
 
         and: "Activities set for transmit precise geo with allowing privacy regulation"
@@ -2164,8 +2169,6 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         given: "Store bid request with gpp string and link for account"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = bidRequestWithGeo.tap {
-            regs.gppSid = [USP_NAT_V1.intValue]
-            regs.gpp = gppConsent
             setAccountId(accountId)
         }
 
@@ -2173,6 +2176,8 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = USP_NAT_V1.value
+            it.consentString = gppConsent
+            it.consentType = GPP
         }
 
         and: "Activities set for transmit precise geo with allowing privacy regulation"
@@ -2225,20 +2230,20 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
                                                                      new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
     }
 
-    def "PBS amp call when custom privacy regulation empty and normalize is disabled should not round lat/lon data"() {
+    def "PBS amp call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
         given: "Store bid request with gpp string and link for account"
         def accountId = PBSUtils.randomNumber as String
         def gppConsent = new UspNatV1Consent.Builder().setGpc(true).build()
         def ampStoredRequest = bidRequestWithGeo.tap {
-            regs.gppSid = [USP_CT_V1.intValue]
-            regs.gpp = gppConsent
             setAccountId(accountId)
         }
 
         and: "amp request with link to account and gppSid"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
-            it.gppSid = USP_CT_V1.intValue
+            it.gppSid = USP_NAT_V1.intValue
+            it.consentString = gppConsent
+            it.consentType = GPP
         }
 
         and: "Activities set with privacy regulation"
@@ -2253,7 +2258,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
             it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], restrictedRule), [USP_CT_V1], false)
+            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], restrictedRule), [USP_NAT_V1], false)
         }
 
         and: "Flush metrics"
@@ -2270,35 +2275,29 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp requests"
         def response = activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should not contain warnings"
-        assert !response.ext.warnings
+        then: "Response should contain error"
+        def error = thrown(PrebidServerException)
+        assert error.statusCode == BAD_REQUEST.code()
+        assert error.responseBody == "JsonLogic exception: objects must have exactly 1 key defined, found 0"
 
-        then: "Bidder request should contain not rounded geo data for device and user"
-        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            bidderRequests.device.ip == ampStoredRequest.device.ip
-            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
-            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
-            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
-            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
-            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
-        }
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
     }
 
     def "PBS amp call when custom privacy regulation with normalizing should change request consent and call to bidder"() {
-        given: "Store bid request with gpp string and link for account"
+        given: "Store bid request with link for account"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = bidRequestWithGeo.tap {
-            it.regs.gppSid = [gppSid.intValue]
-            it.regs.gpp = gppStateConsent.build()
             setAccountId(accountId)
         }
 
-        and: "amp request with link to account and gppSid"
+        and: "amp request with link to account and gpp"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
             it.gppSid = gppSid.intValue
+            it.consentString = gppStateConsent.build()
+            it.consentType = GPP
         }
 
         and: "Activities set with privacy regulation"
