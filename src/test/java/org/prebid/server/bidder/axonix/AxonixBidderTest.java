@@ -211,7 +211,7 @@ public class AxonixBidderTest extends VertxTest {
                         .impid("123")
                         .nurl("https://mynurl.example.com/win/232332?price=${AUCTION_PRICE}")
                         .adm("<html><head></head><body><p><img"
-                               + " src=\"https://myurl.example.com/imp?apr=${AUCTION_PRICE}\"/></p></body></head>")
+                                + " src=\"https://myurl.example.com/imp?apr=${AUCTION_PRICE}\"/></p></body></head>")
                         .price(BigDecimal.valueOf(13.45)))));
 
         // when
