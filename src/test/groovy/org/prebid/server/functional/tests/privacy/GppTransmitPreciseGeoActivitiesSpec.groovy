@@ -64,7 +64,6 @@ import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_VA_V1
 import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
-import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.*
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
@@ -1126,10 +1125,10 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                        new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateLogicalRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateLogicalRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateLogicalRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                             new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
     }
 
     def "PBS auction call when privacy regulation match custom requirement should round lat/lon data to 2 digits"() {
@@ -1149,7 +1148,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
-        def accountLogic = LogicalRestrictedRule.generateSolidRestriction(OR, valueRules)
+        def accountLogic = LogicalRestrictedRule.generateLogicalRestrictedRule(OR, valueRules)
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
@@ -1252,7 +1251,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Activity config"
-        def activityConfig = new ActivityConfig([TRANSMIT_PRECISE_GEO], LogicalRestrictedRule.generateSolidRestriction(AND, equalityValueRules))
+        def activityConfig = new ActivityConfig([TRANSMIT_PRECISE_GEO], LogicalRestrictedRule.generateLogicalRestrictedRule(AND, equalityValueRules))
 
         and: "Empty custom logic"
         def restrictedRule = LogicalRestrictedRule.rootLogicalRestricted
@@ -2159,10 +2158,10 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                        new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateLogicalRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateLogicalRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateLogicalRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                             new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
     }
 
     def "PBS amp call when privacy regulation match custom requirement should round lat/lon data to 2 digits"() {
@@ -2188,7 +2187,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
-        def accountLogic = LogicalRestrictedRule.generateSolidRestriction(OR, valueRules)
+        def accountLogic = LogicalRestrictedRule.generateLogicalRestrictedRule(OR, valueRules)
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
@@ -2307,7 +2306,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Activity config"
-        def activityConfig = new ActivityConfig([TRANSMIT_PRECISE_GEO], LogicalRestrictedRule.generateSolidRestriction(AND, equalityValueRules))
+        def activityConfig = new ActivityConfig([TRANSMIT_PRECISE_GEO], LogicalRestrictedRule.generateLogicalRestrictedRule(AND, equalityValueRules))
 
         and: "Account gpp configuration with enabled normalizeFlag"
         def accountGppConfig = new AccountGppConfig().tap {

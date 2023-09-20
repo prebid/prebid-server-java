@@ -227,7 +227,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
 
-        and: "Save account config with allow мяactivities into DB"
+        and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
@@ -1249,10 +1249,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                  new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateLogicalRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateLogicalRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateLogicalRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                             new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
     }
 
     def "PBS auction call when privacy regulation match custom requirement should remove UFPD fields in request"() {
@@ -1270,7 +1270,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
-        def accountLogic = LogicalRestrictedRule.generateSolidRestriction(OR, valueRules)
+        def accountLogic = LogicalRestrictedRule.generateLogicalRestrictedRule(OR, valueRules)
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
@@ -1334,7 +1334,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         and: "Account gpp configuration with empty Custom logic"
         def restrictedRule = LogicalRestrictedRule.rootLogicalRestricted
         def accountGppConfig = new AccountGppConfig().tap {
-            it.code = code
+            it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
             moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_UFPD], restrictedRule), [USP_CT_V1], false)
@@ -1376,7 +1376,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Activity config"
-        def activityConfig = new ActivityConfig([TRANSMIT_UFPD], LogicalRestrictedRule.generateSolidRestriction(AND, equalityValueRules))
+        def activityConfig = new ActivityConfig([TRANSMIT_UFPD], LogicalRestrictedRule.generateLogicalRestrictedRule(AND, equalityValueRules))
 
         and: "Account gpp configuration with enabled normalizeFlag"
         def accountGppConfig = new AccountGppConfig().tap {
@@ -2419,10 +2419,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                        new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateLogicalRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateLogicalRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateLogicalRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                             new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
     }
 
     def "PBS amp call when privacy regulation match custom requirement should remove UFPD fields from request"() {
@@ -2445,7 +2445,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
-        def accountLogic = LogicalRestrictedRule.generateSolidRestriction(OR, valueRules)
+        def accountLogic = LogicalRestrictedRule.generateLogicalRestrictedRule(OR, valueRules)
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
@@ -2567,7 +2567,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Activity config"
-        def activityConfig = new ActivityConfig([TRANSMIT_UFPD], LogicalRestrictedRule.generateSolidRestriction(AND, equalityValueRules))
+        def activityConfig = new ActivityConfig([TRANSMIT_UFPD], LogicalRestrictedRule.generateLogicalRestrictedRule(AND, equalityValueRules))
 
         and: "Account gpp configuration with enabled normalizeFlag"
         def accountGppConfig = new AccountGppConfig().tap {

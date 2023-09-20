@@ -12,7 +12,7 @@ enum ActivityType {
     TRANSMIT_PRECISE_GEO("transmitPreciseGeo")
 
     @JsonValue
-    String value
+    final String value
 
     ActivityType(String value) {
         this.value = value

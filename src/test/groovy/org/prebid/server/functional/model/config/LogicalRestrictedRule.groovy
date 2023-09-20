@@ -7,7 +7,7 @@ import groovy.transform.ToString
 class LogicalRestrictedRule {
 
     @JsonProperty("==")
-    EqualityValueRule equalRule
+    EqualityValueRule equalityRule
 
     @JsonProperty("!=")
     InequalityValueRule inequalityRule
@@ -17,7 +17,7 @@ class LogicalRestrictedRule {
 
     LogicalRestrictedRule(ValueRestrictedRule valueOperation) {
         if (valueOperation instanceof EqualityValueRule) {
-            equalRule = valueOperation
+            equalityRule = valueOperation
         } else if (valueOperation instanceof InequalityValueRule) {
             inequalityRule = valueOperation
         }
@@ -30,7 +30,7 @@ class LogicalRestrictedRule {
         new LogicalRestrictedRule()
     }
 
-    static LogicalRestrictedRule generateSolidRestriction(LogicalOperation logicalOperator, List<ValueRestrictedRule> valueOperations) {
+    static LogicalRestrictedRule generateLogicalRestrictedRule(LogicalOperation logicalOperator, List<ValueRestrictedRule> valueOperations) {
         valueOperations.inject(new LogicalRestrictedRule()) { logicalRestrictedRule, value ->
             logicalRestrictedRule.includeSubRestriction(logicalOperator, value)
             logicalRestrictedRule

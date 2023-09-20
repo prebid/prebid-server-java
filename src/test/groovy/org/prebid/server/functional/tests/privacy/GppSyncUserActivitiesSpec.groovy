@@ -623,10 +623,10 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                        new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateLogicalRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateLogicalRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateLogicalRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                             new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
     }
 
     def "PBS cookie sync when privacy regulation match custom requirement should exclude bidders URLs"() {
@@ -645,7 +645,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
-        def accountLogic = LogicalRestrictedRule.generateSolidRestriction(OR, valueRules)
+        def accountLogic = LogicalRestrictedRule.generateLogicalRestrictedRule(OR, valueRules)
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
@@ -735,7 +735,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Activity config"
-        def activityConfig = new ActivityConfig([SYNC_USER], LogicalRestrictedRule.generateSolidRestriction(AND, equalityValueRules))
+        def activityConfig = new ActivityConfig([SYNC_USER], LogicalRestrictedRule.generateLogicalRestrictedRule(AND, equalityValueRules))
 
         and: "Account gpp configuration with sid skip"
         def accountGppConfig = new AccountGppConfig().tap {
@@ -1430,10 +1430,10 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSolidRestriction(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSolidRestriction(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                        new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
+        false    | LogicalRestrictedRule.generateLogicalRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateLogicalRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateLogicalRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                             new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
     }
 
     def "PBS setuid call when privacy regulation match custom requirement should reject bidders with status code invalidStatusCode"() {
@@ -1455,7 +1455,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Account gpp configuration with sid skip"
-        def accountLogic = LogicalRestrictedRule.generateSolidRestriction(OR, valueRules)
+        def accountLogic = LogicalRestrictedRule.generateLogicalRestrictedRule(OR, valueRules)
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.config = new SidsConfig().tap { it.skipSids = [] }
@@ -1553,7 +1553,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
 
         and: "Activity config"
-        def activityConfig = new ActivityConfig([SYNC_USER], LogicalRestrictedRule.generateSolidRestriction(AND, equalityValueRules))
+        def activityConfig = new ActivityConfig([SYNC_USER], LogicalRestrictedRule.generateLogicalRestrictedRule(AND, equalityValueRules))
 
         and: "Account gpp configuration with sid skip"
         def accountGppConfig = new AccountGppConfig().tap {

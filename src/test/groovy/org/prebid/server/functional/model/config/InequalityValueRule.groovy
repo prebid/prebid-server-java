@@ -21,8 +21,8 @@ class InequalityValueRule extends ValueRestrictedRule {
         @Override
         InequalityValueRule deserialize(JsonParser jsonParser, DeserializationContext deserializationContext) throws IOException, JacksonException {
             JsonNode node = jsonParser.getCodec().readTree(jsonParser)
-            def privacySection = UsNationalPrivacySection.valueFromText(node.get(0).get(JSON_LOGIC_VALUE_FIELD).textValue())
-            def value = DataActivity.fromInt(node.get(1).asInt())
+            def privacySection = UsNationalPrivacySection.valueFromText(node?.get(0)?.get(JSON_LOGIC_VALUE_FIELD)?.textValue())
+            def value = DataActivity.fromInt(node?.get(1)?.asInt())
             return new InequalityValueRule(privacySection, value)
         }
     }
