@@ -139,9 +139,9 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
 
     private JsonLogicNode parseJsonLogicNode(String jsonLogicConfig) {
         try {
-            metrics.updateAlertsMetrics(MetricName.general);
             return jsonLogic.parse(jsonLogicConfig);
         } catch (DecodeException e) {
+            metrics.updateAlertsMetrics(MetricName.general);
             throw new InvalidAccountConfigException("JsonLogic exception: " + e.getMessage());
         }
     }
