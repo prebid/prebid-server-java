@@ -22,8 +22,7 @@ server:
     server-instances: 1
   cpu-load-monitoring:
     enabled: true
-    measurement-interval-ms: 5000
-    window-size: 30
+    measurement-interval-ms: 60000
 admin:
   port: 8060
 admin-endpoints:

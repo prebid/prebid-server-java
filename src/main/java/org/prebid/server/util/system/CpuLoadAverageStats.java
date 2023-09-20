@@ -1,7 +1,6 @@
 package org.prebid.server.util.system;
 
 import io.vertx.core.Vertx;
-import org.prebid.server.util.system.movingaverage.MovingAverage;
 import org.prebid.server.vertx.Initializable;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
@@ -18,31 +17,30 @@ public class CpuLoadAverageStats implements Initializable {
     private final Vertx vertx;
 
     private final long measurementIntervalMillis;
-    private final MovingAverage cpuLoadMovingAverage;
 
+    private volatile double cpuLoadAverage = -1;
     private volatile long[] prevTicks = new long[CentralProcessor.TickType.values().length];
 
-    public CpuLoadAverageStats(Vertx vertx, long measurementIntervalMillis, int maxWindowSize) {
+    public CpuLoadAverageStats(Vertx vertx, long measurementIntervalMillis) {
         this.vertx = Objects.requireNonNull(vertx);
         this.measurementIntervalMillis = measurementIntervalMillis;
         if (measurementIntervalMillis <= 1000) {
             throw new IllegalArgumentException("Measurement interval should be greater than 1 second");
         }
-
-        this.cpuLoadMovingAverage = new MovingAverage(maxWindowSize);
     }
 
     @Override
     public void initialize() {
+        measureCpuLoad();
         vertx.setPeriodic(measurementIntervalMillis, timerId -> measureCpuLoad());
     }
 
     private void measureCpuLoad() {
-        cpuLoadMovingAverage.record(cpu.getSystemCpuLoadBetweenTicks(prevTicks));
+        cpuLoadAverage = cpu.getSystemCpuLoadBetweenTicks(prevTicks);
         prevTicks = cpu.getSystemCpuLoadTicks();
     }
 
     public double getCpuLoadAverage() {
-        return cpuLoadMovingAverage.getAverage();
+        return cpuLoadAverage;
     }
 }
