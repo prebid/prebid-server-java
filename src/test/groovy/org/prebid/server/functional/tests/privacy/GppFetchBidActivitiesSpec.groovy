@@ -6,7 +6,6 @@ import org.prebid.server.functional.model.config.EqualityValueRule
 import org.prebid.server.functional.model.config.InequalityValueRule
 import org.prebid.server.functional.model.config.LogicalRestrictedRule
 import org.prebid.server.functional.model.config.ModuleConfig
-import org.prebid.server.functional.model.config.SidsConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.Activity
@@ -672,8 +671,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: [USP_NAT_V1]), enabled: false)
-        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: []), enabled: true)
+        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: false)
+        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: []), enabled: true)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
@@ -739,9 +738,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         and: "Account gpp configuration with sid skip"
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], accountLogic), [USP_NAT_V1], false)
+            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], accountLogic), [USP_NAT_V1], false)
         }
 
         and: "Existed account with privacy regulation setup"
@@ -781,9 +779,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def accountLogic = LogicalRestrictedRule.generateSingleRestrictedRule(OR, valueRules)
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], accountLogic), [USP_NAT_V1], false)
+            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], accountLogic), [USP_NAT_V1], false)
         }
 
         and: "Existed account with privacy regulation setup"
@@ -828,9 +825,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def restrictedRule = LogicalRestrictedRule.rootLogicalRestricted
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], restrictedRule), [USP_NAT_V1], false)
+            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], restrictedRule), [USP_NAT_V1], false)
         }
 
         and: "Flush metrics"
@@ -874,9 +870,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         and: "Account gpp configuration with enabled normalizeFlag"
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
+            it.config = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
         }
 
         and: "Existed account with gpp regulation setup"
@@ -1392,8 +1387,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: [USP_NAT_V1]), enabled: false)
-        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: []), enabled: true)
+        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: false)
+        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: []), enabled: true)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
@@ -1477,9 +1472,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         and: "Account gpp configuration with sid skip"
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], accountLogic))
+            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], accountLogic))
         }
 
         and: "Existed account with privacy regulation setup"
@@ -1529,9 +1523,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def accountLogic = LogicalRestrictedRule.generateSingleRestrictedRule(OR, valueRules)
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], accountLogic))
+            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], accountLogic))
         }
 
         and: "Existed account with privacy regulation setup"
@@ -1585,9 +1578,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def restrictedRule = LogicalRestrictedRule.rootLogicalRestricted
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], restrictedRule), [USP_NAT_V1], false)
+            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], restrictedRule), [USP_NAT_V1], false)
         }
 
         and: "Flush metrics"
@@ -1642,9 +1634,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         and: "Account gpp configuration with enabled normalizeFlag"
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
-            it.config = new SidsConfig().tap { it.skipSids = [] }
             it.enabled = true
-            it.moduleConfig = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
+            it.config = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
         }
 
         and: "Flush metrics"

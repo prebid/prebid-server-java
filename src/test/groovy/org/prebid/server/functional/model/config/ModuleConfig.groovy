@@ -9,6 +9,7 @@ class ModuleConfig {
     List<ActivityConfig> activityConfig
     List<GppSectionId> sids
     Boolean normalizeFlags
+    List<GppSectionId> skipSids
 
     static ModuleConfig getDefaultModuleConfig(ActivityConfig activityConfig = ActivityConfig.configWithDefaultRestrictRules,
                                                List<GppSectionId> sids = [GppSectionId.USP_NAT_V1],
