@@ -1,6 +1,6 @@
 adapters:
   adocean:
-    endpoint: https://{{Host}}
+    endpoint: https://{{Host}}.adocean.pl
     meta-info:
       maintainer-email: aoteam@gemius.com
       app-media-types:

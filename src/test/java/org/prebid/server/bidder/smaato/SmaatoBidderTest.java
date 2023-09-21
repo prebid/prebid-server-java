@@ -64,19 +64,19 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
 public class SmaatoBidderTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private SmaatoBidder smaatoBidder;
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Clock clock;
 
+    private SmaatoBidder target;
+
     @Before
     public void setUp() {
-        smaatoBidder = new SmaatoBidder(ENDPOINT_URL, jacksonMapper, clock);
+        target = new SmaatoBidder(ENDPOINT_URL, jacksonMapper, clock);
     }
 
     @Test
@@ -95,7 +95,7 @@ public class SmaatoBidderTest extends VertxTest {
                         .build()), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -114,7 +114,7 @@ public class SmaatoBidderTest extends VertxTest {
                         .ext(ExtSite.of(1, mapper.valueToTree(SmaatoSiteExtData.of("keywords"))))
                         .build()), identity());
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -131,7 +131,7 @@ public class SmaatoBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -148,7 +148,7 @@ public class SmaatoBidderTest extends VertxTest {
         final BidRequest bidRequest = givenVideoBidRequest(identity(), impBuilder -> impBuilder.video(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -166,7 +166,7 @@ public class SmaatoBidderTest extends VertxTest {
                 impBuilder -> impBuilder.id("2_0"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -187,7 +187,7 @@ public class SmaatoBidderTest extends VertxTest {
                 impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -206,7 +206,7 @@ public class SmaatoBidderTest extends VertxTest {
                         ExtImpSmaato.of(null, null, "adbreakId")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -221,7 +221,7 @@ public class SmaatoBidderTest extends VertxTest {
                         "publisherId", null, null)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -237,7 +237,7 @@ public class SmaatoBidderTest extends VertxTest {
                         ExtImpSmaato.of("publisherId", null, "adBreakId")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -258,7 +258,7 @@ public class SmaatoBidderTest extends VertxTest {
                         ExtImpSmaato.of("publisherId", null, "adBreakId")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -277,7 +277,7 @@ public class SmaatoBidderTest extends VertxTest {
                 bidRequestBuilder.site(null).app(null), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -294,7 +294,7 @@ public class SmaatoBidderTest extends VertxTest {
                 impBuilder -> impBuilder.id("1_1"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final BiFunction<Imp.ImpBuilder, Integer, Imp.ImpBuilder> resultCustomizer =
@@ -322,7 +322,7 @@ public class SmaatoBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(null).banner(null).xNative(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -343,7 +343,7 @@ public class SmaatoBidderTest extends VertxTest {
                 impBuilder -> impBuilder.id("456").banner(Banner.builder().w(1).h(1).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -371,7 +371,7 @@ public class SmaatoBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), impBuilder -> impBuilder.ext(impExt));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -397,7 +397,7 @@ public class SmaatoBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), impBuilder -> impBuilder.ext(impExt));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -411,7 +411,7 @@ public class SmaatoBidderTest extends VertxTest {
                 impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -430,7 +430,7 @@ public class SmaatoBidderTest extends VertxTest {
                         ExtImpSmaato.of(null, "adspaceId", null)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -445,7 +445,7 @@ public class SmaatoBidderTest extends VertxTest {
                         "publisherId", null, null)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -461,7 +461,7 @@ public class SmaatoBidderTest extends VertxTest {
                         ExtImpSmaato.of("publisherId", "adspaceId", null)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -482,7 +482,7 @@ public class SmaatoBidderTest extends VertxTest {
                         ExtImpSmaato.of("publisherId", "adspaceId", null)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -501,7 +501,7 @@ public class SmaatoBidderTest extends VertxTest {
                 bidRequestBuilder.site(null).app(null), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -515,7 +515,7 @@ public class SmaatoBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -529,7 +529,7 @@ public class SmaatoBidderTest extends VertxTest {
                 impBuilder.banner(Banner.builder().w(1).h(1).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -547,7 +547,7 @@ public class SmaatoBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(banner));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -566,7 +566,7 @@ public class SmaatoBidderTest extends VertxTest {
                         ExtImpSmaato.of("publisherId", "adspaceId", null)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smaatoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -583,7 +583,7 @@ public class SmaatoBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid", null);
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -600,7 +600,7 @@ public class SmaatoBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null), null);
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -616,7 +616,7 @@ public class SmaatoBidderTest extends VertxTest {
                 HttpUtil.headers());
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -633,7 +633,7 @@ public class SmaatoBidderTest extends VertxTest {
                 headers);
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -651,7 +651,7 @@ public class SmaatoBidderTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap().set("X-Smt-Expires", String.valueOf(10000)));
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -673,7 +673,7 @@ public class SmaatoBidderTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap().set("X-Smt-Expires", String.valueOf(10000)));
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -692,7 +692,7 @@ public class SmaatoBidderTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap());
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -711,7 +711,7 @@ public class SmaatoBidderTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", ""));
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -727,7 +727,7 @@ public class SmaatoBidderTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", ""));
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -751,7 +751,7 @@ public class SmaatoBidderTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", "Richmedia"));
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         final String expectedAdm =
@@ -788,7 +788,7 @@ public class SmaatoBidderTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap());
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         final String expectedAdm =
@@ -819,7 +819,7 @@ public class SmaatoBidderTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", "Richmedia"));
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -837,7 +837,7 @@ public class SmaatoBidderTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap());
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         final Bid expectedBid = Bid.builder()
@@ -867,7 +867,7 @@ public class SmaatoBidderTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", "Img"));
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         final String expectedAdm =
@@ -907,7 +907,7 @@ public class SmaatoBidderTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap().set("X-Smt-Adtype", "Img"));
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         final String expectedAdm =
@@ -945,7 +945,7 @@ public class SmaatoBidderTest extends VertxTest {
                 MultiMap.caseInsensitiveMultiMap().set("X-SMT-ADTYPE", "Video"));
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         final Bid expectedBid = Bid.builder()
@@ -968,7 +968,7 @@ public class SmaatoBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()), null);
 
         // when
-        final Result<List<BidderBid>> result = smaatoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

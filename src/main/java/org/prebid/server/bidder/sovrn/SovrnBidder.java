@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.sovrn;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
@@ -40,6 +41,7 @@ import java.util.Objects;
 public class SovrnBidder implements Bidder<BidRequest> {
 
     private static final String LJT_READER_COOKIE_NAME = "ljt_reader";
+    private static final String EXT_AD_UNIT_CODE_PARAM = "adunitcode";
 
     private static final TypeReference<ExtPrebid<?, ExtImpSovrn>> SOVRN_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -84,17 +86,19 @@ public class SovrnBidder implements Bidder<BidRequest> {
     }
 
     private Imp makeImp(Imp imp) {
-        final ExtImpSovrn sovrnExt = parseExtImpSovrn(imp);
+        final ObjectNode impExt = imp.getExt();
+        final ExtImpSovrn sovrnExt = parseExtImpSovrn(impExt);
 
         return imp.toBuilder()
                 .bidfloor(resolveBidFloor(imp.getBidfloor(), sovrnExt.getBidfloor()))
                 .tagid(resolveTagId(sovrnExt))
+                .ext(resolveImpExt(sovrnExt, impExt))
                 .build();
     }
 
-    private ExtImpSovrn parseExtImpSovrn(Imp imp) {
+    private ExtImpSovrn parseExtImpSovrn(ObjectNode ext) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), SOVRN_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(ext, SOVRN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
@@ -112,6 +116,13 @@ public class SovrnBidder implements Bidder<BidRequest> {
             throw new PreBidException("Missing required parameter 'tagid'");
         }
         return tagId;
+    }
+
+    private ObjectNode resolveImpExt(ExtImpSovrn sovrnExt, ObjectNode impExt) {
+        final ObjectNode sovrnImpExt = impExt.deepCopy();
+        return StringUtils.isNotBlank(sovrnExt.getAdunitcode())
+                ? sovrnImpExt.putPOJO(EXT_AD_UNIT_CODE_PARAM, sovrnExt.getAdunitcode())
+                : sovrnImpExt;
     }
 
     private Result<List<HttpRequest<BidRequest>>> makeHttpRequest(BidRequest bidRequest,

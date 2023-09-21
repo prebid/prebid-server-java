@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.avocet.model.AvocetBidExtension;
@@ -34,12 +33,7 @@ public class AvocetBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private AvocetBidder avocetBidder;
-
-    @Before
-    public void setUp() {
-        avocetBidder = new AvocetBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AvocetBidder target = new AvocetBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -56,7 +50,7 @@ public class AvocetBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = avocetBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -71,7 +65,7 @@ public class AvocetBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = avocetBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -88,7 +82,7 @@ public class AvocetBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123")
                         .ext(mapper.createObjectNode().put("avocet", "invalid")))));
         // when
-        final Result<List<BidderBid>> result = avocetBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).containsOnly(
@@ -108,7 +102,7 @@ public class AvocetBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0)))))));
 
         // when
-        final Result<List<BidderBid>> result = avocetBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -134,7 +128,7 @@ public class AvocetBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0)))))));
 
         // when
-        final Result<List<BidderBid>> result = avocetBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -160,7 +154,7 @@ public class AvocetBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(0)))))));
 
         // when
-        final Result<List<BidderBid>> result = avocetBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -186,7 +180,7 @@ public class AvocetBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(AvocetResponseExt.of(AvocetBidExtension.of(1)))))));
 
         // when
-        final Result<List<BidderBid>> result = avocetBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

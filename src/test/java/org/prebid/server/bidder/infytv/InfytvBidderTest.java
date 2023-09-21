@@ -6,9 +6,8 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpHeaderValues;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -18,27 +17,26 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.tuple;
+import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
+import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
+import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
+import static org.prebid.server.util.HttpUtil.headers;
+import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class InfytvBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://nxs.infy.tv/pbs/openrtb";
 
-    private InfytvBidder infytvBidder;
-
-    @Before
-    public void setUp() {
-        infytvBidder = new InfytvBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final InfytvBidder target = new InfytvBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -48,22 +46,25 @@ public class InfytvBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnExpectedHttpRequest() {
         // given
-        final BidRequest bidRequest = BidRequest.builder().id("test-request-id").build();
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = infytvBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).allSatisfy(httpRequest -> {
-            assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
-            assertThat(httpRequest.getUri()).isEqualTo(ENDPOINT_URL);
-            assertThat(httpRequest.getHeaders())
-                    .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                    .containsExactly(
-                            tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                            tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
-            assertThat(httpRequest.getPayload()).isSameAs(bidRequest);
-        });
+        final MultiMap expectedHeaders = headers()
+                .set(CONTENT_TYPE_HEADER, APPLICATION_JSON_CONTENT_TYPE)
+                .set(ACCEPT_HEADER, APPLICATION_JSON_VALUE);
+        final Result<List<HttpRequest<BidRequest>>> expectedResult = Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(ENDPOINT_URL)
+                .headers(expectedHeaders)
+                .impIds(Set.of("IMP_ID"))
+                .body(jacksonMapper.encodeToBytes(bidRequest))
+                .payload(bidRequest)
+                .build());
+        assertThat(result.getValue()).usingRecursiveComparison().isEqualTo(expectedResult.getValue());
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -80,7 +81,7 @@ public class InfytvBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
-        final Result<List<BidderBid>> result = infytvBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -99,7 +100,7 @@ public class InfytvBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
-        final Result<List<BidderBid>> result = infytvBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -114,7 +115,7 @@ public class InfytvBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("{");
 
         // when
-        final Result<List<BidderBid>> result = infytvBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).allSatisfy(bidderError -> {
@@ -124,12 +125,8 @@ public class InfytvBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
-
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(Imp.builder()
-                                .id("123")
-                                .build())))
-                .build();
+        return bidRequestCustomizer.apply(
+                BidRequest.builder().imp(List.of(Imp.builder().id("IMP_ID").build()))).build();
     }
 
     private static BidderCall<BidRequest> givenHttpCall(String body) {

@@ -40,15 +40,14 @@ public class BidderErrorNotifierTest extends VertxTest {
     private HttpClient httpClient;
     @Mock
     private Metrics metrics;
-
-    private BidderErrorNotifier bidderErrorNotifier;
-
     @Mock
     private Bidder<BidRequest> bidder;
 
+    private BidderErrorNotifier target;
+
     @Before
     public void setUp() {
-        bidderErrorNotifier = new BidderErrorNotifier(200, true, false, 1d, httpClient, metrics);
+        target = new BidderErrorNotifier(200, true, false, 1d, httpClient, metrics);
     }
 
     @Test
@@ -59,7 +58,7 @@ public class BidderErrorNotifierTest extends VertxTest {
         given(bidder.makeTimeoutNotification(any())).willReturn(null);
 
         // when
-        bidderErrorNotifier.processTimeout(
+        target.processTimeout(
                 BidderCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
 
         // then
@@ -84,7 +83,7 @@ public class BidderErrorNotifierTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(200, null, null)));
 
         // when
-        final BidderCall<BidRequest> result = bidderErrorNotifier.processTimeout(bidderCall, bidder);
+        final BidderCall<BidRequest> result = target.processTimeout(bidderCall, bidder);
 
         // then
         Assertions.assertThat(result).isSameAs(bidderCall);
@@ -109,7 +108,7 @@ public class BidderErrorNotifierTest extends VertxTest {
                 .willReturn(Future.succeededFuture(HttpClientResponse.of(404, null, null)));
 
         // when
-        bidderErrorNotifier.processTimeout(
+        target.processTimeout(
                 BidderCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
 
         // then
@@ -133,7 +132,7 @@ public class BidderErrorNotifierTest extends VertxTest {
                 .willReturn(Future.failedFuture(new TimeoutException("Timeout exception")));
 
         // when
-        bidderErrorNotifier.processTimeout(
+        target.processTimeout(
                 BidderCall.failedHttp(bidderRequest, BidderError.timeout("Timeout")), bidder);
 
         // then

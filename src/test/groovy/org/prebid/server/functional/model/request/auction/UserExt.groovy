@@ -11,4 +11,8 @@ class UserExt {
     UserTime time
     UserExtData data
     UserExtPrebid prebid
+
+    static UserExt getFPDUserExt() {
+        new UserExt(data: UserExtData.FPDUserExtData)
+    }
 }

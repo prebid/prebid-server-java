@@ -5,6 +5,8 @@ import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.version.PrebidVersionProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
@@ -18,11 +20,14 @@ import static java.util.Collections.singletonList;
 @RunWith(SpringRunner.class)
 public class IxTest extends IntegrationTest {
 
+    @Autowired
+    private PrebidVersionProvider prebidVersionProvider;
+
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromIx() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/ix-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-ix-bid-request.json")))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/ix/test-ix-bid-request.json", prebidVersionProvider)))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/ix/test-ix-bid-response.json"))));
 
         // when

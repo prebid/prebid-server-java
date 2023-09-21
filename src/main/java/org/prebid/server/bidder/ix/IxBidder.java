@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -18,7 +20,9 @@ import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.ix.model.request.IxDiag;
 import org.prebid.server.bidder.ix.model.response.NativeV11Wrapper;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -28,7 +32,11 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
@@ -36,13 +44,17 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class IxBidder implements Bidder<BidRequest> {
@@ -51,54 +63,43 @@ public class IxBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final int REQUEST_LIMIT = 20;
-
     private final String endpointUrl;
+    private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
 
-    public IxBidder(String endpointUrl, JacksonMapper mapper) {
+    public IxBidder(String endpointUrl, PrebidVersionProvider prebidVersionProvider, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-
+        final Set<String> siteIds = new HashSet<>();
+        final List<Imp> imps = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
-
-        // First Banner.Format in every Imp have priority
-        final List<BidRequest> prioritizedRequests = new ArrayList<>();
-        final List<BidRequest> multiSizeRequests = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
             try {
-                final ExtImpIx extImpIx = parseImpExt(imp);
-                final List<BidRequest> bidRequests = makeBidRequests(bidRequest, imp, extImpIx.getSiteId());
-
-                prioritizedRequests.add(bidRequests.get(0));
-                multiSizeRequests.addAll(bidRequests.subList(1, bidRequests.size()));
-
-                if (prioritizedRequests.size() == REQUEST_LIMIT) {
-                    break;
+                final ExtImpIx impExt = parseImpExt(imp);
+                final String siteId = impExt.getSiteId();
+                if (StringUtils.isNotEmpty(siteId)) {
+                    siteIds.add(siteId);
                 }
+
+                imps.add(modifyImp(imp, impExt));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        final List<BidRequest> modifiedRequests = Stream.of(prioritizedRequests, multiSizeRequests)
-                .flatMap(Collection::stream)
-                .limit(REQUEST_LIMIT)
-                .toList();
-
-        if (modifiedRequests.isEmpty()) {
-            errors.add(BidderError.badInput("No valid impressions in the bid request"));
+        if (imps.isEmpty()) {
             return Result.withErrors(errors);
         }
 
-        final List<HttpRequest<BidRequest>> httpRequests = modifiedRequests.stream()
-                .map(request -> BidderUtil.defaultRequest(request, endpointUrl, mapper))
-                .toList();
+        final BidRequest modifiedBidRequest = modifyBidRequest(bidRequest, imps, siteIds);
+        final List<HttpRequest<BidRequest>> httpRequests = Collections.singletonList(
+                BidderUtil.defaultRequest(modifiedBidRequest, endpointUrl, mapper));
 
         return Result.of(httpRequests, errors);
     }
@@ -111,74 +112,117 @@ public class IxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidRequest> makeBidRequests(BidRequest bidRequest, Imp imp, String siteId) {
-        final Site modifiedSite = modifySite(bidRequest.getSite(), siteId);
+    private Imp modifyImp(Imp imp, ExtImpIx impExt) {
+        final UpdateResult<ObjectNode> impExtUpdateResult = modifyImpExt(imp, impExt);
+        final UpdateResult<Banner> bannerUpdateResult = modifyImpBanner(imp.getBanner());
 
-        return modifyImps(imp).stream()
-                .map(modifiedImp -> modifyBidRequest(bidRequest, modifiedSite, modifiedImp))
-                .toList();
+        return impExtUpdateResult.isUpdated() || bannerUpdateResult.isUpdated()
+                ? imp.toBuilder().ext(impExtUpdateResult.getValue()).banner(bannerUpdateResult.getValue()).build()
+                : imp;
     }
 
-    private static BidRequest modifyBidRequest(BidRequest bidRequest, Site site, Imp imp) {
+    private UpdateResult<ObjectNode> modifyImpExt(Imp imp, ExtImpIx extImpIx) {
+        final String sid = extImpIx.getSid();
+        final ObjectNode impExt = imp.getExt();
+        if (StringUtils.isEmpty(sid)) {
+            return UpdateResult.unaltered(impExt);
+        }
+
+        final ObjectNode updatedExt = impExt.deepCopy();
+        updatedExt.set("sid", TextNode.valueOf(sid));
+
+        return UpdateResult.updated(updatedExt);
+    }
+
+    private UpdateResult<Banner> modifyImpBanner(Banner banner) {
+        if (banner == null) {
+            return UpdateResult.unaltered(null);
+        }
+
+        final List<Format> formats = banner.getFormat();
+        final Integer w = banner.getW();
+        final Integer h = banner.getH();
+
+        if (CollectionUtils.isEmpty(formats) && h != null && w != null) {
+            final List<Format> newFormats = Collections.singletonList(Format.builder().w(w).h(h).build());
+            final Banner modifiedBanner = banner.toBuilder().format(newFormats).build();
+            return UpdateResult.updated(modifiedBanner);
+        } else if (formats.size() == 1) {
+            final Format format = formats.get(0);
+            final Banner modifiedBanner = banner.toBuilder().w(format.getW()).h(format.getH()).build();
+            return UpdateResult.updated(modifiedBanner);
+        }
+
+        return UpdateResult.unaltered(banner);
+    }
+
+    private BidRequest modifyBidRequest(BidRequest bidRequest, List<Imp> imps, Set<String> siteIds) {
+        final String publisherId = Optional.of(siteIds)
+                .filter(siteIdsSet -> siteIdsSet.size() == 1)
+                .map(Collection::stream)
+                .flatMap(Stream::findFirst)
+                .orElse(null);
+
         return bidRequest.toBuilder()
-                .site(site)
-                .imp(Collections.singletonList(imp))
+                .imp(imps)
+                .site(modifySite(bidRequest.getSite(), publisherId))
+                .app(modifyApp(bidRequest.getApp(), publisherId))
+                .ext(modifyRequestExt(bidRequest.getExt(), siteIds))
                 .build();
     }
 
-    private static Site modifySite(Site site, String siteId) {
-        return site == null
-                ? null
-                : site.toBuilder()
-                .publisher(modifyPublisher(site.getPublisher(), siteId))
+    private ExtRequest modifyRequestExt(ExtRequest extRequest, Set<String> siteIds) {
+        final ExtRequest modifiedExt;
+
+        if (extRequest != null) {
+            modifiedExt = ExtRequest.of(extRequest.getPrebid());
+            modifiedExt.addProperties(extRequest.getProperties());
+        } else {
+            modifiedExt = ExtRequest.empty();
+        }
+
+        modifiedExt.addProperty("ixdiag", mapper.mapper().valueToTree(makeDiagData(extRequest, siteIds)));
+        return modifiedExt;
+    }
+
+    private IxDiag makeDiagData(ExtRequest extRequest, Set<String> siteIds) {
+        final String pbjsv = Optional.ofNullable(extRequest)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getChannel)
+                .map(ExtRequestPrebidChannel::getVersion)
+                .orElse(null);
+
+        final String pbsv = prebidVersionProvider.getNameVersionRecord();
+
+        final String multipleSiteIds = siteIds.size() > 1
+                ? siteIds.stream().sorted().collect(Collectors.joining(", "))
+                : null;
+
+        return IxDiag.of(pbsv, pbjsv, multipleSiteIds);
+    }
+
+    private static Site modifySite(Site site, String id) {
+        return Optional.ofNullable(site)
+                .map(Site::toBuilder)
+                .map(builder -> builder.publisher(modifyPublisher(site.getPublisher(), id)))
+                .map(Site.SiteBuilder::build)
+                .orElse(null);
+    }
+
+    private static App modifyApp(App app, String id) {
+        return Optional.ofNullable(app)
+                .map(App::toBuilder)
+                .map(builder -> builder.publisher(modifyPublisher(app.getPublisher(), id)))
+                .map(App.AppBuilder::build)
+                .orElse(null);
+    }
+
+    private static Publisher modifyPublisher(Publisher publisher, String id) {
+        return Optional.ofNullable(publisher)
+                .map(Publisher::toBuilder)
+                .orElseGet(Publisher::builder)
+                .id(id)
                 .build();
-    }
-
-    private static Publisher modifyPublisher(Publisher publisher, String siteId) {
-        return publisher == null
-                ? Publisher.builder().id(siteId).build()
-                : publisher.toBuilder().id(siteId).build();
-    }
-
-    private static List<Imp> modifyImps(Imp imp) {
-        final Banner impBanner = imp.getBanner();
-        if (impBanner == null) {
-            return Collections.singletonList(imp);
-        }
-
-        return modifyBanners(impBanner).stream()
-                .map(banner -> imp.toBuilder().banner(banner).build())
-                .toList();
-    }
-
-    private static List<Banner> modifyBanners(Banner banner) {
-        final ArrayList<Banner> modifiedBanners = new ArrayList<>();
-        final List<Format> formats = getFormats(banner);
-        for (Format format : formats) {
-            final Banner modifiedBanner = banner.toBuilder()
-                    .format(Collections.singletonList(format))
-                    .w(format.getW())
-                    .h(format.getH())
-                    .build();
-            modifiedBanners.add(modifiedBanner);
-        }
-
-        return modifiedBanners;
-    }
-
-    // Cant be empty because of request validation
-    private static List<Format> getFormats(Banner banner) {
-        final Integer bannerW = banner.getW();
-        final Integer bannerH = banner.getH();
-        final List<Format> bannerFormats = banner.getFormat();
-        if (CollectionUtils.isEmpty(bannerFormats) && bannerW != null && bannerH != null) {
-            final Format format = Format.builder()
-                    .w(bannerW)
-                    .h(bannerH)
-                    .build();
-            return Collections.singletonList(format);
-        }
-        return bannerFormats;
     }
 
     @Override
@@ -218,14 +262,12 @@ public class IxBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
-        final Bid updatedBid;
-        if (bidType == BidType.video || bidType == BidType.xNative) {
-            updatedBid = bidType == BidType.video
-                    ? updateBidWithVideoAttributes(bid)
-                    : bid.toBuilder().adm(updateBidAdmWithNativeAttributes(bid.getAdm())).build();
-        } else {
-            updatedBid = bid;
-        }
+
+        final Bid updatedBid = switch (bidType) {
+            case video -> updateBidWithVideoAttributes(bid);
+            case xNative -> bid.toBuilder().adm(updateBidAdmWithNativeAttributes(bid.getAdm())).build();
+            default -> bid;
+        };
 
         return BidderBid.of(updatedBid, bidType, bidResponse.getCur());
     }
@@ -313,7 +355,7 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidTypeFromImp(List<Imp> imps, String impId) {
-        for (Imp imp: imps) {
+        for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
                     return BidType.banner;

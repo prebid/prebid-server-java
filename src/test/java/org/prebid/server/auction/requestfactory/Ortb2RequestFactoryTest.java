@@ -935,7 +935,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         given(countryCodeMapper.mapToAlpha3(any())).willReturn(null);
 
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final Device device = Device.builder()
+                .geo(Geo.builder().region("regionInRequest").build())
+                .build();
+        final BidRequest bidRequest = givenBidRequest(requestCustomizer -> requestCustomizer.device(device));
         final PrivacyContext privacyContext = PrivacyContext.of(
                 Privacy.builder()
                         .gdpr("")
@@ -964,7 +967,40 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getGeo)
                 .extracting(Geo::getRegion)
-                .isEqualTo("region");
+                .isEqualTo("REGION");
+    }
+
+    @Test
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldMakeRegionUpperCasedWhenNoPrivateGeoInfoProvided() {
+        // given
+        given(countryCodeMapper.mapToAlpha3(any())).willReturn(null);
+
+        final Device device = Device.builder()
+                .geo(Geo.builder().region("regionInRequest").build())
+                .build();
+        final BidRequest bidRequest = givenBidRequest(requestCustomizer -> requestCustomizer.device(device));
+
+        final Account account = Account.empty("id");
+
+        final PrivacyContext privacyContextWithoutRegion = PrivacyContext.of(
+                null,
+                TcfContext.builder().geoInfo(GeoInfo.builder().vendor("v").build()).build()
+        );
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(account)
+                .privacyContext(privacyContextWithoutRegion)
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getGeo)
+                .extracting(Geo::getRegion)
+                .isEqualTo("REGIONINREQUEST");
     }
 
     @Test

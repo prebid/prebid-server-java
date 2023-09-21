@@ -28,7 +28,6 @@ public class AdoceanTest extends IntegrationTest {
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/adocean/test-auction-adocean-response.json", response,
-                singletonList("adocean"));
+        assertJsonEquals("openrtb2/adocean/test-auction-adocean-response.json", response, singletonList("adocean"));
     }
 }

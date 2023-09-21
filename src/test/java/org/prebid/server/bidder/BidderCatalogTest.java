@@ -24,7 +24,7 @@ public class BidderCatalogTest {
     @Mock
     private Bidder<?> bidder;
 
-    private BidderCatalog bidderCatalog;
+    private BidderCatalog target;
 
     @Test
     public void isValidNameShouldReturnTrueForKnownBidder() {
@@ -33,19 +33,19 @@ public class BidderCatalogTest {
                 .name(BIDDER)
                 .deprecatedNames(emptyList())
                 .build()));
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+        target = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
-        assertThat(bidderCatalog.isValidName(BIDDER)).isTrue();
+        assertThat(target.isValidName(BIDDER)).isTrue();
     }
 
     @Test
     public void isValidNameShouldReturnFalseForUnknownBidder() {
         // given
-        bidderCatalog = new BidderCatalog(emptyList());
+        target = new BidderCatalog(emptyList());
 
         // when and then
-        assertThat(bidderCatalog.isValidName("unknown_bidder")).isFalse();
+        assertThat(target.isValidName("unknown_bidder")).isFalse();
     }
 
     @Test
@@ -55,19 +55,19 @@ public class BidderCatalogTest {
                 .name(BIDDER)
                 .deprecatedNames(singletonList("deprecated"))
                 .build()));
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+        target = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
-        assertThat(bidderCatalog.isDeprecatedName("deprecated")).isTrue();
+        assertThat(target.isDeprecatedName("deprecated")).isTrue();
     }
 
     @Test
     public void isDeprecatedNameShouldReturnFalseForUnknownBidder() {
         // given
-        bidderCatalog = new BidderCatalog(emptyList());
+        target = new BidderCatalog(emptyList());
 
         // when and then
-        assertThat(bidderCatalog.isDeprecatedName("unknown_bidder")).isFalse();
+        assertThat(target.isDeprecatedName("unknown_bidder")).isFalse();
     }
 
     @Test
@@ -77,10 +77,10 @@ public class BidderCatalogTest {
                 .name(BIDDER)
                 .deprecatedNames(singletonList("deprecated"))
                 .build()));
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+        target = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
-        assertThat(bidderCatalog.errorForDeprecatedName("deprecated"))
+        assertThat(target.errorForDeprecatedName("deprecated"))
                 .isEqualTo("deprecated has been deprecated and is no longer available. Use rubicon instead.");
     }
 
@@ -108,10 +108,10 @@ public class BidderCatalogTest {
                 .bidderInfo(bidderInfo)
                 .build()));
 
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+        target = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
-        assertThat(bidderCatalog.bidderInfoByName(BIDDER)).isEqualTo(bidderInfo);
+        assertThat(target.bidderInfoByName(BIDDER)).isEqualTo(bidderInfo);
     }
 
     @Test
@@ -161,19 +161,19 @@ public class BidderCatalogTest {
 
         final BidderDeps bidderDeps = BidderDeps.of(List.of(bidderInstanceDeps, aliasInstanceDeps));
 
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+        target = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
-        assertThat(bidderCatalog.isAlias("alias")).isTrue();
+        assertThat(target.isAlias("alias")).isTrue();
     }
 
     @Test
     public void metaInfoByNameShouldReturnNullForUnknownBidder() {
         // given
-        bidderCatalog = new BidderCatalog(emptyList());
+        target = new BidderCatalog(emptyList());
 
         // when and then
-        assertThat(bidderCatalog.bidderInfoByName("unknown_bidder")).isNull();
+        assertThat(target.bidderInfoByName("unknown_bidder")).isNull();
     }
 
     @Test
@@ -185,10 +185,10 @@ public class BidderCatalogTest {
                 .deprecatedNames(emptyList())
                 .usersyncer(usersyncer)
                 .build()));
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+        target = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
-        assertThat(bidderCatalog.usersyncerByName(BIDDER)).contains(usersyncer);
+        assertThat(target.usersyncerByName(BIDDER)).contains(usersyncer);
     }
 
     @Test
@@ -200,10 +200,10 @@ public class BidderCatalogTest {
                 .deprecatedNames(emptyList())
                 .usersyncer(usersyncer)
                 .build()));
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+        target = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
-        assertThat(bidderCatalog.cookieFamilyName(BIDDER)).contains("name");
+        assertThat(target.cookieFamilyName(BIDDER)).contains("name");
     }
 
     @Test
@@ -273,19 +273,19 @@ public class BidderCatalogTest {
                         .deprecatedNames(emptyList())
                         .build())));
 
-        bidderCatalog = new BidderCatalog(bidderDeps);
+        target = new BidderCatalog(bidderDeps);
 
         // when and then
-        assertThat(bidderCatalog.usersyncReadyBidders()).containsExactly("bidder-with-usersync");
+        assertThat(target.usersyncReadyBidders()).containsExactly("bidder-with-usersync");
     }
 
     @Test
     public void usersyncerByNameShouldReturnNullForUnknownBidder() {
         // given
-        bidderCatalog = new BidderCatalog(emptyList());
+        target = new BidderCatalog(emptyList());
 
         // when and then
-        assertThat(bidderCatalog.usersyncerByName("unknown_bidder")).isEmpty();
+        assertThat(target.usersyncerByName("unknown_bidder")).isEmpty();
     }
 
     @Test
@@ -296,10 +296,10 @@ public class BidderCatalogTest {
                 .deprecatedNames(emptyList())
                 .bidder(bidder)
                 .build()));
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+        target = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
-        assertThat(bidderCatalog.bidderByName(BIDDER)).isSameAs(bidder);
+        assertThat(target.bidderByName(BIDDER)).isSameAs(bidder);
     }
 
     @Test
@@ -326,18 +326,18 @@ public class BidderCatalogTest {
                 .bidder(bidder)
                 .bidderInfo(bidderInfo)
                 .build()));
-        bidderCatalog = new BidderCatalog(singletonList(bidderDeps));
+        target = new BidderCatalog(singletonList(bidderDeps));
 
         // when and then
-        assertThat(bidderCatalog.nameByVendorId(99)).isEqualTo(BIDDER);
+        assertThat(target.nameByVendorId(99)).isEqualTo(BIDDER);
     }
 
     @Test
     public void bidderByNameShouldReturnNullForUnknownBidder() {
         // given
-        bidderCatalog = new BidderCatalog(emptyList());
+        target = new BidderCatalog(emptyList());
 
         // when and then
-        assertThat(bidderCatalog.bidderByName("unknown_bidder")).isNull();
+        assertThat(target.bidderByName("unknown_bidder")).isNull();
     }
 }

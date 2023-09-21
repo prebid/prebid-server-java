@@ -99,6 +99,19 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
     }
 
     @Test
+    public void deserializeShouldReturnExpectedValueOnEmptyString() throws IOException {
+        // given
+        given(parser.getCurrentToken()).willReturn(JsonToken.VALUE_STRING);
+        given(parser.getValueAsString()).willReturn("");
+
+        // when
+        final List<Integer> result = commaSeparatedStringAsListOfIntegersDeserializer.deserialize(parser, context);
+
+        // then
+        assertThat(result).isEmpty();
+    }
+
+    @Test
     public void deserializeShouldReturnExpectedValue() throws IOException {
         // given
         given(parser.getCurrentToken()).willReturn(JsonToken.VALUE_STRING);

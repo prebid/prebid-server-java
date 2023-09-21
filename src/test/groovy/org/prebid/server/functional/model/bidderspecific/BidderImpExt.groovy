@@ -8,4 +8,5 @@ import org.prebid.server.functional.model.request.auction.ImpExt
 class BidderImpExt extends ImpExt {
 
     Generic bidder
+    Rp rp
 }

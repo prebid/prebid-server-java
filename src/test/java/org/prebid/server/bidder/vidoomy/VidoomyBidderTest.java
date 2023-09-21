@@ -12,7 +12,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -41,12 +40,7 @@ public class VidoomyBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private VidoomyBidder vidoomyBidder;
-
-    @Before
-    public void setUp() {
-        vidoomyBidder = new VidoomyBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final VidoomyBidder target = new VidoomyBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -61,7 +55,7 @@ public class VidoomyBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -79,7 +73,7 @@ public class VidoomyBidderTest extends VertxTest {
                 .banner(Banner.builder().w(5).h(5).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -98,7 +92,7 @@ public class VidoomyBidderTest extends VertxTest {
                 .banner(Banner.builder().h(0).w(0).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -113,7 +107,7 @@ public class VidoomyBidderTest extends VertxTest {
                 .banner(Banner.builder().w(5).h(null).format(emptyList()).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -128,7 +122,7 @@ public class VidoomyBidderTest extends VertxTest {
                 .banner(Banner.builder().w(5).h(null).format(null).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -145,7 +139,7 @@ public class VidoomyBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -168,7 +162,7 @@ public class VidoomyBidderTest extends VertxTest {
                         .build()), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = vidoomyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -191,7 +185,7 @@ public class VidoomyBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = vidoomyBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -214,7 +208,7 @@ public class VidoomyBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = vidoomyBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -234,7 +228,7 @@ public class VidoomyBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = vidoomyBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -254,7 +248,7 @@ public class VidoomyBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = vidoomyBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
