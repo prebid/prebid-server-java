@@ -10,10 +10,8 @@ import java.util.List;
 @Value
 public class Network {
 
-    @JsonProperty("type")
     Integer type;
 
-    @JsonProperty("carrier")
     Integer carrier;
 
     @JsonProperty("cellInfo")

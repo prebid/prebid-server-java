@@ -57,7 +57,6 @@ public class HuaweiAppBuilder {
             }
 
             for (String keyword : convert.getUnconvertedPkgNameKeyWords()) {
-                //todo: why is 0 ignored?
                 if (bundleName.indexOf(keyword) > 0) {
                     return convertedPkgName;
                 }

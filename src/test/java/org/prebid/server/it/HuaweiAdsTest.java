@@ -2,7 +2,6 @@ package org.prebid.server.it;
 
 import io.restassured.response.Response;
 import org.json.JSONException;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.model.Endpoint;
@@ -56,8 +55,6 @@ public class HuaweiAdsTest extends IntegrationTest {
         assertJsonEquals("openrtb2/huaweiads/banner1/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
     }
 
-
-    //todo: ifa is masked because coppa = 1, works when coppa = 0
     @Test
     public void testOpenrtb2AuctionBanner1WithoutUserext() throws IOException, JSONException {
         // given
@@ -78,9 +75,6 @@ public class HuaweiAdsTest extends IntegrationTest {
                 response,
                 List.of("huaweiads"));
     }
-
-    //todo: reworked originally stored request;
-    // alpha 2 country code and absent code doesn't work for the auction request, but Huawei bidder can handle it
 
     @Test
     public void testOpenrtb2AuctionBanner2() throws IOException, JSONException {
@@ -133,9 +127,7 @@ public class HuaweiAdsTest extends IntegrationTest {
                 List.of("huaweiads"));
     }
 
-    //todo: geo country should be present, but it has higher priority, so user's geo won't be used
     @Test
-    @Ignore
     public void testOpenrtb2AuctionBanner5UserGeo() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
@@ -170,7 +162,6 @@ public class HuaweiAdsTest extends IntegrationTest {
         assertJsonEquals("openrtb2/huaweiads/banner6_imei/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
     }
 
-    //todo: works only when coppa = 0
     @Test
     public void testOpenrtb2AuctionbannerAppPromotionType() throws IOException, JSONException {
         // given
@@ -213,7 +204,6 @@ public class HuaweiAdsTest extends IntegrationTest {
                 List.of("huaweiads"));
     }
 
-    //todo: works only when coppa = 0
     @Test
     public void testOpenrtb2AuctionBannerNotAppPromotionType() throws IOException, JSONException {
         // given
@@ -361,8 +351,6 @@ public class HuaweiAdsTest extends IntegrationTest {
                 List.of("huaweiads"));
     }
 
-    //todo: geo.country = "" not working, default country code has to be used, but privacy security enforcer blocks it
-    // and asset type was missed
     @Test
     public void testOpenrtb2AuctionNativeIncludeVideo() throws IOException, JSONException {
         // given
@@ -381,7 +369,6 @@ public class HuaweiAdsTest extends IntegrationTest {
         assertJsonEquals("openrtb2/huaweiads/native_include_video/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
     }
 
-    //todo: org.prebid.server.auction.BidResponseCreator.setAssetTypes sets asset types intentionally
     @Test
     public void testOpenrtb2AuctionNativeSingleImage() throws IOException, JSONException {
         // given
@@ -400,8 +387,6 @@ public class HuaweiAdsTest extends IntegrationTest {
         assertJsonEquals("openrtb2/huaweiads/native_single_image/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
     }
 
-
-    //todo: org.prebid.server.auction.BidResponseCreator.setAssetTypes sets asset types
     @Test
     public void testOpenrtb2AuctionNativeThreeImage() throws IOException, JSONException {
         // given
@@ -422,9 +407,6 @@ public class HuaweiAdsTest extends IntegrationTest {
                 response,
                 List.of("huaweiads"));
     }
-
-    //todo: geo.country = "" not working, default country code has to be used, but privacy security enforcer blocks it
-    // and the asset type was added
 
     @Test
     public void testOpenrtb2AuctionNativeThreeImageIncludeIcon() throws IOException, JSONException {

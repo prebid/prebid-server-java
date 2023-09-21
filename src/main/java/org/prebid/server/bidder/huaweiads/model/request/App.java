@@ -8,19 +8,15 @@ import lombok.Value;
 @Builder(toBuilder = true)
 public class App {
 
-    @JsonProperty("version")
     String version;
 
-    @JsonProperty("name")
     String name;
 
     @JsonProperty("pkgname")
     String pkgName;
 
-    @JsonProperty("lang")
     String lang;
 
-    @JsonProperty("country")
     String country;
 
 }

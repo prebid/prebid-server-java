@@ -39,6 +39,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -83,7 +84,6 @@ public class HuaweiAdmBuilder {
     }
 
     public HuaweiAdm buildVideo(AdsType adType, Content content, Video video) {
-        //todo: PBS Go doesn't have this validation for some reason
         if (adType == AdsType.AUDIO || adType == AdsType.SPLASH || adType == AdsType.UNKNOWN) {
             throw new PreBidException("openrtb video should correspond to huaweiads adtype: "
                     + "banner, interstitial, roll, rewarded or native");
@@ -97,7 +97,7 @@ public class HuaweiAdmBuilder {
         Integer adHeight = null;
         Integer adWidth = null;
 
-        final String clickUrl = getClickUrl(content);
+        final String clickUrl = getClickUrl(metaData, content.getInteractionType());
         final VideoAdm.VideoAdmBuilder videoAdmBuilder = VideoAdm.builder()
                 .adTitle(decode(metaData.getTitle()))
                 .adId(content.getContentId())
@@ -166,7 +166,6 @@ public class HuaweiAdmBuilder {
                         case VAST_ERROR -> errorTracking.add(getVastImpClickErrorTrackingUrls(urls, eventType));
                         case IMP -> dspImpTracking.add(getVastImpClickErrorTrackingUrls(urls, eventType));
                         case CLICK -> dspClickTracking.add(getVastImpClickErrorTrackingUrls(urls, eventType));
-
                     }
                 }
             }
@@ -207,35 +206,55 @@ public class HuaweiAdmBuilder {
 
     private String buildRewardedVideoPart(Content content, Integer adWidth, Integer adHeight, String clickUrl) {
         final MetaData metaData = content.getMetaData();
-
-        final RewardedVideoPartAdm.RewardedVideoPartAdmBuilder admBuilder = RewardedVideoPartAdm.builder()
-                .id(content.getContentId())
-                .adId(content.getContentId())
-                .clickUrl(clickUrl);
+        final String contentId = content.getContentId();
 
         final List<Icon> iconList = metaData.getIconList();
         final Icon firstIcon = CollectionUtils.isNotEmpty(iconList) ? iconList.get(0) : null;
         if (firstIcon != null && StringUtils.isNotBlank(firstIcon.getUrl())) {
-            final boolean isFormatDefined = HuaweiUtils.isFormatDefined(firstIcon.getWidth(), firstIcon.getHeight());
-            return admBuilder
-                    .staticImageUrl(firstIcon.getUrl())
-                    .staticImageHeight(isFormatDefined ? firstIcon.getHeight() : adHeight)
-                    .staticImageWidth(isFormatDefined ? firstIcon.getWidth() : adWidth)
-                    .build().toString();
+            return buildIconRewardedPart(contentId, clickUrl, adWidth, adHeight, firstIcon);
         }
 
         final List<ImageInfo> imageInfoList = metaData.getImageInfoList();
         final ImageInfo firstImage = CollectionUtils.isNotEmpty(imageInfoList) ? imageInfoList.get(0) : null;
         if (firstImage != null && StringUtils.isNotBlank(firstImage.getUrl())) {
-            final boolean isFormatDefined = HuaweiUtils.isFormatDefined(firstImage.getWidth(), firstImage.getHeight());
-            return admBuilder
-                    .staticImageUrl(firstImage.getUrl())
-                    .staticImageHeight(isFormatDefined ? firstImage.getHeight() : adHeight)
-                    .staticImageWidth(isFormatDefined ? firstImage.getWidth() : adWidth)
-                    .build().toString();
+            return buildImageRewardedPart(contentId, clickUrl, adWidth, adHeight, firstImage);
         }
 
         return StringUtils.EMPTY;
+    }
+
+    private static String buildIconRewardedPart(String contentId,
+                                                String clickUrl,
+                                                Integer adWidth,
+                                                Integer adHeight,
+                                                Icon firstIcon) {
+
+        final boolean isFormatDefined = HuaweiUtils.isFormatDefined(firstIcon.getWidth(), firstIcon.getHeight());
+        return RewardedVideoPartAdm.builder()
+                .id(contentId)
+                .adId(contentId)
+                .clickUrl(clickUrl)
+                .staticImageUrl(firstIcon.getUrl())
+                .staticImageHeight(isFormatDefined ? firstIcon.getHeight() : adHeight)
+                .staticImageWidth(isFormatDefined ? firstIcon.getWidth() : adWidth)
+                .build().toString();
+    }
+
+    private static String buildImageRewardedPart(String contentId,
+                                                 String clickUrl,
+                                                 Integer adWidth,
+                                                 Integer adHeight,
+                                                 ImageInfo firstImage) {
+
+        final boolean isFormatDefined = HuaweiUtils.isFormatDefined(firstImage.getWidth(), firstImage.getHeight());
+        return RewardedVideoPartAdm.builder()
+                .id(contentId)
+                .adId(contentId)
+                .clickUrl(clickUrl)
+                .staticImageUrl(firstImage.getUrl())
+                .staticImageHeight(isFormatDefined ? firstImage.getHeight() : adHeight)
+                .staticImageWidth(isFormatDefined ? firstImage.getWidth() : adWidth)
+                .build().toString();
     }
 
     private HuaweiAdm buildPicture(Content content) {
@@ -259,7 +278,7 @@ public class HuaweiAdmBuilder {
                 .imageInfoUrl(imageInfo.getUrl())
                 .height(imageInfo.getHeight())
                 .width(imageInfo.getWidth())
-                .clickUrl(getClickUrl(content))
+                .clickUrl(getClickUrl(metaData, content.getInteractionType()))
                 .dspImpTrackings(makeDspImpTrackings(content))
                 .dspClickTrackings(makeDspClickTrackings(content))
                 .build();
@@ -271,11 +290,9 @@ public class HuaweiAdmBuilder {
         return Stream.ofNullable(content.getMonitorList())
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .filter(monitor -> CollectionUtils.isNotEmpty(monitor.getUrlList())
-                        && MonitorEventType.of(monitor.getEventType()) == MonitorEventType.CLICK)
+                .filter(monitor -> MonitorEventType.of(monitor.getEventType()) == MonitorEventType.CLICK)
                 .map(Monitor::getUrlList)
                 .filter(Objects::nonNull)
-                //todo: maybe addAll?
                 .findFirst()
                 .map(list -> list.stream()
                         .filter(Objects::nonNull)
@@ -288,11 +305,9 @@ public class HuaweiAdmBuilder {
         return Stream.ofNullable(content.getMonitorList())
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .filter(monitor -> CollectionUtils.isNotEmpty(monitor.getUrlList())
-                        && MonitorEventType.of(monitor.getEventType()) == MonitorEventType.IMP)
+                .filter(monitor -> MonitorEventType.of(monitor.getEventType()) == MonitorEventType.IMP)
                 .map(Monitor::getUrlList)
                 .filter(Objects::nonNull)
-                //todo: maybe addAll?
                 .findFirst()
                 .map(list -> list.stream()
                         .map(tracking -> "<img height=\"1\" width=\"1\" src='" + tracking + "' >  ")
@@ -310,7 +325,7 @@ public class HuaweiAdmBuilder {
             throw new PreBidException("Content.MetaData is empty");
         }
 
-        final String clickUrl = getClickUrl(content);
+        final String clickUrl = getClickUrl(metaData, content.getInteractionType());
 
         final Request nativePayload = parseNativeRequest(xNative);
         final List<Asset> assets = Optional.ofNullable(nativePayload)
@@ -321,110 +336,57 @@ public class HuaweiAdmBuilder {
         Integer adWidth = null;
         final List<com.iab.openrtb.response.Asset> responseAssets = new ArrayList<>();
 
-        int imgIndex = 0;
-        int iconIndex = 0;
+        final Iterator<Icon> iconIterator = Stream.ofNullable(metaData.getIconList())
+                .flatMap(Collection::stream)
+                .iterator();
+        final Iterator<ImageInfo> imageIterator = Stream.ofNullable(metaData.getImageInfoList())
+                .flatMap(Collection::stream)
+                .iterator();
+
         for (Asset asset : assets) {
-            final com.iab.openrtb.response.Asset.AssetBuilder responseAssetBuilder =
-                    com.iab.openrtb.response.Asset.builder();
-            if (asset.getTitle() != null) {
-                final String text = decode(metaData.getTitle());
-                final TitleObject titleObject = TitleObject.builder().text(text).len(text.length()).build();
-                responseAssetBuilder.title(titleObject);
-            } else if (asset.getVideo() != null) {
-                final HuaweiAdm admVideo = buildVideo(adType, content, null);
-                //todo: video always overwrites format
+            final boolean isTitleAsset = asset.getTitle() != null;
+            final boolean isVideoAsset = !isTitleAsset && asset.getVideo() != null;
+            final boolean isImageAsset = !isVideoAsset && asset.getImg() != null;
+            final boolean isDataAsset = !isImageAsset && asset.getData() != null;
+
+            HuaweiAdm admVideo = null;
+            if (isVideoAsset) {
+                admVideo = buildVideo(adType, content, null);
                 adHeight = admVideo.getHeight();
                 adWidth = admVideo.getWidth();
-                final VideoObject videoObject = VideoObject.builder().vasttag(admVideo.getAdm()).build();
-                responseAssetBuilder.video(videoObject);
-            } else if (asset.getImg() != null) {
-                final Integer imageType = asset.getImg().getType();
-                final ImageObject.ImageObjectBuilder imgObjectBuilder = ImageObject.builder()
-                        //todo: can be overwritten by null
-                        .url(StringUtils.EMPTY)
-                        .type(imageType);
+            }
 
-                if (Objects.equals(imageType, IMAGE_ASSET_TYPE_ICON)) {
-                    final List<Icon> iconList = metaData.getIconList();
-                    if (iconList != null && iconList.size() > iconIndex) {
-                        imgObjectBuilder.url(iconList.get(iconIndex).getUrl());
-                        //todo: it might be inappropriate if the format is not defined
-                        imgObjectBuilder.w(iconList.get(iconIndex).getWidth());
-                        imgObjectBuilder.h(iconList.get(iconIndex).getHeight());
-                        iconIndex++;
-                    }
-                } else {
-                    final List<ImageInfo> imageInfoList = metaData.getImageInfoList();
-                    if (imageInfoList != null && imageInfoList.size() > imgIndex) {
-                        imgObjectBuilder.url(imageInfoList.get(imgIndex).getUrl());
-                        //todo: it might be inappropriate if the format is not defined
-                        imgObjectBuilder.w(imageInfoList.get(imgIndex).getWidth());
-                        imgObjectBuilder.h(imageInfoList.get(imgIndex).getHeight());
-                        imgIndex++;
-                    }
-                }
+            final com.iab.openrtb.response.Asset responseAsset = com.iab.openrtb.response.Asset.builder()
+                    .title(isTitleAsset ? buildTitleObject(metaData) : null)
+                    .video(isVideoAsset ? VideoObject.builder().vasttag(admVideo.getAdm()).build() : null)
+                    .img(isImageAsset ? buildImageObject(asset.getImg().getType(), iconIterator, imageIterator) : null)
+                    .data(isDataAsset ? buildDataObject(metaData, asset.getData().getType()) : null)
+                    .id(asset.getId())
+                    .build();
 
-                final ImageObject imageObject = imgObjectBuilder.build();
+            responseAssets.add(responseAsset);
 
+            if (isImageAsset) {
                 if (!HuaweiUtils.isFormatDefined(adWidth, adHeight)) {
-                    adHeight = imageObject.getH();
-                    adWidth = imageObject.getW();
-                }
-
-                responseAssetBuilder.img(imageObject);
-            } else if (asset.getData() != null) {
-                final boolean isDataAssetType = DATA_ASSET_DESC_TYPES.contains(asset.getData().getType());
-                final boolean isDataAssetCtaTextType = DATA_ASSET_CTA_TEXT_TYPE.equals(asset.getData().getType());
-
-                final String value = isDataAssetType
-                        ? metaData.getDescription()
-                        : isDataAssetCtaTextType
-                            ? metaData.getCta()
-                            : null;
-
-                final DataObject dataObject = DataObject.builder()
-                        .value(decode(value))
-                        .label(isDataAssetType ? "desc" : StringUtils.EMPTY)
-                        .type(isDataAssetCtaTextType ? DATA_ASSET_CTA_TEXT_TYPE : null)
-                        .build();
-                responseAssetBuilder.data(dataObject);
-            }
-
-            responseAssetBuilder.id(asset.getId());
-            responseAssets.add(responseAssetBuilder.build());
-        }
-
-        final List<String> clickTrackers = new ArrayList<>();
-        final List<EventTracker> eventTrackers = new ArrayList<>();
-        // dsp imp click tracking + imp click tracking
-        if (content.getMonitorList() != null) {
-            for (Monitor monitor : content.getMonitorList()) {
-                if (CollectionUtils.isNotEmpty(monitor.getUrlList())) {
-                    final MonitorEventType eventType = MonitorEventType.of(monitor.getEventType());
-                    switch (eventType) {
-                        case IMP -> eventTrackers.addAll(monitor.getUrlList().stream()
-                                .map(url -> EventTracker.builder()
-                                        .event(IMPRESSION_EVENT_TYPE)
-                                        .method(EVENT_TRACKING_IMAGE_METHOD)
-                                        .url(url)
-                                        .build())
-                                .toList());
-                        case CLICK -> clickTrackers.addAll(monitor.getUrlList());
-                    }
+                    adHeight = responseAsset.getImg().getH();
+                    adWidth = responseAsset.getImg().getW();
                 }
             }
         }
+
+        final String version = Optional.ofNullable(nativePayload)
+                .flatMap(payload -> HuaweiUtils.getIfNotBlank(payload.getVer()))
+                .orElse(DEFAULT_NATIVE_VERSION);
 
         final Response response = Response.builder()
-                .eventtrackers(eventTrackers)
+                .eventtrackers(buildEventTrackers(content))
                 .assets(responseAssets)
-                .link(Link.of(clickUrl, clickTrackers, null, null))
-                .ver(HuaweiUtils.getIfNotBlank(nativePayload.getVer()).orElse(DEFAULT_NATIVE_VERSION))
+                .link(Link.of(clickUrl, buildClickTrackers(content), null, null))
+                .ver(version)
                 .build();
 
         try {
             final String adm = mapper.mapper().writeValueAsString(response).replace("\n", "");
-            //todo: returns nullable width and height if no video or image present
             return HuaweiAdm.of(adm, adWidth, adHeight);
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage());
@@ -442,17 +404,97 @@ public class HuaweiAdmBuilder {
         }
     }
 
-    private String getClickUrl(Content content) {
-        final MetaData metaData = content.getMetaData();
+    private static TitleObject buildTitleObject(MetaData metaData) {
+        final String text = decode(metaData.getTitle());
+        return TitleObject.builder().text(text).len(text.length()).build();
+    }
+
+    private static ImageObject buildImageObject(Integer assetImageType,
+                                                Iterator<Icon> iconsIterators,
+                                                Iterator<ImageInfo> imageIterator) {
+        final ImageObject.ImageObjectBuilder imgObjectBuilder = ImageObject.builder()
+                .url(StringUtils.EMPTY)
+                .type(assetImageType);
+
+        if (Objects.equals(assetImageType, IMAGE_ASSET_TYPE_ICON)) {
+            if (iconsIterators.hasNext()) {
+                final Icon icon = iconsIterators.next();
+                imgObjectBuilder.url(icon.getUrl());
+                imgObjectBuilder.w(icon.getWidth());
+                imgObjectBuilder.h(icon.getHeight());
+            }
+        } else {
+            if (imageIterator.hasNext()) {
+                final ImageInfo image = imageIterator.next();
+                imgObjectBuilder.url(image.getUrl());
+                imgObjectBuilder.w(image.getWidth());
+                imgObjectBuilder.h(image.getHeight());
+            }
+        }
+
+        return imgObjectBuilder.build();
+    }
+
+    private static DataObject buildDataObject(MetaData metaData, Integer assetDataType) {
+        final boolean isDataAssetType = DATA_ASSET_DESC_TYPES.contains(assetDataType);
+        final boolean isDataAssetCtaTextType = DATA_ASSET_CTA_TEXT_TYPE.equals(assetDataType);
+
+        final String value = isDataAssetType
+                ? metaData.getDescription()
+                : isDataAssetCtaTextType
+                    ? metaData.getCta()
+                    : null;
+
+        return DataObject.builder()
+                .value(decode(value))
+                .type(isDataAssetCtaTextType ? DATA_ASSET_CTA_TEXT_TYPE : null)
+                .build();
+    }
+
+    private static List<String> buildClickTrackers(Content content) {
+        return Stream.ofNullable(content.getMonitorList())
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .filter(monitor -> CollectionUtils.isNotEmpty(monitor.getUrlList())
+                        && MonitorEventType.of(monitor.getEventType()) == MonitorEventType.CLICK)
+                .map(Monitor::getUrlList)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .toList();
+    }
+
+    private static List<EventTracker> buildEventTrackers(Content content) {
+        return Stream.ofNullable(content.getMonitorList())
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .filter(monitor -> CollectionUtils.isNotEmpty(monitor.getUrlList())
+                        && MonitorEventType.of(monitor.getEventType()) == MonitorEventType.IMP)
+                .map(Monitor::getUrlList)
+                .filter(Objects::nonNull)
+                .map(HuaweiAdmBuilder::getEventTrackers)
+                .flatMap(Collection::stream)
+                .toList();
+    }
+
+    private static List<EventTracker> getEventTrackers(List<String> urlList) {
+        return urlList.stream()
+                .map(url -> EventTracker.builder()
+                        .event(IMPRESSION_EVENT_TYPE)
+                        .method(EVENT_TRACKING_IMAGE_METHOD)
+                        .url(url)
+                        .build())
+                .toList();
+    }
+
+    private String getClickUrl(MetaData metaData, Integer interactionType) {
         final Optional<String> optionalIntent = HuaweiUtils.getIfNotBlank(metaData.getIntent())
                 .map(intent -> URLDecoder.decode(intent, StandardCharsets.UTF_8));
 
-        if (Objects.equals(content.getInteractionType(), APP_PROMOTION_INTERACTION_TYPE) && optionalIntent.isEmpty()) {
+        if (Objects.equals(interactionType, APP_PROMOTION_INTERACTION_TYPE) && optionalIntent.isEmpty()) {
             throw new PreBidException("content.MetaData.Intent in huaweiads response is empty "
                     + "when interactiontype is appPromotion");
         }
         return optionalIntent
-                //todo: why no decoding?
                 .or(() -> HuaweiUtils.getIfNotBlank(metaData.getClickUrl()))
                 .orElseThrow(() -> new PreBidException("content.MetaData.Intent and content.MetaData.ClickUrl "
                         + "in huaweiads response is empty"));

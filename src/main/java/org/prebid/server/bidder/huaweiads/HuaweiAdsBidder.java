@@ -49,7 +49,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Stream;
 
 public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
@@ -60,59 +59,34 @@ public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
     private static final String HUAWEI_ADX_API_VERSION = "3.4";
     private static final String DEFAULT_COUNTRY_CODE = "ZA";
     private static final String DEFAULT_BID_CURRENCY = "CNY";
-    private static final String CLOSE_COUNTRY = "1";
-    private static final Set<String> CHINESE_COUNTRY_CODES = Set.of("CN");
-    private static final Set<String> RUSSIAN_COUNTRY_CODES = Set.of("RU");
-    private static final Set<String> EUROPEAN_COUNTRY_CODES = Set.of(
-            "AX", "AL", "AD", "AU", "AT", "BE", "BA", "BG", "CA", "HR", "CY", "CZ",
-            "DK", "EE", "FO", "FI", "FR", "DE", "GI", "GR", "GL", "GG", "VA", "HU",
-            "IS", "IE", "IM", "IL", "IT", "JE", "YK", "LV", "LI", "LT", "LU", "MT",
-            "MD", "MC", "ME", "NL", "AN", "NZ", "NO", "PL", "PT", "RO", "MF", "VC",
-            "SM", "RS", "SX", "SK", "SI", "ES", "SE", "CH", "TR", "UA", "GB", "US",
-            "MK", "SJ", "BQ", "PM", "CW");
     private static final List<String> HUAWEIADS_DOMAIN = List.of("huaweiads");
 
     private final JacksonMapper mapper;
-    private final String endpointUrl;
-    private final String closeSiteSelectionByCountry;
-    private final String chineseEndpoint;
-    private final String russianEndpoint;
-    private final String europeanEndpoint;
-    private final String asianEndpoint;
     private final HuaweiAdSlotBuilder adSlotBuilder;
     private final HuaweiAppBuilder appBuilder;
     private final HuaweiDeviceBuilder deviceBuilder;
     private final HuaweiNetworkBuilder networkBuilder;
     private final HuaweiAdmBuilder admBuilder;
     private final CountryCodeResolver countryCodeResolver;
+    private final HuaweiEndpointResolver endpointResolver;
 
-    public HuaweiAdsBidder(String endpoint,
-                           String chineseEndpoint,
-                           String russianEndpoint,
-                           String europeanEndpoint,
-                           String asianEndpoint,
-                           String closeSiteSelectionByCountry,
-                           JacksonMapper mapper,
+    public HuaweiAdsBidder(JacksonMapper mapper,
                            HuaweiAdSlotBuilder adSlotBuilder,
                            HuaweiAppBuilder appBuilder,
                            HuaweiDeviceBuilder deviceBuilder,
                            HuaweiNetworkBuilder networkBuilder,
                            HuaweiAdmBuilder admBuilder,
-                           CountryCodeResolver countryCodeResolver) {
+                           CountryCodeResolver countryCodeResolver,
+                           HuaweiEndpointResolver endpointResolver) {
 
-        this.endpointUrl = HttpUtil.validateUrl(endpoint);
-        this.closeSiteSelectionByCountry = Objects.requireNonNull(closeSiteSelectionByCountry);
-        this.chineseEndpoint = HttpUtil.validateUrl(chineseEndpoint);
-        this.russianEndpoint = HttpUtil.validateUrl(russianEndpoint);
-        this.europeanEndpoint = HttpUtil.validateUrl(europeanEndpoint);
-        this.asianEndpoint = HttpUtil.validateUrl(asianEndpoint);
         this.mapper = Objects.requireNonNull(mapper);
         this.adSlotBuilder = Objects.requireNonNull(adSlotBuilder);
         this.appBuilder = Objects.requireNonNull(appBuilder);
         this.deviceBuilder = Objects.requireNonNull(deviceBuilder);
         this.networkBuilder = Objects.requireNonNull(networkBuilder);
         this.admBuilder = Objects.requireNonNull(admBuilder);
-        this.countryCodeResolver = countryCodeResolver;
+        this.countryCodeResolver = Objects.requireNonNull(countryCodeResolver);
+        this.endpointResolver = Objects.requireNonNull(endpointResolver);
     }
 
     @Override
@@ -136,7 +110,7 @@ public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
 
         final HttpRequest<HuaweiAdsRequest> httpRequest = HttpRequest.<HuaweiAdsRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(makeEndpointUrl(countryCode))
+                .uri(endpointResolver.resolve(countryCode))
                 .headers(makeHeaders(bidRequest, impExt))
                 .impIds(BidderUtil.impIds(bidRequest))
                 .body(mapper.encodeToBytes(huaweiAdsRequest))
@@ -187,7 +161,6 @@ public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
                 .app(appBuilder.build(bidRequest.getApp(), countryCode))
                 .device(deviceBuilder.build(bidRequest.getDevice(), bidRequest.getUser(), countryCode))
                 .network(networkBuilder.build(bidRequest.getDevice()))
-                //todo: does it make sense to extract making Regs, Geo and Consent?
                 .regs(makeRegs(bidRequest.getRegs()))
                 .geo(makeGeo(bidRequest.getDevice()))
                 .consent(makeConsent(bidRequest.getUser()))
@@ -211,22 +184,6 @@ public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
 
     private String makeConsent(User user) {
         return Optional.ofNullable(user).map(User::getExt).map(ExtUser::getConsent).orElse(null);
-    }
-
-    private String makeEndpointUrl(String countryCode) {
-        if (CLOSE_COUNTRY.equals(closeSiteSelectionByCountry)) {
-            return endpointUrl;
-        }
-
-        if (CHINESE_COUNTRY_CODES.contains(countryCode)) {
-            return chineseEndpoint;
-        } else if (RUSSIAN_COUNTRY_CODES.contains(countryCode)) {
-            return russianEndpoint;
-        } else if (EUROPEAN_COUNTRY_CODES.contains(countryCode)) {
-            return europeanEndpoint;
-        } else {
-            return asianEndpoint;
-        }
     }
 
     private static MultiMap makeHeaders(BidRequest bidRequest, ExtImpHuaweiAds extImp) {

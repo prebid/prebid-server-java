@@ -14,7 +14,7 @@
     {
       "bid": [
         {
-          "adm": "{\"ver\":\"1.2\",\"assets\":[{\"id\":101,\"title\":{\"text\":\"/test/\",\"len\":6}},{\"id\":102,\"img\":{\"type\":3,\"url\":\"http://image.jpg\",\"w\":720,\"h\":1280}},{\"id\":103,\"data\":{\"type\":2,\"value\":\"\",\"label\":\"desc\"}},{\"id\":105,\"data\":{\"type\":12,\"value\":\"install\",\"label\":\"\"}}],\"link\":{\"url\":\"https://ads.huawei.com/usermgtportal/home/index.html#/\",\"clicktrackers\":[\"http://test/click\"]},\"eventtrackers\":[{\"event\":1,\"method\":1,\"url\":\"http://test/imp\"}]}",
+          "adm": "{\"ver\":\"1.2\",\"assets\":[{\"id\":101,\"title\":{\"text\":\"/test/\",\"len\":6}},{\"id\":102,\"img\":{\"type\":3,\"url\":\"http://image.jpg\",\"w\":720,\"h\":1280}},{\"id\":103,\"data\":{\"type\":2,\"value\":\"\"}},{\"id\":105,\"data\":{\"type\":12,\"value\":\"install\"}}],\"link\":{\"url\":\"https://ads.huawei.com/usermgtportal/home/index.html#/\",\"clicktrackers\":[\"http://test/click\"]},\"eventtrackers\":[{\"event\":1,\"method\":1,\"url\":\"http://test/imp\"}]}",
           "adomain": [
             "huaweiads"
           ],

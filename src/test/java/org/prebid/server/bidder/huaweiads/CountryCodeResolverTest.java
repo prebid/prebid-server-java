@@ -31,6 +31,7 @@ public class CountryCodeResolverTest {
     public void before() {
         target = new CountryCodeResolver(countryCodeMapper);
         given(countryCodeMapper.mapToAlpha2("UKR")).willReturn("UA");
+        given(countryCodeMapper.mapMccToAlpha2("202")).willReturn("GR");
     }
 
     @Test

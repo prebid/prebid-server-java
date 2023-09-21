@@ -16,22 +16,17 @@ public class AdSlot30 {
     @JsonProperty("adtype")
     Integer adType;
 
-    @JsonProperty("test")
     Integer test;
 
     @JsonProperty("totalDuration")
     Integer totalDuration;
 
-    @JsonProperty("orientation")
     Integer orientation;
 
-    @JsonProperty("w")
     Integer w;
 
-    @JsonProperty("h")
     Integer h;
 
-    @JsonProperty("format")
     List<Format> format;
 
     @JsonProperty("detailedCreativeTypeList")

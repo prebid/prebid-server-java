@@ -10,10 +10,8 @@ import java.util.List;
 @Value
 public class MetaData {
 
-    @JsonProperty("title")
     String title;
 
-    @JsonProperty("description")
     String description;
 
     @JsonProperty("imageInfo")
@@ -25,7 +23,6 @@ public class MetaData {
     @JsonProperty("clickUrl")
     String clickUrl;
 
-    @JsonProperty("intent")
     String intent;
 
     @JsonProperty("videoInfo")
@@ -34,13 +31,11 @@ public class MetaData {
     @JsonProperty("apkInfo")
     ApkInfo apkInfo;
 
-    @JsonProperty("duration")
     Long duration;
 
     @JsonProperty("mediaFile")
     MediaFile mediaFile;
 
-    @JsonProperty("cta")
     String cta;
 
 }

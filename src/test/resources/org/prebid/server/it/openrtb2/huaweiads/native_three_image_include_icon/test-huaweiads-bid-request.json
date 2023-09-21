@@ -34,8 +34,6 @@
     "maker": "huawei",
     "belongCountry": "ZA"
   },
-  "geo": {
-  },
   "network": {
     "type": 0,
     "cellInfo": []

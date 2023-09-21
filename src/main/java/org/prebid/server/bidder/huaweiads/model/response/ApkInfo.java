@@ -6,7 +6,6 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class ApkInfo {
 
-    @JsonProperty("url")
     String url;
 
     @JsonProperty("fileSize")

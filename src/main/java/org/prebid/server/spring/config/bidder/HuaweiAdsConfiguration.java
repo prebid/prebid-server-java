@@ -11,6 +11,7 @@ import org.prebid.server.bidder.huaweiads.HuaweiAdmBuilder;
 import org.prebid.server.bidder.huaweiads.HuaweiAdsBidder;
 import org.prebid.server.bidder.huaweiads.HuaweiAppBuilder;
 import org.prebid.server.bidder.huaweiads.HuaweiDeviceBuilder;
+import org.prebid.server.bidder.huaweiads.HuaweiEndpointResolver;
 import org.prebid.server.bidder.huaweiads.HuaweiNetworkBuilder;
 import org.prebid.server.bidder.huaweiads.model.request.PkgNameConvert;
 import org.prebid.server.geolocation.CountryCodeMapper;
@@ -57,19 +58,21 @@ public class HuaweiAdsConfiguration {
                 .bidderCreator(config -> {
                     final ExtraInfo extraInfo = config.getExtraInfo();
                     return new HuaweiAdsBidder(
-                            config.getEndpoint(),
-                            extraInfo.getChineseEndpoint(),
-                            extraInfo.getRussianEndpoint(),
-                            extraInfo.getEuropeanEndpoint(),
-                            extraInfo.getAsianEndpoint(),
-                            extraInfo.getCloseSiteSelectionByCountry(),
                             mapper,
                             new HuaweiAdSlotBuilder(mapper),
                             new HuaweiAppBuilder(extraInfo.getPkgNameConvert()),
                             new HuaweiDeviceBuilder(mapper, new ClientTimeFormatter(clock)),
                             new HuaweiNetworkBuilder(),
                             new HuaweiAdmBuilder(mapper),
-                            new CountryCodeResolver(countryCodeMapper));
+                            new CountryCodeResolver(countryCodeMapper),
+                            new HuaweiEndpointResolver(
+                                    config.getEndpoint(),
+                                    extraInfo.getChineseEndpoint(),
+                                    extraInfo.getRussianEndpoint(),
+                                    extraInfo.getEuropeanEndpoint(),
+                                    extraInfo.getAsianEndpoint(),
+                                    extraInfo.getCloseSiteSelectionByCountry()
+                            ));
                 })
                 .assemble();
     }

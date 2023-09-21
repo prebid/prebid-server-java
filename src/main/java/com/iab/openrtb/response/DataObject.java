@@ -14,7 +14,5 @@ public class DataObject {
 
     String value;
 
-    String label;
-
     ObjectNode ext;
 }

@@ -25,9 +25,7 @@ public class VideoInfo {
     @JsonProperty("videoRatio")
     BigDecimal videoRatio;
 
-    @JsonProperty("width")
     Integer width;
 
-    @JsonProperty("height")
     Integer height;
 }

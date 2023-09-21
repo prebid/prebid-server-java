@@ -8,11 +8,11 @@ import lombok.Value;
 @Value
 public class Icon {
 
-    @JsonProperty("url")
     String url;
 
-    @JsonProperty("height")
     Integer height;
+
+    Integer width;
 
     @JsonProperty("fileSize")
     Long fileSize;
@@ -22,8 +22,5 @@ public class Icon {
 
     @JsonProperty("imageType")
     String imageType;
-
-    @JsonProperty("width")
-    Integer width;
 
 }

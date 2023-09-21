@@ -36,10 +36,7 @@
     "make": "huawei",
     "w": 1080,
     "ip": "152.193.6.74",
-    "pxratio": 23.01,
-    "geo": {
-      "country": "ZAF"
-    }
+    "pxratio": 23.01
   },
   "user": {
     "ext": {
@@ -55,6 +52,9 @@
         ]
       }
     }
+  },
+  "regs": {
+    "gdpr": 0
   },
   "ext": {
   }

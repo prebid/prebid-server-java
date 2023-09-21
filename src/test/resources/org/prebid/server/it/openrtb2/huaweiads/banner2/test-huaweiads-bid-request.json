@@ -1,7 +1,7 @@
 {
   "app": {
     "lang": "en",
-    "country": "ZA",
+    "country": "AE",
     "name": "API1.0Demo",
     "pkgname": "com.example.pkgname2",
     "version": "1.11"
@@ -24,7 +24,7 @@
     "language": "zh",
     "oaid": "oaid",
     "os": "android",
-    "localeCountry": "ZA",
+    "localeCountry": "AE",
     "pxratio": 3,
     "width": 360,
     "model": "LYA-AL00",
@@ -33,10 +33,8 @@
     "useragent": "ua",
     "version": "29",
     "maker": "HUAWEI",
-    "belongCountry": "ZA",
+    "belongCountry": "AE",
     "ip": "193.168.244.1"
-  },
-  "geo": {
   },
   "network": {
     "carrier": 99,

@@ -40,10 +40,7 @@
     "pxratio": 3,
     "mccmnc": "655-1",
     "carrier": "carrier",
-    "connectiontype": 1,
-    "geo": {
-      "country": "ARE"
-    }
+    "connectiontype": 1
   },
   "app": {
     "bundle": "com.example.p10",
@@ -52,6 +49,9 @@
     "publisher": {
       "id": "1001"
     }
+  },
+  "regs": {
+    "gdpr": 0
   },
   "user": {
     "gender": "O",

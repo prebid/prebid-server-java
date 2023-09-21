@@ -40,10 +40,7 @@
     "pxratio": 3,
     "mccmnc": "424-3",
     "carrier": "carrier",
-    "connectiontype": 1,
-    "geo": {
-      "country": "ZAF"
-    }
+    "connectiontype": 1
   },
   "app": {
     "bundle": "com.example.p10",
@@ -68,6 +65,9 @@
         ]
       }
     }
+  },
+  "regs": {
+    "gdpr": 0
   },
   "ext": {
   }

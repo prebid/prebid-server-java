@@ -26,9 +26,7 @@ public class Content {
     @JsonProperty("monitor")
     List<Monitor> monitorList;
 
-    @JsonProperty("cur")
     String cur;
 
-    @JsonProperty("price")
     BigDecimal price;
 }

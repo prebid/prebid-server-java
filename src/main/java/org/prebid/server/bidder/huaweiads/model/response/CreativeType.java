@@ -26,7 +26,7 @@ public enum CreativeType {
 
     public static CreativeType of(Integer type) {
         return Arrays.stream(values())
-                .filter(value -> Objects.equals(type, value.getType()))
+                .filter(value -> Objects.equals(type, value.type))
                 .findFirst()
                 .orElse(UNKNOWN);
     }

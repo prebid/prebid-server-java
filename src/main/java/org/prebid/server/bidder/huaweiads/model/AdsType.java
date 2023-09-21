@@ -32,7 +32,7 @@ public enum AdsType {
 
     public static AdsType ofTypeNumber(Integer typeNumber) {
         return Arrays.stream(values())
-                .filter(value -> Objects.equals(value.getType(), typeNumber))
+                .filter(value -> Objects.equals(value.type, typeNumber))
                 .findFirst()
                 .orElse(UNKNOWN);
     }

@@ -13,7 +13,6 @@ import com.iab.openrtb.response.Bid;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.Before;
 import org.junit.Rule;
@@ -62,7 +61,6 @@ import java.util.regex.Pattern;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
@@ -80,12 +78,6 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class HuaweiAdsBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test-url.org/";
-    private static final String CHINESE_ENDPOINT_URL = "https://test-url.org/china";
-    private static final String EUROPEAN_ENDPOINT_URL = "https://test-url.org/europe";
-    private static final String RUSSIAN_ENDPOINT_URL = "https://test-url.orc/russia";
-    private static final String ASIAN_ENDPOINT_URL = "https://test-url.org/asian";
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
     @Mock
@@ -100,6 +92,8 @@ public class HuaweiAdsBidderTest extends VertxTest {
     private HuaweiAdmBuilder admBuilder;
     @Mock
     private CountryCodeResolver countryCodeResolver;
+    @Mock
+    private HuaweiEndpointResolver endpointResolver;
 
     private HuaweiAdsBidder target;
 
@@ -110,20 +104,16 @@ public class HuaweiAdsBidderTest extends VertxTest {
     @Before
     public void setUp() {
         target = new HuaweiAdsBidder(
-                ENDPOINT_URL,
-                CHINESE_ENDPOINT_URL,
-                RUSSIAN_ENDPOINT_URL,
-                EUROPEAN_ENDPOINT_URL,
-                ASIAN_ENDPOINT_URL,
-                StringUtils.EMPTY,
                 jacksonMapper,
                 adSlotBuilder,
                 appBuilder,
                 deviceBuilder,
                 networkBuilder,
                 admBuilder,
-                countryCodeResolver);
+                countryCodeResolver,
+                endpointResolver);
 
+        given(endpointResolver.resolve(anyString())).willReturn("https://test-url.org/");
         given(countryCodeResolver.resolve(any(BidRequest.class))).willReturn(Optional.empty());
         given(adSlotBuilder.build(any(Imp.class), any(ExtImpHuaweiAds.class)))
                 .willAnswer(invocation -> AdSlot30.builder()
@@ -144,101 +134,6 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .willReturn(HuaweiAdm.of("video", 200, 200));
         given(admBuilder.buildNative(any(AdsType.class), any(Content.class), any(Native.class)))
                 .willReturn(HuaweiAdm.of("native", 300, 300));
-    }
-
-    @Test
-    public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HuaweiAdsBidder(
-                        "invalid_url",
-                        CHINESE_ENDPOINT_URL,
-                        RUSSIAN_ENDPOINT_URL,
-                        EUROPEAN_ENDPOINT_URL,
-                        ASIAN_ENDPOINT_URL,
-                        StringUtils.EMPTY,
-                        jacksonMapper,
-                        adSlotBuilder,
-                        appBuilder,
-                        deviceBuilder,
-                        networkBuilder,
-                        admBuilder,
-                        countryCodeResolver));
-    }
-
-    @Test
-    public void creationShouldFailOnInvalidChineseEndpointUrl() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HuaweiAdsBidder(
-                        ENDPOINT_URL,
-                        "invalid_url",
-                        RUSSIAN_ENDPOINT_URL,
-                        EUROPEAN_ENDPOINT_URL,
-                        ASIAN_ENDPOINT_URL,
-                        StringUtils.EMPTY,
-                        jacksonMapper,
-                        adSlotBuilder,
-                        appBuilder,
-                        deviceBuilder,
-                        networkBuilder,
-                        admBuilder,
-                        countryCodeResolver));
-    }
-
-    @Test
-    public void creationShouldFailOnInvalidRussianEndpointUrl() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HuaweiAdsBidder(
-                        ENDPOINT_URL,
-                        CHINESE_ENDPOINT_URL,
-                        "invalid_url",
-                        EUROPEAN_ENDPOINT_URL,
-                        ASIAN_ENDPOINT_URL,
-                        StringUtils.EMPTY,
-                        jacksonMapper,
-                        adSlotBuilder,
-                        appBuilder,
-                        deviceBuilder,
-                        networkBuilder,
-                        admBuilder,
-                        countryCodeResolver));
-    }
-
-    @Test
-    public void creationShouldFailOnInvalidEuropeanEndpointUrl() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HuaweiAdsBidder(
-                        ENDPOINT_URL,
-                        CHINESE_ENDPOINT_URL,
-                        RUSSIAN_ENDPOINT_URL,
-                        "invalid_url",
-                        ASIAN_ENDPOINT_URL,
-                        StringUtils.EMPTY,
-                        jacksonMapper,
-                        adSlotBuilder,
-                        appBuilder,
-                        deviceBuilder,
-                        networkBuilder,
-                        admBuilder,
-                        countryCodeResolver));
-    }
-
-    @Test
-    public void creationShouldFailOnInvalidAsianEndpointUrl() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new HuaweiAdsBidder(
-                        ENDPOINT_URL,
-                        CHINESE_ENDPOINT_URL,
-                        RUSSIAN_ENDPOINT_URL,
-                        EUROPEAN_ENDPOINT_URL,
-                        "invalid_url",
-                        StringUtils.EMPTY,
-                        jacksonMapper,
-                        adSlotBuilder,
-                        appBuilder,
-                        deviceBuilder,
-                        networkBuilder,
-                        admBuilder,
-                        countryCodeResolver));
     }
 
     @Test
@@ -597,113 +492,6 @@ public class HuaweiAdsBidderTest extends VertxTest {
                         .isEqualTo(expectedRequest))
                 .satisfies(request -> assertThat(request.getBody())
                         .isEqualTo(jacksonMapper.encodeToBytes(expectedRequest)));
-        assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnDefaultEndpointWhenRequestTreatedAsFromCloseCountry() {
-        // given
-        target = new HuaweiAdsBidder(
-                ENDPOINT_URL,
-                CHINESE_ENDPOINT_URL,
-                RUSSIAN_ENDPOINT_URL,
-                EUROPEAN_ENDPOINT_URL,
-                ASIAN_ENDPOINT_URL,
-                "1",
-                jacksonMapper,
-                adSlotBuilder,
-                appBuilder,
-                deviceBuilder,
-                networkBuilder,
-                admBuilder,
-                countryCodeResolver);
-
-        // when
-        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = target.makeHttpRequests(givenBidRequest(identity()));
-
-        // then
-        assertThat(result.getValue()).hasSize(1).first()
-                .satisfies(request -> assertThat(request.getUri()).isEqualTo(ENDPOINT_URL));
-        assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnChineseEndpointWhenCountryComesFromChina() {
-        // given
-        given(countryCodeResolver.resolve(any(BidRequest.class))).willReturn(Optional.of("CN"));
-        final BidRequest bidRequest = givenBidRequest(identity())
-                .toBuilder()
-                .device(com.iab.openrtb.request.Device.builder()
-                        .geo(com.iab.openrtb.request.Geo.builder().country("CHN").build())
-                        .build())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1).first()
-                .satisfies(request -> assertThat(request.getUri()).isEqualTo(CHINESE_ENDPOINT_URL));
-        assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnRussianEndpointWhenCountryComesFromrussia() {
-        // given
-        given(countryCodeResolver.resolve(any(BidRequest.class))).willReturn(Optional.of("RU"));
-        final BidRequest bidRequest = givenBidRequest(identity())
-                .toBuilder()
-                .device(com.iab.openrtb.request.Device.builder()
-                        .geo(com.iab.openrtb.request.Geo.builder().country("RUS").build())
-                        .build())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1).first()
-                .satisfies(request -> assertThat(request.getUri()).isEqualTo(RUSSIAN_ENDPOINT_URL));
-        assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnEuropeanEndpointWhenCountryComesFromUkraine() {
-        // given
-        given(countryCodeResolver.resolve(any(BidRequest.class))).willReturn(Optional.of("UA"));
-        final BidRequest bidRequest = givenBidRequest(identity())
-                .toBuilder()
-                .device(com.iab.openrtb.request.Device.builder()
-                        .geo(com.iab.openrtb.request.Geo.builder().country("UKR").build())
-                        .build())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1).first()
-                .satisfies(request -> assertThat(request.getUri()).isEqualTo(EUROPEAN_ENDPOINT_URL));
-        assertThat(result.getErrors()).isEmpty();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnAsianEndpointWhenCountryComesFromJapan() {
-        // given
-        given(countryCodeResolver.resolve(any(BidRequest.class))).willReturn(Optional.of("JP"));
-        final BidRequest bidRequest = givenBidRequest(identity())
-                .toBuilder()
-                .device(com.iab.openrtb.request.Device.builder()
-                        .geo(com.iab.openrtb.request.Geo.builder().country("JPN").build())
-                        .build())
-                .build();
-
-        // when
-        final Result<List<HttpRequest<HuaweiAdsRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1).first()
-                .satisfies(request -> assertThat(request.getUri()).isEqualTo(ASIAN_ENDPOINT_URL));
         assertThat(result.getErrors()).isEmpty();
     }
 
