@@ -78,7 +78,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
                 validateImp(imp);
                 final ExtImpRichaudience extImp = parseImpExt(imp);
                 final BidRequest modifiedBidRequest = makeRequest(request, imp, extImp);
-                httpRequests.add(makeHttpRequest(modifiedBidRequest, Set.of(imp.getId())));
+                httpRequests.add(makeHttpRequest(modifiedBidRequest, Collections.singleton(imp.getId())));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -135,7 +135,7 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
         final boolean isTest = BooleanUtils.isTrue(extImp.getTest());
 
         return request.toBuilder()
-                .imp(List.of(modifiedImp))
+                .imp(Collections.singletonList(modifiedImp))
                 .site(modifiedSite)
                 .app(modifiedApp)
                 .test(isTest ? BID_TEST_REQUEST : null)
@@ -225,7 +225,6 @@ public class RichaudienceBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(seatBid -> seatBid.getBid().stream())
                 .filter(Objects::nonNull)
-                //todo: is it fine to return a bid with unknown bid type? (as the PBS Go does)
                 .filter(bid -> impMap.containsKey(bid.getImpid()))
                 .map(bid -> makeBid(bidResponse, impMap, bid))
                 .toList();
