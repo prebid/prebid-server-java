@@ -95,8 +95,8 @@ class BidRequest {
 
     @JsonIgnore
     void setAccountId(String accountId) {
-        if ((!site && !app) || (site && app)) {
-            throw new IllegalStateException("Either site or app should be defined")
+        if ((!dooh && !site && !app) || (site && app) || (dooh && site) || (app && dooh)) {
+            throw new IllegalStateException("Either site, app or dooh should be defined")
         }
 
         if (site) {
@@ -104,11 +104,16 @@ class BidRequest {
                 site.publisher = new Publisher()
             }
             site.publisher.id = accountId
-        } else {
+        } else if (app) {
             if (!app.publisher) {
                 app.publisher = new Publisher()
             }
             app.publisher.id = accountId
+        } else {
+            if (!dooh.publisher) {
+                dooh.publisher = new Publisher()
+            }
+            dooh.publisher.id = accountId
         }
     }
 
