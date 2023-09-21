@@ -20,6 +20,7 @@ server:
     enabled: true
     port: 8080
     server-instances: 1
+  idle-timeout: 10
 admin:
   port: 8060
 admin-endpoints:
