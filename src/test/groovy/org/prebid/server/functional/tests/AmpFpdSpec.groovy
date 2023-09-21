@@ -19,6 +19,7 @@ import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.RepeatUntilFailure
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
@@ -172,7 +173,8 @@ class AmpFpdSpec extends BaseSpec {
 
     def "PBS should emit error when targeting field is invalid"() {
         given: "AMP request with invalid targeting"
-        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString, targeting: PBSUtils.randomString)
+        def invalidTargeting = "InvalidTargeting"
+        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString, targeting: invalidTargeting)
 
         and: "Stored request with FPD fields"
         def ampStoredRequest = BidRequest.getDefaultBidRequest(SITE)
@@ -188,7 +190,7 @@ class AmpFpdSpec extends BaseSpec {
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == BAD_REQUEST.code()
         assert exception.responseBody.startsWith("Invalid request format: " +
-                "Error reading targeting json Unrecognized token '${ampRequest.targeting}': was expecting")
+                "Error reading targeting json Unrecognized token '$invalidTargeting': was expecting")
     }
 
     def "PBS shouldn't populate FPD field via targeting when targeting field is absent"() {
