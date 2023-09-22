@@ -38,11 +38,10 @@ public class HttpServerConfiguration {
     @Qualifier("router")
     private Router router;
 
-    @Value("#{'${http.port:${server.http.port}}'}")
+    @Value("${server.http.port}")
     private Integer httpPort;
 
-    // TODO: remove support for properties with http prefix after transition period
-    @Value("#{'${vertx.http-server-instances:${server.http.server-instances}}'}")
+    @Value("${server.http.server-instances}")
     private Integer httpServerNum;
 
     @PostConstruct
