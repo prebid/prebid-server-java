@@ -39,8 +39,11 @@ import org.prebid.server.handler.OptoutHandler;
 import org.prebid.server.handler.SetuidHandler;
 import org.prebid.server.handler.StatusHandler;
 import org.prebid.server.handler.VtrackHandler;
+import org.prebid.server.handler.info.filters.BaseOnlyBidderInfoFilterStrategy;
 import org.prebid.server.handler.info.BidderDetailsHandler;
+import org.prebid.server.handler.info.filters.BidderInfoFilterStrategy;
 import org.prebid.server.handler.info.BiddersHandler;
+import org.prebid.server.handler.info.filters.EnabledOnlyBidderInfoFilterStrategy;
 import org.prebid.server.handler.openrtb2.AmpHandler;
 import org.prebid.server.handler.openrtb2.VideoHandler;
 import org.prebid.server.health.HealthChecker;
@@ -372,9 +375,14 @@ public class WebConfiguration {
         return new BidderParamHandler(bidderParamValidator);
     }
 
+    //todo: strategies can be defined as bean in order to loose coupling even more
     @Bean
     BiddersHandler biddersHandler(BidderCatalog bidderCatalog, JacksonMapper mapper) {
-        return new BiddersHandler(bidderCatalog, mapper);
+        final List<BidderInfoFilterStrategy> bidderInfoFilterStrategies = List.of(
+                new EnabledOnlyBidderInfoFilterStrategy(bidderCatalog),
+                new BaseOnlyBidderInfoFilterStrategy(bidderCatalog));
+
+        return new BiddersHandler(bidderCatalog, bidderInfoFilterStrategies, mapper);
     }
 
     @Bean
