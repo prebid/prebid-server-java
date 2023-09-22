@@ -31,6 +31,7 @@ import static org.prebid.server.functional.model.request.auction.DistributionCha
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
@@ -535,6 +536,7 @@ class BidderParamsSpec extends BaseSpec {
         mediaType                       | bidRequest
         VIDEO.value                     | BidRequest.getDefaultBidRequest(DOOH)
         NATIVE.value                    | BidRequest.getDefaultBidRequest(DOOH)
+        AUDIO.value                    | BidRequest.getDefaultBidRequest(DOOH)
         BANNER.value                    | BidRequest.getDefaultVideoRequest(DOOH)
         "${BANNER}, ${VIDEO}" as String | BidRequest.getDefaultBidRequest(DOOH).tap {imp[0] = Imp.getDefaultImpression(NATIVE)}
     }
@@ -562,6 +564,7 @@ class BidderParamsSpec extends BaseSpec {
         mediaType | bidRequest
         BANNER    | BidRequest.getDefaultBidRequest(DOOH).tap { imp << Imp.getDefaultImpression(VIDEO) }
         VIDEO     | BidRequest.getDefaultVideoRequest(DOOH).tap { imp << Imp.getDefaultImpression(NATIVE) }
+        AUDIO     | BidRequest.getDefaultAudioRequest(DOOH).tap { imp << Imp.getDefaultImpression(NATIVE) }
     }
 
     def "PBS should return empty seatBit when filter-imp-media-type = true, request.imp doesn't contain supported media type"() {
