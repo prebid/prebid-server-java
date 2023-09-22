@@ -78,14 +78,14 @@ public class WebConfiguration {
     @Autowired
     private Vertx vertx;
 
-    @Bean // TODO: remove support for properties with http prefix after transition period
+    @Bean
     HttpServerOptions httpServerOptions(
-            @Value("#{'${http.max-headers-size:${server.max-headers-size:}}'}") int maxHeaderSize,
-            @Value("#{'${http.max-initial-line-length:${server.max-initial-line-length:}}'}") int maxInitialLineLength,
-            @Value("#{'${http.ssl:${server.ssl:}}'}") boolean ssl,
-            @Value("#{'${http.jks-path:${server.jks-path:}}'}") String jksPath,
-            @Value("#{'${http.jks-password:${server.jks-password:}}'}") String jksPassword,
-            @Value("#{'${http.idle-timeout:${server.idle-timeout}}'}") int idleTimeout,
+            @Value("${server.max-headers-size}") int maxHeaderSize,
+            @Value("${server.max-initial-line-length}") int maxInitialLineLength,
+            @Value("${server.ssl}") boolean ssl,
+            @Value("${server.jks-path}") String jksPath,
+            @Value("${server.jks-password}") String jksPassword,
+            @Value("${server.idle-timeout}") int idleTimeout,
             @Value("${server.enable-quickack:#{null}}") Optional<Boolean> enableQuickAck,
             @Value("${server.enable-reuseport:#{null}}") Optional<Boolean> enableReusePort) {
 
