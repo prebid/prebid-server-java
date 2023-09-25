@@ -13,9 +13,7 @@ class InfoBiddersSpec extends BaseSpec {
         assert response == ["generic"]
 
         where:
-        enabledOnly << [PBSUtils.getRandomCase("true"),
-                        PBSUtils.getRandomCase("true"),
-                        PBSUtils.getRandomCase("true")]
+        enabledOnly << (1..3).collect { PBSUtils.getRandomCase("true")}
     }
 
     def "PBS should get info about all bidders when enabledOnly = #enabledOnly"() {
@@ -26,9 +24,7 @@ class InfoBiddersSpec extends BaseSpec {
         assert response.size() > 1
 
         where:
-        enabledOnly << [PBSUtils.getRandomCase("false"),
-                        PBSUtils.getRandomCase("false"),
-                        PBSUtils.getRandomCase("false")]
+        enabledOnly << (1..3).collect { PBSUtils.getRandomCase("false")}
     }
 
     def "PBS should get info about all bidders when enabledonly isn't passed"() {
@@ -60,9 +56,7 @@ class InfoBiddersSpec extends BaseSpec {
         assert response.size() > 1
 
         where:
-        baseAdaptersOnly << [PBSUtils.getRandomCase("true"),
-                             PBSUtils.getRandomCase("true"),
-                             PBSUtils.getRandomCase("true")]
+        baseAdaptersOnly << (1..3).collect { PBSUtils.getRandomCase("true")}
     }
 
     def "PBS should get info about all bidders when baseAdaptersOnly = #baseAdaptersOnly"() {
@@ -73,9 +67,7 @@ class InfoBiddersSpec extends BaseSpec {
         assert response.size() > 1
 
         where:
-        baseAdaptersOnly << [PBSUtils.getRandomCase("false"),
-                             PBSUtils.getRandomCase("false"),
-                             PBSUtils.getRandomCase("false")]
+        baseAdaptersOnly << (1..3).collect { PBSUtils.getRandomCase("false")}
     }
 
     def "PBS should get info only about base bidders without aliases when baseAdaptersOnly = #baseAdaptersOnly"() {
