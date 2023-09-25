@@ -2,13 +2,14 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.IgnoreRest
 
 class InfoBiddersSpec extends BaseSpec {
 
+    private static final String baseAdaptersOnly = "baseAdaptersOnly"
+
     def "PBS should get info about active bidders when enabledOnly = #enabledOnly"() {
         when: "PBS processes bidders info request"
-        def response = defaultPbsService.sendInfoEnabledOnlyBiddersRequest(enabledOnly)
+        def response = defaultPbsService.sendInfoBiddersRequest(["enabledonly": enabledOnly])
 
         then: "Response should contain only generic bidder"
         assert response == ["generic"]
@@ -19,7 +20,7 @@ class InfoBiddersSpec extends BaseSpec {
 
     def "PBS should get info about all bidders when enabledOnly = #enabledOnly"() {
         when: "PBS processes bidders info request"
-        def response = defaultPbsService.sendInfoEnabledOnlyBiddersRequest(enabledOnly)
+        def response = defaultPbsService.sendInfoBiddersRequest(["enabledonly": enabledOnly])
 
         then: "Response should contain info about all bidders"
         assert response.size() > 1
@@ -38,7 +39,7 @@ class InfoBiddersSpec extends BaseSpec {
 
     def "PBS should return error when enabledOnly is incorrect"() {
         when: "PBS processes bidders info request"
-        defaultPbsService.sendInfoEnabledOnlyBiddersRequest(enabledOnly)
+        defaultPbsService.sendInfoBiddersRequest(["enabledonly": enabledOnly])
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
@@ -51,7 +52,7 @@ class InfoBiddersSpec extends BaseSpec {
 
     def "PBS should get info only about base bidders when baseAdaptersOnly = #baseAdaptersOnly"() {
         when: "PBS processes bidders info request"
-        def response = defaultPbsService.sendInfoBaseAdaptersOnlyBiddersRequest(baseAdaptersOnly)
+        def response = defaultPbsService.sendInfoBiddersRequest([baseAdaptersOnly: baseAdaptersOnly])
 
         then: "Response should contain info about base bidders only"
         assert response.size() > 1
@@ -65,7 +66,7 @@ class InfoBiddersSpec extends BaseSpec {
 
     def "PBS should get info about all bidders when baseAdaptersOnly = #baseAdaptersOnly"() {
         when: "PBS processes bidders info request"
-        def response = defaultPbsService.sendInfoBaseAdaptersOnlyBiddersRequest(baseAdaptersOnly)
+        def response = defaultPbsService.sendInfoBiddersRequest([baseAdaptersOnly: baseAdaptersOnly])
 
         then: "Response should contain info about all bidders"
         assert response.size() > 1
@@ -79,7 +80,7 @@ class InfoBiddersSpec extends BaseSpec {
 
     def "PBS should return error when baseAdaptersOnly is incorrect"() {
         when: "PBS processes bidders info request"
-        defaultPbsService.sendInfoBaseAdaptersOnlyBiddersRequest(baseAdaptersOnly)
+        defaultPbsService.sendInfoBiddersRequest([baseAdaptersOnly: baseAdaptersOnly])
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
