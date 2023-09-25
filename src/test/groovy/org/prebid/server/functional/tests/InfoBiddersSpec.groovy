@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 
 class InfoBiddersSpec extends BaseSpec {
 
@@ -55,6 +56,9 @@ class InfoBiddersSpec extends BaseSpec {
         then: "Response should contain info about base bidders only"
         assert response.size() > 1
 
+        and: "Response shouldn't contain generic alias"
+        assert !response.contains("genericAlias")
+
         where:
         baseAdaptersOnly << (1..3).collect { PBSUtils.getRandomCase("true") }
     }
@@ -66,22 +70,11 @@ class InfoBiddersSpec extends BaseSpec {
         then: "Response should contain info about all bidders"
         assert response.size() > 1
 
+        and: "Response should contain generic alias"
+        assert response.contains("genericAlias")
+
         where:
         baseAdaptersOnly << (1..3).collect { PBSUtils.getRandomCase("false") }
-    }
-
-    def "PBS should get info only about base bidders without aliases when baseAdaptersOnly = #baseAdaptersOnly"() {
-        given: "PBS config with additional aliases for generic"
-        def pbsService = pbsServiceFactory.getService(["adapters.generic.aliases.anyAliases.enabled": "true"])
-
-        when: "PBS processes bidders info request"
-        def response = pbsService.sendInfoBaseAdaptersOnlyBiddersRequest("true")
-
-        then: "Response should contain info about all base bidders only"
-        assert response.size() > 1
-
-        and: "Response shouldn't contain any aliases"
-        assert !response.contains("anyAliases")
     }
 
     def "PBS should return error when baseAdaptersOnly is incorrect"() {
