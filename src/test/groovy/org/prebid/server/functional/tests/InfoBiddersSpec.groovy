@@ -85,7 +85,7 @@ class InfoBiddersSpec extends BaseSpec {
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 400
-        assert exception.responseBody == "Invalid value for 'baseAdaptersOnly' query param, must be of boolean type"
+        assert exception.responseBody == "Invalid value for 'baseadaptersonly' query param, must be of boolean type"
 
         where:
         baseAdaptersOnly << [PBSUtils.randomString, "", PBSUtils.randomNumber as String]
