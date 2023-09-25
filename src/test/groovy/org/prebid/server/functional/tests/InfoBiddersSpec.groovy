@@ -7,24 +7,28 @@ class InfoBiddersSpec extends BaseSpec {
 
     def "PBS should get info about active bidders when enabledOnly = #enabledOnly"() {
         when: "PBS processes bidders info request"
-        def response = defaultPbsService.sendInfoBiddersRequest(enabledOnly)
+        def response = defaultPbsService.sendInfoEnabledOnlyBiddersRequest(enabledOnly)
 
         then: "Response should contain only generic bidder"
         assert response == ["generic"]
 
         where:
-        enabledOnly << ["true", "True", "truE"]
+        enabledOnly << [PBSUtils.getRandomCase("true"),
+                        PBSUtils.getRandomCase("true"),
+                        PBSUtils.getRandomCase("true")]
     }
 
     def "PBS should get info about all bidders when enabledOnly = #enabledOnly"() {
         when: "PBS processes bidders info request"
-        def response = defaultPbsService.sendInfoBiddersRequest(enabledOnly)
+        def response = defaultPbsService.sendInfoEnabledOnlyBiddersRequest(enabledOnly)
 
         then: "Response should contain info about all bidders"
         assert response.size() > 1
 
         where:
-        enabledOnly << ["false", "False", "falsE"]
+        enabledOnly << [PBSUtils.getRandomCase("false"),
+                        PBSUtils.getRandomCase("false"),
+                        PBSUtils.getRandomCase("false")]
     }
 
     def "PBS should get info about all bidders when enabledonly isn't passed"() {
@@ -37,7 +41,7 @@ class InfoBiddersSpec extends BaseSpec {
 
     def "PBS should return error when enabledOnly is incorrect"() {
         when: "PBS processes bidders info request"
-        defaultPbsService.sendInfoBiddersRequest(enabledOnly)
+        defaultPbsService.sendInfoEnabledOnlyBiddersRequest(enabledOnly)
 
         then: "Request should fail with error"
         def exception = thrown(PrebidServerException)
@@ -46,5 +50,45 @@ class InfoBiddersSpec extends BaseSpec {
 
         where:
         enabledOnly << [PBSUtils.randomString, ""]
+    }
+
+    def "PBS should get info only about base bidders when baseAdaptersOnly = #baseAdaptersOnly"() {
+        when: "PBS processes bidders info request"
+        def response = defaultPbsService.sendInfoBaseAdaptersOnlyBiddersRequest(baseAdaptersOnly)
+
+        then: "Response should contain info about base bidders only"
+        assert response.size() > 1
+
+        where:
+        baseAdaptersOnly << [PBSUtils.getRandomCase("true"),
+                             PBSUtils.getRandomCase("true"),
+                             PBSUtils.getRandomCase("true")]
+    }
+
+    def "PBS should get info about all bidders when baseAdaptersOnly = #baseAdaptersOnly"() {
+        when: "PBS processes bidders info request"
+        def response = defaultPbsService.sendInfoBaseAdaptersOnlyBiddersRequest(baseAdaptersOnly)
+
+        then: "Response should contain info about all bidders"
+        assert response.size() > 1
+
+        where:
+        baseAdaptersOnly << [PBSUtils.getRandomCase("false"),
+                             PBSUtils.getRandomCase("false"),
+                             PBSUtils.getRandomCase("false")]
+    }
+
+    def "PBS should get info only about base bidders without aliases when baseAdaptersOnly = #baseAdaptersOnly"() {
+        given: "PBS config with additional aliases for generic"
+        def pbsService = pbsServiceFactory.getService(["adapters.generic.aliases.anyAliases.enabled": "true"])
+
+        when: "PBS processes bidders info request"
+        def response = pbsService.sendInfoBaseAdaptersOnlyBiddersRequest("true")
+
+        then: "Response should contain info about all base bidders only"
+        assert response.size() > 1
+
+        and: "Response shouldn't contain any aliases"
+        assert !response.contains("anyAliases")
     }
 }

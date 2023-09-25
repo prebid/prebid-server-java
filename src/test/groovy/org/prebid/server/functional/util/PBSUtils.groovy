@@ -53,7 +53,7 @@ class PBSUtils implements ObjectMapperWrapper {
         roundDecimal(getRandomDecimal(floorMin, floorMax), 2)
     }
 
-    static def randomizeCase(String string) {
+    static def getRandomCase(String string) {
         string.toCharArray().collect {
             def number = getRandomNumber(0, 1)
             if (number == 0) {
