@@ -42,7 +42,7 @@ public class BidderParamValidator {
      * Validates the {@link JsonNode} input parameter against bidder's JSON-schema
      */
     public Set<String> validate(String bidder, JsonNode jsonNode) {
-        return bidderSchemas.get(bidder).validate(jsonNode).stream()
+        return bidderSchemas.get(bidder.toLowerCase()).validate(jsonNode).stream()
                 .map(ValidationMessage::getMessage)
                 .collect(Collectors.toSet());
     }
@@ -76,8 +76,9 @@ public class BidderParamValidator {
      * schema directory parameter that defines the root directory for files containing schemas. By convention the name
      * of each schema file same as corresponding bidder name.
      */
-    public static BidderParamValidator create(
-            BidderCatalog bidderCatalog, String schemaDirectory, JacksonMapper mapper) {
+    public static BidderParamValidator create(BidderCatalog bidderCatalog,
+                                              String schemaDirectory,
+                                              JacksonMapper mapper) {
 
         Objects.requireNonNull(bidderCatalog);
         Objects.requireNonNull(schemaDirectory);
@@ -93,7 +94,9 @@ public class BidderParamValidator {
 
     private static Map<String, JsonSchema> toBidderSchemas(Map<String, JsonNode> bidderRawSchemas) {
         return bidderRawSchemas.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> toBidderSchema(e.getValue(), e.getKey())));
+                .collect(Collectors.toMap(
+                        entry -> entry.getKey().toLowerCase(),
+                        e -> toBidderSchema(e.getValue(), e.getKey())));
     }
 
     private static String toSchemas(Map<String, JsonNode> bidderRawSchemas, JacksonMapper mapper) {

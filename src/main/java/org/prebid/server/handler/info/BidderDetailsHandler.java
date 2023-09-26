@@ -50,7 +50,9 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
 
         return Stream.of(nameToInfo, allToInfos)
                 .flatMap(map -> map.entrySet().stream())
-                .collect(Collectors.toMap(Map.Entry::getKey, map -> mapper.encodeToString(map.getValue())));
+                .collect(Collectors.toMap(
+                        entry -> entry.getKey().toLowerCase(),
+                        map -> mapper.encodeToString(map.getValue())));
     }
 
     private ObjectNode bidderNode(BidderCatalog bidderCatalog, String name) {
@@ -67,11 +69,12 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
         final String bidderName = routingContext.request().getParam(BIDDER_NAME_PARAM);
         final String endpoint = "%s/%s".formatted(Endpoint.info_bidders.value(), bidderName);
 
-        if (bidderInfos.containsKey(bidderName)) {
+        final String bidderInfo = bidderInfos.get(bidderName.toLowerCase());
+        if (bidderInfo != null) {
             HttpUtil.executeSafely(routingContext, endpoint,
                     response -> response
                             .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                            .end(bidderInfos.get(bidderName)));
+                            .end(bidderInfo));
         } else {
             HttpUtil.executeSafely(routingContext, endpoint,
                     response -> response
