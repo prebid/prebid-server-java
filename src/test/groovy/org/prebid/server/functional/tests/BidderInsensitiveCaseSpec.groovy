@@ -18,6 +18,7 @@ import org.prebid.server.functional.model.request.auction.Uid
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtPrebid
+import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
@@ -113,10 +114,8 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
         }
 
         and: "Bidder request shouldn't contain imp[0].ext.rp"
-        bidderRequest.each {
-            verifyAll(it) {
-                !imp[0].ext.rp
-            }
+        verifyAll(bidderRequest) {
+            !imp[0].ext.rp
         }
 
         where:
@@ -323,7 +322,8 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
 
         and: "Response should contain error"
         assert response.ext?.warnings[ErrorType.GENERIC_CAMEL_CASE]*.code == [2]
-        assert response.ext?.warnings[ErrorType.GENERIC_CAMEL_CASE]*.message == ["Bidder does not support any media types."]
+        assert response.ext?.warnings[ErrorType.GENERIC_CAMEL_CASE]*.message ==
+                ["Bidder does not support any media types."]
     }
 
     def "PBS should respond responsetimemillis with same bidder name which bidder name came in request with another case strategy"() {
@@ -356,5 +356,18 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
 
         then: "Bidder request should contain http calls"
         assert response.ext?.debug?.httpcalls[GENERIC_CAMEL_CASE.value]
+    }
+
+    def "PBS cookie sync request shouldn't reflect error when request bidder in another case strategy"() {
+        given: "Default cookie sync request"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            bidders = [GENERIC_CAMEL_CASE]
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = defaultPbsService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should return requested bidder"
+        assert response.getBidderUserSync(GENERIC_CAMEL_CASE)
     }
 }
