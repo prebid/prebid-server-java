@@ -6,7 +6,6 @@ import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.model.UidsCookieUpdateResult;
@@ -20,12 +19,12 @@ import org.prebid.server.util.HttpUtil;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * Contains logic for obtaining UIDs from the request and actualizing them.
@@ -193,8 +192,10 @@ public class UidsCookieService {
      */
     private Map<String, UidWithExpiry> enrichAndSanitizeUids(Uids uids, Map<String, String> cookies) {
         final Map<String, UidWithExpiry> originalUidsMap = uids != null ? uids.getUids() : null;
-        final Map<String, UidWithExpiry> workingUidsMap = new HashMap<>(
-                ObjectUtils.defaultIfNull(originalUidsMap, Collections.emptyMap()));
+        final Map<String, UidWithExpiry> workingUidsMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        if (originalUidsMap != null) {
+            workingUidsMap.putAll(originalUidsMap);
+        }
 
         final Map<String, String> legacyUids = uids != null ? uids.getUidsLegacy() : null;
         if (workingUidsMap.isEmpty() && legacyUids != null) {

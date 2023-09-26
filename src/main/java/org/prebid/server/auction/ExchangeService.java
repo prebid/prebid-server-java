@@ -137,6 +137,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -400,7 +401,7 @@ public class ExchangeService {
                 ? CollectionUtils.emptyIfNull(extRequestPrebid.getMultibid())
                 : Collections.emptyList();
 
-        final Map<String, MultiBidConfig> bidderToMultiBid = new HashMap<>();
+        final Map<String, MultiBidConfig> bidderToMultiBid = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (ExtRequestPrebidMultiBid prebidMultiBid : multiBids) {
             final String bidder = prebidMultiBid.getBidder();
             final List<String> bidders = prebidMultiBid.getBidders();
