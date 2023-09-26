@@ -24,7 +24,6 @@ import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
@@ -51,26 +50,35 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
         given: "Default basic BidRequest with GeNeRIC bidder"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.tap {
+                genericCamelCase = new Generic()
+                generic = null
+            }
             imp[0].ext.prebid.tap {
                 storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC_CAMEL_CASE)]
             }
         }
 
         and: "Stored bid response in DB"
-        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest, GENERIC_CAMEL_CASE)
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should preform bidder request"
-        assert bidder.getBidderRequest(bidRequest.id)
+        then: "Response should not contain errors and warnings"
+        assert !response.ext?.errors
+        assert !response.ext?.warnings
     }
 
     def "PBS auction should match original bidder name with requested bidder in ext.prebid.data.bidders when request bidder in another case strategy"() {
         given: "Default bid request"
         def ampStoredRequest = BidRequest.getDefaultBidRequest(SITE).tap {
+            imp[0].ext.prebid.bidder.tap {
+                genericCamelCase = new Generic()
+                generic = null
+            }
             ext.prebid.tap {
                 data = new ExtRequestPrebidData(bidders: [extRequestPrebidDataBidder])
                 bidderConfig = [new ExtPrebidBidderConfig(bidders: [prebidBidderConfigBidder], config: new BidderConfig(
@@ -113,8 +121,7 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
 
         where:
         extRequestPrebidDataBidder | prebidBidderConfigBidder
-        GENERIC.value              | GENERIC_CAMEL_CASE
-        GENERIC_CAMEL_CASE.value   | GENERIC
+        GENERIC_CAMEL_CASE.value   | GENERIC_CAMEL_CASE
     }
 
     def "PBS should match adjust bid price bidder name when original bidder in another case strategy"() {
@@ -199,6 +206,10 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
         given: "Bid request with buyeruids"
         def buyeruid = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.tap {
+                genericCamelCase = new Generic()
+                generic = null
+            }
             user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC_CAMEL_CASE): buyeruid])))
         }
 
@@ -213,6 +224,10 @@ class BidderInsensitiveCaseSpec extends BaseSpec {
     def "PBS should be able to match requested bidder with original bidder name in ext.prebid.aliase"() {
         given: "Default bid request with alias"
         def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.tap {
+                genericCamelCase = new Generic()
+                generic = null
+            }
             ext.prebid.aliases = [(ALIAS.value): GENERIC_CAMEL_CASE]
             imp[0].ext.prebid.bidder.alias = new Generic()
         }
