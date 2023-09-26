@@ -20,6 +20,9 @@ server:
     enabled: true
     port: 8080
     server-instances: 1
+  cpu-load-monitoring:
+    enabled: false
+    measurement-interval-ms: 60000
   idle-timeout: 10
 admin:
   port: 8060
