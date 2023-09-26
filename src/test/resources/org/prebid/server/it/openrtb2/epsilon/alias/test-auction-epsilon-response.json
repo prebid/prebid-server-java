@@ -19,14 +19,14 @@
           }
         }
       ],
-      "seat": "conversantAlias",
+      "seat": "conversant",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "conversantAlias": "{{ conversantAlias.response_time_ms }}"
+      "conversant": "{{ conversant.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

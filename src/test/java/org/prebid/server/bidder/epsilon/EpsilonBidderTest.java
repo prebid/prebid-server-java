@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.conversant;
+package org.prebid.server.bidder.epsilon;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.conversant.ExtImpConversant;
+import org.prebid.server.proto.openrtb.ext.request.epsilon.ExtImpEpsilon;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -35,18 +35,18 @@ import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
-public class ConversantBidderTest extends VertxTest {
+public class EpsilonBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
     private static final String UUID_REGEX = "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}"
             + "-[0-9a-fA-F]{12}";
 
-    private ConversantBidder target = new ConversantBidder(ENDPOINT_URL, false, jacksonMapper);
+    private EpsilonBidder target = new EpsilonBidder(ENDPOINT_URL, false, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new ConversantBidder("invalid_url", false, jacksonMapper));
+                .isThrownBy(() -> new EpsilonBidder("invalid_url", false, jacksonMapper));
     }
 
     @Test
@@ -146,7 +146,7 @@ public class ConversantBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 requestBuilder -> requestBuilder.site(Site.builder().id(null).build()),
                 impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpConversant.builder().mobile(123).siteId("site id").build()))),
+                        ExtImpEpsilon.builder().mobile(123).siteId("site id").build()))),
                 identity());
 
         // when
@@ -595,7 +595,7 @@ public class ConversantBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldUpdateBidWithUUIDIfGenerateBidIdIsTrue() throws JsonProcessingException {
         // given
-        target = new ConversantBidder(ENDPOINT_URL, true, jacksonMapper);
+        target = new EpsilonBidder(ENDPOINT_URL, true, jacksonMapper);
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(builder -> builder.id("123")
                         .banner(Banner.builder().build())),
@@ -655,8 +655,8 @@ public class ConversantBidderTest extends VertxTest {
     private static BidRequest givenBidRequest(
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<ExtImpConversant.ExtImpConversantBuilder,
-                    ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
+            Function<ExtImpEpsilon.ExtImpEpsilonBuilder,
+                    ExtImpEpsilon.ExtImpEpsilonBuilder> extCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
@@ -669,21 +669,21 @@ public class ConversantBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<ExtImpConversant.ExtImpConversantBuilder,
-                    ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
+            Function<ExtImpEpsilon.ExtImpEpsilonBuilder,
+                    ExtImpEpsilon.ExtImpEpsilonBuilder> extCustomizer) {
 
         return givenBidRequest(identity(), impCustomizer, extCustomizer);
     }
 
     private static Imp givenImp(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<ExtImpConversant.ExtImpConversantBuilder,
-                    ExtImpConversant.ExtImpConversantBuilder> extCustomizer) {
+            Function<ExtImpEpsilon.ExtImpEpsilonBuilder,
+                    ExtImpEpsilon.ExtImpEpsilonBuilder> extCustomizer) {
 
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                extCustomizer.apply(ExtImpConversant.builder().siteId("site id")).build()))))
+                                extCustomizer.apply(ExtImpEpsilon.builder().siteId("site id")).build()))))
                 .build();
     }
 
