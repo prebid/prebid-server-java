@@ -11,7 +11,8 @@
         "undertone": {
           "placementId": 12345,
           "publisherId": 1234
-        }
+        },
+        "gpid": "gpid-value"
       }
     }
   ],

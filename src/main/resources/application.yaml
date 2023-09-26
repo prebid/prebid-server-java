@@ -23,6 +23,7 @@ server:
   cpu-load-monitoring:
     enabled: false
     measurement-interval-ms: 60000
+  idle-timeout: 10
 admin:
   port: 8060
 admin-endpoints:

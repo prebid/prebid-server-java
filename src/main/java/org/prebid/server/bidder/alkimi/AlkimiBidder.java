@@ -4,9 +4,11 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -23,6 +25,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -35,6 +38,7 @@ public class AlkimiBidder implements Bidder<BidRequest> {
 
     private static final String TYPE_BANNER = "Banner";
     private static final String TYPE_VIDEO = "Video";
+    private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
     private static final TypeReference<ExtPrebid<?, ExtImpAlkimi>> ALKIMI_EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
@@ -106,7 +110,7 @@ public class AlkimiBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> resolveBidderBid(bidResponse.getCur(), bidRequest.getImp(), bid))
                 .toList();
     }
 
@@ -126,5 +130,23 @@ public class AlkimiBidder implements Bidder<BidRequest> {
             }
         }
         return bidType;
+    }
+
+    private static Bid resolveMacros(Bid bid) {
+        final BigDecimal price = bid.getPrice();
+        final String priceAsString = price != null ? price.toPlainString() : "0";
+
+        return bid.toBuilder()
+                .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
+                .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .build();
+    }
+
+    private static BidderBid resolveBidderBid(String currency, List<Imp> imps, Bid bid) {
+        try {
+            return BidderBid.of(resolveMacros(bid), getBidType(bid.getImpid(), imps), currency);
+        } catch (PreBidException e) {
+            return null;
+        }
     }
 }

@@ -2,7 +2,7 @@ adapters:
   lunamedia:
     endpoint: http://api.lunamedia.io/xp/get?pubid=
     meta-info:
-      maintainer-email: josh@lunamedia.io
+      maintainer-email: cs@lunamedia.io
       app-media-types:
         - banner
         - video
