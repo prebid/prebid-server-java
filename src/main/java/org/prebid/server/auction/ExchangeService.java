@@ -621,7 +621,7 @@ public class ExchangeService {
             return Collections.emptyMap();
         }
 
-        final Map<String, ExtBidderConfigOrtb> bidderToConfig = new HashMap<>();
+        final Map<String, ExtBidderConfigOrtb> bidderToConfig = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
         bidderConfigs.stream()
                 .filter(prebidBidderConfig -> prebidBidderConfig.getBidders().contains(ALL_BIDDERS_CONFIG))
@@ -675,7 +675,8 @@ public class ExchangeService {
             final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
                     biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
-            final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
+            final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
+                    .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
             final User preparedUser = prepareUser(
                     bidder, context, aliases, useFirstPartyData, fpdConfig, eidPermissions);
             bidderToUser.put(bidder, preparedUser);
@@ -759,9 +760,9 @@ public class ExchangeService {
      */
     private boolean isUserEidAllowed(String source, Map<String, List<String>> eidPermissions, String bidder) {
         final List<String> allowedBidders = eidPermissions.get(source);
-        return CollectionUtils.isEmpty(allowedBidders)
-                || allowedBidders.contains(EID_ALLOWED_FOR_ALL_BIDDERS)
-                || allowedBidders.contains(bidder);
+        return CollectionUtils.isEmpty(allowedBidders) || allowedBidders.stream()
+                .anyMatch(allowedBidder -> StringUtils.equalsIgnoreCase(allowedBidder, bidder)
+                        || EID_ALLOWED_FOR_ALL_BIDDERS.equals(allowedBidder));
     }
 
     /**
@@ -892,7 +893,8 @@ public class ExchangeService {
         final String bidder = bidderPrivacyResult.getRequestBidder();
 
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
-        final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
+        final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
+                .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
 
         final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(
                 biddersToConfigs.get(bidder),

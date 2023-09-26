@@ -8,14 +8,14 @@ import lombok.Value;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
 @Value
 @Builder(toBuilder = true)
 public class ExtRequestBidAdjustmentFactors {
 
-    Map<String, BigDecimal> adjustments = new HashMap<>();
+    Map<String, BigDecimal> adjustments = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
     EnumMap<ImpMediaType, Map<String, BigDecimal>> mediatypes;
 

@@ -1,6 +1,7 @@
 package org.prebid.server.auction.adjustment;
 
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
@@ -28,7 +29,10 @@ public class BidAdjustmentFactorResolver {
 
         return Optional.ofNullable(impMediaType)
                 .map(adjustmentFactorsByMediaTypes::get)
-                .map(factors -> factors.get(bidder))
+                .flatMap(factors -> factors.entrySet().stream()
+                        .filter(entry -> StringUtils.equalsIgnoreCase(entry.getKey(), bidder))
+                        .map(Map.Entry::getValue)
+                        .findFirst())
                 .orElse(effectiveBidderAdjustmentFactor);
     }
 }

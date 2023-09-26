@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -291,11 +292,15 @@ public class StoredResponseProcessor {
             Map<String, Map<String, String>> impToBidderToStoredBidResponseId) {
 
         return impToBidderToStoredBidResponseId.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey,
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
                         entry -> entry.getValue().entrySet().stream()
                                 .filter(bidderToId -> idToStoredResponses.containsKey(bidderToId.getValue()))
-                                .collect(Collectors.toMap(Map.Entry::getKey,
-                                        bidderToId -> idToStoredResponses.get(bidderToId.getValue())))));
+                                .collect(Collectors.toMap(
+                                        Map.Entry::getKey,
+                                        bidderToId -> idToStoredResponses.get(bidderToId.getValue()),
+                                        (first, second) -> second,
+                                        () -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER)))));
     }
 
     private AuctionParticipation updateBidderResponse(AuctionParticipation auctionParticipation,
