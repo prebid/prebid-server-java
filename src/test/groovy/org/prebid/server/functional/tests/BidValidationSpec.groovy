@@ -49,16 +49,14 @@ class BidValidationSpec extends BaseSpec {
         assert exception.responseBody.contains("no more than one of request.site or request.app or request.dooh can be defined")
 
         where:
-        bidRequest << [BidRequest.defaultBidRequest.tap { it.app = App.defaultApp },
-                       BidRequest.defaultBidRequest.tap { it.dooh = Dooh.defaultDooh },
-                       BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
+ BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
                            it.dooh = Dooh.defaultDooh
                        },
-                       BidRequest.defaultBidRequest.tap {
+ BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
                            it.dooh = Dooh.defaultDooh
+                       },
+ BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
                            it.app = App.defaultApp
-                       }
-        ]
     }
 
     def "PBS should validate dooh when it is present"() {
