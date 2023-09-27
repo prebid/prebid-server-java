@@ -1,10 +1,11 @@
 package org.prebid.server.functional.model.request.auction
 
 import groovy.transform.ToString
+import org.prebid.server.functional.model.bidder.BidderName
 
 @ToString(includeNames = true, ignoreNulls = true)
-class ExtRequestPrebidData {
+class EidPermission {
 
-    List<String> bidders
-    List<EidPermission> eidpermissions
+    String source
+    List<BidderName> bidders
 }
