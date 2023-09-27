@@ -1,3 +1,4 @@
+
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.request.auction.App
@@ -49,14 +50,15 @@ class BidValidationSpec extends BaseSpec {
         assert exception.responseBody.contains("no more than one of request.site or request.app or request.dooh can be defined")
 
         where:
- BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
+        bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
                            it.dooh = Dooh.defaultDooh
                        },
- BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
                            it.dooh = Dooh.defaultDooh
                        },
- BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
                            it.app = App.defaultApp
+                       }]
     }
 
     def "PBS should validate dooh when it is present"() {

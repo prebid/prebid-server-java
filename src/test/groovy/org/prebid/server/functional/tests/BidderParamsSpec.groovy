@@ -523,22 +523,22 @@ class BidderParamsSpec extends BaseSpec {
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
-        then: "BidderResponse should contain proper warning"
+        then: "Bid response should contain proper warning"
         assert bidResponse.ext?.warnings[ErrorType.GENERIC]?.message.contains("Bid request contains 0 impressions after filtering.")
 
-        and: "BidderResponse should not contain any seatbid"
+        and: "Bid response shouldn't contain any seatbid"
         assert !bidResponse.seatbid
 
-        and: "Should not send any bidRequest"
+        and: "Should't send any bidder request"
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
         mediaType                       | bidRequest
         VIDEO.value                     | BidRequest.getDefaultBidRequest(DOOH)
         NATIVE.value                    | BidRequest.getDefaultBidRequest(DOOH)
-        AUDIO.value                    | BidRequest.getDefaultBidRequest(DOOH)
+        AUDIO.value                     | BidRequest.getDefaultBidRequest(DOOH)
         BANNER.value                    | BidRequest.getDefaultVideoRequest(DOOH)
-        "${BANNER}, ${VIDEO}" as String | BidRequest.getDefaultBidRequest(DOOH).tap {imp[0] = Imp.getDefaultImpression(NATIVE)}
+        "${BANNER}, ${VIDEO}" as String | BidRequest.getDefaultBidRequest(DOOH).tap { imp[0] = Imp.getDefaultImpression(NATIVE) }
     }
 
     def "PBS auction should reject only imps with media-type that is not supported by DOOH configuration with proper warning"() {
@@ -550,14 +550,14 @@ class BidderParamsSpec extends BaseSpec {
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
-        then: "BidderResponse should contain proper warning"
+        then: "Bid response should contain proper warning"
         assert bidResponse.ext?.warnings[ErrorType.GENERIC]?.message ==
                 ["Imp ${bidRequest.imp[1].id} does not have a supported media type and has been removed from the request for this bidder." ]
 
-        and: "BidderResponse should not contain any seatbid"
+        and: "Bid response should contain seatbid"
         assert bidResponse.seatbid
 
-        and: "Should not send any bidRequest"
+        and: "Should send bidder request with only proper imp"
         assert bidder.getBidderRequest(bidRequest.id).imp.id == [bidRequest.imp.first().id]
 
         where:
