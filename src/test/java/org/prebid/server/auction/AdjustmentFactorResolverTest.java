@@ -67,6 +67,26 @@ public class AdjustmentFactorResolverTest {
     }
 
     @Test
+    public void resolveShouldReturnAdjustmentByMediaTypeIfPresentIgnoringCaseOfBidderName() {
+        // given
+        final EnumMap<ImpMediaType, Map<String, BigDecimal>> adjustmentFactorsByMediaType = new EnumMap<>(Map.of(
+                ImpMediaType.video, Map.of("bIdDeR", BigDecimal.valueOf(1.234)),
+                ImpMediaType.video_outstream, Map.of("bidder", BigDecimal.valueOf(2.345)),
+                ImpMediaType.banner, Map.of("bidder", BigDecimal.valueOf(3.456))));
+
+        final ExtRequestBidAdjustmentFactors adjustmentFactors =
+                ExtRequestBidAdjustmentFactors.builder()
+                        .mediatypes(adjustmentFactorsByMediaType)
+                        .build();
+
+        // when
+        final BigDecimal result = adjustmentFactorResolver.resolve(ImpMediaType.video, adjustmentFactors, "bidder");
+
+        // then
+        assertThat(result).isEqualTo(BigDecimal.valueOf(1.234));
+    }
+
+    @Test
     public void resolveShouldReturnSmallestAdjustmentBetweenMediaTypeAndBidderChosen() {
         // given
         final EnumMap<ImpMediaType, Map<String, BigDecimal>> adjustmentFactorsByMediaType = new EnumMap<>(Map.of(

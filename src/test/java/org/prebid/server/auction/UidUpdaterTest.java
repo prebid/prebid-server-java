@@ -88,11 +88,11 @@ public class UidUpdaterTest extends VertxTest {
     }
 
     @Test
-    public void updateShouldReturnUpdatedUidWhenPresentInUserExtAndAbsentInUser() {
+    public void updateShouldReturnUpdatedUidWhenPresentInUserExtAndAbsentInUserIgnoringCase() {
         // given
         final User user = User.builder()
                 .ext(ExtUser.builder()
-                        .prebid(ExtUserPrebid.of(Map.of("bidder", "buyeruid-from-ext")))
+                        .prebid(ExtUserPrebid.of(Map.of("BIDder", "buyeruid-from-ext")))
                         .build())
                 .build();
 
@@ -103,7 +103,7 @@ public class UidUpdaterTest extends VertxTest {
                 .build();
 
         // when
-        final UpdateResult<String> result = uidUpdater.updateUid("bidder", auctionContext, bidderAliases);
+        final UpdateResult<String> result = uidUpdater.updateUid("bidDER", auctionContext, bidderAliases);
 
         // then
         assertThat(result).isEqualTo(UpdateResult.updated("buyeruid-from-ext"));
