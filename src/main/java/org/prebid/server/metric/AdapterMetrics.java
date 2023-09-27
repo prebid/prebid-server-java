@@ -33,6 +33,6 @@ class AdapterMetrics extends UpdatableMetrics {
     }
 
     AdapterTypeMetrics forAdapter(String adapterType) {
-        return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
+        return adapterMetrics.computeIfAbsent(adapterType.toLowerCase(), adapterMetricsCreator);
     }
 }
