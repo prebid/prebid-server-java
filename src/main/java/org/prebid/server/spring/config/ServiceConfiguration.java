@@ -415,13 +415,8 @@ public class ServiceConfiguration {
                 : new NoneIdGenerator();
     }
 
-    // TODO: Remove this bean creation after deprecation period
     @Bean
-    IdGenerator sourceIdGenerator(@Value("${auction.generate-source-tid}") Boolean generateSourceTid) {
-        if (generateSourceTid != null) {
-            logger.warn("'auction.generate-source-tid' is no longer supported, pls remove from your config");
-        }
-
+    IdGenerator sourceIdGenerator() {
         return new UUIDIdGenerator();
     }
 
