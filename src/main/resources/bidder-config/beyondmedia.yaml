@@ -10,7 +10,7 @@ adapters:
         - banner
         - video
         - native
-      site-media-type:
+      site-media-types:
         - banner
         - video
         - native
