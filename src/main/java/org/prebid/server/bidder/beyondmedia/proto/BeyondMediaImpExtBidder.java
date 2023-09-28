@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.andbeyondmedia.proto;
+package org.prebid.server.bidder.beyondmedia.proto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -7,7 +7,7 @@ import lombok.Value;
 
 @Builder
 @Value
-public class AndBeyondMediaImpExtBidder {
+public class BeyondMediaImpExtBidder {
 
     String type;
 

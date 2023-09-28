@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.andbeyondmedia.AndBeyondMediaBidder;
+import org.prebid.server.bidder.beyondmedia.BeyondMediaBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -16,26 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/andbeyondmedia.yaml", factory = YamlPropertySourceFactory.class)
-public class AndBeyondMediaConfiguration {
+@PropertySource(value = "classpath:/bidder-config/beyondmedia.yaml", factory = YamlPropertySourceFactory.class)
+public class BeyondMediaConfiguration {
 
-    private static final String BIDDER_NAME = "andbeyondmedia";
+    private static final String BIDDER_NAME = "beyondmedia";
 
-    @Bean("andBeyondMediaConfigurationProperties")
-    @ConfigurationProperties("adapters.andbeyondmedia")
+    @Bean("beyondMediaConfigurationProperties")
+    @ConfigurationProperties("adapters.beyondmedia")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps andBeyondMediaBidderDeps(BidderConfigurationProperties andBeyondMediaConfigurationProperties,
-                                 @NotBlank @Value("${external-url}") String externalUrl,
-                                 JacksonMapper mapper) {
+    BidderDeps beyondMediaBidderDeps(BidderConfigurationProperties beyondMediaConfigurationProperties,
+                                     @NotBlank @Value("${external-url}") String externalUrl,
+                                     JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(andBeyondMediaConfigurationProperties)
+                .withConfig(beyondMediaConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new AndBeyondMediaBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new BeyondMediaBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

@@ -16,23 +16,23 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
-public class AndBeyondMediaTest extends IntegrationTest {
+public class BeyondMediaTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromAndBeyondMedia() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromBeyondmedia() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/andbeyondmedia-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/beyondmedia-exchange"))
                 .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/andbeyondmedia/test-andbeyondmedia-bid-request.json")))
+                        jsonFrom("openrtb2/beyondmedia/test-beyondmedia-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/andbeyondmedia/test-andbeyondmedia-bid-response.json"))));
+                        jsonFrom("openrtb2/beyondmedia/test-beyondmedia-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/andbeyondmedia/test-auction-andbeyondmedia-request.json",
+        final Response response = responseFor("openrtb2/beyondmedia/test-auction-beyondmedia-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/andbeyondmedia/test-auction-andbeyondmedia-response.json", response,
-                singletonList("andbeyondmedia"));
+        assertJsonEquals("openrtb2/beyondmedia/test-auction-beyondmedia-response.json", response,
+                singletonList("beyondmedia"));
     }
 }
