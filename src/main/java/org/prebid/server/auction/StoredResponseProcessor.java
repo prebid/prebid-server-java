@@ -9,6 +9,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidderRequest;
@@ -38,7 +39,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -300,7 +300,7 @@ public class StoredResponseProcessor {
                                         Map.Entry::getKey,
                                         bidderToId -> idToStoredResponses.get(bidderToId.getValue()),
                                         (first, second) -> second,
-                                        () -> new TreeMap<>(String.CASE_INSENSITIVE_ORDER)))));
+                                        CaseInsensitiveMap::new))));
     }
 
     private AuctionParticipation updateBidderResponse(AuctionParticipation auctionParticipation,

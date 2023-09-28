@@ -7,6 +7,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.json.JacksonMapper;
@@ -51,8 +52,10 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
         return Stream.of(nameToInfo, allToInfos)
                 .flatMap(map -> map.entrySet().stream())
                 .collect(Collectors.toMap(
-                        entry -> entry.getKey().toLowerCase(),
-                        map -> mapper.encodeToString(map.getValue())));
+                        Map.Entry::getKey,
+                        map -> mapper.encodeToString(map.getValue()),
+                        (first, second) -> second,
+                        CaseInsensitiveMap::new));
     }
 
     private ObjectNode bidderNode(BidderCatalog bidderCatalog, String name) {
@@ -69,7 +72,7 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
         final String bidderName = routingContext.request().getParam(BIDDER_NAME_PARAM);
         final String endpoint = "%s/%s".formatted(Endpoint.info_bidders.value(), bidderName);
 
-        final String bidderInfo = bidderInfos.get(bidderName.toLowerCase());
+        final String bidderInfo = bidderInfos.get(bidderName);
         if (bidderInfo != null) {
             HttpUtil.executeSafely(routingContext, endpoint,
                     response -> response

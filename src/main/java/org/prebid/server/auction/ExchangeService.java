@@ -24,6 +24,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ComponentType;
@@ -137,7 +138,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -401,7 +401,7 @@ public class ExchangeService {
                 ? CollectionUtils.emptyIfNull(extRequestPrebid.getMultibid())
                 : Collections.emptyList();
 
-        final Map<String, MultiBidConfig> bidderToMultiBid = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        final Map<String, MultiBidConfig> bidderToMultiBid = new CaseInsensitiveMap<>();
         for (ExtRequestPrebidMultiBid prebidMultiBid : multiBids) {
             final String bidder = prebidMultiBid.getBidder();
             final List<String> bidders = prebidMultiBid.getBidders();
@@ -621,7 +621,7 @@ public class ExchangeService {
             return Collections.emptyMap();
         }
 
-        final Map<String, ExtBidderConfigOrtb> bidderToConfig = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        final Map<String, ExtBidderConfigOrtb> bidderToConfig = new CaseInsensitiveMap<>();
 
         bidderConfigs.stream()
                 .filter(prebidBidderConfig -> prebidBidderConfig.getBidders().contains(ALL_BIDDERS_CONFIG))

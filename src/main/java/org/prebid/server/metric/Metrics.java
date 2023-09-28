@@ -2,6 +2,7 @@ package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
 import com.iab.openrtb.request.Imp;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
@@ -83,7 +84,7 @@ public class Metrics extends UpdatableMetrics {
         requestsMetrics = new RequestsMetrics(metricRegistry, counterType);
         requestMetrics = new EnumMap<>(MetricName.class);
         accountMetrics = new HashMap<>();
-        adapterMetrics = new HashMap<>();
+        adapterMetrics = new CaseInsensitiveMap<>();
         analyticMetrics = new HashMap<>();
         priceFloorsMetrics = new HashMap<>();
         alertsMetrics = new AlertsConfigMetrics(metricRegistry, counterType);
@@ -117,7 +118,7 @@ public class Metrics extends UpdatableMetrics {
     }
 
     AdapterTypeMetrics forAdapter(String adapterType) {
-        return adapterMetrics.computeIfAbsent(adapterType.toLowerCase(), adapterMetricsCreator);
+        return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
     }
 
     AnalyticsReporterMetrics forAnalyticReporter(String analyticCode) {

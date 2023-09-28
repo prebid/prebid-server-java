@@ -1,5 +1,7 @@
 package org.prebid.server.bidder;
 
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,6 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -20,8 +23,8 @@ public class BidderCatalog {
             "%s has been deprecated and is no longer available. Use %s instead.";
 
     private final Set<String> biddersNames = new HashSet<>();
-    private final Map<String, BidderInstanceDeps> bidderDepsMap = new HashMap<>();
-    private final Map<String, String> deprecatedNameToError = new HashMap<>();
+    private final Map<String, BidderInstanceDeps> bidderDepsMap = new CaseInsensitiveMap<>();
+    private final Map<String, String> deprecatedNameToError = new CaseInsensitiveMap<>();
     private final Map<Integer, String> vendorIdToBidderName = new HashMap<>();
 
     public BidderCatalog(List<BidderDeps> bidderDeps) {
@@ -33,12 +36,11 @@ public class BidderCatalog {
 
     private void processDeps(BidderInstanceDeps deps) {
         final String bidderName = deps.getName();
-        final String bidderNameLowerCased = bidderName.toLowerCase();
 
-        validateBidderName(bidderNameLowerCased);
+        validateBidderName(bidderName);
 
         biddersNames.add(bidderName);
-        bidderDepsMap.put(bidderNameLowerCased, deps);
+        bidderDepsMap.put(bidderName, deps);
         deprecatedNameToError.putAll(createErrorsForDeprecatedNames(deps));
         processVendorId(deps, bidderName);
     }
@@ -52,7 +54,7 @@ public class BidderCatalog {
 
     private Map<String, String> createErrorsForDeprecatedNames(BidderInstanceDeps deps) {
         return deps.getDeprecatedNames().stream().collect(Collectors.toMap(
-                String::toLowerCase,
+                Function.identity(),
                 deprecatedName -> ERROR_MESSAGE_TEMPLATE_FOR_DEPRECATED.formatted(deprecatedName, deps.getName())));
     }
 
@@ -76,7 +78,6 @@ public class BidderCatalog {
      */
     public boolean isValidName(String name) {
         return Optional.ofNullable(name)
-                .map(String::toLowerCase)
                 .map(bidderDepsMap::containsKey)
                 .orElse(false);
     }
@@ -86,7 +87,6 @@ public class BidderCatalog {
      */
     public boolean isModifyingVastXmlAllowed(String name) {
         return Optional.ofNullable(name)
-                .map(String::toLowerCase)
                 .map(bidderDepsMap::get)
                 .map(BidderInstanceDeps::getBidderInfo)
                 .map(BidderInfo::isModifyingVastXmlAllowed)
@@ -98,7 +98,6 @@ public class BidderCatalog {
      */
     public boolean isDeprecatedName(String name) {
         return Optional.ofNullable(name)
-                .map(String::toLowerCase)
                 .map(deprecatedNameToError::containsKey)
                 .orElse(false);
     }
@@ -108,7 +107,6 @@ public class BidderCatalog {
      */
     public String errorForDeprecatedName(String name) {
         return Optional.ofNullable(name)
-                .map(String::toLowerCase)
                 .map(deprecatedNameToError::get)
                 .orElse(null);
     }
@@ -118,7 +116,6 @@ public class BidderCatalog {
      */
     public boolean isActive(String name) {
         return Optional.ofNullable(name)
-                .map(String::toLowerCase)
                 .map(bidderDepsMap::get)
                 .map(BidderInstanceDeps::getBidderInfo)
                 .map(BidderInfo::isEnabled)
@@ -130,7 +127,6 @@ public class BidderCatalog {
      */
     public boolean isDebugAllowed(String name) {
         return Optional.ofNullable(name)
-                .map(String::toLowerCase)
                 .map(bidderDepsMap::get)
                 .map(BidderInstanceDeps::getBidderInfo)
                 .map(BidderInfo::isDebugAllowed)
@@ -145,7 +141,6 @@ public class BidderCatalog {
      */
     public BidderInfo bidderInfoByName(String name) {
         return Optional.ofNullable(name)
-                .map(String::toLowerCase)
                 .map(bidderDepsMap::get)
                 .map(BidderInstanceDeps::getBidderInfo)
                 .orElse(null);
@@ -159,7 +154,6 @@ public class BidderCatalog {
      */
     public Integer vendorIdByName(String name) {
         return Optional.ofNullable(name)
-                .map(String::toLowerCase)
                 .map(bidderDepsMap::get)
                 .map(BidderInstanceDeps::getBidderInfo)
                 .map(BidderInfo::getGdpr)
@@ -189,14 +183,12 @@ public class BidderCatalog {
 
     public Optional<Usersyncer> usersyncerByName(String name) {
         return Optional.ofNullable(name)
-                .map(String::toLowerCase)
                 .map(bidderDepsMap::get)
                 .map(BidderInstanceDeps::getUsersyncer);
     }
 
     public boolean isAlias(String bidder) {
         return Optional.ofNullable(bidder)
-                .map(String::toLowerCase)
                 .map(bidderDepsMap::get)
                 .map(BidderInstanceDeps::getBidderInfo)
                 .map(BidderInfo::getAliasOf)
@@ -223,7 +215,6 @@ public class BidderCatalog {
      */
     public Bidder<?> bidderByName(String name) {
         return Optional.ofNullable(name)
-                .map(String::toLowerCase)
                 .map(bidderDepsMap::get)
                 .map(BidderInstanceDeps::getBidder)
                 .orElse(null);

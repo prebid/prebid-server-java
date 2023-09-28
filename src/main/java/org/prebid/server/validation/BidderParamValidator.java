@@ -6,6 +6,7 @@ import com.networknt.schema.JsonSchemaException;
 import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion;
 import com.networknt.schema.ValidationMessage;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
@@ -42,7 +43,7 @@ public class BidderParamValidator {
      * Validates the {@link JsonNode} input parameter against bidder's JSON-schema
      */
     public Set<String> validate(String bidder, JsonNode jsonNode) {
-        return bidderSchemas.get(bidder.toLowerCase()).validate(jsonNode).stream()
+        return bidderSchemas.get(bidder).validate(jsonNode).stream()
                 .map(ValidationMessage::getMessage)
                 .collect(Collectors.toSet());
     }
@@ -95,8 +96,10 @@ public class BidderParamValidator {
     private static Map<String, JsonSchema> toBidderSchemas(Map<String, JsonNode> bidderRawSchemas) {
         return bidderRawSchemas.entrySet().stream()
                 .collect(Collectors.toMap(
-                        entry -> entry.getKey().toLowerCase(),
-                        e -> toBidderSchema(e.getValue(), e.getKey())));
+                        Map.Entry::getKey,
+                        e -> toBidderSchema(e.getValue(), e.getKey()),
+                        (first, second) -> second,
+                        CaseInsensitiveMap::new));
     }
 
     private static String toSchemas(Map<String, JsonNode> bidderRawSchemas, JacksonMapper mapper) {

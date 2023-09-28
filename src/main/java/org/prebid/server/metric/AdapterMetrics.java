@@ -1,8 +1,8 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -19,7 +19,7 @@ class AdapterMetrics extends UpdatableMetrics {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
                 nameCreator(createAdapterSuffix(Objects.requireNonNull(accountPrefix))));
 
-        adapterMetrics = new HashMap<>();
+        adapterMetrics = new CaseInsensitiveMap<>();
         adapterMetricsCreator = adapterType -> new AdapterTypeMetrics(metricRegistry, counterType,
                 createAdapterSuffix(Objects.requireNonNull(accountPrefix)), adapterType);
     }
@@ -33,6 +33,6 @@ class AdapterMetrics extends UpdatableMetrics {
     }
 
     AdapterTypeMetrics forAdapter(String adapterType) {
-        return adapterMetrics.computeIfAbsent(adapterType.toLowerCase(), adapterMetricsCreator);
+        return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
     }
 }
