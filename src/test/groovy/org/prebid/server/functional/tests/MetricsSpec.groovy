@@ -9,6 +9,7 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.BASIC
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.DETAILED
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.NONE
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 
 class MetricsSpec extends BaseSpec {
 
@@ -84,5 +85,28 @@ class MetricsSpec extends BaseSpec {
         assert metrics["account.${accountId}.adapter.generic.requests.gotbids"  as String] == 1
         assert metrics["account.${accountId}.requests"                          as String] == 1
         assert metrics["account.${accountId}.requests.type.openrtb2-web"        as String] == 1
+    }
+
+    def "PBS should update hood metrics when bid request contains hood channel type and verbosity level is detailed"() {
+        given: "Default basic BidRequest with generic bidder"
+        def bidRequest = BidRequest.getDefaultBidRequest(DOOH)
+
+        and: "Account in the DB"
+        def accountId = bidRequest.dooh.publisher.id
+        def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: DETAILED))
+        def account = new Account(uuid: accountId, config: accountMetricsConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "account.<account-id>.* should be populated"
+        def metrics = defaultPbsService.sendCollectedMetricsRequest()
+        assert metrics["account.${accountId}.requests.type.openrtb2-dooh" as String] == 1
+        assert metrics["adapter.generic.requests.type.openrtb2-dooh" as String] == 1
+
+        and: "ather channel types should not be populated"
+        assert !metrics["account.${accountId}.requests.type.openrtb2-web" as String]
+        assert !metrics["account.${accountId}.requests.type.openrtb2-app" as String]
     }
 }
