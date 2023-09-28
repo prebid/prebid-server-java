@@ -5,7 +5,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.facebook.FacebookBidder;
+import org.prebid.server.bidder.audiencenetwork.AudienceNetworkBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -22,27 +22,27 @@ import javax.validation.constraints.NotNull;
 import java.util.function.Function;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/facebook.yaml", factory = YamlPropertySourceFactory.class)
-public class FacebookConfiguration {
+@PropertySource(value = "classpath:/bidder-config/audiencenetwork.yaml", factory = YamlPropertySourceFactory.class)
+public class AudienceNetworkConfiguration {
 
     private static final String BIDDER_NAME = "audienceNetwork";
 
     @Bean
-    BidderDeps facebookBidderDeps(FacebookConfigurationProperties facebookConfigurationProperties,
-                                  JacksonMapper mapper) {
+    BidderDeps audiencenetworkBidderDeps(AudienceNetworkConfigurationProperties audienceNetworkConfigurationProperties,
+                                         JacksonMapper mapper) {
 
-        final Function<FacebookConfigurationProperties, Bidder<?>> bidderCreator =
-                config -> new FacebookBidder(
+        final Function<AudienceNetworkConfigurationProperties, Bidder<?>> bidderCreator =
+                config -> new AudienceNetworkBidder(
                         config.getEndpoint(),
                         config.getPlatformId(),
                         config.getAppSecret(),
-                        facebookConfigurationProperties.getTimeoutNotificationUrlTemplate(),
+                        audienceNetworkConfigurationProperties.getTimeoutNotificationUrlTemplate(),
                         mapper);
 
-        return BidderDepsAssembler.<FacebookConfigurationProperties>forBidder(BIDDER_NAME)
-                .withConfig(facebookConfigurationProperties)
+        return BidderDepsAssembler.<AudienceNetworkConfigurationProperties>forBidder(BIDDER_NAME)
+                .withConfig(audienceNetworkConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(null))
-                .bidderCreator(facebookConfigurationProperties.getEnabled() ? bidderCreator : null)
+                .bidderCreator(audienceNetworkConfigurationProperties.getEnabled() ? bidderCreator : null)
                 .assemble();
     }
 
@@ -50,9 +50,9 @@ public class FacebookConfiguration {
     @Data
     @EqualsAndHashCode(callSuper = true)
     @NoArgsConstructor
-    @Component("facebookConfigurationProperties")
-    @ConfigurationProperties("adapters.facebook")
-    private static class FacebookConfigurationProperties extends BidderConfigurationProperties {
+    @Component("audienceNetworkConfigurationProperties")
+    @ConfigurationProperties("adapters.audiencenetwork")
+    private static class AudienceNetworkConfigurationProperties extends BidderConfigurationProperties {
 
         @NotNull
         private String platformId;
