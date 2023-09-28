@@ -47,7 +47,7 @@ import java.util.Objects;
 
 public class AudienceNetworkBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAudienceNetwork>> FACEBOOK_EXT_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<?, ExtImpAudienceNetwork>> AUDIENCE_NETWORK_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
@@ -110,7 +110,7 @@ public class AudienceNetworkBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(Imp imp, BidRequest bidRequest, MultiMap headers) {
-        final ExtImpAudienceNetwork resolvedImpExt = parseAndResolveExtImpFacebook(imp);
+        final ExtImpAudienceNetwork resolvedImpExt = parseAndResolveExtImpAudienceNetwork(imp);
         final Imp modifiedImp = modifyImp(imp, resolvedImpExt);
 
         final String publisherId = resolvedImpExt.getPublisherId();
@@ -130,10 +130,10 @@ public class AudienceNetworkBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ExtImpAudienceNetwork parseAndResolveExtImpFacebook(Imp imp) {
+    private ExtImpAudienceNetwork parseAndResolveExtImpAudienceNetwork(Imp imp) {
         final ExtImpAudienceNetwork extImpAudienceNetwork;
         try {
-            extImpAudienceNetwork = mapper.mapper().convertValue(imp.getExt(), FACEBOOK_EXT_TYPE_REFERENCE)
+            extImpAudienceNetwork = mapper.mapper().convertValue(imp.getExt(), AUDIENCE_NETWORK_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
