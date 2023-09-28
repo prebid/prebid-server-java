@@ -32,7 +32,7 @@ import java.util.Objects;
 
 public class BeyondMediaBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpBeyondMedia>> AND_BEYOND_MEDIA_EXT_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<?, ExtImpBeyondMedia>> BEYOND_MEDIA_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
     private static final String TYPE_PUBLISHER = "publisher";
@@ -64,7 +64,7 @@ public class BeyondMediaBidder implements Bidder<BidRequest> {
 
     private ExtImpBeyondMedia parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), AND_BEYOND_MEDIA_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), BEYOND_MEDIA_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
