@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.andbeyondmedia;
+package org.prebid.server.bidder.beyondmedia;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -9,7 +9,7 @@ import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.andbeyondmedia.proto.AndBeyondMediaImpExtBidder;
+import org.prebid.server.bidder.beyondmedia.proto.BeyondMediaImpExtBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -19,7 +19,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.andbeyondmedia.ExtImpAndBeyondMedia;
+import org.prebid.server.proto.openrtb.ext.request.beyondmedia.ExtImpBeyondMedia;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -30,9 +30,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class AndBeyondMediaBidder implements Bidder<BidRequest> {
+public class BeyondMediaBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpAndBeyondMedia>> AND_BEYOND_MEDIA_EXT_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<?, ExtImpBeyondMedia>> BEYOND_MEDIA_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
     private static final String TYPE_PUBLISHER = "publisher";
@@ -40,7 +40,7 @@ public class AndBeyondMediaBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public AndBeyondMediaBidder(String endpointUrl, JacksonMapper mapper) {
+    public BeyondMediaBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -50,49 +50,49 @@ public class AndBeyondMediaBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> outgoingRequests = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
-            final ExtImpAndBeyondMedia extImpAndBeyondMedia;
+            final ExtImpBeyondMedia extImpBeyondMedia;
             try {
-                extImpAndBeyondMedia = parseImpExt(imp);
+                extImpBeyondMedia = parseImpExt(imp);
             } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
-            outgoingRequests.add(createSingleRequest(modifyImp(imp, extImpAndBeyondMedia), request));
+            outgoingRequests.add(createSingleRequest(modifyImp(imp, extImpBeyondMedia), request));
         }
 
         return Result.withValues(outgoingRequests);
     }
 
-    private ExtImpAndBeyondMedia parseImpExt(Imp imp) {
+    private ExtImpBeyondMedia parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), AND_BEYOND_MEDIA_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), BEYOND_MEDIA_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
     }
 
-    private Imp modifyImp(Imp imp, ExtImpAndBeyondMedia extImpAndBeyondMedia) {
-        final AndBeyondMediaImpExtBidder andBeyondMediaImpExtBidderWithType
-                = resolveOutgoingImpExt(extImpAndBeyondMedia);
+    private Imp modifyImp(Imp imp, ExtImpBeyondMedia extImpBeyondMedia) {
+        final BeyondMediaImpExtBidder beyondMediaImpExtBidderWithType
+                = resolveOutgoingImpExt(extImpBeyondMedia);
         final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
 
-        modifiedImpExtBidder.set("bidder", mapper.mapper().valueToTree(andBeyondMediaImpExtBidderWithType));
+        modifiedImpExtBidder.set("bidder", mapper.mapper().valueToTree(beyondMediaImpExtBidderWithType));
 
         return imp.toBuilder()
                 .ext(modifiedImpExtBidder)
                 .build();
     }
 
-    private AndBeyondMediaImpExtBidder resolveOutgoingImpExt(ExtImpAndBeyondMedia extImpAndBeyondMedia) {
-        final AndBeyondMediaImpExtBidder.AndBeyondMediaImpExtBidderBuilder impExtAndBeyondMedia
-                = AndBeyondMediaImpExtBidder.builder();
+    private BeyondMediaImpExtBidder resolveOutgoingImpExt(ExtImpBeyondMedia extImpBeyondMedia) {
+        final BeyondMediaImpExtBidder.BeyondMediaImpExtBidderBuilder impExtBeyondMedia
+                = BeyondMediaImpExtBidder.builder();
 
-        if (StringUtils.isNotEmpty(extImpAndBeyondMedia.getPlacementId())) {
-            impExtAndBeyondMedia
+        if (StringUtils.isNotEmpty(extImpBeyondMedia.getPlacementId())) {
+            impExtBeyondMedia
                     .type(TYPE_PUBLISHER)
-                    .placementId(extImpAndBeyondMedia.getPlacementId());
+                    .placementId(extImpBeyondMedia.getPlacementId());
         }
 
-        return impExtAndBeyondMedia.build();
+        return impExtBeyondMedia.build();
     }
 
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request) {

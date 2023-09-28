@@ -19,14 +19,14 @@
           }
         }
       ],
-      "seat": "andbeyondmedia",
+      "seat": "beyondmedia",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "andbeyondmedia": "{{ andbeyondmedia.response_time_ms }}"
+      "beyondmedia": "{{ beyondmedia.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

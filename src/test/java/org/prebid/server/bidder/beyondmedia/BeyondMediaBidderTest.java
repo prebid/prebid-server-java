@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.andbeyondmedia;
+package org.prebid.server.bidder.beyondmedia;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -13,8 +13,8 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.andbeyondmedia.proto.AndBeyondMediaImpExtBidder;
-import org.prebid.server.bidder.andbeyondmedia.proto.AndBeyondMediaImpExtBidder.AndBeyondMediaImpExtBidderBuilder;
+import org.prebid.server.bidder.beyondmedia.proto.BeyondMediaImpExtBidder;
+import org.prebid.server.bidder.beyondmedia.proto.BeyondMediaImpExtBidder.BeyondMediaImpExtBidderBuilder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -22,7 +22,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.andbeyondmedia.ExtImpAndBeyondMedia;
+import org.prebid.server.proto.openrtb.ext.request.beyondmedia.ExtImpBeyondMedia;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -36,15 +36,15 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
-public class AndBeyondMediaBidderTest extends VertxTest {
+public class BeyondMediaBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private final AndBeyondMediaBidder target = new AndBeyondMediaBidder(ENDPOINT_URL, jacksonMapper);
+    private final BeyondMediaBidder target = new BeyondMediaBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new AndBeyondMediaBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new BeyondMediaBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -71,7 +71,7 @@ public class AndBeyondMediaBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAndBeyondMedia.of("somePlacementId")))));
+                        ExtImpBeyondMedia.of("somePlacementId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -82,7 +82,7 @@ public class AndBeyondMediaBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(givenImpExtAndBeyondMediaBidder(
+                .containsExactly(givenImpExtBeyondMediaBidder(
                         ext -> ext.type("publisher").placementId("somePlacementId")));
     }
 
@@ -227,7 +227,7 @@ public class AndBeyondMediaBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAndBeyondMedia.of("placementId")))))
+                                ExtImpBeyondMedia.of("placementId")))))
                 .build();
     }
 
@@ -247,11 +247,11 @@ public class AndBeyondMediaBidderTest extends VertxTest {
                 null);
     }
 
-    private ObjectNode givenImpExtAndBeyondMediaBidder(
-            UnaryOperator<AndBeyondMediaImpExtBidderBuilder> impExtandBeyondMedia) {
+    private ObjectNode givenImpExtBeyondMediaBidder(
+            UnaryOperator<BeyondMediaImpExtBidderBuilder> impExtBeyondMedia) {
         final ObjectNode modifiedImpExtBidder = mapper.createObjectNode();
 
-        return modifiedImpExtBidder.set("bidder", mapper.convertValue(impExtandBeyondMedia
-                .apply(AndBeyondMediaImpExtBidder.builder()).build(), JsonNode.class));
+        return modifiedImpExtBidder.set("bidder", mapper.convertValue(impExtBeyondMedia
+                .apply(BeyondMediaImpExtBidder.builder()).build(), JsonNode.class));
     }
 }
