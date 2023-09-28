@@ -1,8 +1,8 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
-import org.apache.commons.collections4.map.CaseInsensitiveMap;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -19,11 +19,11 @@ public class CookieSyncMetrics extends UpdatableMetrics {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
                 metricName -> "cookie_sync." + metricName);
         bidderCookieSyncMetricsCreator = bidder -> new BidderCookieSyncMetrics(metricRegistry, counterType, bidder);
-        bidderCookieSyncMetrics = new CaseInsensitiveMap<>();
+        bidderCookieSyncMetrics = new HashMap<>();
     }
 
     CookieSyncMetrics.BidderCookieSyncMetrics forBidder(String bidder) {
-        return bidderCookieSyncMetrics.computeIfAbsent(bidder, bidderCookieSyncMetricsCreator);
+        return bidderCookieSyncMetrics.computeIfAbsent(bidder.toLowerCase(), bidderCookieSyncMetricsCreator);
     }
 
     static class BidderCookieSyncMetrics extends UpdatableMetrics {

@@ -1,8 +1,8 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
-import org.apache.commons.collections4.map.CaseInsensitiveMap;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
@@ -22,11 +22,11 @@ class UserSyncMetrics extends UpdatableMetrics {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
                 metricName -> "usersync." + metricName);
         bidderUserSyncMetricsCreator = bidder -> new BidderUserSyncMetrics(metricRegistry, counterType, bidder);
-        bidderUserSyncMetrics = new CaseInsensitiveMap<>();
+        bidderUserSyncMetrics = new HashMap<>();
     }
 
     BidderUserSyncMetrics forBidder(String bidder) {
-        return bidderUserSyncMetrics.computeIfAbsent(bidder, bidderUserSyncMetricsCreator);
+        return bidderUserSyncMetrics.computeIfAbsent(bidder.toLowerCase(), bidderUserSyncMetricsCreator);
     }
 
     static class BidderUserSyncMetrics extends UpdatableMetrics {
