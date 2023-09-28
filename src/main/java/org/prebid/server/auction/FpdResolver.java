@@ -24,10 +24,10 @@ import org.prebid.server.proto.request.Targeting;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
@@ -290,7 +290,8 @@ public class FpdResolver {
     }
 
     private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {
-        final HashSet<String> resolvedBidders = new HashSet<>(originBidders);
+        final Set<String> resolvedBidders = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        resolvedBidders.addAll(originBidders);
         resolvedBidders.addAll(fpdBidders);
         return new ArrayList<>(resolvedBidders);
     }

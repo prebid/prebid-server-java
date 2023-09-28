@@ -95,13 +95,13 @@ public class BidderParamValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturnValidationMessagesWhenRubiconImpExtIsOk() {
+    public void validateShouldNotReturnValidationMessagesWhenRubiconImpExtIsOkIgnoringCase() {
         // given
         final ExtImpRubicon ext = ExtImpRubicon.builder().accountId(1).siteId(2).zoneId(3).build();
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when
-        final Set<String> messages = bidderParamValidator.validate(RUBICON, node);
+        final Set<String> messages = bidderParamValidator.validate("rUBIcon", node);
 
         // then
         assertThat(messages).isEmpty();

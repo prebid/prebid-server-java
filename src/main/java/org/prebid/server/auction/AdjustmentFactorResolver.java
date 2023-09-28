@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
@@ -46,7 +47,11 @@ public class AdjustmentFactorResolver {
         final BigDecimal mediaTypeMinFactor = impMediaTypes.stream()
                 .map(adjustmentFactorsByMediaTypes::get)
                 .map(bidderToFactor -> MapUtils.isNotEmpty(bidderToFactor)
-                        ? bidderToFactor.get(bidder)
+                        ? bidderToFactor.entrySet().stream()
+                        .filter(entry -> StringUtils.equalsIgnoreCase(entry.getKey(), bidder))
+                        .map(Map.Entry::getValue)
+                        .findFirst()
+                        .orElse(null)
                         : effectiveBidderAdjustmentFactor)
                 .filter(Objects::nonNull)
                 .min(Comparator.comparing(Function.identity()))

@@ -9,6 +9,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidderRequest;
@@ -291,11 +292,15 @@ public class StoredResponseProcessor {
             Map<String, Map<String, String>> impToBidderToStoredBidResponseId) {
 
         return impToBidderToStoredBidResponseId.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey,
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
                         entry -> entry.getValue().entrySet().stream()
                                 .filter(bidderToId -> idToStoredResponses.containsKey(bidderToId.getValue()))
-                                .collect(Collectors.toMap(Map.Entry::getKey,
-                                        bidderToId -> idToStoredResponses.get(bidderToId.getValue())))));
+                                .collect(Collectors.toMap(
+                                        Map.Entry::getKey,
+                                        bidderToId -> idToStoredResponses.get(bidderToId.getValue()),
+                                        (first, second) -> second,
+                                        CaseInsensitiveMap::new))));
     }
 
     private AuctionParticipation updateBidderResponse(AuctionParticipation auctionParticipation,

@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 @Getter
 @Accessors(fluent = true, chain = true)
@@ -33,13 +34,16 @@ public class TxnLog {
 
     Set<String> lineItemsPacingDeferred = new HashSet<>();
 
-    Map<String, Set<String>> lineItemsSentToBidder = MapUtils.lazyMap(new HashMap<>(),
+    Map<String, Set<String>> lineItemsSentToBidder = MapUtils.lazyMap(
+            new TreeMap<>(String.CASE_INSENSITIVE_ORDER),
             (Factory<Set<String>>) HashSet::new);
 
-    Map<String, Set<String>> lineItemsSentToBidderAsTopMatch = MapUtils.lazyMap(new HashMap<>(),
+    Map<String, Set<String>> lineItemsSentToBidderAsTopMatch = MapUtils.lazyMap(
+            new TreeMap<>(String.CASE_INSENSITIVE_ORDER),
             (Factory<Set<String>>) HashSet::new);
 
-    Map<String, Set<String>> lineItemsReceivedFromBidder = MapUtils.lazyMap(new HashMap<>(),
+    Map<String, Set<String>> lineItemsReceivedFromBidder = MapUtils.lazyMap(
+            new TreeMap<>(String.CASE_INSENSITIVE_ORDER),
             (Factory<Set<String>>) HashSet::new);
 
     Set<String> lineItemsResponseInvalidated = new HashSet<>();
