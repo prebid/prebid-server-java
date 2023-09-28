@@ -54,9 +54,9 @@ class BidderParamsSpec extends BaseSpec {
 
         where:
         adapterDefault | generic | adapterConfig
-        "true"         | "true"  | ["adapter-defaults.enabled"   : adapterDefault,
-                                    "adapters.facebook.enabled"  : "false",
-                                    "adapters.generic.enabled"   : generic]
+        "true"         | "true"  | ["adapter-defaults.enabled": adapterDefault,
+                                    "adapters.between.enabled"  : "false",
+                                    "adapters.generic.enabled": generic]
         "false"        | "true"  | ["adapter-defaults.enabled": adapterDefault,
                                     "adapters.generic.enabled": generic]
     }
@@ -78,9 +78,9 @@ class BidderParamsSpec extends BaseSpec {
         adapterDefault | generic | adapterConfig
         "false"        | "false" | ["adapter-defaults.enabled": adapterDefault,
                                     "adapters.generic.enabled": generic]
-        "true"         | "false" | ["adapter-defaults.enabled"   : adapterDefault,
-                                    "adapters.facebook.enabled"  : "false",
-                                    "adapters.generic.enabled"   : generic]
+        "true"         | "false" | ["adapter-defaults.enabled": adapterDefault,
+                                    "adapters.between.enabled"  : "false",
+                                    "adapters.generic.enabled": generic]
     }
 
     def "PBS should modify vast xml when adapter-defaults.modifying-vast-xml-allowed = #adapterDefault and BIDDER.modifying-vast-xml-allowed = #generic"() {
