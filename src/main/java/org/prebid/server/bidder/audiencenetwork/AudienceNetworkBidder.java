@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.facebook;
+package org.prebid.server.bidder.audiencenetwork;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.App;
@@ -20,8 +20,8 @@ import org.apache.commons.codec.digest.HmacUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.facebook.proto.FacebookAdMarkup;
-import org.prebid.server.bidder.facebook.proto.FacebookExt;
+import org.prebid.server.bidder.audiencenetwork.proto.AudienceNetworkAdMarkup;
+import org.prebid.server.bidder.audiencenetwork.proto.AudienceNetworkExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -33,7 +33,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
+import org.prebid.server.proto.openrtb.ext.request.audiencenetwork.ExtImpAudienceNetwork;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
@@ -45,9 +45,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public class FacebookBidder implements Bidder<BidRequest> {
+public class AudienceNetworkBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpFacebook>> FACEBOOK_EXT_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<?, ExtImpAudienceNetwork>> AUDIENCE_NETWORK_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
@@ -59,11 +59,11 @@ public class FacebookBidder implements Bidder<BidRequest> {
     private final String timeoutNotificationUrlTemplate;
     private final JacksonMapper mapper;
 
-    public FacebookBidder(String endpointUrl,
-                          String platformId,
-                          String appSecret,
-                          String timeoutNotificationUrlTemplate,
-                          JacksonMapper mapper) {
+    public AudienceNetworkBidder(String endpointUrl,
+                                 String platformId,
+                                 String appSecret,
+                                 String timeoutNotificationUrlTemplate,
+                                 JacksonMapper mapper) {
 
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.platformId = checkBlankString(Objects.requireNonNull(platformId), "platform-id");
@@ -110,7 +110,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(Imp imp, BidRequest bidRequest, MultiMap headers) {
-        final ExtImpFacebook resolvedImpExt = parseAndResolveExtImpFacebook(imp);
+        final ExtImpAudienceNetwork resolvedImpExt = parseAndResolveExtImpAudienceNetwork(imp);
         final Imp modifiedImp = modifyImp(imp, resolvedImpExt);
 
         final String publisherId = resolvedImpExt.getPublisherId();
@@ -118,7 +118,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 .imp(Collections.singletonList(modifiedImp))
                 .app(makeApp(bidRequest.getApp(), publisherId))
                 .ext(mapper.fillExtension(
-                        ExtRequest.empty(), FacebookExt.of(platformId, makeAuthId(bidRequest.getId()))))
+                        ExtRequest.empty(), AudienceNetworkExt.of(platformId, makeAuthId(bidRequest.getId()))))
                 .build();
 
         return HttpRequest.<BidRequest>builder()
@@ -130,16 +130,16 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ExtImpFacebook parseAndResolveExtImpFacebook(Imp imp) {
-        final ExtImpFacebook extImpFacebook;
+    private ExtImpAudienceNetwork parseAndResolveExtImpAudienceNetwork(Imp imp) {
+        final ExtImpAudienceNetwork extImpAudienceNetwork;
         try {
-            extImpFacebook = mapper.mapper().convertValue(imp.getExt(), FACEBOOK_EXT_TYPE_REFERENCE)
+            extImpAudienceNetwork = mapper.mapper().convertValue(imp.getExt(), AUDIENCE_NETWORK_EXT_TYPE_REFERENCE)
                     .getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
 
-        final String placementId = extImpFacebook.getPlacementId();
+        final String placementId = extImpAudienceNetwork.getPlacementId();
         if (StringUtils.isBlank(placementId)) {
             throw new PreBidException("Missing placementId param");
         }
@@ -147,19 +147,19 @@ public class FacebookBidder implements Bidder<BidRequest> {
         final String[] placementSplit = placementId.split("_");
         final int splitLength = placementSplit.length;
         if (splitLength == 1) {
-            if (StringUtils.isBlank(extImpFacebook.getPublisherId())) {
+            if (StringUtils.isBlank(extImpAudienceNetwork.getPublisherId())) {
                 throw new PreBidException("Missing publisherId param");
             }
-            return extImpFacebook;
+            return extImpAudienceNetwork;
         } else if (splitLength == 2) {
-            return ExtImpFacebook.of(placementSplit[1], placementSplit[0]);
+            return ExtImpAudienceNetwork.of(placementSplit[1], placementSplit[0]);
         } else {
             throw new PreBidException("Invalid placementId param '%s' and publisherId param '%s'"
-                    .formatted(placementId, extImpFacebook.getPublisherId()));
+                    .formatted(placementId, extImpAudienceNetwork.getPublisherId()));
         }
     }
 
-    private static Imp modifyImp(Imp imp, ExtImpFacebook extImpFacebook) {
+    private static Imp modifyImp(Imp imp, ExtImpAudienceNetwork extImpAudienceNetwork) {
         final BidType impType = resolveImpType(imp);
 
         final String impId = imp.getId();
@@ -180,7 +180,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
         }
         return impBuilder
                 .ext(null)
-                .tagid(extImpFacebook.getPublisherId() + "_" + extImpFacebook.getPlacementId())
+                .tagid(extImpAudienceNetwork.getPublisherId() + "_" + extImpAudienceNetwork.getPlacementId())
                 .build();
     }
 
@@ -294,7 +294,7 @@ public class FacebookBidder implements Bidder<BidRequest> {
                 throw new PreBidException("Bid %s missing 'adm'".formatted(bid.getId()));
             }
 
-            bidId = mapper.decodeValue(bid.getAdm(), FacebookAdMarkup.class).getBidId();
+            bidId = mapper.decodeValue(bid.getAdm(), AudienceNetworkAdMarkup.class).getBidId();
 
             if (StringUtils.isBlank(bidId)) {
                 throw new PreBidException("bid %s missing 'bid_id' in 'adm'".formatted(bid.getId()));

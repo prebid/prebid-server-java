@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.facebook;
+package org.prebid.server.bidder.audiencenetwork;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
@@ -18,7 +18,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.facebook.proto.FacebookExt;
+import org.prebid.server.bidder.audiencenetwork.proto.AudienceNetworkExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -26,7 +26,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
+import org.prebid.server.proto.openrtb.ext.request.audiencenetwork.ExtImpAudienceNetwork;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.List;
@@ -40,7 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 
-public class FacebookBidderTest extends VertxTest {
+public class AudienceNetworkBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test/auction";
     private static final String PLATFORM_ID = "101";
@@ -48,7 +48,7 @@ public class FacebookBidderTest extends VertxTest {
     private static final String DEFAULT_BID_CURRENCY = "USD";
     public static final String TIMEOUT_NOTIFICATION_URL_TEMPLATE = "https://url/?p=%s&a=%s&auction=%s&ortb_loss_code=2";
 
-    private final FacebookBidder target = new FacebookBidder(
+    private final AudienceNetworkBidder target = new AudienceNetworkBidder(
             ENDPOINT_URL,
             PLATFORM_ID,
             APP_SECRET,
@@ -57,10 +57,10 @@ public class FacebookBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnBlankArguments() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new FacebookBidder(
+        assertThatIllegalArgumentException().isThrownBy(() -> new AudienceNetworkBidder(
                         ENDPOINT_URL, " ", APP_SECRET, TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper))
                 .withMessageStartingWith("No facebook platform-id specified.");
-        assertThatIllegalArgumentException().isThrownBy(() -> new FacebookBidder(
+        assertThatIllegalArgumentException().isThrownBy(() -> new AudienceNetworkBidder(
                         ENDPOINT_URL, PLATFORM_ID, " ", TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper))
                 .withMessageStartingWith("No facebook app-secret specified.");
     }
@@ -68,7 +68,7 @@ public class FacebookBidderTest extends VertxTest {
     @Test
     public void creationShouldFailOnInvalidEndpoints() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new FacebookBidder(
+                .isThrownBy(() -> new AudienceNetworkBidder(
                         "invalid_url", PLATFORM_ID, APP_SECRET, TIMEOUT_NOTIFICATION_URL_TEMPLATE, jacksonMapper))
                 .withMessage("URL supplied is not valid: invalid_url");
     }
@@ -124,9 +124,9 @@ public class FacebookBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenImpExtPlacementIdIsNullOrBlank() {
         // given
         final BidRequest nullPlacementRequest = givenBidRequest(identity(),
-                extImpFacebook -> ExtImpFacebook.of(null, null));
+                extImpAudienceNetwork -> ExtImpAudienceNetwork.of(null, null));
         final BidRequest blankPlacementRequest = givenBidRequest(identity(),
-                extImpFacebook -> ExtImpFacebook.of(" ", null));
+                extImpAudienceNetwork -> ExtImpAudienceNetwork.of(" ", null));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> nullPlacementResult =
@@ -149,9 +149,9 @@ public class FacebookBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenImpExtPublisherIdNullOrEmptyAndPlacementHasOnlyOnePart() {
         // given
         final BidRequest nullPubRequest = givenBidRequest(identity(),
-                extImpFacebook -> ExtImpFacebook.of("placementId", null));
+                extImpAudienceNetwork -> ExtImpAudienceNetwork.of("placementId", null));
         final BidRequest blankPubRequest = givenBidRequest(identity(),
-                extImpFacebook -> ExtImpFacebook.of("placementId", " "));
+                extImpAudienceNetwork -> ExtImpAudienceNetwork.of("placementId", " "));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> nullPubResult = target.makeHttpRequests(nullPubRequest);
@@ -172,7 +172,7 @@ public class FacebookBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorWhenImpExtPlacementIdHasMoveThanTwoParts() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity(),
-                extImpFacebook -> ExtImpFacebook.of("pla_cement_Id", null));
+                extImpAudienceNetwork -> ExtImpAudienceNetwork.of("pla_cement_Id", null));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -260,7 +260,7 @@ public class FacebookBidderTest extends VertxTest {
                 .imp(asList(
                         givenImp(identity(), identity()),
                         givenImp(identity(), identity()),
-                        givenImp(identity(), extImpFacebook -> ExtImpFacebook.of(null, null))))
+                        givenImp(identity(), extImpAudienceNetwork -> ExtImpAudienceNetwork.of(null, null))))
                 .build();
 
         // when
@@ -277,7 +277,7 @@ public class FacebookBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetImpExtPublisherIdFromPlacementIdPart() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity(),
-                extImpFacebook -> ExtImpFacebook.of("newPublisher_newPlacement", null),
+                extImpAudienceNetwork -> ExtImpAudienceNetwork.of("newPublisher_newPlacement", null),
                 requestBuilder -> requestBuilder.app(App.builder().build()));
 
         // when
@@ -479,9 +479,11 @@ public class FacebookBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(request -> mapper.convertValue(request.getExt(), FacebookExt.class))
+                .extracting(request -> mapper.convertValue(request.getExt(), AudienceNetworkExt.class))
                 .containsOnly(
-                        FacebookExt.of("101", "bd49902da11ce0fe6258e56baa0a69c2f1395b2ff1efb30d4879ed9e2343a3f6"));
+                        AudienceNetworkExt.of(
+                                "101",
+                                "bd49902da11ce0fe6258e56baa0a69c2f1395b2ff1efb30d4879ed9e2343a3f6"));
     }
 
     @Test
@@ -708,7 +710,7 @@ public class FacebookBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-            Function<ExtImpFacebook, ExtImpFacebook> impExtCustomizer,
+            Function<ExtImpAudienceNetwork, ExtImpAudienceNetwork> impExtCustomizer,
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> requestCustomizer) {
         return requestCustomizer.apply(BidRequest.builder()
                         .id("req1")
@@ -718,17 +720,17 @@ public class FacebookBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                              Function<ExtImpFacebook, ExtImpFacebook> impExtCustomizer) {
+                                              Function<ExtImpAudienceNetwork, ExtImpAudienceNetwork> impExtCustomizer) {
         return givenBidRequest(impCustomizer, impExtCustomizer, identity());
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer,
-                                Function<ExtImpFacebook, ExtImpFacebook> impExtCustomizer) {
+                                Function<ExtImpAudienceNetwork, ExtImpAudienceNetwork> impExtCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("imp1")
                         .banner(Banner.builder().h(50).format(singletonList(Format.builder().build())).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(
-                                null, impExtCustomizer.apply(ExtImpFacebook.of("placementId", "pubId"))))))
+                                null, impExtCustomizer.apply(ExtImpAudienceNetwork.of("placementId", "pubId"))))))
                 .build();
     }
 

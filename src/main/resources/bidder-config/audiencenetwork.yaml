@@ -1,5 +1,5 @@
 adapters:
-  facebook:
+  audiencenetwork:
     endpoint: https://an.facebook.com/placementbid.ortb
     meta-info:
       maintainer-email: none

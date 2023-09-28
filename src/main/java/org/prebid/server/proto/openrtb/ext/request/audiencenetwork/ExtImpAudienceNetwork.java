@@ -1,12 +1,10 @@
-package org.prebid.server.proto.openrtb.ext.request.facebook;
+package org.prebid.server.proto.openrtb.ext.request.audiencenetwork;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Value
-public class ExtImpFacebook {
+@Value(staticConstructor = "of")
+public class ExtImpAudienceNetwork {
 
     @JsonProperty("placementId")
     String placementId;
