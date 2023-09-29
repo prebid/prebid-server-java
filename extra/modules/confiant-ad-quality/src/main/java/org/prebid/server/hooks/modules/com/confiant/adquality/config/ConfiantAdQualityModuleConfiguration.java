@@ -32,6 +32,7 @@ public class ConfiantAdQualityModuleConfiguration {
     ConfiantAdQualityModule confiantAdQualityModule(
             @Value("${hooks.modules.confiant-ad-quality.api-key}") String apiKey,
             @Value("${hooks.modules.confiant-ad-quality.scan-state-check-interval}") int scanStateCheckInterval,
+            @Value("${hooks.modules.confiant-ad-quality.bidders-to-exclude-from-scan}") List<String> biddersToExcludeFromScan,
             RedisConfig redisConfig,
             RedisRetryConfig retryConfig,
             Vertx vertx,
@@ -52,7 +53,7 @@ public class ConfiantAdQualityModuleConfiguration {
         bidsScanner.start(scannerPromise);
 
         return new ConfiantAdQualityModule(List.of(
-                new ConfiantAdQualityBidResponsesScanHook(bidsScanner, privacyEnforcementService)));
+                new ConfiantAdQualityBidResponsesScanHook(bidsScanner, biddersToExcludeFromScan, privacyEnforcementService)));
     }
 
     @Bean

@@ -13,6 +13,7 @@ import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
+import org.prebid.server.hooks.modules.com.confiant.adquality.core.AnalyticsMapper;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsMapper;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanner;
@@ -25,6 +26,10 @@ import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesHook;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidResponsesHook {
 
@@ -32,12 +37,16 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
 
     private final BidsScanner bidsScanner;
 
+    private final List<String> biddersToExcludeFromScan;
+
     private final PrivacyEnforcementService privacyEnforcementService;
 
     public ConfiantAdQualityBidResponsesScanHook(
             BidsScanner bidsScanner,
+            List<String> biddersToExcludeFromScan,
             PrivacyEnforcementService privacyEnforcementService) {
         this.bidsScanner = bidsScanner;
+        this.biddersToExcludeFromScan = biddersToExcludeFromScan;
         this.privacyEnforcementService = privacyEnforcementService;
     }
 
@@ -47,9 +56,14 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
             AuctionInvocationContext auctionInvocationContext) {
         final BidRequest bidRequest = getBidRequest(auctionInvocationContext);
         final List<BidderResponse> responses = allProcessedBidResponsesPayload.bidResponses();
+        final Map<Boolean, List<BidderResponse>> needScanMap = responses.stream()
+                .collect(Collectors.groupingBy(bidderResponse -> !biddersToExcludeFromScan.contains(bidderResponse.getBidder())));
 
-        return bidsScanner.submitBids(BidsMapper.toRedisBidsFromBidResponses(bidRequest, responses))
-                .map(scanResult -> toInvocationResult(scanResult, auctionInvocationContext));
+        final List<BidderResponse> toScan = Optional.ofNullable(needScanMap.get(true)).orElse(List.of());
+        final List<BidderResponse> avoidScan = Optional.ofNullable(needScanMap.get(false)).orElse(List.of());
+
+        return bidsScanner.submitBids(BidsMapper.toRedisBidsFromBidResponses(bidRequest, toScan))
+                .map(scanResult -> toInvocationResult(scanResult, toScan, avoidScan, auctionInvocationContext));
     }
 
     private BidRequest getBidRequest(AuctionInvocationContext auctionInvocationContext) {
@@ -74,6 +88,8 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
 
     private InvocationResult<AllProcessedBidResponsesPayload> toInvocationResult(
             BidsScanResult bidsScanResult,
+            List<BidderResponse> scannedBidderResponses,
+            List<BidderResponse> notScannedBidderResponses,
             AuctionInvocationContext auctionInvocationContext) {
         final boolean hasIssues = bidsScanResult.hasIssues();
         final boolean debugEnabled = auctionInvocationContext.debugEnabled();
@@ -90,8 +106,12 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
                         .debugMessages(debugEnabled
                                 ? bidsScanResult.getDebugMessages()
                                 : null)
+                        .analyticsTags(AnalyticsMapper.toAnalyticsTags(
+                                bidsScanResult, scannedBidderResponses, notScannedBidderResponses))
                         .payloadUpdate(payload -> hasIssues
-                                ? AllProcessedBidResponsesPayloadImpl.of(bidsScanResult.filterValidResponses(payload.bidResponses()))
+                                ? AllProcessedBidResponsesPayloadImpl.of(
+                                    Stream.concat(bidsScanResult.filterValidResponses(scannedBidderResponses).stream(),
+                                            notScannedBidderResponses.stream()).toList())
                                 : AllProcessedBidResponsesPayloadImpl.of(payload.bidResponses()));
 
         return resultBuilder.build();

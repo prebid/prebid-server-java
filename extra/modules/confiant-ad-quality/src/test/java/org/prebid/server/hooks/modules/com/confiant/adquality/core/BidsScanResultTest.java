@@ -48,6 +48,22 @@ public class BidsScanResultTest {
     }
 
     @Test
+    public void shouldHaveIssuesByIndex() {
+        // given
+        final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}]],[[{\"tag_key\": \"key_b\", \"imp_id\": \"imp_b\", \"issues\": []}]]]";
+        final OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
+        final BidsScanResult bidsScanResult = new BidsScanResult(results);
+
+        // when
+        final boolean hasIssuesByIndex0 = bidsScanResult.hasIssuesByBidIndex(0);
+        final boolean hasIssuesByIndex1 = bidsScanResult.hasIssuesByBidIndex(1);
+
+        // then
+        assertThat(hasIssuesByIndex0).isTrue();
+        assertThat(hasIssuesByIndex1).isFalse();
+    }
+
+    @Test
     public void shouldProperlyGetIssuesMessage() {
         // given
         final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}]]]";

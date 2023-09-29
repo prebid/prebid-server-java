@@ -42,8 +42,8 @@ public class BidsScanResult {
         return result.getDebugMessages();
     }
 
-    private boolean hasIssuesByBidIndex(Integer ind) {
+    public boolean hasIssuesByBidIndex(Integer ind) {
         final BidScanResult bidResult = result.getValue().get(ind);
-        return bidResult != null && bidResult.getIssues() != null && bidResult.getIssues().size() > 0;
+        return bidResult != null && bidResult.getIssues() != null && !bidResult.getIssues().isEmpty();
     }
 }
