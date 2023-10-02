@@ -36,7 +36,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
@@ -124,9 +127,9 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
             throw new PreBidException(e.getMessage(), e);
         }
 
-        final Integer placementId = ext.getPlacementId();
-        if (placementId == null) {
-            throw new PreBidException("No placementId provided");
+        final JsonNode rewardedNode = imp.getExt().at("/prebid/is_rewarded_inventory");
+        if (!rewardedNode.isMissingNode() && rewardedNode.asInt(0) == 1) {
+            imp.getExt().put("is_rewarded_inventory", true);
         }
         return ext;
     }
@@ -169,57 +172,102 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+        final Map<String, Imp> impMap = bidRequest.getImp().stream()
+                .collect(Collectors.toMap(Imp::getId, Function.identity()));
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bidWithDealId(bid), getBidType(bid.getImpid(), bidRequest.getImp()),
-                        bidResponse.getCur()))
+                .map(bid -> createBidderBid(bid, impMap, bidResponse.getCur()))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private Bid bidWithDealId(Bid bid) {
-        if (bid.getExt() == null) {
-            return bid;
+    private BidderBid createBidderBid(Bid bid, Map<String, Imp> impMap, String cur) {
+        final Imp imp = impMap.get(bid.getImpid());
+        if (imp == null) {
+            throw new PreBidException(
+                    "Failed to find impression for ID: \"%s\"".formatted(bid.getImpid())
+            );
         }
-        final ImprovedigitalBidExt improvedigitalBidExt;
-        try {
-            improvedigitalBidExt = mapper.mapper().treeToValue(bid.getExt(), ImprovedigitalBidExt.class);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage(), e);
-        }
-        final ImprovedigitalBidExtImprovedigital bidExtImprovedigital = improvedigitalBidExt.getImprovedigital();
-        if (bidExtImprovedigital == null) {
-            return bid;
-        }
-        // Populate dealId
-        final String buyingType = bidExtImprovedigital.getBuyingType();
-        final Integer lineItemId = bidExtImprovedigital.getLineItemId();
-        if (!StringUtils.isBlank(buyingType)
-                && buyingType.matches("(classic|deal)")
-                && lineItemId != null) {
-            return bid.toBuilder().dealid(lineItemId.toString()).build();
-        }
-        return bid;
+        bid = updateBidIfNeeded(bid, imp);
+        return BidderBid.of(bid, getBidType(bid), cur);
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                }
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                }
-                throw new PreBidException("Unknown impression type for ID: \"%s\"".formatted(impId));
+    private Bid updateBidIfNeeded(Bid bid, Imp imp) {
+        final Bid.BidBuilder bidBuilder = bid.toBuilder();
+        if (Objects.isNull(bid.getMtype())) {
+            if (isMultiFormat(imp)) {
+                throw new PreBidException(
+                        "Bid must have non-null mtype for multi format impression with ID: \"%s\"".formatted(
+                                imp.getId()
+                        )
+                );
+            }
+            bidBuilder.mtype(resolveMtypeFromImp(imp));
+        }
+
+        final ImprovedigitalBidExtImprovedigital bidExtImprovedigital = ObjectUtil.getIfNotNull(bid.getExt(),
+                bidExt -> {
+                    try {
+                        return mapper.mapper().treeToValue(
+                                bid.getExt(), ImprovedigitalBidExt.class
+                        ).getImprovedigital();
+                    } catch (JsonProcessingException e) {
+                        throw new PreBidException(e.getMessage(), e);
+                    }
+                });
+
+        if (Objects.nonNull(bidExtImprovedigital)) {
+            // Populate dealId
+            final String buyingType = bidExtImprovedigital.getBuyingType();
+            final Integer lineItemId = bidExtImprovedigital.getLineItemId();
+            if (!StringUtils.isBlank(buyingType)
+                    && buyingType.matches("(classic|deal)")
+                    && lineItemId != null) {
+                bidBuilder.dealid(lineItemId.toString());
             }
         }
-        throw new PreBidException("Failed to find impression for ID: \"%s\"".formatted(impId));
+
+        return bidBuilder.build();
+    }
+
+    private static BidType getBidType(Bid bid) {
+        return switch (bid.getMtype()) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            default -> throw new PreBidException(
+                    "Unsupported mtype %d for impression with ID: \"%s\"".formatted(
+                            bid.getMtype(), bid.getImpid()
+                    )
+            );
+        };
+    }
+
+    private static int resolveMtypeFromImp(Imp imp) {
+        if (imp.getBanner() != null) {
+            return 1;
+        } else if (imp.getVideo() != null) {
+            return 2;
+        } else if (imp.getAudio() != null) {
+            return 3;
+        } else if (imp.getXNative() != null) {
+            return 4;
+        }
+        throw new PreBidException(
+                "Could not determine bid type for impression with ID: \"%s\"".formatted(imp.getId())
+        );
+    }
+
+    private static boolean isMultiFormat(Imp imp) {
+        int formatCount = 0;
+        formatCount += imp.getBanner() == null ? 0 : 1;
+        formatCount += imp.getVideo() == null ? 0 : 1;
+        formatCount += imp.getAudio() == null ? 0 : 1;
+        formatCount += imp.getXNative() == null ? 0 : 1;
+        return formatCount > 1;
     }
 }
