@@ -39,7 +39,7 @@ public class EpsilonTest extends IntegrationTest {
     }
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFrom() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromConversant() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/epsilon-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/epsilon/alias/test-epsilon-bid-request.json")))
