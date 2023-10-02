@@ -5,11 +5,26 @@ import net.minidev.json.annotate.JsonIgnore
 
 enum BidderName {
 
-    ALIAS, GENERIC, RUBICON, APPNEXUS, BOGUS, OPENX
+    ALIAS("alias"),
+    GENERIC("generic"),
+    GENERIC_CAMEL_CASE("GeNerIc"),
+    RUBICON("rubicon"),
+    APPNEXUS("appnexus"),
+    RUBICON_ALIAS("rubiconAlias"),
+    BOGUS("bogus"),
+    OPENX("openx"),
+    UNKNOWN("unknown")
+
 
     @JsonValue
-    String getValue() {
-        name().toLowerCase()
+    final String value
+
+    BidderName(String value) {
+        this.value = value
+    }
+
+    String toString() {
+        value
     }
 
     @JsonIgnore

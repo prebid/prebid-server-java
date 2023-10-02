@@ -16,7 +16,7 @@ class LmtSpec extends BaseSpec {
     def "PBS should set device.lmt = 1 when device.osv = '#osv' and device.ifa = '#ifa' for iOS app requests"() {
         given: "Default app BidRequest with device.os = iOS and any device.ext.atts"
         def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
+            it.os = PBSUtils.getRandomCase("iOS")
             it.osv = osv
             it.ifa = ifa
             it.ext = new DeviceExt(atts: randomAtts)
@@ -45,7 +45,7 @@ class LmtSpec extends BaseSpec {
     def "PBS should override device.lmt to 1 when device.osv = '#osv' and device.ifa has bugged value for iOS app requests"() {
         given: "Default app BidRequest with device.os = iOS and any device.ext.atts"
         def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
+            it.os = PBSUtils.getRandomCase("iOS")
             it.osv = osv
             it.lmt = lmt
             it.ifa = PBSUtils.getRandomElement(BUGGED_IFA_VALUES)
@@ -73,7 +73,7 @@ class LmtSpec extends BaseSpec {
     def "PBS should set device.lmt = 0 when device.osv = '#osv' and device.ifa is populated for iOS app requests"() {
         given: "Default app BidRequest with device.os = iOS and any device.ext.atts"
         def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
+            it.os = PBSUtils.getRandomCase("iOS")
             it.osv = osv
             it.ifa = PBSUtils.randomString
             it.ext = new DeviceExt(atts: randomAtts)
@@ -96,7 +96,7 @@ class LmtSpec extends BaseSpec {
     def "PBS should override device.lmt to 0 when device.osv = '#osv' and device.ifa is populated for iOS app requests"() {
         given: "Default app BidRequest with device.os = iOS and any device.ext.atts"
         def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
+            it.os = PBSUtils.getRandomCase("iOS")
             it.osv = osv
             it.lmt = lmt
             it.ifa = PBSUtils.randomString
@@ -124,7 +124,7 @@ class LmtSpec extends BaseSpec {
     def "PBS should set device.lmt = 0 when device.osv >= 14.2 and device.ext.atts = 3 for iOS app requests"() {
         given: "Default app BidRequest with device.os = iOS and device.ext.atts = 3"
         def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
+            it.os = PBSUtils.getRandomCase("iOS")
             it.osv = osv
             it.ifa = ifa
             it.ext = new DeviceExt(atts: DeviceExt.Atts.AUTHORIZED)
@@ -151,7 +151,7 @@ class LmtSpec extends BaseSpec {
     def "PBS should override device.lmt to 0 when device.osv >= 14.2 and device.ext.atts = 3 for iOS app requests"() {
         given: "Default app BidRequest with device.os = iOS and device.ext.atts = 3"
         def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
+            it.os = PBSUtils.getRandomCase("iOS")
             it.osv = osv
             it.lmt = randomLmt
             it.ifa = ifa
@@ -179,7 +179,7 @@ class LmtSpec extends BaseSpec {
     def "PBS should set device.lmt = 1 when device.osv >= 14.2 and device.ext.atts = '#atts' for iOS app requests"() {
         given: "Default app BidRequest with device.os = iOS and device.ext.atts != 3"
         def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
+            it.os = PBSUtils.getRandomCase("iOS")
             it.osv = osv
             it.ifa = ifa
             it.ext = new DeviceExt(atts: atts)
@@ -214,7 +214,7 @@ class LmtSpec extends BaseSpec {
     def "PBS should override device.lmt to 1 when device.osv >= 14.2 and device.ext.atts = '#atts' for iOS app requests"() {
         given: "Default app BidRequest with device.os = iOS and device.ext.atts != 3"
         def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
+            it.os = PBSUtils.getRandomCase("iOS")
             it.osv = osv
             it.lmt = randomLmt
             it.ifa = ifa
@@ -276,7 +276,7 @@ class LmtSpec extends BaseSpec {
         given: "Default non-app BidRequest with iOS device.os"
         def lmt = randomLmt
         def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
+            it.os = PBSUtils.getRandomCase("iOS")
             it.osv = osv
             it.lmt = lmt
             it.ifa = PBSUtils.getRandomElement(BUGGED_IFA_VALUES)
@@ -301,7 +301,7 @@ class LmtSpec extends BaseSpec {
         given: "Default non-app BidRequest with non-iOS device.os"
         def lmt = randomLmt
         def device = new Device().tap {
-            it.os = PBSUtils.randomizeCase("iOS")
+            it.os = PBSUtils.getRandomCase("iOS")
             it.osv = osv
             it.lmt = lmt
             it.ifa = PBSUtils.getRandomElement(BUGGED_IFA_VALUES)

@@ -350,7 +350,7 @@ public class LineItemService {
                 .filter(lineItem -> planHasTokensIfPresent(lineItem, auctionContext))
                 .filter(lineItem -> isReadyAtInPast(now, lineItem, auctionContext, txnLog))
                 .peek(lineItem -> txnLog.lineItemsReadyToServe().add(lineItem.getLineItemId()))
-                .collect(Collectors.groupingBy(LineItem::getSource))
+                .collect(Collectors.groupingBy(lineItem -> lineItem.getSource().toLowerCase()))
                 .values().stream()
                 .map(valueAsLineItems -> filterLineItemPerBidder(valueAsLineItems, auctionContext, imp))
                 .filter(CollectionUtils::isNotEmpty)
