@@ -27,6 +27,7 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.deals.lineitem.targeting.MatchingFunction.IN
 import static org.prebid.server.functional.model.deals.lineitem.targeting.MatchingFunction.INTERSECTS
@@ -640,6 +641,38 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         matchingFunction | matchingValue
         INTERSECTS       | [stringTargetingValue, PBSUtils.randomString]
         MATCHES          | stringTargetingValue
+    }
+
+    def "PBS shouldn't rely on bidder name case strategy when bidder name in another case stately"() {
+        given: "Bid request with 1 not matched User specific bidder config and 1 matched"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            def bidderConfigUser = new User().tap {
+                ext = new UserExt(data: new UserExtData(buyeruid: stringTargetingValue))
+            }
+            def bidderConfig = new ExtPrebidBidderConfig(bidders: [bidders],
+                    config: new BidderConfig(ortb2: new BidderConfigOrtb(user: bidderConfigUser)))
+            ext = new BidRequestExt(prebid: new Prebid(debug: 1, bidderConfig: [bidderConfig]))
+        }
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                    .addTargeting(UFPD_BUYER_UID, MATCHES, stringTargetingValue)
+                    .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
+
+        where:
+        bidders << [GENERIC, GENERIC_CAMEL_CASE]
     }
 
     private BidRequest getSiteFpdBidRequest(String siteLanguage, String appLanguage, String impLanguage) {

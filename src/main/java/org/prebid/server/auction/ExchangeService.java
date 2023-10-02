@@ -24,6 +24,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ComponentType;
@@ -400,7 +401,7 @@ public class ExchangeService {
                 ? CollectionUtils.emptyIfNull(extRequestPrebid.getMultibid())
                 : Collections.emptyList();
 
-        final Map<String, MultiBidConfig> bidderToMultiBid = new HashMap<>();
+        final Map<String, MultiBidConfig> bidderToMultiBid = new CaseInsensitiveMap<>();
         for (ExtRequestPrebidMultiBid prebidMultiBid : multiBids) {
             final String bidder = prebidMultiBid.getBidder();
             final List<String> bidders = prebidMultiBid.getBidders();
@@ -620,7 +621,7 @@ public class ExchangeService {
             return Collections.emptyMap();
         }
 
-        final Map<String, ExtBidderConfigOrtb> bidderToConfig = new HashMap<>();
+        final Map<String, ExtBidderConfigOrtb> bidderToConfig = new CaseInsensitiveMap<>();
 
         bidderConfigs.stream()
                 .filter(prebidBidderConfig -> prebidBidderConfig.getBidders().contains(ALL_BIDDERS_CONFIG))
@@ -674,7 +675,8 @@ public class ExchangeService {
             final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
                     biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
-            final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
+            final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
+                    .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
             final User preparedUser = prepareUser(
                     bidder, context, aliases, useFirstPartyData, fpdConfig, eidPermissions);
             bidderToUser.put(bidder, preparedUser);
@@ -758,9 +760,9 @@ public class ExchangeService {
      */
     private boolean isUserEidAllowed(String source, Map<String, List<String>> eidPermissions, String bidder) {
         final List<String> allowedBidders = eidPermissions.get(source);
-        return CollectionUtils.isEmpty(allowedBidders)
-                || allowedBidders.contains(EID_ALLOWED_FOR_ALL_BIDDERS)
-                || allowedBidders.contains(bidder);
+        return CollectionUtils.isEmpty(allowedBidders) || allowedBidders.stream()
+                .anyMatch(allowedBidder -> StringUtils.equalsIgnoreCase(allowedBidder, bidder)
+                        || EID_ALLOWED_FOR_ALL_BIDDERS.equals(allowedBidder));
     }
 
     /**
@@ -891,7 +893,8 @@ public class ExchangeService {
         final String bidder = bidderPrivacyResult.getRequestBidder();
 
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
-        final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
+        final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
+                .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
 
         final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(
                 biddersToConfigs.get(bidder),

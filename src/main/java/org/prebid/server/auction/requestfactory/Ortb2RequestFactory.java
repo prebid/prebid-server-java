@@ -68,6 +68,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 
 public class Ortb2RequestFactory {
 
@@ -141,7 +142,7 @@ public class Ortb2RequestFactory {
                 .requestRejected(false)
                 .txnLog(TxnLog.create())
                 .debugHttpCalls(new HashMap<>())
-                .bidRejectionTrackers(new HashMap<>())
+                .bidRejectionTrackers(new TreeMap<>(String.CASE_INSENSITIVE_ORDER))
                 .build();
     }
 
