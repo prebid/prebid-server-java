@@ -88,14 +88,16 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
         try {
             final List<BidderError> bidderErrors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidRequest, bidResponse, bidderErrors), Collections.emptyList());
+            return Result.withValues(extractBids(bidRequest, bidResponse, bidderErrors));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private List<BidderBid> extractBids(BidRequest bidRequest,
-            BidResponse bidResponse, List<BidderError> bidderErrors) {
+                                        BidResponse bidResponse,
+                                        List<BidderError> bidderErrors) {
+
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -110,8 +112,10 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private BidderBid resolveBidderBid(Bid bid, BidRequest bidRequest,
-                BidResponse bidResponse, List<BidderError> bidderErrors) {
+    private BidderBid resolveBidderBid(Bid bid,
+                                       BidRequest bidRequest,
+                                       BidResponse bidResponse,
+                                       List<BidderError> bidderErrors) {
         final String currency = bidResponse.getCur();
         final BidType bidType = getBidType(bid.getImpid(), bidRequest.getImp());
         final String bidAdm = bid.getAdm();
@@ -139,7 +143,7 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
         }
 
         final JsonNode nativeNode = admNode.get("native");
-        if (!nativeNode.isMissingNode()) {
+        if (nativeNode != null) {
             return nativeNode.toString();
         }
 
@@ -147,17 +151,16 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
-        BidType bidType = BidType.banner;
         for (Imp imp : imps) {
             if (imp.getId().equals(impId)) {
                 if (imp.getBanner() != null) {
-                    return bidType;
+                    return BidType.banner;
                 } else if (imp.getXNative() != null) {
-                    bidType = BidType.xNative;
+                    return BidType.xNative;
                 }
             }
         }
-        return bidType;
+        return BidType.banner;
     }
 
     private ExtImpRtbhouse parseImpExt(Imp imp) {
