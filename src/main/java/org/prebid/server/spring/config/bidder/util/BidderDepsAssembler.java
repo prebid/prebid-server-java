@@ -184,7 +184,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
                 new InputStreamResource(new ByteArrayInputStream(configAsYamlString.getBytes())));
         final Binder configurationBinder = new Binder(new MapConfigurationPropertySource(configAsProperties));
 
-        return (CFG) configurationBinder.bind(StringUtils.EMPTY, (Class) targetClass).get();
+        return (CFG) configurationBinder.bindOrCreate(StringUtils.EMPTY, (Class) targetClass);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
