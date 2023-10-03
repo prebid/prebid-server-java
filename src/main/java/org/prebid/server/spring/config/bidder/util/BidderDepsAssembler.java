@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -91,6 +92,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     }
 
     private BidderInstanceDeps coreDeps() {
+        validateCoreCapabilities(bidderName, configProperties);
         return deps(
                 bidderName,
                 usersyncer(configProperties, CookieFamilySource.ROOT),
@@ -151,6 +153,16 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         return configProperties.getEnabled()
                 ? bidderCreator.apply(configProperties)
                 : new DisabledBidder(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED.formatted(bidderName));
+    }
+
+    private void validateCoreCapabilities(String bidderName, CFG coreConfiguration) {
+        final MetaInfo coreMetaInfo = coreConfiguration.getMetaInfo();
+        final List<MediaType> coreAppMediaTypes = coreMetaInfo.getAppMediaTypes();
+        final List<MediaType> coreSiteMediaTypes = coreMetaInfo.getSiteMediaTypes();
+
+        if (CollectionUtils.isEmpty(coreAppMediaTypes) && CollectionUtils.isEmpty(coreSiteMediaTypes)) {
+            throw new IllegalArgumentException("Bidder %s has no any capabilities".formatted(bidderName));
+        }
     }
 
     private void validateCapabilities(String alias, CFG aliasConfiguration, String coreBidder, CFG coreConfiguration) {
