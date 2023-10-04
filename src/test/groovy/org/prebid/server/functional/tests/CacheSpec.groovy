@@ -2,13 +2,17 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.util.PBSUtils
+
+import static org.prebid.server.functional.model.response.auction.MediaType.*
 
 class CacheSpec extends BaseSpec {
 
@@ -96,7 +100,7 @@ class CacheSpec extends BaseSpec {
     }
 
     def "PBS shouldn't response with seatbid.bid.adm in response when ext.prebid.cache.bids.returnCreative=false"() {
-        given: "Default BidRequest with cache, targeting"
+        given: "Default BidRequest with cache"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             enableCache()
             ext.prebid.cache.bids.returnCreative = false
@@ -104,7 +108,7 @@ class CacheSpec extends BaseSpec {
 
         and: "Default basic bid with banner creative"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].adm = new Adm(assets: [new Asset(id: PBSUtils.randomNumber)])
+            seatbid[0].bid[0].adm = new Adm(assets: [Asset.defaultAsset])
         }
 
         and: "Set bidder response"
@@ -118,7 +122,7 @@ class CacheSpec extends BaseSpec {
     }
 
     def "PBS should response with seatbid.bid.adm in response when ext.prebid.cache.bids.returnCreative=true"() {
-        given: "Default BidRequest with cache, targeting"
+        given: "Default BidRequest with cache"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             enableCache()
             ext.prebid.cache.bids.returnCreative = true
@@ -126,7 +130,7 @@ class CacheSpec extends BaseSpec {
 
         and: "Default basic bid with banner creative"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].adm = new Adm(assets: [new Asset(id: PBSUtils.randomNumber)])
+            seatbid[0].bid[0].adm = new Adm(assets: [Asset.defaultAsset])
         }
 
         and: "Set bidder response"
@@ -140,17 +144,16 @@ class CacheSpec extends BaseSpec {
     }
 
     def "PBS shouldn't response with seatbid.bid.adm in response when ext.prebid.cache.vastXml.returnCreative=false and video request"() {
-        given: "Default BidRequest with cache, targeting"
+        given: "Default BidRequest with cache"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner = null
-            imp[0].video = Video.defaultVideo
+            imp[0] = Imp.getDefaultImpression(VIDEO)
             enableCache()
             ext.prebid.cache.vastXml.returnCreative = false
         }
 
         and: "Default basic bid with banner creative"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].adm = new Adm(assets: [new Asset(id: PBSUtils.randomNumber)])
+            seatbid[0].bid[0].adm = new Adm(assets: [Asset.defaultAsset])
         }
 
         and: "Set bidder response"
@@ -163,17 +166,17 @@ class CacheSpec extends BaseSpec {
         assert !response.seatbid[0].bid[0].adm
     }
 
-    def "PBS should response with seatbid.bid.adm in response when ext.prebid.cache.vastXml.returnCreative=#returnCreative and #request"() {
-        given: "Default BidRequest with cache, targeting"
+    def "PBS should response with seatbid.bid.adm in response when ext.prebid.cache.vastXml.returnCreative=#returnCreative and imp.#mediaType"() {
+        given: "Default BidRequest with cache"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             enableCache()
-            imp[0].video = video
+            imp[0] = Imp.getDefaultImpression(mediaType)
             ext.prebid.cache.vastXml.returnCreative = returnCreative
         }
 
         and: "Default basic bid with banner creative"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            seatbid[0].bid[0].adm = new Adm(assets: [new Asset(id: PBSUtils.randomNumber)])
+            seatbid[0].bid[0].adm = new Adm(assets: [Asset.defaultAsset])
         }
 
         and: "Set bidder response"
@@ -186,8 +189,8 @@ class CacheSpec extends BaseSpec {
         assert response.seatbid[0].bid[0].adm == bidResponse.seatbid[0].bid[0].adm
 
         where:
-        returnCreative | video              | request
-        false          | null               | "banner request"
-        true           | Video.defaultVideo | "video request"
+        returnCreative | mediaType
+        false          | BANNER
+        true           | VIDEO
     }
 }
