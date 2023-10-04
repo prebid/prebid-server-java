@@ -3,6 +3,7 @@ package org.prebid.server.functional.tests
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Targeting
+import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Adm
@@ -92,5 +93,101 @@ class CacheSpec extends BaseSpec {
 
         then: "PBS should not call PBC"
         assert prebidCache.getRequestCount(bidRequest.imp[0].id) == 0
+    }
+
+    def "PBS shouldn't response with seatbid.bid.adm in response when ext.prebid.cache.bids.returnCreative=false"() {
+        given: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            enableCache()
+            ext.prebid.cache.bids.returnCreative = false
+        }
+
+        and: "Default basic bid with banner creative"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].adm = new Adm(assets: [new Asset(id: PBSUtils.randomNumber)])
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response shouldn't contain adm obj"
+        assert !response.seatbid[0].bid[0].adm
+    }
+
+    def "PBS should response with seatbid.bid.adm in response when ext.prebid.cache.bids.returnCreative=true"() {
+        given: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            enableCache()
+            ext.prebid.cache.bids.returnCreative = true
+        }
+
+        and: "Default basic bid with banner creative"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].adm = new Adm(assets: [new Asset(id: PBSUtils.randomNumber)])
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain adm obj"
+        assert response.seatbid[0].bid[0].adm == bidResponse.seatbid[0].bid[0].adm
+    }
+
+    def "PBS shouldn't response with seatbid.bid.adm in response when ext.prebid.cache.vastXml.returnCreative=false and video request"() {
+        given: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].banner = null
+            imp[0].video = Video.defaultVideo
+            enableCache()
+            ext.prebid.cache.vastXml.returnCreative = false
+        }
+
+        and: "Default basic bid with banner creative"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].adm = new Adm(assets: [new Asset(id: PBSUtils.randomNumber)])
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response shouldn't contain adm obj"
+        assert !response.seatbid[0].bid[0].adm
+    }
+
+    def "PBS should response with seatbid.bid.adm in response when ext.prebid.cache.vastXml.returnCreative=#returnCreative and #request"() {
+        given: "Default BidRequest with cache, targeting"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            enableCache()
+            imp[0].video = video
+            ext.prebid.cache.vastXml.returnCreative = returnCreative
+        }
+
+        and: "Default basic bid with banner creative"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].adm = new Adm(assets: [new Asset(id: PBSUtils.randomNumber)])
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain adm obj"
+        assert response.seatbid[0].bid[0].adm == bidResponse.seatbid[0].bid[0].adm
+
+        where:
+        returnCreative | video              | request
+        false          | null               | "banner request"
+        true           | Video.defaultVideo | "video request"
     }
 }
