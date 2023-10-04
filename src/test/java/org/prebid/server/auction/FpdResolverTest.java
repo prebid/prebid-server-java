@@ -163,8 +163,7 @@ public class FpdResolverTest extends VertxTest {
 
         // then
         assertThat(resultDooh).isEqualTo(
-                Dooh.builder().ext(ExtDooh.of(mapper.createObjectNode().put("id", "id"))).build()
-        );
+                Dooh.builder().ext(ExtDooh.of(mapper.createObjectNode().put("id", "id"))).build());
     }
 
     @Test
@@ -450,8 +449,7 @@ public class FpdResolverTest extends VertxTest {
                 .put("id", "fpdId")
                 .setAll(Map.of(
                         "publisher", mapper.createObjectNode().put("id", "fpdId"),
-                        "content", mapper.createObjectNode().put("language", "fpdLan")
-                ));
+                        "content", mapper.createObjectNode().put("language", "fpdLan")));
         assertThat(resultDooh).isEqualTo(
                 Dooh.builder()
                         .name("fpdName")

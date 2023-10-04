@@ -29,6 +29,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -174,13 +175,15 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         final Set<MediaType> coreAppMediaTypes = new HashSet<>(coreMetaInfo.getAppMediaTypes());
         final Set<MediaType> coreSiteMediaTypes = new HashSet<>(coreMetaInfo.getSiteMediaTypes());
         //it's a workaround in order not to update all the bidder config files at once
-        final Set<MediaType> coreDoohMediaTypes = new HashSet<>(
-                Optional.ofNullable(coreMetaInfo.getDoohMediaTypes()).orElse(List.of()));
+        final Set<MediaType> coreDoohMediaTypes = Optional.ofNullable(coreMetaInfo.getDoohMediaTypes())
+                .<Set<MediaType>>map(HashSet::new)
+                .orElseGet(Collections::emptySet);
 
         final Set<MediaType> aliasAppMediaTypes = new HashSet<>(aliasMetaInfo.getAppMediaTypes());
         final Set<MediaType> aliasSiteMediaTypes = new HashSet<>(aliasMetaInfo.getSiteMediaTypes());
-        final Set<MediaType> aliasDoohMediaTypes = new HashSet<>(
-                Optional.ofNullable(aliasMetaInfo.getDoohMediaTypes()).orElse(List.of()));
+        final Set<MediaType> aliasDoohMediaTypes = Optional.ofNullable(aliasMetaInfo.getDoohMediaTypes())
+                .<Set<MediaType>>map(HashSet::new)
+                .orElseGet(Collections::emptySet);
 
         if (!coreAppMediaTypes.containsAll(aliasAppMediaTypes)
                 || !coreSiteMediaTypes.containsAll(aliasSiteMediaTypes)

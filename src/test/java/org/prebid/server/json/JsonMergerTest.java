@@ -55,8 +55,7 @@ public class JsonMergerTest extends VertxTest {
         final Publisher mergedPublisher = Publisher.builder().id("testId").domain("domain").build();
         final ObjectNode mergedApp = mapper.valueToTree(App.builder().publisher(mergedPublisher).build());
         final ObjectNode mergedDooh = mapper.valueToTree(
-                Dooh.builder().venuetype(List.of("venuetype")).venuetypetax(3).build()
-        );
+                Dooh.builder().venuetype(List.of("venuetype")).venuetypetax(3).build());
         final ExtBidderConfigOrtb mergedConfigFpd = ExtBidderConfigOrtb.of(mergedSite, mergedApp, mergedDooh, null);
 
         assertThat(result).isEqualTo(mergedConfigFpd);

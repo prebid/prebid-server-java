@@ -2328,8 +2328,8 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder()
                 .imp(singletonList(Imp.builder().ext(mapper.createObjectNode()).build()))
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().build()))
-        ).build();
+                .ext(ExtRequest.of(ExtRequestPrebid.builder().build())))
+                .build();
     }
 
     @Test

@@ -169,8 +169,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 0,
                 false,
                 false,
-                CompressionType.NONE
-        );
+                CompressionType.NONE);
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,

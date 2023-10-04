@@ -172,6 +172,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.TEN;
@@ -180,7 +181,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.apache.commons.lang3.exception.ExceptionUtils.rethrow;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -2519,15 +2520,12 @@ public class ExchangeServiceTest extends VertxTest {
                                 "keyword",
                                 List.of("venuetype"),
                                 ExtDooh.of(dataNode),
-                                content
-                        ),
+                                content),
                         tuple(
                                 "keyword",
                                 List.of("venuetype"),
                                 null,
-                                Content.builder().album("album").build()
-                        )
-                );
+                                Content.builder().album("album").build()));
     }
 
     @Test
@@ -2573,15 +2571,12 @@ public class ExchangeServiceTest extends VertxTest {
                                 "keyword",
                                 "storeurl",
                                 ExtApp.of(ExtAppPrebid.of("source", "version"), dataNode),
-                                content
-                        ),
+                                content),
                         tuple(
                                 "keyword",
                                 "storeurl",
                                 ExtApp.of(ExtAppPrebid.of("source", "version"), null),
-                                Content.builder().album("album").build()
-                        )
-                );
+                                Content.builder().album("album").build()));
     }
 
     @Test
@@ -2655,8 +2650,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(Dooh::getExt, Dooh::getKeywords)
                 .containsOnly(
                         tuple(ExtDooh.of(dataNode), "keyword"),
-                        tuple(ExtDooh.of(dataNode), "keyword")
-                );
+                        tuple(ExtDooh.of(dataNode), "keyword"));
     }
 
     @Test
@@ -2722,8 +2716,7 @@ public class ExchangeServiceTest extends VertxTest {
                 null, ExtBidderConfigOrtb.of(null, null, doohWithDomain, null));
         final ExtRequestPrebidBidderConfig allFpdConfig = ExtRequestPrebidBidderConfig.of(
                 singletonList("*"),
-                allExtBidderConfig
-        );
+                allExtBidderConfig);
 
         final Dooh requestDooh = Dooh.builder().id("doohId").venuetype(List.of("erased")).keywords("keyword").build();
         final ExtRequestPrebid extRequestPrebid = ExtRequestPrebid.builder()
@@ -4649,9 +4642,8 @@ public class ExchangeServiceTest extends VertxTest {
         return contextArgumentCaptor.getValue().getAuctionParticipations();
     }
 
-    private static BidRequest givenBidRequest(
-            List<Imp> imp,
-            Function<BidRequestBuilder, BidRequestBuilder> bidRequestBuilderCustomizer) {
+    private static BidRequest givenBidRequest(List<Imp> imp,
+                                              UnaryOperator<BidRequestBuilder> bidRequestBuilderCustomizer) {
 
         return bidRequestBuilderCustomizer
                 .apply(BidRequest.builder().cur(singletonList("USD")).imp(imp).tmax(500L))

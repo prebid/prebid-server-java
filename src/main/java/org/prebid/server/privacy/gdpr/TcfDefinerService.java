@@ -48,7 +48,7 @@ public class TcfDefinerService {
     private static final ConditionalLogger SITE_CORRUPT_CONSENT_LOGGER =
             new ConditionalLogger("site_corrupt_consent", logger);
     private static final ConditionalLogger DOOH_CORRUPT_CONSENT_LOGGER =
-            new ConditionalLogger("site_corrupt_consent", logger);
+            new ConditionalLogger("dooh_corrupt_consent", logger);
     private static final ConditionalLogger UNDEFINED_CORRUPT_CONSENT_LOGGER =
             new ConditionalLogger("undefined_corrupt_consent", logger);
 
