@@ -905,8 +905,7 @@ public class ExchangeService {
 
         final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(
                 biddersToConfigs.get(bidder),
-                biddersToConfigs.get(ALL_BIDDERS_CONFIG)
-        );
+                biddersToConfigs.get(ALL_BIDDERS_CONFIG));
 
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
@@ -919,9 +918,9 @@ public class ExchangeService {
         final Dooh preparedDooh = prepareDooh(dooh, fpdDooh, useFirstPartyData);
 
         final List<String> distributionChannels = new ArrayList<>();
-        ObjectUtil.getIfNotNull(preparedSite, ignored -> distributionChannels.add("site"));
-        ObjectUtil.getIfNotNull(preparedDooh, ignored -> distributionChannels.add("dooh"));
-        ObjectUtil.getIfNotNull(preparedApp, ignored -> distributionChannels.add("app"));
+        Optional.ofNullable(preparedSite).ifPresent(ignored -> distributionChannels.add("site"));
+        Optional.ofNullable(preparedDooh).ifPresent(ignored -> distributionChannels.add("dooh"));
+        Optional.ofNullable(preparedApp).ifPresent(ignored -> distributionChannels.add("app"));
 
         if (distributionChannels.size() > 1) {
             metrics.updateAlertsMetrics(MetricName.general);

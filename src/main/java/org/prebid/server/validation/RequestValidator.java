@@ -61,7 +61,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -76,6 +75,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -174,9 +174,9 @@ public class RequestValidator {
             }
 
             final List<String> channels = new ArrayList<>();
-            ObjectUtil.getIfNotNull(bidRequest.getSite(), ignored -> channels.add("request.site"));
-            ObjectUtil.getIfNotNull(bidRequest.getDooh(), ignored -> channels.add("request.dooh"));
-            ObjectUtil.getIfNotNull(bidRequest.getApp(), ignored -> channels.add("request.app"));
+            Optional.ofNullable(bidRequest.getSite()).ifPresent(ignored -> channels.add("request.site"));
+            Optional.ofNullable(bidRequest.getDooh()).ifPresent(ignored -> channels.add("request.dooh"));
+            Optional.ofNullable(bidRequest.getApp()).ifPresent(ignored -> channels.add("request.app"));
 
             if (channels.size() == 0) {
                 throw new ValidationException(
@@ -549,8 +549,7 @@ public class RequestValidator {
     private void validateDooh(Dooh dooh) throws ValidationException {
         if (dooh.getId() == null && CollectionUtils.isEmpty(dooh.getVenuetype())) {
             throw new ValidationException(
-                    "request.dooh should include at least one of request.dooh.id or request.dooh.venuetype."
-            );
+                    "request.dooh should include at least one of request.dooh.id or request.dooh.venuetype.");
         }
     }
 
