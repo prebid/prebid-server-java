@@ -4,15 +4,14 @@ import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.Targeting
-import org.prebid.server.functional.model.request.auction.Video
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.MediaType
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.response.auction.MediaType.*
+import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
+import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
 class CacheSpec extends BaseSpec {
 
