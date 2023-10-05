@@ -1069,8 +1069,8 @@ class OrtbConverterSpec extends BaseSpec {
         }
     }
 
-    def "PBS should remove imp[0].refresh/qty when we don't support ortb 2.6"() {
-        given: "Default bid request with imp[0].refresh/qty"
+    def "PBS should remove imp[0].{refresh/qty/dt} when we don't support ortb 2.6"() {
+        given: "Default bid request with imp[0].{refresh/qty/dt}"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].tap {
                 refresh = new Refresh(count: PBSUtils.randomNumber, refSettings: [new RefSettings(
@@ -1079,21 +1079,23 @@ class OrtbConverterSpec extends BaseSpec {
                 qty = new Qty(multiplier: PBSUtils.randomDecimal,
                         sourceType: PBSUtils.getRandomEnum(SourceType),
                         vendor: PBSUtils.randomString)
+                dt = PBSUtils.randomDecimal
             }
         }
 
         when: "Requesting PBS auction with ortb 2.5"
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
-        then: "BidResponse shouldn't contain the imp[0].refresh/qty as on request"
+        then: "BidResponse shouldn't contain the imp[0].{refresh/qty/dt} as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
             !imp[0].refresh
             !imp[0].qty
+            !imp[0].dt
         }
     }
 
-    def "PBS shouldn't remove imp[0].refresh/qty when we support ortb 2.6"() {
-        given: "Default bid request with imp[0].refresh/qty"
+    def "PBS shouldn't remove imp[0].{refresh/qty/dt} when we support ortb 2.6"() {
+        given: "Default bid request with imp[0].{refresh/qty/dt}"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].tap {
                 refresh = new Refresh(count: PBSUtils.randomNumber, refSettings: [new RefSettings(
@@ -1102,13 +1104,14 @@ class OrtbConverterSpec extends BaseSpec {
                 qty = new Qty(multiplier: PBSUtils.randomDecimal,
                         sourceType: PBSUtils.getRandomEnum(SourceType),
                         vendor: PBSUtils.randomString)
+                dt = PBSUtils.randomDecimal
             }
         }
 
         when: "Requesting PBS auction with ortb 2.6"
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
-        then: "BidResponse should contain the imp[0].refresh/qty as on request"
+        then: "BidResponse should contain the imp[0].{refresh/qty/dt} as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
             imp[0].refresh.count == bidRequest.imp[0].refresh.count
             imp[0].refresh.refSettings[0].refType == bidRequest.imp[0].refresh.refSettings[0].refType
@@ -1116,6 +1119,7 @@ class OrtbConverterSpec extends BaseSpec {
             imp[0].qty.multiplier == bidRequest.imp[0].qty.multiplier
             imp[0].qty.sourceType == bidRequest.imp[0].qty.sourceType
             imp[0].qty.vendor == bidRequest.imp[0].qty.vendor
+            imp[0].dt == bidRequest.imp[0].dt
         }
     }
 
