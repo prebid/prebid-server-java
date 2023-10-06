@@ -10,3 +10,9 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 559
+    usersync:
+      cookie-family-name: orbidder
+      redirect:
+        url: https://orbidder.otto.de/pbs-usersync?gdpr={{gdpr}}&consent={{gdpr_consent}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '[ODN_ID]'
