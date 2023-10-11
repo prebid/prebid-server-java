@@ -137,25 +137,25 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final String body = httpCall.getResponse().getBody();
-            final StroeerCoreBidResponse response = mapper.decodeValue(body, StroeerCoreBidResponse.class);
-            return Result.withValues(extractBids(response));
+            final StroeerCoreBidResponse bidResponse = mapper.decodeValue(body, StroeerCoreBidResponse.class);
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(StroeerCoreBidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest, StroeerCoreBidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getBids())) {
             return Collections.emptyList();
         }
 
         return bidResponse.getBids().stream()
                 .filter(Objects::nonNull)
-                .map(StroeerCoreBidder::toBidderBid)
+                .map((stroeerCoreBid) -> toBidderBid(bidRequest, stroeerCoreBid))
                 .toList();
     }
 
-    private static BidderBid toBidderBid(StroeerCoreBid stroeercoreBid) {
+    private static BidderBid toBidderBid(BidRequest bidRequest, StroeerCoreBid stroeercoreBid) {
         return BidderBid.of(
                 Bid.builder()
                         .id(stroeercoreBid.getId())
@@ -166,7 +166,21 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
                         .adm(stroeercoreBid.getAdMarkup())
                         .crid(stroeercoreBid.getCreativeId())
                         .build(),
-                BidType.banner,
+                getBidType(stroeercoreBid.getImpId(), bidRequest.getImp()),
                 BIDDER_CURRENCY);
+    }
+
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
+                }
+            }
+        }
+
+        return BidType.banner;
     }
 }
