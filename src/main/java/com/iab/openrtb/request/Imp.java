@@ -165,6 +165,12 @@ public class Imp {
     Qty qty;
 
     /**
+     * Timestamp when the item is estimated to be fulfilled (e.g. when a DOOH impression will be displayed)
+     * in Unix format (i.e., milliseconds since the epoch).
+     */
+    Double dt;
+
+    /**
      * Placeholder for exchange-specific extensions to OpenRTB.
      */
     ObjectNode ext;
