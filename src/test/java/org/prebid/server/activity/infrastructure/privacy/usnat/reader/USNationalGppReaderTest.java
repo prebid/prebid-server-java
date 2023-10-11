@@ -14,6 +14,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 public class USNationalGppReaderTest {
 
@@ -36,12 +37,12 @@ public class USNationalGppReaderTest {
     }
 
     @Test
-    public void getMspaServiceProviderModeShouldReturnExpectedResult() {
+    public void getVersionShouldReturnExpectedResult() {
         // given
-        given(uspNatV1.getMspaServiceProviderMode()).willReturn(1);
+        given(uspNatV1.getVersion()).willReturn(1);
 
         // when and then
-        assertThat(gppReader.getMspaServiceProviderMode()).isEqualTo(1);
+        assertThat(gppReader.getVersion()).isEqualTo(1);
     }
 
     @Test
@@ -51,6 +52,22 @@ public class USNationalGppReaderTest {
 
         // when and then
         assertThat(gppReader.getGpc()).isTrue();
+    }
+
+    @Test
+    public void getGpcSegmentTypeShouldReturnExpectedResult() {
+        // when and then
+        assertThat(gppReader.getGpcSegmentType()).isNull();
+        verifyNoInteractions(uspNatV1);
+    }
+
+    @Test
+    public void getGpcSegmentIncludedShouldReturnExpectedResult() {
+        // given
+        given(uspNatV1.getGpcSegmentIncluded()).willReturn(true);
+
+        // when and then
+        assertThat(gppReader.getGpcSegmentIncluded()).isTrue();
     }
 
     @Test
@@ -126,15 +143,6 @@ public class USNationalGppReaderTest {
     }
 
     @Test
-    public void getSensitiveDataProcessingOptOutNoticeShouldReturnExpectedResult() {
-        // given
-        given(uspNatV1.getSensitiveDataProcessingOptOutNotice()).willReturn(1);
-
-        // when and then
-        assertThat(gppReader.getSensitiveDataProcessingOptOutNotice()).isEqualTo(1);
-    }
-
-    @Test
     public void getSensitiveDataProcessingShouldReturnExpectedResult() {
         // given
         final List<Integer> data = Collections.emptyList();
@@ -142,6 +150,15 @@ public class USNationalGppReaderTest {
 
         // when and then
         assertThat(gppReader.getSensitiveDataProcessing()).isSameAs(data);
+    }
+
+    @Test
+    public void getSensitiveDataProcessingOptOutNoticeShouldReturnExpectedResult() {
+        // given
+        given(uspNatV1.getSensitiveDataProcessingOptOutNotice()).willReturn(1);
+
+        // when and then
+        assertThat(gppReader.getSensitiveDataProcessingOptOutNotice()).isEqualTo(1);
     }
 
     @Test
@@ -164,24 +181,63 @@ public class USNationalGppReaderTest {
     }
 
     @Test
+    public void getMspaCoveredTransactionShouldReturnExpectedResult() {
+        // given
+        given(uspNatV1.getMspaCoveredTransaction()).willReturn(1);
+
+        // when and then
+        assertThat(gppReader.getMspaCoveredTransaction()).isEqualTo(1);
+    }
+
+    @Test
+    public void getMspaServiceProviderModeShouldReturnExpectedResult() {
+        // given
+        given(uspNatV1.getMspaServiceProviderMode()).willReturn(1);
+
+        // when and then
+        assertThat(gppReader.getMspaServiceProviderMode()).isEqualTo(1);
+    }
+
+    @Test
+    public void getMspaOptOutOptionModeShouldReturnExpectedResult() {
+        // given
+        given(uspNatV1.getMspaOptOutOptionMode()).willReturn(1);
+
+        // when and then
+        assertThat(gppReader.getMspaOptOutOptionMode()).isEqualTo(1);
+    }
+
+    @Test
     public void gppReaderShouldReturnExpectedResultsIfSectionAbsent() {
         // given
         gppReader = new USNationalGppReader(null);
 
         // when and then
-        assertThat(gppReader.getMspaServiceProviderMode()).isNull();
+        assertThat(gppReader.getVersion()).isNull();
+
         assertThat(gppReader.getGpc()).isNull();
+        assertThat(gppReader.getGpcSegmentType()).isNull();
+        assertThat(gppReader.getGpcSegmentIncluded()).isNull();
+
         assertThat(gppReader.getSaleOptOut()).isNull();
         assertThat(gppReader.getSaleOptOutNotice()).isNull();
+
         assertThat(gppReader.getSharingNotice()).isNull();
         assertThat(gppReader.getSharingOptOut()).isNull();
         assertThat(gppReader.getSharingOptOutNotice()).isNull();
+
         assertThat(gppReader.getTargetedAdvertisingOptOut()).isNull();
         assertThat(gppReader.getTargetedAdvertisingOptOutNotice()).isNull();
+
         assertThat(gppReader.getSensitiveDataLimitUseNotice()).isNull();
-        assertThat(gppReader.getSensitiveDataProcessingOptOutNotice()).isNull();
         assertThat(gppReader.getSensitiveDataProcessing()).isNull();
+        assertThat(gppReader.getSensitiveDataProcessingOptOutNotice()).isNull();
+
         assertThat(gppReader.getKnownChildSensitiveDataConsents()).isNull();
         assertThat(gppReader.getPersonalDataConsents()).isNull();
+
+        assertThat(gppReader.getMspaCoveredTransaction()).isNull();
+        assertThat(gppReader.getMspaServiceProviderMode()).isNull();
+        assertThat(gppReader.getMspaOptOutOptionMode()).isNull();
     }
 }

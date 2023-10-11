@@ -38,7 +38,7 @@ public class ComponentRuleCreatorTest {
         final Rule rule = target.from(config, null);
 
         // then
-        assertThat(rule.proceed(ActivityCallPayloadImpl.of(ComponentType.BIDDER, "name")))
+        assertThat(rule.proceed(ActivityCallPayloadImpl.of(ComponentType.BIDDER, "NaMe")))
                 .isEqualTo(Rule.Result.DISALLOW);
     }
 }

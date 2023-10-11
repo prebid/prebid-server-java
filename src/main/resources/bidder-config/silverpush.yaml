@@ -1,0 +1,13 @@
+adapters:
+  silverpush:
+    endpoint: https://prebid.chocolateplatform.co/bidder/?identifier=prebidchoc
+    meta-info:
+      maintainer-email: prebid@silverpush.co
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0

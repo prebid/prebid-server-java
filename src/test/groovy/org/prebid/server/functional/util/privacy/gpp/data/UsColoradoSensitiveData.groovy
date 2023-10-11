@@ -14,13 +14,13 @@ class UsColoradoSensitiveData {
 
     static UsColoradoSensitiveData generateRandomSensitiveData() {
         new UsColoradoSensitiveData().tap {
-            racialEthnicOrigin = PBSUtils.getRandomNumber(0, 3)
-            religiousBeliefs = PBSUtils.getRandomNumber(0, 3)
-            healthInfo = PBSUtils.getRandomNumber(0, 3)
-            orientation = PBSUtils.getRandomNumber(0, 3)
-            citizenshipStatus = PBSUtils.getRandomNumber(0, 3)
-            geneticId = PBSUtils.getRandomNumber(0, 3)
-            biometricId = PBSUtils.getRandomNumber(0, 3)
+            racialEthnicOrigin = PBSUtils.getRandomNumber(0, 2)
+            religiousBeliefs = PBSUtils.getRandomNumber(0, 2)
+            healthInfo = PBSUtils.getRandomNumber(0, 2)
+            orientation = PBSUtils.getRandomNumber(0, 2)
+            citizenshipStatus = PBSUtils.getRandomNumber(0, 2)
+            geneticId = PBSUtils.getRandomNumber(0, 2)
+            biometricId = PBSUtils.getRandomNumber(0, 2)
         }
     }
 

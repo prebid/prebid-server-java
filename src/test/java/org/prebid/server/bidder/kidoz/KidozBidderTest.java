@@ -14,7 +14,6 @@ import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.applogy.ApplogyBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -49,7 +48,7 @@ public class KidozBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new ApplogyBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new KidozBidder("invalid_url", jacksonMapper));
     }
 
     @Test

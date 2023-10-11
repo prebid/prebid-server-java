@@ -25,6 +25,7 @@ public class ExtImpRubicon {
     @JsonProperty("zoneId")
     Integer zoneId;
 
+    @JsonProperty("bidonmultiformat")
     Boolean bidOnMultiFormat;
 
     List<Integer> sizes;

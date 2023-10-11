@@ -42,6 +42,13 @@ class Content {
         }
     }
 
+    static Content getFPDContent() {
+        new Content().tap {
+            id = PBSUtils.randomString
+            data = [Data.defaultData]
+        }
+    }
+
     @ToString(includeNames = true, ignoreNulls = true)
     static class Channel {
 
