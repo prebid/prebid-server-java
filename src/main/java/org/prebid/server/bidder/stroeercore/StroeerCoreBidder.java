@@ -151,7 +151,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
 
         return bidResponse.getBids().stream()
                 .filter(Objects::nonNull)
-                .map((stroeerCoreBid) -> toBidderBid(bidRequest, stroeerCoreBid))
+                .map(stroeerCoreBid -> toBidderBid(bidRequest, stroeerCoreBid))
                 .toList();
     }
 
