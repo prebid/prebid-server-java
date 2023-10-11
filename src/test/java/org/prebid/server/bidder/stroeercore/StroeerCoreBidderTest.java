@@ -2,6 +2,7 @@ package org.prebid.server.bidder.stroeercore;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -143,9 +144,9 @@ public class StroeerCoreBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenImpHasNoBanner() {
+    public void makeHttpRequestsShouldReturnErrorWhenImpHasNoBannerOrVideo() {
         // given
-        final BidRequest invalidBidRequest = createBidRequest(createVideoImp("123", imp -> imp.id("2")));
+        final BidRequest invalidBidRequest = createBidRequest(createAudioImp("123", imp -> imp.id("2")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(invalidBidRequest);
@@ -153,7 +154,7 @@ public class StroeerCoreBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Expected banner impression. Ignore imp id = 2."));
+                .containsExactly(BidderError.badInput("Expected banner or video impression. Ignore imp id = 2."));
     }
 
     @Test
@@ -178,7 +179,8 @@ public class StroeerCoreBidderTest extends VertxTest {
                 createBannerImp("   "),
                 createBannerImp("a"),
                 createBannerImp("b", imp -> imp.banner(null)),
-                createVideoImp("c", identity()),
+                createAudioImp("not-supported", identity()),
+                createVideoImp("c"),
                 createBannerImp("d"),
                 createBannerImp("e", imp -> imp.bidfloor(BigDecimal.ONE).bidfloorcur("GPB")));
 
@@ -196,7 +198,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
-                .containsExactly("a", "d");
+                .containsExactly("a", "c", "d");
     }
 
     @Test
@@ -225,7 +227,7 @@ public class StroeerCoreBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldIgnoreBidIfCurrencyIfCurrencyServiceThrowsException() {
+    public void makeHttpRequestsShouldIgnoreBidIfCurrencyServiceThrowsException() {
         // given
         final BigDecimal usdBidFloor = BigDecimal.valueOf(0.5);
         final Imp usdImp = createBannerImp("10", imp -> imp.id("1282").bidfloorcur("USD").bidfloor(usdBidFloor));
@@ -355,6 +357,15 @@ public class StroeerCoreBidderTest extends VertxTest {
     private Imp createVideoImp(String slotId, UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         final UnaryOperator<ImpBuilder> addVideo = imp -> imp.video(Video.builder().build());
         return createImp(slotId, addVideo.andThen(impCustomizer));
+    }
+
+    private Imp createVideoImp(String slotId) {
+        return createVideoImp(slotId, identity());
+    }
+
+    private Imp createAudioImp(String slotId, UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        final UnaryOperator<ImpBuilder> addAudio = imp -> imp.audio(Audio.builder().build());
+        return createImp(slotId, addAudio.andThen(impCustomizer));
     }
 
     private Imp createImp(String slotId, Function<ImpBuilder, ImpBuilder> impCustomizer) {

@@ -84,8 +84,8 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
     }
 
     private static void validateImp(Imp imp) {
-        if (imp.getBanner() == null) {
-            throw new PreBidException("Expected banner impression");
+        if (imp.getBanner() == null && imp.getVideo() == null) {
+            throw new PreBidException("Expected banner or video impression");
         }
     }
 
