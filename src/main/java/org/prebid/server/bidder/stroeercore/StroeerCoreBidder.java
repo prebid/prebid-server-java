@@ -159,7 +159,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
         return BidderBid.of(
                 Bid.builder()
                         .id(stroeercoreBid.getId())
-                        .impid(stroeercoreBid.getBidId())
+                        .impid(stroeercoreBid.getImpId())
                         .w(stroeercoreBid.getWidth())
                         .h(stroeercoreBid.getHeight())
                         .price(stroeercoreBid.getCpm())

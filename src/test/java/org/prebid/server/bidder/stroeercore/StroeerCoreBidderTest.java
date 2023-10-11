@@ -251,11 +251,15 @@ public class StroeerCoreBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnExpectedBidderBids() throws JsonProcessingException {
+    public void makeBidsShouldReturnExpectedBidderBidsWithProperBidType() throws JsonProcessingException {
         // given
-        final StroeerCoreBid bid1 = StroeerCoreBid.builder()
+        final Imp bannerImp = createBannerImp("banner-slot-id", impBuilder -> impBuilder.id("banner-imp-id"));
+        final Imp videoImp = createVideoImp("video-slot-id", impBuilder -> impBuilder.id("video-imp-id"));
+        final BidRequest bidRequest = createBidRequest(bannerImp, videoImp);
+
+        final StroeerCoreBid bannerBid = StroeerCoreBid.builder()
                 .id("1")
-                .bidId("1929")
+                .impId("banner-imp-id")
                 .adMarkup("<div></div>")
                 .cpm(BigDecimal.valueOf(0.3))
                 .creativeId("foo")
@@ -263,26 +267,24 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .height(600)
                 .build();
 
-        final StroeerCoreBid bid2 = StroeerCoreBid.builder()
+        final StroeerCoreBid videoBid = StroeerCoreBid.builder()
                 .id("27")
-                .bidId("2010")
-                .adMarkup("<span></span>")
+                .impId("video-imp-id")
+                .adMarkup("<vast><span></span></vast>")
                 .cpm(BigDecimal.valueOf(1.58))
-                .creativeId("bar")
-                .width(800)
-                .height(250)
+                .creativeId("vid")
                 .build();
 
-        final StroeerCoreBidResponse response = StroeerCoreBidResponse.of(List.of(bid1, bid2));
-        final BidderCall<BidRequest> httpCall = createHttpCall(response);
+        final StroeerCoreBidResponse response = StroeerCoreBidResponse.of(List.of(bannerBid, videoBid));
+        final BidderCall<BidRequest> httpCall = createHttpCall(bidRequest, response);
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
-        final Bid expectedBid1 = Bid.builder()
+        final Bid expectedBannerBid = Bid.builder()
                 .id("1")
-                .impid("1929")
+                .impid("banner-imp-id")
                 .adm("<div></div>")
                 .price(BigDecimal.valueOf(0.3))
                 .crid("foo")
@@ -290,25 +292,23 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .h(600)
                 .build();
 
-        final Bid expectedBid2 = Bid.builder()
+        final Bid expectedVideoBid = Bid.builder()
                 .id("27")
-                .impid("2010")
-                .adm("<span></span>")
+                .impid("video-imp-id")
+                .adm("<vast><span></span></vast>")
                 .price(BigDecimal.valueOf(1.58))
-                .crid("bar")
-                .w(800)
-                .h(250)
+                .crid("vid")
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid1, BidType.banner, "EUR"),
-                BidderBid.of(expectedBid2, BidType.banner, "EUR"));
+        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBannerBid, BidType.banner, "EUR"),
+                BidderBid.of(expectedVideoBid, BidType.video, "EUR"));
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = createHttpCall("[]");
+        final BidderCall<BidRequest> httpCall = createHttpCallWithNonParsableResponse();
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -324,7 +324,7 @@ public class StroeerCoreBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfZeroBids() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = createHttpCall(StroeerCoreBidResponse.of(emptyList()));
+        final BidderCall<BidRequest> httpCall = createHttpCall(BidRequest.builder().build(), StroeerCoreBidResponse.of(emptyList()));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -377,12 +377,17 @@ public class StroeerCoreBidderTest extends VertxTest {
         return addImpExt.andThen(impCustomizer).apply(impBuilder).build();
     }
 
-    private BidderCall<BidRequest> createHttpCall(StroeerCoreBidResponse response) throws JsonProcessingException {
-        return createHttpCall(mapper.writeValueAsString(response));
+    private BidderCall<BidRequest> createHttpCall(BidRequest request, StroeerCoreBidResponse response) throws JsonProcessingException {
+        return createHttpCall(HttpRequest.<BidRequest>builder().payload(request).build(),
+                HttpResponse.of(200, null, mapper.writeValueAsString(response)));
     }
 
-    private BidderCall<BidRequest> createHttpCall(String body) {
-        return BidderCall.succeededHttp(HttpRequest.<BidRequest>builder().build(),
-                HttpResponse.of(200, null, body), null);
+    private BidderCall<BidRequest> createHttpCallWithNonParsableResponse() {
+        return createHttpCall(HttpRequest.<BidRequest>builder().build(),
+                HttpResponse.of(200, null, "[]"));
+    }
+
+    private BidderCall<BidRequest> createHttpCall(HttpRequest<BidRequest> request, HttpResponse response) {
+        return BidderCall.succeededHttp(request, response, null);
     }
 }
