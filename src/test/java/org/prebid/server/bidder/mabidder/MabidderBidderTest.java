@@ -20,8 +20,8 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -98,8 +98,7 @@ public class MabidderBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(results.getValue()).hasSize(1).first()
-                .satisfies(request -> assertThat(request.getMethod()).isEqualTo(HttpMethod.POST));
+        assertThat(results.getValue()).extracting(HttpRequest::getMethod).containsExactly(HttpMethod.POST);
         assertThat(results.getErrors()).isEmpty();
     }
 
@@ -112,8 +111,7 @@ public class MabidderBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(results.getValue()).hasSize(1).first()
-                .satisfies(request -> assertThat(request.getImpIds()).isEqualTo(Set.of("imp_id")));
+        assertThat(results.getValue()).flatExtracting(HttpRequest::getImpIds).containsExactly("imp_id");
         assertThat(results.getErrors()).isEmpty();
     }
 
@@ -151,7 +149,7 @@ public class MabidderBidderTest extends VertxTest {
                 .price(BigDecimal.TEN)
                 .build();
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid, banner, "USD"));
+        assertThat(result.getValue()).containsExactly(BidderBid.of(expectedBid, banner, "USD"));
 
     }
 
@@ -182,7 +180,7 @@ public class MabidderBidderTest extends VertxTest {
                 .id("imp_id")
                 .ext(mapper.valueToTree(ExtPrebid.of(null, MabidderImpExt.of("ppid"))))
                 .build();
-        return BidRequest.builder().imp(List.of(imp)).build();
+        return BidRequest.builder().imp(Collections.singletonList(imp)).build();
     }
 
     @Value(staticConstructor = "of")
