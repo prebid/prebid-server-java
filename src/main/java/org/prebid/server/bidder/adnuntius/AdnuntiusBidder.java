@@ -56,9 +56,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
@@ -325,7 +323,11 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     private BidderBid makeDealsBid(AdsUnitWithImpId adsUnitWithImpId, String currency) {
         final AdnuntiusAdsUnit adsUnit = adsUnitWithImpId.getAdsUnit();
         return adsUnit.getDeals().stream()
-                .map(adnuntiusAd -> createBid(adsUnit, adsUnitWithImpId.getImp(), adsUnitWithImpId.getExtImpAdnuntius(), adnuntiusAd))
+                .map(adnuntiusAd ->
+                        createBid(adsUnit,
+                                adsUnitWithImpId.getImp(),
+                                adsUnitWithImpId.getExtImpAdnuntius(),
+                                adnuntiusAd))
                 .map(bid -> BidderBid.of(bid, BidType.banner, currency))
                 .findAny()
                 .orElse(null);

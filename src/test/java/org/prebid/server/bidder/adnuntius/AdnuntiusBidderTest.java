@@ -645,7 +645,6 @@ public class AdnuntiusBidderTest extends VertxTest {
                         .destinationUrls(Map.of("key1", "https://www.domain1.com/uri",
                                 "key2", "http://www.domain2.dt/uri"))))));
 
-
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
 
         // when
