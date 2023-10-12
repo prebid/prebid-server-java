@@ -124,6 +124,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 modifiedAudio,
                 imp.getSsai(),
                 imp.getQty(),
+                imp.getDt(),
                 imp.getRefresh(),
                 modifiedImpExt)
 
@@ -133,6 +134,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 .rwdd(null)
                 .ssai(null)
                 .qty(null)
+                .dt(null)
                 .refresh(null)
                 .ext(modifiedImpExt != null ? modifiedImpExt : impExt)
                 .build()
