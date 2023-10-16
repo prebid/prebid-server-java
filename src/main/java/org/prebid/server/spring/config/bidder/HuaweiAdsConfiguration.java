@@ -71,8 +71,7 @@ public class HuaweiAdsConfiguration {
                                     extraInfo.getRussianEndpoint(),
                                     extraInfo.getEuropeanEndpoint(),
                                     extraInfo.getAsianEndpoint(),
-                                    extraInfo.getCloseSiteSelectionByCountry()
-                            ));
+                                    extraInfo.getCloseSiteSelectionByCountry()));
                 })
                 .assemble();
     }
