@@ -1638,7 +1638,7 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturenValidationErrorWhenBidderIsAterisk() {
+    public void validateShouldNotReturnValidationErrorWhenBidderIsAsterisk() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -1672,26 +1672,6 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("Missing required value request.ext.prebid.data.eidPermissions[].source");
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessageWhenEidsPermissionsContainsDuplicatedSources() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .data(ExtRequestPrebidData.of(null,
-                                asList(
-                                        ExtRequestPrebidDataEidPermissions.of("source", singletonList("*")),
-                                        ExtRequestPrebidDataEidPermissions.of("source", singletonList("*")))))
-                        .build()))
-                .build();
-
-        // when
-        final ValidationResult result = requestValidator.validate(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Duplicate source source in request.ext.prebid.data.eidpermissions[]");
     }
 
     @Test

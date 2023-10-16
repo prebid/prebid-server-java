@@ -320,40 +320,25 @@ public class RequestValidator {
 
     private void validateEidPermissions(List<ExtRequestPrebidDataEidPermissions> eidPermissions,
                                         Map<String, String> aliases) throws ValidationException {
-        if (eidPermissions != null) {
-            final Set<String> uniqueEidsSources = new HashSet<>();
-            for (ExtRequestPrebidDataEidPermissions eidPermission : eidPermissions) {
-                validateEidPermission(eidPermission, aliases, uniqueEidsSources);
+
+        if (eidPermissions == null) {
+            return;
+        }
+
+        for (ExtRequestPrebidDataEidPermissions eidPermission : eidPermissions) {
+            if (eidPermission == null) {
+                throw new ValidationException("request.ext.prebid.data.eidpermissions[] can't be null");
             }
-        }
-    }
 
-    private void validateEidPermission(ExtRequestPrebidDataEidPermissions eidPermission,
-                                       Map<String, String> aliases,
-                                       Set<String> uniqueEidsSources)
-            throws ValidationException {
-        if (eidPermission == null) {
-            throw new ValidationException("request.ext.prebid.data.eidpermissions[] can't be null");
+            validateEidPermissionSource(eidPermission.getSource());
+            validateEidPermissionBidders(eidPermission.getBidders(), aliases);
         }
-        final String eidPermissionSource = eidPermission.getSource();
-
-        validateEidPermissionSource(eidPermissionSource);
-        validateDuplicatedSources(uniqueEidsSources, eidPermissionSource);
-        validateEidPermissionBidders(eidPermission.getBidders(), aliases);
     }
 
     private void validateEidPermissionSource(String source) throws ValidationException {
         if (StringUtils.isEmpty(source)) {
             throw new ValidationException("Missing required value request.ext.prebid.data.eidPermissions[].source");
         }
-    }
-
-    private void validateDuplicatedSources(Set<String> uniqueEidsSources, String eidSource) throws ValidationException {
-        if (uniqueEidsSources.contains(eidSource)) {
-            throw new ValidationException("Duplicate source %s in request.ext.prebid.data.eidpermissions[]"
-                    .formatted(eidSource));
-        }
-        uniqueEidsSources.add(eidSource);
     }
 
     private void validateEidPermissionBidders(List<String> bidders,
