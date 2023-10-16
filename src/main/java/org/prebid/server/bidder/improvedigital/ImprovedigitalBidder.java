@@ -1,9 +1,11 @@
 package org.prebid.server.bidder.improvedigital;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.User;
@@ -39,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class ImprovedigitalBidder implements Bidder<BidRequest> {
@@ -50,6 +53,12 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
     private static final String CONSENT_PROVIDERS_SETTINGS_OUT_KEY = "consented_providers_settings";
     private static final String CONSENTED_PROVIDERS_KEY = "consented_providers";
     private static final String REGEX_SPLIT_STRING_BY_DOT = "\\.";
+
+    private static final String IS_REWARDED_INVENTORY_FIELD = "is_rewarded_inventory";
+    private static final JsonPointer IS_REWARDED_INVENTORY_POINTER
+            = JsonPointer.valueOf("/prebid/" + IS_REWARDED_INVENTORY_FIELD);
+
+    private static final Pattern DEALS_PATTERN = Pattern.compile("(classic|deal)");
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -66,7 +75,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                final ExtImpImprovedigital extImp = parseAndValidateImpExt(imp);
+                final ExtImpImprovedigital extImp = parseImpExt(imp);
                 httpRequests.add(resolveRequest(request, imp, extImp.getPublisherId()));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -119,32 +128,37 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                 mapper.mapper().createObjectNode().set(CONSENTED_PROVIDERS_KEY, arrayNode));
     }
 
-    private ExtImpImprovedigital parseAndValidateImpExt(Imp imp) {
-        final ExtImpImprovedigital ext;
+    private ExtImpImprovedigital parseImpExt(Imp imp) {
         try {
-            ext = mapper.mapper().convertValue(imp.getExt(), IMPROVEDIGITAL_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), IMPROVEDIGITAL_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
+    }
 
-        final JsonNode rewardedNode = imp.getExt().at("/prebid/is_rewarded_inventory");
-        if (!rewardedNode.isMissingNode() && rewardedNode.asInt(0) == 1) {
-            imp.getExt().put("is_rewarded_inventory", true);
+    private static Imp updateImp(Imp imp) {
+        final ObjectNode modifiedExt = imp.getExt().deepCopy();
+
+        final JsonNode rewardedNode = modifiedExt.at(IS_REWARDED_INVENTORY_POINTER);
+        if (!rewardedNode.isMissingNode() && rewardedNode.asInt() == 1) {
+            modifiedExt.put(IS_REWARDED_INVENTORY_FIELD, true);
         }
-        return ext;
+
+        return imp.toBuilder().ext(modifiedExt).build();
     }
 
     private HttpRequest<BidRequest> resolveRequest(BidRequest bidRequest, Imp imp, Integer publisherId) {
         final User user = bidRequest.getUser();
         final BidRequest modifiedRequest = bidRequest.toBuilder()
-                .imp(Collections.singletonList(imp))
+                .imp(Collections.singletonList(updateImp(imp)))
                 .user(user != null
                         ? user.toBuilder().ext(getAdditionalConsentProvidersUserExt(user.getExt())).build()
                         : null)
                 .build();
 
         final String pathPrefix = publisherId != null && publisherId > 0
-                ? String.format("%d/", publisherId) : "";
+                ? String.format("%d/", publisherId)
+                : StringUtils.EMPTY;
 
         final String endpointUrl = this.endpointUrl.replace(URL_PATH_PREFIX_MACRO, pathPrefix);
         return BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper);
@@ -166,7 +180,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         }
         if (bidResponse.getSeatbid().size() > 1) {
             throw new PreBidException(
-                    "Unexpected SeatBid! Must be only one but have: " + bidResponse.getSeatbid().size());
+                    "Unexpected SeatBid! Must be only one but have: %d".formatted(bidResponse.getSeatbid().size()));
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }
@@ -179,6 +193,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> createBidderBid(bid, impMap, bidResponse.getCur()))
                 .filter(Objects::nonNull)
                 .toList();
@@ -188,49 +203,44 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
         final Imp imp = impMap.get(bid.getImpid());
         if (imp == null) {
             throw new PreBidException(
-                    "Failed to find impression for ID: \"%s\"".formatted(bid.getImpid())
-            );
+                    "Failed to find impression for ID: \"%s\"".formatted(bid.getImpid()));
         }
-        bid = updateBidIfNeeded(bid, imp);
-        return BidderBid.of(bid, getBidType(bid), cur);
+        final Bid resolvedBid = resolveBid(bid, imp);
+        return BidderBid.of(resolvedBid, getBidType(resolvedBid), cur);
     }
 
-    private Bid updateBidIfNeeded(Bid bid, Imp imp) {
-        final Bid.BidBuilder bidBuilder = bid.toBuilder();
-        if (Objects.isNull(bid.getMtype())) {
-            if (isMultiFormat(imp)) {
-                throw new PreBidException(
-                        "Bid must have non-null mtype for multi format impression with ID: \"%s\"".formatted(
-                                imp.getId()
-                        )
-                );
-            }
-            bidBuilder.mtype(resolveMtypeFromImp(imp));
+    private Bid resolveBid(Bid bid, Imp imp) {
+        final Integer mtype = bid.getMtype();
+        if (mtype == null && isMultiFormat(imp)) {
+            throw new PreBidException(
+                    "Bid must have non-null mtype for multi format impression with ID: \"%s\"".formatted(imp.getId()));
         }
 
-        final ImprovedigitalBidExtImprovedigital bidExtImprovedigital = ObjectUtil.getIfNotNull(bid.getExt(),
-                bidExt -> {
-                    try {
-                        return mapper.mapper().treeToValue(
-                                bid.getExt(), ImprovedigitalBidExt.class
-                        ).getImprovedigital();
-                    } catch (JsonProcessingException e) {
-                        throw new PreBidException(e.getMessage(), e);
-                    }
-                });
+        return bid.toBuilder()
+                .mtype(mtype != null ? mtype : resolveMtypeFromImp(imp))
+                .dealid(resolveDealId(bid))
+                .build();
+    }
 
-        if (Objects.nonNull(bidExtImprovedigital)) {
-            // Populate dealId
-            final String buyingType = bidExtImprovedigital.getBuyingType();
-            final Integer lineItemId = bidExtImprovedigital.getLineItemId();
-            if (!StringUtils.isBlank(buyingType)
-                    && buyingType.matches("(classic|deal)")
-                    && lineItemId != null) {
-                bidBuilder.dealid(lineItemId.toString());
-            }
+    private String resolveDealId(Bid bid) {
+        final ImprovedigitalBidExtImprovedigital bidExtImprovedigital = parseBidExtImprovedigital(bid);
+        final String buyingType = bidExtImprovedigital != null ? bidExtImprovedigital.getBuyingType() : null;
+        final Integer lineItemId = bidExtImprovedigital != null ? bidExtImprovedigital.getLineItemId() : null;
+
+        return lineItemId != null && StringUtils.isNotBlank(buyingType) && DEALS_PATTERN.matcher(buyingType).matches()
+                ? lineItemId.toString()
+                : bid.getDealid();
+    }
+
+    private ImprovedigitalBidExtImprovedigital parseBidExtImprovedigital(Bid bid) {
+        final ObjectNode bidExt = bid.getExt();
+        try {
+            return bidExt != null
+                    ? mapper.mapper().treeToValue(bidExt, ImprovedigitalBidExt.class).getImprovedigital()
+                    : null;
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage(), e);
         }
-
-        return bidBuilder.build();
     }
 
     private static BidType getBidType(Bid bid) {
@@ -240,10 +250,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
             case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
             default -> throw new PreBidException(
-                    "Unsupported mtype %d for impression with ID: \"%s\"".formatted(
-                            bid.getMtype(), bid.getImpid()
-                    )
-            );
+                    "Unsupported mtype %d for impression with ID: \"%s\"".formatted(bid.getMtype(), bid.getImpid()));
         };
     }
 
@@ -258,8 +265,7 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
             return 4;
         }
         throw new PreBidException(
-                "Could not determine bid type for impression with ID: \"%s\"".formatted(imp.getId())
-        );
+                "Could not determine bid type for impression with ID: \"%s\"".formatted(imp.getId()));
     }
 
     private static boolean isMultiFormat(Imp imp) {
