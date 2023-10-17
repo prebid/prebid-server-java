@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
@@ -25,14 +24,17 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
     private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${TRANSMIT_TID.metricValue}.disallowed.count"
     private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${TRANSMIT_TID.metricValue}.disallowed.count"
 
-    def "PBS auction call when bidder allowed in activities should leave tid fields in request and update processed metrics"() {
-        given: "Generic BidRequests with TID fields and account id"
+    def "PBS auction should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=null and transmit activity allowed"() {
+        given: "Bid requests without TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.trace = VERBOSE
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = null
+            }
             setAccountId(accountId)
-            imp.first().ext.tid = PBSUtils.randomString
-            source = new Source(tid: PBSUtils.randomString)
+            imp[0].ext.tid = null
+            source = new Source(tid: null)
         }
 
         and: "Activities set with generic bidder allowed"
@@ -42,18 +44,18 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Save account config with allow activities into DB"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
         activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Generic bidder request should leave source.tid and imp.ext.tid"
+        then: "Bidder request should generate (source/imp.ext).tid"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
-            bidderRequest.imp.ext.tid == bidRequest.imp.ext.tid
-            bidderRequest.source.tid == bidRequest.source.tid
+            bidderRequest.imp[0].ext.tid
+            bidderRequest.source.tid
         }
 
         and: "Metrics processed across activities should be updated"
@@ -62,14 +64,163 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
     }
 
-    def "PBS auction call when bidder rejected in activities should remove tid fields in request and update disallowed metrics"() {
-        given: "Generic BidRequests with TID fields and account id"
+    def "PBS auction should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=true and transmit activity allowed"() {
+        given: "Bid requests without TID fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = true
+            }
+            setAccountId(accountId)
+            imp[0].ext.tid = null
+            source = new Source(tid: null)
+        }
+
+        and: "Activities set with generic bidder allowed"
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, Activity.defaultActivity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should generate (source/imp.ext).tid"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequest.imp[0].ext.tid
+            bidderRequest.source.tid
+        }
+    }
+
+    def "PBS auction should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=true and transmit activity disallowed"() {
+        given: "Bid requests without TID fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = true
+            }
+            setAccountId(accountId)
+            imp[0].ext.tid = null
+            source = new Source(tid: null)
+        }
+
+        and: "Activities set with bidder disallowed"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should generate (source/imp.ext).tid"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequest.imp[0].ext.tid
+            bidderRequest.source.tid
+        }
+    }
+
+    def "PBS auction shouldn't generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=false and transmit activity allowed"() {
+        given: "Bid requests without TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
-            ext.prebid.trace = VERBOSE
-            imp.first().ext.tid = PBSUtils.randomString
+            imp[0].ext.tid = null
+            source = new Source(tid: null)
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = false
+            }
+        }
+
+        and: "Activities set with bidder allowed"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't generate (source/imp.ext).tid"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            !bidderRequest.imp[0].ext.tid
+            !bidderRequest.source.tid
+        }
+    }
+
+    def "PBS auction shouldn't generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=#createTid and transmit activity allowed and bidRequest.(source/imp[0].ext).tid are specified"() {
+        given: "Bid requests without TID fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+            imp[0].ext.tid = PBSUtils.randomString
             source = new Source(tid: PBSUtils.randomString)
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = createTid
+            }
+        }
+
+        and: "Activities set with bidder allowed"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't generate (source/imp.ext).tid"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        verifyAll {
+            bidderRequest.imp[0].ext.tid == bidRequest.imp[0].ext.tid
+            bidderRequest.source.tid == bidRequest.source.tid
+        }
+
+        where:
+        createTid << [true, null]
+    }
+
+    def "PBS auction should remove bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=null and activity disallowed"() {
+        given: "Bid requests with TID fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+            imp[0].ext.tid = PBSUtils.randomString
+            source = new Source(tid: PBSUtils.randomString)
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = null
+            }
         }
 
         and: "Activities set with bidder allowed"
@@ -79,19 +230,19 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        and: "Save account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes auction request"
         activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Generic bidder request should remove source.tid and imp.ext.tid"
+        then: "Bidder request should remove source.tid and imp.ext.tid"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
             !bidderRequest.source.tid
-            !bidderRequest.imp.ext.tid
+            !bidderRequest.imp[0].ext.tid
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -101,21 +252,25 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
     }
 
-    def "PBS auction call when default activity setting set to false should remove tid fields in request"() {
-        given: "Generic BidRequests with TID fields and account id"
+    def "PBS auction should remove bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=null and defaultAction=false"() {
+        given: "Bid requests with TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
-            imp.first().ext.tid = PBSUtils.randomString
+            imp[0].ext.tid = PBSUtils.randomString
             source = new Source(tid: PBSUtils.randomString)
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = null
+            }
         }
 
-        and: "Activities set with bidder allowed"
+        and: "Activities set with default action false"
         def activity = new Activity(defaultAction: false)
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        and: "Save account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         and: "Flush metrics"
@@ -124,24 +279,24 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction request"
         activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Generic bidder request should remove source.tid and imp.ext.tid"
+        then: "Bidder request should remove source.tid and imp.ext.tid"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
-            !bidderRequest.imp.ext.tid
+            !bidderRequest.imp[0].ext.tid
             !bidderRequest.source.tid
         }
     }
 
-    def "PBS auction call when bidder allowed activities have invalid condition type should skip this rule and emit an error"() {
+    def "PBS auction should skip rule and emit an error when allowed bidder activities have invalid condition type"() {
         given: "Test start time"
         def startTime = Instant.now()
 
-        and: "Generic BidRequests with TID fields and account id"
+        and: "Bid requests with TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
-            imp.first().ext.tid = PBSUtils.randomString
+            imp[0].ext.tid = PBSUtils.randomString
             source = new Source(tid: PBSUtils.randomString)
         }
 
@@ -149,16 +304,17 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        and: "Save account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes auction request"
         activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Response should contain error"
+        then: "Logs should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Activity configuration for account ${accountId} " + "contains conditional rule with empty array").size() == 1
+        assert getLogsByText(logs, "Activity configuration for account ${accountId} " +
+                "contains conditional rule with empty array").size() == 1
 
         where:
         conditions                       | isAllowed
@@ -168,13 +324,13 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentName: []) | false
     }
 
-    def "PBS auction call when first rule allowing in activities should leave tid fields in request"() {
-        given: "Generic BidRequests with TID fields and account id"
+    def "PBS auction should generate bidRequest.(source/imp[0].ext).tid when first rule allow=true and bidRequest.(source/imp[0].ext).tid=null"() {
+        given: "Bid requests with TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
-            imp.first().ext.tid = PBSUtils.randomString
-            source = new Source(tid: PBSUtils.randomString)
+            imp[0].ext.tid = null
+            source = new Source(tid: null)
         }
 
         and: "Activity rules with conflict setup"
@@ -185,28 +341,28 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([allowActivity, disallowActivity])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        and: "Save account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes auction request"
         activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Generic bidder request should leave source.tid and imp.ext.tid"
+        then: "Bidder request should generate source.tid and imp.ext.tid"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
-            bidderRequest.imp.ext.tid == bidRequest.imp.ext.tid
-            bidderRequest.source.tid == bidRequest.source.tid
+            bidderRequest.imp[0].ext.tid
+            bidderRequest.source.tid
         }
     }
 
-    def "PBS auction call when first rule disallowing in activities should remove tid fields in request"() {
+    def "PBS auction should remove bidRequest.(source/imp[0].ext).tid when first rule allow=false and bidRequest.(source/imp[0].ext).tid has value"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
-            imp.first().ext.tid = PBSUtils.randomString
+            imp[0].ext.tid = PBSUtils.randomString
             source = new Source(tid: PBSUtils.randomString)
         }
 
@@ -218,33 +374,36 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([disallowActivity, allowActivity])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
-        and: "Existed account with allow activities setup"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        and: "Save account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         when: "PBS processes auction request"
         activityPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Generic bidder request should remove source.tid and imp.ext.tid"
+        then: "Bidder request should remove source.tid and imp.ext.tid"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
             !bidderRequest.source.tid
-            !bidderRequest.imp.ext.tid
+            !bidderRequest.imp[0].ext.tid
         }
     }
 
-    def "PBS amp call when bidder allowed in activities should leave tid fields in request and update processed metrics"() {
-        given: "Generic BidRequests with TID fields and account id"
+    def "PBS amp should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=null and transmit activity allowed"() {
+        given: "Bid requests with TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.trace = VERBOSE
             setAccountId(accountId)
-            imp.first().ext.tid = PBSUtils.randomString
-            source = new Source(tid: PBSUtils.randomString)
+            imp[0].ext.tid = null
+            source = new Source(tid: null)
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = null
+            }
         }
 
-        and: "amp request with link to account"
+        and: "Amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -255,8 +414,8 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         and: "Save storedRequest into DB"
@@ -266,12 +425,12 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp request"
         activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Generic bidder request should leave source.tid and imp.ext.tid"
+        then: "Bidder request should generate source.tid and imp.ext.tid"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
-            bidderRequest.imp.ext.tid == ampStoredRequest.imp.ext.tid
-            bidderRequest.source.tid == ampStoredRequest.source.tid
+            bidderRequest.imp[0].ext.tid
+            bidderRequest.source.tid
         }
 
         and: "Metrics processed across activities should be updated"
@@ -279,30 +438,32 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
     }
 
-    def "PBS amp call when bidder rejected in activities should remove tid fields in request and update disallowed metrics"() {
-        given: "Generic BidRequests with TID fields and account id"
+    def "PBS amp should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=true and transmit activity allowed"() {
+        given: "Bid requests with TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.trace = VERBOSE
             setAccountId(accountId)
-            imp.first().ext.tid = PBSUtils.randomString
-            source = new Source(tid: PBSUtils.randomString)
+            imp[0].ext.tid = null
+            source = new Source(tid: null)
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = true
+            }
         }
 
-        and: "amp request with link to account"
+        and: "Amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
 
-        and: "Reject activities setup"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
-        AllowActivities allowSetup = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
+        and: "Allow activities setup"
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, Activity.defaultActivity)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivities(accountId, allowSetup)
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         and: "Save storedRequest into DB"
@@ -312,41 +473,42 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp request"
         activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Generic bidder request should remove source.tid and imp.ext.tid"
+        then: "Bidder request should generate source.tid and imp.ext.tid"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
-            !bidderRequest.source.tid
-            !bidderRequest.imp.ext.tid
+            bidderRequest.imp[0].ext.tid
+            bidderRequest.source.tid
         }
-
-        and: "Metrics for disallowed activities should be updated"
-        def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
     }
 
-    def "PBS amp call when default activity setting set to false should remove tid fields in request"() {
-        given: "Generic BidRequests with TID fields and account id"
+    def "PBS amp should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=true and transmit activity disallowed"() {
+        given: "Bid requests with TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.trace = VERBOSE
             setAccountId(accountId)
-            imp.first().ext.tid = PBSUtils.randomString
-            source = new Source(tid: PBSUtils.randomString)
+            imp[0].ext.tid = null
+            source = new Source(tid: null)
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = true
+            }
         }
 
-        and: "amp request with link to account"
+        and: "Amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
 
-        and: "Activities set with default action set to false"
-        def activity = new Activity(defaultAction: false)
+        and: "Activities set with bidder disallowed"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         and: "Save storedRequest into DB"
@@ -354,27 +516,210 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Generic bidder request should remove source.tid and imp.ext.tid"
+        then: "Bidder request should generate source.tid and imp.ext.tid"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
-            !bidderRequest.source.tid
-            !bidderRequest.imp.ext.tid
+            bidderRequest.imp[0].ext.tid
+            bidderRequest.source.tid
         }
     }
 
-    def "PBS amp call when bidder allowed activities have invalid condition type should skip this rule and emit an error"() {
+    def "PBS amp shouldn't generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=false and transmit activity allowed"() {
+        given: "Bid requests with TID fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+            imp[0].ext.tid = null
+            source = new Source(tid: null)
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = false
+            }
+        }
+
+        and: "Amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Activities set with bidder disallowed"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request shouldn't generate source.tid and imp.ext.tid"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            !bidderRequest.imp[0].ext.tid
+            !bidderRequest.source.tid
+        }
+    }
+
+    def "PBS amp shouldn't generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=createTid and transmit activity allowed and bidRequest.(source/imp[0].ext).tid are specified"() {
+        given: "Bid requests with TID fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+            imp[0].ext.tid = PBSUtils.randomString
+            source = new Source(tid: PBSUtils.randomString)
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = createTid
+            }
+        }
+
+        and: "Amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Activities set with bidder allowed"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain from incoming source.tid and imp.ext.tid"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequest.imp[0].ext.tid == ampStoredRequest.imp[0].ext.tid
+            bidderRequest.source.tid == ampStoredRequest.source.tid
+        }
+
+        where:
+        createTid << [true, null]
+    }
+
+    def "PBS amp should remove bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=null and activity disallowed"() {
+        given: "Bid requests with TID fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+            imp[0].ext.tid = PBSUtils.randomString
+            source = new Source(tid: PBSUtils.randomString)
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = null
+            }
+        }
+
+        and: "Amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Activities set with bidder allowed"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should remove source.tid and imp.ext.tid"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            !bidderRequest.imp[0].ext.tid
+            !bidderRequest.source.tid
+        }
+    }
+
+    def "PBS amp should remove bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=null and defaultAction=false"() {
+        given: "Bid requests with TID fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+            imp[0].ext.tid = PBSUtils.randomString
+            source = new Source(tid: PBSUtils.randomString)
+            ext.prebid.tap {
+                trace = VERBOSE
+                createTids = null
+            }
+        }
+
+        and: "Amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+        }
+
+        and: "Activities set with default action false"
+        def activity = new Activity(defaultAction: false)
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should remove source.tid and imp.ext.tid"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            !bidderRequest.imp[0].ext.tid
+            !bidderRequest.source.tid
+        }
+    }
+
+    def "PBS amp should skip rule and emit an error when allowed bidder activities have invalid condition type"() {
         given: "Test start time"
         def startTime = Instant.now()
 
-        and: "Generic BidRequests with TID fields and account id"
+        and: "Bid requests with TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.trace = VERBOSE
             setAccountId(accountId)
-            imp.first().ext.tid = PBSUtils.randomString
+            imp[0].ext.tid = PBSUtils.randomString
             source = new Source(tid: PBSUtils.randomString)
         }
 
@@ -382,11 +727,11 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
-        and: "Saved account config with allow activities into DB"
-        def account = getAccountWithAllowActivities(accountId, activities)
+        and: "Save account config with allow activities into DB"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
-        and: "amp request with link to account"
+        and: "Amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -398,9 +743,10 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp request"
         activityPbsService.sendAmpRequest(ampRequest)
 
-        then: "Response should contain error"
+        then: "Logs should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Activity configuration for account ${accountId} " + "contains conditional rule with empty array").size() == 1
+        assert getLogsByText(logs, "Activity configuration for account ${accountId} " +
+                "contains conditional rule with empty array").size() == 1
 
         where:
         conditions                       | isAllowed
@@ -410,17 +756,16 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         new Condition(componentName: []) | false
     }
 
-    def "PBS auction call when first rule allowing in activities should leave tid fields in request"() {
-        given: "Generic BidRequests with TID fields and account id"
+    def "PBS amp should generate bidRequest.(source/imp[0].ext).tid when first rule allow=true and bidRequest.(source/imp[0].ext).tid=null"() {
+        given: "Bid requests with TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.trace = VERBOSE
             setAccountId(accountId)
-            imp.first().ext.tid = PBSUtils.randomString
-            source = new Source(tid: PBSUtils.randomString)
+            imp[0].ext.tid = null
+            source = new Source(tid: null)
         }
 
-        and: "amp request with link to account"
+        and: "Amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -433,8 +778,8 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([allowActivity, disallowActivity])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
-        and: "Existed account with allow activities setup"
-        Account account = getAccountWithAllowActivities(accountId, activities)
+        and: "Save account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         and: "Save storedRequest into DB"
@@ -444,26 +789,26 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp request"
         defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Generic bidder request should leave source.tid and imp.ext.tid"
+        then: "Bidder request should generate source.tid and imp.ext.tid"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
-            bidderRequest.imp.ext.tid == ampStoredRequest.imp.ext.tid
-            bidderRequest.source.tid == ampStoredRequest.source.tid
+            bidderRequest.imp[0].ext.tid
+            bidderRequest.source.tid
         }
     }
 
-    def "PBS amp call when first rule disallowing in activities should remove tid fields in request"() {
-        given: "Generic BidRequests with TID fields and account id"
+    def "PBS amp should remove bidRequest.(source/imp[0].ext).tid when first rule allow=false and bidRequest.(source/imp[0].ext).tid has value"() {
+        given: "Bid requests with TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.trace = VERBOSE
             setAccountId(accountId)
-            imp.first().ext.tid = PBSUtils.randomString
+            imp[0].ext.tid = PBSUtils.randomString
             source = new Source(tid: PBSUtils.randomString)
         }
 
-        and: "amp request with link to account"
+        and: "Amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
             it.account = accountId
         }
@@ -476,8 +821,8 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([disallowActivity, allowActivity])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
-        and: "Existed account with allow activities setup"
-        Account account = getAccountWithAllowActivities(accountId, activities)
+        and: "Save account with allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
 
         and: "Save storedRequest into DB"
@@ -487,12 +832,12 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes amp request"
         defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Generic bidder request should remove source.tid and imp.ext.tid"
+        then: "Bidder request shouldn't contain source.tid and imp.ext.tid"
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
 
         verifyAll {
             !bidderRequest.source.tid
-            !bidderRequest.imp.ext.tid
+            !bidderRequest.imp[0].ext.tid
         }
     }
 }
