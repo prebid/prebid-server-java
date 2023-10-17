@@ -38,7 +38,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpBetween>> BETWEEN_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String URL_HOST_MACRO = "{{Host}}";
+    private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -94,9 +94,6 @@ public class BetweenBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
         }
-        if (StringUtils.isBlank(extImpBetween.getHost())) {
-            throw new PreBidException(missingParamErrorMessage.formatted("host", imp.getId()));
-        }
         if (StringUtils.isBlank(extImpBetween.getPublisherId())) {
             throw new PreBidException(missingParamErrorMessage.formatted("publisher_id", imp.getId()));
         }
@@ -127,8 +124,8 @@ public class BetweenBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createRequest(ExtImpBetween extImpBetween, BidRequest request, List<Imp> imps) {
-        final String url = endpointUrl.replace(URL_HOST_MACRO, extImpBetween.getHost())
-                .replace("{{PublisherId}}", HttpUtil.encodeUrl(extImpBetween.getPublisherId()));
+        final String url = endpointUrl
+                .replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(extImpBetween.getPublisherId()));
         final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
 
         return
