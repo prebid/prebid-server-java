@@ -158,4 +158,10 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.passthrough
      */
     JsonNode passthrough;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.sdk
+     */
+    ExtRequestPrebidSdk sdk;
+
 }
