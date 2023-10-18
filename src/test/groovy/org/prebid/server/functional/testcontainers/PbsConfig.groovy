@@ -75,7 +75,8 @@ LIMIT 1
         ["adapters.generic.enabled"                    : "true",
          "adapters.generic.endpoint"                   : "$rootUri/auction".toString(),
          "adapters.generic.usersync.cookie-family-name": "generic",
-         "adapters.generic.ortb-version"               : "2.6"]
+         "adapters.generic.ortb-version"               : "2.6"
+        ]
     }
 
     static Map<String, String> getPrebidCacheConfig(String host = networkServiceContainer.hostAndPort) {

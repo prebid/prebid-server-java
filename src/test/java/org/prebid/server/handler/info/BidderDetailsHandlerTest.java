@@ -97,9 +97,9 @@ public class BidderDetailsHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithExpectedBodyForDisabledBidder() {
+    public void shouldRespondWithExpectedBodyForDisabledBidderIgnoringCase() {
         // given
-        given(httpRequest.getParam(anyString())).willReturn("bidderName2");
+        given(httpRequest.getParam(anyString())).willReturn("BIDderName2");
 
         // when
         handler.handle(routingContext);

@@ -735,14 +735,14 @@ public class FpdResolverTest extends VertxTest {
     }
 
     @Test
-    public void resolveBidRequestExtShouldMergeBidders() {
+    public void resolveBidRequestExtShouldMergeBiddersIgnoringCase() {
         // given
         final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
                 .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null)).build());
 
         // when
         final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest,
-                Targeting.of(Arrays.asList("rubicon", "between"), null, null));
+                Targeting.of(Arrays.asList("rUbIcOn", "between"), null, null));
 
         // then
         assertThat(result.getPrebid().getData().getBidders()).contains("rubicon", "appnexus", "between");

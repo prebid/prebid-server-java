@@ -43,6 +43,7 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -467,6 +468,26 @@ public class ApplicationTest extends IntegrationTest {
         final List<String> bidders = getBidderNamesFromParamFiles();
         final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
         final Collection<String> expectedBidders = CollectionUtils.union(bidders, aliases.keySet());
+
+        assertThat(responseAsList).hasSameElementsAs(expectedBidders);
+    }
+
+    @Test
+    public void infoBiddersShouldReturnBaseAdaptersBidderNames() throws IOException {
+        // when
+        final Response response = given(SPEC)
+                .when()
+                .queryParam("baseadaptersonly", "true")
+                .get("/info/bidders");
+
+        // then
+        final List<String> responseAsList = jacksonMapper.decodeValue(response.asString(),
+                new TypeReference<>() {
+                });
+
+        final Set<String> expectedBidders = new HashSet<>(getBidderNamesFromParamFiles());
+        final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
+        expectedBidders.removeAll(aliases.keySet());
 
         assertThat(responseAsList).hasSameElementsAs(expectedBidders);
     }

@@ -954,6 +954,148 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldRemoveTidsIfCreateTidsFalse() {
+        // given
+        final String bidderName = "bidder";
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder(bidderName, bidder, givenEmptySeatBid());
+
+        final Imp imp = givenImp(Map.of(bidderName, 1), identity());
+        imp.getExt().put("tid", "bidderTidValue");
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(imp),
+                builder -> builder
+                        .source(Source.builder().tid("sourceTidValue").build())
+                        .ext(ExtRequest.of(
+                                ExtRequestPrebid.builder()
+                                        .createTids(false)
+                                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester)
+                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
+        assertThat(capturedBidRequest)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getTid)
+                .isNull();
+        assertThat(capturedBidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .containsOnlyNulls();
+    }
+
+    @Test
+    public void shouldPassTidsIfCreateTidsTrue() {
+        // given
+        final String bidderName = "bidder";
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder(bidderName, bidder, givenEmptySeatBid());
+
+        final Imp imp = givenImp(Map.of(bidderName, 1), identity());
+        imp.getExt().put("tid", "bidderTidValue");
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(imp),
+                builder -> builder
+                        .source(Source.builder().tid("sourceTidValue").build())
+                        .ext(ExtRequest.of(
+                                ExtRequestPrebid.builder()
+                                        .createTids(true)
+                                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester)
+                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
+        assertThat(capturedBidRequest)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getTid)
+                .isEqualTo("sourceTidValue");
+        assertThat(capturedBidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .containsExactly(TextNode.valueOf("bidderTidValue"));
+    }
+
+    @Test
+    public void shouldRemoveTidsIfTransmitTidActivityDisallowed() {
+        // given
+        final String bidderName = "bidder";
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder(bidderName, bidder, givenEmptySeatBid());
+
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_TID), any())).willReturn(false);
+
+        final Imp imp = givenImp(Map.of(bidderName, 1), identity());
+        imp.getExt().put("tid", "bidderTidValue");
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(imp),
+                builder -> builder.source(Source.builder().tid("sourceTidValue").build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester)
+                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
+        assertThat(capturedBidRequest)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getTid)
+                .isNull();
+        assertThat(capturedBidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .containsOnlyNulls();
+    }
+
+    @Test
+    public void shouldPassTidsIfTransmitTidActivityAllowed() {
+        // given
+        final String bidderName = "bidder";
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder(bidderName, bidder, givenEmptySeatBid());
+
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_TID), any())).willReturn(true);
+
+        final Imp imp = givenImp(Map.of(bidderName, 1), identity());
+        imp.getExt().put("tid", "bidderTidValue");
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(imp),
+                builder -> builder.source(Source.builder().tid("sourceTidValue").build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester)
+                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
+        assertThat(capturedBidRequest)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getTid)
+                .isEqualTo("sourceTidValue");
+        assertThat(capturedBidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .containsExactly(TextNode.valueOf("bidderTidValue"));
+    }
+
+    @Test
     public void shouldReturnFailedFutureWithUnchangedMessageWhenPrivacyEnforcementServiceFails() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
@@ -2022,12 +2164,12 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldAddMultiBidInfoAboutRequestedBidderIfDataShouldNotBeSuppressed() {
+    public void shouldAddMultiBidInfoAboutRequestedBidderIgnoringCaseIfDataShouldNotBeSuppressed() {
         // given
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .multibid(singletonList(
-                                ExtRequestPrebidMultiBid.of("someBidder", null, 3, "prefix")))
+                                ExtRequestPrebidMultiBid.of("SoMeBiDdeR", null, 3, "prefix")))
                         .build())));
 
         // when
@@ -2141,13 +2283,13 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldFilterUserExtEidsWhenBidderIsNotAllowedForSource() {
+    public void shouldFilterUserExtEidsWhenBidderIsNotAllowedForSourceIgnoringCase() {
         testUserEidsPermissionFiltering(
                 // given
                 asList(
                         Eid.of("source1", null, null),
                         Eid.of("source2", null, null)),
-                singletonList(ExtRequestPrebidDataEidPermissions.of("source1", singletonList("otherBidder"))),
+                singletonList(ExtRequestPrebidDataEidPermissions.of("source1", singletonList("OtHeRbIdDeR"))),
                 emptyMap(),
                 // expected
                 singletonList(Eid.of("source2", null, null))
@@ -2155,11 +2297,11 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotFilterUserExtEidsWhenEidsPermissionDoesNotContainSource() {
+    public void shouldNotFilterUserExtEidsWhenEidsPermissionDoesNotContainSourceIgnoringCase() {
         testUserEidsPermissionFiltering(
                 // given
                 singletonList(Eid.of("source1", null, null)),
-                singletonList(ExtRequestPrebidDataEidPermissions.of("source2", singletonList("otherBidder"))),
+                singletonList(ExtRequestPrebidDataEidPermissions.of("source2", singletonList("OtHeRbIdDeR"))),
                 emptyMap(),
                 // expected
                 singletonList(Eid.of("source1", null, null))
@@ -2167,7 +2309,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotFilterUserExtEidsWhenSourceAllowedForAllBidders() {
+    public void shouldNotFilterUserExtEidsWhenSourceAllowedForAllBiddersIgnoringCase() {
         testUserEidsPermissionFiltering(
                 // given
                 singletonList(Eid.of("source1", null, null)),
@@ -2179,11 +2321,11 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotFilterUserExtEidsWhenSourceAllowedForBidder() {
+    public void shouldNotFilterUserExtEidsWhenSourceAllowedForBidderIgnoringCase() {
         testUserEidsPermissionFiltering(
                 // given
                 singletonList(Eid.of("source1", null, null)),
-                singletonList(ExtRequestPrebidDataEidPermissions.of("source1", singletonList("someBidder"))),
+                singletonList(ExtRequestPrebidDataEidPermissions.of("source1", singletonList("SoMeBiDdEr"))),
                 emptyMap(),
                 // expected
                 singletonList(Eid.of("source1", null, null))
@@ -2298,7 +2440,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotCleanRequestExtPrebidDataWhenFpdAllowedAndPrebidIsNotNull() {
+    public void shouldNotCleanRequestExtPrebidDataWhenFpdAllowedAndPrebidIsNotNullIgnoringCase() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
@@ -2311,7 +2453,7 @@ public class ExchangeServiceTest extends VertxTest {
                 builder -> builder
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()
                                 .auctiontimestamp(1000L)
-                                .data(ExtRequestPrebidData.of(singletonList("someBidder"), null))
+                                .data(ExtRequestPrebidData.of(singletonList("SoMeBiDdEr"), null))
                                 .build()))
                         .user(User.builder()
                                 .ext(extUser)
@@ -2551,7 +2693,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldUseConcreteOverGeneralSiteWithExtPrebidBidderConfig() {
+    public void shouldUseConcreteOverGeneralSiteWithExtPrebidBidderConfigIgnoringCase() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
@@ -2560,7 +2702,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
                 null, ExtBidderConfigOrtb.of(siteWithPage, null, null));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
-                singletonList("someBidder"), extBidderConfig);
+                singletonList("SoMeBiDdEr"), extBidderConfig);
         final ObjectNode siteWithDomain = mapper.valueToTree(Site.builder().domain("notUsed").build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(
                 null, ExtBidderConfigOrtb.of(siteWithDomain, null, null));
@@ -2637,7 +2779,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void shouldUseConcreteOverGeneralAppWithExtPrebidBidderConfig() {
+    public void shouldUseConcreteOverGeneralAppWithExtPrebidBidderConfigIgnoringCase() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
@@ -2647,7 +2789,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
                 null, ExtBidderConfigOrtb.of(null, appWithPublisherId, null));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
-                singletonList("someBidder"), extBidderConfig);
+                singletonList("SoMeBiDdEr"), extBidderConfig);
 
         final Publisher publisherWithIdAndDomain = Publisher.builder().id("notUsed").domain("notUsed").build();
         final ObjectNode appWithUpdatedPublisher = mapper.valueToTree(
@@ -2694,7 +2836,7 @@ public class ExchangeServiceTest extends VertxTest {
         final ExtBidderConfig extBidderConfig = ExtBidderConfig.of(
                 null, ExtBidderConfigOrtb.of(null, null, bidderConfigUser));
         final ExtRequestPrebidBidderConfig concreteFpdConfig = ExtRequestPrebidBidderConfig.of(
-                singletonList("someBidder"), extBidderConfig);
+                singletonList("SomMeBiDdEr"), extBidderConfig);
 
         final ObjectNode emptyUser = mapper.valueToTree(User.builder().build());
         final ExtBidderConfig allExtBidderConfig = ExtBidderConfig.of(

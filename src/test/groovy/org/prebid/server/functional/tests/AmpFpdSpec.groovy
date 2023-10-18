@@ -24,6 +24,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.BOGUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
 class AmpFpdSpec extends BaseSpec {
@@ -172,7 +173,8 @@ class AmpFpdSpec extends BaseSpec {
 
     def "PBS should emit error when targeting field is invalid"() {
         given: "AMP request with invalid targeting"
-        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString, targeting: PBSUtils.randomString)
+        def invalidTargeting = "InvalidTargeting"
+        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString, targeting: invalidTargeting)
 
         and: "Stored request with FPD fields"
         def ampStoredRequest = BidRequest.getDefaultBidRequest(SITE)
@@ -188,7 +190,7 @@ class AmpFpdSpec extends BaseSpec {
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == BAD_REQUEST.code()
         assert exception.responseBody.startsWith("Invalid request format: " +
-                "Error reading targeting json Unrecognized token '${ampRequest.targeting}': was expecting")
+                "Error reading targeting json Unrecognized token '$invalidTargeting': was expecting")
     }
 
     def "PBS shouldn't populate FPD field via targeting when targeting field is absent"() {
@@ -451,8 +453,8 @@ class AmpFpdSpec extends BaseSpec {
 
         def ampStoredRequest = BidRequest.getDefaultBidRequest(SITE).tap {
             ext.prebid.tap {
-                data = new ExtRequestPrebidData(bidders: [GENERIC.value])
-                bidderConfig = [new ExtPrebidBidderConfig(bidders: [GENERIC], config: new BidderConfig(
+                data = new ExtRequestPrebidData(bidders: [extRequestPrebidDataBidder])
+                bidderConfig = [new ExtPrebidBidderConfig(bidders: [prebidBidderConfigBidder], config: new BidderConfig(
                         ortb2: new BidderConfigOrtb(site: Site.configFPDSite, user: User.configFPDUser)))]
             }
         }
@@ -493,6 +495,11 @@ class AmpFpdSpec extends BaseSpec {
                 !imp[0].ext.rp
             }
         }
+
+        where:
+        extRequestPrebidDataBidder | prebidBidderConfigBidder
+        GENERIC.value              | GENERIC_CAMEL_CASE
+        GENERIC_CAMEL_CASE.value   | GENERIC
     }
 
     def "PBS shouldn't send certain FPD data when allowed in bidder config and bidder was not defined in bidders section"() {

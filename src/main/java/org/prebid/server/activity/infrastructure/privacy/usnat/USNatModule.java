@@ -26,7 +26,7 @@ public class USNatModule implements PrivacyModule {
             case SYNC_USER, MODIFY_UFDP -> new USNatSyncUser(gppReader);
             case TRANSMIT_UFPD -> new USNatTransmitUfpd(gppReader);
             case TRANSMIT_GEO -> new USNatTransmitGeo(gppReader);
-            case CALL_BIDDER, REPORT_ANALYTICS -> USNatDefault.instance();
+            case CALL_BIDDER, TRANSMIT_TID, REPORT_ANALYTICS -> USNatDefault.instance();
         };
     }
 
