@@ -11,5 +11,6 @@ class Prebid {
     String targetBidderCode
     Cache cache
     Events events
+    Meta meta
     Map passThrough
 }

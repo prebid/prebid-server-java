@@ -4,9 +4,16 @@ import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.model.request.auction.Renderer
+import org.prebid.server.functional.model.request.auction.RendererData
+import org.prebid.server.functional.model.request.auction.Sdk
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtPrebid
+import org.prebid.server.functional.model.response.auction.BidExt
+import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.model.response.auction.Meta
+import org.prebid.server.functional.model.response.auction.Prebid
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
@@ -309,5 +316,51 @@ class AuctionSpec extends BaseSpec {
 
         and: "BidderRequest shouldn't populate fields"
         assert !bidderRequest.ext.prebid.aliases
+    }
+
+    def "PBS auction should pass ext.prebid.sdk requested to bidder request when sdk specified"() {
+        given: "Default bid request with aliases"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.sdk = new Sdk(renderers: [new Renderer(
+                    name: PBSUtils.randomString,
+                    version: PBSUtils.randomString,
+                    data: new RendererData(any: PBSUtils.randomString))])
+        }
+
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain sdk value same in request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.sdk.renderers.name == bidRequest.ext.prebid.sdk.renderers.name
+        assert bidderRequest.ext.prebid.sdk.renderers.version == bidRequest.ext.prebid.sdk.renderers.version
+        assert bidderRequest.ext.prebid.sdk.renderers.data.any == bidRequest.ext.prebid.sdk.renderers.data.any
+    }
+
+    def "PBS auction should pass meta object to bid response when meta specified "() {
+        given: "Default bid request with aliases"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Default bidder response without bid"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].ext = new BidExt(prebid: new Prebid(meta: new Meta(
+                    rendererName: PBSUtils.randomString,
+                    rendererUrl: PBSUtils.randomString,
+                    rendererVersion: PBSUtils.getRandomString())))
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "Requesting PBS auction"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain meta value same in request"
+        assert response.seatbid[0].bid[0].ext.prebid.meta.rendererName ==
+                bidResponse.seatbid[0].bid[0].ext.prebid.meta.rendererName
+        assert response.seatbid[0].bid[0].ext.prebid.meta.rendererUrl ==
+                bidResponse.seatbid[0].bid[0].ext.prebid.meta.rendererUrl
+        assert response.seatbid[0].bid[0].ext.prebid.meta.rendererVersion ==
+                bidResponse.seatbid[0].bid[0].ext.prebid.meta.rendererVersion
     }
 }
