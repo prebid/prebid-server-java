@@ -79,7 +79,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).extracting(BidderError::getMessage)
                 .containsExactly("Fail on Imp.Id=test: Adnuntius supports only Banner");
     }
@@ -94,7 +94,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).extracting(BidderError::getMessage)
                 .allMatch(errorMessage -> errorMessage.startsWith("Unmarshalling error:"));
     }
@@ -109,7 +109,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(AdnuntiusRequest::getAdUnits)
@@ -127,7 +127,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(AdnuntiusRequest::getAdUnits)
@@ -145,7 +145,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(AdnuntiusRequest::getAdUnits)
@@ -164,7 +164,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(AdnuntiusRequest::getAdUnits)
@@ -183,7 +183,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(AdnuntiusRequest::getAdUnits)
@@ -209,7 +209,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 .extracting(AdnuntiusRequest::getAdUnits)
                 .allSatisfy(adUnits -> assertThat(adUnits).extracting(AdnuntiusAdUnit::getAuId)
                         .containsExactly("auId1", "auId2"));
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -229,7 +229,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 .flatExtracting(AdnuntiusRequest::getAdUnits)
                 .extracting(AdnuntiusAdUnit::getAuId, AdnuntiusAdUnit::getTargetId)
                 .containsExactly(tuple(null, "null-null"), tuple("auId", "auId-null"), tuple("auId", "auId-impId"));
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -246,7 +246,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 .extracting(AdnuntiusRequest::getMetaData)
                 .extracting(AdnuntiusMetaData::getUsi)
                 .containsExactly("userId", "userId");
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -285,7 +285,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         assertThat(result.getValue()).extracting(HttpRequest::getPayload)
                 .extracting(AdnuntiusRequest::getContext)
                 .containsExactly("page", "page");
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -304,7 +304,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -323,7 +323,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -342,7 +342,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -363,7 +363,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -381,7 +381,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -400,7 +400,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -419,7 +419,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -438,7 +438,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -458,7 +458,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -478,7 +478,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
