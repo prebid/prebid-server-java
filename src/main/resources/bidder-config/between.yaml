@@ -1,6 +1,6 @@
 adapters:
   between:
-    endpoint: http://{{Host}}.betweendigital.com/openrtb_bid?sspId={{PublisherId}}
+    endpoint: http://lbs-us-east1.ads.betweendigital.com/openrtb_bid?sspId={{PublisherId}}
     meta-info:
       maintainer-email: buying@betweenx.com
       app-media-types:
