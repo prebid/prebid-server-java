@@ -192,7 +192,7 @@ public class HuaweiAdmBuilder {
             case CLICK -> "<ClickTracking><![CDATA[" + url + "]]></ClickTracking>";
             case IMP -> "<Impression><![CDATA[" + url + "]]></Impression>";
             case VAST_ERROR -> "<Error><![CDATA[" + url + "&et=[ERRORCODE]]]></Error>";
-            default -> "";
+            default -> StringUtils.EMPTY;
         };
     }
 
@@ -298,7 +298,7 @@ public class HuaweiAdmBuilder {
                         .filter(Objects::nonNull)
                         .map(tracking -> "\"" + tracking + "\"")
                         .collect(Collectors.joining(",")))
-                .orElse("");
+                .orElse(StringUtils.EMPTY);
     }
 
     private static String makeDspImpTrackings(Content content) {
@@ -312,7 +312,7 @@ public class HuaweiAdmBuilder {
                 .map(list -> list.stream()
                         .map(tracking -> "<img height=\"1\" width=\"1\" src='" + tracking + "' >  ")
                         .collect(Collectors.joining()))
-                .orElse("");
+                .orElse(StringUtils.EMPTY);
     }
 
     public HuaweiAdm buildNative(AdsType adType, Content content, Native xNative) {

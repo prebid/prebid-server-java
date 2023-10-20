@@ -172,7 +172,7 @@ public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
                 .map(com.iab.openrtb.request.Regs::getCoppa)
                 .filter(coppa -> coppa >= 0)
                 .map(Regs::of)
-                .orElse(Regs.of(null));
+                .orElseGet(() -> Regs.of(null));
     }
 
     private Geo makeGeo(com.iab.openrtb.request.Device device) {
@@ -349,7 +349,7 @@ public class HuaweiAdsBidder implements Bidder<HuaweiAdsRequest> {
                 .map(Monitor::getUrlList)
                 .flatMap(Collection::stream)
                 .findFirst()
-                .orElse("");
+                .orElse(StringUtils.EMPTY);
     }
 
 }
