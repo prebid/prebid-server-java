@@ -38,13 +38,16 @@ public class BetweenBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpBetween>> BETWEEN_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final String URL_HOST_MACRO = "{{Host}}";
     private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
+    private final boolean endpointContainsHostMacro;
 
     public BetweenBidder(String endpointUrl, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.endpointContainsHostMacro = endpointUrl.contains(URL_HOST_MACRO);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -56,8 +59,8 @@ public class BetweenBidder implements Bidder<BidRequest> {
         ExtImpBetween extImpBetween = null;
         for (Imp imp : request.getImp()) {
             try {
-                validateImp(imp);
                 extImpBetween = parseImpExt(imp);
+                validateImp(imp, extImpBetween);
                 modifiedImps.add(modifyImp(imp, secure));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -74,7 +77,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
         return site != null && StringUtils.isNotBlank(site.getPage()) && site.getPage().startsWith("https") ? 1 : 0;
     }
 
-    private static void validateImp(Imp imp) {
+    private void validateImp(Imp imp, ExtImpBetween extImp) {
         final Banner banner = imp.getBanner();
         if (imp.getBanner() == null) {
             throw new PreBidException("Request needs to include a Banner object");
@@ -84,18 +87,21 @@ public class BetweenBidder implements Bidder<BidRequest> {
                 throw new PreBidException("Need at least one size to build request");
             }
         }
+        final String missingParamErrorMessage = "required BetweenSSP parameter %s is missing in impression with id: %s";
+        if (StringUtils.isBlank(extImp.getPublisherId())) {
+            throw new PreBidException(missingParamErrorMessage.formatted("publisher_id", imp.getId()));
+        }
+        if (endpointContainsHostMacro && StringUtils.isBlank(extImp.getHost())) {
+            throw new PreBidException(missingParamErrorMessage.formatted("host", imp.getId()));
+        }
     }
 
     private ExtImpBetween parseImpExt(Imp imp) {
         final ExtImpBetween extImpBetween;
-        final String missingParamErrorMessage = "required BetweenSSP parameter %s is missing in impression with id: %s";
         try {
             extImpBetween = mapper.mapper().convertValue(imp.getExt(), BETWEEN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
-        }
-        if (StringUtils.isBlank(extImpBetween.getPublisherId())) {
-            throw new PreBidException(missingParamErrorMessage.formatted("publisher_id", imp.getId()));
         }
         return extImpBetween;
     }
@@ -125,6 +131,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> createRequest(ExtImpBetween extImpBetween, BidRequest request, List<Imp> imps) {
         final String url = endpointUrl
+                .replace(URL_HOST_MACRO, StringUtils.defaultString(extImpBetween.getHost()))
                 .replace(PUBLISHER_ID_MACRO, HttpUtil.encodeUrl(extImpBetween.getPublisherId()));
         final BidRequest outgoingRequest = request.toBuilder().imp(imps).build();
 
