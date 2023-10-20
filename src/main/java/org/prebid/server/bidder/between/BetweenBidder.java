@@ -25,6 +25,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.between.ExtImpBetween;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -140,6 +141,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
                         .method(HttpMethod.POST)
                         .uri(url)
                         .headers(resolveHeaders(request.getDevice(), request.getSite()))
+                        .impIds(BidderUtil.impIds(outgoingRequest))
                         .payload(outgoingRequest)
                         .body(mapper.encodeToBytes(outgoingRequest))
                         .build();
