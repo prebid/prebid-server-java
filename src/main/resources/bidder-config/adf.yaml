@@ -3,11 +3,7 @@ adapters:
     endpoint: https://adx.adform.net/adx/openrtb
     aliases:
       adform:
-        usersync:
-          cookie-family-name: adform
-          redirect:
-            url: https://cm.adform.net/cookie?redirect_url={{redirect_url}}
-            uid-macro: '$UID'
+        enabled: false
     meta-info:
       maintainer-email: scope.sspp@adform.com
       app-media-types:

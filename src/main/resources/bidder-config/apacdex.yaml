@@ -4,11 +4,9 @@ adapters:
     endpoint: http://useast.quantumdex.io/auction/pbs
     aliases:
       quantumdex:
-        usersync:
-          cookie-family-name: quantumdex
+        enabled: false
       valueimpression:
-        usersync:
-          cookie-family-name: valueimpression
+        enabled: false
     meta-info:
       maintainer-email: support@apacdex.com
       app-media-types:
