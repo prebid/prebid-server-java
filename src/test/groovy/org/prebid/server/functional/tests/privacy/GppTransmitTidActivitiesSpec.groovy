@@ -64,42 +64,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
     }
 
-    def "PBS auction should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=true and transmit activity allowed"() {
-        given: "Bid requests without TID fields and account id"
-        def accountId = PBSUtils.randomNumber as String
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.tap {
-                trace = VERBOSE
-                createTids = true
-            }
-            setAccountId(accountId)
-            imp[0].ext.tid = null
-            source = new Source(tid: null)
-        }
-
-        and: "Activities set with generic bidder allowed"
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, Activity.defaultActivity)
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
-        and: "Save account config with allow activities into DB"
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Bidder request should generate (source/imp.ext).tid"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-
-        verifyAll {
-            bidderRequest.imp[0].ext.tid
-            bidderRequest.source.tid
-        }
-    }
-
-    def "PBS auction should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=true and transmit activity disallowed"() {
+    def "PBS auction should generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=true and transmit activity #transmitActivityAllowStatus"() {
         given: "Bid requests without TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -113,7 +78,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Activities set with bidder disallowed"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, transmitActivityAllowStatus)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
         and: "Flush metrics"
@@ -133,6 +98,9 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.imp[0].ext.tid
             bidderRequest.source.tid
         }
+
+        where:
+        transmitActivityAllowStatus << [true, false]
     }
 
     def "PBS auction shouldn't generate id for bidRequest.(source/imp[0].ext).tid when ext.prebid.createTids=false and transmit activity allowed"() {
