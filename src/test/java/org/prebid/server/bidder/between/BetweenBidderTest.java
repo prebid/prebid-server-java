@@ -53,11 +53,11 @@ public class BetweenBidderTest extends VertxTest {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
                 .banner(null)
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("pubId")))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId")))));
 
         final Imp secondImp = givenImp(impBuilder -> impBuilder
                 .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("pubId")))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId")))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(firstImp, secondImp))
@@ -77,7 +77,7 @@ public class BetweenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("pubId")))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId")))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().ua("someUa").dnt(5).ip("someIp").language("someLanguage").build())
@@ -106,11 +106,11 @@ public class BetweenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullPublisherIdParam() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("")))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "")))));
 
         final Imp secondImp = givenImp(impBuilder -> impBuilder
                 .id("456")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null)))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, null)))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(firstImp, secondImp))
@@ -126,6 +126,31 @@ public class BetweenBidderTest extends VertxTest {
                                 + "is missing in impression with id: 123"),
                         BidderError.badInput("required BetweenSSP parameter publisher_id "
                                 + "is missing in impression with id: 456"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullHostParamAndEndpointContainsHostMacro() {
+        // given
+        final BetweenBidder target = new BetweenBidder("https://{{Host}}/test?param={{PublisherId}}", jacksonMapper);
+        final Imp firstImp = givenImp(impBuilder -> impBuilder
+                .id("123")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("", "pubId")))));
+
+        final Imp secondImp = givenImp(impBuilder -> impBuilder
+                .id("456")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId")))));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Arrays.asList(firstImp, secondImp))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).containsExactlyInAnyOrder(
+                BidderError.badInput("required BetweenSSP parameter host is missing in impression with id: 123"),
+                BidderError.badInput("required BetweenSSP parameter host is missing in impression with id: 456"));
     }
 
     @Test
@@ -163,6 +188,25 @@ public class BetweenBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReplaceHostMacroInUrlWhenPresentInConfigAndExtImpBetween() {
+        // given
+        final BetweenBidder target = new BetweenBidder("https://{{Host}}/test?param={{PublisherId}}", jacksonMapper);
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host.com", "pubId")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://host.com/test?param=pubId");
+    }
+
+    @Test
     public void makeHttpRequestsShouldEnrichEveryImpWithSecureBidFlor() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
@@ -189,7 +233,7 @@ public class BetweenBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
                         .site(Site.builder().page("http://page.com").build()),
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("pubId")))));
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -320,7 +364,7 @@ public class BetweenBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().w(23).h(25).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("pubId")))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId")))))
                 .build();
     }
 

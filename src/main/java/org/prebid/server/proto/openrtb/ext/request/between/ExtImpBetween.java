@@ -5,5 +5,7 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class ExtImpBetween {
 
+    String host;
+
     String publisherId;
 }
