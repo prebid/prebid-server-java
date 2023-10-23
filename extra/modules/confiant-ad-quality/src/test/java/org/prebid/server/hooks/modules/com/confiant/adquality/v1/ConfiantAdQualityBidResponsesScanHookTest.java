@@ -4,7 +4,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.User;
-import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
 import org.junit.Before;
 import org.junit.Rule;
@@ -16,8 +15,6 @@ import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsMapper;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanResult;
@@ -25,6 +22,7 @@ import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanner;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.RedisParser;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.BidScanResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.OperationResult;
+import org.prebid.server.hooks.modules.com.confiant.adquality.util.AdQualityModuleTestUtils;
 import org.prebid.server.hooks.modules.com.confiant.adquality.v1.model.analytics.ActivityImpl;
 import org.prebid.server.hooks.modules.com.confiant.adquality.v1.model.analytics.AppliedToImpl;
 import org.prebid.server.hooks.modules.com.confiant.adquality.v1.model.analytics.ResultImpl;
@@ -34,9 +32,7 @@ import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 
-import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 
@@ -45,7 +41,6 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class ConfiantAdQualityBidResponsesScanHookTest {
@@ -122,7 +117,8 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
 
         doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
         doReturn(getAuctionContext()).when(auctionInvocationContext).auctionContext();
-        doReturn(List.of(getBidderResponse("bidder_a", "imp_a", "bid_id_a"))).when(allProcessedBidResponsesPayload).bidResponses();
+        doReturn(List.of(AdQualityModuleTestUtils.getBidderResponse("bidder_a", "imp_a", "bid_id_a")))
+                .when(allProcessedBidResponsesPayload).bidResponses();
 
         // when
         final Future<InvocationResult<AllProcessedBidResponsesPayload>> future = hook.call(
@@ -139,7 +135,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         assertThat(result.errors().get(0)).isEqualTo("tag: [Issue(specName=malicious_domain, value=ads.deceivenetworks.net, firstAdinstance=e91e8da982bb8b7f80100426)]");
         assertThat(result.debugMessages()).isNull();
         assertThat(result.analyticsTags().activities()).isEqualTo(singletonList(ActivityImpl.of(
-                "ad-quality-scan", "success", List.of(
+                "ad-scan", "success", List.of(
                         ResultImpl.of("inspected-has-issue", null, AppliedToImpl.builder()
                                 .bidders(List.of("bidder_a"))
                                 .impIds(List.of("imp_a"))
@@ -161,7 +157,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         hook.call(allProcessedBidResponsesPayload, auctionInvocationContext);
 
         // then
-        verify(bidsScanner, times(1)).submitBids(any());
+        verify(bidsScanner).submitBids(any());
     }
 
     @Test
@@ -170,9 +166,9 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final String secureBidderName = "securebidder";
         final String notSecureBadBidderName = "notsecurebadbidder";
         final String notSecureGoodBidderName = "notsecuregoodbidder";
-        final BidderResponse secureBidderResponse = getBidderResponse(secureBidderName, "imp_a", "bid_id_a");
-        final BidderResponse notSecureBadBidderResponse = getBidderResponse(notSecureBadBidderName, "imp_b", "bid_id_b");
-        final BidderResponse notSecureGoodBidderResponse = getBidderResponse(notSecureGoodBidderName, "imp_c", "bid_id_c");
+        final BidderResponse secureBidderResponse = AdQualityModuleTestUtils.getBidderResponse(secureBidderName, "imp_a", "bid_id_a");
+        final BidderResponse notSecureBadBidderResponse = AdQualityModuleTestUtils.getBidderResponse(notSecureBadBidderName, "imp_b", "bid_id_b");
+        final BidderResponse notSecureGoodBidderResponse = AdQualityModuleTestUtils.getBidderResponse(notSecureGoodBidderName, "imp_c", "bid_id_c");
 
         final ConfiantAdQualityBidResponsesScanHook hookWithExcludeConfig = new ConfiantAdQualityBidResponsesScanHook(
                 bidsScanner, List.of(secureBidderName), privacyEnforcementService);
@@ -192,7 +188,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
                 .call(allProcessedBidResponsesPayload, auctionInvocationContext);
 
         // then
-        verify(bidsScanner, times(1)).submitBids(
+        verify(bidsScanner).submitBids(
                 BidsMapper.toRedisBidsFromBidResponses(auctionContext.getBidRequest(), List.of(notSecureBadBidderResponse, notSecureGoodBidderResponse))
         );
 
@@ -204,7 +200,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
 
         assertThat(payloadUpdate.apply(initPayloadToUpdate)).isEqualTo(resultPayloadAfterUpdate);
         assertThat(invocationResult.result().analyticsTags().activities()).isEqualTo(singletonList(ActivityImpl.of(
-                "ad-quality-scan", "success", List.of(
+                "ad-scan", "success", List.of(
                         ResultImpl.of("skipped", null, AppliedToImpl.builder()
                                 .bidders(List.of(secureBidderName))
                                 .impIds(List.of("imp_a"))
@@ -243,7 +239,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         hook.call(allProcessedBidResponsesPayload, auctionInvocationContext);
 
         // then
-        verify(bidsScanner, times(1)).submitBids(
+        verify(bidsScanner).submitBids(
                 BidsMapper.toRedisBidsFromBidResponses(BidRequest.builder()
                         .user(user)
                         .device(device)
@@ -272,7 +268,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         hook.call(allProcessedBidResponsesPayload, auctionInvocationContext);
 
         // then
-        verify(bidsScanner, times(1)).submitBids(
+        verify(bidsScanner).submitBids(
                 BidsMapper.toRedisBidsFromBidResponses(BidRequest.builder()
                         .user(user)
                         .device(device)
@@ -342,26 +338,11 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
                 .build();
     }
 
-    private User getUser() {
+    private static User getUser() {
         return User.builder().geo(Geo.builder().country("country-u").region("region-u").build()).build();
     }
 
-    private Device getDevice() {
+    private static Device getDevice() {
         return Device.builder().geo(Geo.builder().country("country-d").region("region-d").build()).build();
-    }
-
-    private BidderResponse getBidderResponse(String bidderName, String impId, String bidId) {
-        return BidderResponse.of(bidderName, BidderSeatBid.builder()
-                .bids(Collections.singletonList(BidderBid.builder()
-                        .type(BidType.banner)
-                        .bid(Bid.builder()
-                                .id(bidId)
-                                .price(BigDecimal.valueOf(11))
-                                .impid(impId)
-                                .adm("adm")
-                                .adomain(Collections.singletonList("www.example.com"))
-                                .build())
-                        .build()))
-                .build(), 11);
     }
 }

@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 public class AnalyticsMapper {
 
-    private static final String AD_QUALITY_SCAN = "ad-quality-scan";
+    private static final String AD_QUALITY_SCAN = "ad-scan";
 
     private static final String SUCCESS_STATUS = "success";
 
@@ -28,37 +28,27 @@ public class AnalyticsMapper {
 
     private static final String INSPECTED_NO_ISSUES = "inspected-no-issues";
 
-    public static Tags toAnalyticsTags(BidsScanResult bidsScanResult,
-                                       List<BidderResponse> scannedBidderResponses,
-                                       List<BidderResponse> notScannedBidderResponses) {
+    public static Tags toAnalyticsTags(List<BidderResponse> bidderResponsesWithIssues,
+                                       List<BidderResponse> bidderResponsesWithoutIssues,
+                                       List<BidderResponse> bidderResponsesNotScanned) {
         return TagsImpl.of(Collections.singletonList(ActivityImpl.of(
                 AD_QUALITY_SCAN,
                 SUCCESS_STATUS,
-                toActivityResults(bidsScanResult, scannedBidderResponses, notScannedBidderResponses))));
+                toActivityResults(bidderResponsesWithIssues, bidderResponsesWithoutIssues, bidderResponsesNotScanned))));
     }
 
-    private static List<Result> toActivityResults(BidsScanResult bidsScanResult,
-                                           List<BidderResponse> scannedBidderResponses,
-                                           List<BidderResponse> notScannedBidderResponses) {
-        final List<BidderResponse> hasIssues = new ArrayList<>();
-        final List<BidderResponse> noIssues = new ArrayList<>();
-        for (int i = 0; i < scannedBidderResponses.size(); i++) {
-            if (bidsScanResult.hasIssuesByBidIndex(i)) {
-                hasIssues.add(scannedBidderResponses.get(i));
-            } else {
-                noIssues.add(scannedBidderResponses.get(i));
-            }
-        }
-
+    private static List<Result> toActivityResults(List<BidderResponse> bidderResponsesWithIssues,
+                                                  List<BidderResponse> bidderResponsesWithoutIssues,
+                                                  List<BidderResponse> bidderResponsesNotScanned) {
         final List<Result> results = new ArrayList<>();
-        if (!notScannedBidderResponses.isEmpty()) {
-            results.add(ResultImpl.of(SKIPPED, null, toAppliedTo(notScannedBidderResponses)));
+        if (!bidderResponsesNotScanned.isEmpty()) {
+            results.add(ResultImpl.of(SKIPPED, null, toAppliedTo(bidderResponsesNotScanned)));
         }
-        if (!hasIssues.isEmpty()) {
-            results.add(ResultImpl.of(INSPECTED_HAS_ISSUE, null, toAppliedTo(hasIssues)));
+        if (!bidderResponsesWithIssues.isEmpty()) {
+            results.add(ResultImpl.of(INSPECTED_HAS_ISSUE, null, toAppliedTo(bidderResponsesWithIssues)));
         }
-        if (!noIssues.isEmpty()) {
-            results.add(ResultImpl.of(INSPECTED_NO_ISSUES, null, toAppliedTo(noIssues)));
+        if (!bidderResponsesWithoutIssues.isEmpty()) {
+            results.add(ResultImpl.of(INSPECTED_NO_ISSUES, null, toAppliedTo(bidderResponsesWithoutIssues)));
         }
 
         return results;
@@ -74,8 +64,10 @@ public class AnalyticsMapper {
     }
 
     private static List<Bid> toBids(List<BidderResponse> bidderResponses) {
-        return bidderResponses.stream().map(bidderResponse -> bidderResponse.getSeatBid().getBids()
-                        .stream().map(BidderBid::getBid).toList()).flatMap(List::stream)
+        return bidderResponses.stream()
+                .map(BidderResponse::getSeatBid)
+                .flatMap(seatBid -> seatBid.getBids().stream())
+                .map(BidderBid::getBid)
                 .collect(Collectors.toList());
     }
 }

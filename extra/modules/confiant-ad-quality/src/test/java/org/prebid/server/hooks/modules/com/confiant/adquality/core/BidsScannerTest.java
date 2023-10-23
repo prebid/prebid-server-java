@@ -22,7 +22,6 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class BidsScannerTest {
@@ -55,7 +54,7 @@ public class BidsScannerTest {
         bidsScannerTest.start(startFuture);
 
         // then
-        verify(writeRedisNode, times(1)).start((Promise<Void>) any());
+        verify(writeRedisNode).start((Promise<Void>) any());
     }
 
     @Test()
