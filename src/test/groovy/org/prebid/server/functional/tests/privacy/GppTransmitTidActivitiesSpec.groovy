@@ -81,9 +81,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, transmitActivityAllowStatus)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
         and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
@@ -120,9 +117,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
         and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
@@ -155,9 +149,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         and: "Activities set with bidder allowed"
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
 
         and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
@@ -240,9 +231,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         and: "Save account with allow activities setup"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
 
         when: "PBS processes auction request"
         activityPbsService.sendAuctionRequest(bidRequest)
@@ -427,9 +415,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         and: "Allow activities setup"
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, Activity.defaultActivity)
 
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
         and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
@@ -471,9 +456,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         and: "Activities set with bidder disallowed"
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
 
         and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
@@ -517,9 +499,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
         and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
@@ -561,9 +540,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         and: "Activities set with bidder allowed"
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
 
         and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
@@ -610,9 +586,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
 
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
-
         and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
         accountDao.save(account)
@@ -654,9 +627,6 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         and: "Activities set with default action false"
         def activity = new Activity(defaultAction: false)
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_TID, activity)
-
-        and: "Flush metrics"
-        flushMetrics(activityPbsService)
 
         and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities)
