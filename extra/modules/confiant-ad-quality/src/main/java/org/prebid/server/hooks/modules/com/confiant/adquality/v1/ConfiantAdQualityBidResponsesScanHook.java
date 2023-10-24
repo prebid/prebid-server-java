@@ -25,7 +25,6 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesHook;
 import org.prebid.server.hooks.v1.bidder.AllProcessedBidResponsesPayload;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -92,24 +91,11 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
             List<BidderResponse> scannedBidderResponses,
             List<BidderResponse> notScannedBidderResponses,
             AuctionInvocationContext auctionInvocationContext) {
-        final boolean hasIssues = bidsScanResult.hasIssues();
         final boolean debugEnabled = auctionInvocationContext.debugEnabled();
-
-        final List<BidderResponse> bidderResponsesWithIssues = new ArrayList<>();
-        List<BidderResponse> bidderResponsesWithoutIssues;
-
-        if (hasIssues) {
-            bidderResponsesWithoutIssues = new ArrayList<>();
-            for (int i = 0; i < scannedBidderResponses.size(); i++) {
-                if (bidsScanResult.hasIssuesByBidIndex(i)) {
-                    bidderResponsesWithIssues.add(scannedBidderResponses.get(i));
-                } else {
-                    bidderResponsesWithoutIssues.add(scannedBidderResponses.get(i));
-                }
-            }
-        } else {
-            bidderResponsesWithoutIssues = scannedBidderResponses;
-        }
+        final Map<Boolean, List<BidderResponse>> issuesExistencyMap = bidsScanResult.toIssuesExistencyMap(scannedBidderResponses);
+        final List<BidderResponse> bidderResponsesWithIssues = issuesExistencyMap.get(true);
+        final List<BidderResponse> bidderResponsesWithoutIssues = issuesExistencyMap.get(false);
+        final boolean hasIssues = !bidderResponsesWithIssues.isEmpty();
 
         final InvocationResultImpl.InvocationResultImplBuilder<AllProcessedBidResponsesPayload> resultBuilder =
                 InvocationResultImpl.<AllProcessedBidResponsesPayload>builder()
@@ -127,7 +113,7 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
                                 bidderResponsesWithIssues, bidderResponsesWithoutIssues, notScannedBidderResponses))
                         .payloadUpdate(payload -> hasIssues
                                 ? AllProcessedBidResponsesPayloadImpl.of(
-                                    Stream.concat(bidderResponsesWithoutIssues.stream(), notScannedBidderResponses.stream()).toList())
+                                        Stream.concat(bidderResponsesWithoutIssues.stream(), notScannedBidderResponses.stream()).toList())
                                 : AllProcessedBidResponsesPayloadImpl.of(payload.bidResponses()));
 
         return resultBuilder.build();

@@ -8,6 +8,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
 import java.util.Collections;
+import java.util.List;
 
 public class AdQualityModuleTestUtils {
 
@@ -20,7 +21,7 @@ public class AdQualityModuleTestUtils {
                                 .price(BigDecimal.valueOf(11))
                                 .impid(impId)
                                 .adm("adm")
-                                .adomain(Collections.singletonList("www.example.com"))
+                                .adomain(List.of("www.goog.com", "www.gumgum.com"))
                                 .build())
                         .build()))
                 .build(), 11);

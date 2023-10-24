@@ -4,9 +4,11 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.BidScanResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.OperationResult;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.stream.IntStream;
 
 public class BidsScanResult {
 
@@ -25,11 +27,24 @@ public class BidsScanResult {
                 .orElse(false);
     }
 
-    public List<BidderResponse> filterValidResponses(List<BidderResponse> responses) {
-        return IntStream.range(0, responses.size())
-                .filter(ind -> !hasIssuesByBidIndex(ind))
-                .mapToObj(responses::get)
-                .toList();
+    public Map<Boolean, List<BidderResponse>> toIssuesExistencyMap(List<BidderResponse> bidderResponses) {
+        final List<BidderResponse> bidderResponsesWithIssues = new ArrayList<>();
+        final List<BidderResponse> bidderResponsesWithoutIssues = new ArrayList<>();
+        final int scanSize = result.getValue().size();
+
+        for (int i = 0; i < scanSize; i++) {
+            if (hasIssuesByBidIndex(i)) {
+                bidderResponsesWithIssues.add(bidderResponses.get(i));
+            } else {
+                bidderResponsesWithoutIssues.add(bidderResponses.get(i));
+            }
+        }
+
+        final Map<Boolean, List<BidderResponse>> issuesExistencyMap = new HashMap<>();
+        issuesExistencyMap.put(true, bidderResponsesWithIssues);
+        issuesExistencyMap.put(false, bidderResponsesWithoutIssues);
+
+        return issuesExistencyMap;
     }
 
     public List<String> getIssuesMessages() {
@@ -42,7 +57,7 @@ public class BidsScanResult {
         return result.getDebugMessages();
     }
 
-    public boolean hasIssuesByBidIndex(Integer ind) {
+    private boolean hasIssuesByBidIndex(Integer ind) {
         final BidScanResult bidResult = result.getValue().get(ind);
         return bidResult != null && bidResult.getIssues() != null && !bidResult.getIssues().isEmpty();
     }
