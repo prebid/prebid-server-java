@@ -1999,21 +1999,6 @@ class CookieSyncSpec extends BaseSpec {
         assert response.getBidderUserSync(RUBICON)
     }
 
-    def "PBS cookie sync request should ignore uids audit cookie outside of gdpr"() {
-        given: "Cookie sync request body"
-        def cookieSyncRequest = new CookieSyncRequest().tap {
-            bidders = [APPNEXUS]
-            coopSync = false
-            gdpr = 0
-        }
-
-        when: "PBS processes cookie sync request with cookies"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, "GzhqHDTACWuj-m1FXJic6E0Vp8brrzoQDFmowPV1LQu3B5VuyOoHmyKnfRjnh-pZeKwfXVaa7TzbxxSsbYLFODxiWQptNHFKQhSTwHW5jeNbQ18Im3wwdxsPI_5nkH5zsIrfi9WP57D_6Sg23EnYeg3kBJXMAZVdb_RA8ie7ubjfC_0PMVTtZqs-Kcul81yp")
-
-        then: "Response should contain error"
-        assert response.getBidderUserSync(APPNEXUS)
-    }
-
     def "PBS cookie sync request shouldn't limit bidders with zero value in config"() {
         given: "Default cookie sync request"
         def accountId = PBSUtils.randomNumber

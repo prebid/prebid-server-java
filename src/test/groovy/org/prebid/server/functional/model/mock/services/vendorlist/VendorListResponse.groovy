@@ -41,7 +41,7 @@ class VendorListResponse {
         Boolean usesNonCookieAccess
         Boolean deviceStorageDisclosureUrl
 
-        static Vendor getDefaultVendor(Integer id) {
+        static Vendor getDefaultVendor(int id) {
             new Vendor().tap {
                 it.id = id
                 it.name = PBSUtils.randomString
