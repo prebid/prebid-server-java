@@ -2,13 +2,11 @@ package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.BidScanResult;
+import org.prebid.server.hooks.modules.com.confiant.adquality.model.GroupByIssues;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.OperationResult;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 public class BidsScanResult {
 
@@ -18,21 +16,12 @@ public class BidsScanResult {
         this.result = result;
     }
 
-    public boolean hasIssues() {
-        return Optional.ofNullable(result.getValue())
-                .map(scanResults -> scanResults.stream()
-                        .anyMatch(result -> Optional.ofNullable(result.getIssues())
-                                .map(issues -> !issues.isEmpty())
-                                .orElse(false)))
-                .orElse(false);
-    }
-
-    public Map<Boolean, List<BidderResponse>> toIssuesExistencyMap(List<BidderResponse> bidderResponses) {
+    public GroupByIssues<BidderResponse> toGroupByIssues(List<BidderResponse> bidderResponses) {
         final List<BidderResponse> bidderResponsesWithIssues = new ArrayList<>();
         final List<BidderResponse> bidderResponsesWithoutIssues = new ArrayList<>();
-        final int scanSize = result.getValue().size();
+        final int groupSize = bidderResponses.size();
 
-        for (int i = 0; i < scanSize; i++) {
+        for (int i = 0; i < groupSize; i++) {
             if (hasIssuesByBidIndex(i)) {
                 bidderResponsesWithIssues.add(bidderResponses.get(i));
             } else {
@@ -40,11 +29,10 @@ public class BidsScanResult {
             }
         }
 
-        final Map<Boolean, List<BidderResponse>> issuesExistencyMap = new HashMap<>();
-        issuesExistencyMap.put(true, bidderResponsesWithIssues);
-        issuesExistencyMap.put(false, bidderResponsesWithoutIssues);
-
-        return issuesExistencyMap;
+        return GroupByIssues.<BidderResponse>builder()
+                .withIssues(bidderResponsesWithIssues)
+                .withoutIssues(bidderResponsesWithoutIssues)
+                .build();
     }
 
     public List<String> getIssuesMessages() {
@@ -58,7 +46,8 @@ public class BidsScanResult {
     }
 
     private boolean hasIssuesByBidIndex(Integer ind) {
-        final BidScanResult bidResult = result.getValue().get(ind);
+        final List<BidScanResult> bidScanResults = result.getValue();
+        final BidScanResult bidResult = bidScanResults.size() > ind ? bidScanResults.get(ind) : null;
         return bidResult != null && bidResult.getIssues() != null && !bidResult.getIssues().isEmpty();
     }
 }

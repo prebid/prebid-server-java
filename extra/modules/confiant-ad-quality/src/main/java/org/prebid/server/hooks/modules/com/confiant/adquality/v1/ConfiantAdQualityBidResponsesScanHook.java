@@ -17,6 +17,7 @@ import org.prebid.server.hooks.modules.com.confiant.adquality.core.AnalyticsMapp
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsMapper;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanner;
+import org.prebid.server.hooks.modules.com.confiant.adquality.model.GroupByIssues;
 import org.prebid.server.hooks.modules.com.confiant.adquality.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -92,9 +93,9 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
             List<BidderResponse> notScannedBidderResponses,
             AuctionInvocationContext auctionInvocationContext) {
         final boolean debugEnabled = auctionInvocationContext.debugEnabled();
-        final Map<Boolean, List<BidderResponse>> issuesExistencyMap = bidsScanResult.toIssuesExistencyMap(scannedBidderResponses);
-        final List<BidderResponse> bidderResponsesWithIssues = issuesExistencyMap.get(true);
-        final List<BidderResponse> bidderResponsesWithoutIssues = issuesExistencyMap.get(false);
+        final GroupByIssues<BidderResponse> groupByIssues = bidsScanResult.toGroupByIssues(scannedBidderResponses);
+        final List<BidderResponse> bidderResponsesWithIssues = groupByIssues.getWithIssues();
+        final List<BidderResponse> bidderResponsesWithoutIssues = groupByIssues.getWithoutIssues();
         final boolean hasIssues = !bidderResponsesWithIssues.isEmpty();
 
         final InvocationResultImpl.InvocationResultImplBuilder<AllProcessedBidResponsesPayload> resultBuilder =
