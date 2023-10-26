@@ -280,9 +280,7 @@ public class ExchangeService {
     }
 
     private static BidResponse emptyResponse() {
-        return BidResponse.builder()
-                .seatbid(Collections.emptyList())
-                .build();
+        return BidResponse.builder().seatbid(Collections.emptyList()).build();
     }
 
     private Future<AuctionContext> runAuction(AuctionContext receivedContext) {
@@ -477,7 +475,6 @@ public class ExchangeService {
         for (Map.Entry<String, Set<String>> entry : impIdToBidders.entrySet()) {
             final String impId = entry.getKey();
             final Set<String> bidderNames = entry.getValue();
-
             bidderNames.forEach(bidder ->
                     bidderToImpIds.computeIfAbsent(bidder, bidderName -> new HashSet<>()).add(impId));
         }
@@ -675,7 +672,6 @@ public class ExchangeService {
         for (String bidder : bidders) {
             final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
                     biddersToConfigs.get(ALL_BIDDERS_CONFIG));
-
             final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
                     .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
             final User preparedUser = prepareUser(
@@ -701,7 +697,6 @@ public class ExchangeService {
 
         final User user = context.getBidRequest().getUser();
         final ExtUser extUser = user != null ? user.getExt() : null;
-
         final UpdateResult<String> buyerUidUpdateResult = uidUpdater.updateUid(bidder, context, aliases);
         final List<Eid> userEids = extractUserEids(user);
         final List<Eid> allowedUserEids = resolveAllowedEids(userEids, bidder, eidPermissions);
@@ -747,8 +742,7 @@ public class ExchangeService {
     /**
      * Returns {@link List<Eid>} allowed by {@param eidPermissions} per source per bidder.
      */
-    private List<Eid> resolveAllowedEids(List<Eid> userEids, String bidder,
-                                         Map<String, List<String>> eidPermissions) {
+    private List<Eid> resolveAllowedEids(List<Eid> userEids, String bidder, Map<String, List<String>> eidPermissions) {
         return CollectionUtils.emptyIfNull(userEids)
                 .stream()
                 .filter(userEid -> isUserEidAllowed(userEid.getSource(), eidPermissions, bidder))
@@ -780,7 +774,6 @@ public class ExchangeService {
             AuctionContext context) {
 
         final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(bidRequest);
-
         final List<AuctionParticipation> bidderRequests = bidderPrivacyResults.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid, imp
                 // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
@@ -799,7 +792,6 @@ public class ExchangeService {
                 .collect(Collectors.toCollection(ArrayList::new));
 
         Collections.shuffle(bidderRequests);
-
         return bidderRequests;
     }
 
@@ -892,9 +884,7 @@ public class ExchangeService {
 
         final BidRequest bidRequest = context.getBidRequest();
         final String bidder = bidderPrivacyResult.getRequestBidder();
-
         final boolean transmitTid = transmitTransactionId(bidder, context);
-
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
                 .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
@@ -1040,11 +1030,10 @@ public class ExchangeService {
                 floors.getFloorMinCur())
                 : null;
 
-        return mapper.mapper().valueToTree(
-                extImpPrebid(extImpPrebidNode).toBuilder()
-                        .floors(updatedFloors)
-                        .bidder(null)
-                        .build());
+        return mapper.mapper().valueToTree(extImpPrebid(extImpPrebidNode).toBuilder()
+                .floors(updatedFloors)
+                .bidder(null)
+                .build());
     }
 
     /**
@@ -1076,9 +1065,7 @@ public class ExchangeService {
                 .build()
                 : app;
 
-        return useFirstPartyData
-                ? fpdResolver.resolveApp(maskedApp, fpdApp)
-                : maskedApp;
+        return useFirstPartyData ? fpdResolver.resolveApp(maskedApp, fpdApp) : maskedApp;
     }
 
     private static ExtApp maskExtApp(ExtApp appExt) {
@@ -1251,7 +1238,6 @@ public class ExchangeService {
 
     private static List<AuctionParticipation> postProcessDeals(List<AuctionParticipation> auctionParticipations,
                                                                AuctionContext context) {
-
         return DealsService.removePgDealsOnlyImpsWithoutDeals(auctionParticipations, context);
     }
 
@@ -1354,7 +1340,6 @@ public class ExchangeService {
         return hookStageExecutor.executeBidderRequestStage(bidderRequest, auctionContext)
                 .compose(stageResult -> requestBidsOrRejectBidder(
                         stageResult, bidderRequest, auctionContext, timeout, aliases))
-
                 .compose(bidderResponse -> hookStageExecutor.executeRawBidderResponseStage(
                                 bidderResponse, auctionContext)
                         .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)));
@@ -1392,7 +1377,6 @@ public class ExchangeService {
                                                BidderAliases aliases) {
 
         final CaseInsensitiveMultiMap requestHeaders = auctionContext.getHttpRequest().getHeaders();
-
         final String bidderName = bidderRequest.getBidder();
         final String resolvedBidderName = aliases.resolveBidder(bidderName);
         final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
@@ -1421,7 +1405,6 @@ public class ExchangeService {
         final long tmax = timeoutResolver.limitToMax(bidRequest.getTmax());
         final long adjustedTmax = timeoutResolver.adjustForBidder(
                 tmax, timeoutAdjustmentFactor, currentTime - startTime);
-
         return tmax != adjustedTmax
                 ? bidRequest.toBuilder().tmax(adjustedTmax).build()
                 : bidRequest;
@@ -1430,7 +1413,6 @@ public class ExchangeService {
     private Timeout adjustTimeout(Timeout timeout, long startTime, long currentTime) {
         final long adjustedTmax = timeoutResolver.adjustForRequest(
                 timeout.getDeadline() - startTime, currentTime - startTime);
-
         return timeoutFactory.create(currentTime, adjustedTmax);
     }
 
@@ -1525,7 +1507,6 @@ public class ExchangeService {
 
         final List<BidderBid> bids = seatBid.getBids();
         final List<BidderBid> validBids = new ArrayList<>(bids.size());
-
         final TxnLog txnLog = auctionContext.getTxnLog();
         final String bidder = bidderResponse.getBidder();
 
@@ -1607,7 +1588,6 @@ public class ExchangeService {
 
         final List<BidderBid> updatedBidderBids = new ArrayList<>(bidderBids.size());
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
-
         final String adServerCurrency = bidRequest.getCur().get(0);
 
         for (final BidderBid bidderBid : bidderBids) {
@@ -1725,7 +1705,6 @@ public class ExchangeService {
 
                 for (final BidderBid bidderBid : bidderBids) {
                     final Bid bid = bidderBid.getBid();
-
                     final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
                     metrics.updateAdapterBidMetrics(bidder, account, cpm, bid.getAdm() != null,
                             bidderBid.getType().toString());
@@ -1799,7 +1778,6 @@ public class ExchangeService {
         final Map<String, Map<String, List<String>>> warnings =
                 toHookMessages(context, HookExecutionOutcome::getWarnings);
         final ExtModulesTrace trace = toHookTrace(context);
-
         return ObjectUtils.anyNotNull(errors, warnings, trace) ? ExtModules.of(errors, warnings, trace) : null;
     }
 
@@ -1855,7 +1833,6 @@ public class ExchangeService {
         }
 
         final long executionTime = stages.stream().mapToLong(ExtModulesTraceStage::getExecutionTime).sum();
-
         return ExtModulesTrace.of(executionTime, stages);
     }
 
@@ -1892,7 +1869,6 @@ public class ExchangeService {
         }
 
         final long executionTime = groups.stream().mapToLong(ExtModulesTraceGroup::getExecutionTime).sum();
-
         return ExtModulesTraceStageOutcome.of(stageOutcome.getEntity(), executionTime, groups);
     }
 
@@ -1951,12 +1927,8 @@ public class ExchangeService {
                 ? ExtModulesTraceAnalyticsAppliedTo.builder()
                 .impIds(appliedTo.impIds())
                 .bidders(appliedTo.bidders())
-                .request(appliedTo.request()
-                        ? Boolean.TRUE
-                        : null)
-                .response(appliedTo.response()
-                        ? Boolean.TRUE
-                        : null)
+                .request(appliedTo.request() ? Boolean.TRUE : null)
+                .response(appliedTo.response() ? Boolean.TRUE : null)
                 .bidIds(appliedTo.bidIds())
                 .build()
                 : null;
