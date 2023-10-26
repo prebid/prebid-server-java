@@ -954,6 +954,148 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldRemoveTidsIfCreateTidsFalse() {
+        // given
+        final String bidderName = "bidder";
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder(bidderName, bidder, givenEmptySeatBid());
+
+        final Imp imp = givenImp(Map.of(bidderName, 1), identity());
+        imp.getExt().put("tid", "bidderTidValue");
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(imp),
+                builder -> builder
+                        .source(Source.builder().tid("sourceTidValue").build())
+                        .ext(ExtRequest.of(
+                                ExtRequestPrebid.builder()
+                                        .createTids(false)
+                                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester)
+                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
+        assertThat(capturedBidRequest)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getTid)
+                .isNull();
+        assertThat(capturedBidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .containsOnlyNulls();
+    }
+
+    @Test
+    public void shouldPassTidsIfCreateTidsTrue() {
+        // given
+        final String bidderName = "bidder";
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder(bidderName, bidder, givenEmptySeatBid());
+
+        final Imp imp = givenImp(Map.of(bidderName, 1), identity());
+        imp.getExt().put("tid", "bidderTidValue");
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(imp),
+                builder -> builder
+                        .source(Source.builder().tid("sourceTidValue").build())
+                        .ext(ExtRequest.of(
+                                ExtRequestPrebid.builder()
+                                        .createTids(true)
+                                        .build())));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester)
+                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
+        assertThat(capturedBidRequest)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getTid)
+                .isEqualTo("sourceTidValue");
+        assertThat(capturedBidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .containsExactly(TextNode.valueOf("bidderTidValue"));
+    }
+
+    @Test
+    public void shouldRemoveTidsIfTransmitTidActivityDisallowed() {
+        // given
+        final String bidderName = "bidder";
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder(bidderName, bidder, givenEmptySeatBid());
+
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_TID), any())).willReturn(false);
+
+        final Imp imp = givenImp(Map.of(bidderName, 1), identity());
+        imp.getExt().put("tid", "bidderTidValue");
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(imp),
+                builder -> builder.source(Source.builder().tid("sourceTidValue").build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester)
+                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
+        assertThat(capturedBidRequest)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getTid)
+                .isNull();
+        assertThat(capturedBidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .containsOnlyNulls();
+    }
+
+    @Test
+    public void shouldPassTidsIfTransmitTidActivityAllowed() {
+        // given
+        final String bidderName = "bidder";
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder(bidderName, bidder, givenEmptySeatBid());
+
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_TID), any())).willReturn(true);
+
+        final Imp imp = givenImp(Map.of(bidderName, 1), identity());
+        imp.getExt().put("tid", "bidderTidValue");
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(imp),
+                builder -> builder.source(Source.builder().tid("sourceTidValue").build()));
+
+        // when
+        exchangeService.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester)
+                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
+        assertThat(capturedBidRequest)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getTid)
+                .isEqualTo("sourceTidValue");
+        assertThat(capturedBidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .containsExactly(TextNode.valueOf("bidderTidValue"));
+    }
+
+    @Test
     public void shouldReturnFailedFutureWithUnchangedMessageWhenPrivacyEnforcementServiceFails() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
