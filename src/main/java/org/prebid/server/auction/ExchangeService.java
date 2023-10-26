@@ -28,6 +28,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
@@ -75,7 +76,6 @@ import org.prebid.server.hooks.execution.model.HookId;
 import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.hooks.execution.model.StageExecutionOutcome;
-import org.prebid.server.hooks.v1.analytics.Activity;
 import org.prebid.server.hooks.v1.analytics.AppliedTo;
 import org.prebid.server.hooks.v1.analytics.Result;
 import org.prebid.server.hooks.v1.analytics.Tags;
@@ -159,6 +159,7 @@ public class ExchangeService {
 
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
+    private static final String TID_EXT = "tid";
     private static final String ORIGINAL_BID_CPM = "origbidcpm";
     private static final String ORIGINAL_BID_CURRENCY = "origbidcur";
     private static final String ALL_BIDDERS_CONFIG = "*";
@@ -573,7 +574,7 @@ public class ExchangeService {
                 auctionContext.getBidRequest());
 
         return activityInfrastructure.isAllowed(
-                org.prebid.server.activity.Activity.CALL_BIDDER,
+                Activity.CALL_BIDDER,
                 activityCallPayload);
     }
 
@@ -892,6 +893,8 @@ public class ExchangeService {
         final BidRequest bidRequest = context.getBidRequest();
         final String bidder = bidderPrivacyResult.getRequestBidder();
 
+        final boolean transmitTid = transmitTransactionId(bidder, context);
+
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
                 .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
@@ -927,13 +930,31 @@ public class ExchangeService {
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
-                .imp(prepareImps(bidder, imps, bidRequest, useFirstPartyData, context.getAccount()))
+                .imp(prepareImps(bidder, imps, bidRequest, transmitTid, useFirstPartyData, context.getAccount()))
                 .app(preparedApp)
                 .dooh(preparedDooh)
                 .site(preparedSite)
-                .source(prepareSource(bidder, bidRequest))
+                .source(prepareSource(bidder, bidRequest, transmitTid))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build();
+    }
+
+    private static boolean transmitTransactionId(String bidder, AuctionContext context) {
+        final BidRequest bidRequest = context.getBidRequest();
+        final Boolean createTids = Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getCreateTids)
+                .orElse(null);
+
+        if (createTids == null) {
+            final ActivityCallPayload payload = BidRequestActivityCallPayload.of(
+                    ActivityCallPayloadImpl.of(ComponentType.BIDDER, bidder),
+                    bidRequest);
+
+            return context.getActivityInfrastructure().isAllowed(Activity.TRANSMIT_TID, payload);
+        }
+
+        return createTids;
     }
 
     /**
@@ -943,18 +964,20 @@ public class ExchangeService {
     private List<Imp> prepareImps(String bidder,
                                   List<Imp> imps,
                                   BidRequest bidRequest,
+                                  boolean transmitTid,
                                   boolean useFirstPartyData,
                                   Account account) {
 
         return imps.stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
-                .map(imp -> prepareImp(imp, bidder, bidRequest, useFirstPartyData, account))
+                .map(imp -> prepareImp(imp, bidder, bidRequest, transmitTid, useFirstPartyData, account))
                 .toList();
     }
 
     private Imp prepareImp(Imp imp,
                            String bidder,
                            BidRequest bidRequest,
+                           boolean transmitTid,
                            boolean useFirstPartyData,
                            Account account) {
 
@@ -962,7 +985,7 @@ public class ExchangeService {
 
         return imp.toBuilder()
                 .bidfloor(adjustedFloor)
-                .ext(prepareImpExt(bidder, imp.getExt(), adjustedFloor, useFirstPartyData))
+                .ext(prepareImpExt(bidder, imp.getExt(), adjustedFloor, transmitTid, useFirstPartyData))
                 .build();
     }
 
@@ -985,6 +1008,7 @@ public class ExchangeService {
     private ObjectNode prepareImpExt(String bidder,
                                      ObjectNode impExt,
                                      BigDecimal adjustedFloor,
+                                     boolean transmitTid,
                                      boolean useFirstPartyData) {
 
         final ObjectNode modifiedImpExt = impExt.deepCopy();
@@ -994,6 +1018,9 @@ public class ExchangeService {
                 ext -> modifiedImpExt.set(PREBID_EXT, ext),
                 () -> modifiedImpExt.remove(PREBID_EXT));
         modifiedImpExt.set(BIDDER_EXT, bidderParamsFromImpExt(impExt).get(bidder));
+        if (!transmitTid) {
+            modifiedImpExt.remove(TID_EXT);
+        }
 
         return fpdResolver.resolveImpExt(modifiedImpExt, useFirstPartyData);
     }
@@ -1114,17 +1141,20 @@ public class ExchangeService {
     /**
      * Returns {@link Source} with corresponding request.ext.prebid.schains.
      */
-    private Source prepareSource(String bidder, BidRequest bidRequest) {
+    private Source prepareSource(String bidder, BidRequest bidRequest, boolean transmitTid) {
         final Source receivedSource = bidRequest.getSource();
         final SupplyChain bidderSchain = supplyChainResolver.resolveForBidder(bidder, bidRequest);
 
-        if (bidderSchain == null) {
+        if (bidderSchain == null && transmitTid) {
             return receivedSource;
         }
 
         return receivedSource == null
                 ? Source.builder().schain(bidderSchain).build()
-                : receivedSource.toBuilder().schain(bidderSchain).build();
+                : receivedSource.toBuilder()
+                .schain(bidderSchain)
+                .tid(transmitTid ? receivedSource.getTid() : null)
+                .build();
     }
 
     /**
@@ -1903,7 +1933,9 @@ public class ExchangeService {
                 .toList());
     }
 
-    private static ExtModulesTraceAnalyticsActivity toTraceAnalyticsActivity(Activity activity) {
+    private static ExtModulesTraceAnalyticsActivity toTraceAnalyticsActivity(
+            org.prebid.server.hooks.v1.analytics.Activity activity) {
+
         return ExtModulesTraceAnalyticsActivity.of(
                 activity.name(),
                 activity.status(),

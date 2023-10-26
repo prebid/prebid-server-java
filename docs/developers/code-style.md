@@ -269,13 +269,14 @@ Use collection literals where it is possible to define and initialize collection
 ```
 // bad 
 final List<String> foo = new ArrayList();
+foo.add("foo");
 foo.add("bar");
 
 // good 
-final List<String> foo = List.of("bar");
+final List<String> foo = List.of("foo", "bar");
 ```
 
-Also, use special methods of Collections class for one - line empty collection creation. This makes developer intention clear and code less error prone.
+Also, use special methods of Collections class for empty or single-value one-line collection creation. This makes developer intention clear and code less error-prone.
 
 ```
 // bad 
@@ -283,6 +284,12 @@ return List.of();
 
 // good
 return Collections.emptyList();
+
+// bad
+return List.of("foo");
+
+// good
+return Collections.singletonList("foo");
 ```
 
 ### Make variables final
