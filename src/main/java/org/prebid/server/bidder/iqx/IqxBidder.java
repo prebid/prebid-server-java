@@ -32,8 +32,8 @@ import java.util.Objects;
 
 public class IqxBidder implements Bidder<BidRequest> {
 
-    private static final String SOURCE_ID_MACRO = "{{.SourceId}}";
-    private static final String HOST_MACRO = "{{.Host}}";
+    private static final String SOURCE_ID_MACRO = "{{SourceId}}";
+    private static final String HOST_MACRO = "{{Host}}";
     private static final TypeReference<ExtPrebid<?, ExtImpIqx>> IQX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };

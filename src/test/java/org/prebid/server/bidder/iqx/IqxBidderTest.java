@@ -29,7 +29,7 @@ import static org.assertj.core.groups.Tuple.tuple;
 
 public class IqxBidderTest extends VertxTest {
 
-    private final IqxBidder target = new IqxBidder("https://test.dm/{{.SourceId}}/{{.Host}}", jacksonMapper);
+    private final IqxBidder target = new IqxBidder("https://test.dm/{{SourceId}}/{{Host}}", jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
