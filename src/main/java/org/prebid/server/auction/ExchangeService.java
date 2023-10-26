@@ -148,7 +148,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-//todo: 2000 lines of codes checkstyle issue is coming
 /**
  * Executes an OpenRTB v2.5-2.6 Auction.
  */
@@ -166,7 +165,6 @@ public class ExchangeService {
     private static final Integer DEFAULT_MULTIBID_LIMIT_MIN = 1;
     private static final Integer DEFAULT_MULTIBID_LIMIT_MAX = 9;
     private static final String EID_ALLOWED_FOR_ALL_BIDDERS = "*";
-
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private final double logSamplingRate;
@@ -337,7 +335,6 @@ public class ExchangeService {
                                 context.getBidRequest(), context.getDebugContext().isDebugEnabled()))
                         .compose(bidResponse -> bidResponsePostProcessor.postProcess(
                                 context.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
-
                         .map(context::with));
     }
 
@@ -377,8 +374,7 @@ public class ExchangeService {
                         ? ObjectUtils.defaultIfNull(cache.getBids().getReturnCreative(), true)
                         : false;
                 final boolean returnCreativeVideoBid = shouldCacheVideoBids
-                        ? ObjectUtils.defaultIfNull(cache.getVastxml()
-                        .getReturnCreative(), true)
+                        ? ObjectUtils.defaultIfNull(cache.getVastxml().getReturnCreative(), true)
                         : false;
 
                 return BidRequestCacheInfo.builder()
@@ -485,8 +481,7 @@ public class ExchangeService {
                     bidderToImpIds.computeIfAbsent(bidder, bidderName -> new HashSet<>()).add(impId));
         }
 
-        return bidderToImpIds.entrySet().stream()
-                .collect(Collectors.toMap(
+        return bidderToImpIds.entrySet().stream().collect(Collectors.toMap(
                         Map.Entry::getKey,
                         entry -> new BidRejectionTracker(entry.getKey(), entry.getValue(), logSamplingRate)));
     }
@@ -606,7 +601,6 @@ public class ExchangeService {
             Map<String, MultiBidConfig> bidderToMultiBid) {
 
         final BidRequest bidRequest = context.getBidRequest();
-
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final Map<String, ExtBidderConfigOrtb> biddersToConfigs = getBiddersToConfigs(prebid);
@@ -614,8 +608,7 @@ public class ExchangeService {
         final Map<String, User> bidderToUser =
                 prepareUsers(bidders, context, aliases, biddersToConfigs, eidPermissions);
 
-        return privacyEnforcementService
-                .mask(context, bidderToUser, bidders, aliases)
+        return privacyEnforcementService.mask(context, bidderToUser, bidders, aliases)
                 .map(bidderToPrivacyResult ->
                         getAuctionParticipation(bidderToPrivacyResult, bidRequest, impBidderToStoredResponse, imps,
                                 bidderToMultiBid, biddersToConfigs, aliases, context));
@@ -997,37 +990,34 @@ public class ExchangeService {
         final ObjectNode modifiedImpExt = impExt.deepCopy();
 
         final JsonNode impExtPrebid = prepareImpExt(impExt.get(PREBID_EXT), adjustedFloor);
-        if (impExtPrebid == null) {
-            modifiedImpExt.remove(PREBID_EXT);
-        } else {
-            modifiedImpExt.set(PREBID_EXT, impExtPrebid);
-        }
-
+        Optional.ofNullable(impExtPrebid).ifPresentOrElse(
+                ext -> modifiedImpExt.set(PREBID_EXT, ext),
+                () -> modifiedImpExt.remove(PREBID_EXT));
         modifiedImpExt.set(BIDDER_EXT, bidderParamsFromImpExt(impExt).get(bidder));
 
         return fpdResolver.resolveImpExt(modifiedImpExt, useFirstPartyData);
     }
 
     private JsonNode prepareImpExt(JsonNode extImpPrebidNode, BigDecimal adjustedFloor) {
-        if (extImpPrebidNode.size() > 1) {
-            final ExtImpPrebid extImpPrebid = extImpPrebid(extImpPrebidNode);
-            final ExtImpPrebidFloors floors = extImpPrebid.getFloors();
-            final ExtImpPrebidFloors updatedFloors = floors != null
-                    ? ExtImpPrebidFloors.of(floors.getFloorRule(),
-                    floors.getFloorRuleValue(),
-                    adjustedFloor,
-                    floors.getFloorMin(),
-                    floors.getFloorMinCur())
-                    : null;
-
-            return mapper.mapper().valueToTree(
-                    extImpPrebid(extImpPrebidNode).toBuilder()
-                            .floors(updatedFloors)
-                            .bidder(null)
-                            .build());
+        if (extImpPrebidNode.size() <= 1) {
+            return null;
         }
 
-        return null;
+        final ExtImpPrebid extImpPrebid = extImpPrebid(extImpPrebidNode);
+        final ExtImpPrebidFloors floors = extImpPrebid.getFloors();
+        final ExtImpPrebidFloors updatedFloors = floors != null
+                ? ExtImpPrebidFloors.of(floors.getFloorRule(),
+                floors.getFloorRuleValue(),
+                adjustedFloor,
+                floors.getFloorMin(),
+                floors.getFloorMinCur())
+                : null;
+
+        return mapper.mapper().valueToTree(
+                extImpPrebid(extImpPrebidNode).toBuilder()
+                        .floors(updatedFloors)
+                        .bidder(null)
+                        .build());
     }
 
     /**
@@ -1118,7 +1108,6 @@ public class ExchangeService {
 
     private static Content prepareContent(Content content) {
         final Content updatedContent = content.toBuilder().data(null).build();
-
         return updatedContent.isEmpty() ? null : updatedContent;
     }
 
@@ -1127,7 +1116,6 @@ public class ExchangeService {
      */
     private Source prepareSource(String bidder, BidRequest bidRequest) {
         final Source receivedSource = bidRequest.getSource();
-
         final SupplyChain bidderSchain = supplyChainResolver.resolveForBidder(bidder, bidRequest);
 
         if (bidderSchain == null) {
@@ -1181,8 +1169,7 @@ public class ExchangeService {
                 .map(ExtRequestPrebid::toBuilder)
                 .orElse(ExtRequestPrebid.builder());
 
-        return ExtRequest.of(
-                extPrebidBuilder
+        return ExtRequest.of(extPrebidBuilder
                         .multibid(resolveExtRequestMultiBids(bidderToMultiBid.get(bidder), bidder))
                         .bidders(bidders)
                         .bidderparams(prepareBidderParameters(extPrebid, bidder))

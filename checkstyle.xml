@@ -8,9 +8,7 @@
 
     <module name="NewlineAtEndOfFile"/>
     <module name="Translation"/>
-    <module name="FileLength">
-        <property name="max" value="2100"/>
-    </module>
+    <module name="FileLength"/>
     <module name="FileTabCharacter"/>
     <module name="RegexpSingleline">
         <property name="format" value="\s+$"/>
