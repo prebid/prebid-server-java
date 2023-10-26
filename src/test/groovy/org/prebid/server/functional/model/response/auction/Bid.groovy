@@ -65,7 +65,7 @@ class Bid implements ObjectMapperWrapper {
 
     @JsonGetter("adm")
     String getAdm() {
-        encode(adm)
+        adm != null ? encode(adm) : null
     }
 
     @JsonSetter("adm")
