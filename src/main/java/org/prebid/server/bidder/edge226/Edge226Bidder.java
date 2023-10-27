@@ -72,7 +72,7 @@ public class Edge226Bidder implements Bidder<BidRequest> {
     private BidRequest makeRequest(BidRequest request, Imp imp, Edge226ImpExt impExt) {
         final boolean hasPlacement = StringUtils.isNotBlank(impExt.getPlacementId());
         final boolean hasEndpoint = !hasPlacement && StringUtils.isNotBlank(impExt.getEndpointId());
-        final Edge226ImpExt modifiedImpExt = impExt.toBuilder()
+        final Edge226ImpExt modifiedImpExt = Edge226ImpExt.builder()
                 .placementId(hasPlacement ? impExt.getPlacementId() : null)
                 .endpointId(hasEndpoint ? impExt.getEndpointId() : null)
                 .type(hasPlacement ? PUBLISHER_IMP_EXT_TYPE : hasEndpoint ? NETWORK_IMP_EXT_TYPE : null)
