@@ -12,7 +12,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.gamma.model.GammaBid;
@@ -44,12 +43,7 @@ public class GammaBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private GammaBidder gammaBidder;
-
-    @Before
-    public void setUp() {
-        gammaBidder = new GammaBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final GammaBidder target = new GammaBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -63,7 +57,7 @@ public class GammaBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -80,7 +74,7 @@ public class GammaBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2).containsOnly(
@@ -96,7 +90,7 @@ public class GammaBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGamma.of("", "zid", "wid")))));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("PartnerID is empty"));
@@ -110,7 +104,7 @@ public class GammaBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGamma.of("id", "zid", "")))));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("WebID is empty"));
@@ -124,7 +118,7 @@ public class GammaBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGamma.of("id", "", "wid")))));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1).containsOnly(BidderError.badInput("ZoneID is empty"));
@@ -138,7 +132,7 @@ public class GammaBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGamma.of("id", "zid", "wid")))));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).doesNotContainNull()
@@ -179,7 +173,7 @@ public class GammaBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGamma.of("id", "zid", "wid")))));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).doesNotContainNull()
@@ -210,7 +204,7 @@ public class GammaBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGamma.of("id", "zid", "wid")))));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = gammaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1).element(0).returns(null, HttpRequest::getBody);
@@ -222,7 +216,7 @@ public class GammaBidderTest extends VertxTest {
         final BidderCall<Void> httpCall = givenHttpCall(null);
 
         // when
-        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -250,7 +244,7 @@ public class GammaBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -279,7 +273,7 @@ public class GammaBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -303,7 +297,7 @@ public class GammaBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse(
@@ -324,7 +318,7 @@ public class GammaBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).containsOnly(BidderError.badServerResponse(
@@ -347,7 +341,7 @@ public class GammaBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = gammaBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();

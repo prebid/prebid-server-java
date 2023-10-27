@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -36,16 +35,12 @@ public class DianomiBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private DianomiBidder bidder;
-
-    @Before
-    public void setup() {
-        bidder = new DianomiBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final DianomiBidder target = new DianomiBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new DianomiBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new DianomiBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -56,7 +51,7 @@ public class DianomiBidderTest extends VertxTest {
                 givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(request);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(request);
 
         // then
         assertThat(result.getValue()).hasSize(1);
@@ -73,7 +68,7 @@ public class DianomiBidderTest extends VertxTest {
         final BidRequest request = givenBidRequest(givenImp(ExtImpDianomi.builder().smartAdId("mid").build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(request);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(request);
 
         // then
         assertThat(result.getValue())
@@ -93,7 +88,7 @@ public class DianomiBidderTest extends VertxTest {
                 givenImp(ExtImpDianomi.builder().priceType("priceType2").build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(request);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(request);
 
         // then
         assertThat(result.getValue())
@@ -113,7 +108,7 @@ public class DianomiBidderTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().auctiontimestamp(0L).build())));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(request);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(request);
 
         // then
         assertThat(result.getValue())
@@ -131,7 +126,7 @@ public class DianomiBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -148,7 +143,7 @@ public class DianomiBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(BidResponse.builder().build());
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -163,7 +158,7 @@ public class DianomiBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(givenBidResponse(givenBid(bid -> bid.ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue())
@@ -180,7 +175,7 @@ public class DianomiBidderTest extends VertxTest {
         final BidderCall<BidRequest> response = givenHttpCall(givenBidResponse(givenBid(bid -> bid.ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue())
@@ -199,7 +194,7 @@ public class DianomiBidderTest extends VertxTest {
                 givenBid(bid -> bid.ext(bidExt))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(response, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
         assertThat(result.getValue()).hasSize(1);

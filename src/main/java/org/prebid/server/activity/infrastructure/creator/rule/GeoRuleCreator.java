@@ -2,6 +2,7 @@ package org.prebid.server.activity.infrastructure.creator.rule;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.creator.ActivityControllerCreationContext;
 import org.prebid.server.activity.infrastructure.rule.GeoRule;
@@ -13,6 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 
 public class GeoRuleCreator extends AbstractRuleCreator<AccountActivityGeoRuleConfig> {
 
@@ -29,7 +31,7 @@ public class GeoRuleCreator extends AbstractRuleCreator<AccountActivityGeoRuleCo
 
         return new GeoRule(
                 condition != null ? setOf(condition.getComponentTypes()) : null,
-                condition != null ? setOf(condition.getComponentNames()) : null,
+                condition != null ? caseInsensitiveSetOf(condition.getComponentNames()) : null,
                 sidsMatched(condition, creationContext.getGppContext().scope().getSectionsIds()),
                 condition != null ? geoCodes(condition.getGeoCodes()) : null,
                 condition != null ? condition.getGpc() : null,
@@ -40,8 +42,18 @@ public class GeoRuleCreator extends AbstractRuleCreator<AccountActivityGeoRuleCo
         return configValue != null ? configValue : ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
     }
 
-    private static <V> Set<V> setOf(Collection<V> collection) {
+    private static Set<ComponentType> setOf(Collection<ComponentType> collection) {
         return collection != null ? new HashSet<>(collection) : null;
+    }
+
+    private static Set<String> caseInsensitiveSetOf(Collection<String> collection) {
+        if (collection == null) {
+            return null;
+        }
+
+        final Set<String> caseInsensitiveSet = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        caseInsensitiveSet.addAll(collection);
+        return caseInsensitiveSet;
     }
 
     private static boolean sidsMatched(AccountActivityGeoRuleConfig.Condition condition, Set<Integer> gppSids) {

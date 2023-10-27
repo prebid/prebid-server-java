@@ -11,7 +11,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.flipp.model.request.CampaignRequestBody;
@@ -53,12 +52,7 @@ public class FlippBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private FlippBidder flippBidder;
-
-    @Before
-    public void setUp() {
-        flippBidder = new FlippBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final FlippBidder target = new FlippBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -71,7 +65,7 @@ public class FlippBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -85,7 +79,7 @@ public class FlippBidderTest extends VertxTest {
                 impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, "any"))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -103,7 +97,7 @@ public class FlippBidderTest extends VertxTest {
                 bidRequestBuilder -> bidRequestBuilder.device(Device.builder().ip(null).build()), identity());
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -124,7 +118,7 @@ public class FlippBidderTest extends VertxTest {
                         .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -147,7 +141,7 @@ public class FlippBidderTest extends VertxTest {
                         .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -169,7 +163,7 @@ public class FlippBidderTest extends VertxTest {
                         .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -186,7 +180,7 @@ public class FlippBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -203,7 +197,7 @@ public class FlippBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -225,7 +219,7 @@ public class FlippBidderTest extends VertxTest {
                         .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -249,7 +243,7 @@ public class FlippBidderTest extends VertxTest {
                                 .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -279,7 +273,7 @@ public class FlippBidderTest extends VertxTest {
                                 .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -311,7 +305,7 @@ public class FlippBidderTest extends VertxTest {
                                 .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -337,7 +331,7 @@ public class FlippBidderTest extends VertxTest {
                                 .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -367,7 +361,7 @@ public class FlippBidderTest extends VertxTest {
                                 .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -390,7 +384,7 @@ public class FlippBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -409,7 +403,7 @@ public class FlippBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -433,7 +427,7 @@ public class FlippBidderTest extends VertxTest {
                                 .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -457,7 +451,7 @@ public class FlippBidderTest extends VertxTest {
                                 .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -481,7 +475,7 @@ public class FlippBidderTest extends VertxTest {
                                 .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -500,7 +494,7 @@ public class FlippBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -524,7 +518,7 @@ public class FlippBidderTest extends VertxTest {
                                 .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -549,7 +543,7 @@ public class FlippBidderTest extends VertxTest {
                                 .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -574,7 +568,7 @@ public class FlippBidderTest extends VertxTest {
                                 .build()))));
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -597,7 +591,7 @@ public class FlippBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = flippBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -622,7 +616,7 @@ public class FlippBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -644,7 +638,7 @@ public class FlippBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -661,7 +655,7 @@ public class FlippBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -680,7 +674,7 @@ public class FlippBidderTest extends VertxTest {
                         inlineBuilder.creativeId(creativeId))));
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -702,7 +696,7 @@ public class FlippBidderTest extends VertxTest {
                         inlineBuilder.prebid(Prebid.of(price, "any", "any", "123")))));
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -725,7 +719,7 @@ public class FlippBidderTest extends VertxTest {
                                 .prebid(Prebid.of(BigDecimal.ONE, creative, "crType", "123")))));
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -746,7 +740,7 @@ public class FlippBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenCampaignResponseBody(inlineBuilder -> inlineBuilder.adId(adId))));
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -766,7 +760,7 @@ public class FlippBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenCampaignResponseBody(identity())));
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -789,7 +783,7 @@ public class FlippBidderTest extends VertxTest {
                                 Data.of(null, 0, width), "type"))))));
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -812,7 +806,7 @@ public class FlippBidderTest extends VertxTest {
                                 Content.of("any", "custom", null, "type"))))));
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -834,7 +828,7 @@ public class FlippBidderTest extends VertxTest {
                                 Content.of("any", "custom", null, "type"))))));
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -855,7 +849,7 @@ public class FlippBidderTest extends VertxTest {
                         inlineBuilder.contents(null))));
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -875,7 +869,7 @@ public class FlippBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenCampaignResponseBody(identity())));
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -894,7 +888,7 @@ public class FlippBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenCampaignResponseBody(identity())));
 
         // when
-        final Result<List<BidderBid>> result = flippBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();

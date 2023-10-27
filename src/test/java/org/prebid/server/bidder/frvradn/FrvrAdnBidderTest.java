@@ -50,11 +50,11 @@ public class FrvrAdnBidderTest extends VertxTest {
     @Mock
     private CurrencyConversionService currencyConversionService;
 
-    private FrvrAdnBidder frvrAdnBidder;
+    private FrvrAdnBidder target;
 
     @Before
     public void setUp() {
-        frvrAdnBidder = new FrvrAdnBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
+        target = new FrvrAdnBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
     }
 
     @Test
@@ -69,7 +69,7 @@ public class FrvrAdnBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = frvrAdnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -88,7 +88,7 @@ public class FrvrAdnBidderTest extends VertxTest {
                 impBuilder -> impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = frvrAdnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -107,7 +107,7 @@ public class FrvrAdnBidderTest extends VertxTest {
                 impBuilder -> impBuilder.id("456"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = frvrAdnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -123,7 +123,7 @@ public class FrvrAdnBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = frvrAdnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -140,7 +140,7 @@ public class FrvrAdnBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = frvrAdnBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -157,7 +157,7 @@ public class FrvrAdnBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = frvrAdnBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -171,7 +171,7 @@ public class FrvrAdnBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = frvrAdnBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -187,7 +187,7 @@ public class FrvrAdnBidderTest extends VertxTest {
                         bidBuilder -> bidBuilder.impid("123").ext(givenBidExt("video")))));
 
         // when
-        final Result<List<BidderBid>> result = frvrAdnBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -204,7 +204,7 @@ public class FrvrAdnBidderTest extends VertxTest {
                         bidBuilder -> bidBuilder.impid("123").ext(givenBidExt("invalid")))));
 
         // when
-        final Result<List<BidderBid>> result = frvrAdnBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();

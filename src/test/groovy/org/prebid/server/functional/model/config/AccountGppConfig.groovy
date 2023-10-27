@@ -8,7 +8,6 @@ import org.prebid.server.functional.model.request.auction.PrivacyModule
 class AccountGppConfig {
 
     PrivacyModule code
-    SidsConfig config
     Boolean enabled
-    ModuleConfig moduleConfig
+    ModuleConfig config
 }

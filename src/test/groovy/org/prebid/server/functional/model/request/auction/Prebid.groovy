@@ -20,6 +20,7 @@ class Prebid {
     TraceLevel trace
     PrebidStoredRequest storedRequest
     PrebidCache cache
+    ExtRequestPrebidData data
     List<ExtPrebidBidderConfig> bidderConfig
     List<PrebidSchain> schains
     Amp amp

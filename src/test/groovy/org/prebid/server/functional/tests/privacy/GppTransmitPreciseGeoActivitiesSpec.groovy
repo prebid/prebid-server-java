@@ -1,7 +1,11 @@
 package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.config.AccountGppConfig
-import org.prebid.server.functional.model.config.SidsConfig
+import org.prebid.server.functional.model.config.ActivityConfig
+import org.prebid.server.functional.model.config.EqualityValueRule
+import org.prebid.server.functional.model.config.InequalityValueRule
+import org.prebid.server.functional.model.config.LogicalRestrictedRule
+import org.prebid.server.functional.model.config.ModuleConfig
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
@@ -17,12 +21,37 @@ import org.prebid.server.functional.util.privacy.gpp.UspCtV1Consent
 import org.prebid.server.functional.util.privacy.gpp.UspNatV1Consent
 import org.prebid.server.functional.util.privacy.gpp.UspUtV1Consent
 import org.prebid.server.functional.util.privacy.gpp.UspVaV1Consent
+import org.prebid.server.functional.util.privacy.gpp.data.UsCaliforniaSensitiveData
 import org.prebid.server.functional.util.privacy.gpp.data.UsNationalSensitiveData
+import org.prebid.server.functional.util.privacy.gpp.data.UsUtahSensitiveData
 
 import java.time.Instant
 
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.config.DataActivity.CONSENT
+import static org.prebid.server.functional.model.config.DataActivity.NOTICE_NOT_PROVIDED
+import static org.prebid.server.functional.model.config.DataActivity.NOTICE_PROVIDED
+import static org.prebid.server.functional.model.config.DataActivity.NOT_APPLICABLE
+import static org.prebid.server.functional.model.config.DataActivity.NO_CONSENT
+import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.AND
+import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.OR
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_BELOW_13
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_FROM_13_TO_16
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.GPC
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_ACCOUNT_INFO
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_BIOMETRIC_ID
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_CITIZENSHIP_STATUS
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_COMMUNICATION_CONTENTS
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_GENETIC_ID
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_GEOLOCATION
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_HEALTH_INFO
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_ID_NUMBERS
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_ORIENTATION
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_RELIGIOUS_BELIEFS
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CA_V1
@@ -927,7 +956,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         where:
         accountGppConfig << [
                 new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
-                new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: [USP_NAT_V1]), enabled: true)
+                new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: true)
         ]
     }
 
@@ -992,8 +1021,8 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: [USP_NAT_V1]), enabled: false)
-        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: []), enabled: true)
+        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: false)
+        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: []), enabled: true)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
@@ -1047,6 +1076,278 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def error = thrown(PrebidServerException)
         assert error.statusCode == UNAUTHORIZED.code()
         assert error.responseBody == "Unauthorized account id: ${accountId}"
+    }
+
+    def "PBS auction call when privacy regulation don't match custom requirement should not round lat/lon data"() {
+        given: "Default basic generic BidRequest"
+        def gppConsent = new UspNatV1Consent.Builder().setGpc(gpcValue).build()
+        def accountId = PBSUtils.randomNumber as String
+        def genericBidRequest = bidRequestWithGeo.tap {
+            regs.gppSid = [USP_NAT_V1.intValue]
+            regs.gpp = gppConsent
+            setAccountId(accountId)
+        }
+
+        and: "Activities set for transmit precise geo with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration with sid skip"
+        def accountGppConfig = new AccountGppConfig().tap {
+            it.code = IAB_US_CUSTOM_LOGIC
+            it.enabled = true
+            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], accountLogic))
+        }
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(genericBidRequest)
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(genericBidRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == genericBidRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == genericBidRequest.device.geo.lat
+            bidderRequests.device.geo.lon == genericBidRequest.device.geo.lon
+            bidderRequests.user.geo.lat == genericBidRequest.user.geo.lat
+            bidderRequests.user.geo.lon == genericBidRequest.user.geo.lon
+        }
+
+        where:
+        gpcValue | accountLogic
+        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                            new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
+    }
+
+    def "PBS auction call when privacy regulation match custom requirement should round lat/lon data to 2 digits"() {
+        given: "Default basic generic BidRequest"
+        def accountId = PBSUtils.randomNumber as String
+        def generalBidRequest = bidRequestWithGeo.tap {
+            regs.gppSid = [USP_NAT_V1.intValue]
+            regs.gpp = gppConsent
+            setAccountId(accountId)
+        }
+
+        and: "Activities set for transmit precise geo with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration with sid skip"
+        def accountLogic = LogicalRestrictedRule.generateSingleRestrictedRule(OR, valueRules)
+        def accountGppConfig = new AccountGppConfig().tap {
+            it.code = IAB_US_CUSTOM_LOGIC
+            it.enabled = true
+            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], accountLogic))
+        }
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(generalBidRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(generalBidRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            generalBidRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            generalBidRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            generalBidRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            generalBidRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+        }
+
+        where:
+        gppConsent                                                | valueRules
+        new UspNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(false).build()       | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                     new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UspNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                     new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+    }
+
+    def "PBS auction call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
+        given: "Generic BidRequest with gpp and account setup"
+        def gppConsent = new UspNatV1Consent.Builder().setGpc(true).build()
+        def accountId = PBSUtils.randomNumber as String
+        def generalBidRequest = bidRequestWithGeo.tap {
+            ext.prebid.trace = VERBOSE
+            regs.gppSid = [USP_CT_V1.intValue]
+            regs.gpp = gppConsent
+            setAccountId(accountId)
+        }
+
+        and: "Activities set with privacy regulation"
+        def ruleUsGeneric = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
+        }
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
+
+        and: "Account gpp configuration with empty Custom logic"
+        def restrictedRule = LogicalRestrictedRule.rootLogicalRestricted
+
+        and: "Account gpp configuration with sid skip"
+        def accountGppConfig = new AccountGppConfig().tap {
+            it.code = IAB_US_CUSTOM_LOGIC
+            it.enabled = true
+            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], restrictedRule), [USP_CT_V1], false)
+        }
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Existed account with gpp regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(generalBidRequest)
+
+        then: "Response should contain error"
+        def error = thrown(PrebidServerException)
+        assert error.statusCode == BAD_REQUEST.code()
+        assert error.responseBody == "JsonLogic exception: objects must have exactly 1 key defined, found 0"
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
+    }
+
+    def "PBS auction call when custom privacy regulation with normalizing should change request consent and call to bidder"() {
+        given: "Generic BidRequest with gpp and account setup"
+        def accountId = PBSUtils.randomNumber as String
+        def generalBidRequest = bidRequestWithGeo.tap {
+            ext.prebid.trace = VERBOSE
+            regs.gppSid = [gppSid.intValue]
+            regs.gpp = gppStateConsent.build()
+            setAccountId(accountId)
+        }
+
+        and: "Activities set with privacy regulation"
+        def ruleUsGeneric = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
+        }
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
+
+        and: "Activity config"
+        def activityConfig = new ActivityConfig([TRANSMIT_PRECISE_GEO], LogicalRestrictedRule.generateSingleRestrictedRule(AND, equalityValueRules))
+
+        and: "Account gpp configuration with enabled normalizeFlag"
+        def accountGppConfig = new AccountGppConfig().tap {
+            it.code = IAB_US_CUSTOM_LOGIC
+            it.enabled = true
+            it.config = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
+        }
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Existed account with gpp regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(generalBidRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(generalBidRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            generalBidRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            generalBidRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            generalBidRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            generalBidRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+        }
+
+        where:
+        gppSid    | equalityValueRules                                                      | gppStateConsent
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(idNumbers: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(accountInfo: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geolocation: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(racialEthnicOrigin: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(communicationContents: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geneticId: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(biometricId: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(healthInfo: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(orientation: 2))
+        USP_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(0, 0)
+        USP_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2), PBSUtils.getRandomNumber(1, 2))
+
+        USP_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspVaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspVaV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCoV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCoV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(racialEthnicOrigin: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]      | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(religiousBeliefs: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(orientation: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]     | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(citizenshipStatus: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(healthInfo: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geneticId: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(biometricId: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geolocation: 2))
+        USP_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspUtV1Consent.Builder().setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspUtV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 0, 0)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | new UspCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2, 2)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCtV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), PBSUtils.getRandomNumber(0, 2), 1)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCtV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 1, PBSUtils.getRandomNumber(0, 2))
     }
 
     def "PBS amp call with bidder allowed in activities should not round lat/lon data and update processed metrics"() {
@@ -1647,7 +1948,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         where:
         accountGppConfig << [
                 new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
-                new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: [USP_NAT_V1]), enabled: true)
+                new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: true)
         ]
     }
 
@@ -1723,8 +2024,8 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: [USP_NAT_V1]), enabled: false)
-        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new SidsConfig(skipSids: []), enabled: true)
+        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: false)
+        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: []), enabled: true)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
@@ -1791,5 +2092,314 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def error = thrown(PrebidServerException)
         assert error.statusCode == UNAUTHORIZED.code()
         assert error.responseBody == "Unauthorized account id: ${accountId}"
+    }
+
+    def "PBS amp call when privacy regulation don't match custom requirement should not round lat/lon data in request"() {
+        given: "Store bid request with gpp string and link for account"
+        def accountId = PBSUtils.randomNumber as String
+        def gppConsent = new UspNatV1Consent.Builder().setGpc(gpcValue).build()
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account and gppSid"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_NAT_V1.value
+            it.consentString = gppConsent
+            it.consentType = GPP
+        }
+
+        and: "Activities set for transmit precise geo with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration with sid skip"
+        def accountGppConfig = new AccountGppConfig().tap {
+            it.code = IAB_US_CUSTOM_LOGIC
+            it.enabled = true
+            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], accountLogic))
+        }
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain not rounded geo data for device and user"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == ampStoredRequest.device.ip
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequests.device.geo.lat == ampStoredRequest.device.geo.lat
+            bidderRequests.device.geo.lon == ampStoredRequest.device.geo.lon
+            bidderRequests.user.geo.lat == ampStoredRequest.user.geo.lat
+            bidderRequests.user.geo.lon == ampStoredRequest.user.geo.lon
+        }
+
+        where:
+        gpcValue | accountLogic
+        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
+        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                            new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
+    }
+
+    def "PBS amp call when privacy regulation match custom requirement should round lat/lon data to 2 digits"() {
+        given: "Store bid request with gpp string and link for account"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account and gppSid"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_NAT_V1.value
+            it.consentString = gppConsent
+            it.consentType = GPP
+        }
+
+        and: "Activities set for transmit precise geo with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration with sid skip"
+        def accountLogic = LogicalRestrictedRule.generateSingleRestrictedRule(OR, valueRules)
+        def accountGppConfig = new AccountGppConfig().tap {
+            it.code = IAB_US_CUSTOM_LOGIC
+            it.enabled = true
+            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], accountLogic))
+        }
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+        }
+
+        where:
+        gppConsent                                                | valueRules
+        new UspNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(false).build()       | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
+        new UspNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                     new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UspNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                     new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+    }
+
+    def "PBS amp call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
+        given: "Store bid request with gpp string and link for account"
+        def accountId = PBSUtils.randomNumber as String
+        def gppConsent = new UspNatV1Consent.Builder().setGpc(true).build()
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account and gppSid"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = USP_NAT_V1.intValue
+            it.consentString = gppConsent
+            it.consentType = GPP
+        }
+
+        and: "Activities set with privacy regulation"
+        def ruleUsGeneric = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
+        }
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
+
+        and: "Account gpp configuration with empty Custom logic"
+        def restrictedRule = LogicalRestrictedRule.rootLogicalRestricted
+        def accountGppConfig = new AccountGppConfig().tap {
+            it.code = IAB_US_CUSTOM_LOGIC
+            it.enabled = true
+            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], restrictedRule), [USP_NAT_V1], false)
+        }
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Existed account with gpp regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp requests"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain error"
+        def error = thrown(PrebidServerException)
+        assert error.statusCode == BAD_REQUEST.code()
+        assert error.responseBody == "Invalid account configuration: JsonLogic exception: " +
+                "objects must have exactly 1 key defined, found 0"
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = activityPbsService.sendCollectedMetricsRequest()
+        assert metrics[ALERT_GENERAL] == 1
+    }
+
+    def "PBS amp call when custom privacy regulation with normalizing should change request consent and call to bidder"() {
+        given: "Store bid request with link for account"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = bidRequestWithGeo.tap {
+            setAccountId(accountId)
+        }
+
+        and: "amp request with link to account and gpp"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = gppSid.intValue
+            it.consentString = gppStateConsent.build()
+            it.consentType = GPP
+        }
+
+        and: "Activities set with privacy regulation"
+        def ruleUsGeneric = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_CUSTOM_LOGIC]
+        }
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ruleUsGeneric]))
+
+        and: "Activity config"
+        def activityConfig = new ActivityConfig([TRANSMIT_PRECISE_GEO], LogicalRestrictedRule.generateSingleRestrictedRule(AND, equalityValueRules))
+
+        and: "Account gpp configuration with enabled normalizeFlag"
+        def accountGppConfig = new AccountGppConfig().tap {
+            it.code = IAB_US_CUSTOM_LOGIC
+            it.enabled = true
+            it.config = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
+        }
+
+        and: "Flush metrics"
+        flushMetrics(activityPbsService)
+
+        and: "Existed account with gpp regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp requests"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain rounded geo data for device and user to 2 digits"
+        def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
+
+        verifyAll {
+            bidderRequests.device.ip == "43.77.114.0"
+            bidderRequests.device.ipv6 == "af47:892b:3e98:b400::"
+            ampStoredRequest.device.geo.lat.round(2) == bidderRequests.device.geo.lat
+            ampStoredRequest.device.geo.lon.round(2) == bidderRequests.device.geo.lon
+            ampStoredRequest.user.geo.lat.round(2) == bidderRequests.user.geo.lat
+            ampStoredRequest.user.geo.lon.round(2) == bidderRequests.user.geo.lon
+        }
+
+        where:
+        gppSid    | equalityValueRules                                                      | gppStateConsent
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ID_NUMBERS, CONSENT)]             | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(idNumbers: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ACCOUNT_INFO, CONSENT)]           | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(accountInfo: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geolocation: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(racialEthnicOrigin: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_COMMUNICATION_CONTENTS, CONSENT)] | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(communicationContents: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(geneticId: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(biometricId: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(healthInfo: 2))
+        USP_CA_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UspCaV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsCaliforniaSensitiveData(orientation: 2))
+        USP_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(0, 0)
+        USP_CA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2), PBSUtils.getRandomNumber(1, 2))
+
+        USP_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspVaV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_VA_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspVaV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCoV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_CO_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCoV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN, CONSENT)]   | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(racialEthnicOrigin: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_RELIGIOUS_BELIEFS, CONSENT)]      | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(religiousBeliefs: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_ORIENTATION, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(orientation: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_CITIZENSHIP_STATUS, CONSENT)]     | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(citizenshipStatus: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_HEALTH_INFO, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(healthInfo: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GENETIC_ID, CONSENT)]             | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geneticId: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_BIOMETRIC_ID, CONSENT)]           | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(biometricId: 2))
+        USP_UT_V1 | [new EqualityValueRule(SENSITIVE_DATA_GEOLOCATION, CONSENT)]            | new UspUtV1Consent.Builder()
+                                                                                              .setSensitiveDataProcessing(new UsUtahSensitiveData(geolocation: 2))
+        USP_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspUtV1Consent.Builder().setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(1, 2))
+        USP_UT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspUtV1Consent.Builder().setKnownChildSensitiveDataConsents(0)
+
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NOT_APPLICABLE),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NOT_APPLICABLE)]   | new UspCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 0, 0)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, CONSENT)]          | new UspCtV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2, 2)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCtV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), PBSUtils.getRandomNumber(0, 2), 1)
+        USP_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
+                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UspCtV1Consent.Builder()
+                                                                                              .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 1, PBSUtils.getRandomNumber(0, 2))
     }
 }

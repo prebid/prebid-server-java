@@ -38,6 +38,7 @@ class Imp {
     Integer ssai
     Integer exp
     Qty qty
+    Double dt
     Refresh refresh
     ImpExt ext
 

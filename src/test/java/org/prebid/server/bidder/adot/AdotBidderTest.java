@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adot.model.AdotBidExt;
@@ -40,12 +39,7 @@ public class AdotBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint{PUBLISHER_PATH}.com";
 
-    private AdotBidder adotBidder;
-
-    @Before
-    public void setUp() {
-        adotBidder = new AdotBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdotBidder target = new AdotBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -58,7 +52,7 @@ public class AdotBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adotBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -78,7 +72,7 @@ public class AdotBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adotBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -93,7 +87,7 @@ public class AdotBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(givenImpExtAdot(null)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adotBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -108,7 +102,7 @@ public class AdotBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adotBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -124,7 +118,7 @@ public class AdotBidderTest extends VertxTest {
                 .ext(mapper.createObjectNode().put("placementId", 12)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adotBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -139,7 +133,7 @@ public class AdotBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = adotBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -154,7 +148,7 @@ public class AdotBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = adotBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -168,7 +162,7 @@ public class AdotBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = adotBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -182,7 +176,7 @@ public class AdotBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse("invalid")));
 
         // when
-        final Result<List<BidderBid>> result = adotBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -196,7 +190,7 @@ public class AdotBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse("video")));
 
         // when
-        final Result<List<BidderBid>> result = adotBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -211,7 +205,7 @@ public class AdotBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse("banner")));
 
         // when
-        final Result<List<BidderBid>> result = adotBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -226,7 +220,7 @@ public class AdotBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse("native")));
 
         // when
-        final Result<List<BidderBid>> result = adotBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -245,7 +239,7 @@ public class AdotBidderTest extends VertxTest {
                                 .price(BigDecimal.TEN))));
 
         // when
-        final Result<List<BidderBid>> result = adotBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

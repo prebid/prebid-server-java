@@ -1,6 +1,9 @@
 package org.prebid.server.bidder;
 
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
+
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -19,8 +22,9 @@ public class BidderCatalog {
     private static final String ERROR_MESSAGE_TEMPLATE_FOR_DEPRECATED =
             "%s has been deprecated and is no longer available. Use %s instead.";
 
-    private final Map<String, BidderInstanceDeps> bidderDepsMap = new HashMap<>();
-    private final Map<String, String> deprecatedNameToError = new HashMap<>();
+    private final Set<String> biddersNames = new HashSet<>();
+    private final Map<String, BidderInstanceDeps> bidderDepsMap = new CaseInsensitiveMap<>();
+    private final Map<String, String> deprecatedNameToError = new CaseInsensitiveMap<>();
     private final Map<Integer, String> vendorIdToBidderName = new HashMap<>();
 
     public BidderCatalog(List<BidderDeps> bidderDeps) {
@@ -35,6 +39,7 @@ public class BidderCatalog {
 
         validateBidderName(bidderName);
 
+        biddersNames.add(bidderName);
         bidderDepsMap.put(bidderName, deps);
         deprecatedNameToError.putAll(createErrorsForDeprecatedNames(deps));
         processVendorId(deps, bidderName);
@@ -54,62 +59,78 @@ public class BidderCatalog {
     }
 
     private void processVendorId(BidderInstanceDeps coreDeps, String bidderName) {
-        final BidderInfo bidderInfo = coreDeps.getBidderInfo();
-        final BidderInfo.GdprInfo gdprInfo = bidderInfo != null ? bidderInfo.getGdpr() : null;
-        final Integer vendorId = gdprInfo != null ? gdprInfo.getVendorId() : null;
-
-        if (vendorId != null && vendorId != 0) {
-            vendorIdToBidderName.put(vendorId, bidderName);
-        }
+        Optional.ofNullable(coreDeps.getBidderInfo())
+                .map(BidderInfo::getGdpr)
+                .map(BidderInfo.GdprInfo::getVendorId)
+                .filter(vendorId -> vendorId != 0)
+                .ifPresent(vendorId -> vendorIdToBidderName.put(vendorId, bidderName));
     }
 
     /**
      * Returns a list of registered bidder names.
      */
     public Set<String> names() {
-        return new HashSet<>(bidderDepsMap.keySet());
+        return Collections.unmodifiableSet(biddersNames);
     }
 
     /**
      * Tells if given name corresponds to any of the registered bidders.
      */
     public boolean isValidName(String name) {
-        return bidderDepsMap.containsKey(name);
+        return Optional.ofNullable(name)
+                .map(bidderDepsMap::containsKey)
+                .orElse(false);
     }
 
     /**
      * Tells if given bidder allows to modify video's Vast XML.
      */
     public boolean isModifyingVastXmlAllowed(String name) {
-        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getBidderInfo().isModifyingVastXmlAllowed();
+        return Optional.ofNullable(name)
+                .map(bidderDepsMap::get)
+                .map(BidderInstanceDeps::getBidderInfo)
+                .map(BidderInfo::isModifyingVastXmlAllowed)
+                .orElse(false);
     }
 
     /**
      * Tells if given name corresponds to any of the registered deprecated bidder's name.
      */
     public boolean isDeprecatedName(String name) {
-        return deprecatedNameToError.containsKey(name);
+        return Optional.ofNullable(name)
+                .map(deprecatedNameToError::containsKey)
+                .orElse(false);
     }
 
     /**
      * Returns associated error for given bidder's name.
      */
     public String errorForDeprecatedName(String name) {
-        return deprecatedNameToError.get(name);
+        return Optional.ofNullable(name)
+                .map(deprecatedNameToError::get)
+                .orElse(null);
     }
 
     /**
      * Tells if given bidder is enabled and ready for auction.
      */
     public boolean isActive(String name) {
-        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getBidderInfo().isEnabled();
+        return Optional.ofNullable(name)
+                .map(bidderDepsMap::get)
+                .map(BidderInstanceDeps::getBidderInfo)
+                .map(BidderInfo::isEnabled)
+                .orElse(false);
     }
 
     /**
      * Tells if given bidder allows debug.
      */
     public boolean isDebugAllowed(String name) {
-        return bidderDepsMap.containsKey(name) && bidderDepsMap.get(name).getBidderInfo().isDebugAllowed();
+        return Optional.ofNullable(name)
+                .map(bidderDepsMap::get)
+                .map(BidderInstanceDeps::getBidderInfo)
+                .map(BidderInfo::isDebugAllowed)
+                .orElse(false);
     }
 
     /**
@@ -119,8 +140,10 @@ public class BidderCatalog {
      * through calling {@link #isValidName(String)}.
      */
     public BidderInfo bidderInfoByName(String name) {
-        final BidderInstanceDeps bidderDeps = bidderDepsMap.get(name);
-        return bidderDeps != null ? bidderDeps.getBidderInfo() : null;
+        return Optional.ofNullable(name)
+                .map(bidderDepsMap::get)
+                .map(BidderInstanceDeps::getBidderInfo)
+                .orElse(null);
     }
 
     /**
@@ -130,10 +153,12 @@ public class BidderCatalog {
      * through calling {@link #isValidName(String)}.
      */
     public Integer vendorIdByName(String name) {
-        final BidderInstanceDeps bidderDeps = bidderDepsMap.get(name);
-        final BidderInfo bidderInfo = bidderDeps != null ? bidderDeps.getBidderInfo() : null;
-        final BidderInfo.GdprInfo gdprInfo = bidderInfo != null ? bidderInfo.getGdpr() : null;
-        return gdprInfo != null ? gdprInfo.getVendorId() : null;
+        return Optional.ofNullable(name)
+                .map(bidderDepsMap::get)
+                .map(BidderInstanceDeps::getBidderInfo)
+                .map(BidderInfo::getGdpr)
+                .map(BidderInfo.GdprInfo::getVendorId)
+                .orElse(null);
     }
 
     /**
@@ -189,7 +214,9 @@ public class BidderCatalog {
      * through calling {@link #isValidName(String)}.
      */
     public Bidder<?> bidderByName(String name) {
-        final BidderInstanceDeps bidderDeps = bidderDepsMap.get(name);
-        return bidderDeps != null ? bidderDeps.getBidder() : null;
+        return Optional.ofNullable(name)
+                .map(bidderDepsMap::get)
+                .map(BidderInstanceDeps::getBidder)
+                .orElse(null);
     }
 }

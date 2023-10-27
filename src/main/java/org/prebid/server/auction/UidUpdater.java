@@ -10,6 +10,7 @@ import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -52,7 +53,10 @@ public class UidUpdater {
                 .map(User::getExt)
                 .map(ExtUser::getPrebid)
                 .map(ExtUserPrebid::getBuyeruids)
-                .map(uids -> uids.get(bidder))
+                .flatMap(uids -> uids.entrySet().stream()
+                        .filter(entry -> StringUtils.equalsIgnoreCase(entry.getKey(), bidder))
+                        .findFirst())
+                .map(Map.Entry::getValue)
                 .orElse(null);
     }
 

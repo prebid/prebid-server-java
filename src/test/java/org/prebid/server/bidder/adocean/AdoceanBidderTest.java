@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adocean.model.AdoceanResponseAdUnit;
@@ -45,12 +44,7 @@ public class AdoceanBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://{{Host}}";
 
-    private AdoceanBidder target;
-
-    @Before
-    public void setUp() {
-        target = new AdoceanBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdoceanBidder target = new AdoceanBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {

@@ -11,7 +11,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.api.Assertions;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.invibes.model.InvibesBidParams;
@@ -61,12 +60,7 @@ public class InvibesBidderTest extends VertxTest {
     private static final String CURRENCY = "EUR";
     private static final String BID_VERSION = "4";
 
-    private InvibesBidder invibesBidder;
-
-    @Before
-    public void setUp() {
-        invibesBidder = new InvibesBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final InvibesBidder target = new InvibesBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -83,7 +77,7 @@ public class InvibesBidderTest extends VertxTest {
                 ExtImpInvibes.of("12", 1003, InvibesDebug.of("test", true)));
 
         // when
-        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -100,7 +94,7 @@ public class InvibesBidderTest extends VertxTest {
                 ExtImpInvibes.of("12", 0, InvibesDebug.of("test", true)));
 
         // when
-        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -117,7 +111,7 @@ public class InvibesBidderTest extends VertxTest {
                 ExtImpInvibes.of("12", 1, InvibesDebug.of("test", true)));
 
         // when
-        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -134,7 +128,7 @@ public class InvibesBidderTest extends VertxTest {
                 ExtImpInvibes.of("12", 1001, InvibesDebug.of("test", true)));
 
         // when
-        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -151,7 +145,7 @@ public class InvibesBidderTest extends VertxTest {
                 ExtImpInvibes.of("12", 999, InvibesDebug.of("test", true)));
 
         // when
-        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -170,7 +164,7 @@ public class InvibesBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -187,7 +181,7 @@ public class InvibesBidderTest extends VertxTest {
 
         // when
         final Result<List<HttpRequest<InvibesBidRequest>>> result =
-                invibesBidder.makeHttpRequests(bidRequest);
+                target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -203,7 +197,7 @@ public class InvibesBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()));
 
         // when
-        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -227,7 +221,7 @@ public class InvibesBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -264,7 +258,7 @@ public class InvibesBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()));
 
         // when
-        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Map<String, InvibesPlacementProperty> properties = new HashMap<>();
@@ -312,7 +306,7 @@ public class InvibesBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(Banner.builder().h(BANNER_H).w(BANNER_W).build()));
 
         // when
-        final Result<List<HttpRequest<InvibesBidRequest>>> result = invibesBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<InvibesBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Map<String, InvibesPlacementProperty> properties = new HashMap<>();
@@ -352,7 +346,7 @@ public class InvibesBidderTest extends VertxTest {
         final BidderCall<InvibesBidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = invibesBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -367,7 +361,7 @@ public class InvibesBidderTest extends VertxTest {
         final BidderCall<InvibesBidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = invibesBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -382,7 +376,7 @@ public class InvibesBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid(IMP_ID))));
 
         // when
-        final Result<List<BidderBid>> result = invibesBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -398,7 +392,7 @@ public class InvibesBidderTest extends VertxTest {
                 mapper.writeValueAsString(InvibesBidderResponse.builder().error("someError").build()));
 
         // when
-        final Result<List<BidderBid>> result = invibesBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)

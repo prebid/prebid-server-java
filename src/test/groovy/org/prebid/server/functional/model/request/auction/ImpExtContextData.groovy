@@ -13,5 +13,6 @@ class ImpExtContextData {
     Integer buyerId
     List<Integer> buyerIds
     String pbAdSlot
+    String adSlot
     ImpExtContextDataAdServer adServer
 }

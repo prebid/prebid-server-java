@@ -23,7 +23,7 @@ public class CookieSyncMetrics extends UpdatableMetrics {
     }
 
     CookieSyncMetrics.BidderCookieSyncMetrics forBidder(String bidder) {
-        return bidderCookieSyncMetrics.computeIfAbsent(bidder, bidderCookieSyncMetricsCreator);
+        return bidderCookieSyncMetrics.computeIfAbsent(bidder.toLowerCase(), bidderCookieSyncMetricsCreator);
     }
 
     static class BidderCookieSyncMetrics extends UpdatableMetrics {

@@ -1,16 +1,17 @@
 package org.prebid.server.bidder.undertone;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.undertone.proto.UndertoneImpExt;
 import org.prebid.server.bidder.undertone.proto.UndertoneRequestExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -27,12 +28,7 @@ public class UndertoneBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://test.undertone.com";
 
-    private UndertoneBidder undertoneBidder;
-
-    @Before
-    public void setUp() {
-        undertoneBidder = new UndertoneBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final UndertoneBidder target = new UndertoneBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -41,9 +37,8 @@ public class UndertoneBidderTest extends VertxTest {
 
     @Test
     public void errorOnNoAppSite() {
-        final BidRequest bidRequest = BidRequest.builder()
-                .build();
-        final Result<List<HttpRequest<BidRequest>>> result = undertoneBidder.makeHttpRequests(bidRequest);
+        final BidRequest bidRequest = BidRequest.builder().build();
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         assertThat(result.getErrors()).hasSize(1);
         final BidderError bidderError = result.getErrors().get(0);
@@ -66,7 +61,7 @@ public class UndertoneBidderTest extends VertxTest {
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUndertone.of(null, 12345)))));
 
-        final Result<List<HttpRequest<BidRequest>>> result = undertoneBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
         assertThat(result.getErrors()).hasSize(1);
         final BidderError bidderError = result.getErrors().get(0);
 
@@ -88,7 +83,7 @@ public class UndertoneBidderTest extends VertxTest {
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUndertone.of(1234, null)))));
 
-        final Result<List<HttpRequest<BidRequest>>> result = undertoneBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         assertThat(result.getErrors()).hasSize(1);
         final BidderError bidderError = result.getErrors().get(0);
@@ -103,6 +98,11 @@ public class UndertoneBidderTest extends VertxTest {
                 .id("site-id")
                 .build();
 
+        final ObjectNode impExt = mapper.valueToTree(
+                ExtPrebid.of(null, ExtImpUndertone.of(1234, 12345)));
+
+        impExt.put("gpid", "gpid-value");
+
         final Imp.ImpBuilder givenImpBuilder = Imp.builder()
                 .id("imp-id")
                 .banner(Banner.builder()
@@ -110,15 +110,14 @@ public class UndertoneBidderTest extends VertxTest {
                         .w(300)
                         .h(600)
                         .build())
-                .ext(mapper.valueToTree(
-                        ExtPrebid.of(null, ExtImpUndertone.of(1234, 12345))));
+                .ext(impExt);
 
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
                         .id("req-id")
                         .site(givenSite),
                 impBuilder -> givenImpBuilder);
 
-        final Result<List<HttpRequest<BidRequest>>> result = undertoneBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
         assertThat(result.getErrors()).isEmpty();
 
         final ExtRequest expectedExt = jacksonMapper.fillExtension(ExtRequest.empty(),
@@ -141,6 +140,7 @@ public class UndertoneBidderTest extends VertxTest {
                         .h(600)
                         .build())
                 .tagid(String.valueOf(12345))
+                .ext(mapper.valueToTree(UndertoneImpExt.of("gpid-value")))
                 .build();
 
         final BidRequest expectedBidRequest = BidRequest.builder()

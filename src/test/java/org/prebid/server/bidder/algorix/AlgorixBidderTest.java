@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.algorix.model.AlgorixVideoExt;
@@ -45,12 +44,7 @@ public class AlgorixBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://{HOST}.svr-algorix.com/rtb/sa?sid={SID}&token={TOKEN}";
 
-    private AlgorixBidder algorixBidder;
-
-    @Before
-    public void setUp() {
-        algorixBidder = new AlgorixBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AlgorixBidder target = new AlgorixBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndPointUrl() {
@@ -64,7 +58,7 @@ public class AlgorixBidderTest extends VertxTest {
                 impBuilder -> impBuilder.id("123"), mapper.createArrayNode(), "APAC");
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("Invalid ExtImpAlgoriX value"));
@@ -83,7 +77,7 @@ public class AlgorixBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("Impression Id=123, has invalid Ext"));
@@ -95,7 +89,7 @@ public class AlgorixBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), null, "APAC");
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -111,7 +105,7 @@ public class AlgorixBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), null, "USE");
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -127,7 +121,7 @@ public class AlgorixBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), null, "EUC");
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -146,7 +140,7 @@ public class AlgorixBidderTest extends VertxTest {
                         .format(singletonList(bannerFormat)).build()), null, "APAC");
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(0);
@@ -173,7 +167,7 @@ public class AlgorixBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = algorixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(0);
@@ -191,7 +185,7 @@ public class AlgorixBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -208,7 +202,7 @@ public class AlgorixBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -222,7 +216,7 @@ public class AlgorixBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -240,7 +234,7 @@ public class AlgorixBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -259,7 +253,7 @@ public class AlgorixBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -278,7 +272,7 @@ public class AlgorixBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -297,7 +291,7 @@ public class AlgorixBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -315,7 +309,7 @@ public class AlgorixBidderTest extends VertxTest {
                                 bidBuilder.impid("123").ext(mapper.valueToTree(Map.of("mediaType", "banner"))))));
 
         // when
-        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -336,7 +330,7 @@ public class AlgorixBidderTest extends VertxTest {
                                 bidBuilder.impid("123").ext(mapper.valueToTree(Map.of("mediaType", "video"))))));
 
         // when
-        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -357,7 +351,7 @@ public class AlgorixBidderTest extends VertxTest {
                                 bidBuilder.impid("123").ext(mapper.valueToTree(Map.of("mediaType", "native"))))));
 
         // when
-        final Result<List<BidderBid>> result = algorixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
