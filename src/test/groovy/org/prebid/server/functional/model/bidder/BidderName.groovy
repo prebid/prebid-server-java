@@ -13,7 +13,13 @@ enum BidderName {
     RUBICON("rubicon"),
     APPNEXUS("appnexus"),
     RUBICON_ALIAS("rubiconAlias"),
-    OPENX("openx")
+    OPENX("openx"),
+    ACEEX("aceex"),
+    ACUITYADS("acuityads"),
+    AAX("aax"),
+    ADKERNEL("adkernel"),
+    GRID("grid"),
+    MEDIANET("medianet")
 
     @JsonValue
     final String value

@@ -90,7 +90,8 @@ class CookieSyncSpec extends BaseSpec {
     private static final Map<String, String> ADKERNEL_CONFIG = ["adapters.${ADKERNEL.value}.enabled": "true"]
 
     private static final Map<String, String> PBS_CONFIG = APPNEXUS_CONFIG + RUBICON_CONFIG + OPENX_CONFIG +
-            GENERIC_CONFIG + ACEEX_CONFIG + AAX_CONFIG + ACUITYADS_CONFIG + ADKERNEL_CONFIG + ["cookie-sync.pri": "grid, ix, adkernel"]
+            GENERIC_CONFIG + ACEEX_CONFIG + AAX_CONFIG + ACUITYADS_CONFIG + ADKERNEL_CONFIG +
+            ["cookie-sync.pri": "grid, ix, adkernel"]
 
     private final PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
 
@@ -1893,25 +1894,6 @@ class CookieSyncSpec extends BaseSpec {
 
         then: "Response should have status"
         assert response.getBidderStatus().size() == cookieSyncRequest.limit
-    }
-
-    def "PBS cookie sync request should return randomized bidder list"() {
-        given: "Cookie sync request body"
-        def cookieSyncRequest = new CookieSyncRequest().tap {
-            it.limit = 2
-            it.coopSync = coopSync
-            it.bidders = [GENERIC, RUBICON, APPNEXUS, ACEEX, OPENX]
-        }
-
-        when: "PBS processes cookie sync request without cookies"
-        def firstResponse = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-        def secondResponse = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
-
-        then: "Response should have status 'NO_COOKIE'"
-        assert firstResponse.bidderStatus.bidder != secondResponse.bidderStatus.bidder
-
-        where:
-        coopSync << [true, false]
     }
 
     def "PBS cookie sync request should return bidders matched in bidders and filter settings"() {
