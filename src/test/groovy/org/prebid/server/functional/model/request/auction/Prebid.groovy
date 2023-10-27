@@ -32,6 +32,7 @@ class Prebid {
     ExtPrebidFloors floors
     Map passThrough
     Events events
+    Sdk sdk
 
     static class Channel {
 
