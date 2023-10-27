@@ -480,8 +480,8 @@ public class ExchangeService {
         }
 
         return bidderToImpIds.entrySet().stream().collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> new BidRejectionTracker(entry.getKey(), entry.getValue(), logSamplingRate)));
+                Map.Entry::getKey,
+                entry -> new BidRejectionTracker(entry.getKey(), entry.getValue(), logSamplingRate)));
     }
 
     /**
@@ -937,8 +937,8 @@ public class ExchangeService {
                 .orElse(null);
 
         if (createTids == null) {
-            final ActivityCallPayload payload = BidRequestActivityCallPayload.of(
-                    ActivityCallPayloadImpl.of(ComponentType.BIDDER, bidder),
+            final ActivityInvocationPayload payload = BidRequestActivityInvocationPayload.of(
+                    ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, bidder),
                     bidRequest);
 
             return context.getActivityInfrastructure().isAllowed(Activity.TRANSMIT_TID, payload);
@@ -1187,14 +1187,14 @@ public class ExchangeService {
                 .orElse(ExtRequestPrebid.builder());
 
         return ExtRequest.of(extPrebidBuilder
-                        .multibid(resolveExtRequestMultiBids(bidderToMultiBid.get(bidder), bidder))
-                        .bidders(bidders)
-                        .bidderparams(prepareBidderParameters(extPrebid, bidder))
-                        .schains(null)
-                        .data(null)
-                        .bidderconfig(null)
-                        .aliases(null)
-                        .build());
+                .multibid(resolveExtRequestMultiBids(bidderToMultiBid.get(bidder), bidder))
+                .bidders(bidders)
+                .bidderparams(prepareBidderParameters(extPrebid, bidder))
+                .schains(null)
+                .data(null)
+                .bidderconfig(null)
+                .aliases(null)
+                .build());
     }
 
     private List<ExtRequestPrebidMultiBid> resolveExtRequestMultiBids(MultiBidConfig multiBidConfig,

@@ -2,7 +2,7 @@ package org.prebid.server.activity.infrastructure.privacy.uscustomlogic;
 
 import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JsonLogic;
@@ -28,7 +28,7 @@ public class USCustomLogicModule implements PrivacyModule {
     }
 
     @Override
-    public Result proceed(ActivityCallPayload activityCallPayload) {
+    public Result proceed(ActivityInvocationPayload activityInvocationPayload) {
         return result;
     }
 }

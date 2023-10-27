@@ -11,6 +11,7 @@ import org.prebid.server.activity.infrastructure.creator.rule.ComponentRuleCreat
 import org.prebid.server.activity.infrastructure.creator.rule.GeoRuleCreator;
 import org.prebid.server.activity.infrastructure.creator.rule.PrivacyModulesRuleCreator;
 import org.prebid.server.activity.infrastructure.creator.rule.RuleCreator;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonLogic;
 import org.prebid.server.metric.Metrics;
 import org.springframework.beans.factory.annotation.Value;
