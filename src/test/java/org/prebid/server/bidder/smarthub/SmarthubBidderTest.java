@@ -8,7 +8,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -42,12 +41,7 @@ public class SmarthubBidderTest extends VertxTest {
     private static final String ENDPOINT_URL =
             "http://localhost/prebid_server?host={{Host}}&AccountID={{AccountID}}&SourceId={{SourceId}}";
 
-    private SmarthubBidder smarthubBidder;
-
-    @Before
-    public void setUp() {
-        smarthubBidder = new SmarthubBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final SmarthubBidder target = new SmarthubBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -62,7 +56,7 @@ public class SmarthubBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smarthubBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -84,7 +78,7 @@ public class SmarthubBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smarthubBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -99,7 +93,7 @@ public class SmarthubBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -116,7 +110,7 @@ public class SmarthubBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -134,7 +128,7 @@ public class SmarthubBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().seatbid(null).build()));
 
         // when
-        final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -155,7 +149,7 @@ public class SmarthubBidderTest extends VertxTest {
                                         .set("mediaType", TextNode.valueOf(BidType.video.toString()))))));
 
         // when
-        final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -169,7 +163,7 @@ public class SmarthubBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(builder -> builder.ext(null))));
 
         // when
-        final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -187,7 +181,7 @@ public class SmarthubBidderTest extends VertxTest {
                         ExtPrebid.of(null, ExtImpAdocean.of("someEmitterDomain", "someMasterId", "someSlaveID")))))));
 
         // when
-        final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -206,7 +200,7 @@ public class SmarthubBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = smarthubBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)

@@ -45,7 +45,9 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     private static final int GEO_PRECISION = 2
     @Shared
     protected final PrebidServerService privacyPbsService = pbsServiceFactory.getService(GDPR_VENDOR_LIST_CONFIG +
-            ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
+            GENERIC_COOKIE_SYNC_CONFIG + ["adapters.generic.meta-info.vendor-id"   : GENERIC_VENDOR_ID as String,
+                                          "gdpr.host-vendor-id"                    : GENERIC_VENDOR_ID as String,
+                                          "adapters.generic.ccpa-enforced": "true"])
 
     private static final Map<String, String> GENERIC_COOKIE_SYNC_CONFIG = ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync".toString(),
                                                                            "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": false.toString()]
@@ -53,8 +55,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                                                                          "adapters.${OPENX.value}.usersync.cookie-family-name": OPENX.value]
     private static final Map<String, String> OPENX_CONFIG = ["adapters.${OPENX.value}.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
                                                              "adapters.${OPENX.value}.enabled" : 'true']
-    private static final Map<String, String> GDPR_VENDOR_LIST_CONFIG = ["gdpr.vendorlist.v2.http-endpoint-template": "$networkServiceContainer.rootUri/v2/vendor-list.json".toString(),
-                                                                        "gdpr.vendorlist.v3.http-endpoint-template": "$networkServiceContainer.rootUri/v3/vendor-list.json".toString()]
+    static final Map<String, String> GDPR_VENDOR_LIST_CONFIG = ["gdpr.vendorlist.v2.http-endpoint-template": "$networkServiceContainer.rootUri/v2/vendor-list.json".toString(),
+                                                                "gdpr.vendorlist.v3.http-endpoint-template": "$networkServiceContainer.rootUri/v3/vendor-list.json".toString()]
     private static final Map<String, String> SETTING_CONFIG = ["settings.enforce-valid-account": 'true']
     private static final PbsPgConfig pgConfig = new PbsPgConfig(networkServiceContainer)
 

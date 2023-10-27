@@ -117,7 +117,7 @@ public class Metrics extends UpdatableMetrics {
     }
 
     AdapterTypeMetrics forAdapter(String adapterType) {
-        return adapterMetrics.computeIfAbsent(adapterType, adapterMetricsCreator);
+        return adapterMetrics.computeIfAbsent(adapterType.toLowerCase(), adapterMetricsCreator);
     }
 
     AnalyticsReporterMetrics forAnalyticReporter(String analyticCode) {

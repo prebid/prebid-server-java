@@ -7,9 +7,8 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpHeaderValues;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -21,45 +20,49 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adrino.ExtImpAdrino;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
+import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
+import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
+import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
+import static org.prebid.server.util.HttpUtil.headers;
+import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class AdrinoBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://prd-prebid-bidder.adrino.io/openrtb/bid";
 
-    private AdrinoBidder adrinoBidder;
-
-    @Before
-    public void setUp() {
-        adrinoBidder = new AdrinoBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdrinoBidder target = new AdrinoBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void makeHttpRequestsShouldReturnHttpRequestWithCorrectBodyHeadersAndMethod() {
         // given
-        final BidRequest bidRequest = BidRequest.builder().id("test-request-id").build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .id("test-request-id")
+                .imp(List.of(Imp.builder().id("imp_id").build()))
+                .build();
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adrinoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1).element(0).satisfies(httpRequest -> {
-            assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
-            assertThat(httpRequest.getUri()).isEqualTo(ENDPOINT_URL);
-            assertThat(httpRequest.getHeaders())
-                    .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                    .containsExactly(
-                            tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                            tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
-            assertThat(httpRequest.getPayload()).isSameAs(bidRequest);
-        });
+        final MultiMap expectedHeaders = headers()
+                .set(CONTENT_TYPE_HEADER, APPLICATION_JSON_CONTENT_TYPE)
+                .set(ACCEPT_HEADER, APPLICATION_JSON_VALUE);
+        final Result<List<HttpRequest<BidRequest>>> expectedResult = Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(ENDPOINT_URL)
+                .headers(expectedHeaders)
+                .impIds(Set.of("imp_id"))
+                .body(jacksonMapper.encodeToBytes(bidRequest))
+                .payload(bidRequest)
+                .build());
+        assertThat(result.getValue()).usingRecursiveComparison().isEqualTo(expectedResult.getValue());
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -79,7 +82,7 @@ public class AdrinoBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adrinoBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -100,7 +103,7 @@ public class AdrinoBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
-        final Result<List<BidderBid>> result = adrinoBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -122,7 +125,7 @@ public class AdrinoBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
-        final Result<List<BidderBid>> result = adrinoBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -148,7 +151,7 @@ public class AdrinoBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
-        final Result<List<BidderBid>> result = adrinoBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -165,7 +168,7 @@ public class AdrinoBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(response);
 
         // when
-        final Result<List<BidderBid>> result = adrinoBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -178,7 +181,7 @@ public class AdrinoBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("{");
 
         // when
-        final Result<List<BidderBid>> result = adrinoBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).hasSize(1).element(0).satisfies(bidderError -> {

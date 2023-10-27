@@ -53,6 +53,10 @@ public class Request {
     /** Set to '0' or field absent if doesn't support custom privacy or support unknown, otherwise '1'. */
     Integer privacy;
 
+    Integer adunit;
+
+    Integer layout;
+
     /** Placeholder that may contain custom JSON. */
     ObjectNode ext;
 }

@@ -12,7 +12,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adtarget.proto.AdtargetImpExt;
@@ -44,12 +43,7 @@ public class AdtargetBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://adtelligent.com";
 
-    private AdtargetBidder adtargetBidder;
-
-    @Before
-    public void setUp() {
-        adtargetBidder = new AdtargetBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdtargetBidder target = new AdtargetBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void makeHttpRequestsShouldReturnHttpRequestWithCorrectBodyHeadersAndMethod() {
@@ -57,7 +51,7 @@ public class AdtargetBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtargetBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final BidRequest expectedBidRequest = bidRequest
@@ -85,7 +79,7 @@ public class AdtargetBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtargetBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -101,7 +95,7 @@ public class AdtargetBidderTest extends VertxTest {
                 impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtargetBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -119,7 +113,7 @@ public class AdtargetBidderTest extends VertxTest {
                 impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, null))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtargetBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -144,7 +138,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtargetBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -168,7 +162,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtargetBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -195,7 +189,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtargetBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -214,7 +208,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtargetBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -240,7 +234,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtargetBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -254,7 +248,7 @@ public class AdtargetBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<BidderBid>> result = adtargetBidder.makeBids(givenHttpCall(response), bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(givenHttpCall(response), bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -270,7 +264,7 @@ public class AdtargetBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<BidderBid>> result = adtargetBidder.makeBids(givenHttpCall(response), bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(givenHttpCall(response), bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -291,7 +285,7 @@ public class AdtargetBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<BidderBid>> result = adtargetBidder.makeBids(givenHttpCall(response), bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(givenHttpCall(response), bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -319,7 +313,7 @@ public class AdtargetBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<BidderBid>> result = adtargetBidder.makeBids(givenHttpCall(response), bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(givenHttpCall(response), bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -336,7 +330,7 @@ public class AdtargetBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<BidderBid>> result = adtargetBidder.makeBids(givenHttpCall(response), bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(givenHttpCall(response), bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -353,7 +347,7 @@ public class AdtargetBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = adtargetBidder.makeBids(givenHttpCall(response), bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(givenHttpCall(response), bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -369,7 +363,7 @@ public class AdtargetBidderTest extends VertxTest {
         final String response = mapper.writeValueAsString(BidResponse.builder().build());
 
         // when
-        final Result<List<BidderBid>> result = adtargetBidder
+        final Result<List<BidderBid>> result = target
                 .makeBids(givenHttpCall(response), BidRequest.builder().build());
 
         // then
@@ -383,7 +377,7 @@ public class AdtargetBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("{");
 
         // when
-        final Result<List<BidderBid>> result = adtargetBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).hasSize(1)

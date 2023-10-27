@@ -11,7 +11,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -40,12 +39,7 @@ public class VideobyteBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://site.st/uri";
 
-    private VideobyteBidder bidder;
-
-    @Before
-    public void setUp() {
-        bidder = new VideobyteBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final VideobyteBidder target = new VideobyteBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -59,7 +53,7 @@ public class VideobyteBidderTest extends VertxTest {
                 givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1);
@@ -74,7 +68,7 @@ public class VideobyteBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()), givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(2)
@@ -93,7 +87,7 @@ public class VideobyteBidderTest extends VertxTest {
                 givenImp(ext -> ext.publisherId("789").placementId("dce").networkId("A?a=BC"), identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
@@ -111,7 +105,7 @@ public class VideobyteBidderTest extends VertxTest {
                 givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -133,7 +127,7 @@ public class VideobyteBidderTest extends VertxTest {
                 givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -155,7 +149,7 @@ public class VideobyteBidderTest extends VertxTest {
                 givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -176,7 +170,7 @@ public class VideobyteBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("Incorrect body", null);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -193,7 +187,7 @@ public class VideobyteBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("null", null);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -206,7 +200,7 @@ public class VideobyteBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("{}", null);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -222,7 +216,7 @@ public class VideobyteBidderTest extends VertxTest {
                         givenImp(imp -> imp.id("id1").banner(Banner.builder().build()))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).extracting(BidderBid::getType)
@@ -237,7 +231,7 @@ public class VideobyteBidderTest extends VertxTest {
                 givenBidRequest(givenImp(identity()), givenImp(identity())));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).hasSize(2)

@@ -12,7 +12,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -42,19 +41,14 @@ public class AdtrgtmeBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://z.cdn.adtarget.market/ssp";
 
-    private AdtrgtmeBidder adtrgtmeBidder;
-
-    @Before
-    public void setUp() {
-        adtrgtmeBidder = new AdtrgtmeBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdtrgtmeBidder target = new AdtrgtmeBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void makeHttpRequestsShouldReturnHttpRequestWithCorrectMethodUri() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("123"));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).allSatisfy(httpRequest -> {
@@ -68,7 +62,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("123"));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -85,7 +79,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("123"));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final BidRequest expectedBidRequest = givenBidRequest(
@@ -102,7 +96,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("id"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -118,7 +112,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("ext.bidder not provided"));
@@ -140,7 +134,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdrino.of("test"))))))).build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adtrgtmeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -156,7 +150,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = adtrgtmeBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -183,7 +177,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, response);
 
         // when
-        final Result<List<BidderBid>> result = adtrgtmeBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -199,7 +193,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "{");
 
         // when
-        final Result<List<BidderBid>> result = adtrgtmeBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).allSatisfy(bidderError -> {
@@ -222,7 +216,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = adtrgtmeBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -244,7 +238,7 @@ public class AdtrgtmeBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = adtrgtmeBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isNotEmpty();

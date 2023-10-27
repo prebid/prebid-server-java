@@ -1,8 +1,8 @@
 adapters:
   lunamedia:
-    endpoint: http://api.lunamedia.io/xp/get?pubid=
+    endpoint: http://rtb.lunamedia.live/?pid=
     meta-info:
-      maintainer-email: josh@lunamedia.io
+      maintainer-email: cs@lunamedia.io
       app-media-types:
         - banner
         - video
@@ -14,6 +14,6 @@ adapters:
     usersync:
       cookie-family-name: lunamedia
       iframe:
-        url: https://api.lunamedia.io/xp/user-sync?redirect={{redirect_url}}
+        url: https://sync.lunamedia.live/psync?t=s&e=0&cb={{redirect_url}}
         support-cors: false
-        uid-macro: '$UID'
+        uid-macro: '%USER_ID%'

@@ -3,6 +3,7 @@ package org.prebid.server.util;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -26,10 +27,19 @@ public class BidderUtil {
     public static HttpRequest<BidRequest> defaultRequest(BidRequest bidRequest,
                                                          String endpointUrl,
                                                          JacksonMapper mapper) {
+
+        return defaultRequest(bidRequest, HttpUtil.headers(), endpointUrl, mapper);
+    }
+
+    public static HttpRequest<BidRequest> defaultRequest(BidRequest bidRequest,
+                                                         MultiMap headers,
+                                                         String endpointUrl,
+                                                         JacksonMapper mapper) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .headers(HttpUtil.headers())
+                .headers(headers)
+                .impIds(impIds(bidRequest))
                 .body(mapper.encodeToBytes(bidRequest))
                 .payload(bidRequest)
                 .build();

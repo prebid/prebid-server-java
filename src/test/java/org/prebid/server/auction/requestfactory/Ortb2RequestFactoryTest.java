@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -483,6 +484,29 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void fetchAccountShouldReturnAccountWithAccountIdTakenFromDoohPublisherId() {
+        // given
+        final String accountId = "accountId";
+        final BidRequest bidRequest = BidRequest.builder()
+                .dooh(Dooh.builder()
+                        .publisher(Publisher.builder().id(accountId).build())
+                        .build())
+                .build();
+
+        final Account account = Account.builder().id(accountId).build();
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
+
+        // when
+        final Future<Account> result = target.fetchAccount(
+                AuctionContext.builder().bidRequest(bidRequest).build());
+
+        // then
+        verify(applicationSettings).getAccountById(eq(accountId), any());
+
+        assertThat(result.result()).isSameAs(account);
+    }
+
+    @Test
     public void fetchAccountShouldReturnEmptyAccountIfNotFound() {
         // given
         final String parentAccount = "parentAccount";
@@ -935,7 +959,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // given
         given(countryCodeMapper.mapToAlpha3(any())).willReturn(null);
 
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final Device device = Device.builder()
+                .geo(Geo.builder().region("regionInRequest").build())
+                .build();
+        final BidRequest bidRequest = givenBidRequest(requestCustomizer -> requestCustomizer.device(device));
         final PrivacyContext privacyContext = PrivacyContext.of(
                 Privacy.builder()
                         .gdpr("")
@@ -964,7 +991,40 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getGeo)
                 .extracting(Geo::getRegion)
-                .isEqualTo("region");
+                .isEqualTo("REGION");
+    }
+
+    @Test
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldMakeRegionUpperCasedWhenNoPrivateGeoInfoProvided() {
+        // given
+        given(countryCodeMapper.mapToAlpha3(any())).willReturn(null);
+
+        final Device device = Device.builder()
+                .geo(Geo.builder().region("regionInRequest").build())
+                .build();
+        final BidRequest bidRequest = givenBidRequest(requestCustomizer -> requestCustomizer.device(device));
+
+        final Account account = Account.empty("id");
+
+        final PrivacyContext privacyContextWithoutRegion = PrivacyContext.of(
+                null,
+                TcfContext.builder().geoInfo(GeoInfo.builder().vendor("v").build()).build()
+        );
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(account)
+                .privacyContext(privacyContextWithoutRegion)
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getGeo)
+                .extracting(Geo::getRegion)
+                .isEqualTo("REGIONINREQUEST");
     }
 
     @Test

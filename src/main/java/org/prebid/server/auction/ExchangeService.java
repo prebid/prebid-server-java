@@ -9,6 +9,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Deal;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
@@ -24,6 +25,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.Activity;
@@ -59,6 +61,7 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.DealsService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.TxnLog;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -79,6 +82,7 @@ import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
 import org.prebid.server.hooks.v1.bidder.BidderResponsePayload;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.CriteriaLogManager;
 import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.metric.MetricName;
@@ -88,6 +92,7 @@ import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.ExtPrebidBidders;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
+import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -144,21 +149,23 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * Executes an OpenRTB v2.5 Auction.
+ * Executes an OpenRTB v2.5-2.6 Auction.
  */
 public class ExchangeService {
 
     private static final Logger logger = LoggerFactory.getLogger(ExchangeService.class);
 
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
+
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
+    private static final String TID_EXT = "tid";
     private static final String ORIGINAL_BID_CPM = "origbidcpm";
     private static final String ORIGINAL_BID_CURRENCY = "origbidcur";
     private static final String ALL_BIDDERS_CONFIG = "*";
     private static final Integer DEFAULT_MULTIBID_LIMIT_MIN = 1;
     private static final Integer DEFAULT_MULTIBID_LIMIT_MAX = 9;
     private static final String EID_ALLOWED_FOR_ALL_BIDDERS = "*";
-
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     private final double logSamplingRate;
@@ -273,9 +280,7 @@ public class ExchangeService {
     }
 
     private static BidResponse emptyResponse() {
-        return BidResponse.builder()
-                .seatbid(Collections.emptyList())
-                .build();
+        return BidResponse.builder().seatbid(Collections.emptyList()).build();
     }
 
     private Future<AuctionContext> runAuction(AuctionContext receivedContext) {
@@ -329,7 +334,6 @@ public class ExchangeService {
                                 context.getBidRequest(), context.getDebugContext().isDebugEnabled()))
                         .compose(bidResponse -> bidResponsePostProcessor.postProcess(
                                 context.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
-
                         .map(context::with));
     }
 
@@ -369,8 +373,7 @@ public class ExchangeService {
                         ? ObjectUtils.defaultIfNull(cache.getBids().getReturnCreative(), true)
                         : false;
                 final boolean returnCreativeVideoBid = shouldCacheVideoBids
-                        ? ObjectUtils.defaultIfNull(cache.getVastxml()
-                        .getReturnCreative(), true)
+                        ? ObjectUtils.defaultIfNull(cache.getVastxml().getReturnCreative(), true)
                         : false;
 
                 return BidRequestCacheInfo.builder()
@@ -400,7 +403,7 @@ public class ExchangeService {
                 ? CollectionUtils.emptyIfNull(extRequestPrebid.getMultibid())
                 : Collections.emptyList();
 
-        final Map<String, MultiBidConfig> bidderToMultiBid = new HashMap<>();
+        final Map<String, MultiBidConfig> bidderToMultiBid = new CaseInsensitiveMap<>();
         for (ExtRequestPrebidMultiBid prebidMultiBid : multiBids) {
             final String bidder = prebidMultiBid.getBidder();
             final List<String> bidders = prebidMultiBid.getBidders();
@@ -472,13 +475,11 @@ public class ExchangeService {
         for (Map.Entry<String, Set<String>> entry : impIdToBidders.entrySet()) {
             final String impId = entry.getKey();
             final Set<String> bidderNames = entry.getValue();
-
             bidderNames.forEach(bidder ->
                     bidderToImpIds.computeIfAbsent(bidder, bidderName -> new HashSet<>()).add(impId));
         }
 
-        return bidderToImpIds.entrySet().stream()
-                .collect(Collectors.toMap(
+        return bidderToImpIds.entrySet().stream().collect(Collectors.toMap(
                         Map.Entry::getKey,
                         entry -> new BidRejectionTracker(entry.getKey(), entry.getValue(), logSamplingRate)));
     }
@@ -586,8 +587,8 @@ public class ExchangeService {
      * <p>
      * - bidrequest.ext.prebid.bidders will be staying in corresponding bidder only.
      * <p>
-     * - bidrequest.user.ext.data, bidrequest.app.ext.data and bidrequest.site.ext.data will be removed for bidders
-     * that don't have first party data allowed.
+     * - bidrequest.user.ext.data, bidrequest.app.ext.data, bidrequest.dooh.ext.data and bidrequest.site.ext.data
+     * will be removed for bidders that don't have first party data allowed.
      */
     private Future<List<AuctionParticipation>> makeAuctionParticipation(
             List<String> bidders,
@@ -598,7 +599,6 @@ public class ExchangeService {
             Map<String, MultiBidConfig> bidderToMultiBid) {
 
         final BidRequest bidRequest = context.getBidRequest();
-
         final ExtRequest requestExt = bidRequest.getExt();
         final ExtRequestPrebid prebid = requestExt == null ? null : requestExt.getPrebid();
         final Map<String, ExtBidderConfigOrtb> biddersToConfigs = getBiddersToConfigs(prebid);
@@ -606,8 +606,7 @@ public class ExchangeService {
         final Map<String, User> bidderToUser =
                 prepareUsers(bidders, context, aliases, biddersToConfigs, eidPermissions);
 
-        return privacyEnforcementService
-                .mask(context, bidderToUser, bidders, aliases)
+        return privacyEnforcementService.mask(context, bidderToUser, bidders, aliases)
                 .map(bidderToPrivacyResult ->
                         getAuctionParticipation(bidderToPrivacyResult, bidRequest, impBidderToStoredResponse, imps,
                                 bidderToMultiBid, biddersToConfigs, aliases, context));
@@ -620,7 +619,7 @@ public class ExchangeService {
             return Collections.emptyMap();
         }
 
-        final Map<String, ExtBidderConfigOrtb> bidderToConfig = new HashMap<>();
+        final Map<String, ExtBidderConfigOrtb> bidderToConfig = new CaseInsensitiveMap<>();
 
         bidderConfigs.stream()
                 .filter(prebidBidderConfig -> prebidBidderConfig.getBidders().contains(ALL_BIDDERS_CONFIG))
@@ -673,8 +672,8 @@ public class ExchangeService {
         for (String bidder : bidders) {
             final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(biddersToConfigs.get(bidder),
                     biddersToConfigs.get(ALL_BIDDERS_CONFIG));
-
-            final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
+            final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
+                    .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
             final User preparedUser = prepareUser(
                     bidder, context, aliases, useFirstPartyData, fpdConfig, eidPermissions);
             bidderToUser.put(bidder, preparedUser);
@@ -698,7 +697,6 @@ public class ExchangeService {
 
         final User user = context.getBidRequest().getUser();
         final ExtUser extUser = user != null ? user.getExt() : null;
-
         final UpdateResult<String> buyerUidUpdateResult = uidUpdater.updateUid(bidder, context, aliases);
         final List<Eid> userEids = extractUserEids(user);
         final List<Eid> allowedUserEids = resolveAllowedEids(userEids, bidder, eidPermissions);
@@ -744,8 +742,7 @@ public class ExchangeService {
     /**
      * Returns {@link List<Eid>} allowed by {@param eidPermissions} per source per bidder.
      */
-    private List<Eid> resolveAllowedEids(List<Eid> userEids, String bidder,
-                                         Map<String, List<String>> eidPermissions) {
+    private List<Eid> resolveAllowedEids(List<Eid> userEids, String bidder, Map<String, List<String>> eidPermissions) {
         return CollectionUtils.emptyIfNull(userEids)
                 .stream()
                 .filter(userEid -> isUserEidAllowed(userEid.getSource(), eidPermissions, bidder))
@@ -758,9 +755,9 @@ public class ExchangeService {
      */
     private boolean isUserEidAllowed(String source, Map<String, List<String>> eidPermissions, String bidder) {
         final List<String> allowedBidders = eidPermissions.get(source);
-        return CollectionUtils.isEmpty(allowedBidders)
-                || allowedBidders.contains(EID_ALLOWED_FOR_ALL_BIDDERS)
-                || allowedBidders.contains(bidder);
+        return CollectionUtils.isEmpty(allowedBidders) || allowedBidders.stream()
+                .anyMatch(allowedBidder -> StringUtils.equalsIgnoreCase(allowedBidder, bidder)
+                        || EID_ALLOWED_FOR_ALL_BIDDERS.equals(allowedBidder));
     }
 
     /**
@@ -777,11 +774,10 @@ public class ExchangeService {
             AuctionContext context) {
 
         final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(bidRequest);
-
         final List<AuctionParticipation> bidderRequests = bidderPrivacyResults.stream()
                 // for each bidder create a new request that is a copy of original request except buyerid, imp
                 // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
-                // Also, check whether to pass user.ext.data, app.ext.data and site.ext.data or not.
+                // Also, check whether to pass user.ext.data, app.ext.data, dooh.ext.data and site.ext.data or not.
                 .map(bidderPrivacyResult -> createAuctionParticipation(
                         bidderPrivacyResult,
                         impBidderToStoredBidResponse,
@@ -796,7 +792,6 @@ public class ExchangeService {
                 .collect(Collectors.toCollection(ArrayList::new));
 
         Collections.shuffle(bidderRequests);
-
         return bidderRequests;
     }
 
@@ -889,9 +884,10 @@ public class ExchangeService {
 
         final BidRequest bidRequest = context.getBidRequest();
         final String bidder = bidderPrivacyResult.getRequestBidder();
-
+        final boolean transmitTid = transmitTransactionId(bidder, context);
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
-        final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.contains(bidder);
+        final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
+                .anyMatch(fpdBidder -> StringUtils.equalsIgnoreCase(fpdBidder, bidder));
 
         final ExtBidderConfigOrtb fpdConfig = ObjectUtils.defaultIfNull(
                 biddersToConfigs.get(bidder),
@@ -899,25 +895,56 @@ public class ExchangeService {
 
         final App app = bidRequest.getApp();
         final Site site = bidRequest.getSite();
+        final Dooh dooh = bidRequest.getDooh();
         final ObjectNode fpdSite = fpdConfig != null ? fpdConfig.getSite() : null;
         final ObjectNode fpdApp = fpdConfig != null ? fpdConfig.getApp() : null;
-
+        final ObjectNode fpdDooh = fpdConfig != null ? fpdConfig.getDooh() : null;
         final App preparedApp = prepareApp(app, fpdApp, useFirstPartyData);
         final Site preparedSite = prepareSite(site, fpdSite, useFirstPartyData);
-        if (preparedApp != null && preparedSite != null) {
-            context.getDebugWarnings().add("BidRequest contains app and site. Removed site object");
+        final Dooh preparedDooh = prepareDooh(dooh, fpdDooh, useFirstPartyData);
+
+        final List<String> distributionChannels = new ArrayList<>();
+        Optional.ofNullable(preparedSite).ifPresent(ignored -> distributionChannels.add("site"));
+        Optional.ofNullable(preparedDooh).ifPresent(ignored -> distributionChannels.add("dooh"));
+        Optional.ofNullable(preparedApp).ifPresent(ignored -> distributionChannels.add("app"));
+
+        if (distributionChannels.size() > 1) {
+            metrics.updateAlertsMetrics(MetricName.general);
+            conditionalLogger.error("More than one distribution channel is present", logSamplingRate);
+            throw new InvalidRequestException(
+                    String.join(" and ", distributionChannels) + " are present, "
+                            + "but no more than one of site or app or dooh can be defined");
         }
 
         return bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
-                .imp(prepareImps(bidder, imps, bidRequest, useFirstPartyData, context.getAccount()))
+                .imp(prepareImps(bidder, imps, bidRequest, transmitTid, useFirstPartyData, context.getAccount()))
                 .app(preparedApp)
-                .site(preparedApp == null ? preparedSite : null)
-                .source(prepareSource(bidder, bidRequest))
+                .dooh(preparedDooh)
+                .site(preparedSite)
+                .source(prepareSource(bidder, bidRequest, transmitTid))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build();
+    }
+
+    private static boolean transmitTransactionId(String bidder, AuctionContext context) {
+        final BidRequest bidRequest = context.getBidRequest();
+        final Boolean createTids = Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getCreateTids)
+                .orElse(null);
+
+        if (createTids == null) {
+            final ActivityCallPayload payload = BidRequestActivityCallPayload.of(
+                    ActivityCallPayloadImpl.of(ComponentType.BIDDER, bidder),
+                    bidRequest);
+
+            return context.getActivityInfrastructure().isAllowed(Activity.TRANSMIT_TID, payload);
+        }
+
+        return createTids;
     }
 
     /**
@@ -927,18 +954,20 @@ public class ExchangeService {
     private List<Imp> prepareImps(String bidder,
                                   List<Imp> imps,
                                   BidRequest bidRequest,
+                                  boolean transmitTid,
                                   boolean useFirstPartyData,
                                   Account account) {
 
         return imps.stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
-                .map(imp -> prepareImp(imp, bidder, bidRequest, useFirstPartyData, account))
+                .map(imp -> prepareImp(imp, bidder, bidRequest, transmitTid, useFirstPartyData, account))
                 .toList();
     }
 
     private Imp prepareImp(Imp imp,
                            String bidder,
                            BidRequest bidRequest,
+                           boolean transmitTid,
                            boolean useFirstPartyData,
                            Account account) {
 
@@ -946,7 +975,7 @@ public class ExchangeService {
 
         return imp.toBuilder()
                 .bidfloor(adjustedFloor)
-                .ext(prepareImpExt(bidder, imp.getExt(), adjustedFloor, useFirstPartyData))
+                .ext(prepareImpExt(bidder, imp.getExt(), adjustedFloor, transmitTid, useFirstPartyData))
                 .build();
     }
 
@@ -969,42 +998,42 @@ public class ExchangeService {
     private ObjectNode prepareImpExt(String bidder,
                                      ObjectNode impExt,
                                      BigDecimal adjustedFloor,
+                                     boolean transmitTid,
                                      boolean useFirstPartyData) {
 
         final ObjectNode modifiedImpExt = impExt.deepCopy();
 
         final JsonNode impExtPrebid = prepareImpExt(impExt.get(PREBID_EXT), adjustedFloor);
-        if (impExtPrebid == null) {
-            modifiedImpExt.remove(PREBID_EXT);
-        } else {
-            modifiedImpExt.set(PREBID_EXT, impExtPrebid);
-        }
-
+        Optional.ofNullable(impExtPrebid).ifPresentOrElse(
+                ext -> modifiedImpExt.set(PREBID_EXT, ext),
+                () -> modifiedImpExt.remove(PREBID_EXT));
         modifiedImpExt.set(BIDDER_EXT, bidderParamsFromImpExt(impExt).get(bidder));
+        if (!transmitTid) {
+            modifiedImpExt.remove(TID_EXT);
+        }
 
         return fpdResolver.resolveImpExt(modifiedImpExt, useFirstPartyData);
     }
 
     private JsonNode prepareImpExt(JsonNode extImpPrebidNode, BigDecimal adjustedFloor) {
-        if (extImpPrebidNode.size() > 1) {
-            final ExtImpPrebid extImpPrebid = extImpPrebid(extImpPrebidNode);
-            final ExtImpPrebidFloors floors = extImpPrebid.getFloors();
-            final ExtImpPrebidFloors updatedFloors = floors != null
-                    ? ExtImpPrebidFloors.of(floors.getFloorRule(),
-                    floors.getFloorRuleValue(),
-                    adjustedFloor,
-                    floors.getFloorMin(),
-                    floors.getFloorMinCur())
-                    : null;
-
-            return mapper.mapper().valueToTree(
-                    extImpPrebid(extImpPrebidNode).toBuilder()
-                            .floors(updatedFloors)
-                            .bidder(null)
-                            .build());
+        if (extImpPrebidNode.size() <= 1) {
+            return null;
         }
 
-        return null;
+        final ExtImpPrebid extImpPrebid = extImpPrebid(extImpPrebidNode);
+        final ExtImpPrebidFloors floors = extImpPrebid.getFloors();
+        final ExtImpPrebidFloors updatedFloors = floors != null
+                ? ExtImpPrebidFloors.of(floors.getFloorRule(),
+                floors.getFloorRuleValue(),
+                adjustedFloor,
+                floors.getFloorMin(),
+                floors.getFloorMinCur())
+                : null;
+
+        return mapper.mapper().valueToTree(extImpPrebid(extImpPrebidNode).toBuilder()
+                .floors(updatedFloors)
+                .bidder(null)
+                .build());
     }
 
     /**
@@ -1036,12 +1065,10 @@ public class ExchangeService {
                 .build()
                 : app;
 
-        return useFirstPartyData
-                ? fpdResolver.resolveApp(maskedApp, fpdApp)
-                : maskedApp;
+        return useFirstPartyData ? fpdResolver.resolveApp(maskedApp, fpdApp) : maskedApp;
     }
 
-    private ExtApp maskExtApp(ExtApp appExt) {
+    private static ExtApp maskExtApp(ExtApp appExt) {
         final ExtApp maskedExtApp = ExtApp.of(appExt.getPrebid(), null);
         return maskedExtApp.isEmpty() ? null : maskedExtApp;
     }
@@ -1064,39 +1091,57 @@ public class ExchangeService {
                 .build()
                 : site;
 
-        return useFirstPartyData
-                ? fpdResolver.resolveSite(maskedSite, fpdSite)
-                : maskedSite;
+        return useFirstPartyData ? fpdResolver.resolveSite(maskedSite, fpdSite) : maskedSite;
     }
 
-    private Content prepareContent(Content content) {
-        final Content updatedContent = content.toBuilder()
-                .data(null)
-                .build();
-
-        return updatedContent.isEmpty() ? null : updatedContent;
-    }
-
-    private ExtSite maskExtSite(ExtSite siteExt) {
+    private static ExtSite maskExtSite(ExtSite siteExt) {
         final ExtSite maskedExtSite = ExtSite.of(siteExt.getAmp(), null);
         return maskedExtSite.isEmpty() ? null : maskedExtSite;
     }
 
     /**
+     * Checks whether to pass the dooh.ext.data and dooh.content.data depending on request having a first party data
+     * allowed for given bidder or not. And merge masked dooh with fpd config.
+     */
+    private Dooh prepareDooh(Dooh dooh, ObjectNode fpdDooh, boolean useFirstPartyData) {
+        final ExtDooh doohExt = dooh != null ? dooh.getExt() : null;
+        final Content content = dooh != null ? dooh.getContent() : null;
+
+        final boolean shouldCleanExtData = doohExt != null && doohExt.getData() != null && !useFirstPartyData;
+        final boolean shouldCleanContentData = content != null && content.getData() != null && !useFirstPartyData;
+
+        final Dooh maskedDooh = shouldCleanExtData || shouldCleanContentData
+                ? dooh.toBuilder()
+                .ext(shouldCleanExtData ? null : doohExt)
+                .content(shouldCleanContentData ? prepareContent(content) : content)
+                .build()
+                : dooh;
+
+        return useFirstPartyData ? fpdResolver.resolveDooh(maskedDooh, fpdDooh) : maskedDooh;
+    }
+
+    private static Content prepareContent(Content content) {
+        final Content updatedContent = content.toBuilder().data(null).build();
+        return updatedContent.isEmpty() ? null : updatedContent;
+    }
+
+    /**
      * Returns {@link Source} with corresponding request.ext.prebid.schains.
      */
-    private Source prepareSource(String bidder, BidRequest bidRequest) {
+    private Source prepareSource(String bidder, BidRequest bidRequest, boolean transmitTid) {
         final Source receivedSource = bidRequest.getSource();
-
         final SupplyChain bidderSchain = supplyChainResolver.resolveForBidder(bidder, bidRequest);
 
-        if (bidderSchain == null) {
+        if (bidderSchain == null && transmitTid) {
             return receivedSource;
         }
 
         return receivedSource == null
                 ? Source.builder().schain(bidderSchain).build()
-                : receivedSource.toBuilder().schain(bidderSchain).build();
+                : receivedSource.toBuilder()
+                .schain(bidderSchain)
+                .tid(transmitTid ? receivedSource.getTid() : null)
+                .build();
     }
 
     /**
@@ -1141,8 +1186,7 @@ public class ExchangeService {
                 .map(ExtRequestPrebid::toBuilder)
                 .orElse(ExtRequestPrebid.builder());
 
-        return ExtRequest.of(
-                extPrebidBuilder
+        return ExtRequest.of(extPrebidBuilder
                         .multibid(resolveExtRequestMultiBids(bidderToMultiBid.get(bidder), bidder))
                         .bidders(bidders)
                         .bidderparams(prepareBidderParameters(extPrebid, bidder))
@@ -1194,7 +1238,6 @@ public class ExchangeService {
 
     private static List<AuctionParticipation> postProcessDeals(List<AuctionParticipation> auctionParticipations,
                                                                AuctionContext context) {
-
         return DealsService.removePgDealsOnlyImpsWithoutDeals(auctionParticipations, context);
     }
 
@@ -1297,7 +1340,6 @@ public class ExchangeService {
         return hookStageExecutor.executeBidderRequestStage(bidderRequest, auctionContext)
                 .compose(stageResult -> requestBidsOrRejectBidder(
                         stageResult, bidderRequest, auctionContext, timeout, aliases))
-
                 .compose(bidderResponse -> hookStageExecutor.executeRawBidderResponseStage(
                                 bidderResponse, auctionContext)
                         .map(stageResult -> rejectBidderResponseOrProceed(stageResult, bidderResponse)));
@@ -1335,7 +1377,6 @@ public class ExchangeService {
                                                BidderAliases aliases) {
 
         final CaseInsensitiveMultiMap requestHeaders = auctionContext.getHttpRequest().getHeaders();
-
         final String bidderName = bidderRequest.getBidder();
         final String resolvedBidderName = aliases.resolveBidder(bidderName);
         final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
@@ -1364,7 +1405,6 @@ public class ExchangeService {
         final long tmax = timeoutResolver.limitToMax(bidRequest.getTmax());
         final long adjustedTmax = timeoutResolver.adjustForBidder(
                 tmax, timeoutAdjustmentFactor, currentTime - startTime);
-
         return tmax != adjustedTmax
                 ? bidRequest.toBuilder().tmax(adjustedTmax).build()
                 : bidRequest;
@@ -1373,7 +1413,6 @@ public class ExchangeService {
     private Timeout adjustTimeout(Timeout timeout, long startTime, long currentTime) {
         final long adjustedTmax = timeoutResolver.adjustForRequest(
                 timeout.getDeadline() - startTime, currentTime - startTime);
-
         return timeoutFactory.create(currentTime, adjustedTmax);
     }
 
@@ -1468,7 +1507,6 @@ public class ExchangeService {
 
         final List<BidderBid> bids = seatBid.getBids();
         final List<BidderBid> validBids = new ArrayList<>(bids.size());
-
         final TxnLog txnLog = auctionContext.getTxnLog();
         final String bidder = bidderResponse.getBidder();
 
@@ -1550,7 +1588,6 @@ public class ExchangeService {
 
         final List<BidderBid> updatedBidderBids = new ArrayList<>(bidderBids.size());
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
-
         final String adServerCurrency = bidRequest.getCur().get(0);
 
         for (final BidderBid bidderBid : bidderBids) {
@@ -1668,7 +1705,6 @@ public class ExchangeService {
 
                 for (final BidderBid bidderBid : bidderBids) {
                     final Bid bid = bidderBid.getBid();
-
                     final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
                     metrics.updateAdapterBidMetrics(bidder, account, cpm, bid.getAdm() != null,
                             bidderBid.getType().toString());
@@ -1742,7 +1778,6 @@ public class ExchangeService {
         final Map<String, Map<String, List<String>>> warnings =
                 toHookMessages(context, HookExecutionOutcome::getWarnings);
         final ExtModulesTrace trace = toHookTrace(context);
-
         return ObjectUtils.anyNotNull(errors, warnings, trace) ? ExtModules.of(errors, warnings, trace) : null;
     }
 
@@ -1798,7 +1833,6 @@ public class ExchangeService {
         }
 
         final long executionTime = stages.stream().mapToLong(ExtModulesTraceStage::getExecutionTime).sum();
-
         return ExtModulesTrace.of(executionTime, stages);
     }
 
@@ -1835,7 +1869,6 @@ public class ExchangeService {
         }
 
         final long executionTime = groups.stream().mapToLong(ExtModulesTraceGroup::getExecutionTime).sum();
-
         return ExtModulesTraceStageOutcome.of(stageOutcome.getEntity(), executionTime, groups);
     }
 
@@ -1894,12 +1927,8 @@ public class ExchangeService {
                 ? ExtModulesTraceAnalyticsAppliedTo.builder()
                 .impIds(appliedTo.impIds())
                 .bidders(appliedTo.bidders())
-                .request(appliedTo.request()
-                        ? Boolean.TRUE
-                        : null)
-                .response(appliedTo.response()
-                        ? Boolean.TRUE
-                        : null)
+                .request(appliedTo.request() ? Boolean.TRUE : null)
+                .response(appliedTo.response() ? Boolean.TRUE : null)
                 .bidIds(appliedTo.bidIds())
                 .build()
                 : null;

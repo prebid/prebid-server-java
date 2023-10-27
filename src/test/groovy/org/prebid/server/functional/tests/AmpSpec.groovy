@@ -4,11 +4,14 @@ import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.response.auction.SeatBid
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
 class AmpSpec extends BaseSpec {
@@ -32,6 +35,28 @@ class AmpSpec extends BaseSpec {
         ampRequest                   || description
         AmpRequest.defaultAmpRequest || "valid AMP request"
         new AmpRequest()             || "invalid AMP request"
+    }
+
+    def "PBS should return proper error for unsupported types in AMP requests"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+        def ampStoredRequest = BidRequest.getDefaultBidRequest(channel)
+        ampStoredRequest.setAccountId(ampRequest.account)
+
+        and: "Save storedRequest into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Request should fail with an error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == BAD_REQUEST.code()
+        assert exception.responseBody == "Invalid request format: request.${channel.value.toLowerCase()} must not exist in AMP stored requests."
+
+        where:
+        channel  << [DistributionChannel.APP, DistributionChannel.DOOH]
     }
 
     def "PBS should return info from the stored response when it's defined in the stored request"() {

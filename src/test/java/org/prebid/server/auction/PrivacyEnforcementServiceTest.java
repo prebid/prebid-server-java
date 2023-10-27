@@ -527,7 +527,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .privacy(AccountPrivacyConfig.of(
                                 null,
                                 AccountCcpaConfig.builder()
-                                        .enabledForRequestType(EnabledForRequestType.of(false, false, true, false))
+                                        .enabledForRequestType(
+                                                EnabledForRequestType.of(false, false, true, false, false))
                                         .build(),
                                 null,
                                 null))
@@ -1932,6 +1933,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 true,
                 null,
                 true,
+                null,
                 null,
                 null,
                 null,

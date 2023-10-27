@@ -157,7 +157,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 + "\"privacy\": {"
                 + "\"gdpr\": {"
                 + "\"enabled\": true,"
-                + "\"channel-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true}"
+                + "\"channel-enabled\": {\"amp\": true, \"app\": true, \"video\": true, \"web\": true, \"dooh\": true}"
                 + "}"
                 + "},"
                 + "\"metrics\": {\"verbosity-level\": \"detailed\"},"
@@ -247,7 +247,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                     .privacy(AccountPrivacyConfig.of(
                             AccountGdprConfig.builder()
                                     .enabled(true)
-                                    .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                                    .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                                     .build(),
                             null,
                             null,

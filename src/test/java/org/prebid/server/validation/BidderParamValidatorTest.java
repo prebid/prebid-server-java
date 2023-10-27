@@ -14,7 +14,7 @@ import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
-import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
+import org.prebid.server.proto.openrtb.ext.request.audiencenetwork.ExtImpAudienceNetwork;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
@@ -95,13 +95,13 @@ public class BidderParamValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturnValidationMessagesWhenRubiconImpExtIsOk() {
+    public void validateShouldNotReturnValidationMessagesWhenRubiconImpExtIsOkIgnoringCase() {
         // given
         final ExtImpRubicon ext = ExtImpRubicon.builder().accountId(1).siteId(2).zoneId(3).build();
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when
-        final Set<String> messages = bidderParamValidator.validate(RUBICON, node);
+        final Set<String> messages = bidderParamValidator.validate("rUBIcon", node);
 
         // then
         assertThat(messages).isEmpty();
@@ -179,7 +179,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenSovrnImpExtIsOk() {
         // given
-        final ExtImpSovrn ext = ExtImpSovrn.of("tag", null, null);
+        final ExtImpSovrn ext = ExtImpSovrn.of("tag", null, null, null);
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
@@ -231,7 +231,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenFacebookImpExtIsOk() {
         // given
-        final ExtImpFacebook ext = ExtImpFacebook.of("placementId", "publisherId");
+        final ExtImpAudienceNetwork ext = ExtImpAudienceNetwork.of("placementId", "publisherId");
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
@@ -389,6 +389,7 @@ public class BidderParamValidatorTest extends VertxTest {
                 true,
                 "https://endpoint.com",
                 aliasOf,
+                null,
                 null,
                 null,
                 null,

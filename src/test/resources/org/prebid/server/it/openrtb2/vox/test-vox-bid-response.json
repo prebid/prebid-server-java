@@ -1,0 +1,19 @@
+{
+  "id": "tid",
+  "seatbid": [
+    {
+      "bid": [{
+        "crid": "24080",
+        "adid": "2068416",
+        "cid": "8048",
+        "id": "bid_id",
+        "impid": "imp_id",
+        "price": 3.1415,
+        "adm": "<html><h1>Hi, there</h1></html>",
+        "mtype": 1
+      }],
+      "type": "banner"
+    }
+  ],
+  "cur": "USD"
+}

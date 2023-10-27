@@ -8,11 +8,11 @@ import org.prebid.server.activity.infrastructure.creator.privacy.PrivacyModuleCr
 import org.prebid.server.activity.infrastructure.privacy.AndPrivacyModules;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
+import org.prebid.server.activity.infrastructure.privacy.PrivacySection;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatModule;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.settings.model.activity.privacy.AccountUSNatModuleConfig;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -21,8 +21,8 @@ import java.util.stream.Collectors;
 public class USNatModuleCreator implements PrivacyModuleCreator {
 
     private static final Set<Integer> ALLOWED_SECTIONS_IDS =
-            Arrays.stream(USNatSection.values())
-                    .map(USNatSection::sectionId)
+            PrivacySection.US_PRIVACY_SECTIONS.stream()
+                    .map(PrivacySection::sectionId)
                     .collect(Collectors.toSet());
 
     private final USNatGppReaderFactory gppReaderFactory;
