@@ -24,7 +24,7 @@ import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
 import org.prebid.server.settings.service.S3PeriodicRefreshService;
-import org.prebid.server.spring.config.database.DatabaseConfiguration
+import org.prebid.server.spring.config.database.DatabaseConfiguration;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.jdbc.JdbcClient;
 import org.springframework.beans.factory.annotation.Autowired;
