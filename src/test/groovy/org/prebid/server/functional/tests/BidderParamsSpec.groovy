@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
@@ -17,20 +18,27 @@ import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.vtrack.VtrackRequest
 import org.prebid.server.functional.model.request.vtrack.xml.Vast
+import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
+import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.CompressionType.GZIP
 import static org.prebid.server.functional.model.bidder.CompressionType.NONE
+import static org.prebid.server.functional.model.request.auction.Asset.titleAsset
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
+import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
+import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
+import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 import static org.prebid.server.functional.util.HttpUtil.CONTENT_ENCODING_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
@@ -54,9 +62,10 @@ class BidderParamsSpec extends BaseSpec {
 
         where:
         adapterDefault | generic | adapterConfig
-        "true"         | "true"  | ["adapter-defaults.enabled"   : adapterDefault,
-                                    "adapters.facebook.enabled"  : "false",
-                                    "adapters.generic.enabled"   : generic]
+        "true"         | "true"  | ["adapter-defaults.enabled"        : adapterDefault,
+                                    "adapters.audiencenetwork.enabled": "false",
+                                    "adapters.generic.enabled"        : generic]
+
         "false"        | "true"  | ["adapter-defaults.enabled": adapterDefault,
                                     "adapters.generic.enabled": generic]
     }
@@ -78,9 +87,9 @@ class BidderParamsSpec extends BaseSpec {
         adapterDefault | generic | adapterConfig
         "false"        | "false" | ["adapter-defaults.enabled": adapterDefault,
                                     "adapters.generic.enabled": generic]
-        "true"         | "false" | ["adapter-defaults.enabled"   : adapterDefault,
-                                    "adapters.facebook.enabled"  : "false",
-                                    "adapters.generic.enabled"   : generic]
+        "true"         | "false" | ["adapter-defaults.enabled"        : adapterDefault,
+                                    "adapters.audiencenetwork.enabled": "false",
+                                    "adapters.generic.enabled"        : generic]
     }
 
     def "PBS should modify vast xml when adapter-defaults.modifying-vast-xml-allowed = #adapterDefault and BIDDER.modifying-vast-xml-allowed = #generic"() {
@@ -510,6 +519,66 @@ class BidderParamsSpec extends BaseSpec {
         assert !response.seatbid.isEmpty()
     }
 
+    def "PBS auction should reject the bidder with media-type that is not supported by DOOH configuration with proper warning"() {
+        given: "PBS service with configuration for dooh media-types"
+        def pbsService = pbsServiceFactory.getService(
+                ["auction.filter-imp-media-type.enabled"      : "true",
+                 "adapters.generic.meta-info.dooh-media-types": mediaType])
+
+        when: "Requesting PBS auction"
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain proper warning"
+        assert bidResponse.ext?.warnings[ErrorType.GENERIC]?.message.contains("Bid request contains 0 impressions after filtering.")
+
+        and: "Bid response shouldn't contain any seatbid"
+        assert !bidResponse.seatbid
+
+        and: "Should't send any bidder request"
+        assert !bidder.getBidderRequests(bidRequest.id)
+
+        where:
+        mediaType                       | bidRequest
+        VIDEO.value                     | BidRequest.getDefaultBidRequest(DOOH)
+        NATIVE.value                    | BidRequest.getDefaultBidRequest(DOOH)
+        AUDIO.value                     | BidRequest.getDefaultBidRequest(DOOH)
+        BANNER.value                    | BidRequest.getDefaultVideoRequest(DOOH)
+        "${BANNER}, ${VIDEO}" as String | BidRequest.getDefaultBidRequest(DOOH).tap { imp[0] = Imp.getDefaultImpression(NATIVE) }
+    }
+
+    def "PBS auction should reject only imps with media-type that is not supported by DOOH configuration with proper warning"() {
+        given: "PBS service with configuration for dooh media-types"
+        def pbsService = pbsServiceFactory.getService(
+                ["auction.filter-imp-media-type.enabled"      : "true",
+                 "adapters.generic.meta-info.dooh-media-types": mediaType.value])
+
+        and: "Default bid response with adm and nurl"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].adm = new Adm(assets: [titleAsset])
+            seatbid[0].bid[0].nurl = PBSUtils.randomString
+        }
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "Requesting PBS auction"
+        def response = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain proper warning"
+        assert response.ext?.warnings[ErrorType.GENERIC]?.message ==
+                ["Imp ${bidRequest.imp[1].id} does not have a supported media type and has been removed from the request for this bidder." ]
+
+        and: "Bid response should contain seatbid"
+        assert response.seatbid
+
+        and: "Should send bidder request with only proper imp"
+        assert bidder.getBidderRequest(bidRequest.id).imp.id == [bidRequest.imp.first().id]
+
+        where:
+        mediaType | bidRequest
+        BANNER    | BidRequest.getDefaultBidRequest(DOOH).tap { imp << Imp.getDefaultImpression(VIDEO) }
+        VIDEO     | BidRequest.getDefaultVideoRequest(DOOH).tap { imp << Imp.getDefaultImpression(NATIVE) }
+        AUDIO     | BidRequest.getDefaultAudioRequest(DOOH).tap { imp << Imp.getDefaultImpression(NATIVE) }
+    }
+
     def "PBS should return empty seatBit when filter-imp-media-type = true, request.imp doesn't contain supported media type"() {
         given: "Pbs config"
         def pbsService = pbsServiceFactory.getService(
@@ -576,7 +645,7 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bidder request should contain header Content-Encoding = gzip"
         assert response.ext?.debug?.httpcalls?.get(GENERIC.value)?.requestHeaders?.first()
-                       ?.get(CONTENT_ENCODING_HEADER)?.first() == compressionType
+                ?.get(CONTENT_ENCODING_HEADER)?.first() == compressionType
     }
 
     def "PBS should send request to bidder without header Content-Encoding when adapters.BIDDER.endpoint-compression = none"() {
@@ -592,7 +661,7 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Bidder request should not contain header Content-Encoding"
         assert !response.ext?.debug?.httpcalls?.get(GENERIC.value)?.requestHeaders?.first()
-                        ?.get(CONTENT_ENCODING_HEADER)
+                ?.get(CONTENT_ENCODING_HEADER)
     }
 
     def "PBS should not treat reserved imp[].ext.tid object as a bidder"() {

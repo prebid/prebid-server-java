@@ -9,6 +9,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.DataObject;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.EventTracker;
 import com.iab.openrtb.request.Format;
@@ -74,6 +75,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -171,13 +173,25 @@ public class RequestValidator {
                 validateImp(bidRequest.getImp().get(index), aliases, index, warnings);
             }
 
-            if (bidRequest.getSite() == null && bidRequest.getApp() == null) {
-                throw new ValidationException("request.site or request.app must be defined");
+            final List<String> channels = new ArrayList<>();
+            Optional.ofNullable(bidRequest.getSite()).ifPresent(ignored -> channels.add("request.site"));
+            Optional.ofNullable(bidRequest.getDooh()).ifPresent(ignored -> channels.add("request.dooh"));
+            Optional.ofNullable(bidRequest.getApp()).ifPresent(ignored -> channels.add("request.app"));
+
+            if (channels.size() == 0) {
+                throw new ValidationException(
+                        "One of request.site or request.app or request.dooh must be defined");
+            } else if (channels.size() > 1) {
+                throw new ValidationException(String.join(" and ", channels) + " are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
             }
 
-            // if site and app present site will be removed
-            if (bidRequest.getApp() == null) {
+            if (bidRequest.getSite() != null) {
                 validateSite(bidRequest.getSite());
+            }
+
+            if (bidRequest.getDooh() != null) {
+                validateDooh(bidRequest.getDooh());
             }
 
             validateDevice(bidRequest.getDevice());
@@ -529,6 +543,13 @@ public class RequestValidator {
                     throw new ValidationException("request.site.ext.amp must be either 1, 0, or undefined");
                 }
             }
+        }
+    }
+
+    private void validateDooh(Dooh dooh) throws ValidationException {
+        if (dooh.getId() == null && CollectionUtils.isEmpty(dooh.getVenuetype())) {
+            throw new ValidationException(
+                    "request.dooh should include at least one of request.dooh.id or request.dooh.venuetype.");
         }
     }
 

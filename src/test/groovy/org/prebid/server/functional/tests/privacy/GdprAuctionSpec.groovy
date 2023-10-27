@@ -4,6 +4,8 @@ import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
@@ -247,8 +249,13 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
     def "PBS auction should process request and cache correct vendorList file with proper consent.tcfPolicyVersion parameter"() {
         given: "Test start time"
-        // 5000 sec due to container starts match more earlier that this test run
-        def startTime = Instant.now().minusSeconds(5000)
+        def startTime = Instant.now()
+
+        and: "Create new container"
+        def serverContainer = new PrebidServerContainer(GDPR_VENDOR_LIST_CONFIG +
+                ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
+        serverContainer.start()
+        def privacyPbsService = new PrebidServerService(serverContainer)
 
         and: "Tcf consent setup"
         def tcfConsent = new TcfConsent.Builder()
@@ -276,6 +283,9 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         and: "Logs should contain proper vendor list version"
         def logs = privacyPbsService.getLogsByTime(startTime)
         assert getLogsByText(logs, "Created new TCF 2 vendor list for version ${tcfPolicyVersion.vendorListVersion}")
+
+        cleanup: "Stop container with default request"
+        serverContainer.stop()
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]

@@ -32,6 +32,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -85,6 +86,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final HttpInteractionLogger httpInteractionLogger;
     private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
+    private final double logSamplingRate;
 
     public AmpHandler(AmpRequestFactory ampRequestFactory,
                       ExchangeService exchangeService,
@@ -96,7 +98,8 @@ public class AmpHandler implements Handler<RoutingContext> {
                       AmpResponsePostProcessor ampResponsePostProcessor,
                       HttpInteractionLogger httpInteractionLogger,
                       PrebidVersionProvider prebidVersionProvider,
-                      JacksonMapper mapper) {
+                      JacksonMapper mapper,
+                      double logSamplingRate) {
 
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
@@ -109,6 +112,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
+        this.logSamplingRate = logSamplingRate;
     }
 
     @Override
@@ -321,6 +325,14 @@ public class AmpHandler implements Handler<RoutingContext> {
                 errorMessages = Collections.singletonList(message);
                 status = HttpResponseStatus.FORBIDDEN;
                 body = message;
+            } else if (exception instanceof InvalidAccountConfigException) {
+                metricRequestStatus = MetricName.bad_requests;
+                final String message = exception.getMessage();
+                conditionalLogger.error(message, logSamplingRate);
+
+                errorMessages = Collections.singletonList(message);
+                status = HttpResponseStatus.BAD_REQUEST;
+                body = "Invalid account configuration: " + message;
             } else {
                 final String message = exception.getMessage();
 

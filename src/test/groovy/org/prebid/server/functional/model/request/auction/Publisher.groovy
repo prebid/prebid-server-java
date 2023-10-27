@@ -17,4 +17,12 @@ class Publisher {
             id = PBSUtils.randomNumber.toString()
         }
     }
+
+    static Publisher getFPDPublisher() {
+        new Publisher().tap {
+            id = PBSUtils.randomNumber.toString()
+            name = PBSUtils.randomString
+            domain = PBSUtils.randomString
+        }
+    }
 }

@@ -54,12 +54,12 @@ import static org.assertj.core.groups.Tuple.tuple;
 
 public class AdnuntiusBidderTest extends VertxTest {
 
-    private AdnuntiusBidder bidder;
+    private AdnuntiusBidder target;
 
     @Before
     public void setUp() {
         final Clock clock = Clock.system(ZoneId.of("UTC+05:00"));
-        bidder = new AdnuntiusBidder("https://test.domain.dm/uri", clock, jacksonMapper);
+        target = new AdnuntiusBidder("https://test.domain.dm/uri", clock, jacksonMapper);
     }
 
     @Test
@@ -74,7 +74,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()), givenImp(imp -> imp.banner(null)));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(0);
@@ -89,7 +89,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(0);
@@ -104,7 +104,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(imp -> imp.banner(Banner.builder().w(150).h(200).build())));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(0);
@@ -123,7 +123,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                         List.of(Format.builder().w(150).h(200).build())).build())));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(0);
@@ -142,7 +142,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                         List.of(Format.builder().build())).build())));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(0);
@@ -163,7 +163,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(ExtImpAdnuntius.of("auId2", "network", null), identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(2)
@@ -183,7 +183,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(ExtImpAdnuntius.of("auId", null, null), imp -> imp.id("impId")));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -201,7 +201,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(ExtImpAdnuntius.of(null, "network", null), identity()), givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).extracting(HttpRequest::getPayload)
@@ -219,7 +219,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -241,7 +241,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(ExtImpAdnuntius.of(null, "network", null), identity()), givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).extracting(HttpRequest::getPayload)
@@ -259,7 +259,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(identity()), givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final String expectedUrl = givenExpectedUrl(null, null);
@@ -278,7 +278,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(identity()), givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final String expectedUrl = givenExpectedUrl(null, "consent");
@@ -297,7 +297,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(identity()), givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final String expectedUrl = givenExpectedUrl(1, null);
@@ -318,7 +318,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(identity()), givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final String expectedUrl = givenExpectedUrl(gdpr, consent);
@@ -336,7 +336,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final String expectedUrl = givenExpectedUrl(null);
@@ -355,7 +355,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(ExtImpAdnuntius.of(null, "network", noCookies), identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final String expectedUrl = givenExpectedUrl(noCookies);
@@ -374,7 +374,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(ExtImpAdnuntius.of(null, "network", noCookies), identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final String expectedUrl = givenExpectedUrl(noCookies);
@@ -393,7 +393,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final String expectedUrl = givenExpectedUrl(null);
@@ -413,7 +413,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final String expectedUrl = givenExpectedUrl(noCookies);
@@ -433,7 +433,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
 
         // when
-        final Result<List<HttpRequest<AdnuntiusRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final String expectedUrl = givenExpectedUrl(noCookies);
@@ -449,7 +449,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall("Incorrect body");
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -466,7 +466,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall("null");
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -479,7 +479,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall("{}");
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -492,7 +492,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall();
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -506,7 +506,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -525,7 +525,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()), givenImp(identity()));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getValue()).extracting(BidderBid::getBidCurrency)
@@ -543,7 +543,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()), givenImp(identity()));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -561,7 +561,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()), givenImp(identity()));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -584,7 +584,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(imp -> imp.id("impId")));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1).allSatisfy(bidderBid -> {
@@ -618,7 +618,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();

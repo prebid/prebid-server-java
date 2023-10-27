@@ -7,7 +7,6 @@
         "mimes": [
           "video/mp4"
         ],
-        "minduration": 30,
         "maxduration": 30,
         "protocols": [
           2,
@@ -18,6 +17,7 @@
       },
       "ext": {
         "sovrn": {
+          "adunitcode": "sovrn_auc",
           "tagid": "tag_id"
         }
       }

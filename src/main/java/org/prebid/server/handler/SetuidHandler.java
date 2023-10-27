@@ -36,6 +36,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.exception.UnavailableForLegalReasonsException;
 import org.prebid.server.cookie.model.UidsCookieUpdateResult;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -341,6 +342,10 @@ public class SetuidHandler implements Handler<RoutingContext> {
         } else if (error instanceof UnavailableForLegalReasonsException) {
             status = HttpResponseStatus.valueOf(451);
             body = "Unavailable For Legal Reasons.";
+        } else if (error instanceof InvalidAccountConfigException) {
+            metrics.updateUserSyncBadRequestMetric();
+            status = HttpResponseStatus.BAD_REQUEST;
+            body = "Invalid account configuration: " + message;
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
             body = "Unexpected setuid processing error: " + message;

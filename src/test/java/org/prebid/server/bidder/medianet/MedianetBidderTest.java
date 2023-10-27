@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -29,12 +28,7 @@ public class MedianetBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.media.net?src=external.prebidserver.com";
 
-    private MedianetBidder medianetBidder;
-
-    @Before
-    public void setup() {
-        medianetBidder = new MedianetBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final MedianetBidder target = new MedianetBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -49,7 +43,7 @@ public class MedianetBidderTest extends VertxTest {
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result;
-        result = medianetBidder.makeHttpRequests(bidRequest);
+        result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -64,7 +58,7 @@ public class MedianetBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = sampleHttpCall(givenBidRequest(), "invalid response");
 
         // when
-        final Result<List<BidderBid>> result = medianetBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -79,7 +73,7 @@ public class MedianetBidderTest extends VertxTest {
         httpCall = sampleHttpCall(givenBidRequest(), mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = medianetBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -93,7 +87,7 @@ public class MedianetBidderTest extends VertxTest {
         httpCall = sampleHttpCall(null, mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = medianetBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -108,7 +102,7 @@ public class MedianetBidderTest extends VertxTest {
                 mapper.writeValueAsString(sampleBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = medianetBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

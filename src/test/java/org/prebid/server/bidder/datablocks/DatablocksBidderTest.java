@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -33,14 +32,9 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class DatablocksBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_TEMPLATE = "https://{{Host}}/{{SourceId}}";
+    private static final String ENDPOINT_TEMPLATE = "https://host.host/{{SourceId}}";
 
-    private DatablocksBidder datablocksBidder;
-
-    @Before
-    public void setUp() {
-        datablocksBidder = new DatablocksBidder(ENDPOINT_TEMPLATE, jacksonMapper);
-    }
+    private final DatablocksBidder target = new DatablocksBidder(ENDPOINT_TEMPLATE, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -53,7 +47,7 @@ public class DatablocksBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(mapper.createArrayNode());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = datablocksBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -64,10 +58,10 @@ public class DatablocksBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenSourceIdIsNull() {
         // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpDatablocks.of(null, "host"));
+        final BidRequest bidRequest = givenBidRequest(ExtImpDatablocks.of(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = datablocksBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -78,10 +72,10 @@ public class DatablocksBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorWhenSourceIdIsLessThanOne() {
         // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpDatablocks.of(0, "host"));
+        final BidRequest bidRequest = givenBidRequest(ExtImpDatablocks.of(0));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = datablocksBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -90,40 +84,12 @@ public class DatablocksBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorWhenHostIsNull() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpDatablocks.of(2, null));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = datablocksBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid/Missing Host"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorWhenHostIsBlank() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpDatablocks.of(2, "  "));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = datablocksBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badInput("Invalid/Missing Host"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldNotModifyIncomingRequestAndSetExpectedHttpRequestUri() {
         // given
-        final BidRequest bidRequest = givenBidRequest(ExtImpDatablocks.of(2, "host"));
+        final BidRequest bidRequest = givenBidRequest(ExtImpDatablocks.of(2));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = datablocksBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -132,25 +98,25 @@ public class DatablocksBidderTest extends VertxTest {
                 .containsOnly(bidRequest);
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://host/2");
+                .containsOnly("https://host.host/2");
     }
 
     @Test
     public void makeHttpRequestsShouldMakeOneHttpRequestPerEachImpExtWithReplacedImps() {
         // given
         final Imp firstImp = Imp.builder().id("imp1")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDatablocks.of(2, "host")))).build();
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDatablocks.of(2)))).build();
         final Imp secondImp = Imp.builder().id("imp2")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDatablocks.of(3, "host1")))).build();
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDatablocks.of(3)))).build();
         final Imp thirdImp = Imp.builder().id("imp3")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDatablocks.of(2, "host")))).build();
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpDatablocks.of(2)))).build();
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(firstImp, secondImp, thirdImp))
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = datablocksBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -161,7 +127,7 @@ public class DatablocksBidderTest extends VertxTest {
                         BidRequest.builder().imp(singletonList(secondImp)).build());
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsOnly("https://host/2", "https://host1/3");
+                .containsOnly("https://host.host/2", "https://host.host/3");
     }
 
     @Test
@@ -170,7 +136,7 @@ public class DatablocksBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = datablocksBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -186,7 +152,7 @@ public class DatablocksBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = datablocksBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -200,7 +166,7 @@ public class DatablocksBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = datablocksBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -218,7 +184,7 @@ public class DatablocksBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = datablocksBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -240,7 +206,7 @@ public class DatablocksBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = datablocksBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -262,7 +228,7 @@ public class DatablocksBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = datablocksBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

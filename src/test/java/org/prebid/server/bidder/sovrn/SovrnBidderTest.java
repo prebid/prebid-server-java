@@ -13,7 +13,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -43,12 +42,7 @@ public class SovrnBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://test/auction";
 
-    private SovrnBidder sovrnBidder;
-
-    @Before
-    public void setUp() {
-        sovrnBidder = new SovrnBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final SovrnBidder target = new SovrnBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsVideoWithoutProtocols() {
@@ -57,7 +51,7 @@ public class SovrnBidderTest extends VertxTest {
                 .video(Video.builder().protocols(null).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing required video parameter"));
@@ -68,17 +62,16 @@ public class SovrnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMaxAndMinDurationZero() {
+    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMaxDurationZero() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .video(Video.builder()
                         .mimes(List.of())
                         .maxduration(0)
-                        .minduration(0)
                         .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing required video parameter"));
@@ -89,17 +82,16 @@ public class SovrnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMaxAndMinDurationIsEmpty() {
+    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMaxDurationEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .video(Video.builder()
                         .mimes(List.of())
                         .maxduration(null)
-                        .minduration(null)
                         .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing required video parameter"));
@@ -107,6 +99,50 @@ public class SovrnBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMinDurationZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .video(Video.builder()
+                        .mimes(List.of())
+                        .maxduration(10)
+                        .minduration(0)
+                        .protocols(List.of())
+                        .build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .isNotEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMinDurationEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .video(Video.builder()
+                        .mimes(List.of())
+                        .maxduration(10)
+                        .minduration(null)
+                        .protocols(List.of())
+                        .build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .isNotEmpty();
     }
 
     @Test
@@ -115,15 +151,73 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
                 .extracting(HttpRequest::getBody)
                 .extracting(SovrnBidderTest::mappedToBidRequest)
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBidfloor, Imp::getTagid)
-                .containsExactly(tuple(BigDecimal.TEN, "tagid"));
+                .extracting(Imp::getBidfloor, Imp::getTagid, e -> e.getExt().get("adunitcode"))
+                .containsExactly(tuple(BigDecimal.TEN, "tagid", mapper.valueToTree("sovrn_auc")));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetAdUnitCodeFromExtIfPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(SovrnBidderTest::mappedToBidRequest)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(e -> e.get("adunitcode"))
+                .containsExactly(mapper.valueToTree("sovrn_auc"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetAdUnitCodeFromExtIfNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .id("impId")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "legacyTagId", null, null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(SovrnBidderTest::mappedToBidRequest)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(e -> e.get("adunitcode"))
+                .containsOnlyNulls();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetAdUnitCodeFromExtIfCorrupted() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .id("impId")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "legacyTagId", null, " ")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getBody)
+                .extracting(SovrnBidderTest::mappedToBidRequest)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(e -> e.get("adunitcode"))
+                .containsOnlyNulls();
     }
 
     @Test
@@ -137,7 +231,7 @@ public class SovrnBidderTest extends VertxTest {
                 .bidfloor(BigDecimal.ZERO));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -154,7 +248,7 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -176,7 +270,7 @@ public class SovrnBidderTest extends VertxTest {
                 .bidfloor(BigDecimal.ONE));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -202,7 +296,7 @@ public class SovrnBidderTest extends VertxTest {
                         .build()), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -225,7 +319,7 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -246,10 +340,10 @@ public class SovrnBidderTest extends VertxTest {
                         .w(200)
                         .h(300)
                         .build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "legacyTagId", null)))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "legacyTagId", null, null)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -273,7 +367,7 @@ public class SovrnBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1);
@@ -290,7 +384,7 @@ public class SovrnBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -301,10 +395,10 @@ public class SovrnBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestNotContainsBothTagidAndLegacyTagid() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "", null)))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of(null, "", null, null)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sovrnBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing required parameter 'tagid'"));
@@ -320,7 +414,7 @@ public class SovrnBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -342,7 +436,7 @@ public class SovrnBidderTest extends VertxTest {
                         .price(BigDecimal.ONE))));
 
         // when
-        final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         final BidderBid expectedBidderBid = BidderBid.of(
@@ -368,7 +462,7 @@ public class SovrnBidderTest extends VertxTest {
                         .adm("encoded+url+test"))));
 
         // when
-        final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).hasSize(1).element(0)
@@ -382,7 +476,7 @@ public class SovrnBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue())
@@ -396,7 +490,7 @@ public class SovrnBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("unknownId"))));
 
         // when
-        final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -415,7 +509,7 @@ public class SovrnBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = sovrnBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -451,7 +545,7 @@ public class SovrnBidderTest extends VertxTest {
                                 .protocols(singletonList(1))
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpSovrn.of("tagid",
-                                "legacyTagId", BigDecimal.TEN)))))
+                                "legacyTagId", BigDecimal.TEN, "sovrn_auc")))))
                 .build();
     }
 

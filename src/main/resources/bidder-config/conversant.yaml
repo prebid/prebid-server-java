@@ -14,6 +14,6 @@ adapters:
     usersync:
       cookie-family-name: conversant
       redirect:
-        url: https://prebid-match.dotomi.com/match/bounce/current?version=1&networkId=72582&rurl={{redirect_url}}
+        url: https://prebid-match.dotomi.com/match/bounce/current?version=1&networkId=72582&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&rurl={{redirect_url}}
         support-cors: false
     generate-bid-id: true

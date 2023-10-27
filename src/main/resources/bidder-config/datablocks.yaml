@@ -1,6 +1,6 @@
 adapters:
   datablocks:
-    endpoint: http://{{Host}}/openrtb2?sid={{SourceId}}
+    endpoint: http://pbserver.dblks.net/openrtb2?sid={{SourceId}}
     meta-info:
       maintainer-email: prebid@datablocks.net
       app-media-types:

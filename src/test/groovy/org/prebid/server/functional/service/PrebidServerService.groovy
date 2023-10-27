@@ -210,20 +210,19 @@ class PrebidServerService implements ObjectMapperWrapper {
     }
 
     @Step("[GET] /info/bidders")
-    List<String> sendInfoBiddersRequest(String enabledOnly) {
-        def response = given(requestSpecification).queryParam("enabledonly", enabledOnly)
-                                                  .get(INFO_BIDDERS_ENDPOINT)
-
-        checkResponseStatusCode(response)
-        decode(response.asString(), new TypeReference<List<String>>() {})
-    }
-
-    @Step("[GET] /info/bidders")
     String sendInfoBiddersRequest() {
         def response = given(requestSpecification).get(INFO_BIDDERS_ENDPOINT)
 
         checkResponseStatusCode(response)
         response.body().asString()
+    }
+
+    @Step("[GET] /info/bidders with params={queryParam}")
+    List<String> sendInfoBiddersRequest(Map<String, String> queryParam) {
+        def response = given(requestSpecification).queryParams(queryParam).get(INFO_BIDDERS_ENDPOINT)
+
+        checkResponseStatusCode(response)
+        decode(response.asString(), new TypeReference<List<String>>() {})
     }
 
     @Step("[GET] /info/bidders/{bidderName}")

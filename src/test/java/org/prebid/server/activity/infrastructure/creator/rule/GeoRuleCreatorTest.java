@@ -57,12 +57,12 @@ public class GeoRuleCreatorTest {
 
         // then
         final ActivityInvocationPayload payload1 = BidRequestActivityInvocationPayload.of(
-                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, "name"),
+                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, "NaMe"),
                 givenBidRequest("country1", "region", "2"));
         assertThat(rule.proceed(payload1)).isEqualTo(Rule.Result.DISALLOW);
 
         final ActivityInvocationPayload payload2 = BidRequestActivityInvocationPayload.of(
-                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, "name"),
+                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, "nAmE"),
                 givenBidRequest("country2", "region", "2"));
         assertThat(rule.proceed(payload2)).isEqualTo(Rule.Result.DISALLOW);
 

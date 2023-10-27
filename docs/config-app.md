@@ -88,7 +88,6 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.cache.expected-request-time-ms` - approximate value in milliseconds for Cache Service interacting.
 - `auction.cache.only-winning-bids` - if equals to `true` only the winning bids would be cached. Has lower priority than request-specific flags.
 - `auction.generate-bid-id` - whether to generate seatbid[].bid[].ext.prebid.bidid in the OpenRTB response.
-- `auction.generate-source-tid` - whether to generate bidrequest.source.tid in the OpenRTB request.
 - `auction.validations.banner-creative-max-size` - enables creative max size validation for banners. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.validations.secure-markup` - enables secure markup validation. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.host-schain-node` - defines global schain node that will be appended to `request.source.ext.schain.nodes` passed to bidders

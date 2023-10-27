@@ -1,0 +1,47 @@
+// For format details, see https://aka.ms/vscode-remote/devcontainer.json
+{
+	"name": "Java",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"args": {
+			// Update the VARIANT arg to pick a version of Java
+			"VARIANT": "17-jdk-bookworm",
+		}
+	},
+	"containerEnv": {
+		"PBS_GDPR_DEFAULT_VALUE": "0"
+	},
+	"runArgs": [ "--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined" ],
+
+	// Set *default* container specific settings.json values on container create.
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"terminal.integrated.profiles.linux": {
+					"bash": {
+						"path": "/usr/bin/bash"
+					}
+				},
+				"terminal.integrated.defaultProfile.linux": "bash",
+			},
+
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"ms-azuretools.vscode-docker",
+				"redhat.vscode-xml",
+				"redhat.vscode-yaml",
+				"eamodio.gitlens",
+				"vscjava.vscode-java-pack"
+			]
+		}
+	},
+	
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": [8000,8001,6060],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "mkdir ~/.ssh; ssh-keyscan github.com > ~/.ssh/known_hosts",
+
+	// Uncomment to connect as a non-root user. See https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "vscode"
+}

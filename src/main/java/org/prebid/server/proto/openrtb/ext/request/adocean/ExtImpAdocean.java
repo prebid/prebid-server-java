@@ -11,8 +11,8 @@ import lombok.Value;
 @Value
 public class ExtImpAdocean {
 
-    @JsonProperty("emiter")
-    String emitterDomain;
+    @JsonProperty("emitterPrefix")
+    String emitterPrefix;
 
     @JsonProperty("masterId")
     String masterId;

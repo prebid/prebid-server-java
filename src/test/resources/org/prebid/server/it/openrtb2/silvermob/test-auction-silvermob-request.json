@@ -10,7 +10,7 @@
       "ext": {
         "silvermob": {
           "zoneid": "testZoneId",
-          "host": "testHostValue"
+          "host": "eu"
         }
       },
       "tagid": "tag_id"

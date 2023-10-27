@@ -10,9 +10,8 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.netty.handler.codec.http.HttpHeaderValues;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -22,31 +21,30 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
+import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
+import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
+import static org.prebid.server.util.HttpUtil.headers;
+import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class PwbidBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://bid.pubwise.io/prebid";
 
-    private PwbidBidder pwbidBidder;
-
-    @Before
-    public void setUp() {
-        pwbidBidder = new PwbidBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final PwbidBidder target = new PwbidBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -56,35 +54,38 @@ public class PwbidBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnExpectedHttpRequest() {
         // given
-        final BidRequest bidRequest = BidRequest.builder().id("test-request-id").build();
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pwbidBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).allSatisfy(httpRequest -> {
-            assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
-            assertThat(httpRequest.getUri()).isEqualTo(ENDPOINT_URL);
-            assertThat(httpRequest.getHeaders())
-                    .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                    .containsExactly(
-                            tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
-                            tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
-            assertThat(httpRequest.getPayload()).isSameAs(bidRequest);
-            assertThat(httpRequest.getBody()).isEqualTo(jacksonMapper.encodeToBytes(bidRequest));
-        });
+        final MultiMap expectedHeaders = headers()
+                .set(CONTENT_TYPE_HEADER, APPLICATION_JSON_CONTENT_TYPE)
+                .set(ACCEPT_HEADER, APPLICATION_JSON_VALUE);
+        final Result<List<HttpRequest<BidRequest>>> expectedResults = Result.withValue(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(ENDPOINT_URL)
+                .headers(expectedHeaders)
+                .impIds(Set.of("IMP_ID"))
+                .body(jacksonMapper.encodeToBytes(bidRequest))
+                .payload(bidRequest)
+                .build());
+
+        assertThat(result.getValue()).usingRecursiveComparison().isEqualTo(expectedResults.getValue());
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("123"));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("IMP_ID"));
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = pwbidBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -96,17 +97,17 @@ public class PwbidBidderTest extends VertxTest {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
+                        .imp(singletonList(Imp.builder().video(Video.builder().build()).id("IMP_ID").build()))
                         .build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("IMP_ID"))));
 
         // when
-        final Result<List<BidderBid>> result = pwbidBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("IMP_ID").build(), video, "USD"));
     }
 
     @Test
@@ -114,17 +115,17 @@ public class PwbidBidderTest extends VertxTest {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().xNative(Native.builder().build()).id("123").build()))
+                        .imp(singletonList(Imp.builder().xNative(Native.builder().build()).id("IMP_ID").build()))
                         .build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("IMP_ID"))));
 
         // when
-        final Result<List<BidderBid>> result = pwbidBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("IMP_ID").build(), xNative, "USD"));
     }
 
     @Test
@@ -147,7 +148,7 @@ public class PwbidBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, response);
 
         // when
-        final Result<List<BidderBid>> result = pwbidBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -163,7 +164,7 @@ public class PwbidBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "{");
 
         // when
-        final Result<List<BidderBid>> result = pwbidBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).allSatisfy(bidderError -> {
@@ -177,13 +178,13 @@ public class PwbidBidderTest extends VertxTest {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
+                        .imp(singletonList(Imp.builder().id("IMP_ID").xNative(Native.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("125"))));
 
         // when
-        final Result<List<BidderBid>> result = pwbidBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
@@ -214,8 +215,7 @@ public class PwbidBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                        .id("123"))
+        return impCustomizer.apply(Imp.builder().id("IMP_ID"))
                 .banner(Banner.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
                 .build();

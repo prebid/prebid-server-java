@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -35,12 +34,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
 
     private static final String ENDPOINT_TEMPLATE = "http://{{Host}}/openrtb2?sid={{SourceId}}";
 
-    private ZeroclickfraudBidder zeroclickfraudBidder;
-
-    @Before
-    public void setUp() {
-        zeroclickfraudBidder = new ZeroclickfraudBidder(ENDPOINT_TEMPLATE, jacksonMapper);
-    }
+    private final ZeroclickfraudBidder target = new ZeroclickfraudBidder(ENDPOINT_TEMPLATE, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -53,7 +47,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(ExtImpZeroclickfraud.of(10, "host"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -67,7 +61,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(mapper.createArrayNode());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -81,7 +75,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(ExtImpZeroclickfraud.of(null, "host"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -95,7 +89,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(ExtImpZeroclickfraud.of(0, "host"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -109,7 +103,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(ExtImpZeroclickfraud.of(2, null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -123,7 +117,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(ExtImpZeroclickfraud.of(2, "  "));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -137,7 +131,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(ExtImpZeroclickfraud.of(2, "host"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -164,7 +158,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = zeroclickfraudBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -184,7 +178,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = zeroclickfraudBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -200,7 +194,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = zeroclickfraudBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -214,7 +208,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = zeroclickfraudBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -232,7 +226,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = zeroclickfraudBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -254,7 +248,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = zeroclickfraudBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -276,7 +270,7 @@ public class ZeroclickfraudBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = zeroclickfraudBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

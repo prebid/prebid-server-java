@@ -8,7 +8,6 @@
         "mimes": [
           "video/mp4"
         ],
-        "minduration": 30,
         "maxduration": 30,
         "protocols": [
           2,
@@ -21,8 +20,10 @@
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "tagid": "tag_id"
-        }
+          "tagid": "tag_id",
+          "adunitcode": "sovrn_auc"
+        },
+        "adunitcode": "sovrn_auc"
       }
     }
   ],

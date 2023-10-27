@@ -68,6 +68,7 @@ public class Ortb2ImplicitParametersResolver {
     public static final String WEB_CHANNEL = "web";
     public static final String APP_CHANNEL = "app";
     public static final String AMP_CHANNEL = "amp";
+    public static final String DOOH_CHANNEL = "dooh";
 
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
@@ -144,7 +145,9 @@ public class Ortb2ImplicitParametersResolver {
         final Device populatedDevice = populateDevice(device, bidRequest.getApp(), httpRequest);
 
         final Site site = bidRequest.getSite();
-        final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, httpRequest);
+        final Site populatedSite = bidRequest.getApp() != null || bidRequest.getDooh() != null
+                ? null
+                : populateSite(site, httpRequest);
 
         final List<Imp> populatedImps = populateImps(
                 bidRequest,
@@ -738,6 +741,8 @@ public class Ortb2ImplicitParametersResolver {
             return ExtRequestPrebidChannel.of(APP_CHANNEL);
         } else if (bidRequest.getSite() != null) {
             return ExtRequestPrebidChannel.of(WEB_CHANNEL);
+        } else if (bidRequest.getDooh() != null) {
+            return ExtRequestPrebidChannel.of(DOOH_CHANNEL);
         }
 
         return null;

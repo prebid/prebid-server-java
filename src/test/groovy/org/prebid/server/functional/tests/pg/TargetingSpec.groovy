@@ -53,6 +53,7 @@ import static org.prebid.server.functional.model.deals.lineitem.targeting.Target
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.REFERRER
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SITE_DOMAIN
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_UID
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
@@ -159,7 +160,7 @@ class TargetingSpec extends BasePgSpec {
 
     def "PBS should support line item targeting by string '#targetingType' targeting type"() {
         given: "Planner response"
-        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.getAccountId()).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
                                               .addTargeting(targetingType, MATCHES, stringTargetingValue)
                                               .build()
@@ -182,9 +183,10 @@ class TargetingSpec extends BasePgSpec {
             site.page = stringTargetingValue
         }
 
-        APP_BUNDLE     | BidRequest.defaultBidRequest.tap {
-            app = new App(id: PBSUtils.randomString,
-                    bundle: stringTargetingValue)
+        APP_BUNDLE     | BidRequest.getDefaultBidRequest(APP).tap {
+            app = App.defaultApp.tap {
+                bundle = stringTargetingValue
+            }
         }
 
         UFPD_BUYER_UID | BidRequest.defaultBidRequest.tap {

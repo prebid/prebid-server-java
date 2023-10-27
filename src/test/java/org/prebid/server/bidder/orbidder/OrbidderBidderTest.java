@@ -42,17 +42,17 @@ public class OrbidderBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private OrbidderBidder orbidderBidder;
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private CurrencyConversionService currencyConversionService;
 
+    private OrbidderBidder target;
+
     @Before
     public void setUp() {
-        orbidderBidder = new OrbidderBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
+        target = new OrbidderBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
     }
 
     @Test
@@ -67,7 +67,7 @@ public class OrbidderBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = orbidderBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -88,7 +88,7 @@ public class OrbidderBidderTest extends VertxTest {
                 impBuilder -> impBuilder.bidfloor(BigDecimal.TEN).bidfloorcur("USD"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = orbidderBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -105,7 +105,7 @@ public class OrbidderBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall("false");
 
         // when
-        final Result<List<BidderBid>> result = orbidderBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
@@ -119,7 +119,7 @@ public class OrbidderBidderTest extends VertxTest {
                 givenHttpCall(mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
-        final Result<List<BidderBid>> result = orbidderBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -139,7 +139,7 @@ public class OrbidderBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<BidderBid>> result = orbidderBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).isEmpty();

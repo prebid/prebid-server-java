@@ -25,12 +25,12 @@ public class SupplyChainResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldResolveSchainsWhenCatchAllPresent() {
+    public void shouldResolveSchainsWhenCatchAllPresentIgnoringCase() {
         // given
         final SupplyChainNode specificNodes = SupplyChainNode.of("asi", "sid", "rid", "name", "domain", 1, null);
         final SupplyChain specificSchain = SupplyChain.of(1, singletonList(specificNodes), "ver", null);
         final ExtRequestPrebidSchain schainForBidders = ExtRequestPrebidSchain.of(
-                asList("bidder1", "bidder2"), specificSchain);
+                asList("BIDder1", "bidder2"), specificSchain);
 
         final SupplyChainNode generalNodes = SupplyChainNode.of("t", null, "a", null, "ads", 0, null);
         final SupplyChain generalSchain = SupplyChain.of(123, singletonList(generalNodes), "t", null);
@@ -44,7 +44,7 @@ public class SupplyChainResolverTest extends VertxTest {
 
         // when and then
         assertThat(supplyChainResolver.resolveForBidder("bidder1", bidRequest)).isSameAs(specificSchain);
-        assertThat(supplyChainResolver.resolveForBidder("bidder2", bidRequest)).isSameAs(specificSchain);
+        assertThat(supplyChainResolver.resolveForBidder("bidDER2", bidRequest)).isSameAs(specificSchain);
         assertThat(supplyChainResolver.resolveForBidder("bidder3", bidRequest)).isSameAs(generalSchain);
     }
 

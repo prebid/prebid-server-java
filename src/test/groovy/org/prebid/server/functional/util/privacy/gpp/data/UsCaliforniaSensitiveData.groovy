@@ -16,15 +16,15 @@ class UsCaliforniaSensitiveData {
 
     static UsCaliforniaSensitiveData generateRandomSensitiveData() {
         new UsCaliforniaSensitiveData().tap {
-            idNumbers = PBSUtils.getRandomNumber(0, 3)
-            accountInfo = PBSUtils.getRandomNumber(0, 3)
-            geolocation = PBSUtils.getRandomNumber(0, 3)
-            racialEthnicOrigin = PBSUtils.getRandomNumber(0, 3)
-            communicationContents = PBSUtils.getRandomNumber(0, 3)
-            geneticId = PBSUtils.getRandomNumber(0, 3)
-            biometricId = PBSUtils.getRandomNumber(0, 3)
-            healthInfo = PBSUtils.getRandomNumber(0, 3)
-            orientation = PBSUtils.getRandomNumber(0, 3)
+            idNumbers = PBSUtils.getRandomNumber(0, 2)
+            accountInfo = PBSUtils.getRandomNumber(0, 2)
+            geolocation = PBSUtils.getRandomNumber(0, 2)
+            racialEthnicOrigin = PBSUtils.getRandomNumber(0, 2)
+            communicationContents = PBSUtils.getRandomNumber(0, 2)
+            geneticId = PBSUtils.getRandomNumber(0, 2)
+            biometricId = PBSUtils.getRandomNumber(0, 2)
+            healthInfo = PBSUtils.getRandomNumber(0, 2)
+            orientation = PBSUtils.getRandomNumber(0, 2)
         }
     }
 

@@ -14,7 +14,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -45,12 +44,7 @@ public class LunamediaBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://test/get?pubid=";
 
-    private LunamediaBidder lunamediaBidder;
-
-    @Before
-    public void setUp() {
-        lunamediaBidder = new LunamediaBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final LunamediaBidder target = new LunamediaBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -67,7 +61,7 @@ public class LunamediaBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -84,7 +78,7 @@ public class LunamediaBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), ExtImpLunamedia.of(null, null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("No pubid value provided"));
@@ -97,7 +91,7 @@ public class LunamediaBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), ExtImpLunamedia.of(" ", null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("No pubid value provided"));
@@ -111,7 +105,7 @@ public class LunamediaBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(Banner.builder().format(null).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -137,7 +131,7 @@ public class LunamediaBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(5)
@@ -155,7 +149,7 @@ public class LunamediaBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.xNative(Native.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -170,7 +164,7 @@ public class LunamediaBidderTest extends VertxTest {
                 Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).element(0).isNotNull()
@@ -194,7 +188,7 @@ public class LunamediaBidderTest extends VertxTest {
                 ExtImpLunamedia.of("pubid", null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -218,7 +212,7 @@ public class LunamediaBidderTest extends VertxTest {
                 ExtImpLunamedia.of("pubid", "setPlacement"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -243,7 +237,7 @@ public class LunamediaBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -268,7 +262,7 @@ public class LunamediaBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -293,7 +287,7 @@ public class LunamediaBidderTest extends VertxTest {
                 ExtImpLunamedia.of("pubid", null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -314,7 +308,7 @@ public class LunamediaBidderTest extends VertxTest {
                 ExtImpLunamedia.of("pubid", null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = lunamediaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -330,7 +324,7 @@ public class LunamediaBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = lunamediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -348,7 +342,7 @@ public class LunamediaBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = lunamediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -362,7 +356,7 @@ public class LunamediaBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = lunamediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -380,7 +374,7 @@ public class LunamediaBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = lunamediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -398,7 +392,7 @@ public class LunamediaBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = lunamediaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
