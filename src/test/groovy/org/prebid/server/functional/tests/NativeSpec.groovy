@@ -72,4 +72,25 @@ class NativeSpec extends BaseSpec {
         then: "Response should not contain error"
         assert !response.ext?.errors
     }
+
+    def "PBS should pass layout and adUnit to bidder request when field is populated"() {
+        given: "Bid request with native"
+        def layoutRandomNumber = PBSUtils.randomNumber
+        def adUnitRandomNumber = PBSUtils.randomNumber
+        def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
+            imp[0].nativeObj = new Native(request: new NativeRequest(
+                    assets: [new Asset(required: 1, id: 1, img: AssetImage.defaultAssetImage)],
+                    layout: layoutRandomNumber,
+                    adUnit: adUnitRandomNumber))
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain layout and adUnit field"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        def nativeRequest = decode(bidderRequest.imp[0].nativeObj.request, NativeRequest)
+        assert nativeRequest.layout == layoutRandomNumber
+        assert nativeRequest.adUnit == adUnitRandomNumber
+    }
 }

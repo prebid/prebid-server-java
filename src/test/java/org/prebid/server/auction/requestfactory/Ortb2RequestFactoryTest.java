@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -465,6 +466,29 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final String accountId = "accountId";
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder()
+                        .publisher(Publisher.builder().id(accountId).build())
+                        .build())
+                .build();
+
+        final Account account = Account.builder().id(accountId).build();
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
+
+        // when
+        final Future<Account> result = target.fetchAccount(
+                AuctionContext.builder().bidRequest(bidRequest).build());
+
+        // then
+        verify(applicationSettings).getAccountById(eq(accountId), any());
+
+        assertThat(result.result()).isSameAs(account);
+    }
+
+    @Test
+    public void fetchAccountShouldReturnAccountWithAccountIdTakenFromDoohPublisherId() {
+        // given
+        final String accountId = "accountId";
+        final BidRequest bidRequest = BidRequest.builder()
+                .dooh(Dooh.builder()
                         .publisher(Publisher.builder().id(accountId).build())
                         .build())
                 .build();

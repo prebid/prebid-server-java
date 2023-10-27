@@ -20,7 +20,6 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.between.ExtImpBetween;
 import org.prebid.server.proto.openrtb.ext.request.madvertise.ExtImpMadvertise;
 import org.prebid.server.util.HttpUtil;
 
@@ -277,7 +276,7 @@ public class MadvertiseBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().w(23).h(25).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpMadvertise.of("zoneId")))))
                 .build();
     }
 

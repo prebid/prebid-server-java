@@ -431,6 +431,10 @@ public class AmpRequestFactory {
             throw new InvalidRequestException("request.app must not exist in AMP stored requests.");
         }
 
+        if (bidRequest.getDooh() != null) {
+            throw new InvalidRequestException("request.dooh must not exist in AMP stored requests.");
+        }
+
         return bidRequest;
     }
 

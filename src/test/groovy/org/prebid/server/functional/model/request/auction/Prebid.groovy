@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
@@ -32,6 +33,7 @@ class Prebid {
     ExtPrebidFloors floors
     Map passThrough
     Events events
+    Boolean createTids
     Sdk sdk
 
     static class Channel {

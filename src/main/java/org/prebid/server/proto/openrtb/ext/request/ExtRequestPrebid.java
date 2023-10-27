@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -158,6 +159,9 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.passthrough
      */
     JsonNode passthrough;
+
+    @JsonProperty("createtids")
+    Boolean createTids;
 
     /**
      * Defines the contract for bidrequest.ext.prebid.sdk
