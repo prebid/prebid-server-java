@@ -118,13 +118,13 @@ public class GumgumBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp, ExtImpGumgum extImp) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
-        //Product parameter
-        final String product = extImp.getProduct();
 
+        final String product = extImp.getProduct();
         if (StringUtils.isNotEmpty(product)) {
             final ObjectNode productExt = mapper.mapper().createObjectNode().put(REQUEST_EXT_PRODUCT, product);
             impBuilder.ext(productExt);
         }
+        
         final Banner banner = imp.getBanner();
         if (banner != null) {
             final Banner resolvedBanner = resolveBanner(banner, extImp);
