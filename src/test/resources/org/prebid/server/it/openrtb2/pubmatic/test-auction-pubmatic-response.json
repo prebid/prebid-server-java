@@ -5,7 +5,7 @@
       "bid": [
         {
           "id": "bid_id",
-          "impid": "imp_id",
+          "impid": "test-imp-id",
           "price": 4.75,
           "adm": "adm9",
           "crid": "crid9",
@@ -30,7 +30,45 @@
       "pubmatic": "{{ pubmatic.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 0
+      "auctiontimestamp": 0,
+      "fledge": {
+        "auctionconfigs": [
+          {
+            "impid": "test-imp-id",
+            "bidder":"pubmatic",
+            "adapter":"pubmatic",
+            "config": {
+              "seller": "PUBMATIC_SELLER_CONSTANT_STRING",
+              "sellerTimeout": 123,
+              "decisionLogicUrl": "PUBMATIC_URL_CONSTANT_STRING",
+              "interestGroupBuyers": [
+                "somedomain1.com",
+                "somedomain2.com",
+                "somedomain3.com",
+                "somedomain4.com"
+              ],
+              "perBuyerSignals": {
+                "somedomain1.com": {
+                  "multiplier": 1,
+                  "win_reporting_id": "1234"
+                },
+                "somedomain2.com": {
+                  "multiplier": 2,
+                  "win_reporting_id": "2345"
+                },
+                "somedomain3.com": {
+                  "multiplier": 3,
+                  "win_reporting_id": "3456"
+                },
+                "somedomain4.com": {
+                  "multiplier": 4,
+                  "win_reporting_id": "4567"
+                }
+              }
+            }
+          }
+        ]
+      }
     },
     "tmaxrequest": 5000
   }
