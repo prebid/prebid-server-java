@@ -72,7 +72,7 @@ public class PgamSspBidder implements Bidder<BidRequest> {
     private BidRequest makeRequest(BidRequest request, Imp imp, PgamSspImpExt impExt) {
         final boolean hasPlacement = StringUtils.isNotBlank(impExt.getPlacementId());
         final boolean hasEndpoint = !hasPlacement && StringUtils.isNotBlank(impExt.getEndpointId());
-        final PgamSspImpExt modifiedImpExt = impExt.toBuilder()
+        final PgamSspImpExt modifiedImpExt = PgamSspImpExt.builder()
                 .placementId(hasPlacement ? impExt.getPlacementId() : null)
                 .endpointId(hasEndpoint ? impExt.getEndpointId() : null)
                 .type(hasPlacement ? PUBLISHER_IMP_EXT_TYPE : hasEndpoint ? NETWORK_IMP_EXT_TYPE : null)
