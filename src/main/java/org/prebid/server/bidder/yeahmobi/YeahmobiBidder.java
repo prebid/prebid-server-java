@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
@@ -22,7 +21,6 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yeahmobi.ExtImpYeahmobi;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -40,7 +38,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpYeahmobi>> EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
-    private static final String HOST_PLACEHOLDER = "{{Host}}";
+    private static final String HOST_MACRO = "{{Host}}";
     private static final String HOST_PATTERN = "gw-%s-bid.yeahtargeter.com";
 
     private final String endpointUrl;
@@ -78,7 +76,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String zoneId) {
         final String host = HOST_PATTERN.formatted(zoneId);
-        final String uri = endpointUrl.replace(HOST_PLACEHOLDER, host);
+        final String uri = endpointUrl.replace(HOST_MACRO, host);
 
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -145,24 +143,8 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid, impMap), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, BidderUtil.getBidType(bid, impMap), bidResponse.getCur()))
                 .toList();
     }
 
-    protected BidType getBidType(Bid bid, Map<String, Imp> impMap) {
-        return Optional.ofNullable(impMap.get(bid.getImpid()))
-                .map(imp -> {
-                    if (imp.getBanner() != null) {
-                        return BidType.banner;
-                    } else if (imp.getVideo() != null) {
-                        return BidType.video;
-                    } else if (imp.getXNative() != null) {
-                        return BidType.xNative;
-                    } else {
-                        return BidType.banner;
-                    }
-                })
-                .orElse(BidType.banner);
-
-    }
 }
