@@ -34,6 +34,7 @@ class Prebid {
     Map passThrough
     Events events
     Boolean createTids
+    Sdk sdk
 
     static class Channel {
 

@@ -30,6 +30,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 
 import java.io.IOException;
 import java.util.List;
@@ -370,8 +371,7 @@ public class GridBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
 
-        final ObjectNode expectedBidMeta = mapper.createObjectNode()
-                .set("demandsource", TextNode.valueOf("demandSource"));
+        final ExtBidPrebidMeta expectedBidMeta = ExtBidPrebidMeta.builder().demandSource("demandSource").build();
         final ObjectNode expectedBidExt = mapper.valueToTree(
                 ExtPrebid.of(ExtBidPrebid.builder().meta(expectedBidMeta).build(), null));
 

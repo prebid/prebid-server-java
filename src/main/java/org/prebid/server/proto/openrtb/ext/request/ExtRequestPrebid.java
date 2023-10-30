@@ -162,4 +162,10 @@ public class ExtRequestPrebid {
 
     @JsonProperty("createtids")
     Boolean createTids;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.sdk
+     */
+    ExtRequestPrebidSdk sdk;
+
 }
