@@ -8,7 +8,7 @@ import lombok.Value;
 import java.util.List;
 
 @Builder(toBuilder = true)
-@Value(staticConstructor = "of")
+@Value
 public class ExtBidPrebidMeta {
 
     @JsonProperty("adaptercode")
