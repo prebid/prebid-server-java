@@ -264,3 +264,4 @@ public class GumgumBidder implements Bidder<BidRequest> {
         return StringUtils.isNotBlank(bidAdm) ? bidAdm.replace("${AUCTION_PRICE}", String.valueOf(price)) : bidAdm;
     }
 }
+
