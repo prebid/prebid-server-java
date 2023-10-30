@@ -124,7 +124,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
             final ObjectNode productExt = mapper.mapper().createObjectNode().put(REQUEST_EXT_PRODUCT, product);
             impBuilder.ext(productExt);
         }
-        
+
         final Banner banner = imp.getBanner();
         if (banner != null) {
             final Banner resolvedBanner = resolveBanner(banner, extImp);
