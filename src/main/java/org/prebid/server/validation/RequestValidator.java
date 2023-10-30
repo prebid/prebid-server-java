@@ -327,7 +327,7 @@ public class RequestValidator {
 
         for (ExtRequestPrebidDataEidPermissions eidPermission : eidPermissions) {
             if (eidPermission == null) {
-                throw new ValidationException("request.ext.prebid.data.eidpermissions[] can't be null");
+                throw new ValidationException("request.ext.prebid.data.eidpermissions[i] can't be null");
             }
 
             validateEidPermissionSource(eidPermission.getSource());

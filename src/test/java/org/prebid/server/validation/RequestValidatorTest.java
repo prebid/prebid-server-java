@@ -1533,7 +1533,7 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.ext.prebid.data.eidpermissions[] can't be null");
+                .containsOnly("request.ext.prebid.data.eidpermissions[i] can't be null");
     }
 
     @Test
