@@ -11,11 +11,14 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -105,5 +108,23 @@ public class BidderUtil {
 
     public static boolean isNullOrZero(Integer value) {
         return value == null || value == 0;
+    }
+
+    public static BidType getBidType(Bid bid, Map<String, Imp> impIdToImpMap) {
+        return Optional.ofNullable(impIdToImpMap.get(bid.getImpid()))
+                .map(imp -> {
+                    if (imp.getBanner() != null) {
+                        return BidType.banner;
+                    } else if (imp.getVideo() != null) {
+                        return BidType.video;
+                    } else if (imp.getXNative() != null) {
+                        return BidType.xNative;
+                    } else if (imp.getAudio() != null) {
+                        return BidType.audio;
+                    } else {
+                        return BidType.banner;
+                    }
+                })
+                .orElse(BidType.banner);
     }
 }
