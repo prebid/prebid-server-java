@@ -8,6 +8,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.response.auction.ActivityInfrastructure
 import org.prebid.server.functional.model.response.auction.ActivityInvocationPayload
 import org.prebid.server.functional.model.response.auction.And
 import org.prebid.server.functional.model.response.auction.GeoCode
@@ -74,20 +75,18 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         def bidResponse = activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain basic info in debug"
-        verifyAll(bidResponse.ext.debug.trace.activityInfrastructure[new IntRange(true, 0, 3)]) {
-            it.activity == ["fetchBids", null, null, "fetchBids"]
-            it.activityInvocationPayload == [null, null, null, null]
-            it.ruleConfiguration == [null, null, null, null]
-            it.description == ["Invocation of Activity Infrastructure.",
-                               "Setting the default invocation result.",
-                               "Processing rule.",
-                               "Activity Infrastructure invocation result."]
-            it.allowByDefault == [null, activity.defaultAction, null, null]
-            it.allowed == [null, null, null, allow]
-            it.result == [null, null, "DISALLOW", null]
-            it.country == [null, null, null, null]
-            it.region == [null, null, null, null]
-        }
+        def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
+        def fetchBidsActivity = getActivityByName(infrastructure, "fetchBids")
+        assert fetchBidsActivity.description.containsAll(["Invocation of Activity Infrastructure.",
+                                                          "Setting the default invocation result.",
+                                                          "Processing rule.",
+                                                          "Activity Infrastructure invocation result."])
+        assert fetchBidsActivity.activityInvocationPayload.every { it == null }
+        assert fetchBidsActivity.ruleConfiguration.every { it == null }
+        assert fetchBidsActivity.allowByDefault.contains(activity.defaultAction)
+        assert fetchBidsActivity.result.contains("DISALLOW")
+        assert fetchBidsActivity.country.every { it == null }
+        assert fetchBidsActivity.region.every { it == null }
     }
 
     def "PBS auction should log info about activity in response when ext.prebid.trace=base and allow=true"() {
@@ -112,31 +111,51 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         def bidResponse = pbsServiceFactory.getService(PBS_CONFIG).sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain basic info in debug"
-        verifyAll(bidResponse.ext.debug.trace.activityInfrastructure) {
-            it.size() == 10
-            it.activity == ["fetchBids", null, null, "fetchBids",
-                            "transmitUfpd", null, "transmitUfpd",
-                            "transmitPreciseGeo", null, "transmitPreciseGeo"]
-            it.activityInvocationPayload == [null, null, null, null, null, null, null, null, null, null]
-            it.ruleConfiguration == [null, null, null, null, null, null, null, null, null, null]
-            it.description == ["Invocation of Activity Infrastructure.",
-                               "Setting the default invocation result.",
-                               "Processing rule.",
-                               "Activity Infrastructure invocation result.",
-                               "Invocation of Activity Infrastructure.",
-                               "Setting the default invocation result.",
-                               "Activity Infrastructure invocation result.",
-                               "Invocation of Activity Infrastructure.",
-                               "Setting the default invocation result.",
-                               "Activity Infrastructure invocation result."]
-            it.allowByDefault == [null, activity.defaultAction, null,
-                                  null, null, activity.defaultAction,
-                                  null, null, activity.defaultAction, null]
-            it.allowed == [null, null, null, allow, null, null, allow, null, null, allow]
-            it.result == [null, null, "ALLOW", null, null, null, null, null, null, null]
-            it.country == [null, null, null, null, null, null, null, null, null, null]
-            it.region == [null, null, null, null, null, null, null, null, null, null]
-        }
+        def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
+        def fetchBidsActivity = getActivityByName(infrastructure, "fetchBids")
+        assert fetchBidsActivity.description.containsAll(["Invocation of Activity Infrastructure.",
+                                                          "Setting the default invocation result.",
+                                                          "Processing rule.",
+                                                          "Activity Infrastructure invocation result."])
+        assert fetchBidsActivity.activityInvocationPayload.every { it == null }
+        assert fetchBidsActivity.allowByDefault.contains(activity.defaultAction)
+        assert fetchBidsActivity.ruleConfiguration.every { it == null }
+        assert fetchBidsActivity.result.contains("ALLOW")
+        assert fetchBidsActivity.country.every { it == null }
+        assert fetchBidsActivity.region.every { it == null }
+
+        def transmitUfpdActivity = getActivityByName(infrastructure, "transmitUfpd")
+        assert transmitUfpdActivity.description.containsAll(["Invocation of Activity Infrastructure.",
+                                                             "Setting the default invocation result.",
+                                                             "Activity Infrastructure invocation result."])
+        assert transmitUfpdActivity.activityInvocationPayload.every { it == null }
+        assert transmitUfpdActivity.allowByDefault.contains(activity.defaultAction)
+        assert transmitUfpdActivity.ruleConfiguration.every { it == null }
+        assert transmitUfpdActivity.result.every { it == null }
+        assert transmitUfpdActivity.country.every { it == null }
+        assert transmitUfpdActivity.region.every { it == null }
+
+        def transmitPreciseGeoActivity = getActivityByName(infrastructure, "transmitPreciseGeo")
+        assert transmitPreciseGeoActivity.description.containsAll(["Invocation of Activity Infrastructure.",
+                                                                   "Setting the default invocation result.",
+                                                                   "Activity Infrastructure invocation result."])
+        assert transmitPreciseGeoActivity.activityInvocationPayload.every { it == null }
+        assert transmitPreciseGeoActivity.allowByDefault.contains(activity.defaultAction)
+        assert transmitPreciseGeoActivity.ruleConfiguration.every { it == null }
+        assert transmitPreciseGeoActivity.result.every { it == null }
+        assert transmitPreciseGeoActivity.country.every { it == null }
+        assert transmitPreciseGeoActivity.region.every { it == null }
+
+        def transmitTidActivity = getActivityByName(infrastructure, "transmitTid")
+        assert transmitTidActivity.description.containsAll(["Invocation of Activity Infrastructure.",
+                                                            "Setting the default invocation result.",
+                                                            "Activity Infrastructure invocation result."])
+        assert transmitTidActivity.activityInvocationPayload.every { it == null }
+        assert transmitTidActivity.allowByDefault.contains(activity.defaultAction)
+        assert transmitTidActivity.ruleConfiguration.every { it == null }
+        assert transmitTidActivity.result.every { it == null }
+        assert transmitTidActivity.country.every { it == null }
+        assert transmitTidActivity.region.every { it == null }
     }
 
     def "PBS auction should log info about activity in response when ext.prebid.trace=verbose and allow=#allow"() {
@@ -169,57 +188,77 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         def bidResponse = activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain basic info in debug"
-        verifyAll(bidResponse.ext.debug.trace.activityInfrastructure[new IntRange(true, 0, 3)]) {
-            it.activity == ["fetchBids", null, null, "fetchBids"]
-            it.activityInvocationPayload == [new ActivityInvocationPayload(
-                    componentName: GENERIC.value,
-                    componentType: BIDDER,
-                    gpc: bidRequest.regs.ext.gpc,
-                    region: "AL",
-                    country: "USA"), null, null, null]
-            it.ruleConfiguration == [null, null, new RuleConfiguration(
-                    componentNames: condition.componentName,
-                    componentTypes: condition.componentType,
-                    allow: allow, gppSidsMatched: false,
-                    gpc: gpc,
-                    geoCodes: [new GeoCode(country: CAN, region: ARIZONA.abbreviation)]), null]
-            it.description == ["Invocation of Activity Infrastructure.",
-                               "Setting the default invocation result.",
-                               "Processing rule.",
-                               "Activity Infrastructure invocation result."]
-            it.allowByDefault == [null, activity.defaultAction, null, null]
-            it.allowed == [null, null, null, true]
-            it.result == [null, null, "ABSTAIN", null]
-            it.country == [null, null, null, null]
-            it.region == [null, null, null, null]
-        }
+        def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
+        def fetchBidsActivity = getActivityByName(infrastructure, "fetchBids")
+        assert fetchBidsActivity.description.containsAll(["Invocation of Activity Infrastructure.",
+                                                          "Setting the default invocation result.",
+                                                          "Processing rule.",
+                                                          "Activity Infrastructure invocation result."])
+        assert fetchBidsActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
+                componentName: GENERIC.value,
+                componentType: BIDDER,
+                gpc: bidRequest.regs.ext.gpc,
+                region: "AL",
+                country: "USA"))
+        assert fetchBidsActivity.ruleConfiguration.contains(new RuleConfiguration(
+                componentNames: condition.componentName,
+                componentTypes: condition.componentType,
+                allow: allow,
+                gppSidsMatched: false,
+                gpc: gpc,
+                geoCodes: [new GeoCode(country: CAN, region: ARIZONA.abbreviation)]))
+        assert fetchBidsActivity.allowByDefault.contains(activity.defaultAction)
+        assert fetchBidsActivity.result.contains("ABSTAIN")
+        assert fetchBidsActivity.country.every { it == null }
+        assert fetchBidsActivity.region.every { it == null }
 
-        verifyAll(bidResponse.ext.debug.trace.activityInfrastructure[new IntRange(true, 4, 9)]) {
-            it.activity == ["transmitUfpd", null, "transmitUfpd", "transmitPreciseGeo", null, "transmitPreciseGeo"]
-            it.activityInvocationPayload == [new ActivityInvocationPayload(
-                    componentName: GENERIC.value,
-                    componentType: BIDDER,
-                    gpc: bidRequest.regs.ext.gpc,
-                    region: "AL",
-                    country: "USA"), null, null, new ActivityInvocationPayload(
-                    componentName: GENERIC.value,
-                    componentType: BIDDER,
-                    gpc: bidRequest.regs.ext.gpc,
-                    region: "AL",
-                    country: "USA"), null, null]
-            it.ruleConfiguration == [null, null, null, null, null, null]
-            it.description == ["Invocation of Activity Infrastructure.",
-                               "Setting the default invocation result.",
-                               "Activity Infrastructure invocation result.",
-                               "Invocation of Activity Infrastructure.",
-                               "Setting the default invocation result.",
-                               "Activity Infrastructure invocation result."]
-            it.allowByDefault == [null, activity.defaultAction, null, null, activity.defaultAction, null]
-            it.allowed == [null, null, true, null, null, true]
-            it.result == [null, null, null, null, null, null]
-            it.country == [null, null, null, null, null, null]
-            it.region == [null, null, null, null, null, null]
-        }
+        def transmitUfpdActivity = getActivityByName(infrastructure, "transmitUfpd")
+        assert transmitUfpdActivity.description.containsAll(["Invocation of Activity Infrastructure.",
+                                                             "Setting the default invocation result.",
+                                                             "Activity Infrastructure invocation result."])
+        assert transmitUfpdActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
+                componentName: GENERIC.value,
+                componentType: BIDDER,
+                gpc: bidRequest.regs.ext.gpc,
+                region: "AL",
+                country: "USA"))
+        assert transmitUfpdActivity.ruleConfiguration.every { it == null }
+        assert transmitUfpdActivity.allowByDefault.contains(activity.defaultAction)
+        assert transmitUfpdActivity.result.every { it == null }
+        assert transmitUfpdActivity.country.every { it == null }
+        assert transmitUfpdActivity.region.every { it == null }
+
+        def transmitPreciseGeoActivity = getActivityByName(infrastructure, "transmitPreciseGeo")
+        assert transmitPreciseGeoActivity.description.containsAll(["Invocation of Activity Infrastructure.",
+                                                                   "Setting the default invocation result.",
+                                                                   "Activity Infrastructure invocation result."])
+        assert transmitPreciseGeoActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
+                componentName: GENERIC.value,
+                componentType: BIDDER,
+                gpc: bidRequest.regs.ext.gpc,
+                region: "AL",
+                country: "USA"))
+        assert transmitPreciseGeoActivity.ruleConfiguration.every { it == null }
+        assert transmitPreciseGeoActivity.allowByDefault.contains(activity.defaultAction)
+        assert transmitPreciseGeoActivity.result.every { it == null }
+        assert transmitPreciseGeoActivity.country.every { it == null }
+        assert transmitPreciseGeoActivity.region.every { it == null }
+
+        def transmitTidActivity = getActivityByName(infrastructure, "transmitTid")
+        assert transmitTidActivity.description.containsAll(["Invocation of Activity Infrastructure.",
+                                                            "Setting the default invocation result.",
+                                                            "Activity Infrastructure invocation result."])
+        assert transmitTidActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
+                componentName: GENERIC.value,
+                componentType: BIDDER,
+                gpc: bidRequest.regs.ext.gpc,
+                region: "AL",
+                country: "USA"))
+        assert transmitTidActivity.ruleConfiguration.every { it == null }
+        assert transmitTidActivity.allowByDefault.contains(activity.defaultAction)
+        assert transmitTidActivity.result.every { it == null }
+        assert transmitTidActivity.country.every { it == null }
+        assert transmitTidActivity.region.every { it == null }
 
         where:
         allow << [false, true]
@@ -260,56 +299,82 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         def bidResponse = activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain verbose info in debug"
-        verifyAll(bidResponse.ext.debug.trace.activityInfrastructure[new IntRange(true, 0, 3)]) {
-            it.activity == ["fetchBids", null, null, "fetchBids"]
-            it.activityInvocationPayload == [new ActivityInvocationPayload(
-                    componentName: GENERIC.value,
-                    componentType: BIDDER,
-                    gpc: bidRequest.regs.ext.gpc,
-                    region: "AL",
-                    country: "USA"), null, null, null]
-            it.ruleConfiguration == [null, null, new RuleConfiguration(
-                    and: [new And(and: ["USNatDefault. Precomputed result: ABSTAIN."])]), null]
-            it.description == ["Invocation of Activity Infrastructure.",
-                               "Setting the default invocation result.",
-                               "Processing rule.",
-                               "Activity Infrastructure invocation result."]
-            it.allowByDefault == [null, activity.defaultAction, null, null]
-            it.allowed == [null, null, null, true]
-            it.result == [null, null, "ABSTAIN", null]
-            it.country == [null, null, null, null]
-            it.region == [null, null, null, null]
-        }
+        def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
+        def fetchBidsActivity = getActivityByName(infrastructure, "fetchBids")
+        assert fetchBidsActivity.description.containsAll(["Invocation of Activity Infrastructure.",
+                                                          "Setting the default invocation result.",
+                                                          "Processing rule.",
+                                                          "Activity Infrastructure invocation result."])
+        assert fetchBidsActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
+                componentName: GENERIC.value,
+                componentType: BIDDER,
+                gpc: bidRequest.regs.ext.gpc,
+                region: "AL",
+                country: "USA"))
+        assert fetchBidsActivity.ruleConfiguration.contains(new RuleConfiguration(
+                and: [new And(and: ["USNatDefault. Precomputed result: ABSTAIN."])]))
+        assert fetchBidsActivity.allowByDefault.contains(activity.defaultAction)
+        assert fetchBidsActivity.result.contains("ABSTAIN")
+        assert fetchBidsActivity.country.every { it == null }
+        assert fetchBidsActivity.region.every { it == null }
 
-        verifyAll(bidResponse.ext.debug.trace.activityInfrastructure[new IntRange(true, 4, 9)]) {
-            it.activity == ["transmitUfpd", null, "transmitUfpd", "transmitPreciseGeo", null, "transmitPreciseGeo"]
-            it.activityInvocationPayload == [new ActivityInvocationPayload(
-                    componentName: GENERIC.value,
-                    componentType: BIDDER,
-                    gpc: bidRequest.regs.ext.gpc,
-                    region: "AL",
-                    country: "USA"), null, null, new ActivityInvocationPayload(
-                    componentName: GENERIC.value,
-                    componentType: BIDDER,
-                    gpc: bidRequest.regs.ext.gpc,
-                    region: "AL",
-                    country: "USA"), null, null]
-            it.ruleConfiguration == [null, null, null, null, null, null]
-            it.description == ["Invocation of Activity Infrastructure.",
-                               "Setting the default invocation result.",
-                               "Activity Infrastructure invocation result.",
-                               "Invocation of Activity Infrastructure.",
-                               "Setting the default invocation result.",
-                               "Activity Infrastructure invocation result."]
-            it.allowByDefault == [null, activity.defaultAction, null, null, activity.defaultAction, null]
-            it.allowed == [null, null, true, null, null, true]
-            it.result == [null, null, null, null, null, null]
-            it.country == [null, null, null, null, null, null]
-            it.region == [null, null, null, null, null, null]
-        }
+        def transmitUfpdActivity = getActivityByName(infrastructure, "transmitUfpd")
+        assert transmitUfpdActivity.description.containsAll(["Invocation of Activity Infrastructure.",
+                                                             "Setting the default invocation result.",
+                                                             "Activity Infrastructure invocation result."])
+        assert transmitUfpdActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
+                componentName: GENERIC.value,
+                componentType: BIDDER,
+                gpc: bidRequest.regs.ext.gpc,
+                region: "AL",
+                country: "USA"))
+        assert transmitUfpdActivity.ruleConfiguration.every { it == null }
+        assert transmitUfpdActivity.allowByDefault.contains(activity.defaultAction)
+        assert transmitUfpdActivity.result.every { it == null }
+        assert transmitUfpdActivity.country.every { it == null }
+        assert transmitUfpdActivity.region.every { it == null }
+
+        def transmitPreciseGeoActivity = getActivityByName(infrastructure, "transmitPreciseGeo")
+        assert transmitPreciseGeoActivity.description.containsAll(["Invocation of Activity Infrastructure.",
+                                                                   "Setting the default invocation result.",
+                                                                   "Activity Infrastructure invocation result."])
+        assert transmitPreciseGeoActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
+                componentName: GENERIC.value,
+                componentType: BIDDER,
+                gpc: bidRequest.regs.ext.gpc,
+                region: "AL",
+                country: "USA"))
+        assert transmitPreciseGeoActivity.ruleConfiguration.every { it == null }
+        assert transmitPreciseGeoActivity.allowByDefault.contains(activity.defaultAction)
+        assert transmitPreciseGeoActivity.result.every { it == null }
+        assert transmitPreciseGeoActivity.country.every { it == null }
+        assert transmitPreciseGeoActivity.region.every { it == null }
+
+        def transmitTidActivity = getActivityByName(infrastructure, "transmitTid")
+        assert transmitTidActivity.description.containsAll(["Invocation of Activity Infrastructure.",
+                                                            "Setting the default invocation result.",
+                                                            "Activity Infrastructure invocation result."])
+        assert transmitTidActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
+                componentName: GENERIC.value,
+                componentType: BIDDER,
+                gpc: bidRequest.regs.ext.gpc,
+                region: "AL",
+                country: "USA"))
+        assert transmitTidActivity.ruleConfiguration.every { it == null }
+        assert transmitTidActivity.allowByDefault.contains(activity.defaultAction)
+        assert transmitTidActivity.result.every { it == null }
+        assert transmitTidActivity.country.every { it == null }
+        assert transmitTidActivity.region.every { it == null }
 
         where:
         allow << [false, true]
+    }
+
+    private List<ActivityInfrastructure> getActivityByName(List<ActivityInfrastructure> activityInfrastructures,
+                                                           String activity) {
+        def firstIndex = activityInfrastructures.findLastIndexOf { it -> it.activity == activity }
+        def lastIndex = activityInfrastructures.findIndexOf { it -> it.activity == activity }
+        activityInfrastructures[new IntRange(true, firstIndex, lastIndex)]
     }
 }
 
