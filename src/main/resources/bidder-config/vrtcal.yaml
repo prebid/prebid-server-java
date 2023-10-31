@@ -13,3 +13,13 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 706
+    usersync:
+      cookie-family-name: vrtcal
+      redirect:
+        url: https://usync.vrtcal.com/i?ssp=1804&synctype=redirect&us_privacy={{us_privacy}}&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&surl={{redirect_url}}
+        support-cors: false
+        uid-macro: '$$VRTCALUSER$$'
+      iframe:
+        url: https://usync.vrtcal.com/i?ssp=1804&synctype=iframe&us_privacy={{us_privacy}}&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&surl={{redirect_url}}
+        support-cors: false
+        uid-macro: '$$VRTCALUSER$$'
