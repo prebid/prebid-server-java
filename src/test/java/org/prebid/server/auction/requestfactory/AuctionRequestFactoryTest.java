@@ -124,7 +124,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                         .build(),
                 TcfContext.empty());
         defaultActionContext = AuctionContext.builder()
-                .requestTypeMetric(MetricName.openrtb2dooh)
+                .requestTypeMetric(MetricName.openrtb2web)
                 .bidRequest(defaultBidRequest)
                 .account(defaultAccount)
                 .prebidErrors(new ArrayList<>())
@@ -573,7 +573,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result).isSucceeded();
-        assertThat(result.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2dooh);
+        assertThat(result.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2web);
     }
 
     @Test
