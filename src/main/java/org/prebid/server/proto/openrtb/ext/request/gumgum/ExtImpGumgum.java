@@ -19,4 +19,6 @@ public class ExtImpGumgum {
     String irisId;
 
     Long slot;
+
+    String product;
 }

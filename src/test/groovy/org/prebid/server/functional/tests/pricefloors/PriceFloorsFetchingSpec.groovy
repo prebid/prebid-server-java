@@ -774,9 +774,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         }
 
         where:
-        request                              | accountId
-        BidRequest.defaultBidRequest         | request.site.publisher.id
-        BidRequest.getDefaultBidRequest(APP) | request.app.publisher.id
+        request                              | accountId                    | bidRequestWithFloors
+        BidRequest.defaultBidRequest         | request.site.publisher.id    | bidRequestWithFloors
+        BidRequest.getDefaultBidRequest(APP) | request.app.publisher.id     | getBidRequestWithFloors(APP)
     }
 
     def "PBS should prefer data from request when fetch is disabled in account config"() {

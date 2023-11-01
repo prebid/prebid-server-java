@@ -105,6 +105,7 @@ import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon.ExtImpR
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubiconDebug;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.RubiconVideoParams;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
@@ -3269,7 +3270,7 @@ public class RubiconBidderTest extends VertxTest {
         // then
         final ObjectNode expectedBidExt = mapper.valueToTree(
                 ExtPrebid.of(ExtBidPrebid.builder()
-                        .meta(mapper.createObjectNode().set("networkId", IntNode.valueOf(123)))
+                        .meta(ExtBidPrebidMeta.builder().networkId(123).build())
                         .build(), null));
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
@@ -3702,7 +3703,9 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidWithDchainFromRequest() throws JsonProcessingException {
         // given
         final ObjectNode requestNode = mapper.valueToTree(ExtBidPrebid.builder()
-                .meta(mapper.createObjectNode().set("dChain", TextNode.valueOf("dChain")))
+                .meta(ExtBidPrebidMeta.builder()
+                        .dchain(mapper.createObjectNode().set("dChain", TextNode.valueOf("dChain")))
+                        .build())
                 .build());
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),

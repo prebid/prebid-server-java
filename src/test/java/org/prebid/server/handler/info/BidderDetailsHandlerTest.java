@@ -108,7 +108,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
         verify(httpResponse).end("{\"status\":\"DISABLED\",\"usesHttps\":false,"
                 + "\"maintainer\":{\"email\":\"test@email.org\"},"
                 + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
-                + "\"site\":{\"mediaTypes\":[\"audio\"]}}}");
+                + "\"site\":{\"mediaTypes\":[\"audio\"]},\"dooh\":{\"mediaTypes\":[\"native\"]}}}");
     }
 
     @Test
@@ -123,7 +123,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
         verify(httpResponse).end("{\"status\":\"ACTIVE\",\"usesHttps\":true,"
                 + "\"maintainer\":{\"email\":\"test@email.org\"},"
                 + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
-                + "\"site\":{\"mediaTypes\":[\"audio\"]}}}");
+                + "\"site\":{\"mediaTypes\":[\"audio\"]},\"dooh\":{\"mediaTypes\":[\"native\"]}}}");
     }
 
     @Test
@@ -135,7 +135,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
         verify(httpResponse).end(
                 eq("{\"status\":\"ACTIVE\",\"usesHttps\":true,\"maintainer\":{\"email\":\"test@email.org\"},"
                         + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
-                        + "\"site\":{\"mediaTypes\":[\"audio\"]}}}"));
+                        + "\"site\":{\"mediaTypes\":[\"audio\"]},\"dooh\":{\"mediaTypes\":[\"native\"]}}}"));
     }
 
     @Test
@@ -150,7 +150,8 @@ public class BidderDetailsHandlerTest extends VertxTest {
         verify(httpResponse).end(
                 eq("{\"status\":\"DISABLED\",\"usesHttps\":false,\"maintainer\":{\"email\":\"test@email.org\"},"
                         + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
-                        + "\"site\":{\"mediaTypes\":[\"audio\"]}},\"aliasOf\":\"bidderName1\"}"));
+                        + "\"site\":{\"mediaTypes\":[\"audio\"]},\"dooh\":{\"mediaTypes\":[\"native\"]}},"
+                        + "\"aliasOf\":\"bidderName1\"}"));
     }
 
     @Test
@@ -166,18 +167,20 @@ public class BidderDetailsHandlerTest extends VertxTest {
                 eq("{\"bidderAlias1\":{\"status\":\"DISABLED\",\"usesHttps\":false,"
                         + "\"maintainer\":{\"email\":\"test@email.org\"},"
                         + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
-                        + "\"site\":{\"mediaTypes\":[\"audio\"]}},\"aliasOf\":\"bidderName1\"},"
+                        + "\"site\":{\"mediaTypes\":[\"audio\"]},"
+                        + "\"dooh\":{\"mediaTypes\":[\"native\"]}},\"aliasOf\":\"bidderName1\"},"
                         + "\"bidderAlias2\":{\"status\":\"ACTIVE\",\"usesHttps\":true,"
                         + "\"maintainer\":{\"email\":\"test@email.org\"},"
                         + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
-                        + "\"site\":{\"mediaTypes\":[\"audio\"]}}},\"bidderName1\":{\"status\":\"ACTIVE\","
+                        + "\"site\":{\"mediaTypes\":[\"audio\"]},"
+                        + "\"dooh\":{\"mediaTypes\":[\"native\"]}}},\"bidderName1\":{\"status\":\"ACTIVE\","
                         + "\"usesHttps\":true,\"maintainer\":{\"email\":\"test@email.org\"},"
                         + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
-                        + "\"site\":{\"mediaTypes\":[\"audio\"]}}},"
+                        + "\"site\":{\"mediaTypes\":[\"audio\"]},\"dooh\":{\"mediaTypes\":[\"native\"]}}},"
                         + "\"bidderName2\":{\"status\":\"DISABLED\",\"usesHttps\":false,"
                         + "\"maintainer\":{\"email\":\"test@email.org\"},"
                         + "\"capabilities\":{\"app\":{\"mediaTypes\":[\"banner\"]},"
-                        + "\"site\":{\"mediaTypes\":[\"audio\"]}}}}"));
+                        + "\"site\":{\"mediaTypes\":[\"audio\"]},\"dooh\":{\"mediaTypes\":[\"native\"]}}}}"));
     }
 
     private static BidderInfo givenBidderInfo(boolean enabled, String endpoint, String aliasOf) {
@@ -190,6 +193,7 @@ public class BidderDetailsHandlerTest extends VertxTest {
                 "test@email.org",
                 singletonList(MediaType.BANNER),
                 singletonList(MediaType.AUDIO),
+                singletonList(MediaType.NATIVE),
                 null,
                 0,
                 true,
