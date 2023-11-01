@@ -8,6 +8,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Imp;
@@ -246,33 +247,20 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
     }
 
     private static List<String> siteDomainFromRequest(BidRequest bidRequest) {
-        final Site site = bidRequest.getSite();
-        final String siteDomain = ObjectUtil.getIfNotNull(site, Site::getDomain);
-
-        if (StringUtils.isNotEmpty(siteDomain)) {
-            return Collections.singletonList(siteDomain);
-        }
-
-        final App app = bidRequest.getApp();
-        final String appDomain = ObjectUtil.getIfNotNull(app, App::getDomain);
-
-        return Collections.singletonList(appDomain);
+        return Optional.ofNullable(bidRequest.getSite()).map(Site::getDomain)
+                .or(() -> Optional.ofNullable(bidRequest.getApp()).map(App::getDomain))
+                .or(() -> Optional.ofNullable(bidRequest.getDooh()).map(Dooh::getDomain))
+                .map(List::of)
+                .orElse(Collections.emptyList());
     }
 
     private static List<String> pubDomainFromRequest(BidRequest bidRequest) {
-        final Site site = bidRequest.getSite();
-        final Publisher sitePublisher = ObjectUtil.getIfNotNull(site, Site::getPublisher);
-        final String sitePublisherDomain = ObjectUtil.getIfNotNull(sitePublisher, Publisher::getDomain);
-
-        if (StringUtils.isNotEmpty(sitePublisherDomain)) {
-            return Collections.singletonList(sitePublisherDomain);
-        }
-
-        final App app = bidRequest.getApp();
-        final Publisher appPublisher = ObjectUtil.getIfNotNull(app, App::getPublisher);
-        final String appPublisherDomain = ObjectUtil.getIfNotNull(appPublisher, Publisher::getDomain);
-
-        return Collections.singletonList(appPublisherDomain);
+        return Optional.ofNullable(bidRequest.getSite()).map(Site::getPublisher)
+                .or(() -> Optional.ofNullable(bidRequest.getApp()).map(App::getPublisher))
+                .or(() -> Optional.ofNullable(bidRequest.getDooh()).map(Dooh::getPublisher))
+                .map(Publisher::getDomain)
+                .map(List::of)
+                .orElse(Collections.emptyList());
     }
 
     private static List<String> domainFromRequest(BidRequest bidRequest) {

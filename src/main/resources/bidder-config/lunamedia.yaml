@@ -1,6 +1,6 @@
 adapters:
   lunamedia:
-    endpoint: http://rtb.lunamedia.live/?pid={{.PublisherID}}
+    endpoint: http://rtb.lunamedia.live/?pid=
     meta-info:
       maintainer-email: cs@lunamedia.io
       app-media-types:
