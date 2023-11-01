@@ -427,6 +427,25 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldPassBappField() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.bapp(List.of("testBapp1", "testBapp2")),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getBapp)
+                .containsExactly("testBapp1", "testBapp2");
+    }
+
+    @Test
     public void makeHttpRequestsShouldPassBcatField() {
         // given
         final BidRequest bidRequest = givenBidRequest(
