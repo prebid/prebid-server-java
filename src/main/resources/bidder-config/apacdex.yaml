@@ -3,10 +3,8 @@ adapters:
     modifying-vast-xml-allowed: false
     endpoint: http://useast.quantumdex.io/auction/pbs
     aliases:
-      quantumdex:
-        enabled: false
-      valueimpression:
-        enabled: false
+      quantumdex: ~
+      valueimpression: ~
     meta-info:
       maintainer-email: support@apacdex.com
       app-media-types:

@@ -182,6 +182,7 @@ public class BidderCatalogTest {
                         null,
                         emptyList(),
                         emptyList(),
+                        emptyList(),
                         null,
                         0,
                         true,
