@@ -3,6 +3,7 @@ package org.prebid.server.functional.tests.privacy
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
+import org.prebid.server.functional.model.request.auction.ActivityType
 import org.prebid.server.functional.model.request.auction.AllowActivities
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Condition
@@ -22,6 +23,9 @@ import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CO_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.FETCH_BIDS
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_TID
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
 import static org.prebid.server.functional.model.request.auction.Condition.ConditionType.BIDDER
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.BASIC
@@ -30,6 +34,13 @@ import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ARIZONA
 
 class ActivityTraceLogSpec extends PrivacyBaseSpec {
+
+
+    private static final def TRIGGERING_ACTIVITY_TRACE = ["Invocation of Activity Infrastructure.",
+                                                       "Setting the default invocation result.",
+                                                       "Activity Infrastructure invocation result."]
+
+    private static final def PROCESSING_ACTIVITY_TRACE = ["Processing rule."]
 
     def "PBS auction shouldn't log info about activity in response when ext.prebid.trace=null"() {
         given: "Default basic generic BidRequest"
@@ -76,11 +87,9 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
 
         then: "Bid response should contain basic info in debug"
         def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
-        def fetchBidsActivity = getActivityByName(infrastructure, "fetchBids")
-        assert fetchBidsActivity.description.containsAll(["Invocation of Activity Infrastructure.",
-                                                          "Setting the default invocation result.",
-                                                          "Processing rule.",
-                                                          "Activity Infrastructure invocation result."])
+        def fetchBidsActivity = getActivityByName(infrastructure, FETCH_BIDS)
+        assert fetchBidsActivity.description.containsAll(TRIGGERING_ACTIVITY_TRACE)        
+        assert fetchBidsActivity.description.containsAll(PROCESSING_ACTIVITY_TRACE)
         assert fetchBidsActivity.activityInvocationPayload.every { it == null }
         assert fetchBidsActivity.ruleConfiguration.every { it == null }
         assert fetchBidsActivity.allowByDefault.contains(activity.defaultAction)
@@ -112,11 +121,11 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
 
         then: "Bid response should contain basic info in debug"
         def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
-        def fetchBidsActivity = getActivityByName(infrastructure, "fetchBids")
-        assert fetchBidsActivity.description.containsAll(["Invocation of Activity Infrastructure.",
-                                                          "Setting the default invocation result.",
-                                                          "Processing rule.",
-                                                          "Activity Infrastructure invocation result."])
+        
+        and: "fetchBids should contain triggering and processing activity trace with allow result"
+        def fetchBidsActivity = getActivityByName(infrastructure, FETCH_BIDS)
+        assert fetchBidsActivity.description.containsAll(PROCESSING_ACTIVITY_TRACE)
+        assert fetchBidsActivity.description.containsAll(TRIGGERING_ACTIVITY_TRACE)
         assert fetchBidsActivity.activityInvocationPayload.every { it == null }
         assert fetchBidsActivity.allowByDefault.contains(activity.defaultAction)
         assert fetchBidsActivity.ruleConfiguration.every { it == null }
@@ -124,10 +133,10 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         assert fetchBidsActivity.country.every { it == null }
         assert fetchBidsActivity.region.every { it == null }
 
-        def transmitUfpdActivity = getActivityByName(infrastructure, "transmitUfpd")
-        assert transmitUfpdActivity.description.containsAll(["Invocation of Activity Infrastructure.",
-                                                             "Setting the default invocation result.",
-                                                             "Activity Infrastructure invocation result."])
+        and: "transmitUfpd should contain only triggering activity trace without result status"
+        def transmitUfpdActivity = getActivityByName(infrastructure, TRANSMIT_UFPD)
+        assert !transmitUfpdActivity.description.containsAll(PROCESSING_ACTIVITY_TRACE)
+        assert transmitUfpdActivity.description.containsAll(TRIGGERING_ACTIVITY_TRACE)
         assert transmitUfpdActivity.activityInvocationPayload.every { it == null }
         assert transmitUfpdActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitUfpdActivity.ruleConfiguration.every { it == null }
@@ -135,10 +144,10 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         assert transmitUfpdActivity.country.every { it == null }
         assert transmitUfpdActivity.region.every { it == null }
 
-        def transmitPreciseGeoActivity = getActivityByName(infrastructure, "transmitPreciseGeo")
-        assert transmitPreciseGeoActivity.description.containsAll(["Invocation of Activity Infrastructure.",
-                                                                   "Setting the default invocation result.",
-                                                                   "Activity Infrastructure invocation result."])
+        and: "transmitPreciseGeo should contain only triggering activity trace without result status"
+        def transmitPreciseGeoActivity = getActivityByName(infrastructure, TRANSMIT_PRECISE_GEO)
+        assert !transmitPreciseGeoActivity.description.containsAll(PROCESSING_ACTIVITY_TRACE)
+        assert transmitPreciseGeoActivity.description.containsAll(TRIGGERING_ACTIVITY_TRACE)
         assert transmitPreciseGeoActivity.activityInvocationPayload.every { it == null }
         assert transmitPreciseGeoActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitPreciseGeoActivity.ruleConfiguration.every { it == null }
@@ -146,10 +155,10 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         assert transmitPreciseGeoActivity.country.every { it == null }
         assert transmitPreciseGeoActivity.region.every { it == null }
 
-        def transmitTidActivity = getActivityByName(infrastructure, "transmitTid")
-        assert transmitTidActivity.description.containsAll(["Invocation of Activity Infrastructure.",
-                                                            "Setting the default invocation result.",
-                                                            "Activity Infrastructure invocation result."])
+        and: "transmitTid should contain only triggering activity trace without result status"
+        def transmitTidActivity = getActivityByName(infrastructure, TRANSMIT_TID)
+        assert !transmitTidActivity.description.containsAll(PROCESSING_ACTIVITY_TRACE)
+        assert transmitTidActivity.description.containsAll(TRIGGERING_ACTIVITY_TRACE)
         assert transmitTidActivity.activityInvocationPayload.every { it == null }
         assert transmitTidActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitTidActivity.ruleConfiguration.every { it == null }
@@ -189,17 +198,17 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
 
         then: "Bid response should contain basic info in debug"
         def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
-        def fetchBidsActivity = getActivityByName(infrastructure, "fetchBids")
-        assert fetchBidsActivity.description.containsAll(["Invocation of Activity Infrastructure.",
-                                                          "Setting the default invocation result.",
-                                                          "Processing rule.",
-                                                          "Activity Infrastructure invocation result."])
+
+        and: "fetchBids should contain triggering and processing activity trace with abstain result"
+        def fetchBidsActivity = getActivityByName(infrastructure, FETCH_BIDS)
+        assert fetchBidsActivity.description.containsAll(PROCESSING_ACTIVITY_TRACE)
+        assert fetchBidsActivity.description.containsAll(TRIGGERING_ACTIVITY_TRACE)
         assert fetchBidsActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 gpc: bidRequest.regs.ext.gpc,
-                region: "AL",
-                country: "USA"))
+                region: ALABAMA.abbreviation,
+                country: USA.value))
         assert fetchBidsActivity.ruleConfiguration.contains(new RuleConfiguration(
                 componentNames: condition.componentName,
                 componentTypes: condition.componentType,
@@ -212,48 +221,48 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         assert fetchBidsActivity.country.every { it == null }
         assert fetchBidsActivity.region.every { it == null }
 
-        def transmitUfpdActivity = getActivityByName(infrastructure, "transmitUfpd")
-        assert transmitUfpdActivity.description.containsAll(["Invocation of Activity Infrastructure.",
-                                                             "Setting the default invocation result.",
-                                                             "Activity Infrastructure invocation result."])
+        and: "transmitUfpd should contain only triggering activity trace without result status"
+        def transmitUfpdActivity = getActivityByName(infrastructure, TRANSMIT_UFPD)
+        assert !transmitUfpdActivity.description.containsAll(PROCESSING_ACTIVITY_TRACE)
+        assert transmitUfpdActivity.description.containsAll(TRIGGERING_ACTIVITY_TRACE)
         assert transmitUfpdActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 gpc: bidRequest.regs.ext.gpc,
-                region: "AL",
-                country: "USA"))
+                region: ALABAMA.abbreviation,
+                country: USA))
         assert transmitUfpdActivity.ruleConfiguration.every { it == null }
         assert transmitUfpdActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitUfpdActivity.result.every { it == null }
         assert transmitUfpdActivity.country.every { it == null }
         assert transmitUfpdActivity.region.every { it == null }
 
-        def transmitPreciseGeoActivity = getActivityByName(infrastructure, "transmitPreciseGeo")
-        assert transmitPreciseGeoActivity.description.containsAll(["Invocation of Activity Infrastructure.",
-                                                                   "Setting the default invocation result.",
-                                                                   "Activity Infrastructure invocation result."])
+        and: "transmitPreciseGeo should contain only triggering activity trace without result status"
+        def transmitPreciseGeoActivity = getActivityByName(infrastructure, TRANSMIT_PRECISE_GEO)
+        assert !transmitPreciseGeoActivity.description.containsAll(PROCESSING_ACTIVITY_TRACE)
+        assert transmitPreciseGeoActivity.description.containsAll(TRIGGERING_ACTIVITY_TRACE)
         assert transmitPreciseGeoActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 gpc: bidRequest.regs.ext.gpc,
-                region: "AL",
-                country: "USA"))
+                region: ALABAMA.abbreviation,
+                country: USA.value))
         assert transmitPreciseGeoActivity.ruleConfiguration.every { it == null }
         assert transmitPreciseGeoActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitPreciseGeoActivity.result.every { it == null }
         assert transmitPreciseGeoActivity.country.every { it == null }
         assert transmitPreciseGeoActivity.region.every { it == null }
 
-        def transmitTidActivity = getActivityByName(infrastructure, "transmitTid")
-        assert transmitTidActivity.description.containsAll(["Invocation of Activity Infrastructure.",
-                                                            "Setting the default invocation result.",
-                                                            "Activity Infrastructure invocation result."])
+        and: "transmitTid should contain only triggering activity trace without result status"
+        def transmitTidActivity = getActivityByName(infrastructure, TRANSMIT_TID)
+        assert !transmitTidActivity.description.containsAll(PROCESSING_ACTIVITY_TRACE)
+        assert transmitTidActivity.description.containsAll(TRIGGERING_ACTIVITY_TRACE)
         assert transmitTidActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 gpc: bidRequest.regs.ext.gpc,
-                region: "AL",
-                country: "USA"))
+                region: ALABAMA.abbreviation,
+                country: USA))
         assert transmitTidActivity.ruleConfiguration.every { it == null }
         assert transmitTidActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitTidActivity.result.every { it == null }
@@ -300,17 +309,17 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
 
         then: "Bid response should contain verbose info in debug"
         def infrastructure = bidResponse.ext.debug.trace.activityInfrastructure
-        def fetchBidsActivity = getActivityByName(infrastructure, "fetchBids")
-        assert fetchBidsActivity.description.containsAll(["Invocation of Activity Infrastructure.",
-                                                          "Setting the default invocation result.",
-                                                          "Processing rule.",
-                                                          "Activity Infrastructure invocation result."])
+
+        and: "fetchBids should contain triggering and processing activity trace with abstain result"
+        def fetchBidsActivity = getActivityByName(infrastructure, FETCH_BIDS)
+        assert fetchBidsActivity.description.containsAll(PROCESSING_ACTIVITY_TRACE)
+        assert fetchBidsActivity.description.containsAll(TRIGGERING_ACTIVITY_TRACE)
         assert fetchBidsActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 gpc: bidRequest.regs.ext.gpc,
-                region: "AL",
-                country: "USA"))
+                region: ALABAMA.abbreviation,
+                country: USA))
         assert fetchBidsActivity.ruleConfiguration.contains(new RuleConfiguration(
                 and: [new And(and: ["USNatDefault. Precomputed result: ABSTAIN."])]))
         assert fetchBidsActivity.allowByDefault.contains(activity.defaultAction)
@@ -318,48 +327,47 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         assert fetchBidsActivity.country.every { it == null }
         assert fetchBidsActivity.region.every { it == null }
 
-        def transmitUfpdActivity = getActivityByName(infrastructure, "transmitUfpd")
-        assert transmitUfpdActivity.description.containsAll(["Invocation of Activity Infrastructure.",
-                                                             "Setting the default invocation result.",
-                                                             "Activity Infrastructure invocation result."])
+        and: "transmitUfpd should contain only triggering activity trace without result status"
+        def transmitUfpdActivity = getActivityByName(infrastructure, TRANSMIT_UFPD)
+        assert transmitUfpdActivity.description.containsAll(TRIGGERING_ACTIVITY_TRACE)
         assert transmitUfpdActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 gpc: bidRequest.regs.ext.gpc,
-                region: "AL",
-                country: "USA"))
+                region: ALABAMA.abbreviation,
+                country: USA))
         assert transmitUfpdActivity.ruleConfiguration.every { it == null }
         assert transmitUfpdActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitUfpdActivity.result.every { it == null }
         assert transmitUfpdActivity.country.every { it == null }
         assert transmitUfpdActivity.region.every { it == null }
 
-        def transmitPreciseGeoActivity = getActivityByName(infrastructure, "transmitPreciseGeo")
-        assert transmitPreciseGeoActivity.description.containsAll(["Invocation of Activity Infrastructure.",
-                                                                   "Setting the default invocation result.",
-                                                                   "Activity Infrastructure invocation result."])
+        and: "transmitPreciseGeo should contain only triggering activity trace without result status"
+        def transmitPreciseGeoActivity = getActivityByName(infrastructure, TRANSMIT_PRECISE_GEO)
+        assert !transmitPreciseGeoActivity.description.containsAll(PROCESSING_ACTIVITY_TRACE)
+        assert transmitPreciseGeoActivity.description.containsAll(TRIGGERING_ACTIVITY_TRACE)
         assert transmitPreciseGeoActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 gpc: bidRequest.regs.ext.gpc,
-                region: "AL",
-                country: "USA"))
+                region: ALABAMA.abbreviation,
+                country: USA))
         assert transmitPreciseGeoActivity.ruleConfiguration.every { it == null }
         assert transmitPreciseGeoActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitPreciseGeoActivity.result.every { it == null }
         assert transmitPreciseGeoActivity.country.every { it == null }
         assert transmitPreciseGeoActivity.region.every { it == null }
 
-        def transmitTidActivity = getActivityByName(infrastructure, "transmitTid")
-        assert transmitTidActivity.description.containsAll(["Invocation of Activity Infrastructure.",
-                                                            "Setting the default invocation result.",
-                                                            "Activity Infrastructure invocation result."])
+        and: "transmitTid should contain only triggering activity trace without result status"
+        def transmitTidActivity = getActivityByName(infrastructure, TRANSMIT_TID)
+        assert !transmitTidActivity.description.containsAll(PROCESSING_ACTIVITY_TRACE)
+        assert transmitTidActivity.description.containsAll(TRIGGERING_ACTIVITY_TRACE)
         assert transmitTidActivity.activityInvocationPayload.contains(new ActivityInvocationPayload(
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 gpc: bidRequest.regs.ext.gpc,
-                region: "AL",
-                country: "USA"))
+                region: ALABAMA.abbreviation,
+                country: USA))
         assert transmitTidActivity.ruleConfiguration.every { it == null }
         assert transmitTidActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitTidActivity.result.every { it == null }
@@ -371,7 +379,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
     }
 
     private List<ActivityInfrastructure> getActivityByName(List<ActivityInfrastructure> activityInfrastructures,
-                                                           String activity) {
+                                                           ActivityType activity) {
         def firstIndex = activityInfrastructures.findLastIndexOf { it -> it.activity == activity }
         def lastIndex = activityInfrastructures.findIndexOf { it -> it.activity == activity }
         activityInfrastructures[new IntRange(true, firstIndex, lastIndex)]

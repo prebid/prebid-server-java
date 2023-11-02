@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import groovy.transform.EqualsAndHashCode
+import org.prebid.server.functional.model.request.auction.ActivityType
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
@@ -11,7 +12,7 @@ import groovy.transform.EqualsAndHashCode
 class ActivityInfrastructure {
 
     String description
-    String activity
+    ActivityType activity
     ActivityInvocationPayload activityInvocationPayload
     RuleConfiguration ruleConfiguration
     Boolean allowByDefault
