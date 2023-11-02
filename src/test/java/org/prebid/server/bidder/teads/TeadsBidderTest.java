@@ -298,7 +298,8 @@ public class TeadsBidderTest extends VertxTest {
                 .rendererData(mapper.createObjectNode().set("property", TextNode.valueOf("value")))
                 .rendererUrl("rendererUrl")
                 .build();
-        final ObjectNode bidExt = mapper.valueToTree(ExtPrebid.of(ExtBidPrebid.builder().meta(meta).build(), null));
+        final ObjectNode bidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder().meta(meta).build(), null));
         final Bid bannerBid = Bid.builder().impid("imp_id").ext(bidExt).build();
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(
@@ -309,8 +310,15 @@ public class TeadsBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
+        final ExtBidPrebidMeta expectedMeta = ExtBidPrebidMeta.builder()
+                .rendererName("rendererName")
+                .rendererVersion("rendererVersion")
+                .build();
+        final ObjectNode expectedBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder().meta(expectedMeta).build(), null));
+        final Bid expectedBid = Bid.builder().impid("imp_id").ext(expectedBidExt).build();
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(bannerBid, banner, "USD"));
+        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid, banner, "USD"));
     }
 
     @Test
@@ -333,8 +341,15 @@ public class TeadsBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
+        final ExtBidPrebidMeta expectedMeta = ExtBidPrebidMeta.builder()
+                .rendererName("rendererName")
+                .rendererVersion("rendererVersion")
+                .build();
+        final ObjectNode expectedBidExt = mapper.valueToTree(
+                ExtPrebid.of(ExtBidPrebid.builder().meta(expectedMeta).build(), null));
+        final Bid expectedBid = Bid.builder().impid("imp_id").ext(expectedBidExt).build();
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(videoBid, video, "USD"));
+        assertThat(result.getValue()).containsOnly(BidderBid.of(expectedBid, video, "USD"));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {

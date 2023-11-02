@@ -141,7 +141,8 @@ public class TeadsBidder implements Bidder<BidRequest> {
                 .map(imp -> imp.getVideo() == null ? BidType.banner : BidType.video)
                 .orElseThrow(() -> new PreBidException("Bid for the Imp " + bid.getImpid() + " wasn't found"));
 
-        final ExtBidPrebidMeta meta = parseExtBidPrebidMeta(bid);
+        final ExtBidPrebid prebid = parseExtBidPrebidMeta(bid);
+        final ExtBidPrebidMeta meta = prebid.getMeta();
         if (StringUtils.isBlank(meta.getRendererName())) {
             throw new PreBidException("RendererName should not be empty");
         }
@@ -150,13 +151,19 @@ public class TeadsBidder implements Bidder<BidRequest> {
             throw new PreBidException("RendererVersion should not be empty");
         }
 
-        return BidderBid.of(bid, bidType, currency);
+        final ExtBidPrebidMeta modifiedMeta = ExtBidPrebidMeta.builder()
+                .rendererName(meta.getRendererName())
+                .rendererVersion(meta.getRendererVersion())
+                .build();
+        final ExtBidPrebid modifiedPrebid = prebid.toBuilder().meta(modifiedMeta).build();
+        final ObjectNode modifiedBidExt = mapper.mapper().valueToTree(ExtPrebid.of(modifiedPrebid, null));
+        return BidderBid.of(bid.toBuilder().ext(modifiedBidExt).build(), bidType, currency);
 
     }
 
-    private ExtBidPrebidMeta parseExtBidPrebidMeta(Bid bid) {
+    private ExtBidPrebid parseExtBidPrebidMeta(Bid bid) {
         try {
-            return mapper.mapper().convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE).getPrebid().getMeta();
+            return mapper.mapper().convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE).getPrebid();
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
