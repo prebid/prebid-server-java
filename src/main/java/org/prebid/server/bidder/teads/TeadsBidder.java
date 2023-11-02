@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -27,14 +28,12 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class TeadsBidder implements Bidder<BidRequest> {
 
@@ -55,7 +54,9 @@ public class TeadsBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         try {
-            final List<Imp> modifiedImps = request.getImp().stream().map(this::modifyImp).collect(Collectors.toList());
+            final List<Imp> modifiedImps = request.getImp().stream()
+                    .map(this::modifyImp)
+                    .collect(Collectors.toList());
             final HttpRequest<BidRequest> httpRequest = makeHttpRequest(request.toBuilder().imp(modifiedImps).build());
             return Result.withValue(httpRequest);
         } catch (PreBidException e) {
@@ -78,13 +79,15 @@ public class TeadsBidder implements Bidder<BidRequest> {
     }
 
     private static Banner modifyBanner(Banner banner) {
-        return banner != null
-                ? Stream.ofNullable(banner.getFormat())
-                .flatMap(Collection::stream)
-                .findFirst()
-                .map(format -> banner.toBuilder().w(format.getW()).h(format.getH()).build())
-                .orElse(banner)
-                : null;
+        if (banner != null) {
+            final List<Format> format = banner.getFormat();
+            if (CollectionUtils.isNotEmpty(format)) {
+                final Format firstFormat = format.get(0);
+                return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
+            }
+        }
+
+        return banner;
     }
 
     private TeadsImpExt parseImpExt(Imp imp) {
@@ -96,7 +99,6 @@ public class TeadsBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest) {
-
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
