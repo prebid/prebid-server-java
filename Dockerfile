@@ -1,4 +1,4 @@
-FROM amazoncorretto:17
+FROM eclipse-temurin:21-alpine
 
 WORKDIR /app/prebid-server
 
