@@ -14,6 +14,8 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
+import java.time.Instant
+
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 
@@ -40,6 +42,7 @@ class BidValidationSpec extends BaseSpec {
                 ["Bid \"${bidResponse.seatbid.first().bid.first().id}\" does not contain a 'price'" as String]
     }
 
+    @PendingFeature
     def "PBS should throw an exception when bid request includes more than one distribution channel"() {
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
@@ -58,6 +61,45 @@ class BidValidationSpec extends BaseSpec {
                        },
                        BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
                            it.app = App.defaultApp
+                       }]
+    }
+
+    def "PBS should contain response and emit warning logs when bidRequest include  multiple distribution channel"() {
+        given: "Start time and random referer"
+        def startTime = Instant.now()
+        def randomReferer = PBSUtils.randomString
+
+        and: "Request distribution channels"
+        def requestDistributionChannels = bidRequest.getRequestDistributionChannels()
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest, ["Referer" : randomReferer])
+
+        then: "BidResponse contain single seatbid"
+        assert response.seatbid.size() == 1
+
+        and: "PBS log should contain message"
+        def logs = defaultPbsService.getLogsByTime(startTime)
+
+        def validatorLogMessage = requestDistributionChannels.collect { "request.${it.value.toLowerCase()}" }.join(" and ")
+        assert getLogsByText(logs, "o.p.server.validation.RequestValidator   : $validatorLogMessage are present. Referer: $randomReferer")
+
+        def exchangeServiceLogMessage = requestDistributionChannels.collect { "${it.value.toLowerCase()}" }.join(" and ")
+        assert getLogsByText(logs, "o.prebid.server.auction.ExchangeService  : $exchangeServiceLogMessage are present. Referer: $randomReferer")
+
+        where:
+        bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
+                           it.dooh = Dooh.defaultDooh
+                       },
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                           it.dooh = Dooh.defaultDooh
+                       },
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                           it.app = App.defaultApp
+                       },
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                           it.app = App.defaultApp
+                           it.dooh = Dooh.defaultDooh
                        }]
     }
 
