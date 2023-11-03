@@ -61,7 +61,6 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.DealsService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.TxnLog;
-import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -910,20 +909,21 @@ public class ExchangeService {
 
         if (distributionChannels.size() > 1) {
             metrics.updateAlertsMetrics(MetricName.general);
-            conditionalLogger.error("More than one distribution channel is present", logSamplingRate);
-            throw new InvalidRequestException(
-                    String.join(" and ", distributionChannels) + " are present, "
-                            + "but no more than one of site or app or dooh can be defined");
+            conditionalLogger.warn(String.join(" and ", distributionChannels) + " are present", logSamplingRate);
         }
+
+        final boolean isApp = preparedApp != null;
+        final boolean isSite = !isApp && preparedSite != null;
+        final boolean isDooh = !isApp && !isSite && preparedDooh != null;
 
         return bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, bidRequest, transmitTid, useFirstPartyData, context.getAccount()))
-                .app(preparedApp)
-                .dooh(preparedDooh)
-                .site(preparedSite)
+                .app(isApp ? preparedApp : null)
+                .dooh(isDooh ? preparedDooh : null)
+                .site(isSite ? preparedSite : null)
                 .source(prepareSource(bidder, bidRequest, transmitTid))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build();

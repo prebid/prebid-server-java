@@ -100,7 +100,7 @@ public class RequestValidatorTest extends VertxTest {
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
 
-        requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper);
+        requestValidator = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper, 0.01);
     }
 
     @Test
@@ -1106,67 +1106,6 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.dooh should include at least one of request.dooh.id or request.dooh.venuetype.");
-    }
-
-    @Test
-    public void validateShouldFailWhenDoohSiteAndAppArePresentInRequest() {
-        // when
-        final BidRequest invalidRequest = validBidRequestBuilder()
-                .dooh(Dooh.builder().build())
-                .app(App.builder().build())
-                .site(Site.builder().build())
-                .build();
-        final ValidationResult result = requestValidator.validate(invalidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.site and request.dooh and request.app are present, "
-                        + "but no more than one of request.site or request.app or request.dooh can be defined");
-    }
-
-    @Test
-    public void validateShouldFailWhenSiteAndAppArePresentInRequest() {
-        // when
-        final BidRequest invalidRequest = validBidRequestBuilder()
-                .app(App.builder().build())
-                .site(Site.builder().build())
-                .build();
-        final ValidationResult result = requestValidator.validate(invalidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.site and request.app are present, "
-                        + "but no more than one of request.site or request.app or request.dooh can be defined");
-    }
-
-    @Test
-    public void validateShouldFailWhenDoohAndSiteArePresentInRequest() {
-        // when
-        final BidRequest invalidRequest = validBidRequestBuilder()
-                .dooh(Dooh.builder().build())
-                .site(Site.builder().build())
-                .build();
-        final ValidationResult result = requestValidator.validate(invalidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.site and request.dooh are present, "
-                        + "but no more than one of request.site or request.app or request.dooh can be defined");
-    }
-
-    @Test
-    public void validateShouldFailWhenDoohAndAppArePresentInRequest() {
-        // when
-        final BidRequest invalidRequest = validBidRequestBuilder()
-                .dooh(Dooh.builder().build())
-                .app(App.builder().build())
-                .build();
-        final ValidationResult result = requestValidator.validate(invalidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("request.site and request.dooh and request.app are present, "
-                        + "but no more than one of request.site or request.app or request.dooh can be defined");
     }
 
     @Test

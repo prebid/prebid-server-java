@@ -33,6 +33,7 @@ import com.iab.openrtb.request.ntv.EventTrackingMethod;
 import com.iab.openrtb.request.ntv.EventType;
 import com.iab.openrtb.request.ntv.PlacementType;
 import com.iab.openrtb.request.ntv.Protocol;
+import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -40,6 +41,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -86,6 +88,9 @@ import java.util.stream.Stream;
  */
 public class RequestValidator {
 
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
+            LoggerFactory.getLogger(RequestValidator.class));
+
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
     private static final String ASTERISK = "*";
@@ -98,6 +103,7 @@ public class RequestValidator {
     private final BidderCatalog bidderCatalog;
     private final BidderParamValidator bidderParamValidator;
     private final JacksonMapper mapper;
+    private final double logSamplingRate;
 
     /**
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
@@ -105,11 +111,13 @@ public class RequestValidator {
      */
     public RequestValidator(BidderCatalog bidderCatalog,
                             BidderParamValidator bidderParamValidator,
-                            JacksonMapper mapper) {
+                            JacksonMapper mapper,
+                            double logSamplingRate) {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
         this.mapper = Objects.requireNonNull(mapper);
+        this.logSamplingRate = logSamplingRate;
     }
 
     /**
@@ -178,19 +186,22 @@ public class RequestValidator {
             Optional.ofNullable(bidRequest.getDooh()).ifPresent(ignored -> channels.add("request.dooh"));
             Optional.ofNullable(bidRequest.getApp()).ifPresent(ignored -> channels.add("request.app"));
 
+            final boolean isApp = bidRequest.getApp() != null;
+            final boolean isSite = !isApp && bidRequest.getSite() != null;
+            final boolean isDooh = !isApp && !isSite && bidRequest.getDooh() != null;
+
             if (channels.size() == 0) {
                 throw new ValidationException(
                         "One of request.site or request.app or request.dooh must be defined");
             } else if (channels.size() > 1) {
-                throw new ValidationException(String.join(" and ", channels) + " are present, "
-                        + "but no more than one of request.site or request.app or request.dooh can be defined");
+                conditionalLogger.warn(String.join(" and ", channels) + " are present", logSamplingRate);
             }
 
-            if (bidRequest.getSite() != null) {
+            if (isSite) {
                 validateSite(bidRequest.getSite());
             }
 
-            if (bidRequest.getDooh() != null) {
+            if (isDooh) {
                 validateDooh(bidRequest.getDooh());
             }
 
