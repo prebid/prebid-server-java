@@ -121,6 +121,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationRes
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.LineItemUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
@@ -909,7 +910,9 @@ public class ExchangeService {
 
         if (distributionChannels.size() > 1) {
             metrics.updateAlertsMetrics(MetricName.general);
-            conditionalLogger.warn(String.join(" and ", distributionChannels) + " are present", logSamplingRate);
+            final String logMessage = String.join(" and ", distributionChannels) + " are present. "
+                    + "Referer: " + context.getHttpRequest().getHeaders().get(HttpUtil.REFERER_HEADER);
+            conditionalLogger.warn(logMessage, logSamplingRate);
         }
 
         final boolean isApp = preparedApp != null;

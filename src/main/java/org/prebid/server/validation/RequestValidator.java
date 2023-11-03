@@ -42,6 +42,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -63,6 +64,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -124,7 +126,7 @@ public class RequestValidator {
      * Validates the {@link BidRequest} against a list of validation checks, however, reports only one problem
      * at a time.
      */
-    public ValidationResult validate(BidRequest bidRequest) {
+    public ValidationResult validate(BidRequest bidRequest, HttpRequestContext httpRequestContext) {
         final List<String> warnings = new ArrayList<>();
         try {
             if (StringUtils.isBlank(bidRequest.getId())) {
@@ -194,7 +196,9 @@ public class RequestValidator {
                 throw new ValidationException(
                         "One of request.site or request.app or request.dooh must be defined");
             } else if (channels.size() > 1) {
-                conditionalLogger.warn(String.join(" and ", channels) + " are present", logSamplingRate);
+                final String logMessage = String.join(" and ", channels) + " are present. "
+                        + "Referer: " + httpRequestContext.getHeaders().get(HttpUtil.REFERER_HEADER);
+                conditionalLogger.warn(logMessage, logSamplingRate);
             }
 
             if (isSite) {
