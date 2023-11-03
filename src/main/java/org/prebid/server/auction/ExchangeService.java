@@ -916,8 +916,8 @@ public class ExchangeService {
         }
 
         final boolean isApp = preparedApp != null;
-        final boolean isSite = !isApp && preparedSite != null;
-        final boolean isDooh = !isApp && !isSite && preparedDooh != null;
+        final boolean isDooh = !isApp && preparedDooh != null;
+        final boolean isSite = !isApp && !isDooh && preparedSite != null;
 
         return bidRequest.toBuilder()
                 // User was already prepared above

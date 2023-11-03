@@ -3033,8 +3033,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         // then
         final BidRequest captureBidRequest = captureBidRequest();
-        assertThat(captureBidRequest.getDooh()).isNull();
-        assertThat(captureBidRequest.getSite()).isNotNull();
+        assertThat(captureBidRequest.getDooh()).isNotNull();
+        assertThat(captureBidRequest.getSite()).isNull();
 
         verify(metrics).updateAlertsMetrics(MetricName.general);
     }
