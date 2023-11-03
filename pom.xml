@@ -32,7 +32,7 @@
         <hibernate-validator.version>6.1.5.Final</hibernate-validator.version>
         <vertx.version>3.9.10</vertx.version>
         <netty.version>4.1.69.Final</netty.version>
-        <lombok.version>1.18.24</lombok.version>
+        <lombok.version>1.18.30</lombok.version>
         <commons.version>3.12.0</commons.version>
         <commons.collections.version>4.4</commons.collections.version>
         <commons.compress.version>1.21</commons.compress.version>
