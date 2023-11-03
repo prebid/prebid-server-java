@@ -89,7 +89,7 @@
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>${maven-surefire-plugin.version}</maven-failsafe-plugin.version>
         <docker-maven-plugin.version>0.40.2</docker-maven-plugin.version>
-        <gmavenplus-plugin.version>1.13.1</gmavenplus-plugin.version>
+        <gmavenplus-plugin.version>3.0.2</gmavenplus-plugin.version>
         <allure-maven.version>2.10.0</allure-maven.version>
         <skipFunctionalTests>false</skipFunctionalTests>
         <skipUnitTests>false</skipUnitTests>
