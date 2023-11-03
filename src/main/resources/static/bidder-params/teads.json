@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Teads Adapter Params",
   "description": "A schema which validates params accepted by the Teads adapter",
-
   "type": "object",
   "properties": {
     "placementId": {
@@ -11,5 +10,7 @@
       "minimum": 1
     }
   },
-  "required": ["placementId"]
+  "required": [
+    "placementId"
+  ]
 }
