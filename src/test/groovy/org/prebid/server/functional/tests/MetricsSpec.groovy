@@ -143,7 +143,7 @@ class MetricsSpec extends BaseSpec {
         assert !metrics["account.${accountId}.requests.type.openrtb2-app" as String]
     }
 
-    def "PBS should ignore other distribution channel and update only app metrics when presented dooh and site in request"() {
+    def "PBS should ignore other distribution channel and update only app metrics when presented app ant other channels in request"() {
         given: "Account in the DB"
         def accountId = bidRequest.app.publisher.id
         def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: DETAILED))
