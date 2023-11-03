@@ -72,7 +72,7 @@
         <restassured.version>4.4.0</restassured.version>
         <h2.version>2.2.220</h2.version>
         <spock.version>2.4-M1-groovy-3.0</spock.version>
-        <groovy.version>3.0.14</groovy.version>
+        <groovy.version>4.0.15</groovy.version>
         <testcontainers.version>1.17.4</testcontainers.version>
         <mockserver.version>5.14.0</mockserver.version>
         <allure.version>2.19.0</allure.version>
@@ -531,13 +531,13 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.groovy</groupId>
+            <groupId>org.apache.groovy</groupId>
             <artifactId>groovy</artifactId>
             <version>${groovy.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.groovy</groupId>
+            <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-yaml</artifactId>
             <version>${groovy.version}</version>
             <scope>test</scope>
