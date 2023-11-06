@@ -354,7 +354,6 @@ public class ExchangeService {
      */
     private static BidRequestCacheInfo bidRequestCacheInfo(BidRequest bidRequest) {
         final ExtRequestTargeting targeting = targeting(bidRequest);
-
         final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
         final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
 
@@ -414,7 +413,6 @@ public class ExchangeService {
                 debugWarnings.add(
                         "Invalid MultiBid: bidder %s and bidders %s specified. Only bidder %s will be used."
                                 .formatted(bidder, bidders, bidder));
-
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, debugWarnings);
                 continue;
             }
@@ -904,14 +902,17 @@ public class ExchangeService {
         final Dooh preparedDooh = prepareDooh(dooh, fpdDooh, useFirstPartyData);
 
         final List<String> distributionChannels = new ArrayList<>();
-        Optional.ofNullable(preparedSite).ifPresent(ignored -> distributionChannels.add("site"));
-        Optional.ofNullable(preparedDooh).ifPresent(ignored -> distributionChannels.add("dooh"));
         Optional.ofNullable(preparedApp).ifPresent(ignored -> distributionChannels.add("app"));
+        Optional.ofNullable(preparedDooh).ifPresent(ignored -> distributionChannels.add("dooh"));
+        Optional.ofNullable(preparedSite).ifPresent(ignored -> distributionChannels.add("site"));
 
         if (distributionChannels.size() > 1) {
+            context.getDebugWarnings().add("BidRequest contains " + String.join(" and ", distributionChannels)
+                    + ". Only the first one is applicable, the others are ignored");
             metrics.updateAlertsMetrics(MetricName.general);
             final String logMessage = String.join(" and ", distributionChannels) + " are present. "
-                    + "Referer: " + context.getHttpRequest().getHeaders().get(HttpUtil.REFERER_HEADER);
+                    + "Referer: " + context.getHttpRequest().getHeaders().get(HttpUtil.REFERER_HEADER + ". "
+                    + "Account: " + context.getAccount().getId());
             conditionalLogger.warn(logMessage, logSamplingRate);
         }
 

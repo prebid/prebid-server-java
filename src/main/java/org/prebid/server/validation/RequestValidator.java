@@ -184,9 +184,9 @@ public class RequestValidator {
             }
 
             final List<String> channels = new ArrayList<>();
-            Optional.ofNullable(bidRequest.getSite()).ifPresent(ignored -> channels.add("request.site"));
-            Optional.ofNullable(bidRequest.getDooh()).ifPresent(ignored -> channels.add("request.dooh"));
             Optional.ofNullable(bidRequest.getApp()).ifPresent(ignored -> channels.add("request.app"));
+            Optional.ofNullable(bidRequest.getDooh()).ifPresent(ignored -> channels.add("request.dooh"));
+            Optional.ofNullable(bidRequest.getSite()).ifPresent(ignored -> channels.add("request.site"));
 
             final boolean isApp = bidRequest.getApp() != null;
             final boolean isDooh = !isApp && bidRequest.getDooh() != null;
