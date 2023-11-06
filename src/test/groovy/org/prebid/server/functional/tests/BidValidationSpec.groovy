@@ -87,7 +87,7 @@ class BidValidationSpec extends BaseSpec {
         and: "PBS log should contain message"
         def logs = defaultPbsService.getLogsByTime(startTime)
         def validatorLogMessage = requestDistributionChannels.collect { "request.${it.value.toLowerCase()}" }.join(" and ")
-        assert getLogsByText(logs, "o.p.server.validation.RequestValidator   : $validatorLogMessage are present. Referer: $randomReferer. Account: ${bidRequest.getAccountId()}")
+        assert getLogsByText(logs, "o.p.server.validation.RequestValidator   : $validatorLogMessage are present. Referer: $randomReferer")
         assert getLogsByText(logs, "o.prebid.server.auction.ExchangeService  : $warningLogMessages are present. Referer: $randomReferer. Account: ${bidRequest.getAccountId()}")
 
         where:

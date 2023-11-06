@@ -100,7 +100,7 @@ class BidRequest {
 
     @JsonIgnore
     String getAccountId() {
-        site?.publisher?.id ?: app?.publisher?.id ?: dooh?.publisher?.id
+        app?.publisher?.id ?: dooh?.publisher?.id ?: site?.publisher?.id
     }
 
     @JsonIgnore
