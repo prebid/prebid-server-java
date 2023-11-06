@@ -911,8 +911,8 @@ public class ExchangeService {
                     + ". Only the first one is applicable, the others are ignored");
             metrics.updateAlertsMetrics(MetricName.general);
             final String logMessage = String.join(" and ", distributionChannels) + " are present. "
-                    + "Referer: " + context.getHttpRequest().getHeaders().get(HttpUtil.REFERER_HEADER + ". "
-                    + "Account: " + context.getAccount().getId());
+                    + "Referer: " + context.getHttpRequest().getHeaders().get(HttpUtil.REFERER_HEADER) + ". "
+                    + "Account: " + context.getAccount().getId();
             conditionalLogger.warn(logMessage, logSamplingRate);
         }
 
