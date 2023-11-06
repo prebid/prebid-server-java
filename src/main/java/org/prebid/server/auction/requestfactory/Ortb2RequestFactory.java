@@ -379,7 +379,7 @@ public class Ortb2RequestFactory {
         final Dooh dooh = bidRequest.getDooh();
         final Publisher doohPublisher = dooh != null ? dooh.getPublisher() : null;
 
-        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher, doohPublisher);
+        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, doohPublisher, sitePublisher);
         final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
         return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
     }
