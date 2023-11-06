@@ -184,13 +184,13 @@ public class RequestValidator {
             }
 
             final List<String> channels = new ArrayList<>();
-            Optional.ofNullable(bidRequest.getSite()).ifPresent(ignored -> channels.add("request.site"));
-            Optional.ofNullable(bidRequest.getDooh()).ifPresent(ignored -> channels.add("request.dooh"));
             Optional.ofNullable(bidRequest.getApp()).ifPresent(ignored -> channels.add("request.app"));
+            Optional.ofNullable(bidRequest.getDooh()).ifPresent(ignored -> channels.add("request.dooh"));
+            Optional.ofNullable(bidRequest.getSite()).ifPresent(ignored -> channels.add("request.site"));
 
             final boolean isApp = bidRequest.getApp() != null;
-            final boolean isSite = !isApp && bidRequest.getSite() != null;
-            final boolean isDooh = !isApp && !isSite && bidRequest.getDooh() != null;
+            final boolean isDooh = !isApp && bidRequest.getDooh() != null;
+            final boolean isSite = !isApp && !isDooh && bidRequest.getSite() != null;
 
             if (channels.size() == 0) {
                 throw new ValidationException(
@@ -201,12 +201,12 @@ public class RequestValidator {
                 conditionalLogger.warn(logMessage, logSamplingRate);
             }
 
-            if (isSite) {
-                validateSite(bidRequest.getSite());
-            }
-
             if (isDooh) {
                 validateDooh(bidRequest.getDooh());
+            }
+
+            if (isSite) {
+                validateSite(bidRequest.getSite());
             }
 
             validateDevice(bidRequest.getDevice());
