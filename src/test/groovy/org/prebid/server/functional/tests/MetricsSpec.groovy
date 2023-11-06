@@ -120,7 +120,7 @@ class MetricsSpec extends BaseSpec {
         }
 
         and: "Account in the DB"
-        def accountId = bidRequest.site.publisher.id
+        def accountId = bidRequest.getAccountId()
         def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: DETAILED))
         def account = new Account(uuid: accountId, config: accountMetricsConfig)
         accountDao.save(account)
