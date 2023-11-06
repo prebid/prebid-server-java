@@ -1,8 +1,10 @@
 package org.prebid.server.bidder.mobilefuse;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
@@ -31,6 +33,7 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpMobilefuse>> MOBILEFUSE_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final String SKADN_PROPERTY_NAME = "skadn";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -42,35 +45,46 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        ExtImpMobilefuse firstExtImpMobilefuse = null;
-        for (Imp imp : request.getImp()) {
-            final ExtImpMobilefuse impExt = parseImpExt(imp);
-            if (impExt != null) {
-                firstExtImpMobilefuse = impExt;
-                break;
-            }
-        }
+        final String endpoint = request.getImp().stream()
+                .map(this::parseImpExt)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .map(this::makeUrl)
+                .orElse(null);
 
-        if (firstExtImpMobilefuse == null) {
+        if (endpoint == null) {
             return Result.withError(BidderError.badInput("Invalid ExtImpMobilefuse value"));
         }
 
-        Imp requestImp = null;
-        for (Imp imp : request.getImp()) {
-            final Imp modifiedImp = modifyImp(imp, firstExtImpMobilefuse);
-            if (modifiedImp != null) {
-                requestImp = modifiedImp;
-                break;
-            }
-        }
+        final List<Imp> modifiedImps = request.getImp().stream()
+                .map(this::modifyImp)
+                .filter(Objects::nonNull)
+                .toList();
 
-        if (requestImp == null) {
+        if (modifiedImps.isEmpty()) {
             return Result.withError(BidderError.badInput("No valid imps"));
         }
 
-        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(requestImp)).build();
+        final BidRequest modifiedRequest = request.toBuilder().imp(modifiedImps).build();
+        return Result.withValue(BidderUtil.defaultRequest(modifiedRequest, endpoint, mapper));
+    }
 
-        return Result.withValue(BidderUtil.defaultRequest(outgoingRequest, makeUrl(firstExtImpMobilefuse), mapper));
+    private Imp modifyImp(Imp imp) {
+        if (imp.getBanner() == null && imp.getVideo() == null && imp.getXNative() == null) {
+            return null;
+        }
+
+        final ExtImpMobilefuse impExt = parseImpExt(imp);
+
+        if (impExt == null) {
+            return null;
+        }
+
+        final ObjectNode skadn = parseSkadn(imp);
+        return imp.toBuilder()
+                .tagid(Objects.toString(impExt.getPlacementId(), "0"))
+                .ext(skadn != null ? mapper.mapper().createObjectNode().set(SKADN_PROPERTY_NAME, skadn) : null)
+                .build();
     }
 
     private ExtImpMobilefuse parseImpExt(Imp imp) {
@@ -81,58 +95,63 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp modifyImp(Imp imp, ExtImpMobilefuse extImpMobilefuse) {
-
-        if (imp.getBanner() != null || imp.getVideo() != null) {
-            final Imp.ImpBuilder impBuilder = imp.toBuilder();
-            if (imp.getBanner() != null && imp.getVideo() != null) {
-                impBuilder.video(null);
-            }
-
-            return impBuilder
-                    .tagid(Objects.toString(extImpMobilefuse.getPlacementId(), "0"))
-                    .ext(null)
-                    .build();
+    private ObjectNode parseSkadn(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt().get(SKADN_PROPERTY_NAME), ObjectNode.class);
+        } catch (IllegalArgumentException e) {
+            return null;
         }
-        return null;
     }
 
-    private String makeUrl(ExtImpMobilefuse extImpMobilefuse) {
-        final String baseUrl = endpointUrl + Objects.toString(extImpMobilefuse.getPublisherId(), "0");
-        return "ext".equals(extImpMobilefuse.getTagidSrc())
-                ? baseUrl + "&tagid_src=ext"
-                : baseUrl;
+    private String makeUrl(ExtImpMobilefuse extImp) {
+        final String baseUrl = endpointUrl + Objects.toString(extImp.getPublisherId(), "0");
+        return "ext".equals(extImp.getTagidSrc()) ? baseUrl + "&tagid_src=ext" : baseUrl;
     }
 
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(bidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid.toBuilder().ext(null).build(), getBidType(bid), bidResponse.getCur()))
                 .toList();
     }
 
-    protected BidType getBidType(List<Imp> imps) {
-        return CollectionUtils.isNotEmpty(imps)
-                && imps.get(0).getVideo() != null ? BidType.video : BidType.banner;
+    private BidType getBidType(Bid bid) {
+        if (bid.getExt() == null) {
+            return BidType.banner;
+        }
+
+        return switch (parseBidExtMediaType(bid.getExt())) {
+            case "video" -> BidType.video;
+            case "native" -> BidType.xNative;
+            default -> BidType.banner;
+        };
+    }
+
+    private String parseBidExtMediaType(ObjectNode bidExt) {
+        try {
+            return mapper.mapper().convertValue(bidExt.get("mf").get("media_type"), String.class);
+        } catch (IllegalArgumentException e) {
+            return "banner";
+        }
     }
 }
