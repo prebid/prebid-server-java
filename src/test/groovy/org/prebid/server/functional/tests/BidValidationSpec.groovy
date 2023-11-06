@@ -78,14 +78,17 @@ class BidValidationSpec extends BaseSpec {
         then: "BidResponse contain single seatbid"
         assert response.seatbid.size() == 1
 
+        then: "Response should contain warning"
+        def warningLogMessages = requestDistributionChannels.collect { "${it.value.toLowerCase()}" }.join(" and ")
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+                ["BidRequest contains $warningLogMessages. Only the first one is applicable, the others are ignored" as String]
+
         and: "PBS log should contain message"
         def logs = defaultPbsService.getLogsByTime(startTime)
-
         def validatorLogMessage = requestDistributionChannels.collect { "request.${it.value.toLowerCase()}" }.join(" and ")
-        assert getLogsByText(logs, "o.p.server.validation.RequestValidator   : $validatorLogMessage are present. Referer: $randomReferer")
-
-        def exchangeServiceLogMessage = requestDistributionChannels.collect { "${it.value.toLowerCase()}" }.join(" and ")
-        assert getLogsByText(logs, "o.prebid.server.auction.ExchangeService  : $exchangeServiceLogMessage are present. Referer: $randomReferer")
+        assert getLogsByText(logs, "o.p.server.validation.RequestValidator   : $validatorLogMessage are present. Referer: $randomReferer. Account: ${bidRequest.getAccountId()}")
+        assert getLogsByText(logs, "o.prebid.server.auction.ExchangeService  : $warningLogMessages are present. Referer: $randomReferer. Account: ${bidRequest.getAccountId()}")
 
         where:
         bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {

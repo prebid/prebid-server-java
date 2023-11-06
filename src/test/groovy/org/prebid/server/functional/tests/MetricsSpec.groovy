@@ -113,7 +113,7 @@ class MetricsSpec extends BaseSpec {
         assert !metrics["account.${accountId}.requests.type.openrtb2-app" as String]
     }
 
-    def "PBS should ignore dooh distribution channel and update only site metrics when presented dooh and site in request"() {
+    def "PBS should ignore site distribution channel and update only dooh metrics when presented dooh and site in request"() {
         given: "Default bid request with dooh and site"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             dooh = Dooh.defaultDooh
@@ -128,18 +128,21 @@ class MetricsSpec extends BaseSpec {
         when: "Requesting PBS auction"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request should have only site data"
+        then: "Bidder request should have only dooh data"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.site
-        assert !bidderRequest.dooh
+        assert bidderRequest.dooh
+        assert !bidderRequest.site
 
         and: "Metrics processed across site should be updated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics["account.${accountId}.requests.type.openrtb2-web" as String] == 1
-        assert metrics["adapter.generic.requests.type.openrtb2-web" as String] == 1
+        assert metrics["account.${accountId}.requests.type.openrtb2-dooh" as String] == 1
+        assert metrics["adapter.generic.requests.type.openrtb2-dooh" as String] == 1
+
+        and: "alert.general metric should be updated"
+        assert metrics["alerts.general" as String] == 1
 
         and: "Other channel types should not be populated"
-        assert !metrics["account.${accountId}.requests.type.openrtb2-dooh" as String]
+        assert !metrics["account.${accountId}.requests.type.openrtb2-web" as String]
         assert !metrics["account.${accountId}.requests.type.openrtb2-app" as String]
     }
 
@@ -163,6 +166,9 @@ class MetricsSpec extends BaseSpec {
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert metrics["account.${accountId}.requests.type.openrtb2-app" as String] == 1
         assert metrics["adapter.generic.requests.type.openrtb2-app" as String] == 1
+
+        and: "alert.general metric should be updated"
+        assert metrics["alerts.general" as String] == 1
 
         and: "Other channel types should not be populated"
         assert !metrics["account.${accountId}.requests.type.openrtb2-dooh" as String]

@@ -95,7 +95,7 @@ class BidRequest {
 
     @JsonIgnore
     List<DistributionChannel> getRequestDistributionChannels() {
-        [site, dooh, app].collectMany { it != null ? [DistributionChannel.findByValue(it.class.simpleName)] : [] }
+        [app, dooh, site].collectMany { it != null ? [DistributionChannel.findByValue(it.class.simpleName)] : [] }
     }
 
     @JsonIgnore
