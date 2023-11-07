@@ -6,16 +6,20 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
+import com.iab.openrtb.request.User;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -23,9 +27,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.PriceGranularity;
+import org.prebid.server.auction.SecBrowsingTopicsResolver;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.SecBrowsingTopic;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -49,6 +55,8 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashSet;
@@ -86,6 +94,7 @@ public class Ortb2ImplicitParametersResolver {
     private final TimeoutResolver timeoutResolver;
     private final IpAddressHelper ipAddressHelper;
     private final IdGenerator tidGenerator;
+    private final SecBrowsingTopicsResolver topicsResolver;
     private final JsonMerger jsonMerger;
     private final JacksonMapper mapper;
 
@@ -100,6 +109,7 @@ public class Ortb2ImplicitParametersResolver {
                                            TimeoutResolver timeoutResolver,
                                            IpAddressHelper ipAddressHelper,
                                            IdGenerator tidGenerator,
+                                           SecBrowsingTopicsResolver topicsResolver,
                                            JsonMerger jsonMerger,
                                            JacksonMapper mapper) {
 
@@ -112,6 +122,7 @@ public class Ortb2ImplicitParametersResolver {
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.tidGenerator = Objects.requireNonNull(tidGenerator);
+        this.topicsResolver = Objects.requireNonNull(topicsResolver);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -171,6 +182,9 @@ public class Ortb2ImplicitParametersResolver {
         final Source source = bidRequest.getSource();
         final Source populatedSource = populateSource(source, populatedExt, hasStoredBidRequest);
 
+        final User user = bidRequest.getUser();
+        final User populatedUser = populateUser(user, httpRequest.getHeaders());
+
         return bidRequest.toBuilder()
                 .device(populatedDevice != null ? populatedDevice : device)
                 .site(populatedSite != null ? populatedSite : site)
@@ -178,8 +192,9 @@ public class Ortb2ImplicitParametersResolver {
                 .at(resolvedAt != null ? resolvedAt : at)
                 .cur(resolvedCurrencies != null ? resolvedCurrencies : cur)
                 .tmax(resolvedTmax != null ? resolvedTmax : tmax)
-                .ext(populatedExt)
                 .source(populatedSource != null ? populatedSource : source)
+                .user(populatedUser != null ? populatedUser : user)
+                .ext(populatedExt)
                 .build();
     }
 
@@ -478,6 +493,99 @@ public class Ortb2ImplicitParametersResolver {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    private User populateUser(User user, CaseInsensitiveMultiMap headers) {
+        final List<SecBrowsingTopic> topics = topicsResolver.resolve(headers);
+        if (topics.isEmpty()) {
+            return null;
+        }
+
+        final List<Data> userData = user.getData();
+        final Map<String, List<Data>> domainToData = CollectionUtils.emptyIfNull(userData).stream()
+                .filter(Objects::nonNull)
+                .collect(Collectors.groupingBy(Data::getName));
+
+        for (SecBrowsingTopic topic : topics) {
+            final List<Data> domainData = domainToData.computeIfAbsent(topic.getDomain(), key -> new ArrayList<>());
+
+            final int topicDataIndex = IntStream.range(0, domainData.size())
+                    .filter(i -> topicMatchesData(domainData.get(i), topic))
+                    .findFirst()
+                    .orElse(-1);
+            if (topicDataIndex == -1) {
+                domainData.add(createDataForTopic(topic));
+                continue;
+            }
+
+            final Data topicData = domainData.get(topicDataIndex);
+            final List<Segment> segments = topicData.getSegment();
+            final Set<String> newSegmentsIds = newSegmentsIds(segments, topic.getSegments());
+            if (newSegmentsIds.isEmpty()) {
+                continue;
+            }
+
+            domainData.set(topicDataIndex, topicData.toBuilder()
+                    .segment(addNewSegmentsWithIds(segments, newSegmentsIds))
+                    .build());
+        }
+
+        return user.toBuilder()
+                .data(domainToData.values().stream()
+                        .flatMap(Collection::stream)
+                        .toList())
+                .build();
+    }
+
+    private boolean topicMatchesData(Data data, SecBrowsingTopic topic) {
+        final ObjectNode ext = data.getExt();
+        final JsonNode segtax = ext != null ? ext.get("segtax") : null;
+        final JsonNode segclass = ext != null ? ext.get("segclass") : null;
+
+        return segtax != null && segtax.intValue() == topicTaxonomy(topic.getTaxonomyVersion())
+                && segclass != null && topic.getModelVersion().equals(segclass.textValue());
+    }
+
+    private int topicTaxonomy(int taxonomyVersion) {
+        return 600 + taxonomyVersion - 1;
+    }
+
+    private Data createDataForTopic(SecBrowsingTopic topic) {
+        final ObjectNode ext = mapper.mapper().createObjectNode();
+        ext.put("segtax", topicTaxonomy(topic.getTaxonomyVersion()));
+        ext.put("segclass", topic.getModelVersion());
+
+        return Data.builder()
+                .name(topic.getDomain())
+                .segment(topic.getSegments().stream()
+                        .map(Ortb2ImplicitParametersResolver::segmentWithId)
+                        .toList())
+                .ext(ext)
+                .build();
+    }
+
+    private static Segment segmentWithId(String id) {
+        return Segment.builder().id(id).build();
+    }
+
+    private static Set<String> newSegmentsIds(List<Segment> segments, Set<String> newIds) {
+        return CollectionUtils.isNotEmpty(segments)
+                ? SetUtils.difference(
+                newIds,
+                CollectionUtils.emptyIfNull(segments).stream()
+                        .filter(Objects::nonNull)
+                        .map(Segment::getId)
+                        .collect(Collectors.toSet()))
+                : newIds;
+    }
+
+    private static List<Segment> addNewSegmentsWithIds(List<Segment> segments, Set<String> newIds) {
+        final List<Segment> updatedSegments = new ArrayList<>(segments);
+        newIds.stream()
+                .map(Ortb2ImplicitParametersResolver::segmentWithId)
+                .forEach(updatedSegments::add);
+
+        return updatedSegments;
     }
 
     private List<Imp> populateImps(BidRequest bidRequest,
