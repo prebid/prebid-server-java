@@ -192,7 +192,7 @@ public class RequestValidator {
             final boolean isDooh = !isApp && bidRequest.getDooh() != null;
             final boolean isSite = !isApp && !isDooh && bidRequest.getSite() != null;
 
-            if (channels.size() == 0) {
+            if (channels.isEmpty()) {
                 throw new ValidationException(
                         "One of request.site or request.app or request.dooh must be defined");
             } else if (channels.size() > 1) {
