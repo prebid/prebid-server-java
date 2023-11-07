@@ -18,6 +18,7 @@ import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
+import static org.prebid.server.functional.util.HttpUtil.REFERER_HEADER
 
 class BidValidationSpec extends BaseSpec {
 
@@ -64,7 +65,7 @@ class BidValidationSpec extends BaseSpec {
                        }]
     }
 
-    def "PBS should contain response and emit warning logs when bidRequest include  multiple distribution channel"() {
+    def "PBS should contain response and emit warning logs when bidRequest include multiple distribution channel"() {
         given: "Start time and random referer"
         def startTime = Instant.now()
         def randomReferer = PBSUtils.randomString
@@ -73,22 +74,22 @@ class BidValidationSpec extends BaseSpec {
         def requestDistributionChannels = bidRequest.getRequestDistributionChannels()
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest, ["Referer" : randomReferer])
+        def response = defaultPbsService.sendAuctionRequest(bidRequest, [(REFERER_HEADER): randomReferer])
 
         then: "BidResponse contain single seatbid"
         assert response.seatbid.size() == 1
 
         then: "Response should contain warning"
-        def warningLogMessages = requestDistributionChannels.collect { "${it.value.toLowerCase()}" }.join(" and ")
+        def warningChannelsValues = requestDistributionChannels.collect { "${it.value.toLowerCase()}" }.join(" and ")
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message ==
-                ["BidRequest contains $warningLogMessages. Only the first one is applicable, the others are ignored" as String]
+                ["BidRequest contains $warningChannelsValues. Only the first one is applicable, the others are ignored" as String]
 
         and: "PBS log should contain message"
         def logs = defaultPbsService.getLogsByTime(startTime)
-        def validatorLogMessage = requestDistributionChannels.collect { "request.${it.value.toLowerCase()}" }.join(" and ")
-        assert getLogsByText(logs, "o.p.server.validation.RequestValidator   : $validatorLogMessage are present. Referer: $randomReferer")
-        assert getLogsByText(logs, "o.prebid.server.auction.ExchangeService  : $warningLogMessages are present. Referer: $randomReferer. Account: ${bidRequest.getAccountId()}")
+        def validatorLogChannelsValues = requestDistributionChannels.collect { "request.${it.value.toLowerCase()}" }.join(" and ")
+        assert getLogsByText(logs, "$validatorLogChannelsValues are present. Referer: $randomReferer")
+        assert getLogsByText(logs, "$warningChannelsValues are present. Referer: $randomReferer. Account: ${bidRequest.getAccountId()}")
 
         where:
         bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
