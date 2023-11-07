@@ -26,7 +26,7 @@ public class HuaweiAdsTest extends IntegrationTest {
     @Test
     public void testOpenrtb2AuctionCoreFunctionality() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-ch"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/" + BID_REQUEST)))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/" + BID_RESPONSE))));
 
@@ -40,134 +40,10 @@ public class HuaweiAdsTest extends IntegrationTest {
     }
 
     @Test
-    public void testOpenrtb2AuctionBanner1() throws IOException, JSONException {
+    public void testOpenrtb2AuctionBannerAppPromotionType() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/banner1/" + BID_REQUEST)))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/banner1/" + BID_RESPONSE))));
-
-        // when
-        final Response response = responseFor(
-                "openrtb2/huaweiads/banner1/" + AUCTION_REQUEST,
-                Endpoint.openrtb2_auction);
-
-        // then
-        assertJsonEquals("openrtb2/huaweiads/banner1/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
-    }
-
-    @Test
-    public void testOpenrtb2AuctionBanner1WithoutUserext() throws IOException, JSONException {
-        // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/huaweiads/banner1_without_userext/" + BID_REQUEST)))
-                .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/huaweiads/banner1_without_userext/" + BID_RESPONSE))));
-
-        // when
-        final Response response = responseFor(
-                "openrtb2/huaweiads/banner1_without_userext/" + AUCTION_REQUEST,
-                Endpoint.openrtb2_auction);
-
-        // then
-        assertJsonEquals(
-                "openrtb2/huaweiads/banner1_without_userext/" + AUCTION_RESPONSE,
-                response,
-                List.of("huaweiads"));
-    }
-
-    @Test
-    public void testOpenrtb2AuctionBanner2() throws IOException, JSONException {
-        // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/banner2/" + BID_REQUEST)))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/banner2/" + BID_RESPONSE))));
-
-        // when
-        final Response response = responseFor(
-                "openrtb2/huaweiads/banner2/" + AUCTION_REQUEST,
-                Endpoint.openrtb2_auction);
-
-        // then
-        assertJsonEquals("openrtb2/huaweiads/banner2/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
-    }
-
-    @Test
-    public void testOpenrtb2AuctionBanner3() throws IOException, JSONException {
-        // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/banner3/" + BID_REQUEST)))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/banner3/" + BID_RESPONSE))));
-
-        // when
-        final Response response = responseFor(
-                "openrtb2/huaweiads/banner3/" + AUCTION_REQUEST,
-                Endpoint.openrtb2_auction);
-
-        // then
-        assertJsonEquals("openrtb2/huaweiads/banner3/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
-    }
-
-    @Test
-    public void testOpenrtb2AuctionBanner4Mccmnc() throws IOException, JSONException {
-        // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/banner4_mccmnc/" + BID_REQUEST)))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/banner4_mccmnc/" + BID_RESPONSE))));
-
-        // when
-        final Response response = responseFor(
-                "openrtb2/huaweiads/banner4_mccmnc/" + AUCTION_REQUEST,
-                Endpoint.openrtb2_auction);
-
-        // then
-        assertJsonEquals(
-                "openrtb2/huaweiads/banner4_mccmnc/" + AUCTION_RESPONSE,
-                response,
-                List.of("huaweiads"));
-    }
-
-    @Test
-    public void testOpenrtb2AuctionBanner5UserGeo() throws IOException, JSONException {
-        // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/banner5_user_geo/" + BID_REQUEST)))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/banner5_user_geo/" + BID_RESPONSE))));
-
-        // when
-        final Response response = responseFor(
-                "openrtb2/huaweiads/banner5_user_geo/" + AUCTION_REQUEST,
-                Endpoint.openrtb2_auction);
-
-        // then
-        assertJsonEquals(
-                "openrtb2/huaweiads/banner5_user_geo/" + AUCTION_RESPONSE,
-                response,
-                List.of("huaweiads"));
-    }
-
-    @Test
-    public void testOpenrtb2AuctionBanner6Imei() throws IOException, JSONException {
-        // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/banner6_imei/" + BID_REQUEST)))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/banner6_imei/" + BID_RESPONSE))));
-
-        // when
-        final Response response = responseFor(
-                "openrtb2/huaweiads/banner6_imei/" + AUCTION_REQUEST,
-                Endpoint.openrtb2_auction);
-
-        // then
-        assertJsonEquals("openrtb2/huaweiads/banner6_imei/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
-    }
-
-    @Test
-    public void testOpenrtb2AuctionbannerAppPromotionType() throws IOException, JSONException {
-        // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/huaweiads/banner_app_promotion_type/" + BID_REQUEST)))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-ch"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/banner_app_promotion_type/" + BID_REQUEST)))
                 .willReturn(aResponse()
                         .withBody(jsonFrom("openrtb2/huaweiads/banner_app_promotion_type/" + BID_RESPONSE))));
 
@@ -184,9 +60,96 @@ public class HuaweiAdsTest extends IntegrationTest {
     }
 
     @Test
-    public void testOpenrtb2AuctionbannerNonIntegerMccmnc() throws IOException, JSONException {
+    public void testOpenrtb2AuctionBannerChEndpoint() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-ch"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/banner_ch_endpoint/" + BID_REQUEST)))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/banner_ch_endpoint/" + BID_RESPONSE))));
+
+        // when
+        final Response response = responseFor(
+                "openrtb2/huaweiads/banner_ch_endpoint/" + AUCTION_REQUEST,
+                Endpoint.openrtb2_auction);
+
+        // then
+        assertJsonEquals("openrtb2/huaweiads/banner_ch_endpoint/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
+    }
+
+    @Test
+    public void testOpenrtb2AuctionBannerEuEndpoint() throws IOException, JSONException {
+        // given
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-eu"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/banner_eu_endpoint/" + BID_REQUEST)))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/banner_eu_endpoint/" + BID_RESPONSE))));
+
+        // when
+        final Response response = responseFor(
+                "openrtb2/huaweiads/banner_eu_endpoint/" + AUCTION_REQUEST,
+                Endpoint.openrtb2_auction);
+
+        // then
+        assertJsonEquals("openrtb2/huaweiads/banner_eu_endpoint/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
+    }
+
+    @Test
+    public void testOpenrtb2AuctionBannerImei() throws IOException, JSONException {
+        // given
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-ch"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/banner_imei/" + BID_REQUEST)))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/banner_imei/" + BID_RESPONSE))));
+
+        // when
+        final Response response = responseFor(
+                "openrtb2/huaweiads/banner_imei/" + AUCTION_REQUEST,
+                Endpoint.openrtb2_auction);
+
+        // then
+        assertJsonEquals(
+                "openrtb2/huaweiads/banner_imei/" + AUCTION_RESPONSE,
+                response,
+                List.of("huaweiads"));
+    }
+
+    @Test
+    public void testOpenrtb2AuctionBannerInterstitialType() throws IOException, JSONException {
+        // given
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-eu"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/banner_interstitial_type/" + BID_REQUEST)))
+                .willReturn(aResponse()
+                        .withBody(jsonFrom("openrtb2/huaweiads/banner_interstitial_type/" + BID_RESPONSE))));
+
+        // when
+        final Response response = responseFor(
+                "openrtb2/huaweiads/banner_interstitial_type/" + AUCTION_REQUEST,
+                Endpoint.openrtb2_auction);
+
+        // then
+        assertJsonEquals(
+                "openrtb2/huaweiads/banner_interstitial_type/" + AUCTION_RESPONSE,
+                response,
+                List.of("huaweiads"));
+    }
+
+    @Test
+    public void testOpenrtb2AuctionBannerMccMnc() throws IOException, JSONException {
+        // given
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/banner_mccmnc/" + BID_REQUEST)))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/banner_mccmnc/" + BID_RESPONSE))));
+
+        // when
+        final Response response = responseFor(
+                "openrtb2/huaweiads/banner_mccmnc/" + AUCTION_REQUEST,
+                Endpoint.openrtb2_auction);
+
+        // then
+        assertJsonEquals("openrtb2/huaweiads/banner_mccmnc/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
+    }
+
+    @Test
+    public void testOpenrtb2AuctionBannerNonIntegerMccMnc() throws IOException, JSONException {
+        // given
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
                 .withRequestBody(
                         equalToJson(jsonFrom("openrtb2/huaweiads/banner_non_integer_mccmnc/" + BID_REQUEST)))
                 .willReturn(aResponse()
@@ -205,9 +168,30 @@ public class HuaweiAdsTest extends IntegrationTest {
     }
 
     @Test
+    public void testOpenrtb2AuctionBannerRuEndpoint() throws IOException, JSONException {
+        // given
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-ru"))
+                .withRequestBody(
+                        equalToJson(jsonFrom("openrtb2/huaweiads/banner_ru_endpoint/" + BID_REQUEST)))
+                .willReturn(aResponse()
+                        .withBody(jsonFrom("openrtb2/huaweiads/banner_ru_endpoint/" + BID_RESPONSE))));
+
+        // when
+        final Response response = responseFor(
+                "openrtb2/huaweiads/banner_ru_endpoint/" + AUCTION_REQUEST,
+                Endpoint.openrtb2_auction);
+
+        // then
+        assertJsonEquals(
+                "openrtb2/huaweiads/banner_ru_endpoint/" + AUCTION_RESPONSE,
+                response,
+                List.of("huaweiads"));
+    }
+
+    @Test
     public void testOpenrtb2AuctionBannerNotAppPromotionType() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-ch"))
                 .withRequestBody(
                         equalToJson(jsonFrom("openrtb2/huaweiads/banner_not_app_promotion_type/" + BID_REQUEST)))
                 .willReturn(aResponse()
@@ -228,7 +212,7 @@ public class HuaweiAdsTest extends IntegrationTest {
     @Test
     public void testOpenrtb2AuctionBannerWrongMccmnc() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
                 .withRequestBody(
                         equalToJson(jsonFrom("openrtb2/huaweiads/banner_wrong_mccmnc/" + BID_REQUEST)))
                 .willReturn(aResponse()
@@ -247,85 +231,64 @@ public class HuaweiAdsTest extends IntegrationTest {
     }
 
     @Test
-    public void testOpenrtb2AuctionBannerTestExtraInfo1() throws IOException, JSONException {
+    public void testOpenrtb2AuctionBannerWithUserGeo() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
                 .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/huaweiads/banner_test_extra_info_1/" + BID_REQUEST)))
+                        equalToJson(jsonFrom("openrtb2/huaweiads/banner_with_user_geo/" + BID_REQUEST)))
                 .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/huaweiads/banner_test_extra_info_1/" + BID_RESPONSE))));
+                        .withBody(jsonFrom("openrtb2/huaweiads/banner_with_user_geo/" + BID_RESPONSE))));
 
         // when
         final Response response = responseFor(
-                "openrtb2/huaweiads/banner_test_extra_info_1/" + AUCTION_REQUEST,
+                "openrtb2/huaweiads/banner_with_user_geo/" + AUCTION_REQUEST,
                 Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals(
-                "openrtb2/huaweiads/banner_test_extra_info_1/" + AUCTION_RESPONSE,
+                "openrtb2/huaweiads/banner_with_user_geo/" + AUCTION_RESPONSE,
                 response,
                 List.of("huaweiads"));
     }
 
     @Test
-    public void testOpenrtb2AuctionBannerTestExtraInfo2() throws IOException, JSONException {
+    public void testOpenrtb2AuctionBannerWithoutDeviceGeo() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
                 .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/huaweiads/banner_test_extra_info_2/" + BID_REQUEST)))
+                        equalToJson(jsonFrom("openrtb2/huaweiads/banner_without_device_geo/" + BID_REQUEST)))
                 .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/huaweiads/banner_test_extra_info_2/" + BID_RESPONSE))));
+                        .withBody(jsonFrom("openrtb2/huaweiads/banner_without_device_geo/" + BID_RESPONSE))));
 
         // when
         final Response response = responseFor(
-                "openrtb2/huaweiads/banner_test_extra_info_2/" + AUCTION_REQUEST,
+                "openrtb2/huaweiads/banner_without_device_geo/" + AUCTION_REQUEST,
                 Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals(
-                "openrtb2/huaweiads/banner_test_extra_info_2/" + AUCTION_RESPONSE,
+                "openrtb2/huaweiads/banner_without_device_geo/" + AUCTION_RESPONSE,
                 response,
                 List.of("huaweiads"));
     }
 
     @Test
-    public void testOpenrtb2AuctionBannerTestExtraInfo3() throws IOException, JSONException {
+    public void testOpenrtb2AuctionBannerWithoutUserext() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-ch"))
                 .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/huaweiads/banner_test_extra_info_3/" + BID_REQUEST)))
+                        equalToJson(jsonFrom("openrtb2/huaweiads/banner_without_userext/" + BID_REQUEST)))
                 .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/huaweiads/banner_test_extra_info_3/" + BID_RESPONSE))));
+                        .withBody(jsonFrom("openrtb2/huaweiads/banner_without_userext/" + BID_RESPONSE))));
 
         // when
         final Response response = responseFor(
-                "openrtb2/huaweiads/banner_test_extra_info_3/" + AUCTION_REQUEST,
+                "openrtb2/huaweiads/banner_without_userext/" + AUCTION_REQUEST,
                 Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals(
-                "openrtb2/huaweiads/banner_test_extra_info_3/" + AUCTION_RESPONSE,
-                response,
-                List.of("huaweiads"));
-    }
-
-    @Test
-    public void testOpenrtb2AuctionInterstitialBannerType() throws IOException, JSONException {
-        // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/huaweiads/interstitial_banner_type/" + BID_REQUEST)))
-                .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/huaweiads/interstitial_banner_type/" + BID_RESPONSE))));
-
-        // when
-        final Response response = responseFor(
-                "openrtb2/huaweiads/interstitial_banner_type/" + AUCTION_REQUEST,
-                Endpoint.openrtb2_auction);
-
-        // then
-        assertJsonEquals(
-                "openrtb2/huaweiads/interstitial_banner_type/" + AUCTION_RESPONSE,
+                "openrtb2/huaweiads/banner_without_userext/" + AUCTION_RESPONSE,
                 response,
                 List.of("huaweiads"));
     }
@@ -333,20 +296,20 @@ public class HuaweiAdsTest extends IntegrationTest {
     @Test
     public void testOpenrtb2AuctionInterstitialVideoType() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
                 .withRequestBody(
-                        equalToJson(jsonFrom("openrtb2/huaweiads/interstitial_video_type/" + BID_REQUEST)))
+                        equalToJson(jsonFrom("openrtb2/huaweiads/video_interstitial_type/" + BID_REQUEST)))
                 .willReturn(aResponse()
-                        .withBody(jsonFrom("openrtb2/huaweiads/interstitial_video_type/" + BID_RESPONSE))));
+                        .withBody(jsonFrom("openrtb2/huaweiads/video_interstitial_type/" + BID_RESPONSE))));
 
         // when
         final Response response = responseFor(
-                "openrtb2/huaweiads/interstitial_video_type/" + AUCTION_REQUEST,
+                "openrtb2/huaweiads/video_interstitial_type/" + AUCTION_REQUEST,
                 Endpoint.openrtb2_auction);
 
         // then
         assertJsonEquals(
-                "openrtb2/huaweiads/interstitial_video_type/" + AUCTION_RESPONSE,
+                "openrtb2/huaweiads/video_interstitial_type/" + AUCTION_RESPONSE,
                 response,
                 List.of("huaweiads"));
     }
@@ -354,7 +317,7 @@ public class HuaweiAdsTest extends IntegrationTest {
     @Test
     public void testOpenrtb2AuctionNativeIncludeVideo() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
                 .withRequestBody(
                         equalToJson(jsonFrom("openrtb2/huaweiads/native_include_video/" + BID_REQUEST)))
                 .willReturn(aResponse()
@@ -372,7 +335,7 @@ public class HuaweiAdsTest extends IntegrationTest {
     @Test
     public void testOpenrtb2AuctionNativeSingleImage() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-eu"))
                 .withRequestBody(
                         equalToJson(jsonFrom("openrtb2/huaweiads/native_single_image/" + BID_REQUEST)))
                 .willReturn(aResponse()
@@ -390,7 +353,7 @@ public class HuaweiAdsTest extends IntegrationTest {
     @Test
     public void testOpenrtb2AuctionNativeThreeImage() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
                 .withRequestBody(
                         equalToJson(jsonFrom("openrtb2/huaweiads/native_three_image/" + BID_REQUEST)))
                 .willReturn(aResponse()
@@ -411,7 +374,7 @@ public class HuaweiAdsTest extends IntegrationTest {
     @Test
     public void testOpenrtb2AuctionNativeThreeImageIncludeIcon() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
                 .withRequestBody(
                         equalToJson(jsonFrom("openrtb2/huaweiads/native_three_image_include_icon/" + BID_REQUEST)))
                 .willReturn(aResponse()
@@ -430,115 +393,98 @@ public class HuaweiAdsTest extends IntegrationTest {
     }
 
     @Test
-    public void testOpenrtb2AuctionRewardedVideo() throws IOException, JSONException {
+    public void testOpenrtb2AuctionVideoRewardedTypeNoIconsNoImages() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/rewarded_video/" + BID_REQUEST)))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/rewarded_video/" + BID_RESPONSE))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
+                .withRequestBody(equalToJson(
+                        jsonFrom("openrtb2/huaweiads/video_rewarded_type_no_icons_no_images/" + BID_REQUEST)))
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/huaweiads/video_rewarded_type_no_icons_no_images/" + BID_RESPONSE))));
 
         // when
         final Response response = responseFor(
-                "openrtb2/huaweiads/rewarded_video/" + AUCTION_REQUEST,
+                "openrtb2/huaweiads/video_rewarded_type_no_icons_no_images/" + AUCTION_REQUEST,
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/huaweiads/rewarded_video/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
+        assertJsonEquals(
+                "openrtb2/huaweiads/video_rewarded_type_no_icons_no_images/" + AUCTION_RESPONSE,
+                response,
+                List.of("huaweiads"));
     }
 
     @Test
-    public void testOpenrtb2AuctionRewardedVideo1() throws IOException, JSONException {
+    public void testOpenrtb2AuctionVideoRewardedTypeWithIcon() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/rewarded_video1/" + BID_REQUEST)))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/rewarded_video1/" + BID_RESPONSE))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
+                .withRequestBody(
+                        equalToJson(jsonFrom("openrtb2/huaweiads/video_rewarded_type_with_icon/" + BID_REQUEST)))
+                .willReturn(aResponse()
+                        .withBody(jsonFrom("openrtb2/huaweiads/video_rewarded_type_with_icon/" + BID_RESPONSE))));
 
         // when
         final Response response = responseFor(
-                "openrtb2/huaweiads/rewarded_video1/" + AUCTION_REQUEST,
+                "openrtb2/huaweiads/video_rewarded_type_with_icon/" + AUCTION_REQUEST,
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/huaweiads/rewarded_video1/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
+        assertJsonEquals(
+                "openrtb2/huaweiads/video_rewarded_type_with_icon/" + AUCTION_RESPONSE,
+                response,
+                List.of("huaweiads"));
     }
 
     @Test
-    public void testOpenrtb2AuctionRewardedVideo2() throws IOException, JSONException {
+    public void testOpenrtb2AuctionVideoRewardedTypeWithImages() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/rewarded_video2/" + BID_REQUEST)))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/rewarded_video2/" + BID_RESPONSE))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
+                .withRequestBody(
+                        equalToJson(jsonFrom("openrtb2/huaweiads/video_rewarded_type_with_images/" + BID_REQUEST)))
+                .willReturn(aResponse()
+                        .withBody(jsonFrom("openrtb2/huaweiads/video_rewarded_type_with_images/" + BID_RESPONSE))));
 
         // when
         final Response response = responseFor(
-                "openrtb2/huaweiads/rewarded_video2/" + AUCTION_REQUEST,
+                "openrtb2/huaweiads/video_rewarded_type_with_images/" + AUCTION_REQUEST,
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/huaweiads/rewarded_video2/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
-    }
-
-    @Test
-    public void testOpenrtb2AuctionRewardedVideo3() throws IOException, JSONException {
-        // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/rewarded_video3/" + BID_REQUEST)))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/rewarded_video3/" + BID_RESPONSE))));
-
-        // when
-        final Response response = responseFor(
-                "openrtb2/huaweiads/rewarded_video3/" + AUCTION_REQUEST,
-                Endpoint.openrtb2_auction);
-
-        // then
-        assertJsonEquals("openrtb2/huaweiads/rewarded_video3/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
-    }
-
-    @Test
-    public void testOpenrtb2AuctionRewardedVideo4() throws IOException, JSONException {
-        // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/rewarded_video4/" + BID_REQUEST)))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/rewarded_video4/" + BID_RESPONSE))));
-
-        // when
-        final Response response = responseFor(
-                "openrtb2/huaweiads/rewarded_video4/" + AUCTION_REQUEST,
-                Endpoint.openrtb2_auction);
-
-        // then
-        assertJsonEquals("openrtb2/huaweiads/rewarded_video4/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
+        assertJsonEquals(
+                "openrtb2/huaweiads/video_rewarded_type_with_images/" + AUCTION_RESPONSE,
+                response,
+                List.of("huaweiads"));
     }
 
     @Test
     public void testOpenrtb2AuctionRollVideo() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/roll_video/" + BID_REQUEST)))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/roll_video/" + BID_RESPONSE))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/video_roll_type/" + BID_REQUEST)))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/video_roll_type/" + BID_RESPONSE))));
 
         // when
         final Response response = responseFor(
-                "openrtb2/huaweiads/roll_video/" + AUCTION_REQUEST,
+                "openrtb2/huaweiads/video_roll_type/" + AUCTION_REQUEST,
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/huaweiads/roll_video/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
+        assertJsonEquals("openrtb2/huaweiads/video_roll_type/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
     }
 
     @Test
     public void testOpenrtb2AuctionVideo() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/video/" + BID_REQUEST)))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/video/" + BID_RESPONSE))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/huaweiads-exchange-as"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/huaweiads/simple_video/" + BID_REQUEST)))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/huaweiads/simple_video/" + BID_RESPONSE))));
 
         // when
         final Response response = responseFor(
-                "openrtb2/huaweiads/video/" + AUCTION_REQUEST,
+                "openrtb2/huaweiads/simple_video/" + AUCTION_REQUEST,
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/huaweiads/video/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
+        assertJsonEquals("openrtb2/huaweiads/simple_video/" + AUCTION_RESPONSE, response, List.of("huaweiads"));
     }
 
 }
