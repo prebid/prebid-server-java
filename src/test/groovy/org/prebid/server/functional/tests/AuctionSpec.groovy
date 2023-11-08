@@ -1,12 +1,20 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
+import org.prebid.server.functional.model.request.auction.Renderer
+import org.prebid.server.functional.model.request.auction.RendererData
+import org.prebid.server.functional.model.request.auction.Sdk
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtPrebid
+import org.prebid.server.functional.model.response.auction.BidExt
+import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.model.response.auction.Meta
+import org.prebid.server.functional.model.response.auction.Prebid
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
@@ -15,8 +23,10 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.AccountStatus.INACTIVE
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
@@ -309,5 +319,116 @@ class AuctionSpec extends BaseSpec {
 
         and: "BidderRequest shouldn't populate fields"
         assert !bidderRequest.ext.prebid.aliases
+    }
+
+    def "PBS auction should pass ext.prebid.sdk requested to bidder request when sdk specified"() {
+        given: "Default bid request with aliases"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.sdk = new Sdk(renderers: [new Renderer(
+                    name: PBSUtils.randomString,
+                    version: PBSUtils.randomString,
+                    data: new RendererData(any: PBSUtils.randomString))])
+        }
+
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain sdk value same in request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.sdk.renderers.name == bidRequest.ext.prebid.sdk.renderers.name
+        assert bidderRequest.ext.prebid.sdk.renderers.version == bidRequest.ext.prebid.sdk.renderers.version
+        assert bidderRequest.ext.prebid.sdk.renderers.data.any == bidRequest.ext.prebid.sdk.renderers.data.any
+    }
+
+    def "PBS auction should pass meta object to bid response when meta specified "() {
+        given: "Default bid request with aliases"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Default bidder response without bid"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].ext = new BidExt(prebid: new Prebid(meta: new Meta(
+                    rendererName: PBSUtils.randomString,
+                    rendererUrl: PBSUtils.randomString,
+                    rendererVersion: PBSUtils.getRandomString())))
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "Requesting PBS auction"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain meta value same in request"
+        assert response.seatbid[0].bid[0].ext.prebid.meta.rendererName ==
+                bidResponse.seatbid[0].bid[0].ext.prebid.meta.rendererName
+        assert response.seatbid[0].bid[0].ext.prebid.meta.rendererUrl ==
+                bidResponse.seatbid[0].bid[0].ext.prebid.meta.rendererUrl
+        assert response.seatbid[0].bid[0].ext.prebid.meta.rendererVersion ==
+                bidResponse.seatbid[0].bid[0].ext.prebid.meta.rendererVersion
+    }
+
+    def "PBS call to alias should populate bidder request buyeruid from family user.buyeruids when resolved name is present"() {
+        given: "Pbs config with alias"
+        def cookieName = PBSUtils.randomString
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_CONFIG
+                + ["host-cookie.family"                          : GENERIC.value,
+                   "host-cookie.cookie-name"                     : cookieName,
+                   "adapters.generic.usersync.cookie-family-name": GENERIC.value])
+
+        and: "Alias bid request"
+        def buyeruid = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.generic = null
+            ext.prebid.aliases = [ (ALIAS.value): bidderName]
+            user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC): buyeruid])))
+        }
+
+        and: "Host cookie"
+        def hostCookieUid = UUID.randomUUID().toString()
+        def cookies = HttpUtil.getCookieHeader(cookieName, hostCookieUid)
+
+        when: "PBS processes auction request"
+        prebidServerService.sendAuctionRequest(bidRequest, cookies)
+
+        then: "Bidder request should contain buyeruid from the user.ext.prebid.buyeruids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest?.user?.buyeruid == buyeruid
+
+        where:
+        bidderName << [GENERIC, GENERIC_CAMEL_CASE]
+    }
+
+    def "PBS call to alias should populate bidder request buyeruid from family user.buyeruids when it's contained in base bidder"() {
+        given: "Pbs config with alias"
+        def cookieName = PBSUtils.randomString
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_CONFIG
+                + ["host-cookie.family"                          : GENERIC.value,
+                   "host-cookie.cookie-name"                     : cookieName,
+                   "adapters.generic.usersync.cookie-family-name": GENERIC.value,
+                   "adapters.generic.aliases.alias.enabled"      : "true",
+                   "adapters.generic.aliases.alias.endpoint"     : "$networkServiceContainer.rootUri/auction".toString()])
+
+        and: "Alias bid request"
+        def buyeruid = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.generic = null
+            user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC): buyeruid])))
+        }
+
+        and: "Host cookie"
+        def hostCookieUid = UUID.randomUUID().toString()
+        def cookies = HttpUtil.getCookieHeader(cookieName, hostCookieUid)
+
+        when: "PBS processes auction request"
+        prebidServerService.sendAuctionRequest(bidRequest, cookies)
+
+        then: "Bidder request should contain buyeruid from the user.ext.prebid.buyeruids"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest?.user?.buyeruid == buyeruid
+
+        where:
+        bidderName << [GENERIC, GENERIC_CAMEL_CASE]
     }
 }

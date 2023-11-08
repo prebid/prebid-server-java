@@ -184,14 +184,18 @@ public class GeoLocationConfiguration {
     static class CountryCodeMapperConfiguration {
 
         @Bean
-        public CountryCodeMapper countryCodeMapper(
-                @Value("classpath:country-codes.csv") Resource resource) throws IOException {
+        public CountryCodeMapper countryCodeMapper(@Value("classpath:country-codes.csv") Resource countryCodes,
+                                                   @Value("classpath:mcc-country-codes.csv") Resource mccCountryCodes)
+                throws IOException {
 
+            return new CountryCodeMapper(readCsv(countryCodes), readCsv(mccCountryCodes));
+        }
+
+        private String readCsv(Resource resource) throws IOException {
             final Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
-            final String countryCodesCsvAsString = FileCopyUtils.copyToString(reader);
+            final String csv = FileCopyUtils.copyToString(reader);
             reader.close();
-
-            return new CountryCodeMapper(countryCodesCsvAsString);
+            return csv;
         }
     }
 }

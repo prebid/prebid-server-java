@@ -33,6 +33,7 @@ import com.iab.openrtb.request.ntv.EventTrackingMethod;
 import com.iab.openrtb.request.ntv.EventType;
 import com.iab.openrtb.request.ntv.PlacementType;
 import com.iab.openrtb.request.ntv.Protocol;
+import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -40,6 +41,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -61,6 +64,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -86,6 +90,9 @@ import java.util.stream.Stream;
  */
 public class RequestValidator {
 
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
+            LoggerFactory.getLogger(RequestValidator.class));
+
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
     private static final String ASTERISK = "*";
@@ -98,6 +105,7 @@ public class RequestValidator {
     private final BidderCatalog bidderCatalog;
     private final BidderParamValidator bidderParamValidator;
     private final JacksonMapper mapper;
+    private final double logSamplingRate;
 
     /**
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
@@ -105,18 +113,20 @@ public class RequestValidator {
      */
     public RequestValidator(BidderCatalog bidderCatalog,
                             BidderParamValidator bidderParamValidator,
-                            JacksonMapper mapper) {
+                            JacksonMapper mapper,
+                            double logSamplingRate) {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
         this.mapper = Objects.requireNonNull(mapper);
+        this.logSamplingRate = logSamplingRate;
     }
 
     /**
      * Validates the {@link BidRequest} against a list of validation checks, however, reports only one problem
      * at a time.
      */
-    public ValidationResult validate(BidRequest bidRequest) {
+    public ValidationResult validate(BidRequest bidRequest, HttpRequestContext httpRequestContext) {
         final List<String> warnings = new ArrayList<>();
         try {
             if (StringUtils.isBlank(bidRequest.getId())) {
@@ -174,24 +184,29 @@ public class RequestValidator {
             }
 
             final List<String> channels = new ArrayList<>();
-            Optional.ofNullable(bidRequest.getSite()).ifPresent(ignored -> channels.add("request.site"));
-            Optional.ofNullable(bidRequest.getDooh()).ifPresent(ignored -> channels.add("request.dooh"));
             Optional.ofNullable(bidRequest.getApp()).ifPresent(ignored -> channels.add("request.app"));
+            Optional.ofNullable(bidRequest.getDooh()).ifPresent(ignored -> channels.add("request.dooh"));
+            Optional.ofNullable(bidRequest.getSite()).ifPresent(ignored -> channels.add("request.site"));
 
-            if (channels.size() == 0) {
+            final boolean isApp = bidRequest.getApp() != null;
+            final boolean isDooh = !isApp && bidRequest.getDooh() != null;
+            final boolean isSite = !isApp && !isDooh && bidRequest.getSite() != null;
+
+            if (channels.isEmpty()) {
                 throw new ValidationException(
                         "One of request.site or request.app or request.dooh must be defined");
             } else if (channels.size() > 1) {
-                throw new ValidationException(String.join(" and ", channels) + " are present, "
-                        + "but no more than one of request.site or request.app or request.dooh can be defined");
+                final String logMessage = String.join(" and ", channels) + " are present. "
+                        + "Referer: " + httpRequestContext.getHeaders().get(HttpUtil.REFERER_HEADER);
+                conditionalLogger.warn(logMessage, logSamplingRate);
             }
 
-            if (bidRequest.getSite() != null) {
-                validateSite(bidRequest.getSite());
-            }
-
-            if (bidRequest.getDooh() != null) {
+            if (isDooh) {
                 validateDooh(bidRequest.getDooh());
+            }
+
+            if (isSite) {
+                validateSite(bidRequest.getSite());
             }
 
             validateDevice(bidRequest.getDevice());

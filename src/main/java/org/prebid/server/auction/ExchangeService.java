@@ -61,7 +61,6 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.DealsService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.TxnLog;
-import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -122,6 +121,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationRes
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.LineItemUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
@@ -354,7 +354,6 @@ public class ExchangeService {
      */
     private static BidRequestCacheInfo bidRequestCacheInfo(BidRequest bidRequest) {
         final ExtRequestTargeting targeting = targeting(bidRequest);
-
         final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
         final ExtRequestPrebidCache cache = prebid != null ? prebid.getCache() : null;
 
@@ -414,7 +413,6 @@ public class ExchangeService {
                 debugWarnings.add(
                         "Invalid MultiBid: bidder %s and bidders %s specified. Only bidder %s will be used."
                                 .formatted(bidder, bidders, bidder));
-
                 tryAddBidderWithMultiBid(bidder, maxBids, codePrefix, bidderToMultiBid, debugWarnings);
                 continue;
             }
@@ -904,26 +902,32 @@ public class ExchangeService {
         final Dooh preparedDooh = prepareDooh(dooh, fpdDooh, useFirstPartyData);
 
         final List<String> distributionChannels = new ArrayList<>();
-        Optional.ofNullable(preparedSite).ifPresent(ignored -> distributionChannels.add("site"));
-        Optional.ofNullable(preparedDooh).ifPresent(ignored -> distributionChannels.add("dooh"));
         Optional.ofNullable(preparedApp).ifPresent(ignored -> distributionChannels.add("app"));
+        Optional.ofNullable(preparedDooh).ifPresent(ignored -> distributionChannels.add("dooh"));
+        Optional.ofNullable(preparedSite).ifPresent(ignored -> distributionChannels.add("site"));
 
         if (distributionChannels.size() > 1) {
+            context.getDebugWarnings().add("BidRequest contains " + String.join(" and ", distributionChannels)
+                    + ". Only the first one is applicable, the others are ignored");
             metrics.updateAlertsMetrics(MetricName.general);
-            conditionalLogger.error("More than one distribution channel is present", logSamplingRate);
-            throw new InvalidRequestException(
-                    String.join(" and ", distributionChannels) + " are present, "
-                            + "but no more than one of site or app or dooh can be defined");
+            final String logMessage = String.join(" and ", distributionChannels) + " are present. "
+                    + "Referer: " + context.getHttpRequest().getHeaders().get(HttpUtil.REFERER_HEADER) + ". "
+                    + "Account: " + context.getAccount().getId();
+            conditionalLogger.warn(logMessage, logSamplingRate);
         }
+
+        final boolean isApp = preparedApp != null;
+        final boolean isDooh = !isApp && preparedDooh != null;
+        final boolean isSite = !isApp && !isDooh && preparedSite != null;
 
         return bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
                 .imp(prepareImps(bidder, imps, bidRequest, transmitTid, useFirstPartyData, context.getAccount()))
-                .app(preparedApp)
-                .dooh(preparedDooh)
-                .site(preparedSite)
+                .app(isApp ? preparedApp : null)
+                .dooh(isDooh ? preparedDooh : null)
+                .site(isSite ? preparedSite : null)
                 .source(prepareSource(bidder, bidRequest, transmitTid))
                 .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build();

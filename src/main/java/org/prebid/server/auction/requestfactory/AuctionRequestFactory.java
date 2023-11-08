@@ -215,7 +215,10 @@ public class AuctionRequestFactory {
 
         return storedRequestProcessor.processAuctionRequest(account.getId(), auctionContext.getBidRequest())
                 .compose(auctionStoredResult -> updateBidRequest(auctionStoredResult, auctionContext))
-                .compose(bidRequest -> ortb2RequestFactory.validateRequest(bidRequest, debugWarnings))
+                .compose(bidRequest -> ortb2RequestFactory.validateRequest(
+                        bidRequest,
+                        auctionContext.getHttpRequest(),
+                        debugWarnings))
                 .map(interstitialProcessor::process);
     }
 
@@ -234,10 +237,10 @@ public class AuctionRequestFactory {
     private static MetricName requestTypeMetric(BidRequest bidRequest) {
         if (bidRequest.getApp() != null) {
             return MetricName.openrtb2app;
-        } else if (bidRequest.getSite() != null) {
-            return MetricName.openrtb2web;
-        } else {
+        } else if (bidRequest.getDooh() != null) {
             return MetricName.openrtb2dooh;
+        } else {
+            return MetricName.openrtb2web;
         }
     }
 }
