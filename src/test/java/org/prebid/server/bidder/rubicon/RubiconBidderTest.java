@@ -408,6 +408,160 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldPassBadvField() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.badv(List.of("testBadv1", "testBadv2")),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getBadv)
+                .containsExactly("testBadv1", "testBadv2");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassBappField() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.bapp(List.of("testBapp1", "testBapp2")),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getBapp)
+                .containsExactly("testBapp1", "testBapp2");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassBcatField() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.bcat(List.of("testBcat1", "testBcat2")),
+                impBuilder -> impBuilder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getBcat)
+                .containsExactly("testBcat1", "testBcat2");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassBannerBtypeField() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(300).h(250).build()))
+                                .btype(List.of(3, 4))
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRubicon.builder()
+                                .sizes(singletonList(15)).build())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBanner).doesNotContainNull()
+                .flatExtracting(Banner::getBtype).hasSize(2)
+                .containsExactly(3, 4);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassBannerBattrField() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                        .banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(300).h(250).build()))
+                                .battr(List.of(3, 4))
+                                .build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRubicon.builder()
+                                .sizes(singletonList(15)).build())))
+                        .build()))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBanner).doesNotContainNull()
+                .flatExtracting(Banner::getBattr).hasSize(2)
+                .containsExactly(3, 4);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassVideoBattrField() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder.video(Video.builder().battr(List.of(3, 4)).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getVideo).doesNotContainNull()
+                .flatExtracting(Video::getBattr).hasSize(2)
+                .containsExactly(3, 4);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassNativeBattrField() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                identity(),
+                impBuilder -> impBuilder.xNative(Native.builder().battr(List.of(3, 4)).ver("1.0").build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getXNative).doesNotContainNull()
+                .flatExtracting(Native::getBattr).hasSize(2)
+                .containsExactly(3, 4);
+    }
+
+    @Test
     public void makeHttpRequestsShouldAddMaxbidsAttributeAsOneIfExtPrebidMultibidMaxBidsIsNotPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(

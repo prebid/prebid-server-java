@@ -169,6 +169,34 @@ public class BidderCatalogTest {
     }
 
     @Test
+    public void resolveBaseBidderShouldReturnBaseBidderName() {
+        // given
+        final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
+                .name("alias")
+                .bidderInfo(BidderInfo.create(
+                        true,
+                        null,
+                        true,
+                        null,
+                        "bidder",
+                        null,
+                        emptyList(),
+                        emptyList(),
+                        emptyList(),
+                        null,
+                        0,
+                        true,
+                        false,
+                        CompressionType.NONE))
+                .deprecatedNames(emptyList())
+                .build()));
+        target = new BidderCatalog(singletonList(bidderDeps));
+
+        // when and then
+        assertThat(target.resolveBaseBidder("alias")).isEqualTo("bidder");
+    }
+
+    @Test
     public void metaInfoByNameShouldReturnNullForUnknownBidder() {
         // given
         target = new BidderCatalog(emptyList());

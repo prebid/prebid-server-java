@@ -187,8 +187,11 @@ public class Ortb2RequestFactory {
                 ObjectUtils.defaultIfNull(auctionContext.getDebugContext().getTraceLevel(), TraceLevel.basic)));
     }
 
-    public Future<BidRequest> validateRequest(BidRequest bidRequest, List<String> warnings) {
-        final ValidationResult validationResult = requestValidator.validate(bidRequest);
+    public Future<BidRequest> validateRequest(BidRequest bidRequest,
+                                              HttpRequestContext httpRequestContext,
+                                              List<String> warnings) {
+
+        final ValidationResult validationResult = requestValidator.validate(bidRequest, httpRequestContext);
 
         if (validationResult.hasWarnings()) {
             warnings.addAll(validationResult.getWarnings());
@@ -376,7 +379,7 @@ public class Ortb2RequestFactory {
         final Dooh dooh = bidRequest.getDooh();
         final Publisher doohPublisher = dooh != null ? dooh.getPublisher() : null;
 
-        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher, doohPublisher);
+        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, doohPublisher, sitePublisher);
         final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
         return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
     }

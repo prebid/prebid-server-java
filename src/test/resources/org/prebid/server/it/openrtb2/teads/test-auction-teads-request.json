@@ -1,0 +1,39 @@
+{
+  "id": "test-request-id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "teads": {
+          "placementId": 125
+        }
+      }
+    }
+  ],
+  "ext": {
+    "prebid": {
+      "sdk": {
+        "renderers": [
+          {
+            "name": "teads",
+            "version": "5.0.25",
+            "data": {
+              "resize": true,
+              "sdkEngineVersion": "189"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}
