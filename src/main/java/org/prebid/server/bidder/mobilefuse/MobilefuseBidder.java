@@ -75,12 +75,7 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         }
 
         final ExtImpMobilefuse impExt = parseImpExt(imp);
-
-        if (impExt == null) {
-            return null;
-        }
-
-        final ObjectNode skadn = parseSkadn(imp);
+        final ObjectNode skadn = parseSkadn(imp.getExt());
         return imp.toBuilder()
                 .tagid(Objects.toString(impExt.getPlacementId(), "0"))
                 .ext(skadn != null ? mapper.mapper().createObjectNode().set(SKADN_PROPERTY_NAME, skadn) : null)
@@ -95,9 +90,9 @@ public class MobilefuseBidder implements Bidder<BidRequest> {
         }
     }
 
-    private ObjectNode parseSkadn(Imp imp) {
+    private ObjectNode parseSkadn(ObjectNode impExt) {
         try {
-            return mapper.mapper().convertValue(imp.getExt().get(SKADN_PROPERTY_NAME), ObjectNode.class);
+            return mapper.mapper().convertValue(impExt.get(SKADN_PROPERTY_NAME), ObjectNode.class);
         } catch (IllegalArgumentException e) {
             return null;
         }
