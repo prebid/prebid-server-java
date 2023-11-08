@@ -2542,7 +2542,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .extracting(Data::getExt)
                 .extracting(ext -> ext.get("segtax"))
                 .map(JsonNode::asInt)
-                .containsExactly(600, 601, 602, 603, 604, 605, 606, 607, 608, 609);
+                .containsExactlyInAnyOrder(600, 601, 602, 603, 604, 605, 606, 607, 608, 609);
     }
 
     @Test
@@ -2721,6 +2721,62 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                                         .put("segtax", 600)
                                         .put("segclass", "segClass"))
                                 .build());
+    }
+
+    @Test
+    public void shouldNotDropDuplicatedAndNotFilledUserData() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList())).willReturn(asList(
+                SecBrowsingTopic.of("matchedDomain", Set.of("1", "2"), 1, "segClass"),
+                SecBrowsingTopic.of("matchedDomain", Set.of("2", "3"), 1, "segClass")));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .data(asList(Data.builder()
+                                        .name("matchedDomain")
+                                        .segment(singletonList(Segment.builder().id("2").build()))
+                                        .ext(mapper.createObjectNode()
+                                                .put("segtax", 600)
+                                                .put("segclass", "segClass"))
+                                        .build(),
+                                Data.builder()
+                                        .name("matchedDomain")
+                                        .segment(singletonList(Segment.builder().id("2").build()))
+                                        .ext(mapper.createObjectNode()
+                                                .put("segtax", 600)
+                                                .put("segclass", "segClass"))
+                                        .build(),
+                                Data.builder().build()))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .containsExactlyInAnyOrder(
+                        Data.builder()
+                                .name("matchedDomain")
+                                .segment(asList(
+                                        Segment.builder().id("2").build(),
+                                        Segment.builder().id("1").build(),
+                                        Segment.builder().id("3").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build(),
+                        Data.builder()
+                                .name("matchedDomain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build(),
+                        Data.builder().build());
     }
 
     private static AuctionContext givenAuctionContext(HttpRequestContext httpRequestContext) {

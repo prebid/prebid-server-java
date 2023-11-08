@@ -20,6 +20,8 @@ import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.SetUtils;
+import org.apache.commons.collections4.keyvalue.MultiKey;
+import org.apache.commons.collections4.map.MultiKeyMap;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -57,7 +59,6 @@ import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashSet;
@@ -67,8 +68,10 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 public class Ortb2ImplicitParametersResolver {
 
@@ -525,47 +528,69 @@ public class Ortb2ImplicitParametersResolver {
             return null;
         }
 
-        final Map<String, List<Data>> domainToData = CollectionUtils.emptyIfNull(userData).stream()
-                .filter(Objects::nonNull)
-                .collect(Collectors.groupingBy(Data::getName));
+        final List<Data> duplicatedData = new ArrayList<>();
+        final MultiKeyMap<Object, Data> domainSegTaxSegClassToData =
+                CollectionUtils.emptyIfNull(userData).stream()
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toMap(
+                                Ortb2ImplicitParametersResolver::multiKeyForData,
+                                Function.identity(),
+                                (first, second) -> {
+                                    duplicatedData.add(second);
+                                    return first;
+                                },
+                                MultiKeyMap::new));
 
         for (SecBrowsingTopic topic : topics) {
-            final List<Data> domainData = domainToData.computeIfAbsent(topic.getDomain(), key -> new ArrayList<>());
+            final String topicDomain = topic.getDomain();
+            final int topicTaxonomy = topicTaxonomy(topic.getTaxonomyVersion());
+            final String topicModelVersion = topic.getModelVersion();
 
-            final int topicDataIndex = IntStream.range(0, domainData.size())
-                    .filter(i -> topicMatchesData(domainData.get(i), topic))
-                    .findFirst()
-                    .orElse(-1);
-            if (topicDataIndex == -1) {
-                domainData.add(createDataForTopic(topic));
+            final Data data = domainSegTaxSegClassToData.get(topicDomain, topicTaxonomy, topicModelVersion);
+            if (data == null) {
+                domainSegTaxSegClassToData.put(
+                        topicDomain,
+                        topicTaxonomy,
+                        topicModelVersion,
+                        createDataForTopic(topic));
+
                 continue;
             }
 
-            final Data topicData = domainData.get(topicDataIndex);
-            final List<Segment> segments = topicData.getSegment();
+            final List<Segment> segments = data.getSegment();
             final Set<String> newSegmentsIds = newSegmentsIds(segments, topic.getSegments());
             if (!newSegmentsIds.isEmpty()) {
-                domainData.set(topicDataIndex, topicData.toBuilder()
-                        .segment(addNewSegmentsWithIds(segments, newSegmentsIds))
-                        .build());
+                domainSegTaxSegClassToData.put(
+                        topicDomain,
+                        topicTaxonomy,
+                        topicModelVersion,
+                        data.toBuilder()
+                                .segment(addNewSegmentsWithIds(segments, newSegmentsIds))
+                                .build());
             }
         }
 
-        return domainToData.values().stream()
-                .flatMap(Collection::stream)
+        return Stream.concat(
+                        duplicatedData.stream(),
+                        domainSegTaxSegClassToData.values().stream())
                 .toList();
     }
 
-    private boolean topicMatchesData(Data data, SecBrowsingTopic topic) {
+    private static MultiKey<Object> multiKeyForData(Data data) {
         final ObjectNode ext = data.getExt();
-        final JsonNode segtax = ext != null ? ext.get("segtax") : null;
-        final JsonNode segclass = ext != null ? ext.get("segclass") : null;
 
-        return segtax != null && segtax.intValue() == topicTaxonomy(topic.getTaxonomyVersion())
-                && segclass != null && topic.getModelVersion().equals(segclass.textValue());
+        final String domain = data.getName();
+
+        final JsonNode segTaxNode = ext != null ? ext.get("segtax") : null;
+        final Integer segTax = segTaxNode != null && segTaxNode.isNumber() ? segTaxNode.intValue() : null;
+
+        final JsonNode segClassNode = ext != null ? ext.get("segclass") : null;
+        final String segClass = segClassNode != null && segClassNode.isTextual() ? segClassNode.textValue() : null;
+
+        return new MultiKey<>(domain, segTax, segClass);
     }
 
-    private int topicTaxonomy(int taxonomyVersion) {
+    private static int topicTaxonomy(int taxonomyVersion) {
         return 600 + taxonomyVersion - 1;
     }
 
