@@ -51,17 +51,17 @@ public class SecBrowsingTopicsResolver {
     private static Stream<String> fields(String fields, boolean debugEnabled, List<String> warnings) {
         final Stream<String> baseStream = !debugEnabled
                 ? Arrays.stream(fields.split(FIELDS_SEPARATOR, FIELDS_LIMIT + 1)).limit(FIELDS_LIMIT)
-                : Arrays.stream(fields.split(FIELDS_SEPARATOR)).filter(limitAndLogOthers(warnings));
+                : Arrays.stream(fields.split(FIELDS_SEPARATOR)).filter(limitAndLogDiscarded(warnings));
 
         return baseStream.map(StringUtils::trimToEmpty);
     }
 
-    private static Predicate<String> limitAndLogOthers(List<String> warnings) {
+    private static Predicate<String> limitAndLogDiscarded(List<String> warnings) {
         final AtomicInteger limit = new AtomicInteger(FIELDS_LIMIT);
         return field -> {
             final boolean skipFurther = limit.getAndDecrement() > 0;
             if (!skipFurther) {
-                logWarning(warnings, true, field + " skipped due to limit reached.");
+                logWarning(warnings, true, field + " discarded due to limit reached.");
             }
             return skipFurther;
         };

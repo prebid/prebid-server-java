@@ -116,7 +116,7 @@ public class SecBrowsingTopicsResolverTest {
                 .flatExtracting(SecBrowsingTopic::getSegments)
                 .containsExactly("1", "2", "3", "4", "5", "6", "7", "8", "9", "10");
         assertThat(warnings).containsExactly(
-                "Invalid field in Sec-Browsing-Topics header: \n(11);v=chrome.1:2:3\n skipped due to limit reached.");
+                "Invalid field in Sec-Browsing-Topics header: \n(11);v=chrome.1:2:3\n discarded due to limit reached.");
     }
 
     @Test
