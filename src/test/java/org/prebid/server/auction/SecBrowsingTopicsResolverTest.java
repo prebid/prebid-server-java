@@ -193,6 +193,6 @@ public class SecBrowsingTopicsResolverTest {
         // then
         assertThat(topics).isEmpty();
         assertThat(warnings).containsExactly(
-                "Invalid field in Sec-Browsing-Topics header: NumberFormatException: For input string: \"9999999999\"");
+                "Invalid field in Sec-Browsing-Topics header: (9999999999);v=chrome.1:2:3");
     }
 }

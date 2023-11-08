@@ -7,15 +7,18 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,6 +32,7 @@ import org.prebid.server.auction.SecBrowsingTopicsResolver;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.SecBrowsingTopic;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
@@ -57,12 +61,14 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
@@ -976,7 +982,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     public void shouldUpdateImpsOnlyWithNotDefinedSecurityWithSecurityOneIfRequestIsSecure() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(Imp.builder().build(), Imp.builder().secure(0).build()))
+                .imp(asList(Imp.builder().build(), Imp.builder().secure(0).build()))
                 .build();
         given(paramsExtractor.secureFrom(any())).willReturn(1);
 
@@ -2473,6 +2479,248 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         assertThatExceptionOfType(BlacklistedAppException.class)
                 .isThrownBy(() -> target.resolve(bidRequest, auctionContext, ENDPOINT, false))
                 .withMessage("Prebid-server does not process requests from App ID: bad_app");
+    }
+
+    @Test
+    public void shouldReturnWithSameUserIfNoTopicsFound() {
+        // given
+        final User user = User.builder().build();
+        final BidRequest bidRequest = BidRequest.builder().user(user).build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .isSameAs(user);
+    }
+
+    @Test
+    public void shouldReturnWithCreatedUserIfNotProvidedAndTopicsFound() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList()))
+                .willReturn(singletonList(SecBrowsingTopic.of("domain", Set.of("segment"), 1, "modelVersion")));
+
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .containsExactly(Data.builder()
+                        .name("domain")
+                        .segment(singletonList(Segment.builder().id("segment").build()))
+                        .ext(mapper.createObjectNode()
+                                .put("segtax", 600)
+                                .put("segclass", "modelVersion"))
+                        .build());
+    }
+
+    @Test
+    public void shouldReturnWithRightTaxonomy() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList()))
+                .willReturn(IntStream.range(1, 11)
+                        .mapToObj(i -> SecBrowsingTopic.of("domain", Set.of("segment"), i, "modelVersion"))
+                        .toList());
+
+        final BidRequest bidRequest = BidRequest.builder().build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .extracting(Data::getExt)
+                .extracting(ext -> ext.get("segtax"))
+                .map(JsonNode::asInt)
+                .containsExactly(600, 601, 602, 603, 604, 605, 606, 607, 608, 609);
+    }
+
+    @Test
+    public void shouldReturnWithNewDataOnNewDomain() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList()))
+                .willReturn(singletonList(SecBrowsingTopic.of("newDomain", Set.of("1"), 1, "segClass")));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .data(singletonList(Data.builder()
+                                .name("domain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build()))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .containsExactlyInAnyOrder(
+                        Data.builder()
+                                .name("domain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build(),
+                        Data.builder()
+                                .name("newDomain")
+                                .segment(singletonList(Segment.builder().id("1").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build());
+    }
+
+    @Test
+    public void shouldReturnWithNewDataOnNotMatchedSegTax() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList()))
+                .willReturn(singletonList(SecBrowsingTopic.of("notMatchedSegTaxDomain", Set.of("1"), 1, "segClass")));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .data(singletonList(Data.builder()
+                                .name("notMatchedSegTaxDomain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 609)
+                                        .put("segclass", "segClass"))
+                                .build()))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .containsExactlyInAnyOrder(
+                        Data.builder()
+                                .name("notMatchedSegTaxDomain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 609)
+                                        .put("segclass", "segClass"))
+                                .build(),
+                        Data.builder()
+                                .name("notMatchedSegTaxDomain")
+                                .segment(singletonList(Segment.builder().id("1").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build());
+    }
+
+    @Test
+    public void shouldReturnWithNewDataOnNotMatchedSegClass() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList()))
+                .willReturn(singletonList(SecBrowsingTopic.of("notMatchedSegClassDomain", Set.of("1"), 1, "segClass")));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .data(singletonList(Data.builder()
+                                .name("notMatchedSegClassDomain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "otherSegClass"))
+                                .build()))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .containsExactlyInAnyOrder(
+                        Data.builder()
+                                .name("notMatchedSegClassDomain")
+                                .segment(singletonList(Segment.builder().id("2").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "otherSegClass"))
+                                .build(),
+                        Data.builder()
+                                .name("notMatchedSegClassDomain")
+                                .segment(singletonList(Segment.builder().id("1").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build());
+    }
+
+    @Test
+    public void shouldReturnWithMergedData() {
+        // given
+        given(topicsResolver.resolve(any(), anyBoolean(), anyList())).willReturn(asList(
+                SecBrowsingTopic.of("matchedDomain", Set.of("1", "4"), 1, "segClass"),
+                SecBrowsingTopic.of("newDomain", Set.of("2"), 1, "segClass"),
+                SecBrowsingTopic.of("newDomain", Set.of("3"), 1, "segClass")));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .data(singletonList(Data.builder()
+                                .name("matchedDomain")
+                                .segment(singletonList(Segment.builder().id("4").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build()))
+                        .build())
+                .build();
+
+        // when
+        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getData)
+                .asInstanceOf(InstanceOfAssertFactories.list(Data.class))
+                .containsExactlyInAnyOrder(
+                        Data.builder()
+                                .name("matchedDomain")
+                                .segment(asList(
+                                        Segment.builder().id("4").build(),
+                                        Segment.builder().id("1").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build(),
+                        Data.builder()
+                                .name("newDomain")
+                                .segment(asList(
+                                        Segment.builder().id("2").build(),
+                                        Segment.builder().id("3").build()))
+                                .ext(mapper.createObjectNode()
+                                        .put("segtax", 600)
+                                        .put("segclass", "segClass"))
+                                .build());
     }
 
     private static AuctionContext givenAuctionContext(HttpRequestContext httpRequestContext) {

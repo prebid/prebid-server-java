@@ -544,13 +544,11 @@ public class Ortb2ImplicitParametersResolver {
             final Data topicData = domainData.get(topicDataIndex);
             final List<Segment> segments = topicData.getSegment();
             final Set<String> newSegmentsIds = newSegmentsIds(segments, topic.getSegments());
-            if (newSegmentsIds.isEmpty()) {
-                continue;
+            if (!newSegmentsIds.isEmpty()) {
+                domainData.set(topicDataIndex, topicData.toBuilder()
+                        .segment(addNewSegmentsWithIds(segments, newSegmentsIds))
+                        .build());
             }
-
-            domainData.set(topicDataIndex, topicData.toBuilder()
-                    .segment(addNewSegmentsWithIds(segments, newSegmentsIds))
-                    .build());
         }
 
         return domainToData.values().stream()

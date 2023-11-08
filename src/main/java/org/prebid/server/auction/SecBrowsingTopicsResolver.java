@@ -81,7 +81,7 @@ public class SecBrowsingTopicsResolver {
                     parseInt(matcher.group(2)),
                     matcher.group(3));
         } catch (PreBidException e) {
-            logWarning(warnings, debugEnabled, e.getMessage());
+            logWarning(warnings, debugEnabled, field);
             return null;
         }
     }
@@ -99,7 +99,7 @@ public class SecBrowsingTopicsResolver {
         try {
             return Integer.parseInt(integer);
         } catch (NumberFormatException e) {
-            throw new PreBidException("NumberFormatException: " + e.getMessage());
+            throw new PreBidException(e.getMessage());
         }
     }
 }
