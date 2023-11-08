@@ -503,9 +503,15 @@ public class Ortb2ImplicitParametersResolver {
     }
 
     private User populateUser(User user, CaseInsensitiveMultiMap headers, boolean debugEnabled, List<String> warnings) {
-        final List<Data> populatedData = populateUserData(user.getData(), headers, debugEnabled, warnings);
+        final List<Data> data = user != null ? user.getData() : null;
+        final List<Data> populatedData = populateUserData(data, headers, debugEnabled, warnings);
+
         return populatedData != null
-                ? user.toBuilder().data(populatedData).build()
+                ? Optional.ofNullable(user)
+                .map(User::toBuilder)
+                .orElseGet(User::builder)
+                .data(populatedData)
+                .build()
                 : null;
     }
 
