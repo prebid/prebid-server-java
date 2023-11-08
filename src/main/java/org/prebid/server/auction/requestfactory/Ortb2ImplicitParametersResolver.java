@@ -71,7 +71,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class Ortb2ImplicitParametersResolver {
 
@@ -528,7 +527,7 @@ public class Ortb2ImplicitParametersResolver {
             return null;
         }
 
-        final List<Data> duplicatedData = new ArrayList<>();
+        final List<Data> updatedUserData = new ArrayList<>();
         final MultiKeyMap<Object, Data> domainSegTaxSegClassToData =
                 CollectionUtils.emptyIfNull(userData).stream()
                         .filter(Objects::nonNull)
@@ -536,7 +535,7 @@ public class Ortb2ImplicitParametersResolver {
                                 Ortb2ImplicitParametersResolver::multiKeyForData,
                                 Function.identity(),
                                 (first, second) -> {
-                                    duplicatedData.add(second);
+                                    updatedUserData.add(second);
                                     return first;
                                 },
                                 MultiKeyMap::new));
@@ -570,10 +569,8 @@ public class Ortb2ImplicitParametersResolver {
             }
         }
 
-        return Stream.concat(
-                        duplicatedData.stream(),
-                        domainSegTaxSegClassToData.values().stream())
-                .toList();
+        updatedUserData.addAll(domainSegTaxSegClassToData.values());
+        return updatedUserData;
     }
 
     private static MultiKey<Object> multiKeyForData(Data data) {

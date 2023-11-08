@@ -20,6 +20,7 @@ import java.util.stream.Stream;
 
 public class SecBrowsingTopicsResolver {
 
+    private static final String FIELDS_SEPARATOR = ",";
     private static final String TOPIC_DOMAIN = "google.com";
     private static final String PADDING_FIELD_PREFIX = "();p=";
     private static final Pattern FIELD_PATTERN =
@@ -44,8 +45,8 @@ public class SecBrowsingTopicsResolver {
 
     private static Stream<String> fields(String fields, boolean debugEnabled, List<String> warnings) {
         final Stream<String> baseStream = !debugEnabled
-                ? Arrays.stream(fields.split(",", FIELDS_LIMIT + 1)).limit(FIELDS_LIMIT)
-                : Arrays.stream(fields.split(",")).filter(limitAndLogOthers(warnings));
+                ? Arrays.stream(fields.split(FIELDS_SEPARATOR, FIELDS_LIMIT + 1)).limit(FIELDS_LIMIT)
+                : Arrays.stream(fields.split(FIELDS_SEPARATOR)).filter(limitAndLogOthers(warnings));
 
         return baseStream.map(StringUtils::trimToEmpty);
     }
