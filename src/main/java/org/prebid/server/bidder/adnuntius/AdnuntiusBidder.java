@@ -25,8 +25,8 @@ import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAd;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdsUnit;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusBid;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusResponse;
-import org.prebid.server.bidder.adnuntius.model.response.GrossBid;
-import org.prebid.server.bidder.adnuntius.model.response.NetBid;
+import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusGrossBid;
+import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusNetBid;
 import org.prebid.server.bidder.adnuntius.model.util.AdsUnitWithImpId;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -118,7 +118,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     private static List<List<Integer>> createDimensions(Imp imp) {
         final Banner banner = imp.getBanner();
 
-        if (banner.getFormat() != null && banner.getFormat().size() > 0) {
+        if (CollectionUtils.isNotEmpty(banner.getFormat())) {
             final List<List<Integer>> formats = new ArrayList<>();
             for (Format format : banner.getFormat()) {
                 if (format.getW() != null && format.getH() != null) {
@@ -370,10 +370,10 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
             amount = ObjectUtil.getIfNotNull(ad.getBid(), AdnuntiusBid::getAmount);
         }
         if (StringUtils.endsWithIgnoreCase(bidType, "net")) {
-            amount = ObjectUtil.getIfNotNull(ad.getNetBid(), NetBid::getAmount);
+            amount = ObjectUtil.getIfNotNull(ad.getAdnuntiusNetBid(), AdnuntiusNetBid::getAmount);
         }
         if (StringUtils.endsWithIgnoreCase(bidType, "gross")) {
-            amount = ObjectUtil.getIfNotNull(ad.getGrossBid(), GrossBid::getAmount);
+            amount = ObjectUtil.getIfNotNull(ad.getAdnuntiusGrossBid(), AdnuntiusGrossBid::getAmount);
         }
 
         return amount != null ? amount.multiply(PRICE_MULTIPLIER) : BigDecimal.ZERO;

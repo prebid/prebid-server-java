@@ -13,10 +13,10 @@ public class AdnuntiusAd {
     AdnuntiusBid bid;
 
     @JsonProperty("netBid")
-    NetBid netBid;
+    AdnuntiusNetBid adnuntiusNetBid;
 
     @JsonProperty("grossBid")
-    GrossBid grossBid;
+    AdnuntiusGrossBid adnuntiusGrossBid;
 
     @JsonProperty("dealId")
     String dealId;

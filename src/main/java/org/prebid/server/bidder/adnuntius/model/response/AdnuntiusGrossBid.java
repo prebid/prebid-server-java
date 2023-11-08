@@ -5,7 +5,7 @@ import lombok.Value;
 import java.math.BigDecimal;
 
 @Value(staticConstructor = "of")
-public class NetBid {
+public class AdnuntiusGrossBid {
 
     BigDecimal amount;
 }
