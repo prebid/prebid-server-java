@@ -228,7 +228,7 @@ public class AuctionRequestFactory {
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
                 .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> paramsResolver.resolve(
-                        bidRequest, auctionContext.getHttpRequest(), ENDPOINT, hasStoredBidRequest));
+                        bidRequest, auctionContext, ENDPOINT, hasStoredBidRequest));
     }
 
     private static MetricName requestTypeMetric(BidRequest bidRequest) {

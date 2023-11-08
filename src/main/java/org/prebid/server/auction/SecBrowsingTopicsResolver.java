@@ -9,8 +9,8 @@ import org.prebid.server.util.HttpUtil;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
-import java.util.regex.MatchResult;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -19,20 +19,24 @@ import java.util.stream.Stream;
 public class SecBrowsingTopicsResolver {
 
     private static final String TOPIC_DOMAIN = "google.com";
+    private static final String PADDING_FIELD_PREFIX = "();p=";
     private static final Pattern FIELD_PATTERN =
-            Pattern.compile("\\((\\s*\\d+[\\d\\s]*)\\);v=chrome\\.(?:(?!:)\\S)+:([1-9]|10):(\\S+)");
+            Pattern.compile("\\((\\s*\\d+[\\d\\s]*)\\);v=chrome\\.[^:\\s]+:([1-9]|10):([^:\\s]+)$");
     private static final int FIELDS_LIMIT = 10;
 
-    public List<SecBrowsingTopic> resolve(CaseInsensitiveMultiMap headers) {
+    public List<SecBrowsingTopic> resolve(CaseInsensitiveMultiMap headers,
+                                          boolean debugEnabled,
+                                          List<String> warnings) {
+
         final String secBrowserTopics = headers.get(HttpUtil.SEC_BROWSING_TOPICS_HEADER);
         if (StringUtils.isBlank(secBrowserTopics)) {
             return Collections.emptyList();
         }
 
         return fields(secBrowserTopics)
-                .map(FIELD_PATTERN::matcher)
-                .filter(Matcher::matches)
-                .map(SecBrowsingTopicsResolver::toSecBrowsingTopic)
+                .filter(field -> !field.startsWith(PADDING_FIELD_PREFIX))
+                .map(field -> toSecBrowsingTopic(field, debugEnabled, warnings))
+                .filter(Objects::nonNull)
                 .toList();
     }
 
@@ -42,12 +46,29 @@ public class SecBrowsingTopicsResolver {
                 .map(StringUtils::trimToEmpty);
     }
 
-    private static SecBrowsingTopic toSecBrowsingTopic(MatchResult matchResult) {
-        return SecBrowsingTopic.of(
-                TOPIC_DOMAIN,
-                parseSegments(matchResult.group(1)),
-                parseInt(matchResult.group(2)),
-                matchResult.group(3));
+    private static SecBrowsingTopic toSecBrowsingTopic(String field, boolean debugEnabled, List<String> warnings) {
+        final Matcher matcher = FIELD_PATTERN.matcher(field);
+        if (!matcher.matches()) {
+            logWarning(warnings, debugEnabled, field);
+            return null;
+        }
+
+        try {
+            return SecBrowsingTopic.of(
+                    TOPIC_DOMAIN,
+                    parseSegments(matcher.group(1)),
+                    parseInt(matcher.group(2)),
+                    matcher.group(3));
+        } catch (PreBidException e) {
+            logWarning(warnings, debugEnabled, e.getMessage());
+            return null;
+        }
+    }
+
+    private static void logWarning(List<String> warnings, boolean debugEnabled, String reason) {
+        if (debugEnabled) {
+            warnings.add("Invalid field in %s header: %s".formatted(HttpUtil.SEC_BROWSING_TOPICS_HEADER, reason));
+        }
     }
 
     private static Set<String> parseSegments(String segments) {

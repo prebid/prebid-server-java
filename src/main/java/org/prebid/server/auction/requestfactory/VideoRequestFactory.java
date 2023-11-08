@@ -21,6 +21,7 @@ import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
@@ -295,7 +296,10 @@ public class VideoRequestFactory {
         final BidRequest bidRequest = bidRequestToErrors.getData();
         final BidRequest updatedBidRequest = paramsResolver.resolve(
                 bidRequest,
-                httpRequest,
+                AuctionContext.builder()
+                        .httpRequest(httpRequest)
+                        .debugContext(DebugContext.empty())
+                        .build(),
                 ENDPOINT,
                 false);
         final BidRequest updatedWithDebugBidRequest = debugEnabled

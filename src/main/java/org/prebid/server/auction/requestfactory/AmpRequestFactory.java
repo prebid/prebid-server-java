@@ -397,7 +397,7 @@ public class AmpRequestFactory {
                 .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidErrors()))
                 .map(bidRequest -> paramsResolver.resolve(
                         bidRequest,
-                        httpRequest,
+                        auctionContext,
                         ENDPOINT,
                         true))
                 .compose(resolvedBidRequest ->

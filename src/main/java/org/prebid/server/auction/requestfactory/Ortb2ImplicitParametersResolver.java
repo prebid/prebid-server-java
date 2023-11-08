@@ -29,6 +29,7 @@ import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.SecBrowsingTopicsResolver;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.SecBrowsingTopic;
@@ -146,11 +147,13 @@ public class Ortb2ImplicitParametersResolver {
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
     public BidRequest resolve(BidRequest bidRequest,
-                              HttpRequestContext httpRequest,
+                              AuctionContext auctionContext,
                               String endpoint,
                               boolean hasStoredBidRequest) {
 
         checkBlacklistedApp(bidRequest);
+
+        final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         final Device device = bidRequest.getDevice();
         final Device populatedDevice = populateDevice(device, bidRequest.getApp(), httpRequest);
@@ -183,7 +186,11 @@ public class Ortb2ImplicitParametersResolver {
         final Source populatedSource = populateSource(source, populatedExt, hasStoredBidRequest);
 
         final User user = bidRequest.getUser();
-        final User populatedUser = populateUser(user, httpRequest.getHeaders());
+        final User populatedUser = populateUser(
+                user,
+                httpRequest.getHeaders(),
+                auctionContext.getDebugContext().isDebugEnabled(),
+                auctionContext.getDebugWarnings());
 
         return bidRequest.toBuilder()
                 .device(populatedDevice != null ? populatedDevice : device)
@@ -495,13 +502,23 @@ public class Ortb2ImplicitParametersResolver {
         }
     }
 
-    private User populateUser(User user, CaseInsensitiveMultiMap headers) {
-        final List<SecBrowsingTopic> topics = topicsResolver.resolve(headers);
+    private User populateUser(User user, CaseInsensitiveMultiMap headers, boolean debugEnabled, List<String> warnings) {
+        final List<Data> populatedData = populateUserData(user.getData(), headers, debugEnabled, warnings);
+        return populatedData != null
+                ? user.toBuilder().data(populatedData).build()
+                : null;
+    }
+
+    private List<Data> populateUserData(List<Data> userData,
+                                        CaseInsensitiveMultiMap headers,
+                                        boolean debugEnabled,
+                                        List<String> warnings) {
+
+        final List<SecBrowsingTopic> topics = topicsResolver.resolve(headers, debugEnabled, warnings);
         if (topics.isEmpty()) {
             return null;
         }
 
-        final List<Data> userData = user.getData();
         final Map<String, List<Data>> domainToData = CollectionUtils.emptyIfNull(userData).stream()
                 .filter(Objects::nonNull)
                 .collect(Collectors.groupingBy(Data::getName));
@@ -530,11 +547,9 @@ public class Ortb2ImplicitParametersResolver {
                     .build());
         }
 
-        return user.toBuilder()
-                .data(domainToData.values().stream()
-                        .flatMap(Collection::stream)
-                        .toList())
-                .build();
+        return domainToData.values().stream()
+                .flatMap(Collection::stream)
+                .toList();
     }
 
     private boolean topicMatchesData(Data data, SecBrowsingTopic topic) {
