@@ -222,6 +222,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                                 .refsettings(singletonList(RefSettings.builder().minint(1).build()))
                                 .build())
                         .qty(Qty.builder().multiplier(BigDecimal.ONE).build())
+                        .dt(0.1)
                         .ssai(1))))
                 .site(Site.builder()
                         .cattax(1)
@@ -268,6 +269,9 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                         assertThat(imp.getVideo()).isEqualTo(Video.builder().build());
                         assertThat(imp.getAudio()).isEqualTo(Audio.builder().build());
                         assertThat(imp.getSsai()).isNull();
+                        assertThat(imp.getRefresh()).isNull();
+                        assertThat(imp.getQty()).isNull();
+                        assertThat(imp.getDt()).isNull();
                     });
 
             assertThat(request.getSite()).isEqualTo(Site.builder().build());

@@ -11,6 +11,12 @@ adapters:
       adsyield:
         enabled: false
         endpoint: http://ads-pbs.open-adsyield.com/openrtb/{{PublisherID}}?host={{Host}}
+      greedygame:
+        enabled: false
+        endpoint: http://ads-pbs.rtb-greedygame.com/openrtb/{{PublisherID}}?host={{Host}}
+      appstock:
+        enabled: false
+        endpoint: http://ads-pbs.pre.vr-tb.com/openrtb/{{PublisherID}}?host={{Host}}
     meta-info:
       maintainer-email: engineering@project-limelight.com
       app-media-types:

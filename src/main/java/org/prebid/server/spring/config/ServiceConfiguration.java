@@ -97,6 +97,7 @@ import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.util.VersionInfo;
+import org.prebid.server.util.system.CpuLoadAverageStats;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -415,13 +416,8 @@ public class ServiceConfiguration {
                 : new NoneIdGenerator();
     }
 
-    // TODO: Remove this bean creation after deprecation period
     @Bean
-    IdGenerator sourceIdGenerator(@Value("${auction.generate-source-tid}") Boolean generateSourceTid) {
-        if (generateSourceTid != null) {
-            logger.warn("'auction.generate-source-tid' is no longer supported, pls remove from your config");
-        }
-
+    IdGenerator sourceIdGenerator() {
         return new UUIDIdGenerator();
     }
 
@@ -926,9 +922,10 @@ public class ServiceConfiguration {
     @Bean
     RequestValidator requestValidator(BidderCatalog bidderCatalog,
                                       BidderParamValidator bidderParamValidator,
-                                      JacksonMapper mapper) {
+                                      JacksonMapper mapper,
+                                      @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
-        return new RequestValidator(bidderCatalog, bidderParamValidator, mapper);
+        return new RequestValidator(bidderCatalog, bidderParamValidator, mapper, logSamplingRate);
     }
 
     @Bean
@@ -1003,6 +1000,15 @@ public class ServiceConfiguration {
     @Bean
     AmpResponsePostProcessor ampResponsePostProcessor() {
         return AmpResponsePostProcessor.noOp();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "server.cpu-load-monitoring", name = "enabled", havingValue = "true")
+    CpuLoadAverageStats cpuLoadAverageStats(
+            Vertx vertx,
+            @Value("${server.cpu-load-monitoring.measurement-interval-ms:60000}") long measurementIntervalMillis) {
+
+        return new CpuLoadAverageStats(vertx, measurementIntervalMillis);
     }
 
     @Bean

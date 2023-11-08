@@ -16,4 +16,6 @@ public class ExtImpIx {
     String siteId;
 
     List<Integer> size;
+
+    String sid;
 }

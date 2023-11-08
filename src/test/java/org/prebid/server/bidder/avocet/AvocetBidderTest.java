@@ -11,7 +11,6 @@ import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.avocet.model.AvocetBidExtension;
 import org.prebid.server.bidder.avocet.model.AvocetResponseExt;
-import org.prebid.server.bidder.kubient.KubientBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -37,7 +36,7 @@ public class AvocetBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new KubientBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new AvocetBidder("invalid_url", jacksonMapper));
     }
 
     @Test

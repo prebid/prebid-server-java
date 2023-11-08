@@ -58,6 +58,9 @@
         "datacenter": "local",
         "endpoint": "/openrtb2/auction"
       }
+    },
+    "ixdiag": {
+        "pbsv": "{{ pbs.java.version }}"
     }
   }
 }

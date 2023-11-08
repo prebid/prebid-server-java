@@ -65,6 +65,9 @@ public class SilvermobBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> createRequestForImp(Imp imp, BidRequest request) {
         final ExtImpSilvermob extImp = parseImpExt(imp);
+        if (isInvalidHost(extImp.getHost())) {
+            throw new PreBidException(String.format("Invalid host: %s", extImp.getHost()));
+        }
 
         final BidRequest outgoingRequest = request.toBuilder()
                 .imp(Collections.singletonList(imp))
@@ -88,11 +91,14 @@ public class SilvermobBidder implements Bidder<BidRequest> {
         if (StringUtils.isBlank(extImp.getHost())) {
             throw new PreBidException("host is a required silvermob ext.imp param");
         }
-
         if (StringUtils.isBlank(extImp.getZoneId())) {
             throw new PreBidException("zoneId is a required silvermob ext.imp param");
         }
         return extImp;
+    }
+
+    private static Boolean isInvalidHost(String host) {
+        return !StringUtils.equalsAny(host, "eu", "us", "apac");
     }
 
     private String resolveEndpoint(ExtImpSilvermob extImp) {

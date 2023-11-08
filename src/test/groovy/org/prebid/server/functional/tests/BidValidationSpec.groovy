@@ -1,7 +1,10 @@
+
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.DistributionChannel
+import org.prebid.server.functional.model.request.auction.Dooh
 import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.response.auction.Bid
@@ -11,7 +14,11 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
+import java.time.Instant
+
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
+import static org.prebid.server.functional.util.HttpUtil.REFERER_HEADER
 
 class BidValidationSpec extends BaseSpec {
 
@@ -36,46 +43,85 @@ class BidValidationSpec extends BaseSpec {
                 ["Bid \"${bidResponse.seatbid.first().bid.first().id}\" does not contain a 'price'" as String]
     }
 
-    def "PBS should remove site object and emit warning when both site and app present, debug mode is enabled"() {
-        given: "Default basic BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.site = new Site(id: null, name: PBSUtils.randomString, page: null)
-        bidRequest.ext.prebid.debug = 1
-
-        and: "Set app"
-        bidRequest.app = App.defaultApp
-
+    @PendingFeature
+    def "PBS should throw an exception when bid request includes more than one distribution channel"() {
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request should not contain site"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.site
+        then: "PBS throws an exception"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody.contains("no more than one of request.site or request.app or request.dooh can be defined")
 
-        and: "Response should contain debug warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
-                ["BidRequest contains app and site. Removed site object"]
+        where:
+        bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
+                           it.dooh = Dooh.defaultDooh
+                       },
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                           it.dooh = Dooh.defaultDooh
+                       },
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                           it.app = App.defaultApp
+                       }]
     }
 
-    def "PBS should remove site object and emit warning when both site and app present, debug mode is disabled"() {
-        given: "Default basic BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.site = new Site(id: null, name: PBSUtils.randomString, page: null)
-        bidRequest.ext.prebid.debug = 0
+    def "PBS should contain response and emit warning logs when bidRequest include multiple distribution channel"() {
+        given: "Start time and random referer"
+        def startTime = Instant.now()
+        def randomReferer = PBSUtils.randomString
 
-        and: "Set app"
-        bidRequest.app = App.defaultApp
+        and: "Request distribution channels"
+        def requestDistributionChannels = bidRequest.getRequestDistributionChannels()
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = defaultPbsService.sendAuctionRequest(bidRequest, [(REFERER_HEADER): randomReferer])
 
-        then: "Bidder request should not contain site"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.site
+        then: "BidResponse contain single seatbid"
+        assert response.seatbid.size() == 1
 
-        and: "Response should contain debug warning"
+        then: "Response should contain warning"
+        def warningChannelsValues = requestDistributionChannels.collect { "${it.value.toLowerCase()}" }.join(" and ")
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message ==
-                ["BidRequest contains app and site. Removed site object"]
+                ["BidRequest contains $warningChannelsValues. Only the first one is applicable, the others are ignored" as String]
+
+        and: "PBS log should contain message"
+        def logs = defaultPbsService.getLogsByTime(startTime)
+        def validatorLogChannelsValues = requestDistributionChannels.collect { "request.${it.value.toLowerCase()}" }.join(" and ")
+        assert getLogsByText(logs, "$validatorLogChannelsValues are present. Referer: $randomReferer")
+        assert getLogsByText(logs, "$warningChannelsValues are present. Referer: $randomReferer. Account: ${bidRequest.getAccountId()}")
+
+        where:
+        bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
+                           it.dooh = Dooh.defaultDooh
+                       },
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                           it.dooh = Dooh.defaultDooh
+                       },
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                           it.app = App.defaultApp
+                       },
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                           it.app = App.defaultApp
+                           it.dooh = Dooh.defaultDooh
+                       }]
+    }
+
+    def "PBS should validate dooh when it is present"() {
+        given: "Default basic BidRequest"
+        def bidDoohRequest = BidRequest.getDefaultBidRequest(DOOH).tap {
+            dooh.id = null
+            dooh.venueType = null
+        }
+        bidDoohRequest.ext.prebid.debug = 1
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidDoohRequest)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.responseBody.contains("request.dooh should include at least one of request.dooh.id " +
+                "or request.dooh.venuetype.")
     }
 
     def "PBS should validate site when it is present"() {

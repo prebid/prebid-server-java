@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -483,6 +484,29 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void fetchAccountShouldReturnAccountWithAccountIdTakenFromDoohPublisherId() {
+        // given
+        final String accountId = "accountId";
+        final BidRequest bidRequest = BidRequest.builder()
+                .dooh(Dooh.builder()
+                        .publisher(Publisher.builder().id(accountId).build())
+                        .build())
+                .build();
+
+        final Account account = Account.builder().id(accountId).build();
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
+
+        // when
+        final Future<Account> result = target.fetchAccount(
+                AuctionContext.builder().bidRequest(bidRequest).build());
+
+        // then
+        verify(applicationSettings).getAccountById(eq(accountId), any());
+
+        assertThat(result.result()).isSameAs(account);
+    }
+
+    @Test
     public void fetchAccountShouldReturnEmptyAccountIfNotFound() {
         // given
         final String parentAccount = "parentAccount";
@@ -816,12 +840,15 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void validateRequestShouldThrowInvalidRequestExceptionIfRequestIsInvalid() {
         // given
-        given(requestValidator.validate(any())).willReturn(ValidationResult.error("error"));
+        given(requestValidator.validate(any(), any())).willReturn(ValidationResult.error("error"));
 
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Future<BidRequest> result = target.validateRequest(bidRequest, new ArrayList<>());
+        final Future<BidRequest> result = target.validateRequest(
+                bidRequest,
+                HttpRequestContext.builder().build(),
+                new ArrayList<>());
 
         // then
         assertThat(result).isFailed();
@@ -829,21 +856,24 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("error");
 
-        verify(requestValidator).validate(bidRequest);
+        verify(requestValidator).validate(eq(bidRequest), any());
     }
 
     @Test
     public void validateRequestShouldReturnSameBidRequest() {
         // given
-        given(requestValidator.validate(any())).willReturn(ValidationResult.success());
+        given(requestValidator.validate(any(), any())).willReturn(ValidationResult.success());
 
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final BidRequest result = target.validateRequest(bidRequest, new ArrayList<>()).result();
+        final BidRequest result = target.validateRequest(
+                bidRequest,
+                HttpRequestContext.builder().build(),
+                new ArrayList<>()).result();
 
         // then
-        verify(requestValidator).validate(bidRequest);
+        verify(requestValidator).validate(eq(bidRequest), any());
 
         assertThat(result).isSameAs(bidRequest);
     }

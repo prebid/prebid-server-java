@@ -340,7 +340,7 @@ public class VideoRequestFactoryTest extends VertxTest {
         verify(ortb2RequestFactory).createAuctionContext(any(), eq(MetricName.video));
         verify(ortb2RequestFactory).enrichAuctionContext(any(), any(), eq(bidRequest), eq(0L));
         verify(ortb2RequestFactory).fetchAccountWithoutStoredRequestLookup(any());
-        verify(ortb2RequestFactory).validateRequest(eq(bidRequest), any());
+        verify(ortb2RequestFactory).validateRequest(eq(bidRequest), any(), any());
         verify(paramsResolver)
                 .resolve(eq(bidRequest), any(), eq(Endpoint.openrtb2_video.value()), eq(false));
         verify(ortb2RequestFactory).enrichBidRequestWithAccountAndPrivacyData(
@@ -399,7 +399,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                         .build());
         given(ortb2RequestFactory.fetchAccountWithoutStoredRequestLookup(any())).willReturn(Future.succeededFuture());
 
-        given(ortb2RequestFactory.validateRequest(any(), any()))
+        given(ortb2RequestFactory.validateRequest(any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
 
         given(paramsResolver.resolve(any(), any(), any(), anyBoolean()))

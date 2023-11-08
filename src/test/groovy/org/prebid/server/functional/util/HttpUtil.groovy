@@ -16,6 +16,7 @@ class HttpUtil implements ObjectMapperWrapper {
     public static final String CONTENT_TYPE_HEADER = "Content-Type"
     public static final String COOKIE_HEADER = "cookie"
     public static final String CONTENT_ENCODING_HEADER = "Content-Encoding"
+    public static final String REFERER_HEADER = "Referer"
 
     public static final String CONTENT_TYPE_HEADER_VALUE = "application/json"
     public static final String CHARSET_HEADER_VALUE = "charset=utf-8"
@@ -30,6 +31,10 @@ class HttpUtil implements ObjectMapperWrapper {
 
     static HashMap<String, String> getCookieHeader(String value1, String value2) {
         [(COOKIE_HEADER): "$value1=$value2"]
+    }
+
+    static String encodeUrl(String url){
+        URLEncoder.encode(url, UTF_8)
     }
 
     private static String decodeUrl(String url) {

@@ -2,9 +2,25 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id",
+      "id": "imp_id_1",
       "secure": 1,
       "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "tagid": "slot_id",
+      "ext": {
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "sid": "slot_id"
+        }
+      }
+    },
+    {
+      "id": "imp_id_2",
+      "secure": 1,
+      "video": {
+        "mimes": ["video/mp4"],
         "w": 300,
         "h": 250
       },

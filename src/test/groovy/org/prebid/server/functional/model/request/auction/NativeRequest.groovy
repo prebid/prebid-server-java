@@ -20,6 +20,8 @@ class NativeRequest {
     Integer durlSupport
     List<EventTracker> eventTrackers
     Integer privacy
+    Integer adUnit
+    Integer layout
 
     static NativeRequest getNativeRequest() {
         new NativeRequest().tap {

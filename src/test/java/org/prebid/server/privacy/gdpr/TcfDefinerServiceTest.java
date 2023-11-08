@@ -122,7 +122,7 @@ public class TcfDefinerServiceTest {
     public void resolveTcfContextShouldReturnContextWithGdprZeroWhenGdprIsDisabledByAccountForRequestType() {
         // given
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
-                .enabledForRequestType(EnabledForRequestType.of(null, false, null, null))
+                .enabledForRequestType(EnabledForRequestType.of(null, false, null, null, null))
                 .build();
 
         // when
@@ -157,7 +157,7 @@ public class TcfDefinerServiceTest {
         // given
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
                 .enabled(false)
-                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                 .build();
 
         // when
@@ -186,7 +186,7 @@ public class TcfDefinerServiceTest {
                 metrics);
 
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
-                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                 .build();
 
         // when

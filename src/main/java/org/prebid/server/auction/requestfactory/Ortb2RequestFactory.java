@@ -3,6 +3,7 @@ package org.prebid.server.auction.requestfactory;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -68,6 +69,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 
 public class Ortb2RequestFactory {
 
@@ -141,7 +143,7 @@ public class Ortb2RequestFactory {
                 .requestRejected(false)
                 .txnLog(TxnLog.create())
                 .debugHttpCalls(new HashMap<>())
-                .bidRejectionTrackers(new HashMap<>())
+                .bidRejectionTrackers(new TreeMap<>(String.CASE_INSENSITIVE_ORDER))
                 .build();
     }
 
@@ -185,8 +187,11 @@ public class Ortb2RequestFactory {
                 ObjectUtils.defaultIfNull(auctionContext.getDebugContext().getTraceLevel(), TraceLevel.basic)));
     }
 
-    public Future<BidRequest> validateRequest(BidRequest bidRequest, List<String> warnings) {
-        final ValidationResult validationResult = requestValidator.validate(bidRequest);
+    public Future<BidRequest> validateRequest(BidRequest bidRequest,
+                                              HttpRequestContext httpRequestContext,
+                                              List<String> warnings) {
+
+        final ValidationResult validationResult = requestValidator.validate(bidRequest, httpRequestContext);
 
         if (validationResult.hasWarnings()) {
             warnings.addAll(validationResult.getWarnings());
@@ -371,8 +376,10 @@ public class Ortb2RequestFactory {
         final Publisher appPublisher = app != null ? app.getPublisher() : null;
         final Site site = bidRequest.getSite();
         final Publisher sitePublisher = site != null ? site.getPublisher() : null;
+        final Dooh dooh = bidRequest.getDooh();
+        final Publisher doohPublisher = dooh != null ? dooh.getPublisher() : null;
 
-        final Publisher publisher = ObjectUtils.defaultIfNull(appPublisher, sitePublisher);
+        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, doohPublisher, sitePublisher);
         final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
         return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
     }
