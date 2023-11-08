@@ -19,7 +19,7 @@ public class SecBrowsingTopicsResolverTest {
 
     @Before
     public void setUp() {
-        target = new SecBrowsingTopicsResolver();
+        target = new SecBrowsingTopicsResolver("topicsDomain");
     }
 
     @Test
@@ -51,7 +51,7 @@ public class SecBrowsingTopicsResolverTest {
 
         // then
         assertThat(topics).containsExactly(SecBrowsingTopic.of(
-                "google.com",
+                "topicsDomain",
                 Set.of("1", "2", "3"),
                 2,
                 "model_version"));
@@ -132,7 +132,7 @@ public class SecBrowsingTopicsResolverTest {
 
         // then
         assertThat(topics).containsExactly(SecBrowsingTopic.of(
-                "google.com",
+                "topicsDomain",
                 singleton("1"),
                 2,
                 "3"));
@@ -152,7 +152,7 @@ public class SecBrowsingTopicsResolverTest {
 
         // then
         assertThat(topics).containsExactly(SecBrowsingTopic.of(
-                "google.com",
+                "topicsDomain",
                 singleton("1"),
                 2,
                 "3"));
@@ -172,7 +172,7 @@ public class SecBrowsingTopicsResolverTest {
 
         // then
         assertThat(topics).containsExactly(SecBrowsingTopic.of(
-                "google.com",
+                "topicsDomain",
                 singleton("1"),
                 2,
                 "3"));

@@ -1,4 +1,6 @@
 status-response: "ok"
+auction:
+  topics-domain: rubiconproject.com
 adapters:
   appnexus:
     enabled: true

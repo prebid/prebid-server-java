@@ -21,11 +21,16 @@ import java.util.stream.Stream;
 public class SecBrowsingTopicsResolver {
 
     private static final String FIELDS_SEPARATOR = ",";
-    private static final String TOPIC_DOMAIN = "google.com";
     private static final String PADDING_FIELD_PREFIX = "();p=";
     private static final Pattern FIELD_PATTERN =
             Pattern.compile("\\((\\s*\\d+[\\d\\s]*)\\);v=chrome\\.[^:\\s]+:([1-9]|10):([^:\\s]+)$");
     private static final int FIELDS_LIMIT = 10;
+
+    private final String topicsDomain;
+
+    public SecBrowsingTopicsResolver(String topicsDomain) {
+        this.topicsDomain = Objects.requireNonNull(topicsDomain);
+    }
 
     public List<SecBrowsingTopic> resolve(CaseInsensitiveMultiMap headers,
                                           boolean debugEnabled,
@@ -68,7 +73,7 @@ public class SecBrowsingTopicsResolver {
         }
     }
 
-    private static SecBrowsingTopic toSecBrowsingTopic(String field, boolean debugEnabled, List<String> warnings) {
+    private SecBrowsingTopic toSecBrowsingTopic(String field, boolean debugEnabled, List<String> warnings) {
         final Matcher matcher = FIELD_PATTERN.matcher(field);
         if (!matcher.matches()) {
             logWarning(warnings, debugEnabled, field);
@@ -77,7 +82,7 @@ public class SecBrowsingTopicsResolver {
 
         try {
             return SecBrowsingTopic.of(
-                    TOPIC_DOMAIN,
+                    topicsDomain,
                     parseSegments(matcher.group(1)),
                     parseInt(matcher.group(2)),
                     matcher.group(3));
