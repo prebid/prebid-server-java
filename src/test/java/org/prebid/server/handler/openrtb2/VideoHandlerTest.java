@@ -34,6 +34,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.response.VideoResponse;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.time.Clock;
@@ -155,6 +156,28 @@ public class VideoHandlerTest extends VertxTest {
         assertThat(httpResponse.headers())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .contains(tuple("x-prebid", "pbs-java/1.00"));
+    }
+
+    @Test
+    public void shouldAddObserveBrowsingTopicsResponseHeader() {
+        // given
+        httpRequest.headers().add(HttpUtil.SEC_BROWSING_TOPICS_HEADER, "");
+
+        given(videoRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
+
+        given(exchangeService.holdAuction(any()))
+                .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
+                        .bidResponse(BidResponse.builder().build())
+                        .build()));
+
+        // when
+        videoHandler.handle(routingContext);
+
+        // then
+        assertThat(httpResponse.headers())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple("Observe-Browsing-Topics", "?1"));
     }
 
     @Test
