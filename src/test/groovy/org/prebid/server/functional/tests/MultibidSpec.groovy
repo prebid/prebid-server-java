@@ -1,5 +1,8 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.config.AccountAuctionConfig
+import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.Targeting
@@ -63,5 +66,55 @@ class MultibidSpec extends BaseSpec {
 
         then: "PBS should return targeting for non-winning bid"
         assert response.seatbid?.first()?.bid?.last()?.ext?.prebid?.targeting
+    }
+
+    def "PBS should prefer bidRequest over account level config"() {
+        given: "Default basic BidRequest with generic bidder with includeBidderKeys = false, alwaysIncludeDeals = true"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = requestTargeting
+        }
+
+        and: "Account in the DB with different targeting settings"
+        def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(targeting: accountTargeting))
+        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should use bidRequest level targeting settings"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.targeting == bidRequest.ext.prebid.targeting
+
+        and: "PBS should not use account level targeting settings"
+        assert bidderRequest.ext.prebid.targeting != accountTargeting
+
+        where:
+        requestTargeting                          | accountTargeting
+        Targeting.createWithAllValuesSetTo(true)  | Targeting.createWithAllValuesSetTo(false)
+        Targeting.createWithAllValuesSetTo(false) | Targeting.createWithAllValuesSetTo(true)
+        Targeting.createWithRandomValues()        | Targeting.createWithRandomValues()
+    }
+
+    def "PBS should use account level config when bidRequest does not have targeting settings"() {
+        given: "Default basic BidRequest with generic bidder without targeting settings"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = null
+        }
+
+        and: "Account in the DB with targeting settings"
+        def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(targeting: accountTargeting))
+        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should use account level targeting settings"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.ext.prebid.targeting == account.config.auction.targeting
+
+        where:
+        accountTargeting << [Targeting.createWithAllValuesSetTo(false), Targeting.createWithAllValuesSetTo(true), Targeting.createWithRandomValues()]
     }
 }
