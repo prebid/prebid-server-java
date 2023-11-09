@@ -40,7 +40,7 @@ public interface Bidder<T> {
      * "subpar" in some way. For example: the server response didn't have the expected format.
      */
     default CompositeBidderResponse makeBidderResponse(BidderCall<T> httpCall, BidRequest bidRequest) {
-        var result = makeBids(httpCall, bidRequest);
+        final var result = makeBids(httpCall, bidRequest);
         return result != null
                 ? CompositeBidderResponse.builder()
                     .bids(result.getValue())

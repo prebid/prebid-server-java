@@ -213,7 +213,7 @@ public class DeliveryStatsService implements Suspendable {
     }
 
     private Future<Void> setInterval(long interval) {
-        Promise<Void> promise = Promise.promise();
+        final Promise<Void> promise = Promise.promise();
         vertx.setTimer(interval, event -> promise.complete());
         return promise.future();
     }

@@ -3,6 +3,7 @@ package org.prebid.server.auction.requestfactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Regs;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.auction.DebugResolver;
@@ -20,11 +21,13 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.settings.model.Account;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Used in OpenRTB request processing.
@@ -35,7 +38,7 @@ public class AuctionRequestFactory {
     private final Ortb2RequestFactory ortb2RequestFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
-    private final AuctionGppService gppProcessor;
+    private final AuctionGppService gppService;
     private final ImplicitParametersExtractor paramsExtractor;
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final InterstitialProcessor interstitialProcessor;
@@ -50,7 +53,7 @@ public class AuctionRequestFactory {
                                  Ortb2RequestFactory ortb2RequestFactory,
                                  StoredRequestProcessor storedRequestProcessor,
                                  BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
-                                 AuctionGppService gppProcessor,
+                                 AuctionGppService gppService,
                                  ImplicitParametersExtractor paramsExtractor,
                                  Ortb2ImplicitParametersResolver paramsResolver,
                                  InterstitialProcessor interstitialProcessor,
@@ -63,7 +66,7 @@ public class AuctionRequestFactory {
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
-        this.gppProcessor = Objects.requireNonNull(gppProcessor);
+        this.gppService = Objects.requireNonNull(gppService);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
@@ -98,6 +101,9 @@ public class AuctionRequestFactory {
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
+
+                .compose(auctionContext -> gppService.contextFrom(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.activityInfrastructureFrom(auctionContext)
                         .map(auctionContext::with))
@@ -146,7 +152,8 @@ public class AuctionRequestFactory {
             final String referer = paramsExtractor.refererFrom(httpRequest);
             ortbTypesResolver.normalizeBidRequest(bidRequestNode, errors, referer);
 
-            return Future.succeededFuture(jsonNodeAsBidRequest(bidRequestNode));
+            return Future.succeededFuture(jsonNodeAsBidRequest(bidRequestNode))
+                    .map(bidRequest -> fillWithValuesFromHttpRequest(bidRequest, httpRequest));
         } catch (Exception e) {
             return Future.failedFuture(e);
         }
@@ -168,6 +175,36 @@ public class AuctionRequestFactory {
         }
     }
 
+    private BidRequest fillWithValuesFromHttpRequest(BidRequest bidRequest, HttpRequestContext httpRequest) {
+        return !containsRegsExtGpc(bidRequest)
+                ? bidRequest.toBuilder()
+                .regs(fillRegsWithValuesFromHttpRequest(bidRequest.getRegs(), httpRequest))
+                .build()
+                : bidRequest;
+    }
+
+    private boolean containsRegsExtGpc(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getRegs())
+                .map(Regs::getExt)
+                .map(ExtRegs::getGpc)
+                .isPresent();
+    }
+
+    private Regs fillRegsWithValuesFromHttpRequest(Regs regs, HttpRequestContext httpRequest) {
+        final String gpc = paramsExtractor.gpcFrom(httpRequest);
+        if (gpc == null) {
+            return regs;
+        }
+
+        final ExtRegs extRegs = regs != null ? regs.getExt() : null;
+        return (regs != null ? regs.toBuilder() : Regs.builder())
+                .ext(ExtRegs.of(
+                        extRegs != null ? extRegs.getGdpr() : null,
+                        extRegs != null ? extRegs.getUsPrivacy() : null,
+                        gpc))
+                .build();
+    }
+
     /**
      * Sets {@link BidRequest} properties which were not set explicitly by the client, but can be
      * updated by values derived from headers and other request attributes.
@@ -178,7 +215,10 @@ public class AuctionRequestFactory {
 
         return storedRequestProcessor.processAuctionRequest(account.getId(), auctionContext.getBidRequest())
                 .compose(auctionStoredResult -> updateBidRequest(auctionStoredResult, auctionContext))
-                .compose(bidRequest -> ortb2RequestFactory.validateRequest(bidRequest, debugWarnings))
+                .compose(bidRequest -> ortb2RequestFactory.validateRequest(
+                        bidRequest,
+                        auctionContext.getHttpRequest(),
+                        debugWarnings))
                 .map(interstitialProcessor::process);
     }
 
@@ -189,12 +229,18 @@ public class AuctionRequestFactory {
 
         return Future.succeededFuture(auctionStoredResult.bidRequest())
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
-                .map(bidRequest -> gppProcessor.apply(bidRequest, auctionContext))
+                .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
                 .map(bidRequest -> paramsResolver.resolve(
                         bidRequest, auctionContext.getHttpRequest(), ENDPOINT, hasStoredBidRequest));
     }
 
     private static MetricName requestTypeMetric(BidRequest bidRequest) {
-        return bidRequest.getApp() != null ? MetricName.openrtb2app : MetricName.openrtb2web;
+        if (bidRequest.getApp() != null) {
+            return MetricName.openrtb2app;
+        } else if (bidRequest.getDooh() != null) {
+            return MetricName.openrtb2dooh;
+        } else {
+            return MetricName.openrtb2web;
+        }
     }
 }

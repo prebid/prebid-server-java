@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -44,12 +43,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private EmxDigitalBidder emxDigitalBidder;
-
-    @Before
-    public void setUp() {
-        emxDigitalBidder = new EmxDigitalBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final EmxDigitalBidder target = new EmxDigitalBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -67,7 +61,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -87,7 +81,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -108,7 +102,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -129,7 +123,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -150,7 +144,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -171,7 +165,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -192,7 +186,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -215,7 +209,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -252,7 +246,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -289,7 +283,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -309,7 +303,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -330,7 +324,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -354,7 +348,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -379,7 +373,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -404,7 +398,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -432,7 +426,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -467,7 +461,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = emxDigitalBidder
+        final Result<List<HttpRequest<BidRequest>>> result = target
                 .makeHttpRequests(bidRequest);
 
         // then
@@ -502,7 +496,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = emxDigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -521,7 +515,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = emxDigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -536,7 +530,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = emxDigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -554,7 +548,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.id("321").impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = emxDigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -573,7 +567,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.id("321").adm("<vast data=test").impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = emxDigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -593,7 +587,7 @@ public class EmxDigitalBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.id("321").adm("<?xml data=test").impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = emxDigitalBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

@@ -325,7 +325,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
             auction.priceFloors.adjustForBidAdjustment = pbsConfigBidAdjustmentFlag
         }
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
                 ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "BidRequest with bidAdjustment"
@@ -371,7 +371,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
             auction.priceFloors.adjustForBidAdjustment = pbsConfigBidAdjustmentFlag
         }
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
                 ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"

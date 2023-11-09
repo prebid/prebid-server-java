@@ -154,7 +154,7 @@ public class MetricsTest {
 
     @Test
     public void shouldReturnSameAccountAdapterMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(RUBICON))
+        assertThat(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter("rUbIcOn"))
                 .isSameAs(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(RUBICON));
     }
 
@@ -426,7 +426,7 @@ public class MetricsTest {
     public void updateAdapterRequestTypeAndNoCookieMetricsShouldUpdateMetricsAsExpected() {
 
         // when
-        metrics.updateAdapterRequestTypeAndNoCookieMetrics(RUBICON, MetricName.openrtb2app, true);
+        metrics.updateAdapterRequestTypeAndNoCookieMetrics("rUbIcON", MetricName.openrtb2app, true);
         metrics.updateAdapterRequestTypeAndNoCookieMetrics(RUBICON, MetricName.amp, false);
 
         // then
@@ -471,6 +471,18 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("price-floors.general.err").getCount()).isOne();
+    }
+
+    @Test
+    public void updateAlertsMetricsShouldCreateMetricsAsExpected() {
+        // when
+        metrics.updateAlertsMetrics(MetricName.general);
+        metrics.updateAlertsMetrics(MetricName.failed);
+        metrics.updateAlertsMetrics(MetricName.general);
+
+        // then
+        assertThat(metricRegistry.counter("alerts.general").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter("alerts.failed").getCount()).isOne();
     }
 
     @Test
@@ -621,7 +633,7 @@ public class MetricsTest {
     @Test
     public void updateUserSyncSetsMetricShouldIncrementMetric() {
         // when
-        metrics.updateUserSyncSetsMetric(RUBICON);
+        metrics.updateUserSyncSetsMetric("RUBICON");
 
         // then
         assertThat(metricRegistry.counter("usersync.rubicon.sets").getCount()).isOne();
@@ -652,7 +664,7 @@ public class MetricsTest {
     public void updateCookieSyncFilteredMetricShouldIncrementMetric() {
         // when
         metrics.updateCookieSyncFilteredMetric(RUBICON);
-        metrics.updateCookieSyncFilteredMetric(CONVERSANT);
+        metrics.updateCookieSyncFilteredMetric("CONVERSANT");
         metrics.updateCookieSyncFilteredMetric(CONVERSANT);
 
         // then

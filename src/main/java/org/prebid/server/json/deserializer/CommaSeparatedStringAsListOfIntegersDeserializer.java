@@ -49,6 +49,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializer extends StdDeseria
     private static List<Integer> parseList(String value) throws NumberFormatException {
         return Arrays.stream(value.split(","))
                 .map(StringUtils::strip)
+                .filter(StringUtils::isNotBlank)
                 .map(Integer::parseInt)
                 .toList();
     }

@@ -13,6 +13,4 @@ public class ExtImpDatablocks {
 
     @JsonProperty("sourceId")
     Integer sourceId;
-
-    String host;
 }

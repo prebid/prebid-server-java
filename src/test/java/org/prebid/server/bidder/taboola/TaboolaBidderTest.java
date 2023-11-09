@@ -15,11 +15,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -46,18 +42,10 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 
 public class TaboolaBidderTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    private TaboolaBidder taboolaBidder;
-
-    @Before
-    public void setUp() {
-        taboolaBidder = new TaboolaBidder(
-                "https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction/{{GvlID}}/{{PublisherID}}",
-                1,
-                jacksonMapper);
-    }
+    private final TaboolaBidder target = new TaboolaBidder(
+            "https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction/{{GvlID}}/{{PublisherID}}",
+            1,
+            jacksonMapper);
 
     @Test
     public void createBidderWithWrongEndpointShouldThrowException() {
@@ -76,7 +64,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenImp(imp -> imp.id("4").xNative(Native.builder().build())));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -98,7 +86,7 @@ public class TaboolaBidderTest extends VertxTest {
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, "invalid"))),
                         identity()));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2).allSatisfy(error -> {
@@ -115,7 +103,7 @@ public class TaboolaBidderTest extends VertxTest {
                 extImp -> extImp.tagId("extTagId").lowerCaseTagId("lowercaseTagId")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -133,7 +121,7 @@ public class TaboolaBidderTest extends VertxTest {
                 extImp -> extImp.tagId("").lowerCaseTagId("lowercaseTagId")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -151,7 +139,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(imp -> imp.tagid("tagId"), extImp -> extImp.tagId("extTagId")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -169,7 +157,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(imp -> imp.bidfloor(BigDecimal.TEN), impExt -> impExt.bidFloor(BigDecimal.valueOf(-1))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -187,7 +175,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(imp -> imp.bidfloor(BigDecimal.TEN), impExt -> impExt.bidFloor(BigDecimal.ONE)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -204,7 +192,7 @@ public class TaboolaBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenBannerImp(identity(), identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -221,7 +209,7 @@ public class TaboolaBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenBannerImp(identity(), extImp -> extImp.position(1)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -240,7 +228,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(identity(), identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -258,7 +246,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(identity(), impExt -> impExt.bAdv(singletonList("extBadv"))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -276,7 +264,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(identity(), identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -294,7 +282,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(identity(), impExt -> impExt.bCat(singletonList("extBcat"))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -312,7 +300,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(identity(), identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -333,7 +321,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenImp(imp -> imp.banner(Banner.builder().build()), impExt -> impExt.pageType("extPageType")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -352,7 +340,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(identity(), ext -> ext.publisherId("publisherId")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -368,7 +356,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(identity(), extImp -> extImp.publisherId("not/encoded")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -384,7 +372,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenImp(imp -> imp.xNative(Native.builder().build()), ext -> ext.publisherId("publisherId")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -406,7 +394,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(identity(), ext -> ext.publisherId("extPublisherId")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -430,7 +418,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(identity(), ext -> ext.publisherDomain("extDomain")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -449,7 +437,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(identity(), ext -> ext.publisherDomain("")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -468,7 +456,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(identity(), identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -485,7 +473,7 @@ public class TaboolaBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenBannerImp(identity(), identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -503,7 +491,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenBannerImp(identity(), ext -> ext.publisherId("2")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -524,7 +512,7 @@ public class TaboolaBidderTest extends VertxTest {
                 givenImp(imp -> imp.xNative(Native.builder().build()), identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = taboolaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -545,7 +533,7 @@ public class TaboolaBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = taboolaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -565,7 +553,7 @@ public class TaboolaBidderTest extends VertxTest {
                         givenBidResponse(identity())));
 
         // when
-        final Result<List<BidderBid>> result = taboolaBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -589,7 +577,7 @@ public class TaboolaBidderTest extends VertxTest {
                         givenBidResponse(identity())));
 
         // when
-        final Result<List<BidderBid>> result = taboolaBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();

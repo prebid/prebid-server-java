@@ -13,9 +13,8 @@ import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.proto.openrtb.ext.request.adtelligent.ExtImpAdtelligent;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
-import org.prebid.server.proto.openrtb.ext.request.brightroll.ExtImpBrightroll;
 import org.prebid.server.proto.openrtb.ext.request.eplanning.ExtImpEplanning;
-import org.prebid.server.proto.openrtb.ext.request.facebook.ExtImpFacebook;
+import org.prebid.server.proto.openrtb.ext.request.audiencenetwork.ExtImpAudienceNetwork;
 import org.prebid.server.proto.openrtb.ext.request.openx.ExtImpOpenx;
 import org.prebid.server.proto.openrtb.ext.request.rubicon.ExtImpRubicon;
 import org.prebid.server.proto.openrtb.ext.request.sovrn.ExtImpSovrn;
@@ -40,7 +39,6 @@ public class BidderParamValidatorTest extends VertxTest {
     private static final String RUBICON = "rubicon";
     private static final String APPNEXUS = "appnexus";
     private static final String APPNEXUS_ALIAS = "appnexusAlias";
-    private static final String BRIGHTROLL = "brightroll";
     private static final String SOVRN = "sovrn";
     private static final String ADTELLIGENT = "adtelligent";
     private static final String FACEBOOK = "audienceNetwork";
@@ -63,7 +61,6 @@ public class BidderParamValidatorTest extends VertxTest {
                 RUBICON,
                 APPNEXUS,
                 APPNEXUS_ALIAS,
-                BRIGHTROLL,
                 SOVRN,
                 ADTELLIGENT,
                 FACEBOOK,
@@ -98,13 +95,13 @@ public class BidderParamValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturnValidationMessagesWhenRubiconImpExtIsOk() {
+    public void validateShouldNotReturnValidationMessagesWhenRubiconImpExtIsOkIgnoringCase() {
         // given
         final ExtImpRubicon ext = ExtImpRubicon.builder().accountId(1).siteId(2).zoneId(3).build();
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
         // when
-        final Set<String> messages = bidderParamValidator.validate(RUBICON, node);
+        final Set<String> messages = bidderParamValidator.validate("rUBIcon", node);
 
         // then
         assertThat(messages).isEmpty();
@@ -180,35 +177,9 @@ public class BidderParamValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldNotReturnValidationMessagesWhenBrightrollImpExtIsOk() {
-        // given
-        final ExtImpBrightroll ext = ExtImpBrightroll.of("publisher");
-
-        final JsonNode node = mapper.convertValue(ext, JsonNode.class);
-
-        // when
-        final Set<String> messages = bidderParamValidator.validate(BRIGHTROLL, node);
-
-        // then
-        assertThat(messages).isEmpty();
-    }
-
-    @Test
-    public void validateShouldReturnValidationMessagesWhenBrightrollExtNotValid() {
-        // given
-        final JsonNode node = mapper.createObjectNode();
-
-        // when
-        final Set<String> messages = bidderParamValidator.validate(BRIGHTROLL, node);
-
-        // then
-        assertThat(messages.size()).isEqualTo(1);
-    }
-
-    @Test
     public void validateShouldNotReturnValidationMessagesWhenSovrnImpExtIsOk() {
         // given
-        final ExtImpSovrn ext = ExtImpSovrn.of("tag", null, null);
+        final ExtImpSovrn ext = ExtImpSovrn.of("tag", null, null, null);
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
@@ -260,7 +231,7 @@ public class BidderParamValidatorTest extends VertxTest {
     @Test
     public void validateShouldNotReturnValidationMessagesWhenFacebookImpExtIsOk() {
         // given
-        final ExtImpFacebook ext = ExtImpFacebook.of("placementId", "publisherId");
+        final ExtImpAudienceNetwork ext = ExtImpAudienceNetwork.of("placementId", "publisherId");
 
         final JsonNode node = mapper.convertValue(ext, JsonNode.class);
 
@@ -418,6 +389,7 @@ public class BidderParamValidatorTest extends VertxTest {
                 true,
                 "https://endpoint.com",
                 aliasOf,
+                null,
                 null,
                 null,
                 null,

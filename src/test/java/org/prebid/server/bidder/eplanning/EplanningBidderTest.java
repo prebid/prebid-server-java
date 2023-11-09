@@ -13,7 +13,6 @@ import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.eplanning.model.HbResponse;
@@ -46,12 +45,7 @@ public class EplanningBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://eplanning.com";
 
-    private EplanningBidder eplanningBidder;
-
-    @Before
-    public void setUp() {
-        eplanningBidder = new EplanningBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final EplanningBidder target = new EplanningBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -67,7 +61,7 @@ public class EplanningBidderTest extends VertxTest {
                         .banner(null));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -83,7 +77,7 @@ public class EplanningBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -101,7 +95,7 @@ public class EplanningBidderTest extends VertxTest {
                                 mapper.createObjectNode().put("ci", "")))));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -118,7 +112,7 @@ public class EplanningBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -135,7 +129,7 @@ public class EplanningBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -154,7 +148,7 @@ public class EplanningBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -181,7 +175,7 @@ public class EplanningBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -202,7 +196,7 @@ public class EplanningBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -221,7 +215,7 @@ public class EplanningBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -241,7 +235,7 @@ public class EplanningBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -262,7 +256,7 @@ public class EplanningBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -284,7 +278,7 @@ public class EplanningBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -306,7 +300,7 @@ public class EplanningBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -328,7 +322,7 @@ public class EplanningBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -350,7 +344,7 @@ public class EplanningBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -369,7 +363,7 @@ public class EplanningBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -388,7 +382,7 @@ public class EplanningBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -409,7 +403,7 @@ public class EplanningBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<Void>>> result = eplanningBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -425,7 +419,7 @@ public class EplanningBidderTest extends VertxTest {
         final BidderCall<Void> httpCall = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -453,7 +447,7 @@ public class EplanningBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         final Bid expectedBid = Bid.builder()
@@ -492,7 +486,7 @@ public class EplanningBidderTest extends VertxTest {
                 ExtImpEplanning.of("clientId", null)))));
 
         // when
-        final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         final Bid expectedBid = Bid.builder()
@@ -520,7 +514,7 @@ public class EplanningBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -537,7 +531,7 @@ public class EplanningBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<BidderBid>> result = eplanningBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();

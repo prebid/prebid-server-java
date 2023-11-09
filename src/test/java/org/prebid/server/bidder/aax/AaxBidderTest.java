@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -36,12 +35,7 @@ public class AaxBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://randomurl.com";
 
-    private AaxBidder aaxBidder;
-
-    @Before
-    public void setUp() {
-        aaxBidder = new AaxBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AaxBidder target = new AaxBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -54,7 +48,7 @@ public class AaxBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = aaxBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -69,7 +63,7 @@ public class AaxBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -86,7 +80,7 @@ public class AaxBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -100,7 +94,7 @@ public class AaxBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -117,7 +111,7 @@ public class AaxBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.ext(mediaType))));
 
         // when
-        final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -135,7 +129,7 @@ public class AaxBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.ext(objectNode))));
 
         // when
-        final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -153,7 +147,7 @@ public class AaxBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.ext(objectNode))));
 
         // when
-        final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -169,7 +163,7 @@ public class AaxBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(identity())));
 
         // when
-        final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -185,7 +179,7 @@ public class AaxBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(identity())));
 
         // when
-        final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -201,7 +195,7 @@ public class AaxBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(identity())));
 
         // when
-        final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -219,7 +213,7 @@ public class AaxBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.ext(objectNode))));
 
         // when
-        final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -235,7 +229,7 @@ public class AaxBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.ext(objectNode))));
 
         // when
-        final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -252,7 +246,7 @@ public class AaxBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(identity())));
 
         // when
-        final Result<List<BidderBid>> result = aaxBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -48,6 +49,7 @@ import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
@@ -132,7 +134,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
-        given(ampGppService.apply(any(), any()))
+        given(ampGppService.contextFrom(any())).willReturn(Future.succeededFuture());
+        given(ampGppService.updateBidRequest(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.request()).willReturn(httpRequest);
@@ -253,6 +256,22 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages())
                 .hasSize(1).containsOnly("request.app must not exist in AMP stored requests.");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfStoredBidRequestHasDooh() {
+        // given
+        final Imp imp = Imp.builder().build();
+        givenBidRequest(builder -> builder.dooh(Dooh.builder().build()), imp);
+
+        // when
+        final Future<?> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
+        assertThat(((InvalidRequestException) future.cause()).getMessages())
+                .hasSize(1).containsOnly("request.dooh must not exist in AMP stored requests.");
     }
 
     @Test
@@ -1489,6 +1508,22 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBidRequestWithGpc() {
+        // given
+        given(implicitParametersExtractor.gpcFrom(any())).willReturn("1");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs()).isEqualTo(Regs.builder()
+                .ext(ExtRegs.of(null, null, "1"))
+                .build());
+    }
+
+    @Test
     public void shouldNotPopulateRegsObjectWithGppDataIfGppSidCouldNotBeParsed() {
         // given
         routingContext.queryParams()
@@ -1696,7 +1731,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), anyBoolean())).willAnswer(
                 answerWithFirstArgument());
-        given(ortb2RequestFactory.validateRequest(any(), any()))
+        given(ortb2RequestFactory.validateRequest(any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))

@@ -46,6 +46,9 @@
         <module name="ConstantName">
             <property name="format" value="^([A-Z][A-Z0-9]*(_[A-Z0-9]+)*|(.*?)[l,L]ogger)$"/>
         </module>
+        <module name="FinalLocalVariable">
+            <property name="tokens" value="VARIABLE_DEF"/>
+        </module>
         <module name="LocalFinalVariableName"/>
         <module name="LocalVariableName"/>
         <module name="MemberName"/>

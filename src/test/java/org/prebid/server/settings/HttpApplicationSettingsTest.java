@@ -107,9 +107,9 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .priceGranularity("testPriceGranularity")
                         .build())
-                .privacy(AccountPrivacyConfig.of(null, null, null))
+                .privacy(AccountPrivacyConfig.of(null, null, null, null))
                 .build();
-        HttpAccountsResponse response = HttpAccountsResponse.of(Collections.singletonMap("someId", account));
+        final HttpAccountsResponse response = HttpAccountsResponse.of(Collections.singletonMap("someId", account));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
 
         // when
@@ -127,7 +127,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldReturnFaildedFutureIfResponseIsNotPresent() throws JsonProcessingException {
         // given
-        HttpAccountsResponse response = HttpAccountsResponse.of(null);
+        final HttpAccountsResponse response = HttpAccountsResponse.of(null);
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
 
         // when
@@ -143,7 +143,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldReturnErrorIdAccountNotFound() throws JsonProcessingException {
         // given
-        HttpAccountsResponse response = HttpAccountsResponse.of(Collections.emptyMap());
+        final HttpAccountsResponse response = HttpAccountsResponse.of(Collections.emptyMap());
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));
 
         // when

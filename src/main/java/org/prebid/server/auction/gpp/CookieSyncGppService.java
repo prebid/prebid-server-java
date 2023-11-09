@@ -2,6 +2,7 @@ package org.prebid.server.auction.gpp;
 
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
+import org.prebid.server.auction.gpp.model.GppContextWrapper;
 import org.prebid.server.auction.gpp.model.privacy.TcfEuV2Privacy;
 import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 import org.prebid.server.cookie.model.CookieSyncContext;
@@ -19,14 +20,16 @@ public class CookieSyncGppService {
         this.gppService = Objects.requireNonNull(gppService);
     }
 
-    public CookieSyncRequest apply(CookieSyncRequest cookieSyncRequest, CookieSyncContext cookieSyncContext) {
-        final GppContext gppContext = gppService.processContext(contextFrom(cookieSyncRequest));
+    public GppContext contextFrom(CookieSyncContext cookieSyncContext) {
+        final GppContextWrapper initialGppContextWrapper = contextFrom(cookieSyncContext.getCookieSyncRequest());
+        final GppContextWrapper gppContextWrapper = gppService.processContext(initialGppContextWrapper);
 
-        updateCookieSyncContext(cookieSyncContext, gppContext);
-        return updateCookieSyncRequest(cookieSyncRequest, gppContext);
+        enrichWithErrors(cookieSyncContext, gppContextWrapper.getErrors());
+
+        return gppContextWrapper.getGppContext();
     }
 
-    private static GppContext contextFrom(CookieSyncRequest cookieSyncRequest) {
+    private static GppContextWrapper contextFrom(CookieSyncRequest cookieSyncRequest) {
         final String gpp = cookieSyncRequest.getGpp();
         final List<Integer> gppSid = cookieSyncRequest.getGppSid();
 
@@ -41,27 +44,30 @@ public class CookieSyncGppService {
                 .build();
     }
 
-    private static void updateCookieSyncContext(CookieSyncContext cookieSyncContext, GppContext gppContext) {
+    private static void enrichWithErrors(CookieSyncContext cookieSyncContext, List<String> errors) {
         if (cookieSyncContext.isDebug()) {
-            cookieSyncContext.getWarnings().addAll(gppContext.errors());
+            cookieSyncContext.getWarnings().addAll(errors);
         }
     }
 
-    private static CookieSyncRequest updateCookieSyncRequest(CookieSyncRequest cookieSyncRequest,
-                                                             GppContext gppContext) {
+    public CookieSyncRequest updateCookieSyncRequest(CookieSyncRequest cookieSyncRequest,
+                                                     CookieSyncContext cookieSyncContext) {
+
+        final GppContext gppContext = cookieSyncContext.getGppContext();
 
         final GppContext.Regions regions = gppContext.regions();
         final TcfEuV2Privacy tcfEuV2Privacy = regions.getTcfEuV2Privacy();
+        final UspV1Privacy uspV1Privacy = regions.getUspV1Privacy();
 
         final UpdateResult<Integer> updatedGdpr = updateResult(
                 cookieSyncRequest.getGdpr(),
-                tcfEuV2Privacy.getGdpr());
+                tcfEuV2Privacy != null ? tcfEuV2Privacy.getGdpr() : null);
         final UpdateResult<String> updatedConsent = updateResult(
                 cookieSyncRequest.getGdprConsent(),
-                tcfEuV2Privacy.getConsent());
+                tcfEuV2Privacy != null ? tcfEuV2Privacy.getConsent() : null);
         final UpdateResult<String> updatedUsPrivacy = updateResult(
                 cookieSyncRequest.getUsPrivacy(),
-                regions.getUspV1Privacy().getUsPrivacy());
+                uspV1Privacy != null ? uspV1Privacy.getUsPrivacy() : null);
 
         return updatedGdpr.isUpdated() || updatedConsent.isUpdated() || updatedUsPrivacy.isUpdated()
 

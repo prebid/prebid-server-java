@@ -1,0 +1,21 @@
+{
+  "Responses": [
+    {
+      "requestId": "test-imp-id",
+      "currency": "CAD",
+      "width": 300,
+      "height": 250,
+      "creativeId": "6002677",
+      "dealId": "testdeal",
+      "netRevenue": false,
+      "ttl": 5,
+      "ad": "<script type='text/javascript' src='https://adsvr.ecdrsvc.com/js?6002677'></script>",
+      "meta": {
+        "advertiserDomains": [
+          "https://www.loblaws.ca/"
+        ]
+      },
+      "cpm": 3.5764000415802
+    }
+  ]
+}

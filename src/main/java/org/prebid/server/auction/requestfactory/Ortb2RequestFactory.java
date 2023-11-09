@@ -3,6 +3,7 @@ package org.prebid.server.auction.requestfactory;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -14,8 +15,8 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.prebid.server.activity.ActivityInfrastructure;
-import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
@@ -46,6 +47,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.model.UpdateResult;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
@@ -66,6 +68,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.TreeMap;
 
 public class Ortb2RequestFactory {
 
@@ -78,6 +82,7 @@ public class Ortb2RequestFactory {
     private final double logSamplingRate;
     private final List<String> blacklistedAccounts;
     private final UidsCookieService uidsCookieService;
+    private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final RequestValidator requestValidator;
     private final TimeoutResolver timeoutResolver;
     private final TimeoutFactory timeoutFactory;
@@ -95,6 +100,7 @@ public class Ortb2RequestFactory {
                                double logSamplingRate,
                                List<String> blacklistedAccounts,
                                UidsCookieService uidsCookieService,
+                               ActivityInfrastructureCreator activityInfrastructureCreator,
                                RequestValidator requestValidator,
                                TimeoutResolver timeoutResolver,
                                TimeoutFactory timeoutFactory,
@@ -112,6 +118,7 @@ public class Ortb2RequestFactory {
         this.logSamplingRate = logSamplingRate;
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.requestValidator = Objects.requireNonNull(requestValidator);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -136,7 +143,7 @@ public class Ortb2RequestFactory {
                 .requestRejected(false)
                 .txnLog(TxnLog.create())
                 .debugHttpCalls(new HashMap<>())
-                .bidRejectionTrackers(new HashMap<>())
+                .bidRejectionTrackers(new TreeMap<>(String.CASE_INSENSITIVE_ORDER))
                 .build();
     }
 
@@ -174,19 +181,17 @@ public class Ortb2RequestFactory {
     }
 
     public Future<ActivityInfrastructure> activityInfrastructureFrom(AuctionContext auctionContext) {
-        final Account account = auctionContext.getAccount();
-
-        final ActivityInfrastructure activityInfrastructure = new ActivityInfrastructure(
-                account.getId(),
-                AccountActivitiesConfigurationUtils.parse(account),
-                ObjectUtils.defaultIfNull(auctionContext.getDebugContext().getTraceLevel(), TraceLevel.basic),
-                metrics);
-
-        return Future.succeededFuture(activityInfrastructure);
+        return Future.succeededFuture(activityInfrastructureCreator.create(
+                auctionContext.getAccount(),
+                auctionContext.getGppContext(),
+                ObjectUtils.defaultIfNull(auctionContext.getDebugContext().getTraceLevel(), TraceLevel.basic)));
     }
 
-    public Future<BidRequest> validateRequest(BidRequest bidRequest, List<String> warnings) {
-        final ValidationResult validationResult = requestValidator.validate(bidRequest);
+    public Future<BidRequest> validateRequest(BidRequest bidRequest,
+                                              HttpRequestContext httpRequestContext,
+                                              List<String> warnings) {
+
+        final ValidationResult validationResult = requestValidator.validate(bidRequest, httpRequestContext);
 
         if (validationResult.hasWarnings()) {
             warnings.addAll(validationResult.getWarnings());
@@ -371,8 +376,10 @@ public class Ortb2RequestFactory {
         final Publisher appPublisher = app != null ? app.getPublisher() : null;
         final Site site = bidRequest.getSite();
         final Publisher sitePublisher = site != null ? site.getPublisher() : null;
+        final Dooh dooh = bidRequest.getDooh();
+        final Publisher doohPublisher = dooh != null ? dooh.getPublisher() : null;
 
-        final Publisher publisher = ObjectUtils.defaultIfNull(appPublisher, sitePublisher);
+        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, doohPublisher, sitePublisher);
         final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
         return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
     }
@@ -472,11 +479,11 @@ public class Ortb2RequestFactory {
         final boolean shouldUpdateIpV6 = ipV6 != null && !Objects.equals(ipV6InRequest, ipV6);
 
         final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
-        final String countryInRequest = ObjectUtil.getIfNotNull(geo, Geo::getCountry);
-        final String alpha3CountryCode = resolveAlpha3CountryCode(privacyContext);
-        final boolean shouldUpdateCountry = alpha3CountryCode != null && !alpha3CountryCode.equals(countryInRequest);
 
-        if (shouldUpdateIpV4 || shouldUpdateIpV6 || shouldUpdateCountry) {
+        final UpdateResult<String> resolvedCountry = resolveCountry(geo, privacyContext);
+        final UpdateResult<String> resolvedRegion = resolveRegion(geo, privacyContext);
+
+        if (shouldUpdateIpV4 || shouldUpdateIpV6 || resolvedCountry.isUpdated() || resolvedRegion.isUpdated()) {
             final Device.DeviceBuilder deviceBuilder = device != null ? device.toBuilder() : Device.builder();
 
             if (shouldUpdateIpV4) {
@@ -487,10 +494,15 @@ public class Ortb2RequestFactory {
                 deviceBuilder.ipv6(ipV6);
             }
 
-            if (shouldUpdateCountry) {
-                final Geo.GeoBuilder geoBuilder = geo != null ? geo.toBuilder() : Geo.builder();
-                geoBuilder.country(alpha3CountryCode);
-                deviceBuilder.geo(geoBuilder.build());
+            if (resolvedCountry.isUpdated() || resolvedRegion.isUpdated()) {
+                final Geo updatedGeo = Optional.ofNullable(geo)
+                        .map(Geo::toBuilder)
+                        .orElseGet(Geo::builder)
+                        .country(resolvedCountry.getValue())
+                        .region(resolvedRegion.getValue())
+                        .build();
+
+                deviceBuilder.geo(updatedGeo);
             }
 
             return deviceBuilder.build();
@@ -499,11 +511,31 @@ public class Ortb2RequestFactory {
         return null;
     }
 
-    private String resolveAlpha3CountryCode(PrivacyContext privacyContext) {
-        final String alpha2CountryCode = ObjectUtil.getIfNotNull(
-                privacyContext.getTcfContext().getGeoInfo(), GeoInfo::getCountry);
+    private UpdateResult<String> resolveCountry(Geo geo, PrivacyContext privacyContext) {
+        final String countryInRequest = geo != null ? geo.getCountry() : null;
 
-        return countryCodeMapper.mapToAlpha3(alpha2CountryCode);
+        final GeoInfo geoInfo = privacyContext.getTcfContext().getGeoInfo();
+        final String alpha2CountryCode = geoInfo != null ? geoInfo.getCountry() : null;
+        final String alpha3CountryCode = countryCodeMapper.mapToAlpha3(alpha2CountryCode);
+
+        return alpha3CountryCode != null && !alpha3CountryCode.equals(countryInRequest)
+                ? UpdateResult.updated(alpha3CountryCode)
+                : UpdateResult.unaltered(countryInRequest);
+    }
+
+    private static UpdateResult<String> resolveRegion(Geo geo, PrivacyContext privacyContext) {
+        final String regionInRequest = geo != null ? geo.getRegion() : null;
+        final String upperCasedRegionInRequest = StringUtils.upperCase(regionInRequest);
+
+        final GeoInfo geoInfo = privacyContext.getTcfContext().getGeoInfo();
+        final String region = geoInfo != null ? geoInfo.getRegion() : null;
+        final String upperCasedRegion = StringUtils.upperCase(region);
+
+        return upperCasedRegion != null && !upperCasedRegion.equals(upperCasedRegionInRequest)
+                ? UpdateResult.updated(upperCasedRegion)
+                : Objects.equals(regionInRequest, upperCasedRegionInRequest)
+                    ? UpdateResult.unaltered(regionInRequest)
+                    : UpdateResult.updated(upperCasedRegionInRequest);
     }
 
     private static String accountDefaultIntegration(Account account) {

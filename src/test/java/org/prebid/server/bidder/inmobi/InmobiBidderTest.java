@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -42,12 +41,7 @@ public class InmobiBidderTest extends VertxTest {
     private static final int FORMAT_W = 35;
     private static final int FORMAT_H = 37;
 
-    private InmobiBidder inmobiBidder;
-
-    @Before
-    public void setUp() {
-        inmobiBidder = new InmobiBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final InmobiBidder target = new InmobiBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -60,7 +54,7 @@ public class InmobiBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of("   ")))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -73,7 +67,7 @@ public class InmobiBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpInmobi.of(null)))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -86,7 +80,7 @@ public class InmobiBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -102,7 +96,7 @@ public class InmobiBidderTest extends VertxTest {
                         .format(Collections.singletonList(bannerFormat))
                         .build()));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(0);
@@ -134,7 +128,7 @@ public class InmobiBidderTest extends VertxTest {
                 .imp(Arrays.asList(firstImp, secondImp))
                 .build();
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = inmobiBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Banner firstExpectedBanner = Banner.builder()
@@ -161,7 +155,7 @@ public class InmobiBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = inmobiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())
@@ -177,7 +171,7 @@ public class InmobiBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = inmobiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -191,7 +185,7 @@ public class InmobiBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = inmobiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -209,7 +203,7 @@ public class InmobiBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid(IMP_ID))));
 
         // when
-        final Result<List<BidderBid>> result = inmobiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -227,7 +221,7 @@ public class InmobiBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid(IMP_ID))));
 
         // when
-        final Result<List<BidderBid>> result = inmobiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -246,7 +240,7 @@ public class InmobiBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid(IMP_ID))));
 
         // when
-        final Result<List<BidderBid>> result = inmobiBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

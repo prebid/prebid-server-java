@@ -6,7 +6,6 @@ import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.SupplyChainNode;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -17,9 +16,11 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class SupplyChainResolver {
 
@@ -66,10 +67,7 @@ public class SupplyChainResolver {
                                              SupplyChain existingSchain,
                                              ExtRequestPrebidSchain schainEntry) {
 
-        if (schainEntry == null
-                || CollectionUtils.isEmpty(schainEntry.getBidders())
-                || !schainEntry.getBidders().contains(bidder)) {
-
+        if (!containsBidder(schainEntry, bidder)) {
             return existingSchain;
         }
 
@@ -79,6 +77,14 @@ public class SupplyChainResolver {
         }
 
         return schainEntry.getSchain();
+    }
+
+    private static boolean containsBidder(ExtRequestPrebidSchain schainEntry, String bidder) {
+        return Stream.ofNullable(schainEntry)
+                .map(ExtRequestPrebidSchain::getBidders)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .anyMatch(schainEntryBidder -> StringUtils.equalsIgnoreCase(schainEntryBidder, bidder));
     }
 
     private SupplyChain enrich(SupplyChain bidderSpecificSchain, BidRequest bidRequest) {

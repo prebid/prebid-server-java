@@ -68,7 +68,7 @@ public class SimulationAwarePlannerServiceTest extends VertxTest {
 
     @Before
     public void setUp() {
-        Clock clock = Clock.fixed(Instant.parse("2019-07-26T10:00:00Z"), ZoneOffset.UTC);
+        final Clock clock = Clock.fixed(Instant.parse("2019-07-26T10:00:00Z"), ZoneOffset.UTC);
         now = ZonedDateTime.now(clock);
 
         simulationAwarePlannerService = new SimulationAwarePlannerService(
@@ -130,7 +130,7 @@ public class SimulationAwarePlannerServiceTest extends VertxTest {
 
         // then
         @SuppressWarnings("unchecked")
-        List<LineItemMetaData> lineItemMetaData = (List<LineItemMetaData>) ReflectionTestUtils
+        final List<LineItemMetaData> lineItemMetaData = (List<LineItemMetaData>) ReflectionTestUtils
                 .getField(simulationAwarePlannerService, "lineItemMetaData");
         assertThat(lineItemMetaData).hasSize(1)
                 .containsOnly(LineItemMetaData.builder().lineItemId("id").build());

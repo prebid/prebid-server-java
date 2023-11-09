@@ -1,0 +1,82 @@
+{
+  "ctrlSwitchs": "0",
+  "dsp1cost": 61,
+  "dspcost": 108,
+  "multiad": [
+    {
+      "adtype": 8,
+      "brsetting": "Y",
+      "content": [
+        {
+          "clickActionList": [
+            1
+          ],
+          "contentid": "58025103",
+          "creativetype": 2,
+          "ctrlSwitchs": "001011001001010112",
+          "endtime": 1621428898335,
+          "filterList": [
+            3
+          ],
+          "interactiontype": 1,
+          "landingTitle": 1,
+          "metaData": {
+            "adSign": "2",
+            "appPromotionChannel": "401721412",
+            "clickUrl": "https://ads.huawei.com/usermgtportal/home/index.html#/",
+            "imageInfo": [
+              {
+                "checkSha256Flag": 1,
+                "height": 300,
+                "imageType": "img",
+                "sha256": "f5d8487cddaecec45b73fc078649478c80ec646bfec8ed7da4ff931f90eab232",
+                "url": "https://ads.huawei.com/usermgtportal/home/img/huawei_logo_black.aaec817d.svg",
+                "width": 250
+              }
+            ],
+            "label": "Banner_API",
+            "landingPageType": "3"
+          },
+          "monitor": [
+            {
+              "eventType": "click",
+              "url": [
+                "http://test/click1",
+                "http://test/click2",
+                "http://test/click3"
+              ]
+            },
+            {
+              "eventType": "imp",
+              "url": [
+                "http://test/imp1",
+                "http://test/imp2",
+                "http://test/imp3"
+              ]
+            }
+          ],
+          "paramfromserver": {
+            "a": "1||test",
+            "sig": "",
+            "t": "99990101235959"
+          },
+          "price": 2.8,
+          "starttime": 1621267200000,
+          "taskid": "48017658"
+        }
+      ],
+      "retcode30": 200,
+      "slotid": "m8x9x3rzff"
+    }
+  ],
+  "noReportAdTypeEventList": [
+    {
+      "adType": 8,
+      "eventTypeList": [
+        "exception_6"
+      ]
+    }
+  ],
+  "retcode": 200,
+  "totalCacheSize": 300
+}

@@ -48,12 +48,12 @@ public class YieldlabBidderTest extends VertxTest {
 
     private Clock clock;
 
-    private YieldlabBidder yieldlabBidder;
+    private YieldlabBidder target;
 
     @Before
     public void setUp() {
         clock = Clock.fixed(Instant.parse("2019-07-26T10:00:00Z"), ZoneId.systemDefault());
-        yieldlabBidder = new YieldlabBidder(ENDPOINT_URL, clock, jacksonMapper);
+        target = new YieldlabBidder(ENDPOINT_URL, clock, jacksonMapper);
     }
 
     @Test
@@ -76,7 +76,7 @@ public class YieldlabBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = yieldlabBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -105,13 +105,13 @@ public class YieldlabBidderTest extends VertxTest {
                                         .build())))
                         .build()))
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
-                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy")).build())
+                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy", null)).build())
                 .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
                 .site(Site.builder().page("http://www.example.com").build())
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = yieldlabBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final long expectedTime = clock.instant().getEpochSecond();
@@ -171,13 +171,13 @@ public class YieldlabBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
-                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy")).build())
+                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy", null)).build())
                 .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
                 .site(Site.builder().page("http://www.example.com").build())
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = yieldlabBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
@@ -195,7 +195,7 @@ public class YieldlabBidderTest extends VertxTest {
         final BidderCall<Void> httpCall = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -220,7 +220,7 @@ public class YieldlabBidderTest extends VertxTest {
                                 .build())))
                         .build()))
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
-                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy")).build())
+                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy", null)).build())
                 .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
                 .site(Site.builder().page("http://www.example.com").build())
                 .build();
@@ -231,7 +231,7 @@ public class YieldlabBidderTest extends VertxTest {
         final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
 
         // when
-        final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         final String timestamp = String.valueOf(clock.instant().getEpochSecond());
@@ -279,7 +279,7 @@ public class YieldlabBidderTest extends VertxTest {
         final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
 
         // when
-        final Result<List<BidderBid>> result = yieldlabBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         final String timestamp = String.valueOf(clock.instant().getEpochSecond());

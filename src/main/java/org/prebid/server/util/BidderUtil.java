@@ -3,6 +3,7 @@ package org.prebid.server.util;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -10,11 +11,14 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -26,10 +30,19 @@ public class BidderUtil {
     public static HttpRequest<BidRequest> defaultRequest(BidRequest bidRequest,
                                                          String endpointUrl,
                                                          JacksonMapper mapper) {
+
+        return defaultRequest(bidRequest, HttpUtil.headers(), endpointUrl, mapper);
+    }
+
+    public static HttpRequest<BidRequest> defaultRequest(BidRequest bidRequest,
+                                                         MultiMap headers,
+                                                         String endpointUrl,
+                                                         JacksonMapper mapper) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
-                .headers(HttpUtil.headers())
+                .headers(headers)
+                .impIds(impIds(bidRequest))
                 .body(mapper.encodeToBytes(bidRequest))
                 .payload(bidRequest)
                 .build();
@@ -95,5 +108,23 @@ public class BidderUtil {
 
     public static boolean isNullOrZero(Integer value) {
         return value == null || value == 0;
+    }
+
+    public static BidType getBidType(Bid bid, Map<String, Imp> impIdToImpMap) {
+        return Optional.ofNullable(impIdToImpMap.get(bid.getImpid()))
+                .map(imp -> {
+                    if (imp.getBanner() != null) {
+                        return BidType.banner;
+                    } else if (imp.getVideo() != null) {
+                        return BidType.video;
+                    } else if (imp.getXNative() != null) {
+                        return BidType.xNative;
+                    } else if (imp.getAudio() != null) {
+                        return BidType.audio;
+                    } else {
+                        return BidType.banner;
+                    }
+                })
+                .orElse(BidType.banner);
     }
 }

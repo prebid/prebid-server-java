@@ -17,7 +17,8 @@ class Video {
     Integer podid
     Integer podseq
     List<Integer> rqddurs
-    Integer placement
+    VideoPlacementSubtypes placement
+    VideoPlcmtSubtype plcmt
     Integer linearity
     Integer skip
     Integer skipmin

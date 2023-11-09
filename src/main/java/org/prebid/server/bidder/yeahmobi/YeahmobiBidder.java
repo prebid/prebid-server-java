@@ -9,7 +9,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.apache.commons.collections4.CollectionUtils;
+import io.vertx.core.http.HttpMethod;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -21,7 +21,6 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yeahmobi.ExtImpYeahmobi;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -29,13 +28,18 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class YeahmobiBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpYeahmobi>> YEAHMOBI_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
+    private static final TypeReference<ExtPrebid<?, ExtImpYeahmobi>> EXT_TYPE_REFERENCE = new TypeReference<>() {
+    };
+    private static final String HOST_MACRO = "{{Host}}";
+    private static final String HOST_PATTERN = "gw-%s-bid.yeahtargeter.com";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -48,107 +52,99 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<BidderError> errors = new ArrayList<>();
-        final List<Imp> validImps = new ArrayList<>();
-        ExtImpYeahmobi extImpYeahmobi = null;
+        final List<Imp> modifiedImps = new ArrayList<>();
+
+        ExtImpYeahmobi extImp = null;
         for (Imp imp : request.getImp()) {
             try {
-                extImpYeahmobi = extImpYeahmobi == null ? parseImpExt(imp) : extImpYeahmobi;
-                final Imp processImp = processImp(imp);
-                validImps.add(processImp);
+                extImp = parseImpExt(imp);
+                modifiedImps.add(modifyImp(imp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        if (extImpYeahmobi == null) {
+        if (extImp == null) {
             return Result.withError(BidderError.badInput("Invalid ExtImpYeahmobi value"));
         }
 
-        final String host = "gw-%s-bid.yeahtargeter.com".formatted(extImpYeahmobi.getZoneId());
-        final String url = endpointUrl.replace("{{Host}}", host);
+        final BidRequest modifiedRequest = request.toBuilder().imp(modifiedImps).build();
 
-        final BidRequest outgoingRequest = request.toBuilder().imp(validImps).build();
+        final HttpRequest<BidRequest> httpRequest = makeHttpRequest(modifiedRequest, extImp.getZoneId());
+        return Result.of(Collections.singletonList(httpRequest), errors);
+    }
 
-        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(outgoingRequest, url, mapper)),
-                errors);
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String zoneId) {
+        final String host = HOST_PATTERN.formatted(zoneId);
+        final String uri = endpointUrl.replace(HOST_MACRO, host);
+
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(uri)
+                .impIds(BidderUtil.impIds(request))
+                .headers(HttpUtil.headers())
+                .payload(request)
+                .body(mapper.encodeToBytes(request))
+                .build();
     }
 
     private ExtImpYeahmobi parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), YEAHMOBI_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException("Impression id=%s, has invalid Ext".formatted(imp.getId()));
+            throw new PreBidException(String.format("Impression id=%s, has invalid Ext", imp.getId()));
         }
     }
 
-    private Imp processImp(Imp imp) {
-        final Native xNative = imp.getXNative();
-
-        if (xNative != null) {
-            final String resolvedNativeRequest = resolveNativeRequest(xNative.getRequest());
-            return resolvedNativeRequest != null
-                    ? imp.toBuilder().xNative(Native.builder().request(resolvedNativeRequest).build()).build()
-                    : imp;
-        }
-        return imp;
+    private Imp modifyImp(Imp imp) {
+        final Native impNative = imp.getXNative();
+        return Optional.ofNullable(impNative)
+                .map(xNative -> resolveNativeRequest(xNative.getRequest()))
+                .map(nativeRequest -> imp.toBuilder().xNative(
+                        impNative.toBuilder().request(nativeRequest).build())
+                        .build())
+                .orElse(imp);
     }
 
-    private String resolveNativeRequest(String xNativeRequest) {
+    private String resolveNativeRequest(String nativeRequest) {
         try {
-            final JsonNode nativeRequest = xNativeRequest != null
-                    ? mapper.mapper().readValue(xNativeRequest, JsonNode.class)
+            final JsonNode nativePayload = nativeRequest != null
+                    ? mapper.mapper().readValue(nativeRequest, JsonNode.class)
                     : mapper.mapper().createObjectNode();
-
-            if (nativeRequest.isEmpty() || nativeRequest.get("native") == null) {
-                final ObjectNode objectNode = mapper.mapper().createObjectNode().set("native", nativeRequest);
-                return mapper.mapper().writeValueAsString(objectNode);
-            }
+            final ObjectNode objectNode = mapper.mapper().createObjectNode().set("native", nativePayload);
+            return mapper.mapper().writeValueAsString(objectNode);
         } catch (JsonProcessingException e) {
             throw new PreBidException(e.getMessage());
         }
-
-        return null;
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
     private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
-        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+        if (bidResponse == null || bidResponse.getSeatbid() == null) {
             return Collections.emptyList();
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }
 
     private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+        final Map<String, Imp> impMap = bidRequest.getImp().stream()
+                .collect(Collectors.toMap(Imp::getId, Function.identity()));
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, BidderUtil.getBidType(bid, impMap), bidResponse.getCur()))
                 .toList();
     }
 
-    protected BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getVideo() != null) {
-                    return BidType.video;
-                } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                }
-            }
-        }
-        return BidType.banner;
-    }
 }

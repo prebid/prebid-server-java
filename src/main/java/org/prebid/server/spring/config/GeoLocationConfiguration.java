@@ -2,13 +2,15 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
-import lombok.experimental.UtilityClass;
+import lombok.Data;
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.execution.retry.ExponentialBackoffRetryPolicy;
 import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
 import org.prebid.server.execution.retry.RetryPolicy;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
+import org.prebid.server.geolocation.ConfigurationGeoLocationService;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.MaxMindGeoLocationService;
@@ -32,8 +34,10 @@ import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.time.Clock;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
 
-@UtilityClass
 public class GeoLocationConfiguration {
 
     @Configuration
@@ -122,17 +126,102 @@ public class GeoLocationConfiguration {
     }
 
     @Configuration
+    @ConditionalOnExpression("${geolocation.enabled} == true and '${geolocation.type}' == 'configuration'")
+    static class ConfigurationGeoLocationConfiguration {
+
+        @Bean
+        @ConfigurationProperties("geolocation.configurations")
+        public List<GeoInfoConfiguration> configurations() {
+            return new ArrayList<>();
+        }
+
+        @Bean
+        public GeoLocationService configurationGeoLocationService(List<GeoInfoConfiguration> configs) {
+            return new ConfigurationGeoLocationService(
+                    configs.stream()
+                            .filter(config -> config != null && config.getAddressPattern() != null)
+                            .map(ConfigurationGeoLocationConfiguration::from)
+                            .toList());
+        }
+
+        private static org.prebid.server.geolocation.model.GeoInfoConfiguration from(
+                GeoInfoConfiguration config) {
+
+            final GeoInfo geoInfo = config.getGeoInfo();
+
+            return org.prebid.server.geolocation.model.GeoInfoConfiguration.of(
+                    config.getAddressPattern(),
+                    geoInfo != null
+                            ? org.prebid.server.geolocation.model.GeoInfo.builder()
+                            .vendor(StringUtils.EMPTY)
+                            .continent(geoInfo.getContinent())
+                            .country(geoInfo.getCountry())
+                            .region(geoInfo.getRegion())
+                            .city(geoInfo.getCity())
+                            .metroGoogle(geoInfo.getMetroGoogle())
+                            .metroNielsen(geoInfo.getMetroNielsen())
+                            .zip(geoInfo.getZip())
+                            .connectionSpeed(geoInfo.getConnectionSpeed())
+                            .lat(geoInfo.getLat())
+                            .lon(geoInfo.getLon())
+                            .timeZone(geoInfo.getTimeZone())
+                            .build()
+                            : null);
+        }
+
+        @Data
+        static class GeoInfoConfiguration {
+
+            String addressPattern;
+
+            GeoInfo geoInfo;
+        }
+
+        @Data
+        static class GeoInfo {
+
+            String continent;
+
+            String country;
+
+            String region;
+
+            Integer regionCode;
+
+            String city;
+
+            String metroGoogle;
+
+            Integer metroNielsen;
+
+            String zip;
+
+            String connectionSpeed;
+
+            Float lat;
+
+            Float lon;
+
+            ZoneId timeZone;
+        }
+    }
+
+    @Configuration
     static class CountryCodeMapperConfiguration {
 
         @Bean
-        public CountryCodeMapper countryCodeMapper(
-                @Value("classpath:country-codes.csv") Resource resource) throws IOException {
+        public CountryCodeMapper countryCodeMapper(@Value("classpath:country-codes.csv") Resource countryCodes,
+                                                   @Value("classpath:mcc-country-codes.csv") Resource mccCountryCodes)
+                throws IOException {
 
+            return new CountryCodeMapper(readCsv(countryCodes), readCsv(mccCountryCodes));
+        }
+
+        private String readCsv(Resource resource) throws IOException {
             final Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
-            final String countryCodesCsvAsString = FileCopyUtils.copyToString(reader);
+            final String csv = FileCopyUtils.copyToString(reader);
             reader.close();
-
-            return new CountryCodeMapper(countryCodesCsvAsString);
+            return csv;
         }
     }
 }

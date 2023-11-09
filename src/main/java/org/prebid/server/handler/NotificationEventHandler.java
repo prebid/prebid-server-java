@@ -12,11 +12,12 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
-import org.prebid.server.activity.ActivityInfrastructure;
-import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
+import org.prebid.server.auction.gpp.model.GppContextCreator;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.UserService;
 import org.prebid.server.deals.events.ApplicationEventService;
@@ -24,7 +25,6 @@ import org.prebid.server.events.EventRequest;
 import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
@@ -52,33 +52,33 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     private final UidsCookieService uidsCookieService;
     private final ApplicationEventService applicationEventService;
     private final UserService userService;
+    private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
     private final long defaultTimeoutMillis;
     private final boolean dealsEnabled;
-    private final Metrics metrics;
     private final TrackingPixel trackingPixel;
 
     public NotificationEventHandler(UidsCookieService uidsCookieService,
                                     ApplicationEventService applicationEventService,
                                     UserService userService,
+                                    ActivityInfrastructureCreator activityInfrastructureCreator,
                                     AnalyticsReporterDelegator analyticsDelegator,
                                     TimeoutFactory timeoutFactory,
                                     ApplicationSettings applicationSettings,
                                     long defaultTimeoutMillis,
-                                    boolean dealsEnabled,
-                                    Metrics metrics) {
+                                    boolean dealsEnabled) {
 
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.applicationEventService = applicationEventService;
         this.userService = userService;
+        this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.defaultTimeoutMillis = defaultTimeoutMillis;
         this.dealsEnabled = dealsEnabled;
-        this.metrics = Objects.requireNonNull(metrics);
 
         trackingPixel = createTrackingPixel();
     }
@@ -156,8 +156,8 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                 userService.processWinEvent(lineItemId, bidId, uidsCookieService.parseFromRequest(routingContext));
             }
 
-            boolean eventsEnabledForAccount = Objects.equals(accountEventsEnabled(account), true);
-            boolean eventsEnabledForRequest = eventRequest.getAnalytics() == EventRequest.Analytics.enabled;
+            final boolean eventsEnabledForAccount = Objects.equals(accountEventsEnabled(account), true);
+            final boolean eventsEnabledForRequest = eventRequest.getAnalytics() == EventRequest.Analytics.enabled;
 
             if (!eventsEnabledForAccount && eventsEnabledForRequest) {
                 respondWithUnauthorized(routingContext,
@@ -195,11 +195,10 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     }
 
     private ActivityInfrastructure activityInfrastructure(Account account) {
-        return new ActivityInfrastructure(
-                account.getId(),
-                AccountActivitiesConfigurationUtils.parse(account),
-                TraceLevel.basic,
-                metrics);
+        return activityInfrastructureCreator.create(
+                account,
+                GppContextCreator.from(null, null).build().getGppContext(),
+                TraceLevel.basic);
     }
 
     private void respondWithOk(RoutingContext routingContext, boolean respondWithPixel) {

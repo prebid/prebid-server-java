@@ -120,8 +120,9 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                         .build())
                 .privacy(AccountPrivacyConfig.of(
                         AccountGdprConfig.builder()
-                                .enabledForRequestType(EnabledForRequestType.of(true, null, null, null))
+                                .enabledForRequestType(EnabledForRequestType.of(true, null, null, null, null))
                                 .build(),
+                        null,
                         null,
                         null))
                 .build()));
@@ -139,8 +140,9 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 .privacy(AccountPrivacyConfig.of(
                         AccountGdprConfig.builder()
                                 .enabled(true)
-                                .enabledForRequestType(EnabledForRequestType.of(true, null, null, null))
+                                .enabledForRequestType(EnabledForRequestType.of(true, null, null, null, null))
                                 .build(),
+                        null,
                         null,
                         null))
                 .build());
@@ -227,20 +229,26 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 jacksonMapper);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(Account.builder()
-                .privacy(AccountPrivacyConfig.of(null, null, Map.of(
-                        Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
-                        Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
-                                AccountActivityComponentRuleConfig.of(null, null),
-                                AccountActivityComponentRuleConfig.of(
-                                        AccountActivityComponentRuleConfig.Condition.of(null, null),
-                                        null),
-                                AccountActivityComponentRuleConfig.of(
-                                        AccountActivityComponentRuleConfig.Condition.of(emptyList(), emptyList()),
-                                        null),
-                                AccountActivityComponentRuleConfig.of(
-                                        AccountActivityComponentRuleConfig.Condition.of(
-                                                singletonList(ComponentType.BIDDER), singletonList("bidder")),
-                                        null))))))
+                .privacy(AccountPrivacyConfig.of(
+                        null,
+                        null,
+                        Map.of(
+                                Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
+                                Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
+                                        AccountActivityComponentRuleConfig.of(null, null),
+                                        AccountActivityComponentRuleConfig.of(
+                                                AccountActivityComponentRuleConfig.Condition.of(null, null),
+                                                null),
+                                        AccountActivityComponentRuleConfig.of(
+                                                AccountActivityComponentRuleConfig.Condition.of(
+                                                        emptyList(),
+                                                        emptyList()),
+                                                null),
+                                        AccountActivityComponentRuleConfig.of(
+                                                AccountActivityComponentRuleConfig.Condition.of(
+                                                        singletonList(ComponentType.BIDDER), singletonList("bidder")),
+                                                null)))),
+                        null))
                 .build()));
 
         // when
@@ -248,17 +256,21 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
 
         // then
         assertThat(accountFuture).succeededWith(Account.builder()
-                .privacy(AccountPrivacyConfig.of(null, null, Map.of(
-                        Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
-                        Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
-                                AccountActivityComponentRuleConfig.of(null, null),
-                                AccountActivityComponentRuleConfig.of(
-                                        AccountActivityComponentRuleConfig.Condition.of(null, null),
-                                        null),
-                                AccountActivityComponentRuleConfig.of(
-                                        AccountActivityComponentRuleConfig.Condition.of(
-                                                singletonList(ComponentType.BIDDER), singletonList("bidder")),
-                                        null))))))
+                .privacy(AccountPrivacyConfig.of(
+                        null,
+                        null,
+                        Map.of(
+                                Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
+                                Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
+                                        AccountActivityComponentRuleConfig.of(null, null),
+                                        AccountActivityComponentRuleConfig.of(
+                                                AccountActivityComponentRuleConfig.Condition.of(null, null),
+                                                null),
+                                        AccountActivityComponentRuleConfig.of(
+                                                AccountActivityComponentRuleConfig.Condition.of(
+                                                        singletonList(ComponentType.BIDDER), singletonList("bidder")),
+                                                null)))),
+                        null))
                 .build());
     }
 }

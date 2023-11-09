@@ -6,5 +6,13 @@ adapters:
       app-media-types:
         - banner
       site-media-types:
+        - banner
+        - native
       supported-vendors:
       vendor-id: 559
+    usersync:
+      cookie-family-name: orbidder
+      redirect:
+        url: https://orbidder.otto.de/pbs-usersync?gdpr={{gdpr}}&consent={{gdpr_consent}}&redirect={{redirect_url}}
+        support-cors: true
+        uid-macro: '[ODN_ID]'

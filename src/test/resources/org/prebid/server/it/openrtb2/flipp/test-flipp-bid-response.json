@@ -1,0 +1,59 @@
+{
+  "decisions": {
+    "inline": [
+      {
+        "adId": 183599115,
+        "advertiserId": 1988027,
+        "campaignId": 63285392,
+        "clickUrl": "www.test-click-url.com",
+        "contents": [
+          {
+            "data": {
+              "customData": {
+                "campaignConfigUrl": "https://test-config.com",
+                "campaignNameIdentifier": "US Grocery Demo (Kroger)"
+              },
+              "height": 1800,
+              "width": 300
+            },
+            "type": "raw"
+          }
+        ],
+        "creativeId": 81325690,
+        "flightId": 175421795,
+        "height": 1800,
+        "impressionUrl": "https://test-impression-url.com",
+        "prebid": {
+          "cpm": 12.34,
+          "creative": "creativeContent",
+          "creativeType": "DTX",
+          "requestId": "imp_id"
+        },
+        "priorityId": 232699,
+        "storefront": {
+          "campaignConfig": {
+            "fallbackImageUrl": "https://test-fall-back-image-url.com",
+            "fallbackLinkUrl": "https://test-back-link-url.com",
+            "tags": {
+              "advertiser": {
+                "engagement": "https://test.advertiser.engagement.com"
+              }
+            }
+          },
+          "flyer_id": 5554080,
+          "flyer_run_id": 873256,
+          "flyer_type_id": 2826,
+          "is_fallback": true,
+          "merchant": "Kroger",
+          "merchant_id": 2778,
+          "name": "Weekly Ad",
+          "storefront_logo_url": "https://test.storefron.logo.url.com",
+          "storefront_payload_url": "https://test.storefront.payload.url.com",
+          "valid_from": "2023-03-29 04:00:00 +0000 UTC",
+          "valid_to": "2023-04-05 03:59:59 +0000 UTC"
+        },
+        "width": 300
+      }
+    ]
+  }
+}

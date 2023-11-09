@@ -14,12 +14,16 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.ActivityInfrastructure;
 import org.prebid.server.activity.ComponentType;
-import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
+import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.TcfContextActivityCallPayload;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.auction.model.SetuidContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncFormat;
@@ -32,6 +36,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.exception.UnavailableForLegalReasonsException;
 import org.prebid.server.cookie.model.UidsCookieUpdateResult;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -69,6 +74,8 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final UidsCookieService uidsCookieService;
     private final ApplicationSettings applicationSettings;
     private final PrivacyEnforcementService privacyEnforcementService;
+    private final SetuidGppService gppService;
+    private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final HostVendorTcfDefinerService tcfDefinerService;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
@@ -80,6 +87,8 @@ public class SetuidHandler implements Handler<RoutingContext> {
                          ApplicationSettings applicationSettings,
                          BidderCatalog bidderCatalog,
                          PrivacyEnforcementService privacyEnforcementService,
+                         SetuidGppService gppService,
+                         ActivityInfrastructureCreator activityInfrastructureCreator,
                          HostVendorTcfDefinerService tcfDefinerService,
                          AnalyticsReporterDelegator analyticsDelegator,
                          Metrics metrics,
@@ -89,6 +98,8 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.gppService = Objects.requireNonNull(gppService);
+        this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
@@ -134,12 +145,14 @@ public class SetuidHandler implements Handler<RoutingContext> {
                                 .cookieName(cookieName)
                                 .syncType(cookieNameToSyncType.get(cookieName))
                                 .privacyContext(privacyContext)
-                                .activityInfrastructure(new ActivityInfrastructure(
-                                        account.getId(),
-                                        AccountActivitiesConfigurationUtils.parse(account),
-                                        TraceLevel.basic,
-                                        metrics))
-                                .build()));
+                                .build()))
+
+                .compose(setuidContext -> gppService.contextFrom(setuidContext)
+                        .map(setuidContext::with))
+
+                .map(this::fillWithActivityInfrastructure)
+
+                .map(gppService::updateSetuidContext);
     }
 
     private Future<Account> accountById(String accountId, Timeout timeout) {
@@ -147,6 +160,15 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 ? Future.succeededFuture(Account.empty(accountId))
                 : applicationSettings.getAccountById(accountId, timeout)
                 .otherwise(Account.empty(accountId));
+    }
+
+    private SetuidContext fillWithActivityInfrastructure(SetuidContext setuidContext) {
+        return setuidContext.toBuilder()
+                .activityInfrastructure(activityInfrastructureCreator.create(
+                        setuidContext.getAccount(),
+                        setuidContext.getGppContext(),
+                        TraceLevel.basic))
+                .build();
     }
 
     private void handleSetuidContextResult(AsyncResult<SetuidContext> setuidContextResult,
@@ -192,7 +214,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
 
         final ActivityInfrastructure activityInfrastructure = setuidContext.getActivityInfrastructure();
-        if (!activityInfrastructure.isAllowed(Activity.SYNC_USER, ComponentType.BIDDER, bidder)) {
+        final ActivityCallPayload activityCallPayload = TcfContextActivityCallPayload.of(
+                ActivityCallPayloadImpl.of(ComponentType.BIDDER, bidder),
+                tcfContext);
+
+        if (!activityInfrastructure.isAllowed(Activity.SYNC_USER, activityCallPayload)) {
             throw new UnavailableForLegalReasonsException();
         }
     }
@@ -317,6 +343,10 @@ public class SetuidHandler implements Handler<RoutingContext> {
         } else if (error instanceof UnavailableForLegalReasonsException) {
             status = HttpResponseStatus.valueOf(451);
             body = "Unavailable For Legal Reasons.";
+        } else if (error instanceof InvalidAccountConfigException) {
+            metrics.updateUserSyncBadRequestMetric();
+            status = HttpResponseStatus.BAD_REQUEST;
+            body = "Invalid account configuration: " + message;
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
             body = "Unexpected setuid processing error: " + message;

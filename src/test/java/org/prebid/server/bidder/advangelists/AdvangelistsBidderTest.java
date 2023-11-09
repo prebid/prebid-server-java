@@ -14,7 +14,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -45,12 +44,7 @@ public class AdvangelistsBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://test/get?pubid={{PublisherID}}";
 
-    private AdvangelistsBidder advangelistsBidder;
-
-    @Before
-    public void setUp() {
-        advangelistsBidder = new AdvangelistsBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdvangelistsBidder target = new AdvangelistsBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -68,7 +62,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -86,7 +80,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                 ExtImpAdvangelists.of(null, null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -101,7 +95,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                 ExtImpAdvangelists.of("", null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -116,7 +110,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(Banner.builder().format(null).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -139,7 +133,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(3)
@@ -155,7 +149,7 @@ public class AdvangelistsBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.xNative(Native.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -170,7 +164,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                 Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
@@ -194,7 +188,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                 ExtImpAdvangelists.of("pubid", null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -218,7 +212,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                 ExtImpAdvangelists.of("pubid", "setPlacement"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Imp expectedImp = Imp.builder()
@@ -243,7 +237,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -268,7 +262,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -293,7 +287,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                 ExtImpAdvangelists.of("pubid", null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -314,7 +308,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                 ExtImpAdvangelists.of("pubid", null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = advangelistsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -330,7 +324,7 @@ public class AdvangelistsBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = advangelistsBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -348,7 +342,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = advangelistsBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -362,7 +356,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = advangelistsBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -380,7 +374,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = advangelistsBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -398,7 +392,7 @@ public class AdvangelistsBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = advangelistsBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

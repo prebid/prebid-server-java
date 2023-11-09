@@ -12,7 +12,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -42,12 +41,7 @@ public class BliinkBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://randomurl.com";
 
-    private BliinkBidder bidder;
-
-    @Before
-    public void setUp() {
-        bidder = new BliinkBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final BliinkBidder target = new BliinkBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -60,7 +54,7 @@ public class BliinkBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -75,7 +69,7 @@ public class BliinkBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -95,7 +89,7 @@ public class BliinkBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -112,7 +106,7 @@ public class BliinkBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Empty SeatBid array"));
@@ -126,7 +120,7 @@ public class BliinkBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Empty SeatBid array"));
@@ -141,7 +135,7 @@ public class BliinkBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bid -> bid.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -157,7 +151,7 @@ public class BliinkBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bid -> bid.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -173,7 +167,7 @@ public class BliinkBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bid -> bid.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -189,7 +183,7 @@ public class BliinkBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bid -> bid.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -205,7 +199,7 @@ public class BliinkBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bid -> bid.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors())

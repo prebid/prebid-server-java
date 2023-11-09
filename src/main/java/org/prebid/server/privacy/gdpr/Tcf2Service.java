@@ -10,9 +10,9 @@ import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
-import org.prebid.server.privacy.gdpr.vendorlist.VendorListServiceV2;
+import org.prebid.server.privacy.gdpr.vendorlist.VersionedVendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.GdprConfig;
@@ -35,7 +35,7 @@ public class Tcf2Service {
 
     private final Purposes defaultPurposes;
     private final SpecialFeatures defaultSpecialFeatures;
-    private final VendorListServiceV2 vendorListServiceV2;
+    private final VersionedVendorListService versionedVendorListService;
     private final List<PurposeStrategy> purposeStrategies;
     private final List<SpecialFeaturesStrategy> specialFeaturesStrategies;
     private final BidderCatalog bidderCatalog;
@@ -44,7 +44,7 @@ public class Tcf2Service {
     public Tcf2Service(GdprConfig gdprConfig,
                        List<PurposeStrategy> purposeStrategies,
                        List<SpecialFeaturesStrategy> specialFeaturesStrategies,
-                       VendorListServiceV2 vendorListServiceV2,
+                       VersionedVendorListService versionedVendorListService,
                        BidderCatalog bidderCatalog) {
 
         this.defaultPurposes = gdprConfig.getPurposes() == null ? Purposes.builder().build() : gdprConfig.getPurposes();
@@ -52,7 +52,7 @@ public class Tcf2Service {
                 ? SpecialFeatures.builder().build()
                 : gdprConfig.getSpecialFeatures();
         this.purposeOneTreatmentInterpretation = gdprConfig.getPurposeOneTreatmentInterpretation();
-        this.vendorListServiceV2 = Objects.requireNonNull(vendorListServiceV2);
+        this.versionedVendorListService = Objects.requireNonNull(versionedVendorListService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.purposeStrategies = Objects.requireNonNull(purposeStrategies);
         this.specialFeaturesStrategies = Objects.requireNonNull(specialFeaturesStrategies);
@@ -100,7 +100,7 @@ public class Tcf2Service {
         final VendorPermissionsByType<VendorPermission> vendorPermissionsByType = toVendorPermissionsByType(
                 vendorPermissions, accountGdprConfig);
 
-        return vendorListServiceV2.forVersion(tcfConsent.getVendorListVersion())
+        return versionedVendorListService.forConsent(tcfConsent)
                 .map(vendorGvlPermissions -> wrapWithGVL(vendorPermissionsByType, vendorGvlPermissions))
 
                 .compose(gvlResult -> processSupportedPurposeStrategies(tcfConsent, gvlResult, mergedPurposes,
@@ -138,7 +138,7 @@ public class Tcf2Service {
 
     private static VendorPermissionsByType<VendorPermissionWithGvl> wrapWithGVL(
             VendorPermissionsByType<VendorPermission> vendorPermissionsByType,
-            Map<Integer, VendorV2> vendorGvlPermissions) {
+            Map<Integer, Vendor> vendorGvlPermissions) {
 
         final List<VendorPermissionWithGvl> weakPermissions = vendorPermissionsByType.getWeakPermissions().stream()
                 .map(vendorPermission -> wrapWithGVL(vendorPermission, vendorGvlPermissions))
@@ -153,12 +153,12 @@ public class Tcf2Service {
     }
 
     private static VendorPermissionWithGvl wrapWithGVL(VendorPermission vendorPermission,
-                                                       Map<Integer, VendorV2> vendorGvlPermissions) {
+                                                       Map<Integer, Vendor> vendorGvlPermissions) {
 
         final Integer vendorId = vendorPermission.getVendorId();
-        final VendorV2 vendorGvlByVendorId = vendorId != null
-                ? vendorGvlPermissions.getOrDefault(vendorId, VendorV2.empty(vendorId))
-                : VendorV2.empty(vendorId);
+        final Vendor vendorGvlByVendorId = vendorId != null
+                ? vendorGvlPermissions.getOrDefault(vendorId, Vendor.empty(vendorId))
+                : Vendor.empty(vendorId);
 
         return VendorPermissionWithGvl.of(vendorPermission, vendorGvlByVendorId);
     }
