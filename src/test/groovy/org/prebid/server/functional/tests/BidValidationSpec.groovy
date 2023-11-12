@@ -5,8 +5,10 @@ import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Dooh
+import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.Site
+import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
@@ -16,6 +18,7 @@ import spock.lang.PendingFeature
 
 import java.time.Instant
 
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.util.HttpUtil.REFERER_HEADER
@@ -255,5 +258,49 @@ class BidValidationSpec extends BaseSpec {
         then: "Bid validation metric value is incremented"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert metrics["adapter.generic.requests.bid_validation"] == initialMetricValue + 1
+    }
+
+    def "PBS should throw error when two separate eids with same eids.source"() {
+        given: "Default bid request with user.eids"
+        def source = PBSUtils.randomString
+        def defaultEids = [Eid.getDefaultEid(source), Eid.getDefaultEid(source)]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = User.defaultUser.tap {
+                eids = defaultEids
+            }
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should fail the request"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == BAD_REQUEST.code()
+        assert exception.responseBody.contains("Invalid request format: request.user.eids must contain unique sources")
+    }
+
+    def "PBS shouldn't throw error when two separate eids with different eids.source"() {
+        given: "Default bid request with user.eids"
+        def defaultEids = [
+                Eid.getDefaultEid(PBSUtils.randomString),
+                Eid.getDefaultEid(PBSUtils.randomString)]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = User.defaultUser.tap {
+                eids = defaultEids
+            }
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should contain same eids as in request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.user.eids[0].source == defaultEids[0].source
+        assert bidderRequest.user.eids[0].uids[0].id == defaultEids[0].uids[0].id
+        assert bidderRequest.user.eids[0].uids[0].atype == defaultEids[0].uids[0].atype
+
+        assert bidderRequest.user.eids[1].source == defaultEids[1].source
+        assert bidderRequest.user.eids[1].uids[0].id == defaultEids[1].uids[0].id
+        assert bidderRequest.user.eids[1].uids[0].atype == defaultEids[1].uids[0].atype
     }
 }

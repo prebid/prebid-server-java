@@ -33,4 +33,6 @@ public class AccountAuctionConfig {
 
     @JsonProperty("price-floors")
     AccountPriceFloorsConfig priceFloors;
+
+    AccountTargetingConfig targeting;
 }
