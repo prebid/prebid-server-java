@@ -12,7 +12,7 @@ public class CountryCodeMapperTest {
 
     @Before
     public void setUp() {
-        countryCodeMapper = new CountryCodeMapper("UA, UKR");
+        countryCodeMapper = new CountryCodeMapper("GB, GBR\nUK, GBR");
     }
 
     @Test
@@ -22,15 +22,17 @@ public class CountryCodeMapperTest {
     }
 
     @Test
-    public void mapToAlpha3ShouldCorrectlyMapAlpha2Code() {
+    public void mapToAlpha3ShouldCorrectlyMapAllAlpha2Codes() {
         // when and then
-        assertThat(countryCodeMapper.mapToAlpha3("UA")).isEqualTo("UKR");
+        assertThat(countryCodeMapper.mapToAlpha3("UK")).isEqualTo("GBR");
+        assertThat(countryCodeMapper.mapToAlpha3("GB")).isEqualTo("GBR");
     }
 
     @Test
     public void mapToAlpha3ShouldTolerateInvalidCaseAlpha2Code() {
         // when and then
-        assertThat(countryCodeMapper.mapToAlpha3("uA")).isEqualTo("UKR");
+        assertThat(countryCodeMapper.mapToAlpha3("uK")).isEqualTo("GBR");
+        assertThat(countryCodeMapper.mapToAlpha3("Gb")).isEqualTo("GBR");
     }
 
     @Test
@@ -40,15 +42,15 @@ public class CountryCodeMapperTest {
     }
 
     @Test
-    public void mapToAlpha2ShouldCorrectlyMapAlpha3Code() {
+    public void mapToAlpha2ShouldCorrectlyMapLatestAlpha3Code() {
         // when and then
-        assertThat(countryCodeMapper.mapToAlpha2("UKR")).isEqualTo("UA");
+        assertThat(countryCodeMapper.mapToAlpha2("GBR")).isEqualTo("UK");
     }
 
     @Test
     public void mapToAlpha2ShouldTolerateInvalidCaseAlpha3Code() {
         // when and then
-        assertThat(countryCodeMapper.mapToAlpha2("uKr")).isEqualTo("UA");
+        assertThat(countryCodeMapper.mapToAlpha2("GbR")).isEqualTo("UK");
     }
 
     @Test
