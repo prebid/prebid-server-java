@@ -9,7 +9,7 @@ import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 
-class HeaderSpec extends BaseSpec {
+class TopicsHeaderSpec extends BaseSpec {
 
     private static final DEFAULT_SEGTAX_VALUE = 599
 
@@ -112,7 +112,7 @@ class HeaderSpec extends BaseSpec {
 
         and: "Create Sec-Browsing-Topics 12 headers"
         def stringBuilder = new StringBuilder()
-        for (taxonomyVersion in 1..<12) {
+        for (taxonomyVersion in 1..<11) {
             stringBuilder.append(SecBrowsingTopic.defaultSetBrowsingTopic(taxonomyVersion).getValidAsHeader())
         }
 
@@ -125,6 +125,36 @@ class HeaderSpec extends BaseSpec {
         then: "Bidder request should contain 10 user.data from header"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.user.data.size() == 10
+
+        and: "Response should contain Observe-Browsing-Topics header"
+        assert response.headers["Observe-Browsing-Topics"] == "?1"
+    }
+
+    def "PBS shouldn't populate user.data when header Sec-Browsing-Topics contain 10 `p=` value and 11 valid"() {
+        given: "Default basic BidRequest with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = new User()
+        }
+
+        and: "Create Sec-Browsing-Topics 12 headers"
+        def stringBuilder = new StringBuilder()
+        for (taxonomyVersion in 0..<10) {
+            stringBuilder.append("();p=P000000000,")
+        }
+
+        and: "Prepare valid Sec-Browsing-Topic value header"
+        def header = SecBrowsingTopic.defaultSetBrowsingTopic().getValidAsHeader()
+        def headers = [(HttpUtil.SEC_BROWSING_TOPICS_HEADER): stringBuilder.toString() + header]
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequestRaw(bidRequest, headers)
+
+        then: "Bidder request shouldn't contain user.data"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest.user
+
+        and: "Bid response should contain warning"
+        assert response.responseBody.contains("Invalid field in Sec-Browsing-Topics header: ${header.replace(", ", "")} discarded due to limit reached.")
 
         and: "Response should contain Observe-Browsing-Topics header"
         assert response.headers["Observe-Browsing-Topics"] == "?1"
