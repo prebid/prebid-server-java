@@ -48,16 +48,17 @@ public class CachingApplicationSettings implements ApplicationSettings {
                                       SettingsCache videoCache,
                                       Metrics metrics,
                                       int ttl,
-                                      int size) {
+                                      int size,
+                                      boolean refresh) {
 
         if (ttl <= 0 || size <= 0) {
             throw new IllegalArgumentException("ttl and size must be positive");
         }
         this.delegate = Objects.requireNonNull(delegate);
-        this.accountCache = SettingsCache.createCache(ttl, size);
-        this.accountToErrorCache = SettingsCache.createCache(ttl, size);
-        this.adServerPublisherToErrorCache = SettingsCache.createCache(ttl, size);
-        this.categoryConfigCache = SettingsCache.createCache(ttl, size);
+        this.accountCache = SettingsCache.createCache(ttl, size, refresh);
+        this.accountToErrorCache = SettingsCache.createCache(ttl, size, refresh);
+        this.adServerPublisherToErrorCache = SettingsCache.createCache(ttl, size, refresh);
+        this.categoryConfigCache = SettingsCache.createCache(ttl, size, refresh);
         this.cache = Objects.requireNonNull(cache);
         this.ampCache = Objects.requireNonNull(ampCache);
         this.videoCache = Objects.requireNonNull(videoCache);

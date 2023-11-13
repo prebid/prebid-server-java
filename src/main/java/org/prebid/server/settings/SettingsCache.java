@@ -20,20 +20,22 @@ public class SettingsCache implements CacheNotificationListener {
     private final Map<String, Set<StoredItem>> requestCache;
     private final Map<String, Set<StoredItem>> impCache;
 
-    public SettingsCache(int ttl, int size) {
+    public SettingsCache(int ttl, int size, boolean refresh) {
         if (ttl <= 0 || size <= 0) {
             throw new IllegalArgumentException("ttl and size must be positive");
         }
-        requestCache = createCache(ttl, size);
-        impCache = createCache(ttl, size);
+        requestCache = createCache(ttl, size, refresh);
+        impCache = createCache(ttl, size, refresh);
     }
 
-    public static <T> Map<String, T> createCache(int ttl, int size) {
-        return Caffeine.newBuilder()
-                .expireAfterWrite(ttl, TimeUnit.SECONDS)
-                .maximumSize(size)
-                .<String, T>build()
-                .asMap();
+    public static <T> Map<String, T> createCache(int ttl, int size, boolean refresh) {
+        final Caffeine<Object, Object> caffeine = Caffeine.newBuilder().maximumSize(size);
+        if (refresh) {
+            caffeine.refreshAfterWrite(ttl, TimeUnit.SECONDS).expireAfterWrite(ttl * 5L, TimeUnit.SECONDS);
+        } else {
+            caffeine.expireAfterWrite(ttl, TimeUnit.SECONDS);
+        }
+        return caffeine.<String, T>build().asMap();
     }
 
     Map<String, Set<StoredItem>> getRequestCache() {

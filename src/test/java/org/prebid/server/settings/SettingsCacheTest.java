@@ -15,7 +15,7 @@ public class SettingsCacheTest {
 
     @Before
     public void setUp() {
-        settingsCache = new SettingsCache(10, 10);
+        settingsCache = new SettingsCache(10, 10, false);
     }
 
     @Test

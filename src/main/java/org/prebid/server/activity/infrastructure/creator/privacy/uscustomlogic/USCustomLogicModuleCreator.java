@@ -48,6 +48,7 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
                                       JsonLogic jsonLogic,
                                       Integer cacheTtl,
                                       Integer cacheSize,
+                                      boolean refresh,
                                       Metrics metrics) {
 
         this.gppReaderFactory = Objects.requireNonNull(gppReaderFactory);
@@ -55,7 +56,7 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
         this.metrics = Objects.requireNonNull(metrics);
 
         jsonLogicNodesCache = cacheTtl != null && cacheSize != null
-                ? SettingsCache.createCache(cacheTtl, cacheSize)
+                ? SettingsCache.createCache(cacheTtl, cacheSize, refresh)
                 : null;
     }
 
