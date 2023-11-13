@@ -62,7 +62,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), givenImp(BANNER));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
 
         // then
         assertThat(result.isRejected()).isTrue();
@@ -78,7 +78,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 .willReturn(givenBidderInfo(singletonList(BANNER), singletonList(AUDIO), singletonList(NATIVE)));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
 
         // then
         assertThat(result.getBidRequest()).isEqualTo(bidRequest);
@@ -96,7 +96,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 givenImp(BANNER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
 
         // then
         assertThat(result.getBidRequest())
@@ -117,7 +117,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 givenImp(BANNER, AUDIO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
 
         // then
         assertThat(result.getBidRequest())
@@ -140,7 +140,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 givenImp(NATIVE));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
 
         // then
         assertThat(result.isRejected()).isTrue();

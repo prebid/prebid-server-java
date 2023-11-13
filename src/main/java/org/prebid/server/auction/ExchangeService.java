@@ -480,8 +480,8 @@ public class ExchangeService {
         }
 
         return bidderToImpIds.entrySet().stream().collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> new BidRejectionTracker(entry.getKey(), entry.getValue(), logSamplingRate)));
+                Map.Entry::getKey,
+                entry -> new BidRejectionTracker(entry.getKey(), entry.getValue(), logSamplingRate)));
     }
 
     /**
@@ -1187,14 +1187,14 @@ public class ExchangeService {
                 .orElse(ExtRequestPrebid.builder());
 
         return ExtRequest.of(extPrebidBuilder
-                        .multibid(resolveExtRequestMultiBids(bidderToMultiBid.get(bidder), bidder))
-                        .bidders(bidders)
-                        .bidderparams(prepareBidderParameters(extPrebid, bidder))
-                        .schains(null)
-                        .data(null)
-                        .bidderconfig(null)
-                        .aliases(null)
-                        .build());
+                .multibid(resolveExtRequestMultiBids(bidderToMultiBid.get(bidder), bidder))
+                .bidders(bidders)
+                .bidderparams(prepareBidderParameters(extPrebid, bidder))
+                .schains(null)
+                .data(null)
+                .bidderconfig(null)
+                .aliases(null)
+                .build());
     }
 
     private List<ExtRequestPrebidMultiBid> resolveExtRequestMultiBids(MultiBidConfig multiBidConfig,
@@ -1301,7 +1301,7 @@ public class ExchangeService {
 
         final String bidderName = bidderRequest.getBidder();
         final MediaTypeProcessingResult mediaTypeProcessingResult = mediaTypeProcessor.process(
-                bidderRequest.getBidRequest(), aliases.resolveBidder(bidderName));
+                bidderRequest.getBidRequest(), aliases.resolveBidder(bidderName), auctionContext.getAccount());
 
         final List<BidderError> mediaTypeProcessingErrors = mediaTypeProcessingResult.getErrors();
         if (mediaTypeProcessingResult.isRejected()) {

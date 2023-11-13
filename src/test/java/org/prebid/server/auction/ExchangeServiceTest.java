@@ -48,7 +48,6 @@ import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
-import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
@@ -367,6 +366,9 @@ public class ExchangeServiceTest extends VertxTest {
                         false,
                         AuctionResponsePayloadImpl.of(invocation.getArgument(0)))));
 
+        given(mediaTypeProcessor.process(any(), anyString(), any()))
+                .willAnswer(invocation -> MediaTypeProcessingResult.succeeded(invocation.getArgument(0), emptyList()));
+
         given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
 
         given(currencyService.convertCurrency(any(), any(), any(), any()))
@@ -430,7 +432,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 supplyChainResolver,
                 debugResolver,
-                new NoOpMediaTypeProcessor(),
+                mediaTypeProcessor,
                 uidUpdater,
                 timeoutResolver,
                 timeoutFactory,
@@ -465,7 +467,7 @@ public class ExchangeServiceTest extends VertxTest {
                         fpdResolver,
                         supplyChainResolver,
                         debugResolver,
-                        new NoOpMediaTypeProcessor(),
+                        mediaTypeProcessor,
                         uidUpdater,
                         timeoutResolver,
                         timeoutFactory,
@@ -4625,7 +4627,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
 
-        given(mediaTypeProcessor.process(any(), anyString()))
+        given(mediaTypeProcessor.process(any(), anyString(), any()))
                 .willReturn(MediaTypeProcessingResult.rejected(Collections.singletonList(
                         BidderError.badInput("MediaTypeProcessor error."))));
         given(bidResponseCreator.create(
