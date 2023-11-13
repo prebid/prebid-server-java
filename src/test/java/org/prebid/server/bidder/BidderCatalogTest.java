@@ -94,6 +94,7 @@ public class BidderCatalogTest {
                 "test@email.com",
                 singletonList(MediaType.BANNER),
                 singletonList(MediaType.VIDEO),
+                singletonList(MediaType.AUDIO),
                 null,
                 99,
                 true,
@@ -124,6 +125,7 @@ public class BidderCatalogTest {
                 "test@email.com",
                 singletonList(MediaType.BANNER),
                 singletonList(MediaType.VIDEO),
+                singletonList(MediaType.AUDIO),
                 null,
                 99,
                 true,
@@ -145,6 +147,7 @@ public class BidderCatalogTest {
                 "test@email.com",
                 singletonList(MediaType.BANNER),
                 singletonList(MediaType.VIDEO),
+                singletonList(MediaType.AUDIO),
                 null,
                 99,
                 true,
@@ -163,6 +166,34 @@ public class BidderCatalogTest {
 
         // when and then
         assertThat(target.isAlias("alIAS")).isTrue();
+    }
+
+    @Test
+    public void resolveBaseBidderShouldReturnBaseBidderName() {
+        // given
+        final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
+                .name("alias")
+                .bidderInfo(BidderInfo.create(
+                        true,
+                        null,
+                        true,
+                        null,
+                        "bidder",
+                        null,
+                        emptyList(),
+                        emptyList(),
+                        emptyList(),
+                        null,
+                        0,
+                        true,
+                        false,
+                        CompressionType.NONE))
+                .deprecatedNames(emptyList())
+                .build()));
+        target = new BidderCatalog(singletonList(bidderDeps));
+
+        // when and then
+        assertThat(target.resolveBaseBidder("alias")).isEqualTo("bidder");
     }
 
     @Test
@@ -216,6 +247,7 @@ public class BidderCatalogTest {
                 "test@email.com",
                 singletonList(MediaType.BANNER),
                 singletonList(MediaType.VIDEO),
+                singletonList(MediaType.AUDIO),
                 null,
                 99,
                 true,
@@ -231,6 +263,7 @@ public class BidderCatalogTest {
                 "test@email.com",
                 singletonList(MediaType.BANNER),
                 singletonList(MediaType.VIDEO),
+                singletonList(MediaType.AUDIO),
                 null,
                 99,
                 true,
@@ -246,6 +279,7 @@ public class BidderCatalogTest {
                 "test@email.com",
                 singletonList(MediaType.BANNER),
                 singletonList(MediaType.VIDEO),
+                singletonList(MediaType.AUDIO),
                 null,
                 99,
                 true,
@@ -312,6 +346,7 @@ public class BidderCatalogTest {
                 "test@email.com",
                 singletonList(MediaType.BANNER),
                 singletonList(MediaType.VIDEO),
+                singletonList(MediaType.AUDIO),
                 null,
                 99,
                 true,

@@ -400,8 +400,10 @@ public class AmpRequestFactory {
                         httpRequest,
                         ENDPOINT,
                         true))
-                .compose(resolvedBidRequest ->
-                        ortb2RequestFactory.validateRequest(resolvedBidRequest, auctionContext.getDebugWarnings()));
+                .compose(resolvedBidRequest -> ortb2RequestFactory.validateRequest(
+                        resolvedBidRequest,
+                        auctionContext.getHttpRequest(),
+                        auctionContext.getDebugWarnings()));
     }
 
     private static String storedRequestId(BidRequest receivedBidRequest) {
@@ -429,6 +431,10 @@ public class AmpRequestFactory {
 
         if (bidRequest.getApp() != null) {
             throw new InvalidRequestException("request.app must not exist in AMP stored requests.");
+        }
+
+        if (bidRequest.getDooh() != null) {
+            throw new InvalidRequestException("request.dooh must not exist in AMP stored requests.");
         }
 
         return bidRequest;

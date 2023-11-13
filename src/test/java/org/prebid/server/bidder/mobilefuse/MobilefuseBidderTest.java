@@ -1,9 +1,10 @@
 package org.prebid.server.bidder.mobilefuse;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
@@ -24,7 +25,6 @@ import org.prebid.server.proto.openrtb.ext.request.mobilefuse.ExtImpMobilefuse;
 import java.util.List;
 import java.util.function.Function;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class MobilefuseBidderTest extends VertxTest {
 
@@ -39,96 +40,43 @@ public class MobilefuseBidderTest extends VertxTest {
 
     private final MobilefuseBidder target = new MobilefuseBidder(ENDPOINT_URL, jacksonMapper);
 
-    @Test
-    public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(()
-                -> new MobilefuseBidder("invalid_url", jacksonMapper));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldCreateCorrectURLWhenTagidSrcEqualsExt() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(500).build()))
-                                .build())
+    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                        .id("imp_id")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpMobilefuse.of(1, 2, "ext")))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/openrtb?pub_id=2&tagid_src=ext");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetPubIdToZeroIfPublisherIdNotPresentInRequest() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(500).build()))
-                                .build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpMobilefuse.of(1, null, null)))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/openrtb?pub_id=0");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldModifyImpWithEmptyVideoWhenBannerAndVideoAreNotEmpty() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(500).build()))
-                                .build())
-                        .video(Video.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpMobilefuse.of(1, 2, "ext")))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getVideo)
-                .containsNull();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldCreateRequestWithOnlyFirstValidImp() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(givenImp(identity()),
-                        givenImp(impBuilder -> impBuilder.id("456"))))
+                                ExtImpMobilefuse.of(1, 2, "tagidSrc")))))
                 .build();
+    }
 
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+    private static String givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer)
+            throws JsonProcessingException {
 
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getId)
-                .containsExactly("123");
+        return mapper.writeValueAsString(BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                        .build()))
+                .build());
+    }
+
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(
+                HttpRequest.<BidRequest>builder().build(),
+                HttpResponse.of(200, null, body),
+                null);
+    }
+
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .imp(singletonList(givenImp(impCustomizer))))
+                .build();
+    }
+
+    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(identity(), impCustomizer);
     }
 
     @Test
@@ -149,15 +97,58 @@ public class MobilefuseBidderTest extends VertxTest {
     }
 
     @Test
+    public void creationShouldFailOnInvalidEndpointUrl() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new MobilefuseBidder("invalid_url", jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateCorrectURLWhenTagidSrcEqualsExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpMobilefuse.of(1, 2, "ext")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/openrtb?pub_id=2&tagid_src=ext");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetPubIdToZeroIfPublisherIdNotPresentInRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpMobilefuse.of(1, null, null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test.endpoint.com/openrtb?pub_id=0");
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnErrorIfNoValidImpsFound() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
+                .imp(List.of(
                         givenImp(impBuilder -> impBuilder
                                 .id("456")
-                                .banner(null)
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
-                        givenImp(impBuilder -> impBuilder.banner(null).xNative(Native.builder().build()))))
+                        givenImp(impBuilder -> impBuilder.audio(Audio.builder().build()))))
                 .build();
 
         // when
@@ -169,17 +160,16 @@ public class MobilefuseBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateRequestUsingParamsFromFirstValidExt() {
+    public void makeHttpRequestsShouldCreateRequestWithValidImps() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(
+                .imp(List.of(
+                        givenImp(impBuilder -> impBuilder.id("imp_id1").banner(Banner.builder().build())),
+                        givenImp(impBuilder -> impBuilder.id("imp_id2").video(Video.builder().build())),
+                        givenImp(impBuilder -> impBuilder.id("imp_id3").xNative(Native.builder().build())),
+                        givenImp(impBuilder -> impBuilder.id("imp_id4").audio(Audio.builder().build())),
                         givenImp(impBuilder -> impBuilder
-                                .id("456")
-                                .banner(null)
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
-                        givenImp(impBuilder -> impBuilder.banner(null).xNative(Native.builder().build())),
-                        givenImp(impBuilder -> impBuilder
-                                .id("789")
+                                .id("imp_id5")
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))))))
                 .build();
 
@@ -191,18 +181,17 @@ public class MobilefuseBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getId, Imp::getTagid)
-                .containsExactly(tuple("789", "1"));
+                .extracting(Imp::getId)
+                .containsExactly("imp_id1", "imp_id2", "imp_id3");
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyImpWhenBannerOrVideoAreNotEmpty() {
+    public void makeHttpRequestsShouldModifyImpTagId() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(500).build()))
-                                .build())
+                        .banner(Banner.builder().build())
+                        .tagid("some tag id")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
                                 ExtImpMobilefuse.of(1, 2, "ext")))));
 
@@ -219,9 +208,33 @@ public class MobilefuseBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldModifyImpWithAddingSkadnWhenSkadnIsPresent() {
+        // given
+        final ObjectNode skadn = mapper.createObjectNode().put("something", "something");
+        final ObjectNode impExt = mapper.createObjectNode();
+        impExt.set("bidder", mapper.valueToTree(ExtImpMobilefuse.of(1, 2, "ext")));
+        impExt.set("skadn", skadn);
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.banner(Banner.builder().build()).ext(impExt));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+
+        final ObjectNode expectedImpExt = mapper.createObjectNode().set("skadn", skadn);
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt, Imp::getTagid)
+                .containsExactly(tuple(expectedImpExt, "1"));
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -238,8 +251,7 @@ public class MobilefuseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -252,8 +264,7 @@ public class MobilefuseBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(BidResponse.builder().build()));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -264,14 +275,10 @@ public class MobilefuseBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("imp_id")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -279,17 +286,16 @@ public class MobilefuseBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("imp_id").build(), banner, "USD"));
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
+    public void makeBidsShouldReturnVideoBidWhenBidExtHasVideoType() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+        final ObjectNode bidExt = mapper.createObjectNode()
+                .set("mf", mapper.createObjectNode().put("media_type", "video"));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("imp_id")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -297,43 +303,41 @@ public class MobilefuseBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("imp_id").build(), video, "USD"));
     }
 
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    @Test
+    public void makeBidsShouldReturnNativeBidWhenBidExtHasNativeType() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.createObjectNode()
+                .set("mf", mapper.createObjectNode().put("media_type", "native"));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("imp_id")));
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(givenImp(impCustomizer))))
-                .build();
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("imp_id").build(), xNative, "USD"));
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
+    @Test
+    public void makeBidsShouldReturnNativeBidWhenBidExtHasAnyType() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.createObjectNode()
+                .set("mf", mapper.createObjectNode().put("media_type", "audio"));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("imp_id")));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().impid("imp_id").build(), banner, "USD"));
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                        .id("123")
-                        .banner(Banner.builder().id("banner_id").build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpMobilefuse.of(1, 2, "tagidSrc")))))
-                .build();
-    }
-
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .cur("USD")
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
-    }
-
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
-    }
 }
