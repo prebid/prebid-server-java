@@ -7,19 +7,19 @@ import com.iab.openrtb.request.Regs;
 import lombok.Value;
 import lombok.experimental.Accessors;
 import lombok.experimental.Delegate;
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.GeoActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.GpcActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.GeoActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.GpcActivityInvocationPayload;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 
 import java.util.Optional;
 
 @Accessors(fluent = true)
 @Value(staticConstructor = "of")
-public class BidRequestActivityCallPayload implements GeoActivityCallPayload, GpcActivityCallPayload {
+public class BidRequestActivityInvocationPayload implements GeoActivityInvocationPayload, GpcActivityInvocationPayload {
 
     @Delegate
-    ActivityCallPayload componentInfo;
+    ActivityInvocationPayload componentInfo;
 
     BidRequest bidRequest;
 

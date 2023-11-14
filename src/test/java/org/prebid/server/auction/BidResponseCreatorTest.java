@@ -23,8 +23,8 @@ import io.vertx.core.Future;
 import lombok.Value;
 import lombok.experimental.Accessors;
 import org.apache.commons.collections4.MapUtils;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -32,6 +32,9 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
@@ -82,6 +85,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAdservertarge
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.CacheAsset;
 import org.prebid.server.proto.openrtb.ext.response.Events;
@@ -94,6 +98,12 @@ import org.prebid.server.proto.openrtb.ext.response.ExtDebugPgmetrics;
 import org.prebid.server.proto.openrtb.ext.response.ExtDebugTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
+import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
+import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
+import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInvocation;
+import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInvocationDefaultResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInvocationResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityRule;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
@@ -163,7 +173,7 @@ public class BidResponseCreatorTest extends VertxTest {
     private static final String BID_ADM = "adm";
     private static final String BID_NURL = "nurl";
 
-    @Rule
+    @org.junit.Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
@@ -182,6 +192,8 @@ public class BidResponseCreatorTest extends VertxTest {
     private CategoryMappingService categoryMappingService;
     @Mock
     private HookStageExecutor hookStageExecutor;
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
 
     @Spy
     private WinningBidComparatorFactory winningBidComparatorFactory;
@@ -2918,10 +2930,9 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(Imp.builder()
                 .ext(mapper.valueToTree(
                         ExtImp.of(ExtImpPrebid.builder()
-                                .bidder(mapper.valueToTree(singletonMap(invalidBidderName, 0)))
-                                .build(),
-                        null)
-                ))
+                                        .bidder(mapper.valueToTree(singletonMap(invalidBidderName, 0)))
+                                        .build(),
+                                null)))
                 .build());
 
         final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1", givenSeatBid(), 100));
@@ -3130,6 +3141,46 @@ public class BidResponseCreatorTest extends VertxTest {
                                 ZonedDateTime.now(clock), pacing, "test-1"))),
                         entry("line-item-id-2", List.of(ExtTraceDeal.of("line-item-id-2",
                                 ZonedDateTime.now(clock), targeting, "test-2"))));
+    }
+
+    @Test
+    public void shouldPopulateActivityInfrastructureTraceLogOnSpecifiedTraceLevel() {
+        // given
+        final List<ExtTraceActivityInfrastructure> traceLog = asList(
+                ExtTraceActivityInvocation.of("1", Activity.CALL_BIDDER, null),
+                ExtTraceActivityInvocationDefaultResult.of("2", true),
+                ExtTraceActivityRule.of("3", null, Rule.Result.ABSTAIN),
+                ExtTraceActivityInvocationResult.of("4", Activity.CALL_BIDDER, true));
+
+        given(activityInfrastructure.debugTrace()).willReturn(traceLog);
+
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of(
+                        "bidder1",
+                        givenSeatBid(BidderBid.of(
+                                Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build(),
+                                banner,
+                                "USD")),
+                        100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(givenImp()),
+                builder -> builder
+                        .debugContext(DebugContext.of(false, false, TraceLevel.verbose))
+                        .activityInfrastructure(activityInfrastructure)
+                        .auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse)
+                .extracting(BidResponse::getExt)
+                .extracting(ExtBidResponse::getDebug)
+                .extracting(ExtResponseDebug::getTrace)
+                .extracting(ExtDebugTrace::getActivityInfrastructure)
+                .asInstanceOf(InstanceOfAssertFactories.list(ExtTraceActivityInfrastructure.class))
+                .isEqualTo(traceLog);
     }
 
     @Test
