@@ -64,6 +64,7 @@ public class VendorListService {
     private final FileSystem fileSystem;
     private final HttpClient httpClient;
     private final Metrics metrics;
+    private final String generationVersion;
     protected final JacksonMapper mapper;
 
     /**
@@ -85,6 +86,7 @@ public class VendorListService {
                              FileSystem fileSystem,
                              HttpClient httpClient,
                              Metrics metrics,
+                             String generationVersion,
                              JacksonMapper mapper) {
 
         this.cacheDir = Objects.requireNonNull(cacheDir);
@@ -92,6 +94,7 @@ public class VendorListService {
         this.defaultTimeoutMs = defaultTimeoutMs;
         this.refreshMissingListPeriodMs = refreshMissingListPeriodMs;
         this.deprecated = deprecated;
+        this.generationVersion = generationVersion;
         this.vertx = Objects.requireNonNull(vertx);
         this.fileSystem = Objects.requireNonNull(fileSystem);
         this.httpClient = Objects.requireNonNull(httpClient);
@@ -121,8 +124,8 @@ public class VendorListService {
      */
     public Future<Map<Integer, Vendor>> forVersion(int version) {
         if (version <= 0) {
-            return Future.failedFuture(
-                    "TCF %d vendor list for version %d not valid.".formatted(getTcfVersion(), version));
+            return Future.failedFuture("TCF %d vendor list for version %s.%d not valid."
+                    .formatted(getTcfVersion(), generationVersion, version));
         }
 
         final Map<Integer, Vendor> idToVendor = cache.get(version);
@@ -140,11 +143,12 @@ public class VendorListService {
 
         metrics.updatePrivacyTcfVendorListMissingMetric(tcf);
 
-        logger.info("TCF {0} vendor list for version {1} not found, started downloading.", tcf, version);
+        logger.info("TCF {0} vendor list for version {1}.{2} not found, started downloading.",
+                tcf, generationVersion, version);
         fetchNewVendorListFor(version);
 
-        return Future.failedFuture(
-                "TCF %d vendor list for version %d not fetched yet, try again later.".formatted(tcf, version));
+        return Future.failedFuture("TCF %d vendor list for version %s.%d not fetched yet, try again later."
+                        .formatted(tcf, generationVersion, version));
     }
 
     /**
@@ -280,7 +284,8 @@ public class VendorListService {
         final int statusCode = response.getStatusCode();
 
         if (statusCode == HttpResponseStatus.NOT_FOUND.code()) {
-            throw new MissingVendorListException("Remote server could not found vendor list with version " + version);
+            throw new MissingVendorListException(
+                    "Remote server could not found vendor list with version " + generationVersion + "." + version);
         } else if (statusCode != HttpResponseStatus.OK.code()) {
             throw new PreBidException("HTTP status code " + statusCode);
         }
@@ -309,8 +314,8 @@ public class VendorListService {
             if (result.succeeded()) {
                 promise.complete(vendorListResult);
             } else {
-                logger.error("Could not create new vendor list for version {0}, file: {1}", result.cause(), version,
-                        filepath);
+                logger.error("Could not create new vendor list for version {0}.{1}, file: {2}",
+                        result.cause(), generationVersion, version, filepath);
                 promise.fail(result.cause());
             }
         });
@@ -327,7 +332,7 @@ public class VendorListService {
 
         metrics.updatePrivacyTcfVendorListOkMetric(tcf);
 
-        logger.info("Created new TCF {0} vendor list for version {1}", tcf, version);
+        logger.info("Created new TCF {0} vendor list for version {1}.{2}", tcf, generationVersion, version);
 
         stopUsingFallbackForVersion(version);
 
@@ -343,11 +348,11 @@ public class VendorListService {
         metrics.updatePrivacyTcfVendorListErrorMetric(tcf);
 
         if (logger.isDebugEnabled()) {
-            logger.debug("Error while obtaining TCF {0} vendor list for version {1}",
-                    exception, tcf, version);
+            logger.debug("Error while obtaining TCF {0} vendor list for version {1}.{2}",
+                    exception, tcf, generationVersion, version);
         } else {
-            logger.warn("Error while obtaining TCF {0} vendor list for version {1}: {2}",
-                    tcf, version, exception.getMessage());
+            logger.warn("Error while obtaining TCF {0} vendor list for version {1}.{2}: {3}",
+                    tcf, generationVersion, version, exception.getMessage());
         }
 
         startUsingFallbackForVersion(version);
