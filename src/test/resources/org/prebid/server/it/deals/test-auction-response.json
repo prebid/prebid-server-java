@@ -713,7 +713,128 @@
               "message": "Line Item lineItem2 targeting did not match imp with id impId4"
             }
           ]
-        }
+        },
+        "activity_infrastructure": [
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "fetchBids",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "fetchBids",
+            "allowed": true
+          },
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "fetchBids",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "fetchBids",
+            "allowed": true
+          },
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "fetchBids",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "fetchBids",
+            "allowed": true
+          },
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "fetchBids",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "fetchBids",
+            "allowed": true
+          },
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "transmitUfpd",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "transmitUfpd",
+            "allowed": true
+          },
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "transmitPreciseGeo",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "transmitPreciseGeo",
+            "allowed": true
+          },
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "transmitTid",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "transmitTid",
+            "allowed": true
+          }
+        ]
       }
     },
     "warnings": {

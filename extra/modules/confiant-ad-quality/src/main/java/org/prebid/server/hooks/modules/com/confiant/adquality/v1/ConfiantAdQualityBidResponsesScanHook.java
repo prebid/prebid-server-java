@@ -6,9 +6,9 @@ import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
-import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderResponse;
@@ -55,11 +55,11 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
     private BidRequest getBidRequest(AuctionInvocationContext auctionInvocationContext) {
         final AuctionContext auctionContext = auctionInvocationContext.auctionContext();
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final ActivityCallPayload activityCallPayload = BidRequestActivityCallPayload.of(
-                ActivityCallPayloadImpl.of(ComponentType.GENERAL_MODULE, ConfiantAdQualityModule.CODE),
+        final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
+                ActivityInvocationPayloadImpl.of(ComponentType.GENERAL_MODULE, ConfiantAdQualityModule.CODE),
                 bidRequest);
         final boolean disallowTransmitGeo = !auctionContext.getActivityInfrastructure()
-                .isAllowed(Activity.TRANSMIT_GEO, activityCallPayload);
+                .isAllowed(Activity.TRANSMIT_GEO, activityInvocationPayload);
 
         final User maskedUser = privacyEnforcementService
                 .maskUserConsideringActivityRestrictions(bidRequest.getUser(), true, disallowTransmitGeo);
