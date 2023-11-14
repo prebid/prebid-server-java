@@ -5,6 +5,7 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.settings.model.StoredItem;
 
+import javax.validation.ValidationException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -20,17 +21,20 @@ public class SettingsCache implements CacheNotificationListener {
     private final Map<String, Set<StoredItem>> requestCache;
     private final Map<String, Set<StoredItem>> impCache;
 
-    public SettingsCache(int ttl, int size, boolean refresh) {
+    public SettingsCache(int ttl, int size, int refreshPeriod) {
         if (ttl <= 0 || size <= 0) {
             throw new IllegalArgumentException("ttl and size must be positive");
         }
-        requestCache = createCache(ttl, size, refresh);
-        impCache = createCache(ttl, size, refresh);
+        requestCache = createCache(ttl, size, refreshPeriod);
+        impCache = createCache(ttl, size, refreshPeriod);
     }
 
-    public static <T> Map<String, T> createCache(int ttl, int size, boolean refresh) {
+    public static <T> Map<String, T> createCache(int ttl, int size, int refreshPeriod) {
         final Caffeine<Object, Object> caffeine = Caffeine.newBuilder().maximumSize(size);
-        if (refresh) {
+        if (refreshPeriod > 0 && refreshPeriod > ttl) {
+            throw new ValidationException("SettingsCache parameter \"refreshPeriod\" should be less than \"ttl\"");
+        }
+        if (refreshPeriod > 0) {
             caffeine.refreshAfterWrite(ttl, TimeUnit.SECONDS).expireAfterWrite(ttl * 5L, TimeUnit.SECONDS);
         } else {
             caffeine.expireAfterWrite(ttl, TimeUnit.SECONDS);

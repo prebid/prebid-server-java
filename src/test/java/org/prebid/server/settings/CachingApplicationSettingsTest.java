@@ -61,13 +61,13 @@ public class CachingApplicationSettingsTest {
 
         cachingApplicationSettings = new CachingApplicationSettings(
                 applicationSettings,
-                new SettingsCache(360, 100, false),
-                new SettingsCache(360, 100, false),
-                new SettingsCache(360, 100, false),
+                new SettingsCache(360, 100, 0),
+                new SettingsCache(360, 100, 0),
+                new SettingsCache(360, 100, 0),
                 metrics,
                 360,
                 100,
-                false);
+                0);
     }
 
     @Test

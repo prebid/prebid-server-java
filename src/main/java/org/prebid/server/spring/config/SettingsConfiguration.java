@@ -281,7 +281,7 @@ public class SettingsConfiguration {
                     metrics,
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
-                    cacheProperties.isRefresh());
+                    cacheProperties.getRefreshPeriod());
         }
     }
 
@@ -304,21 +304,24 @@ public class SettingsConfiguration {
         @Qualifier("settingsCache")
         SettingsCache settingsCache(ApplicationSettingsCacheProperties cacheProperties) {
             return new SettingsCache(
-                    cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize(), cacheProperties.isRefresh());
+                    cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize(), cacheProperties.getRefreshPeriod()
+            );
         }
 
         @Bean
         @Qualifier("ampSettingsCache")
         SettingsCache ampSettingsCache(ApplicationSettingsCacheProperties cacheProperties) {
             return new SettingsCache(
-                    cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize(), cacheProperties.isRefresh());
+                    cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize(), cacheProperties.getRefreshPeriod()
+            );
         }
 
         @Bean
         @Qualifier("videoSettingCache")
         SettingsCache videoSettingCache(ApplicationSettingsCacheProperties cacheProperties) {
             return new SettingsCache(
-                    cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize(), cacheProperties.isRefresh());
+                    cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize(), cacheProperties.getRefreshPeriod()
+            );
         }
     }
 
@@ -336,6 +339,7 @@ public class SettingsConfiguration {
         @NotNull
         @Min(1)
         private Integer cacheSize;
-        private boolean refresh;
+        @Min(0)
+        private int refreshPeriod;
     }
 }
