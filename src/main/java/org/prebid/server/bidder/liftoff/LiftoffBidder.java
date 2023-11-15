@@ -88,7 +88,7 @@ public class LiftoffBidder implements Bidder<BidRequest> {
                 final LiftoffImpressionExt impressionExt = liftoffImpressionExt.toBuilder()
                         .vungle(extImpLiftoff)
                         .build();
-                convertedExtImpLiftoff = mapper.mapper().convertValue(impressionExt, ObjectNode.class);
+                convertedExtImpLiftoff = resolveExtImpLiftoff(impressionExt);
             } catch (IllegalArgumentException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
                 continue;
@@ -101,6 +101,14 @@ public class LiftoffBidder implements Bidder<BidRequest> {
         }
 
         return Result.of(httpRequests, errors);
+    }
+
+    private ObjectNode resolveExtImpLiftoff(LiftoffImpressionExt impressionExt) {
+        return mapper.mapper().convertValue(impressionExt, ObjectNode.class);
+    }
+
+    private LiftoffImpressionExt resolveLiftoffImpressionExt(Imp imp) {
+        return mapper.mapper().convertValue(imp.getExt(), LiftoffImpressionExt.class);
     }
 
     private static Imp prepareImp(Imp.ImpBuilder impBuilder,
@@ -116,10 +124,6 @@ public class LiftoffBidder implements Bidder<BidRequest> {
         return extImpLiftoff.toBuilder()
                 .bidToken(ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getBuyeruid))
                 .build();
-    }
-
-    private LiftoffImpressionExt resolveLiftoffImpressionExt(Imp imp) {
-        return mapper.mapper().convertValue(imp.getExt(), LiftoffImpressionExt.class);
     }
 
     private static BidRequest prepareBidRequest(BidRequest bidRequest, Imp imp, ExtImpLiftoff extImpLiftoff) {
