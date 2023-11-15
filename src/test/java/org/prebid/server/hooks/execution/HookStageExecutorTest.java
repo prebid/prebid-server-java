@@ -1778,7 +1778,7 @@ public class HookStageExecutorTest extends VertxTest {
         final ProcessedAuctionRequestHookImpl hookImpl = spy(ProcessedAuctionRequestHookImpl.of(
                 (payload, invocationContext) -> {
                     final Promise<InvocationResult<AuctionRequestPayload>> promise = Promise.promise();
-                    vertx.setTimer(50, timerId -> promise.complete(
+                    vertx.setTimer(10, timerId -> promise.complete(
                             InvocationResultImpl.<AuctionRequestPayload>builder()
                                     .status(InvocationStatus.success)
                                     .action(InvocationAction.update)
