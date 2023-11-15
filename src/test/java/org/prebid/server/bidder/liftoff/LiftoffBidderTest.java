@@ -25,7 +25,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.rtbhouse.RtbhouseBidder;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -65,7 +64,7 @@ public class LiftoffBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new RtbhouseBidder(
+        assertThatIllegalArgumentException().isThrownBy(() -> new LiftoffBidder(
                 "invalid_url",
                 currencyConversionService,
                 jacksonMapper));
@@ -101,9 +100,10 @@ public class LiftoffBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
+                .first()
                 .satisfies(imps -> {
-                    assertThat(imps.get(0).getBidfloorcur()).isEqualTo("USD");
-                    assertThat(imps.get(0).getBidfloor()).isEqualTo(BigDecimal.ONE);
+                    assertThat(imps.getBidfloorcur()).isEqualTo("USD");
+                    assertThat(imps.getBidfloor()).isEqualTo(BigDecimal.ONE);
                 });
     }
 
@@ -125,9 +125,10 @@ public class LiftoffBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .satisfies(imps -> {
-                    assertThat(imps.get(0).getBidfloorcur()).isEqualTo("USD");
-                    assertThat(imps.get(0).getBidfloor()).isEqualTo(BigDecimal.TEN);
+                .first()
+                .satisfies(imp -> {
+                    assertThat(imp.getBidfloorcur()).isEqualTo("USD");
+                    assertThat(imp.getBidfloor()).isEqualTo(BigDecimal.TEN);
                 });
     }
 
@@ -148,9 +149,10 @@ public class LiftoffBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .satisfies(imps -> {
-                    assertThat(imps.get(0).getBidfloorcur()).isEqualTo("EUR");
-                    assertThat(imps.get(0).getBidfloor()).isEqualTo(BigDecimal.ZERO);
+                .first()
+                .satisfies(imp -> {
+                    assertThat(imp.getBidfloorcur()).isEqualTo("EUR");
+                    assertThat(imp.getBidfloor()).isEqualTo(BigDecimal.ZERO);
                 });
     }
 
@@ -235,6 +237,35 @@ public class LiftoffBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
                 .containsExactly("any-placement-reference-id");
+    }
+
+    @Test
+    public void makeHttpRequestShouldUpdateExtImpLiftoffBidTokenWhenInRequestPresentUserBuyeruid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.user(User.builder().buyeruid("Came-from-request").build()), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(mapper.convertValue(LiftoffImpressionExt.builder()
+                        .bidder(ExtImpLiftoff.builder()
+                                .bidToken("any-bid-token")
+                                .appStoreId("any-app-store-id")
+                                .placementReferenceId("any-placement-reference-id")
+                                .build())
+                        .vungle(ExtImpLiftoff.builder()
+                                .bidToken("Came-from-request")
+                                .appStoreId("any-app-store-id")
+                                .placementReferenceId("any-placement-reference-id")
+                                .build())
+                        .build(), ObjectNode.class));
     }
 
     @Test
