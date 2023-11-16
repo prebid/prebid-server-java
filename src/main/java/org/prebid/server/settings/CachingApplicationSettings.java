@@ -49,16 +49,16 @@ public class CachingApplicationSettings implements ApplicationSettings {
                                       Metrics metrics,
                                       int ttl,
                                       int size,
-                                      int refreshPeriod) {
+                                      int jitter) {
 
         if (ttl <= 0 || size <= 0) {
             throw new IllegalArgumentException("ttl and size must be positive");
         }
         this.delegate = Objects.requireNonNull(delegate);
-        this.accountCache = SettingsCache.createCache(ttl, size, refreshPeriod);
-        this.accountToErrorCache = SettingsCache.createCache(ttl, size, refreshPeriod);
-        this.adServerPublisherToErrorCache = SettingsCache.createCache(ttl, size, refreshPeriod);
-        this.categoryConfigCache = SettingsCache.createCache(ttl, size, refreshPeriod);
+        this.accountCache = SettingsCache.createCache(ttl, size, jitter);
+        this.accountToErrorCache = SettingsCache.createCache(ttl, size, jitter);
+        this.adServerPublisherToErrorCache = SettingsCache.createCache(ttl, size, jitter);
+        this.categoryConfigCache = SettingsCache.createCache(ttl, size, jitter);
         this.cache = Objects.requireNonNull(cache);
         this.ampCache = Objects.requireNonNull(ampCache);
         this.videoCache = Objects.requireNonNull(videoCache);

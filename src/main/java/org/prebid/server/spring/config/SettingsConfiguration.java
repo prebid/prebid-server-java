@@ -281,7 +281,7 @@ public class SettingsConfiguration {
                     metrics,
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
-                    cacheProperties.getRefreshPeriod());
+                    cacheProperties.getJitter());
         }
     }
 
@@ -304,24 +304,21 @@ public class SettingsConfiguration {
         @Qualifier("settingsCache")
         SettingsCache settingsCache(ApplicationSettingsCacheProperties cacheProperties) {
             return new SettingsCache(
-                    cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize(), cacheProperties.getRefreshPeriod()
-            );
+                    cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize(), cacheProperties.getJitter());
         }
 
         @Bean
         @Qualifier("ampSettingsCache")
         SettingsCache ampSettingsCache(ApplicationSettingsCacheProperties cacheProperties) {
             return new SettingsCache(
-                    cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize(), cacheProperties.getRefreshPeriod()
-            );
+                    cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize(), cacheProperties.getJitter());
         }
 
         @Bean
         @Qualifier("videoSettingCache")
         SettingsCache videoSettingCache(ApplicationSettingsCacheProperties cacheProperties) {
             return new SettingsCache(
-                    cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize(), cacheProperties.getRefreshPeriod()
-            );
+                    cacheProperties.getTtlSeconds(), cacheProperties.getCacheSize(), cacheProperties.getJitter());
         }
     }
 
@@ -339,7 +336,6 @@ public class SettingsConfiguration {
         @NotNull
         @Min(1)
         private Integer cacheSize;
-        @Min(0)
-        private int refreshPeriod;
+        private int jitter;
     }
 }

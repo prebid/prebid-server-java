@@ -1,16 +1,17 @@
 package org.prebid.server.settings;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.settings.model.StoredItem;
 
-import javax.validation.ValidationException;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -21,25 +22,25 @@ public class SettingsCache implements CacheNotificationListener {
     private final Map<String, Set<StoredItem>> requestCache;
     private final Map<String, Set<StoredItem>> impCache;
 
-    public SettingsCache(int ttl, int size, int refreshPeriod) {
+    public SettingsCache(int ttl, int size, int jitter) {
         if (ttl <= 0 || size <= 0) {
             throw new IllegalArgumentException("ttl and size must be positive");
         }
-        requestCache = createCache(ttl, size, refreshPeriod);
-        impCache = createCache(ttl, size, refreshPeriod);
+        requestCache = createCache(ttl, size, jitter);
+        impCache = createCache(ttl, size, jitter);
     }
 
-    public static <T> Map<String, T> createCache(int ttl, int size, int refreshPeriod) {
-        final Caffeine<Object, Object> caffeine = Caffeine.newBuilder().maximumSize(size);
-        if (refreshPeriod > 0 && refreshPeriod > ttl) {
-            throw new ValidationException("SettingsCache parameter \"refreshPeriod\" should be less than \"ttl\"");
-        }
-        if (refreshPeriod > 0) {
-            caffeine.refreshAfterWrite(ttl, TimeUnit.SECONDS).expireAfterWrite(ttl * 5L, TimeUnit.SECONDS);
-        } else {
-            caffeine.expireAfterWrite(ttl, TimeUnit.SECONDS);
-        }
-        return caffeine.<String, T>build().asMap();
+    public static <T> Map<String, T> createCache(int ttl, int size, int jitter) {
+        final Cache<String, T> cache = Caffeine.newBuilder()
+                .expireAfterWrite(ttl, TimeUnit.SECONDS)
+                .maximumSize(size)
+                .build();
+        cache.policy()
+                .expireAfterWrite()
+                .ifPresent(expiration -> expiration.setExpiresAfter(
+                        jitter != 0 ? ttl + ThreadLocalRandom.current().nextLong(jitter * -1, jitter) : ttl,
+                        TimeUnit.SECONDS));
+        return cache.asMap();
     }
 
     Map<String, Set<StoredItem>> getRequestCache() {
