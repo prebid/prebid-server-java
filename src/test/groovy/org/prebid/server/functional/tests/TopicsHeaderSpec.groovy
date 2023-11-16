@@ -66,7 +66,7 @@ class TopicsHeaderSpec extends BaseSpec {
 
         and: "Response should contain Observe-Browsing-Topics header"
         assert response.responseBody.contains("\"warnings\":{\"prebid\":[{\"code\":999,\"message\":\"Invalid field " +
-                "in Sec-Browsing-Topics header: (${invalidSecBrowsingTopic.segments.toListString().replace("[", "").replace("]", "").replace(",", " ")});v=chrome.1:${invalidSecBrowsingTopic.taxonomyVersion}:${invalidSecBrowsingTopic.modelVersion}\"}]},\"")
+                "in Sec-Browsing-Topics header: (${invalidSecBrowsingTopic.segments.join(' ')});v=chrome.1:${invalidSecBrowsingTopic.taxonomyVersion}:${invalidSecBrowsingTopic.modelVersion}\"}]},\"")
 
         where:
         invalidSecBrowsingTopic << [SecBrowsingTopic.defaultSetBrowsingTopic(PBSUtils.getRandomNumber(11)),
@@ -112,7 +112,7 @@ class TopicsHeaderSpec extends BaseSpec {
 
         and: "Create Sec-Browsing-Topics 12 headers"
         def stringBuilder = new StringBuilder()
-        for (taxonomyVersion in 1..<11) {
+        (1..11).each { taxonomyVersion ->
             stringBuilder.append(SecBrowsingTopic.defaultSetBrowsingTopic(taxonomyVersion).getValidAsHeader())
         }
 
@@ -137,10 +137,7 @@ class TopicsHeaderSpec extends BaseSpec {
         }
 
         and: "Create Sec-Browsing-Topics 12 headers"
-        def stringBuilder = new StringBuilder()
-        for (taxonomyVersion in 0..<10) {
-            stringBuilder.append("();p=P000000000,")
-        }
+        def stringBuilder = new StringBuilder("();p=P000000000," * 11)
 
         and: "Prepare valid Sec-Browsing-Topic value header"
         def header = SecBrowsingTopic.defaultSetBrowsingTopic().getValidAsHeader()

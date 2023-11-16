@@ -24,12 +24,12 @@ class SecBrowsingTopic {
     }
 
     String getValidAsHeader(Boolean withEnd = false) {
-        String header = "(${segments.toListString().replace("[", "").replace("]", "").replace(",", " ")});v=chrome.1:$taxonomyVersion:$modelVersion, "
+        String header = "(${segments.join(' ')});v=chrome.1:$taxonomyVersion:$modelVersion, "
         return withEnd ? "$header, ();p=P000000000, " : header
     }
 
     String getInvalidAsHeader(Boolean withEnd = false) {
-        def header = "(${segments.toListString().replace("[", "").replace("]", "").replace(",", " ")});v=Something.1:$taxonomyVersion:$modelVersion"
+        def header = "(${segments.join(' ')});v=Something.1:$taxonomyVersion:$modelVersion"
         return withEnd ? "$header, ();p=P000000000, " : header
     }
 }
