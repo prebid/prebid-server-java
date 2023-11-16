@@ -13,6 +13,7 @@
           "adm": "adm001",
           "h": 250,
           "w": 300,
+          "mtype": 1,
           "ext" : {
             "mediatype" : "banner"
           }

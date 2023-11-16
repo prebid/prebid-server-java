@@ -225,8 +225,8 @@ public class YieldmoBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(toObjectNode("banner")))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder ->
+                        bidBuilder.impid("123").ext(toObjectNode("banner")).mtype(1))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -234,8 +234,12 @@ public class YieldmoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").ext(toObjectNode("banner")).build(),
-                        banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder()
+                        .impid("123")
+                        .ext(toObjectNode("banner"))
+                        .mtype(1)
+                        .build(),
+                    banner, "USD"));
     }
 
     @Test
@@ -246,7 +250,10 @@ public class YieldmoBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(toObjectNode("video")))));
+                        givenBidResponse(bidBuilder -> bidBuilder
+                                .impid("123")
+                                .ext(toObjectNode("video"))
+                                .mtype(2))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -254,7 +261,11 @@ public class YieldmoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").ext(toObjectNode("video")).build(),
+                .containsExactly(BidderBid.of(Bid.builder()
+                                .impid("123")
+                                .ext(toObjectNode("video"))
+                                .mtype(2)
+                                .build(),
                         video, "USD"));
     }
 

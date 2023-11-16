@@ -13,6 +13,7 @@
           "crid": "crid",
           "w": 300,
           "h": 250,
+          "mtype": 1,
           "ext": {
             "prebid": {
               "type": "banner"
