@@ -50,7 +50,7 @@ public class ActivityInfrastructureDebugTest extends VertxTest {
     }
 
     @Test
-    public void emitActivityInvocationShouldAddEntryToTheTraceIfTraceLevelIsBasic() {
+    public void emitActivityInvocationShouldAddEntryToTheTraceWithPayloadIfTraceLevelIsBasic() {
         // given
         final ActivityInfrastructureDebug debug = debug(TraceLevel.basic);
 
@@ -61,7 +61,7 @@ public class ActivityInfrastructureDebugTest extends VertxTest {
         assertThat(debug.trace()).containsExactly(ExtTraceActivityInvocation.of(
                 "Invocation of Activity Infrastructure.",
                 Activity.CALL_BIDDER,
-                null));
+                payload));
         verifyNoInteractions(metrics);
     }
 
