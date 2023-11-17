@@ -186,7 +186,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         // go in the AMP response
         final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
         if (targeting != null && targeting.keySet().stream()
-                .anyMatch(key -> key != null && key.startsWith("hb_cache_id"))) {
+                .anyMatch(key -> key != null && key.contains("_cache_id"))) {
 
             return enrichWithCustomTargeting(targeting, bidExt, bidder);
         }
