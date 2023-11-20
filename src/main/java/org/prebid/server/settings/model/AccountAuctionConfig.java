@@ -37,6 +37,8 @@ public class AccountAuctionConfig {
     @JsonProperty("price-floors")
     AccountPriceFloorsConfig priceFloors;
 
+    AccountTargetingConfig targeting;
+
     @JsonProperty("preferredmediatype")
     Map<String, MediaType> preferredMediaTypes;
 }

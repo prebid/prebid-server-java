@@ -74,6 +74,7 @@ public class PrivacyServiceConfiguration {
                 fileSystem,
                 httpClient,
                 metrics,
+                "v2",
                 mapper);
     }
 
@@ -102,6 +103,7 @@ public class PrivacyServiceConfiguration {
                 fileSystem,
                 httpClient,
                 metrics,
+                "v3",
                 mapper);
     }
 

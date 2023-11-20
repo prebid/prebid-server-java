@@ -2,7 +2,7 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id",
+      "id": "test-imp-id",
       "secure": 1,
       "video": {
         "mimes": [
@@ -14,6 +14,7 @@
       "tagid": "slot9",
       "bidfloor" : 0.12,
       "ext": {
+        "ae": 1,
         "pmZoneId": "Zone1,Zone2",
         "preference": "sports,movies",
         "dfp_ad_unit_code": "thirdPbAdSlot"

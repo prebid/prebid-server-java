@@ -2,11 +2,11 @@
 package org.prebid.server.activity.infrastructure;
 
 import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.ComponentType;
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
-import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
+import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDebug;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -14,22 +14,16 @@ public class ActivityInfrastructure {
 
     public static final boolean ALLOW_ACTIVITY_BY_DEFAULT = true;
 
-    private final String accountId;
     private final Map<Activity, ActivityController> activitiesControllers;
-    private final TraceLevel traceLevel;
-    private final Metrics metrics;
+    private final ActivityInfrastructureDebug debug;
 
-    public ActivityInfrastructure(String accountId,
-                                  Map<Activity, ActivityController> activitiesControllers,
-                                  TraceLevel traceLevel,
-                                  Metrics metrics) {
+    public ActivityInfrastructure(Map<Activity, ActivityController> activitiesControllers,
+                                  ActivityInfrastructureDebug debug) {
 
         validate(activitiesControllers);
 
-        this.accountId = accountId;
         this.activitiesControllers = activitiesControllers;
-        this.traceLevel = Objects.requireNonNull(traceLevel);
-        this.metrics = Objects.requireNonNull(metrics);
+        this.debug = Objects.requireNonNull(debug);
     }
 
     private static void validate(Map<Activity, ActivityController> activitiesControllers) {
@@ -38,29 +32,15 @@ public class ActivityInfrastructure {
         }
     }
 
-    public boolean isAllowed(Activity activity, ActivityCallPayload activityCallPayload) {
-        final ActivityCallResult result = activitiesControllers.get(activity).isAllowed(activityCallPayload);
-        updateMetrics(activity, activityCallPayload, result);
-        return result.isAllowed();
+    public boolean isAllowed(Activity activity, ActivityInvocationPayload activityInvocationPayload) {
+        debug.emitActivityInvocation(activity, activityInvocationPayload);
+        final boolean result = activitiesControllers.get(activity).isAllowed(activityInvocationPayload);
+        debug.emitActivityInvocationResult(activity, activityInvocationPayload, result);
+
+        return result;
     }
 
-    private void updateMetrics(Activity activity, ActivityCallPayload activityCallPayload, ActivityCallResult result) {
-        final int processedRulesCount = result.getProcessedRulesCount();
-        if (processedRulesCount > 0) {
-            metrics.updateRequestsActivityProcessedRulesCount(processedRulesCount);
-            if (traceLevel == TraceLevel.verbose) {
-                metrics.updateAccountActivityProcessedRulesCount(accountId, processedRulesCount);
-            }
-        }
-
-        if (!result.isAllowed()) {
-            metrics.updateRequestsActivityDisallowedCount(activity);
-            if (traceLevel == TraceLevel.verbose) {
-                metrics.updateAccountActivityDisallowedCount(accountId, activity);
-            }
-            if (activityCallPayload.componentType() == ComponentType.BIDDER) {
-                metrics.updateAdapterActivityDisallowedCount(activityCallPayload.componentName(), activity);
-            }
-        }
+    public List<ExtTraceActivityInfrastructure> debugTrace() {
+        return debug.trace();
     }
 }

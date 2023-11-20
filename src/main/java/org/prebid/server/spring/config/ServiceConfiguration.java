@@ -923,9 +923,10 @@ public class ServiceConfiguration {
     @Bean
     RequestValidator requestValidator(BidderCatalog bidderCatalog,
                                       BidderParamValidator bidderParamValidator,
-                                      JacksonMapper mapper) {
+                                      JacksonMapper mapper,
+                                      @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
-        return new RequestValidator(bidderCatalog, bidderParamValidator, mapper);
+        return new RequestValidator(bidderCatalog, bidderParamValidator, mapper, logSamplingRate);
     }
 
     @Bean
