@@ -193,12 +193,12 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
                         givenImp(VIDEO),
                         givenImp(VIDEO));
         assertThat(result.getErrors()).containsExactly(
-                BidderError.badInput("Imp null does not have a media type after filtering" +
-                        " and has been removed from the request for this bidder."),
-                BidderError.badInput("Imp null does not have a media type after filtering" +
-                        " and has been removed from the request for this bidder."),
-                BidderError.badInput("Imp null does not have a media type after filtering" +
-                        " and has been removed from the request for this bidder."));
+                BidderError.badInput("Imp null does not have a media type after filtering"
+                        + " and has been removed from the request for this bidder."),
+                BidderError.badInput("Imp null does not have a media type after filtering"
+                        + " and has been removed from the request for this bidder."),
+                BidderError.badInput("Imp null does not have a media type after filtering"
+                        + " and has been removed from the request for this bidder."));
     }
 
     @Test
@@ -214,8 +214,8 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
         // then
         assertThat(result.isRejected()).isTrue();
         assertThat(result.getErrors()).containsExactly(
-                BidderError.badInput("Imp null does not have a media type after filtering" +
-                        " and has been removed from the request for this bidder."),
+                BidderError.badInput("Imp null does not have a media type after filtering"
+                        + " and has been removed from the request for this bidder."),
                 BidderError.badInput("Bid request contains 0 impressions after filtering."));
     }
 
