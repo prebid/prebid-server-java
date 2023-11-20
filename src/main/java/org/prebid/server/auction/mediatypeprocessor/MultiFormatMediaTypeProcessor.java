@@ -30,10 +30,12 @@ public class MultiFormatMediaTypeProcessor implements MediaTypeProcessor {
 
     @Override
     public MediaTypeProcessingResult process(BidRequest bidRequest, String bidderName, Account account) {
-        final MediaType preferredMediaType;
-        if (isMultiFormatSupported(bidderName)
-                || (preferredMediaType = preferredMediaType(bidRequest, account, bidderName)) == null) {
+        if (isMultiFormatSupported(bidderName)) {
+            return MediaTypeProcessingResult.succeeded(bidRequest, Collections.emptyList());
+        }
 
+        final MediaType preferredMediaType = preferredMediaType(bidRequest, account, bidderName);
+        if (preferredMediaType == null) {
             return MediaTypeProcessingResult.succeeded(bidRequest, Collections.emptyList());
         }
 
