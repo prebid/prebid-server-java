@@ -404,13 +404,6 @@ public class RequestValidator {
             validateExtPriceGranularity(pricegranularity, null);
         }
         validateMediaTypePriceGranularity(extRequestTargeting.getMediatypepricegranularity());
-
-        final Boolean includeWinners = extRequestTargeting.getIncludewinners();
-        final Boolean includeBidderKeys = extRequestTargeting.getIncludebidderkeys();
-        if (Objects.equals(includeWinners, false) && Objects.equals(includeBidderKeys, false)) {
-            throw new ValidationException("ext.prebid.targeting: At least one of includewinners or includebidderkeys"
-                    + " must be enabled to enable targeting support");
-        }
     }
 
     /**
