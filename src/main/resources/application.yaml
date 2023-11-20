@@ -114,6 +114,8 @@ profile: profile
 adapter-defaults:
   enabled: false
   ortb-version: "2.5"
+  ortb:
+    multiformat-supported: false
   pbs-enforces-ccpa: true
   modifying-vast-xml-allowed: true
   debug:

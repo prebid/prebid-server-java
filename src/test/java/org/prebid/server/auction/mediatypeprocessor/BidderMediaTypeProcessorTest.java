@@ -21,6 +21,7 @@ import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.spring.config.bidder.model.MediaType;
+import org.prebid.server.spring.config.bidder.model.Ortb;
 
 import java.util.List;
 import java.util.Set;
@@ -169,7 +170,8 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 0,
                 false,
                 false,
-                CompressionType.NONE);
+                CompressionType.NONE,
+                Ortb.of(false));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,

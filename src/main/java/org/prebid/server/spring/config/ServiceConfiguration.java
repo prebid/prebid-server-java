@@ -45,6 +45,7 @@ import org.prebid.server.auction.gpp.processor.uspv1.UspV1ContextProcessor;
 import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.CompositeMediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.MultiFormatMediaTypeProcessor;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
@@ -684,6 +685,11 @@ public class ServiceConfiguration {
     @ConditionalOnProperty(prefix = "auction.filter-imp-media-type", name = "enabled", havingValue = "true")
     MediaTypeProcessor bidderMediaTypeProcessor(BidderCatalog bidderCatalog) {
         return new BidderMediaTypeProcessor(bidderCatalog);
+    }
+
+    @Bean
+    MediaTypeProcessor multiFormatMediaTypeProcessor(BidderCatalog bidderCatalog) {
+        return new MultiFormatMediaTypeProcessor(bidderCatalog);
     }
 
     @Bean
