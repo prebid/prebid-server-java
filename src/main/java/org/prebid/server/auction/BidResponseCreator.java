@@ -1423,7 +1423,8 @@ public class BidResponseCreator {
                 && targetingInfo.isTargetingEnabled()
                 && targetingInfo.isBidderWinningBid()
                 && (Objects.equals(targeting.getIncludebidderkeys(), true)
-                || Objects.equals(targeting.getIncludewinners(), true));
+                || Objects.equals(targeting.getIncludewinners(), true)
+                || Objects.equals(targeting.getIncludeformat(), true));
     }
 
     private JsonNode extractPassThrough(Imp imp) {
