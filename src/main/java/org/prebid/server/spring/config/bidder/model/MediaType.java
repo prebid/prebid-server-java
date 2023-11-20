@@ -16,7 +16,7 @@ public enum MediaType {
 
     public static MediaType of(String mediaType) {
         try {
-            return valueOf(mediaType);
+            return valueOf(mediaType.toUpperCase());
         } catch (IllegalArgumentException e) {
             return null;
         }

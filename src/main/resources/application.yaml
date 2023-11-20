@@ -115,7 +115,7 @@ adapter-defaults:
   enabled: false
   ortb-version: "2.5"
   ortb:
-    multiformat-supported: false
+    multiformat-supported: true
   pbs-enforces-ccpa: true
   modifying-vast-xml-allowed: true
   debug:
