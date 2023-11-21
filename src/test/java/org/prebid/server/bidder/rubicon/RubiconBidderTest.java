@@ -2721,7 +2721,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.readTree("{\"search\":[\"site search\", \"imp ext search\"]}"));
+                .containsOnly(mapper.readTree("{\"search\":[\"imp ext search\"]}"));
     }
 
     @Test
@@ -2762,19 +2762,14 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(RubiconImpExtRp::getTarget)
                 .containsOnly(mapper.createObjectNode()
                         .<ObjectNode>set("sectioncat", mapper.createArrayNode()
-                                .add("site sectioncat")
                                 .add("imp ext sectioncat"))
                         .<ObjectNode>set("pagecat", mapper.createArrayNode()
-                                .add("site pagecat")
                                 .add("imp ext pagecat"))
                         .<ObjectNode>set("page", mapper.createArrayNode()
-                                .add("site page")
                                 .add("imp ext page"))
                         .<ObjectNode>set("ref", mapper.createArrayNode()
-                                .add("site ref")
                                 .add("imp ext ref"))
                         .set("search", mapper.createArrayNode()
-                                .add("site search")
                                 .add("imp ext search")));
     }
 
@@ -2889,10 +2884,8 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(RubiconImpExtRp::getTarget)
                 .containsOnly(mapper.createObjectNode()
                         .<ObjectNode>set("sectioncat", mapper.createArrayNode()
-                                .add("app sectioncat")
                                 .add("imp ext sectioncat"))
                         .<ObjectNode>set("pagecat", mapper.createArrayNode()
-                                .add("app pagecat")
                                 .add("imp ext pagecat")));
     }
 

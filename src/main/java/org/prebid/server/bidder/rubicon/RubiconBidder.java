@@ -143,10 +143,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final String FPD_GPID_FIELD = "gpid";
     private static final String FPD_SKADN_FIELD = "skadn";
-    private static final String FPD_SECTIONCAT_FIELD = "sectioncat";
-    private static final String FPD_PAGECAT_FIELD = "pagecat";
-    private static final String FPD_PAGE_FIELD = "page";
-    private static final String FPD_REF_FIELD = "ref";
     private static final String FPD_SEARCH_FIELD = "search";
     private static final String FPD_CONTEXT_FIELD = "context";
     private static final String FPD_DATA_FIELD = "data";
@@ -742,17 +738,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (siteExt != null) {
             populateFirstPartyDataAttributes(siteExt.getData(), result);
         }
-
-        // merge OPENRTB.site.sectioncat to every impression XAPI.imp[].ext.rp.target.sectioncat
-        mergeCollectionAttributeIntoArray(result, site, Site::getSectioncat, FPD_SECTIONCAT_FIELD);
-        // merge OPENRTB.site.pagecat to every impression XAPI.imp[].ext.rp.target.pagecat
-        mergeCollectionAttributeIntoArray(result, site, Site::getPagecat, FPD_PAGECAT_FIELD);
-        // merge OPENRTB.site.page to every impression XAPI.imp[].ext.rp.target.page
-        mergeStringAttributeIntoArray(result, site, Site::getPage, FPD_PAGE_FIELD);
-        // merge OPENRTB.site.ref to every impression XAPI.imp[].ext.rp.target.ref
-        mergeStringAttributeIntoArray(result, site, Site::getRef, FPD_REF_FIELD);
-        // merge OPENRTB.site.search to every impression XAPI.imp[].ext.rp.target.search
-        mergeStringAttributeIntoArray(result, site, Site::getSearch, FPD_SEARCH_FIELD);
     }
 
     private void mergeFirstPartyDataFromApp(App app, ObjectNode result) {
@@ -761,11 +746,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (appExt != null) {
             populateFirstPartyDataAttributes(appExt.getData(), result);
         }
-
-        // merge OPENRTB.app.sectioncat to every impression XAPI.imp[].ext.rp.target.sectioncat
-        mergeCollectionAttributeIntoArray(result, app, App::getSectioncat, FPD_SECTIONCAT_FIELD);
-        // merge OPENRTB.app.pagecat to every impression XAPI.imp[].ext.rp.target.pagecat
-        mergeCollectionAttributeIntoArray(result, app, App::getPagecat, FPD_PAGECAT_FIELD);
     }
 
     private void mergeFirstPartyDataFromImp(Imp imp,
