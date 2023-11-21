@@ -20,6 +20,12 @@ There are two ways to configure application settings: database and file. This do
       the bid and log an operational warning.
 - `auction.events.enabled` - enables events for account if true
 - `auction.debug-allow` - enables debug output in the auction response. Default `true`.
+- `auction.targeting.includewinners` - whether to include targeting for the winning bids in response. Default `false`.
+- `auction.targeting.includebidderkeys` - whether to include targeting for the best bid from each bidder in response. Default `false`.
+- `auction.targeting.includeformat` - whether to include the “hb_format” targeting key. Default `false`.
+- `auction.targeting.preferdeals` - if targeting is returned and this is `true`, PBS will choose the highest value deal before choosing the highest value non-deal. Default `false`.
+- `auction.targeting.alwaysincludedeals` - PBS-Java only. If true, generate `hb_ATTR_BIDDER` values for all bids that have a `dealid`. Default to `false`.
+- `auction.targeting.prefix` - defines prefix for targeting keywords. Default `hb_`. May be overridden by corresponded property from bid request.
 - `privacy.ccpa.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
 - `privacy.ccpa.channel-enabled.web` - overrides `ccpa.enforce` property behaviour for web requests type.
 - `privacy.ccpa.channel-enabled.amp` - overrides `ccpa.enforce` property behaviour for amp requests type.
