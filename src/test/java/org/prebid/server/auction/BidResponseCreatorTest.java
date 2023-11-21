@@ -3442,6 +3442,41 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     @Test
+    public void shouldNotPopulateBidExtTargetingWhenExtRequestTargetingSettingsIsFalse() {
+        // given
+        final ExtRequestTargeting extRequestTargeting = ExtRequestTargeting.builder()
+                .pricegranularity(mapper.valueToTree(
+                        ExtPriceGranularity.of(2, singletonList(
+                                ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.5))))))
+                .includebidderkeys(false)
+                .includewinners(false)
+                .includeformat(false)
+                .build();
+
+        final Bid bidder1Bid1 = Bid.builder().id("bidder1Bid1").price(BigDecimal.valueOf(3.67)).impid("i1").build();
+        final List<BidderResponse> bidderResponses = singletonList(
+                BidderResponse.of("bidder1", givenSeatBid(BidderBid.of(bidder1Bid1, banner, null)), 100));
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(
+                        identity(),
+                        extBuilder -> extBuilder.targeting(extRequestTargeting),
+                        givenImp("i1")),
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        final ObjectNode givenDefaultBidExt =
+                mapper.createObjectNode().set("prebid", mapper.createObjectNode().put("type", "banner"));
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid)
+                .extracting(Bid::getExt)
+                .containsExactly(givenDefaultBidExt);
+    }
+
+    @Test
     public void shouldCopyRequestExtPrebidPassThroughToResponseExtPrebidPassThroughWhenPresent() {
         // given
         final Bid bid = Bid.builder().id("bidder1Bid1").price(BigDecimal.valueOf(3.67)).impid("i1").build();
