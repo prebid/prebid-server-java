@@ -35,7 +35,7 @@ public class ExtImpAppnexus {
 
     JsonNode privateSizes;
 
-    Boolean generateAdPodId;
+    boolean generateAdPodId;
 
     String extInvCode;
 
