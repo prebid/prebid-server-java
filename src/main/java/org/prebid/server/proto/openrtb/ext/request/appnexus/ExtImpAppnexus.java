@@ -1,50 +1,43 @@
 package org.prebid.server.proto.openrtb.ext.request.appnexus;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Value;
-import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Builder(toBuilder = true)
 @Value
 public class ExtImpAppnexus {
 
-    @JsonProperty("placementId")
-    Integer deprecatedPlacementId;
-
-    @JsonProperty("invCode")
-    String legacyInvCode;
-
-    @JsonProperty("trafficSourceCode")
-    String legacyTrafficSourceCode;
-
-    @JsonProperty("use_payment_rule")
-    Boolean deprecatedUsePaymentRule;
-
-    @JsonProperty("placement_id")
+    @JsonAlias("placementId")
     Integer placementId;
 
-    @JsonProperty("inv_code")
+    @JsonAlias("invCode")
     String invCode;
 
     String member;
 
-    List<AppnexusKeyVal> keywords;
+    JsonNode keywords;
 
-    @JsonProperty("traffic_source_code")
+    @JsonAlias("trafficSourceCode")
     String trafficSourceCode;
 
     BigDecimal reserve;
 
     String position;
 
-    Boolean usePmtRule;
+    @JsonProperty("use_pmt_rule")
+    @JsonAlias("use_payment_rule")
+    Boolean usePaymentRule;
+
+    JsonNode privateSizes;
 
     Boolean generateAdPodId;
 
-    ObjectNode privateSizes; // At this time we do no processing on the private sizes, so just leaving it as a JSON blob
+    String extInvCode;
+
+    String externalImpId;
 }
