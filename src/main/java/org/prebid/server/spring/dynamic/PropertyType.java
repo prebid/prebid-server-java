@@ -2,13 +2,13 @@ package org.prebid.server.spring.dynamic;
 
 import java.util.Arrays;
 
-public enum DynamicPropertyType {
+public enum PropertyType {
 
     STRING(String.class), DOUBLE(Double.class), INT(Integer.class), BOOL(Boolean.class);
 
     private final Class<?> propertyClass;
 
-    DynamicPropertyType(Class<?> clazz) {
+    PropertyType(Class<?> clazz) {
         this.propertyClass = clazz;
     }
 
@@ -16,7 +16,7 @@ public enum DynamicPropertyType {
         return propertyClass.isInstance(value);
     }
 
-    public static DynamicPropertyType from(Class<?> clazz) {
+    public static PropertyType from(Class<?> clazz) {
         return Arrays.stream(values())
                 .filter(value -> value.propertyClass == clazz)
                 .findAny()

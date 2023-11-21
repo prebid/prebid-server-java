@@ -1,12 +1,12 @@
 package org.prebid.server.spring.dynamic.properties;
 
-import org.prebid.server.spring.dynamic.CompositeDynamicPropertyUpdateListener;
-import org.prebid.server.spring.dynamic.DynamicPropertyUpdateListener;
+import org.prebid.server.spring.dynamic.CompositePropertyUpdateListener;
+import org.prebid.server.spring.dynamic.PropertyUpdateListener;
 
 public class DynamicProperty<T> implements Property<T>, UpdatableProperty<T> {
 
     private volatile T value;
-    private final CompositeDynamicPropertyUpdateListener<T> listener = new CompositeDynamicPropertyUpdateListener<>();
+    private final CompositePropertyUpdateListener<T> listener = new CompositePropertyUpdateListener<>();
 
     public DynamicProperty(T initial) {
         value = initial;
@@ -24,7 +24,7 @@ public class DynamicProperty<T> implements Property<T>, UpdatableProperty<T> {
     }
 
     @Override
-    public void addListener(DynamicPropertyUpdateListener<T> listener) {
+    public void addListener(PropertyUpdateListener<T> listener) {
         this.listener.addListener(listener);
     }
 }
