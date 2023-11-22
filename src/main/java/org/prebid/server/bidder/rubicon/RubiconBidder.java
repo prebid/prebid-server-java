@@ -1079,6 +1079,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final ExtUser userExt = ExtUser.builder()
                 .eids(resolvedUserEids)
+                .fcapIds(extUser != null ? extUser.getFcapIds() : null)
                 .build();
 
         final RubiconUserExt rubiconUserExt = RubiconUserExt.builder()
