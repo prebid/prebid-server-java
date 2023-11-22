@@ -1,5 +1,6 @@
 package org.prebid.server.spring.dynamic.properties;
 
+import org.prebid.server.spring.dynamic.PropertyType;
 import org.prebid.server.spring.dynamic.PropertyUpdateListener;
 
 import java.util.function.Function;
@@ -7,6 +8,8 @@ import java.util.function.Function;
 public interface Property<T> {
 
     T get();
+
+    PropertyType getType();
 
     void addListener(PropertyUpdateListener<T> listener);
 

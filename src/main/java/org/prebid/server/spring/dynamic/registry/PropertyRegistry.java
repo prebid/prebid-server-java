@@ -1,5 +1,6 @@
 package org.prebid.server.spring.dynamic.registry;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.prebid.server.spring.dynamic.properties.Property;
 
 public interface PropertyRegistry {
@@ -11,4 +12,6 @@ public interface PropertyRegistry {
     Property<Double> getDoubleProperty(String name, Double defaultValue);
 
     Property<Boolean> getBoolProperty(String name, Boolean defaultValue);
+
+    Property<ObjectNode> getJsonObjectProperty(String name, ObjectNode defaultValue);
 }
