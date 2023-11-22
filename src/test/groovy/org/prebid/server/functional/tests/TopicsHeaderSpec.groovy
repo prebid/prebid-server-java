@@ -16,7 +16,7 @@ class TopicsHeaderSpec extends BaseSpec {
     def "PBS should populate user.data when Sec-Browsing-Topics header present in request"() {
         given: "Pbs config"
         def topicDomain = PBSUtils.randomString
-        def pbsService = pbsServiceFactory.getService(["auction.topics-domain": topicDomain])
+        def pbsService = pbsServiceFactory.getService(["auction.privacysandbox.topicsdomain": topicDomain])
 
         and: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -160,7 +160,7 @@ class TopicsHeaderSpec extends BaseSpec {
     def "PBS should update user.data when Sec-Browsing-Topics header present in request"() {
         given: "Pbs config"
         def topicDomain = PBSUtils.randomString
-        def pbsService = pbsServiceFactory.getService(["auction.topics-domain": topicDomain])
+        def pbsService = pbsServiceFactory.getService(["auction.privacysandbox.topicsdomain": topicDomain])
 
         and: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -213,7 +213,6 @@ class TopicsHeaderSpec extends BaseSpec {
                         segtax = 600
                         segclass = modelVersion
                     }
-                    segment = [new Segment(id: segmentId), new Segment(id: requestSegment)]
                 }]
             }
         }
