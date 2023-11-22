@@ -78,7 +78,6 @@ import org.prebid.server.floors.model.PriceFloorResult;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
@@ -149,13 +148,13 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String PREBID_EXT = "prebid";
 
     private static final String PPUID_STYPE = "ppuid";
-    private static final String OTHER_STYPE = "other";
     private static final String SHA256EMAIL_STYPE = "sha256email";
     private static final String DMP_STYPE = "dmp";
     private static final String XAPI_CURRENCY = "USD";
 
     private static final Set<Integer> USER_SEGTAXES = Set.of(4);
     private static final Set<Integer> SITE_SEGTAXES = Set.of(1, 2, 5, 6);
+    private static final String SEGTAX_BLAH_ATTRIBUTE = "segtaxBLAH";
 
     private static final Set<String> STYPE_TO_REMOVE = new HashSet<>(Arrays.asList(PPUID_STYPE, SHA256EMAIL_STYPE,
             DMP_STYPE));
@@ -166,6 +165,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final boolean DEFAULT_MULTIFORMAT_VALUE = false;
+    private static final int SEGTAX_BLAH_MAX_SIZE = 100;
 
     private final String endpointUrl;
     private final Set<String> supportedVendors;
@@ -966,7 +966,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Integer skip = rubiconVideoParams != null ? rubiconVideoParams.getSkip() : null;
         final Integer skipDelay = rubiconVideoParams != null ? rubiconVideoParams.getSkipdelay() : null;
 
-
         final Integer rewarded = imp.getRwdd();
         final String videoType = rewarded != null && rewarded == 1 ? "rewarded" : null;
 
@@ -1220,6 +1219,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             mergeFirstPartyDataFromUser(user.getExt(), result);
 
             enrichWithIabAttribute(result, user.getData(), USER_SEGTAXES);
+            enrichWithSegtaxBlahAttribute(result, user.getData(), USER_SEGTAXES);
         }
 
         return !result.isEmpty() ? result : null;
@@ -1258,6 +1258,64 @@ public class RubiconBidder implements Bidder<BidRequest> {
             final ArrayNode iab = target.putArray("iab");
             iabValue.forEach(iab::add);
         }
+    }
+
+    private static void enrichWithSegtaxBlahAttribute(ObjectNode target, List<Data> data, Set<Integer> segtaxValues) {
+        final List<List<Segment>> validDataSegments = getValidDataSegments(
+                CollectionUtils.emptyIfNull(data).stream()
+                        .filter(Objects::nonNull)
+                        .filter(dataRecord -> !containsSegtaxValue(dataRecord.getExt(), segtaxValues))
+                        .map(Data::getSegment)
+                        .filter(CollectionUtils::isNotEmpty)
+                        .collect(Collectors.toCollection(ArrayList::new)));
+
+        if (CollectionUtils.isEmpty(validDataSegments)) {
+            return;
+        }
+
+        final List<String> values = resolveSegtaxBlahValues(validDataSegments);
+        final ArrayNode segtaxBlah = target.putArray(SEGTAX_BLAH_ATTRIBUTE);
+        values.forEach(segtaxBlah::add);
+
+    }
+
+    private static List<List<Segment>> getValidDataSegments(List<List<Segment>> dataSegments) {
+        return dataSegments.stream()
+                .map(RubiconBidder::getValidOnlySegments)
+                .filter(CollectionUtils::isNotEmpty)
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private static List<Segment> getValidOnlySegments(List<Segment> segments) {
+        return segments.stream()
+                .filter(segment -> StringUtils.isNotBlank(segment.getId()))
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private static List<String> resolveSegtaxBlahValues(final List<List<Segment>> segments) {
+        final List<String> values = new ArrayList<>();
+        for (int i = 0; i < SEGTAX_BLAH_MAX_SIZE; i++) {
+            final int segmentsIndex = i % segments.size();
+            final List<Segment> currentSegments = segments.get(segmentsIndex);
+            values.add(getAndRemoveLastSegment(currentSegments).getId());
+
+            if (CollectionUtils.isEmpty(currentSegments)) {
+                segments.remove(segmentsIndex);
+                if (CollectionUtils.isEmpty(segments)) {
+                    break;
+                }
+            }
+        }
+
+        return values;
+    }
+
+    private static Segment getAndRemoveLastSegment(List<Segment> list) {
+        final int lastElementIndex = list.size() - 1;
+        final Segment lastSegment = list.get(lastElementIndex);
+        list.remove(lastElementIndex);
+
+        return lastSegment;
     }
 
     private static boolean containsSegtaxValue(ObjectNode ext, Set<Integer> segtaxValues) {
@@ -1336,6 +1394,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (CollectionUtils.isNotEmpty(siteContentData)) {
             target = existingRubiconSiteExtRpTargetOrEmptyNode(extSite);
             enrichWithIabAttribute(target, siteContentData, SITE_SEGTAXES);
+            enrichWithSegtaxBlahAttribute(target, siteContentData, SITE_SEGTAXES);
         }
 
         return mapper.fillExtension(

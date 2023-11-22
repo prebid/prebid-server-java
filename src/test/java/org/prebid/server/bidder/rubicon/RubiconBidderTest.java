@@ -116,6 +116,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
+import java.util.stream.IntStream;
 
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.TEN;
@@ -989,6 +990,70 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldFillUserExtRpWithSegtaxBlahWithNoMoreThanHundredAttributes() {
+        // given
+        final List<Data> segments = IntStream.range(0, 150)
+                .mapToObj(index -> givenDataWithSegmentEntry(3, "SegmentId_" + index))
+                .toList();
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().data(segments).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedTarget = mapper.createObjectNode();
+        final ArrayNode expectedIabAttribute = expectedTarget.putArray("iab");
+        expectedIabAttribute.add("segmentId");
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .extracting(User::getExt)
+                .extracting(userExt -> userExt.getProperty("rp"))
+                .extracting(rp -> rp.get("target"))
+                .extracting(target -> target.get("segtaxBLAH"))
+                .extracting(JsonNode::size)
+                .containsExactly(100);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFillUserExtRpWithSegtaxBlahWithSegtaxesFromEachData() {
+        // given
+        final List<Data> dataWithSegments = asList(givenTestDataWithSegmentEntries(3),
+                givenDataWithSegmentEntry(3, "Included_SegmentId_1"),
+                givenDataWithSegmentEntry(3, "Included_SegmentId_2"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().data(dataWithSegments).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ObjectNode expectedTarget = mapper.createObjectNode();
+        final ArrayNode expectedIabAttribute = expectedTarget.putArray("iab");
+        expectedIabAttribute.add("segmentId");
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .extracting(User::getExt)
+                .extracting(userExt -> userExt.getProperty("rp"))
+                .extracting(rp -> rp.get("target"))
+                .extracting(target -> target.get("segtaxBLAH"))
+                .flatExtracting(blah -> mapper.convertValue(blah, List.class))
+                .contains("Included_SegmentId_1", "Included_SegmentId_2");
+    }
+
+    @Test
     public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeIfSegtaxEqualsFour() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -1042,7 +1107,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeOnlyIfSegtaxIsEqualFour() {
+    public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeAndSegtaxBlahIfSegtaxIsEqualFour() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder()
@@ -1060,6 +1125,8 @@ public class RubiconBidderTest extends VertxTest {
         final ObjectNode expectedTarget = mapper.createObjectNode();
         final ArrayNode expectedIabAttribute = expectedTarget.putArray("iab");
         expectedIabAttribute.add("segmentId");
+        final ArrayNode expectedSegtaxBLAHAttribute = expectedTarget.putArray("segtaxBLAH");
+        expectedSegtaxBLAHAttribute.add("secondSegmentId");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
@@ -1074,7 +1141,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFillSiteExtRpWithIabAttributeIfSegtaxEqualsOneOrTwoOrFiveOrSix() {
+    public void makeHttpRequestsShouldFillSiteExtRpWithSegtaxBlahAndIabAttributeIfSegtaxEqualsOneOrTwoOrFiveOrSix() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.site(Site.builder()
@@ -1100,6 +1167,8 @@ public class RubiconBidderTest extends VertxTest {
         expectedIabAttribute.add("secondSegmentId");
         expectedIabAttribute.add("fifthSegmentId");
         expectedIabAttribute.add("sixthSegmentId");
+        final ArrayNode expectedSegtaxBLAHAttribute = expectedTarget.putArray("segtaxBLAH");
+        expectedSegtaxBLAHAttribute.add("thirdSegmentId");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
@@ -1109,6 +1178,38 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(ext -> ext.getProperty("rp"))
                 .extracting(rp -> rp.get("target"))
                 .containsExactly(expectedTarget);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFillSiteExtRpWithSegtaxBlahWithNoMoreThanHundredEntries() {
+        // given
+        final List<Data> segments = IntStream.range(0, 150)
+                .mapToObj(index -> givenDataWithSegmentEntry(3, "SegmentId_" + index))
+                .toList();
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.site(Site.builder()
+                        .content(Content.builder()
+                                .data(segments)
+                                .build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getSite).doesNotContainNull()
+                .extracting(Site::getExt)
+                .extracting(ext -> ext.getProperty("rp"))
+                .extracting(rp -> rp.get("target"))
+                .extracting(rp -> rp.get("segtaxBLAH"))
+                .extracting(JsonNode::size)
+                .containsExactly(100);
     }
 
     @Test
@@ -1141,7 +1242,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldIgnoreNotIntSegtaxProperty() {
+    public void makeHttpRequestsShouldSetSegtaxBlahProperty() {
         // given
         final ObjectNode userNode = mapper.createObjectNode();
         userNode.put("segtax", "3");
@@ -1157,12 +1258,17 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
+        final ObjectNode expectedTarget = mapper.createObjectNode();
+        final ArrayNode expectedSegtaxBLAHAttribute = expectedTarget.putArray("segtaxBLAH");
+        expectedSegtaxBLAHAttribute.add("segmentId");
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getUser).doesNotContainNull()
                 .extracting(User::getExt)
-                .containsNull();
+                .extracting(ext -> ext.getProperty("rp"))
+                .extracting(rp -> rp.get("target"))
+                .containsExactly(expectedTarget);
     }
 
     @Test
@@ -3673,6 +3779,16 @@ public class RubiconBidderTest extends VertxTest {
     private static Data givenDataWithSegmentEntry(Integer segtax, String segmentId) {
         return Data.builder()
                 .segment(singletonList(Segment.builder().id(segmentId).build()))
+                .ext(mapper.createObjectNode().put("segtax", segtax))
+                .build();
+    }
+
+    private static Data givenTestDataWithSegmentEntries(Integer segtax) {
+        final List<Segment> segments = IntStream.range(0, 1000)
+                .mapToObj(index -> Segment.builder().id("segmentId_" + index).build())
+                .toList();
+        return Data.builder()
+                .segment(segments)
                 .ext(mapper.createObjectNode().put("segtax", segtax))
                 .build();
     }
