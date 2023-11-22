@@ -131,8 +131,6 @@ import java.util.stream.StreamSupport;
 public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final Logger logger = LoggerFactory.getLogger(RubiconBidder.class);
-    private static final ConditionalLogger MISSING_VIDEO_SIZE_LOGGER =
-            new ConditionalLogger("missing_video_size", logger);
 
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
@@ -141,8 +139,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final String FPD_GPID_FIELD = "gpid";
     private static final String FPD_SKADN_FIELD = "skadn";
-    private static final String FPD_SEARCH_FIELD = "search";
-    private static final String FPD_CONTEXT_FIELD = "context";
     private static final String FPD_DATA_FIELD = "data";
     private static final String FPD_DATA_PBADSLOT_FIELD = "pbadslot";
     private static final String FPD_ADSERVER_FIELD = "adserver";
