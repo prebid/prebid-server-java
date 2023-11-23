@@ -126,7 +126,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        final String url = makeUrl(memberValidator.getSameValue());
+        final String url = makeUrl(memberValidator.getValue());
 
         final String requestEndpointName = extractEndpointName(bidRequest);
         final boolean isAmp = StringUtils.equals(requestEndpointName, Endpoint.openrtb2_amp.value());
@@ -139,7 +139,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        final List<HttpRequest<BidRequest>> requests = isVideo && generateAdPodIdValidator.getSameValue()
+        final List<HttpRequest<BidRequest>> requests = isVideo && generateAdPodIdValidator.getValue()
                 ? makePodRequests(updatedBidRequest, updatedImps, url)
                 : splitHttpRequests(updatedBidRequest, updatedImps, url);
 
@@ -177,30 +177,12 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
 
         final String member = extImpAppnexus.getMember();
-        if (StringUtils.isNotBlank(member)) {
-            validateMember(memberValidator, member);
+        if (StringUtils.isNotBlank(member) && memberValidator.isInvalid(member)) {
+            throw new ValidationException("all request.imp[i].ext.prebid.bidder.appnexus.member params must match."
+                    + " Request contained member IDs %s and %s".formatted(memberValidator.getValue(), member));
         }
 
-        validateGenerateAdPodId(generateAdPodIdValidator, extImpAppnexus.isGenerateAdPodId());
-    }
-
-    private static void validateMember(SameValueValidator<String> memberValidator, String value) {
-        if (memberValidator.isNotInitialised()) {
-            memberValidator.setSameValue(value);
-        }
-
-        if (memberValidator.isInvalid(value)) {
-            throw new ValidationException("all request.imp[i].ext.prebid.bidder.appnexus.member params must match. " +
-                    "Request contained member IDs %s and %s".formatted(memberValidator.getSameValue(), value));
-        }
-    }
-
-    private static void validateGenerateAdPodId(SameValueValidator<Boolean> generateAdPodIdValidator, boolean value) {
-        if (generateAdPodIdValidator.isNotInitialised()) {
-            generateAdPodIdValidator.setSameValue(value);
-        }
-
-        if (generateAdPodIdValidator.isInvalid(value)) {
+        if (generateAdPodIdValidator.isInvalid(extImpAppnexus.isGenerateAdPodId())) {
             throw new ValidationException("generate ad pod option should be same for all pods in request");
         }
     }

@@ -1,23 +1,32 @@
 package org.prebid.server.bidder.appnexus;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
 import java.util.Objects;
 
-@Getter
-@NoArgsConstructor(staticName = "create")
 public class SameValueValidator<T> {
 
-    @Setter
     private T sameValue;
 
-    public boolean isNotInitialised() {
-        return sameValue == null;
+    private SameValueValidator() {
+    }
+
+    public static <T> SameValueValidator<T> create() {
+        return new SameValueValidator<>();
+    }
+
+    public boolean isInitialised() {
+        return sameValue != null;
     }
 
     public boolean isInvalid(T value) {
+        if (!isInitialised()) {
+            sameValue = value;
+            return false;
+        }
+
         return !Objects.equals(sameValue, value);
+    }
+
+    public T getValue() {
+        return sameValue;
     }
 }
