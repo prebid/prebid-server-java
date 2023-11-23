@@ -52,11 +52,11 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -104,23 +104,21 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
-
-        cookieNameToSyncType = collectMap(bidderCatalog);
+        this.cookieNameToSyncType = collectMap(bidderCatalog);
     }
 
     private static Map<String, UsersyncMethodType> collectMap(BidderCatalog bidderCatalog) {
 
-        final List<Usersyncer> usersyncers = bidderCatalog.names().stream()
+        final Stream<Usersyncer> usersyncers = bidderCatalog.names().stream()
                 .filter(bidderCatalog::isActive)
                 .map(bidderCatalog::usersyncerByName)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .distinct()
-                .toList();
+                .distinct();
 
         validateUsersyncers(usersyncers);
 
-        return usersyncers.stream()
+        return usersyncers
                 .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, SetuidHandler::preferredUserSyncType));
     }
 
@@ -132,16 +130,20 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .get(); // when usersyncer is present, it will contain at least one method
     }
 
-    private static void validateUsersyncers(List<Usersyncer> usersyncers) {
-        final List<String> cookieFamilyNames = usersyncers.stream()
-                .map(Usersyncer::getCookieFamilyName)
-                .toList();
-        cookieFamilyNames.stream()
-                .filter(name -> Collections.frequency(cookieFamilyNames, name) > 1)
-                .findAny()
-                .ifPresent(name -> {
-                    throw new IllegalArgumentException("Duplicated \"cookie-family-name\" found, value: " + name);
-                });
+    private static void validateUsersyncers(Stream<Usersyncer> usersyncers) {
+
+        final Stream<String> cookieFamilyNameDuplicates = usersyncers.map(Usersyncer::getCookieFamilyName)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+                .entrySet()
+                .stream()
+                .filter(name -> name.getValue() > 1)
+                .map(Map.Entry::getKey)
+                .distinct();
+        if (cookieFamilyNameDuplicates.findAny().isPresent()) {
+            throw new IllegalArgumentException(
+                    "Duplicated \"cookie-family-name\" found, values: "
+                            + String.join(", ", cookieFamilyNameDuplicates.toList()));
+        }
     }
 
     @Override
