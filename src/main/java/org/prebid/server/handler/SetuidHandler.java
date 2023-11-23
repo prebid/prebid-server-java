@@ -52,6 +52,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -104,12 +105,22 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
 
-        cookieNameToSyncType = bidderCatalog.names().stream()
+        cookieNameToSyncType = collectMap(bidderCatalog);
+    }
+
+    private static Map<String, UsersyncMethodType> collectMap(BidderCatalog bidderCatalog) {
+
+        final List<Usersyncer> usersyncers = bidderCatalog.names().stream()
                 .filter(bidderCatalog::isActive)
                 .map(bidderCatalog::usersyncerByName)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .distinct() // built-in aliases looks like bidders with the same usersyncers
+                .distinct()
+                .toList();
+
+        validateUsersyncers(usersyncers);
+
+        return usersyncers.stream()
                 .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, SetuidHandler::preferredUserSyncType));
     }
 
@@ -119,6 +130,18 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .findFirst()
                 .map(UsersyncMethod::getType)
                 .get(); // when usersyncer is present, it will contain at least one method
+    }
+
+    private static void validateUsersyncers(List<Usersyncer> usersyncers) {
+        final List<String> cookieFamilyNames = usersyncers.stream()
+                .map(Usersyncer::getCookieFamilyName)
+                .toList();
+        cookieFamilyNames.stream()
+                .filter(name -> Collections.frequency(cookieFamilyNames, name) > 1)
+                .findAny()
+                .ifPresent(name -> {
+                    throw new IllegalArgumentException("Duplicated \"cookie-family-name\" found, value: " + name);
+                });
     }
 
     @Override
