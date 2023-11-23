@@ -475,17 +475,16 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
-                ? Collections.emptyList()
-                : bidsFromResponse(bidResponse, errors);
-    }
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Collections.emptyList();
+        }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> toBidderBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
@@ -493,69 +492,68 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
     private BidderBid toBidderBid(Bid bid, String currency, List<BidderError> errors) {
         final AppnexusBidExtAppnexus appnexus;
+        final BidType bidType;
         try {
-            appnexus = parseAppnexusBidExt(bid.getExt()).getAppnexus();
-        } catch (IllegalArgumentException | JsonProcessingException e) {
+            appnexus = parseBidExtAppnexus(bid);
+            bidType = bidType(appnexus);
+        } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
 
-        if (appnexus == null) {
-            errors.add(BidderError.badServerResponse("bidResponse.bid.ext.appnexus should be defined"));
-            return null;
-        }
-
-        final String iabCategory = iabCategory(appnexus.getBrandCategoryId());
-
-        List<String> cat = bid.getCat();
-        if (iabCategory != null) {
-            cat = List.of(iabCategory);
-        } else if (CollectionUtils.isNotEmpty(bid.getCat())) {
-            // create empty categories array to force bid to be rejected
-            cat = Collections.emptyList();
-        }
-
         return BidderBid.builder()
-                .bid(bid.toBuilder().cat(cat).build())
-                .type(bidType(appnexus.getBidAdType()))
+                .bid(bid.toBuilder().cat(bidCategories(bid, appnexus)).build())
+                .type(bidType)
                 .bidCurrency(currency)
-                .dealPriority(appnexus.getDealPriority())
-                .videoInfo(makeExtBidVideo(appnexus))
+                .dealPriority(appnexus != null ? appnexus.getDealPriority() : 0)
+                .videoInfo(makeVideoInfo(appnexus))
                 .build();
     }
 
-    private static ExtBidPrebidVideo makeExtBidVideo(AppnexusBidExtAppnexus extAppnexus) {
-        final AppnexusBidExtCreative appnexusBidExtCreative = extAppnexus.getCreativeInfo();
-        final AppnexusBidExtVideo appnexusBidExtVideo =
-                ObjectUtil.getIfNotNull(appnexusBidExtCreative, AppnexusBidExtCreative::getVideo);
-        final Integer duration = appnexusBidExtVideo != null ? appnexusBidExtVideo.getDuration() : null;
-        return duration != null ? ExtBidPrebidVideo.of(duration, null) : null;
-    }
-
-    private String iabCategory(Integer brandId) {
-        return brandId != null ? iabCategories.get(brandId) : null;
-    }
-
-    private static BidType bidType(Integer bidAdType) {
-        if (bidAdType == null) {
-            throw new PreBidException("bidResponse.bid.ext.appnexus.bid_ad_type should be defined");
-        }
-
-        return switch (bidAdType) {
-            case 0 -> BidType.banner;
-            case 1 -> BidType.video;
-            case 2 -> BidType.audio;
-            case 3 -> BidType.xNative;
-            default -> throw new PreBidException(
-                    "Unrecognized bid_ad_type in response from appnexus: " + bidAdType);
-        };
-    }
-
-    private AppnexusBidExt parseAppnexusBidExt(ObjectNode bidExt) throws JsonProcessingException {
-        if (bidExt == null) {
+    private AppnexusBidExtAppnexus parseBidExtAppnexus(Bid bid) {
+        final ObjectNode extBid = bid.getExt();
+        if (extBid == null) {
             throw new PreBidException("bidResponse.bid.ext should be defined for appnexus");
         }
 
-        return mapper.mapper().treeToValue(bidExt, AppnexusBidExt.class);
+        try {
+            return mapper.mapper().treeToValue(extBid, AppnexusBidExt.class).getAppnexus();
+        } catch (IllegalArgumentException | JsonProcessingException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private List<String> bidCategories(Bid bid, AppnexusBidExtAppnexus appnexus) {
+        final String iabCategory = Optional.ofNullable(appnexus)
+                .map(AppnexusBidExtAppnexus::getBrandCategoryId)
+                .map(iabCategories::get)
+                .orElse(null);
+        if (iabCategory != null) {
+            return Collections.singletonList(iabCategory);
+        }
+
+        // create empty categories array to force bid to be rejected
+        final List<String> cat = bid.getCat();
+        return cat == null || cat.size() > 1 ? Collections.emptyList() : cat;
+    }
+
+    private static BidType bidType(AppnexusBidExtAppnexus appnexus) {
+        final int bidAdType = appnexus != null ? appnexus.getBidAdType() : 0;
+        return switch (bidAdType) {
+            case 0 -> BidType.banner;
+            case 1 -> BidType.video;
+            case 3 -> BidType.xNative;
+            default -> throw new PreBidException("Unrecognized bid_ad_type in response from appnexus: " + bidAdType);
+        };
+    }
+
+    private static ExtBidPrebidVideo makeVideoInfo(AppnexusBidExtAppnexus appnexus) {
+        final int duration = Optional.ofNullable(appnexus)
+                .map(AppnexusBidExtAppnexus::getCreativeInfo)
+                .map(AppnexusBidExtCreative::getVideo)
+                .map(AppnexusBidExtVideo::getDuration)
+                .orElse(0);
+
+        return ExtBidPrebidVideo.of(duration, null);
     }
 }
