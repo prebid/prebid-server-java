@@ -432,15 +432,13 @@ class TargetingSpec extends BaseSpec {
         then: "PBS amp response should respond with default targeting prefix"
         def targeting = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
         assert !targeting.isEmpty()
-        assert targeting.keySet().every(key -> key.startsWith(DEFAULT_TARGETING_PREFIX))
+        assert targeting.keySet().every{it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
     }
 
     def "PBS auction should use default targeting prefix when ext.prebid.targeting.prefix null"() {
         given: "Bid request with "
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.targeting = new Targeting().tap {
-                it.prefix = null
-            }
+            ext.prebid.targeting = new Targeting(prefix: null)
         }
 
         when: "PBS processes auction request"
@@ -449,16 +447,14 @@ class TargetingSpec extends BaseSpec {
         then: "PBS amp response should respond with default targeting prefix"
         def targeting = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
         assert !targeting.isEmpty()
-        assert targeting.keySet().every(key -> key.startsWith(DEFAULT_TARGETING_PREFIX))
+        assert targeting.keySet().every{it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
     }
 
     def "PBS auction should update targeting prefix when ext.prebid.targeting.prefix specified"() {
         given: "Bid request with "
         def prefix = PBSUtils.getRandomString(4) + "_"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.targeting = new Targeting().tap {
-                it.prefix = prefix
-            }
+            ext.prebid.targeting = new Targeting(prefix: prefix)
         }
 
         when: "PBS processes auction request"
@@ -612,7 +608,7 @@ class TargetingSpec extends BaseSpec {
         assert targeting.keySet().every { it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
     }
 
-    def "PBS amp should return default targeting prefix when in stored request ext.prebid.targeting.prefix doesn't specified"() {
+    def "PBS amp should use default targeting prefix when in stored request ext.prebid.targeting.prefix doesn't specified"() {
         given: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
 
