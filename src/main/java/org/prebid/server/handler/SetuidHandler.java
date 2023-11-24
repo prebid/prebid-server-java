@@ -57,6 +57,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -109,16 +110,17 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
     private static Map<String, UsersyncMethodType> collectMap(BidderCatalog bidderCatalog) {
 
-        final Stream<Usersyncer> usersyncers = bidderCatalog.names().stream()
+        final Supplier<Stream<Usersyncer>> usersyncers = () -> bidderCatalog.names()
+                .stream()
                 .filter(bidderCatalog::isActive)
                 .map(bidderCatalog::usersyncerByName)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .distinct();
 
-        validateUsersyncers(usersyncers);
+        validateUsersyncers(usersyncers.get());
 
-        return usersyncers
+        return usersyncers.get()
                 .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, SetuidHandler::preferredUserSyncType));
     }
 
@@ -131,7 +133,6 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     private static void validateUsersyncers(Stream<Usersyncer> usersyncers) {
-
         final Stream<String> cookieFamilyNameDuplicates = usersyncers.map(Usersyncer::getCookieFamilyName)
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
                 .entrySet()
