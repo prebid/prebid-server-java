@@ -530,13 +530,13 @@ class TargetingSpec extends BaseSpec {
         when: "PBS processes amp request"
         def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Amp response should contain amp targeting response with custom prefix"
+        then: "Amp response should contain targeting response with custom prefix"
         def targeting = ampResponse.targeting
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(prefix)}
     }
 
-    def "PBS amp should use default targeting prefix when stored request ext.prebid.targeting.prefix specified"() {
+    def "PBS amp should use custom prefix for targeting when stored request ext.prebid.targeting.prefix specified"() {
         given: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
 
@@ -553,10 +553,38 @@ class TargetingSpec extends BaseSpec {
         when: "PBS processes amp request"
         def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Amp response should contain amp targeting response with default prefix"
+        then: "Amp response should contain custom targeting prefix"
         def targeting = ampResponse.targeting
         assert !targeting.isEmpty()
-        assert targeting.keySet().every { it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
+        assert targeting.keySet().every { it -> it.startsWith(prefix)}
+    }
+
+    def "PBS amp should take precedence from ext.prebid.targeting.prefix when specified in account targeting prefix"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default bid request"
+        def prefix = PBSUtils.getRandomString(4) + "_"
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = new Targeting(prefix: prefix)
+        }
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Account in the DB"
+        def config = new AccountAuctionConfig(targeting: new Targeting(prefix: "account_"))
+        def account = new Account(uuid: ampRequest.account, config: new AccountConfig(auction: config) )
+        accountDao.save(account)
+
+        when: "PBS processes amp request"
+        def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Amp response should contain targeting response with custom prefix"
+        def targeting = ampResponse.targeting
+        assert !targeting.isEmpty()
+        assert targeting.keySet().every { it -> it.startsWith(prefix)}
     }
 
     def "PBS amp should use default targeting prefix when prefix doesn't specified in account"() {
@@ -578,7 +606,29 @@ class TargetingSpec extends BaseSpec {
         when: "PBS processes amp request"
         def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Amp response should contain amp targeting response with custom prefix"
+        then: "Amp response should contain targeting response with default prefix"
+        def targeting = ampResponse.targeting
+        assert !targeting.isEmpty()
+        assert targeting.keySet().every { it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
+    }
+
+    def "PBS amp should return default targeting prefix when in stored request ext.prebid.targeting.prefix doesn't specified"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default bid request"
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = new Targeting(prefix: null)
+        }
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Amp response should contain default prefix targeting"
         def targeting = ampResponse.targeting
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
