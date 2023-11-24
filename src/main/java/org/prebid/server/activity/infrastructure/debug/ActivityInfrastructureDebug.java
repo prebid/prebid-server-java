@@ -43,7 +43,7 @@ public class ActivityInfrastructureDebug {
             traceLog.add(ExtTraceActivityInvocation.of(
                     "Invocation of Activity Infrastructure.",
                     activity,
-                    atLeast(TraceLevel.verbose) ? activityInvocationPayload : null));
+                    activityInvocationPayload));
         }
     }
 
