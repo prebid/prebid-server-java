@@ -1277,7 +1277,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<String> values = resolveSegtaxBlahValues(validDataSegments);
         final ArrayNode segtaxBlah = target.putArray(SEGTAX_BLAH_ATTRIBUTE);
         values.forEach(segtaxBlah::add);
-
     }
 
     private static List<List<Segment>> getValidDataSegments(List<List<Segment>> dataSegments) {
