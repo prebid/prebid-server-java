@@ -11,6 +11,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.Activity;
@@ -52,6 +53,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -133,17 +135,18 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     private static void validateUsersyncers(Stream<Usersyncer> usersyncers) {
-        final Stream<String> cookieFamilyNameDuplicates = usersyncers.map(Usersyncer::getCookieFamilyName)
+        final List<String> cookieFamilyNameDuplicates = usersyncers.map(Usersyncer::getCookieFamilyName)
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
                 .entrySet()
                 .stream()
                 .filter(name -> name.getValue() > 1)
                 .map(Map.Entry::getKey)
-                .distinct();
-        if (cookieFamilyNameDuplicates.findAny().isPresent()) {
+                .distinct()
+                .toList();
+        if (CollectionUtils.isNotEmpty(cookieFamilyNameDuplicates)) {
             throw new IllegalArgumentException(
                     "Duplicated \"cookie-family-name\" found, values: "
-                            + String.join(", ", cookieFamilyNameDuplicates.toList()));
+                            + String.join(", ", cookieFamilyNameDuplicates));
         }
     }
 
