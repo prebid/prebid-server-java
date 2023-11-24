@@ -84,7 +84,8 @@ public class LiftoffBidder implements Bidder<BidRequest> {
             try {
                 final LiftoffImpressionExt liftoffImpressionExt = resolveLiftoffImpressionExt(imp);
                 liftoffImpressionExtBidder = liftoffImpressionExt.getBidder();
-                final ExtImpLiftoff extImpLiftoff = updateExtImpLiftoff(bidRequest, liftoffImpressionExtBidder);
+                final String buyeruid = ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getBuyeruid);
+                final ExtImpLiftoff extImpLiftoff = createExtImpLiftoff(buyeruid, liftoffImpressionExtBidder);
                 final LiftoffImpressionExt impressionExt = liftoffImpressionExt.toBuilder()
                         .vungle(extImpLiftoff)
                         .build();
@@ -120,10 +121,8 @@ public class LiftoffBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static ExtImpLiftoff updateExtImpLiftoff(BidRequest bidRequest, ExtImpLiftoff extImpLiftoff) {
-        return extImpLiftoff.toBuilder()
-                .bidToken(ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getBuyeruid))
-                .build();
+    private static ExtImpLiftoff createExtImpLiftoff(String buyeruid, ExtImpLiftoff extImpLiftoff) {
+        return ExtImpLiftoff.of(buyeruid, extImpLiftoff.getAppStoreId(), extImpLiftoff.getPlacementReferenceId());
     }
 
     private static BidRequest prepareBidRequest(BidRequest bidRequest, Imp imp, ExtImpLiftoff extImpLiftoff) {

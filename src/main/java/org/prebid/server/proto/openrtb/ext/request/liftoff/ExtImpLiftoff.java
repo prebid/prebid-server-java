@@ -1,10 +1,8 @@
 package org.prebid.server.proto.openrtb.ext.request.liftoff;
 
-import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
 
-@Builder(toBuilder = true)
-@Getter
+@Value(staticConstructor = "of")
 public class ExtImpLiftoff {
 
     String bidToken;

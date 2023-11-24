@@ -191,16 +191,14 @@ public class LiftoffBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(mapper.convertValue(LiftoffImpressionExt.builder()
-                        .bidder(ExtImpLiftoff.builder()
-                                .bidToken("any-bid-token")
-                                .appStoreId("any-app-store-id")
-                                .placementReferenceId("any-placement-reference-id")
-                                .build())
-                        .vungle(ExtImpLiftoff.builder()
-                                .bidToken("123")
-                                .appStoreId("any-app-store-id")
-                                .placementReferenceId("any-placement-reference-id")
-                                .build())
+                        .bidder(ExtImpLiftoff.of(
+                                "any-bid-token",
+                                "any-app-store-id",
+                                "any-placement-reference-id"))
+                        .vungle(ExtImpLiftoff.of(
+                                "123",
+                                "any-app-store-id",
+                                "any-placement-reference-id"))
                         .build(), ObjectNode.class));
     }
 
@@ -255,16 +253,13 @@ public class LiftoffBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(mapper.convertValue(LiftoffImpressionExt.builder()
-                        .bidder(ExtImpLiftoff.builder()
-                                .bidToken("any-bid-token")
-                                .appStoreId("any-app-store-id")
-                                .placementReferenceId("any-placement-reference-id")
-                                .build())
-                        .vungle(ExtImpLiftoff.builder()
-                                .bidToken("Came-from-request")
-                                .appStoreId("any-app-store-id")
-                                .placementReferenceId("any-placement-reference-id")
-                                .build())
+                        .bidder(ExtImpLiftoff.of("any-bid-token",
+                                "any-app-store-id",
+                                "any-placement-reference-id"))
+                        .vungle(ExtImpLiftoff.of(
+                                "Came-from-request",
+                                "any-app-store-id",
+                                "any-placement-reference-id"))
                         .build(), ObjectNode.class));
     }
 
@@ -361,11 +356,10 @@ public class LiftoffBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().w(23).h(25).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLiftoff.builder()
-                                .bidToken("any-bid-token")
-                                .appStoreId("any-app-store-id")
-                                .placementReferenceId("any-placement-reference-id")
-                                .build()))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpLiftoff.of("any-bid-token",
+                                        "any-app-store-id",
+                                        "any-placement-reference-id")))))
                 .build();
     }
 
