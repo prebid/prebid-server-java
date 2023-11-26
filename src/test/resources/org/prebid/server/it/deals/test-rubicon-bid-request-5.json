@@ -97,7 +97,12 @@
       "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
       "fcapids": [
         "fcapId3"
-      ]
+      ],
+      "rp": {
+        "target": {
+          "segtaxBLAH" : [ "3333", "6666", "2222", "5555" ]
+        }
+      }
     }
   },
   "at": 1,
