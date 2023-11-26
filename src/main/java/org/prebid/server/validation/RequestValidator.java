@@ -81,7 +81,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -602,12 +601,6 @@ public class RequestValidator {
                                     uidsIndex);
                         }
                     }
-                }
-                final Set<String> uniqueSources = eids.stream()
-                        .map(Eid::getSource)
-                        .collect(Collectors.toSet());
-                if (eids.size() != uniqueSources.size()) {
-                    throw new ValidationException("request.user.eids must contain unique sources");
                 }
             }
         }
