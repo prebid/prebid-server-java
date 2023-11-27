@@ -13,11 +13,9 @@ import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
@@ -141,22 +139,45 @@ class TargetingSpec extends BaseSpec {
         null              || null
     }
 
-    def "PBS should throw an exception when targeting includeBidderKeys and includeWinners flags are false"() {
-        given: "Bid request with includeBidderKeys = false and includeWinners = false"
+    def "PBS auction shouldn't throw an exception and don't populate targeting when targeting includeBidderKeys and includeWinners and flags are false"() {
+        given: "Bid request with includeBidderKeys = false and includeWinners = false and includeFormat = false"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            it.ext.prebid.targeting = new Targeting(includeBidderKeys: false, includeWinners: false)
+            it.ext.prebid.targeting = new Targeting().tap {
+                includeBidderKeys = false
+                includeWinners = false
+                includeFormat = false
+            }
         }
 
         when: "Requesting PBS auction"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS returns an error"
-        def exception = thrown PrebidServerException
-        verifyAll(exception) {
-            it.statusCode == BAD_REQUEST_400.code()
-            it.responseBody == "Invalid request format: ext.prebid.targeting: At least one of includewinners or " +
-                    "includebidderkeys must be enabled to enable targeting support"
+        then: "PBS response shouldn't contain targeting in response"
+        assert !bidResponse.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
+    }
+
+    def "PBS amp shouldn't throw an exception and populate targeting when includeBidderKeys = false and includeWinners = false and includeFormat = false"() {
+        given: "Default AmpRequest"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default bid request with includeBidderKeys = false and includeWinners = false and includeFormat = false"
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.targeting = new Targeting().tap {
+                includeBidderKeys = false
+                includeWinners = false
+                includeFormat = false
+            }
         }
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Amp response shouldn't contain targeting"
+        assert !response.targeting
     }
 
     def "PBS should include only #presentDealKey deal specific targeting key when includeBidderKeys is #includeBidderKeys and includeWinners is #includeWinners"() {
