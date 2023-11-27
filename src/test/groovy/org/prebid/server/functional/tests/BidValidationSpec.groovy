@@ -260,7 +260,7 @@ class BidValidationSpec extends BaseSpec {
         assert metrics["adapter.generic.requests.bid_validation"] == initialMetricValue + 1
     }
 
-    def "PBS should throw error when two separate eids with same eids.source"() {
+    def "PBS shouldn't throw error when two separate eids with same eids.source"() {
         given: "Default bid request with user.eids"
         def source = PBSUtils.randomString
         def defaultEids = [Eid.getDefaultEid(source), Eid.getDefaultEid(source)]
@@ -273,10 +273,15 @@ class BidValidationSpec extends BaseSpec {
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should fail the request"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody.contains("Invalid request format: request.user.eids must contain unique sources")
+        then: "PBS should contain same eids as in request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.user.eids[0].source == defaultEids[0].source
+        assert bidderRequest.user.eids[0].uids[0].id == defaultEids[0].uids[0].id
+        assert bidderRequest.user.eids[0].uids[0].atype == defaultEids[0].uids[0].atype
+
+        assert bidderRequest.user.eids[1].source == defaultEids[1].source
+        assert bidderRequest.user.eids[1].uids[0].id == defaultEids[1].uids[0].id
+        assert bidderRequest.user.eids[1].uids[0].atype == defaultEids[1].uids[0].atype
     }
 
     def "PBS shouldn't throw error when two separate eids with different eids.source"() {

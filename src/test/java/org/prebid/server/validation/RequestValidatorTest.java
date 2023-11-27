@@ -2113,24 +2113,6 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnErrorWhenEidSourceIsNotUnique() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .user(User.builder()
-                        .eids(asList(
-                                Eid.of("source", singletonList(Uid.of("id1", null, null)), null),
-                                Eid.of("source", singletonList(Uid.of("id2", null, null)), null)))
-                        .build())
-                .build();
-
-        // when
-        final ValidationResult result = target.validate(bidRequest, null);
-
-        // then
-        assertThat(result.getErrors()).containsExactly("request.user.eids must contain unique sources");
-    }
-
-    @Test
     public void validateShouldReturnValidationMessageWhenAliasNameEqualsToBidderItPointsOn() {
         // given
         final ExtRequest ext = ExtRequest.of(ExtRequestPrebid.builder()
