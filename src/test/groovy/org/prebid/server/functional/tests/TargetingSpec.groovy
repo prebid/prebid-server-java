@@ -139,8 +139,8 @@ class TargetingSpec extends BaseSpec {
         null              || null
     }
 
-    def "PBS auction shouldn't throw an exception and don't populate targeting when targeting includeBidderKeys and includeWinners and flags are false"() {
-        given: "Bid request with includeBidderKeys = false and includeWinners = false and includeFormat = false"
+    def "PBS auction shouldn't throw an exception and don't populate targeting when targeting includeBidderKeys and includeWinners and includeFormat flags are false"() {
+        given: "Default bid request with includeBidderKeys=false and includeWinners=false and includeFormat=false"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             it.ext.prebid.targeting = new Targeting().tap {
                 includeBidderKeys = false
@@ -156,11 +156,11 @@ class TargetingSpec extends BaseSpec {
         assert !bidResponse.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
     }
 
-    def "PBS amp shouldn't throw an exception and populate targeting when includeBidderKeys = false and includeWinners = false and includeFormat = false"() {
+    def "PBS amp shouldn't throw an exception and don't populate targeting when includeBidderKeys and includeWinners and includeFormat flags are false"() {
         given: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
 
-        and: "Default bid request with includeBidderKeys = false and includeWinners = false and includeFormat = false"
+        and: "Default bid request with includeBidderKeys=false and includeWinners=false and includeFormat=false"
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             it.ext.prebid.targeting = new Targeting().tap {
                 includeBidderKeys = false
