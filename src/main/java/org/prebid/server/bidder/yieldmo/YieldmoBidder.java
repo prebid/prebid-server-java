@@ -3,7 +3,6 @@ package org.prebid.server.bidder.yieldmo;
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -117,33 +116,17 @@ public class YieldmoBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> {
-                    final Bid.BidBuilder bidBuilder = bid.toBuilder();
-                    final BidType bidType = resolveBidType(bidBuilder, bid.getExt());
-                    return bidType != null ? BidderBid.of(bidBuilder.build(), bidType, bidResponse.getCur()) : null;
+                    final BidType bidType = resolveBidType(bid);
+                    return bidType != null ? BidderBid.of(bid, bidType, bidResponse.getCur()) : null;
                 })
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    // Retrieve the media type corresponding to the bid from the bid.ext object and set it in the response
-    private BidType resolveBidType(Bid.BidBuilder bidBuilder, ObjectNode extFromResponse) {
+    private BidType resolveBidType(Bid bid) {
         try {
-            final YieldmoBidExt bidExt = mapper.mapper().treeToValue(extFromResponse, YieldmoBidExt.class);
-            switch (bidExt.getMediaType()) {
-                case "banner" -> {
-                    bidBuilder.mtype(1);
-                    return BidType.banner;
-                }
-                case "video" -> {
-                    bidBuilder.mtype(2);
-                    return BidType.video;
-                }
-                case "native" -> {
-                    bidBuilder.mtype(4);
-                    return BidType.xNative;
-                }
-                default -> throw new IllegalArgumentException("Invalid media type " + bidExt.getMediaType());
-            }
+            final YieldmoBidExt bidExt = mapper.mapper().treeToValue(bid.getExt(), YieldmoBidExt.class);
+            return BidType.fromString(bidExt.getMediaType());
         } catch (Exception e) {
             return null;
         }
