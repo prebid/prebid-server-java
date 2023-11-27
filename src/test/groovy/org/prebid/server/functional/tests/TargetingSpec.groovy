@@ -416,8 +416,7 @@ class TargetingSpec extends BaseSpec {
         assert response.targeting.isEmpty()
     }
 
-    //todo: need confirm
-    def "PBS auction should trim targeting prefix when ext.prebid.targeting.prefix targeting is biggest that twenty"() {
+    def "PBS auction should use default targeting prefix when ext.prebid.targeting.prefix is biggest that twenty"() {
         given: "Bid request with long targeting prefix"
         def prefix = PBSUtils.getRandomString(30)
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -431,11 +430,10 @@ class TargetingSpec extends BaseSpec {
         def targeting = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
         assert !targeting.isEmpty()
         assert targeting.size() == 6
-        assert targeting.keySet().every{it -> it.startsWith(prefix.substring(0, TARGETING_PARAM_NAME_MAX_LENGTH))}
+        assert targeting.keySet().every{it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
     }
 
-    //todo: need confirm
-    def "PBS auction should trim targeting prefix when auction.config.targeting.prefix targeting is biggest that twenty"() {
+    def "PBS auction should use default targeting prefix when auction.config.targeting.prefix is biggest that twenty"() {
         given: "Bid request with targeting"
         def prefix = PBSUtils.getRandomString(30)
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -554,7 +552,6 @@ class TargetingSpec extends BaseSpec {
         assert targeting.keySet().every { it -> it.startsWith(prefix)}
     }
 
-    //todo: need confirm
     def "PBS amp should trim targeting prefix when ext.prebid.targeting.prefix targeting is biggest that twenty"() {
         given: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
@@ -572,14 +569,13 @@ class TargetingSpec extends BaseSpec {
         when: "PBS processes amp request"
         def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
 
-        then: "Amp response should contain targeting response with custom prefix"
+        then: "Amp response should contain default targeting prefix"
         def targeting = ampResponse.targeting
         assert !targeting.isEmpty()
         assert targeting.size() == 12
-        assert targeting.keySet().every{it -> it.startsWith(prefix.substring(0, TARGETING_PARAM_NAME_MAX_LENGTH))}
+        assert targeting.keySet().every{it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
     }
 
-    //todo: need confirm
     def "PBS amp should trim targeting prefix when auction.config.targeting.prefix targeting is biggest that twenty"() {
         given: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
@@ -589,7 +585,6 @@ class TargetingSpec extends BaseSpec {
 
         and: "Account in the DB"
         def prefix = PBSUtils.getRandomString(30)
-
         def config = new AccountAuctionConfig(targeting: new Targeting(prefix: prefix))
         def account = new Account(uuid: ampRequest.account, config: new AccountConfig(auction: config) )
         accountDao.save(account)
@@ -605,7 +600,7 @@ class TargetingSpec extends BaseSpec {
         def targeting = ampResponse.targeting
         assert !targeting.isEmpty()
         assert targeting.size() == 12
-        assert targeting.keySet().every{it -> it.startsWith(prefix.substring(0, TARGETING_PARAM_NAME_MAX_LENGTH))}
+        assert targeting.keySet().every{it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
     }
 
     def "PBS amp should default targeting prefix when auction.config.targeting.prefix is #prefix"() {
