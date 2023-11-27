@@ -12,7 +12,6 @@ class Generic implements BidderAdapter {
     Boolean dealsOnly
     @JsonProperty("pgdealsonly")
     Boolean pgDealsOnly
-
     @JsonProperty("prefmtype")
     MediaType preferredMediaType
 }
