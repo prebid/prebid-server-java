@@ -11,7 +11,7 @@
       }
     ],
     "accountId": "2001",
-    "source": "rubicon",
+    "source": "generic",
     "price": {
       "cpm": 5.60,
       "currency": "USD"
@@ -80,7 +80,7 @@
       }
     ],
     "accountId": "2001",
-    "source": "rubicon",
+    "source": "generic",
     "price": {
       "cpm": 5.60,
       "currency": "USD"
@@ -149,7 +149,7 @@
       }
     ],
     "accountId": "2001",
-    "source": "rubicon",
+    "source": "generic",
     "price": {
       "cpm": 4.60,
       "currency": "USD"
@@ -218,7 +218,7 @@
       }
     ],
     "accountId": "2001",
-    "source": "rubicon",
+    "source": "generic",
     "price": {
       "cpm": 5.60,
       "currency": "USD"
@@ -287,7 +287,7 @@
       }
     ],
     "accountId": "2002",
-    "source": "rubicon",
+    "source": "generic",
     "price": {
       "cpm": 5.60,
       "currency": "USD"

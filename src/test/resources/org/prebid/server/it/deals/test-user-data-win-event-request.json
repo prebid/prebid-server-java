@@ -1,5 +1,5 @@
 {
-  "bidderCode": "rubicon",
+  "bidderCode": "generic",
   "bidId": "bidId",
   "lineItemId": "lineItem1",
   "region" : "local",
