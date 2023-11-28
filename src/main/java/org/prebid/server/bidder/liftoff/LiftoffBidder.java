@@ -17,6 +17,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
@@ -60,48 +61,48 @@ public class LiftoffBidder implements Bidder<BidRequest> {
 
         for (Imp imp : bidRequest.getImp()) {
             final Imp.ImpBuilder impBuilder = imp.toBuilder();
-            if (BidderUtil.isValidPrice(imp.getBidfloor())
-                    && !StringUtils.equalsIgnoreCase(imp.getBidfloorcur(), BIDDER_CURRENCY)
-                    && StringUtils.isNotBlank(imp.getBidfloorcur())) {
-                try {
-                    final BigDecimal bigDecimal = currencyConversionService
-                            .convertCurrency(
-                                    imp.getBidfloor(),
-                                    bidRequest,
-                                    imp.getBidfloorcur(),
-                                    BIDDER_CURRENCY);
-                    impBuilder
-                            .bidfloor(bigDecimal)
-                            .bidfloorcur(BIDDER_CURRENCY);
-                } catch (PreBidException e) {
-                    errors.add(BidderError.badInput(e.getMessage()));
-                    continue;
-                }
-            }
-
+            final Price price;
             final ObjectNode convertedExtImpLiftoff;
             final ExtImpLiftoff liftoffImpressionExtBidder;
             try {
+                price = resolveBidFloor(imp, bidRequest);
                 final LiftoffImpressionExt liftoffImpressionExt = resolveLiftoffImpressionExt(imp);
                 liftoffImpressionExtBidder = liftoffImpressionExt.getBidder();
-                final String buyeruid = ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getBuyeruid);
-                final ExtImpLiftoff extImpLiftoff = createExtImpLiftoff(buyeruid, liftoffImpressionExtBidder);
-                final LiftoffImpressionExt impressionExt = liftoffImpressionExt.toBuilder()
-                        .vungle(extImpLiftoff)
-                        .build();
-                convertedExtImpLiftoff = resolveExtImpLiftoff(impressionExt);
-            } catch (IllegalArgumentException e) {
+                convertedExtImpLiftoff = resolveExtImpLiftoff(
+                        resolveLiftoffImpExt(bidRequest, liftoffImpressionExtBidder, liftoffImpressionExt));
+            } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
                 continue;
             }
 
             httpRequests.add(createRequest(
                     prepareBidRequest(bidRequest,
-                            prepareImp(impBuilder, liftoffImpressionExtBidder, convertedExtImpLiftoff),
+                            prepareImp(impBuilder, liftoffImpressionExtBidder, convertedExtImpLiftoff, price, imp),
                             liftoffImpressionExtBidder)));
         }
 
         return Result.of(httpRequests, errors);
+    }
+
+    private static LiftoffImpressionExt resolveLiftoffImpExt(BidRequest bidRequest,
+                                                             ExtImpLiftoff liftoffImpressionExtBidder,
+                                                             LiftoffImpressionExt liftoffImpressionExt) {
+        return liftoffImpressionExt.toBuilder()
+                .vungle(createExtImpLiftoff(
+                        ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getBuyeruid), liftoffImpressionExtBidder))
+                .build();
+    }
+
+    private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
+        BigDecimal bigDecimal = null;
+        if (BidderUtil.isValidPrice(imp.getBidfloor())
+                && !StringUtils.equalsIgnoreCase(imp.getBidfloorcur(), BIDDER_CURRENCY)
+                && StringUtils.isNotBlank(imp.getBidfloorcur())) {
+            bigDecimal = currencyConversionService.convertCurrency(
+                    imp.getBidfloor(), bidRequest, imp.getBidfloorcur(), BIDDER_CURRENCY);
+        }
+
+        return Price.of(BIDDER_CURRENCY, bigDecimal);
     }
 
     private ObjectNode resolveExtImpLiftoff(LiftoffImpressionExt impressionExt) {
@@ -114,10 +115,14 @@ public class LiftoffBidder implements Bidder<BidRequest> {
 
     private static Imp prepareImp(Imp.ImpBuilder impBuilder,
                                   ExtImpLiftoff extImpLiftoff,
-                                  ObjectNode convertedExtImpLiftoff) {
+                                  ObjectNode convertedExtImpLiftoff,
+                                  Price price,
+                                  Imp imp) {
         return impBuilder
                 .tagid(extImpLiftoff.getPlacementReferenceId())
                 .ext(convertedExtImpLiftoff)
+                .bidfloor(price.getValue() != null ? price.getValue() : imp.getBidfloor())
+                .bidfloorcur(price.getValue() != null ? price.getCurrency() : imp.getBidfloorcur())
                 .build();
     }
 

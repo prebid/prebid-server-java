@@ -4,7 +4,7 @@ adapters:
     modifying-vast-xml-allowed: true
     endpoint-compression: gzip
     meta-info:
-      maintainer-email: platform-ssp@liftoff.io
+      maintainer-email: vxssp@liftoff.io
       app-media-types:
         - video
       supported-vendors:
