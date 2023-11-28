@@ -519,6 +519,16 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         }
     }
 
+    private static BidType bidType(AppnexusBidExtAppnexus appnexus) {
+        final int bidAdType = appnexus != null ? appnexus.getBidAdType() : 0;
+        return switch (bidAdType) {
+            case 0 -> BidType.banner;
+            case 1 -> BidType.video;
+            case 3 -> BidType.xNative;
+            default -> throw new PreBidException("Unrecognized bid_ad_type in response from appnexus: " + bidAdType);
+        };
+    }
+
     private List<String> bidCategories(Bid bid, AppnexusBidExtAppnexus appnexus) {
         final String iabCategory = Optional.ofNullable(appnexus)
                 .map(AppnexusBidExtAppnexus::getBrandCategoryId)
@@ -531,16 +541,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         // create empty categories array to force bid to be rejected
         final List<String> cat = bid.getCat();
         return cat == null || cat.size() > 1 ? Collections.emptyList() : cat;
-    }
-
-    private static BidType bidType(AppnexusBidExtAppnexus appnexus) {
-        final int bidAdType = appnexus != null ? appnexus.getBidAdType() : 0;
-        return switch (bidAdType) {
-            case 0 -> BidType.banner;
-            case 1 -> BidType.video;
-            case 3 -> BidType.xNative;
-            default -> throw new PreBidException("Unrecognized bid_ad_type in response from appnexus: " + bidAdType);
-        };
     }
 
     private static ExtBidPrebidVideo makeVideoInfo(AppnexusBidExtAppnexus appnexus) {

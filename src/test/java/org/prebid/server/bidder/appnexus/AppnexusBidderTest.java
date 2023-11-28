@@ -1,5 +1,6 @@
 package org.prebid.server.bidder.appnexus;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -8,13 +9,23 @@ import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
+import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtCreative;
+import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtVideo;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
 import org.prebid.server.bidder.appnexus.proto.AppnexusReqExtAppnexus;
+import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -26,6 +37,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 
 import java.math.BigDecimal;
 import java.util.Collection;
@@ -43,6 +55,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.auction.model.Endpoint.openrtb2_amp;
 import static org.prebid.server.auction.model.Endpoint.openrtb2_video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AppnexusBidderTest extends VertxTest {
 
@@ -637,6 +652,210 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
     }
 
+    @Test
+    public void makeBidsShouldReturnErrorOnInvalidBody() {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall("invalid");
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+            assertThat(error.getMessage()).startsWith("Failed to decode");
+        });
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyResponseOnNullBody() {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall("null");
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyResponseOnEmptyBody() {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall("{}");
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldCollectErrors() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(givenBidResponse(
+                givenBid(identity()),
+                givenBid(bid -> bid.ext(mapper.createObjectNode().putPOJO("appnexus", emptyList()))),
+                givenBid(null, givenBidExt(ext -> ext.bidAdType(2))),
+                // valid bid
+                givenBid(null, givenBidExt(identity()))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .flatExtracting(BidderBid::getBid)
+                .hasSize(1);
+        assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
+                .satisfies(errors -> {
+                    assertThat(errors.get(0)).isEqualTo("bidResponse.bid.ext should be defined for appnexus");
+                    assertThat(errors.get(1)).startsWith("Cannot deserialize value of type");
+                    assertThat(errors.get(2)).isEqualTo("Unrecognized bid_ad_type in response from appnexus: 2");
+                });
+    }
+
+    @Test
+    public void makeBidsShouldReturnExpectedBidTypes() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(givenBidResponse(
+                givenBid(null, givenBidExt(identity())),
+                givenBid(null, givenBidExt(ext -> ext.bidAdType(0))),
+                givenBid(null, givenBidExt(ext -> ext.bidAdType(1))),
+                givenBid(null, givenBidExt(ext -> ext.bidAdType(3)))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(banner, banner, video, xNative);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnExpectedCur() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(givenBidResponse(
+                givenBid(null, givenBidExt(identity()))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBidCurrency)
+                .containsExactly("CUR");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnExpectedDealPriority() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(givenBidResponse(
+                givenBid(null, givenBidExt(ext -> ext.dealPriority(2)))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getDealPriority)
+                .containsExactly(2);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnDefaultDealPriority() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(givenBidResponse(
+                givenBid(null, givenBidExt(identity()))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getDealPriority)
+                .containsExactly(0);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnIabCategory() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(givenBidResponse(
+                givenBid(null, givenBidExt(ext -> ext.brandCategoryId(10)))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .flatExtracting(Bid::getCat)
+                .containsExactly("IAB4-5");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyCatOnNull() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(givenBidResponse(
+                givenBid(null, givenBidExt(identity()))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getCat)
+                .containsExactly(Collections.emptyList());
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyCatIfSizeMoreThen1() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(givenBidResponse(
+                givenBid(asList("1", "2"), givenBidExt(identity()))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getCat)
+                .containsExactly(Collections.emptyList());
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldAddVideoInfo() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> bidderCall = givenBidderCall(givenBidResponse(
+                givenBid(null, givenBidExt(ext -> ext
+                        .creativeInfo(AppnexusBidExtCreative.of(AppnexusBidExtVideo.of(10)))))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getVideoInfo)
+                .extracting(ExtBidPrebidVideo::getDuration)
+                .containsExactly(10);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
                                               Imp... imps) {
 
@@ -661,5 +880,31 @@ public class AppnexusBidderTest extends VertxTest {
 
     private static ExtImpAppnexus givenExt(UnaryOperator<ExtImpAppnexus.ExtImpAppnexusBuilder> extCustomizer) {
         return extCustomizer.apply(ExtImpAppnexus.builder().placementId(1)).build();
+    }
+
+    private static BidderCall<BidRequest> givenBidderCall(String bidResponse) {
+        return BidderCall.succeededHttp(null, HttpResponse.of(200, null, bidResponse), null);
+    }
+
+    private static String givenBidResponse(Bid... bid) throws JsonProcessingException {
+        return mapper.writeValueAsString(
+                BidResponse.builder()
+                        .seatbid(singletonList(SeatBid.builder().bid(asList(bid)).build()))
+                        .cur("CUR")
+                        .build());
+    }
+
+    private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
+        return bidCustomizer.apply(Bid.builder()).build();
+    }
+
+    private static Bid givenBid(List<String> cat, AppnexusBidExtAppnexus appnexus) {
+        return givenBid(bid -> bid.cat(cat).ext(mapper.valueToTree(AppnexusBidExt.of(appnexus))));
+    }
+
+    private static AppnexusBidExtAppnexus givenBidExt(
+            UnaryOperator<AppnexusBidExtAppnexus.AppnexusBidExtAppnexusBuilder> extCustomizer) {
+
+        return extCustomizer.apply(AppnexusBidExtAppnexus.builder()).build();
     }
 }
