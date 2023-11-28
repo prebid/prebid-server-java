@@ -1,35 +1,20 @@
 package org.prebid.server.bidder.appnexus;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.BidRequest.BidRequestBuilder;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Imp.ImpBuilder;
-import com.iab.openrtb.request.Native;
-import com.iab.openrtb.request.Video;
-import com.iab.openrtb.response.Bid;
-import com.iab.openrtb.response.BidResponse;
-import com.iab.openrtb.response.SeatBid;
-import lombok.Value;
-import org.assertj.core.groups.Tuple;
+import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.auction.model.Endpoint;
-import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
-import org.prebid.server.bidder.appnexus.proto.AppnexusBidExtAppnexus;
-import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
 import org.prebid.server.bidder.appnexus.proto.AppnexusReqExtAppnexus;
-import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
@@ -39,185 +24,84 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidServer;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
+import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
-import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus.ExtImpAppnexusBuilder;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.UnaryOperator;
-import java.util.regex.Pattern;
 import java.util.stream.IntStream;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.prebid.server.auction.model.Endpoint.openrtb2_amp;
+import static org.prebid.server.auction.model.Endpoint.openrtb2_video;
 
 public class AppnexusBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "http://test/auction";
-
-    private static final Integer BANNER_TYPE = 0;
-    private static final Integer VIDEO_TYPE = 1;
-    private static final Integer AUDIO_TYPE = 2;
-    private static final Integer NATIVE_TYPE = 3;
-
     private final AppnexusBidder target = new AppnexusBidder(
-            ENDPOINT_URL,
+            "https://endpoint.com/",
             null,
             Map.of(10, "IAB4-5"),
             jacksonMapper);
 
     @Test
-    public void makeHttpRequestsShouldSetImpDisplaymanagerverFromAppExtPrebidIfAbsent() {
+    public void creationShouldFailOnInvalidEndpointUrl() {
+        // when and then
+        assertThatIllegalArgumentException().isThrownBy(() -> new AppnexusBidder(
+                "invalid_url",
+                null,
+                Collections.emptyMap(),
+                jacksonMapper));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddErrorsOnInvalidImps() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder
-                        .app(App.builder()
-                                .ext(ExtApp.of(ExtAppPrebid.of("some source", "any version"), null))
-                                .build()),
-                impBuilder -> impBuilder.banner(Banner.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
+                givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
+                givenImp(givenExt(ext -> ext.placementId(null))),
+                givenImp(givenExt(ext -> ext.placementId(0))),
+                givenImp(givenExt(ext -> ext.placementId(0).invCode("validInvCode"))),
+                givenImp(givenExt(ext -> ext.placementId(0).member("validMember"))),
+                // valid imps
+                givenImp(givenExt(ext -> ext.placementId(0).invCode("validInvCode").member("validMember"))),
+                givenImp(givenExt(ext -> ext.placementId(1))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getDisplaymanagerver)
-                .containsExactly("some source-any version");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotModifyImpDisplaymanagerverIfExtAppPrebidIsNull() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder
-                        .app(App.builder()
-                                .ext(ExtApp.of(null, null))
-                                .build()),
-                impBuilder -> impBuilder.banner(Banner.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getDisplaymanagerver)
-                .hasSize(1).containsNull();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotModifyImpDisplaymanagerverIfExtAppPrebidSourceIsNull() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder
-                        .app(App.builder()
-                                .ext(ExtApp.of(ExtAppPrebid.of(null, "version"), null))
-                                .build()),
-                impBuilder -> impBuilder.banner(Banner.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getDisplaymanagerver)
-                .hasSize(1).containsNull();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotModifyImpDisplaymanagerverIfExtAppPrebidVersionIsNull() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder
-                        .app(App.builder()
-                                .ext(ExtApp.of(ExtAppPrebid.of("source", null), null))
-                                .build()),
-                impBuilder -> impBuilder.banner(Banner.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getDisplaymanagerver)
-                .hasSize(1).containsNull();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotModifyImpDisplaymanagerverIfItExists() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder
-                        .app(App.builder()
-                                .ext(ExtApp.of(ExtAppPrebid.of("some source", "any version"), null))
-                                .build()),
-                impBuilder -> impBuilder.banner(Banner.builder().build()).displaymanagerver("string exists"),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getDisplaymanagerver)
-                .containsOnly("string exists");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(
-                        Imp.builder()
-                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))
-                                .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getMessage()).startsWith("Cannot deserialize value");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                .hasSize(2);
+        assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
+                .hasSize(5)
+                .satisfies(errors -> {
+                    assertThat(errors.get(0)).startsWith("Cannot deserialize value of type");
+                    assertThat(errors.get(1)).isEqualTo("No placement or member+invcode provided");
+                    assertThat(errors.get(1)).isEqualTo("No placement or member+invcode provided");
+                    assertThat(errors.get(1)).isEqualTo("No placement or member+invcode provided");
+                    assertThat(errors.get(1)).isEqualTo("No placement or member+invcode provided");
                 });
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfExtImpAppnexusPlacementIdAndBothInvCodeAndMemberIdAreEmpty() {
+    public void makeHttpRequestsShouldReturnErrorOnInvalidMembers() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                identity(),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(null).member(null).invCode(null));
+                givenImp(givenExt(ext -> ext.member("validMember"))),
+                givenImp(givenExt(ext -> ext.member("invalidMember"))),
+                givenImp(givenExt(ext -> ext.member("validMember"))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -225,914 +109,557 @@ public class AppnexusBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("No placement or member+invcode provided"));
+                .extracting(BidderError::getMessage)
+                .containsExactly("all request.imp[i].ext.prebid.bidder.appnexus.member params must match."
+                        + " Request contained member IDs validMember and invalidMember");
     }
 
     @Test
-    public void makeHttpRequestsShouldSetBannerIfRequestImpIsBanner() {
+    public void makeHttpRequestsShouldReturnErrorOnInvalidGenerateAdPodIds() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                impBuilder -> impBuilder.banner(Banner.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid"));
+                givenImp(givenExt(identity())),
+                givenImp(givenExt(ext -> ext.generateAdPodId(false))),
+                givenImp(givenExt(ext -> ext.generateAdPodId(true))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).hasSize(1)
-                .extracting(Imp::getBanner).doesNotContainNull();
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
+                .containsExactly("generate ad pod option should be same for all pods in request");
     }
 
     @Test
-    public void makeHttpRequestsShouldSetBannerSizesFromExistingFirstFormatElement() {
+    public void makeHttpRequestsShouldUpdateImpTagIdOnValidInvCode() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                impBuilder -> impBuilder.banner(Banner.builder()
-                        .format(singletonList(Format.builder().w(100).h(200).build()))
-                        .build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder
-                        .placementId(20)
-                        .invCode("tagid")
-                        .reserve(BigDecimal.TEN));
+        final BidRequest bidRequest = givenBidRequest(givenImp(givenExt(ext -> ext.invCode("invCode"))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getTagid)
+                .containsExactly("invCode");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateImpBidFloorOnValidReserve() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(givenExt(ext -> ext.reserve(BigDecimal.ONE))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.ONE);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotUpdateImpBidFloorOnValidImpBidFloor() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(
+                        imp -> imp.bidfloor(BigDecimal.ONE),
+                        givenExt(ext -> ext.reserve(BigDecimal.TEN))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBidfloor)
+                .containsExactly(BigDecimal.ONE);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateBanner() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(
+                        imp -> imp.banner(Banner.builder()
+                                .format(singletonList(Format.builder().w(1).h(1).build()))
+                                .build()),
+                        givenExt(identity())));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
-                .containsOnly(Banner.builder().w(100).h(200)
-                        .format(singletonList(Format.builder().w(100).h(200).build())).build());
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetBannerPosAbove() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                impBuilder -> impBuilder.banner(Banner.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).position("above"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getImp).hasSize(1)
-                .extracting(imps -> imps.iterator().next().getBanner()).containsOnly(Banner.builder().pos(1).build());
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetBannerPosBelow() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                impBuilder -> impBuilder.banner(Banner.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).position("below"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getImp).hasSize(1)
-                .extracting(imps -> imps.iterator().next().getBanner()).containsOnly(Banner.builder().pos(3).build());
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetAppnexusImpExtParamsIfPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                impBuilder -> impBuilder.banner(Banner.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder
-                        .placementId(20)
-                        .trafficSourceCode("tsc")
-                        .keywords(List.of(AppnexusKeyVal.of("key1", List.of("val1"))))
-                        .usePmtRule(true)
-                        .privateSizes(mapper.createObjectNode()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.get(0).getExt())
-                .extracting(jsonNodes -> mapper.treeToValue(jsonNodes, AppnexusImpExt.class))
-                .extracting(AppnexusImpExt::getAppnexus)
-                .extracting(
-                        AppnexusImpExtAppnexus::getPlacementId,
-                        AppnexusImpExtAppnexus::getTrafficSourceCode,
-                        AppnexusImpExtAppnexus::getKeywords,
-                        AppnexusImpExtAppnexus::getUsePmtRule,
-                        AppnexusImpExtAppnexus::getPrivateSizes)
-                .containsOnly(Tuple.tuple(20, "tsc", "key1=val1", true, mapper.createObjectNode()));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldUpdateImpExtAppnexusWithKeywords() {
-        // given
-        final List<AppnexusKeyVal> keywords = List.of(
-                AppnexusKeyVal.of("key1", null),
-                AppnexusKeyVal.of("key2", List.of("value1", "value2")),
-                AppnexusKeyVal.of(null, null));
-
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                identity(),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(1).keywords(keywords));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-
-        final AppnexusImpExt expectedImpExt = AppnexusImpExt.of(
-                AppnexusImpExtAppnexus.builder()
-                        .placementId(1)
-                        .keywords("key1,key2=value1,key2=value2")
+                .containsExactly(Banner.builder()
+                        .w(1)
+                        .h(1)
+                        .format(singletonList(Format.builder().w(1).h(1).build()))
                         .build());
+        assertThat(result.getErrors()).isEmpty();
+    }
 
+    @Test
+    public void makeHttpRequestsShouldUpdateBannerWithAbovePosition() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(
+                        imp -> imp.banner(Banner.builder().build()),
+                        givenExt(ext -> ext.position("above"))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getPos)
+                .containsExactly(1);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateBannerWithBelowPosition() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(
+                        imp -> imp.banner(Banner.builder().build()),
+                        givenExt(ext -> ext.position("below"))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getBanner)
+                .extracting(Banner::getPos)
+                .containsExactly(3);
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateDisplayManagerVer() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.app(App.builder()
+                        .ext(ExtApp.of(ExtAppPrebid.of("source", "version"), null))
+                        .build()),
+                givenImp(givenExt(identity())));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanagerver)
+                .containsExactly("source-version");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotUpdateDisplayManagerVer() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.app(App.builder()
+                        .ext(ExtApp.of(ExtAppPrebid.of("source", "version"), null))
+                        .build()),
+                givenImp(imp -> imp.displaymanagerver("original"), givenExt(identity())));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getDisplaymanagerver)
+                .containsExactly("original");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(givenExt(ext -> ext
+                        .placementId(1)
+                        .trafficSourceCode("2")
+                        .usePaymentRule(true)
+                        .privateSizes(TextNode.valueOf("4"))
+                        .extInvCode("5")
+                        .externalImpId("6"))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(mapper.valueToTree(expectedImpExt));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldHonorLegacyParams() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                impBuilder -> impBuilder.banner(Banner.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder
-                        .placementId(102)
-                        .deprecatedPlacementId(101)
-                        .usePmtRule(false)
-                        .deprecatedUsePaymentRule(true)
-                        .invCode(null)
-                        .legacyInvCode("legacyInvCode1")
-                        .trafficSourceCode(null)
-                        .legacyTrafficSourceCode("legacyTrafficSourceCode1"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getTagid, Imp::getExt)
-                .containsOnly(tuple(
-                        "legacyInvCode1",
-                        mapper.valueToTree(AppnexusImpExt.of(
-                                AppnexusImpExtAppnexus.of(102, null, "legacyTrafficSourceCode1", false, null)))));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetImpTagidAndImpBidFloorIfExtImpAppnexusHasInvCodeAndReserve() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                identity(),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder
-                        .placementId(20)
-                        .invCode("tagid")
-                        .reserve(BigDecimal.TEN));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(res -> mapper.readValue(res.getBody(), BidRequest.class))
-                .element(0).extracting(BidRequest::getImp)
-                .isEqualTo(singletonList(Imp.builder()
-                        .bidfloor(BigDecimal.valueOf(10))
-                        .tagid("tagid")
-                        .ext(mapper.valueToTree(
-                                AppnexusImpExt.of(AppnexusImpExtAppnexus.of(20, null, null, null, null))))
-                        .build()));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetReserveIfImpBidFloorIsNotSet() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                identity(),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder
-                        .placementId(20)
-                        .reserve(BigDecimal.valueOf(123)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBidfloor)
-                .containsExactly(BigDecimal.valueOf(123));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetReserveIfImpBidFloorIsZero() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                impBuilder -> impBuilder.bidfloor(BigDecimal.ZERO),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder
-                        .placementId(20)
-                        .reserve(BigDecimal.valueOf(123)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBidfloor)
-                .containsExactly(BigDecimal.valueOf(123));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetReserveIfImpBidFloorIsNegative() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                impBuilder -> impBuilder.bidfloor(BigDecimal.ZERO.subtract(BigDecimal.ONE)),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder
-                        .placementId(20)
-                        .reserve(BigDecimal.valueOf(123)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBidfloor)
-                .containsExactly(BigDecimal.valueOf(123));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpsContainDifferentMemberIds() {
-        // given
-        final Imp imp1 = givenImp(impBuilder ->
-                impBuilder.ext(givenExt(extBuilder -> extBuilder.placementId(12).member("member1")))
-                        .video(Video.builder().build()));
-        final Imp imp2 = givenImp(impBuilder ->
-                impBuilder.ext(givenExt(builder -> builder.placementId(12).member("member2")))
-                        .banner(Banner.builder().build()));
-        final BidRequest bidRequest = BidRequest.builder().imp(List.of(imp1, imp2)).build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("All request.imp[i].ext.appnexus.member params must match. "
-                        + "Request contained: member2, member1"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldUpdateRequestExtAppnexus() {
-        // given
-        final ExtRequestPrebid requestPrebid = ExtRequestPrebid.builder()
-                .targeting(ExtRequestTargeting.builder()
-                        .includebrandcategory(ExtIncludeBrandCategory.of(null, null, null, null))
-                        .build())
-                .build();
-
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder
-                        .ext(ExtRequest.of(requestPrebid)),
-                impBuilder -> impBuilder.banner(Banner.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
+                .extracting(ext -> ext.get("appnexus"))
+                .map(appnexus -> mapper.convertValue(appnexus, AppnexusImpExtAppnexus.class))
+                .containsExactly(AppnexusImpExtAppnexus.builder()
+                        .placementId(1)
+                        .trafficSourceCode("2")
+                        .usePmtRule(true)
+                        .privateSizes(TextNode.valueOf("4"))
+                        .extInvCode("5")
+                        .externalImpId("6")
+                        .build());
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateImpExtWithStringKeywords() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(givenExt(ext -> ext.keywords(TextNode.valueOf("string")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("appnexus"))
+                .map(appnexus -> mapper.convertValue(appnexus, AppnexusImpExtAppnexus.class))
+                .extracting(AppnexusImpExtAppnexus::getKeywords)
+                .containsExactly("string");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateImpExtWithObjectKeywords() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(givenExt(ext -> ext.keywords(mapper.createObjectNode()
+                        .putPOJO("field1", asList("value1", "value2"))
+                        .putPOJO("field2", emptyList())
+                        .putPOJO("field3", singletonList(null))))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("appnexus"))
+                .map(appnexus -> mapper.convertValue(appnexus, AppnexusImpExtAppnexus.class))
+                .extracting(AppnexusImpExtAppnexus::getKeywords)
+                .containsExactly("field1=value1,field1=value2,field2,field3=");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateImpExtWithArrayKeywords() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(givenExt(ext -> ext.keywords(mapper.valueToTree(asList(
+                        AppnexusKeyVal.of("key1", asList("value1", "value2")),
+                        AppnexusKeyVal.of("key2", emptyList()),
+                        AppnexusKeyVal.of("key3", null),
+                        AppnexusKeyVal.of("key4", singletonList(null))))))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("appnexus"))
+                .map(appnexus -> mapper.convertValue(appnexus, AppnexusImpExtAppnexus.class))
+                .extracting(AppnexusImpExtAppnexus::getKeywords)
+                .containsExactly("key1=value1,key1=value2,key2,key3,key4=");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedUrl() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(givenExt(identity())));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://endpoint.com/");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedUrlWithMemberId() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(givenExt(ext -> ext.member("me mber"))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://endpoint.com/?member_id=me+mber");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldMoveSupplyChain() {
+        // given
+        final ExtSource extSource = ExtSource.of(SupplyChain.of(1, null, null, null));
+        extSource.addProperty("field", TextNode.valueOf("value"));
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.source(Source.builder().ext(extSource).build()),
+                givenImp(givenExt(identity())));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .allSatisfy(request -> {
+                    final ExtSource expectedExtSource = ExtSource.of(null);
+                    expectedExtSource.addProperty("field", TextNode.valueOf("value"));
+                    assertThat(request.getSource())
+                            .extracting(Source::getExt)
+                            .isEqualTo(expectedExtSource);
+
+                    assertThat(request.getExt())
+                            .extracting(ext -> ext.getProperty("schain"))
+                            .isEqualTo(mapper.valueToTree(Map.of("complete", 1)));
+                });
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUpdateExtAppnexus() {
+        // given
+        final AppnexusBidder target = new AppnexusBidder(
+                "https://endpoint.com/",
+                1,
+                Map.of(10, "IAB4-5"),
+                jacksonMapper);
+
+        final BidRequest bidRequest = givenBidRequest(givenImp(givenExt(identity())));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .extracting(extRequest -> extRequest.getProperty("appnexus"))
-                .containsExactly(mapper.valueToTree(
-                        AppnexusReqExtAppnexus.builder()
-                                .includeBrandCategory(true)
-                                .brandCategoryUniqueness(true)
-                                .isAmp(0)
-                                .headerBiddingSource(5)
-                                .build()));
+                .extracting(ext -> ext.getProperty("appnexus"))
+                .map(appnexus -> mapper.convertValue(appnexus, AppnexusReqExtAppnexus.class))
+                .containsExactly(AppnexusReqExtAppnexus.builder()
+                        .isAmp(0)
+                        .headerBiddingSource(1)
+                        .build());
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldSetRequestUrlWithMemberIdParam() {
+    public void makeHttpRequestsShouldUpdateExtAppnexusIfBrandCategoryPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                identity(),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid").member("member_param"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue())
-                .hasSize(1)
-                .element(0).returns("http://test/auction?member_id=member_param", HttpRequest::getUri);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetRequestUrlWithoutMemberIdIfItMissedRequestBodyImps() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                identity(),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue())
-                .hasSize(1)
-                .element(0).returns(ENDPOINT_URL, HttpRequest::getUri);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetNativeIfRequestImpIsNative() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                impBuilder -> impBuilder.xNative(Native.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).hasSize(1)
-                .extracting(Imp::getXNative).doesNotContainNull();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldSetVideoTypeIfRequestImpIsVideo() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                identity(),
-                impBuilder -> impBuilder.video(Video.builder().build()),
-                extImpAppnexusBuilder -> extImpAppnexusBuilder.placementId(20).invCode("tagid"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp).hasSize(1)
-                .extracting(Imp::getVideo).doesNotContainNull();
-    }
-
-    @Test
-    public void makeHttpRequestShouldReturnSplitedHttpRequestWhenImpMoreThanMaxImpPerRequest() {
-        // given
-        final List<Imp> imps = IntStream.rangeClosed(0, 35)
-                .mapToObj(ignore -> Imp.builder()
-                        .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAppnexus.builder().placementId(10).build())))
-                        .build())
-                .toList();
-        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(4)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getImp)
-                .extracting(Collection::size)
-                .containsOnly(10, 10, 10, 6);
-    }
-
-    @Test
-    public void makeHttpRequestShouldReturnSingleRequestWhenOnePod() {
-        // given
-        final List<Imp> imps = IntStream.rangeClosed(0, 2)
-                .mapToObj(impIdSuffix -> givenImp(
-                        imp -> imp
-                                .id("1_" + impIdSuffix)
-                                .banner(Banner.builder().build()),
-                        ext -> ext.placementId(10).generateAdPodId(true)))
-                .toList();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(imps)
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(1)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getExt).isNotNull()
-                .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
-                .extracting(AppnexusReqExt::getAppnexus).doesNotContainNull()
-                .extracting(AppnexusReqExtAppnexus::getAdpodId).doesNotContainNull()
-                .allMatch(adPodId -> Pattern.matches("\\d+", adPodId));
-    }
-
-    @Test
-    public void makeHttpRequestShouldReturnMultipleRequestsWhenOnePodAndManyImps() {
-        // given
-        final List<Imp> imps = IntStream.rangeClosed(0, 15)
-                .mapToObj(impIdSuffix -> givenImp(
-                        imp -> imp
-                                .id("1_" + impIdSuffix)
-                                .banner(Banner.builder().build()),
-                        ext -> ext.placementId(10).generateAdPodId(true)))
-                .toList();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(imps)
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(2)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getExt).isNotNull()
-                .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
-                .extracting(AppnexusReqExt::getAppnexus).doesNotContainNull()
-                .extracting(AppnexusReqExtAppnexus::getAdpodId).doesNotContainNull()
-                .matches(adPodIds -> new HashSet<>(adPodIds).size() == 1); // adPodIds should be the same
-    }
-
-    @Test
-    public void makeHttpRequestShouldReturnMultipleRequestsWhenTwoPods() {
-        // given
-        final List<Imp> imps = IntStream.rangeClosed(1, 2)
-                .boxed()
-                .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 2)
-                        .mapToObj(impIdSuffix -> givenImp(
-                                imp -> imp
-                                        .id("%d_%d".formatted(impIdPrefix, impIdSuffix))
-                                        .banner(Banner.builder().build()),
-                                ext -> ext.placementId(10).generateAdPodId(true))))
-                .toList();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(imps)
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(2)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getExt).isNotNull()
-                .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
-                .extracting(AppnexusReqExt::getAppnexus).doesNotContainNull()
-                .extracting(AppnexusReqExtAppnexus::getAdpodId).doesNotContainNull()
-                .matches(adPodIds -> new HashSet<>(adPodIds).size() == 2); // adPodIds should be different
-    }
-
-    @Test
-    public void makeHttpRequestShouldReturnMultipleRequestsWhenTwoPodsAndManyImps() {
-        // given
-        final List<Imp> imps = IntStream.rangeClosed(1, 2)
-                .boxed()
-                .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 15)
-                        .mapToObj(impIdSuffix -> givenImp(
-                                imp -> imp
-                                        .id("%d_%d".formatted(impIdPrefix, impIdSuffix))
-                                        .banner(Banner.builder().build()),
-                                ext -> ext.placementId(10).generateAdPodId(true))))
-                .toList();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(imps)
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).hasSize(4)
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getExt).isNotNull()
-                .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
-                .extracting(AppnexusReqExt::getAppnexus).doesNotContainNull()
-                .extracting(AppnexusReqExtAppnexus::getAdpodId).doesNotContainNull()
-                .matches(adPodIds -> new HashSet<>(adPodIds).size() == 2); // adPodIds should be different
-    }
-
-    @Test
-    public void makeHttpRequestShouldReturnErrorIfRequestContainsMultipleGenerateAdPodIdsValues() {
-        // given
-        final List<Imp> imps = IntStream.rangeClosed(1, 2)
-                .boxed()
-                .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 15)
-                        .mapToObj(impIdSuffix -> givenImp(
-                                imp -> imp
-                                        .id("%d_%d".formatted(impIdPrefix, impIdSuffix))
-                                        .banner(Banner.builder().build()),
-                                ext -> ext.placementId(10).generateAdPodId(impIdSuffix % 2 == 0))))
-                .toList();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(imps)
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badInput("Generate ad pod option should be same for all pods in request"));
-    }
-
-    @Test
-    public void makeHttpRequestShouldNotGenerateAdPodIdWhenFlagIsNotSetInRequestImpExt() {
-        // given
-        final List<Imp> imps = IntStream.rangeClosed(1, 2)
-                .boxed()
-                .flatMap(impIdPrefix -> IntStream.rangeClosed(0, 15)
-                        .mapToObj(impIdSuffix -> givenImp(
-                                imp -> imp
-                                        .id("%d_%d".formatted(impIdPrefix, impIdSuffix))
-                                        .banner(Banner.builder().build()),
-                                ext -> ext.placementId(10).generateAdPodId(false))))
-                .toList();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(imps)
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
                                 .includebrandcategory(ExtIncludeBrandCategory.of(null, null, null, null))
                                 .build())
-                        .server(ExtRequestPrebidServer.of(null, null, null, Endpoint.openrtb2_video.value()))
-                        .build()))
-                .build();
+                        .build())),
+                givenImp(givenExt(identity())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .extracting(ext -> mapper.convertValue(ext.getProperties(), AppnexusReqExt.class))
-                .extracting(AppnexusReqExt::getAppnexus).doesNotContainNull()
-                .extracting(AppnexusReqExtAppnexus::getAdpodId)
-                .matches(adPodIds -> adPodIds.stream().allMatch(Objects::isNull));
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allMatch(error -> error.getType() == BidderError.Type.bad_server_response
-                        && error.getMessage().startsWith("Failed to decode: Unrecognized token 'invalid'"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnBannerBidIfBidTypeFromResponseIsBanner() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(BANNER_TYPE));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
+                .extracting(ext -> ext.getProperty("appnexus"))
+                .map(appnexus -> mapper.convertValue(appnexus, AppnexusReqExtAppnexus.class))
+                .containsExactly(AppnexusReqExtAppnexus.builder()
+                        .brandCategoryUniqueness(true)
+                        .includeBrandCategory(true)
+                        .isAmp(0)
+                        .headerBiddingSource(5)
+                        .build());
         assertThat(result.getErrors()).isEmpty();
-        final AppnexusBidExtAppnexus expectedExtAppnexus =
-                AppnexusBidExtAppnexus.builder().bidAdType(BANNER_TYPE).build();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
-                .ext(mapper.valueToTree(AppnexusBidExt.of(
-                        expectedExtAppnexus))).impid("impId").build(), BidType.banner, null));
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfBidTypeFromResponseIsVideo() throws JsonProcessingException {
+    public void makeHttpRequestsShouldUpdateExtAppnexusIfAmpRequest() {
         // given
-        final BidRequest bidRequest =
-                givenBidRequest(impBuilder -> impBuilder.id("impId").video(Video.builder().build()));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(VIDEO_TYPE));
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .server(ExtRequestPrebidServer.of(null, null, null, openrtb2_amp.value()))
+                        .build())),
+                givenImp(givenExt(identity())));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-
-        final AppnexusBidExtAppnexus expectedExtAppnexus =
-                AppnexusBidExtAppnexus.builder().bidAdType(VIDEO_TYPE).build();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
-                .ext(mapper.valueToTree(AppnexusBidExt.of(
-                        expectedExtAppnexus))).impid("impId").build(), BidType.video, null));
-    }
-
-    @Test
-    public void makeBidsShouldReturnAudioBidIfBidTypeFromResponseIsAudio() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(AUDIO_TYPE));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-
-        final AppnexusBidExtAppnexus expectedExtAppnexus =
-                AppnexusBidExtAppnexus.builder().bidAdType(AUDIO_TYPE).build();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
-                .ext(mapper.valueToTree(AppnexusBidExt.of(
-                        expectedExtAppnexus))).impid("impId").build(), BidType.audio, null));
-    }
-
-    @Test
-    public void makeBidsShouldReturnNativeBidIfBidTypeFromResponseBidExtIsNative() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(NATIVE_TYPE));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-
-        final AppnexusBidExtAppnexus expectedExtAppnexus =
-                AppnexusBidExtAppnexus.builder().bidAdType(NATIVE_TYPE).build();
-        assertThat(result.getValue()).containsOnly(BidderBid.of(Bid.builder()
-                .ext(mapper.valueToTree(AppnexusBidExt.of(
-                        expectedExtAppnexus))).impid("impId").build(), BidType.xNative, null));
-    }
-
-    @Test
-    public void makeBidsShouldSetBidCatWhenBrandCategoryIdIsMatch() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(bidExtCustomizer -> bidExtCustomizer.brandCategoryId(10).bidAdType(1)));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .extracting(BidderBid::getBid)
-                .flatExtracting(Bid::getCat)
-                .containsOnly("IAB4-5");
-    }
-
-    @Test
-    public void makeBidsShouldClearBidCatWhenBrandCategoryIdIsNotMatchAndBidCatIsNotEmpty()
-            throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(
-                bidBuilder -> bidBuilder.cat(singletonList("CLEAR")),
-                bidExtCustomizer -> bidExtCustomizer.brandCategoryId(350).bidAdType(1)));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> ext.getProperty("appnexus"))
+                .map(appnexus -> mapper.convertValue(appnexus, AppnexusReqExtAppnexus.class))
+                .containsExactly(AppnexusReqExtAppnexus.builder()
+                        .isAmp(1)
+                        .headerBiddingSource(5)
+                        .build());
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBid)
-                .flatExtracting(Bid::getCat)
-                .isEmpty();
     }
 
     @Test
-    public void makeBidsShouldSetBidCurrencyFromResponseBid() throws JsonProcessingException {
+    public void makeHttpRequestsShouldUpdateExtAppnexusIfVideoRequest() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("impId"));
-
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidResponse(builder -> builder.cur("JPY"), identity(), identity()));
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .server(ExtRequestPrebidServer.of(null, null, null, openrtb2_video.value()))
+                        .build())),
+                givenImp(givenExt(identity())));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .extracting(ext -> ext.getProperty("appnexus"))
+                .map(appnexus -> mapper.convertValue(appnexus, AppnexusReqExtAppnexus.class))
+                .containsExactly(AppnexusReqExtAppnexus.builder()
+                        .isAmp(0)
+                        .headerBiddingSource(6)
+                        .build());
         assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSplitImps() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                IntStream.range(0, 42)
+                        .mapToObj(i -> givenImp(givenExt(identity())))
+                        .toArray(Imp[]::new));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
         assertThat(result.getValue())
-                .extracting(BidderBid::getBidCurrency)
-                .containsOnly("JPY");
+                .hasSize(5)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(Collection::size)
+                .containsExactly(10, 10, 10, 10, 2);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBidTypeValueFromResponseIsNotValid() throws IOException {
+    public void makeHttpRequestsShouldSplitImpsByPods() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(42));
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .server(ExtRequestPrebidServer.of(null, null, null, openrtb2_video.value()))
+                        .build())),
+                IntStream.range(0, 42)
+                        .mapToObj(i -> givenImp(
+                                imp -> imp.id(i % 2 + "_random"),
+                                givenExt(ext -> ext.generateAdPodId(true))))
+                        .toArray(Imp[]::new));
+
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse(
-                        "Unrecognized bid_ad_type in response from appnexus: 42"));
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getValue())
+                .hasSize(6)
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .extracting(Collection::size)
+                .containsExactly(10, 10, 1, 10, 10, 1);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfBidExtNotDefined() throws IOException {
+    public void makeHttpRequestsShouldGenerateProperAdPodIds() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder()
-                                .impid("impId")
-                                .ext(null)
-                                .build()))
-                        .build()))
-                .build()));
+        final BidRequest bidRequest = givenBidRequest(
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .server(ExtRequestPrebidServer.of(null, null, null, openrtb2_video.value()))
+                        .build())),
+                givenImp(imp -> imp.id("1_random"), givenExt(ext -> ext.generateAdPodId(true))),
+                givenImp(imp -> imp.id("1_random"), givenExt(ext -> ext.generateAdPodId(true))),
+                givenImp(imp -> imp.id("2_random"), givenExt(ext -> ext.generateAdPodId(true))));
+
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse(
-                        "bidResponse.bid.ext should be defined for appnexus"));
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getExt)
+                .satisfies(exts -> assertThat(exts.get(0)).isNotSameAs(exts.get(1)))
+                .extracting(ext -> ext.getProperty("appnexus"))
+                .extracting(appnexus -> appnexus.get("adpod_id"))
+                .hasSize(2)
+                .satisfies(ids -> assertThat(ids.get(0)).isNotSameAs(ids.get(1)));
+        assertThat(result.getErrors()).isEmpty();
     }
 
-    @Test
-    public void makeBidsShouldReturnErrorIfBidExtAppnexusNotDefined() throws IOException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder()
-                                .impid("impId")
-                                .ext(mapper.createObjectNode())
-                                .build()))
-                        .build()))
-                .build()));
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                              Imp... imps) {
 
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("bidResponse.bid.ext.appnexus should be defined"));
-        assertThat(result.getValue()).isEmpty();
+        return bidRequestCustomizer.apply(BidRequest.builder().imp(asList(imps))).build();
     }
 
-    @Test
-    public void makeBidsShouldReturnErrorIfBidExtAppnexusBidTypeNotDefined() throws IOException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder()
-                                .impid("impId")
-                                .ext(mapper.valueToTree(AppnexusBidExt.of(
-                                        AppnexusBidExtAppnexus.builder().bidAdType(null).build())))
-                                .build()))
-                        .build()))
-                .build()));
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse(
-                        "bidResponse.bid.ext.appnexus.bid_ad_type should be defined"));
-        assertThat(result.getValue()).isEmpty();
+    private static BidRequest givenBidRequest(Imp... imps) {
+        return givenBidRequest(identity(), imps);
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<BidRequestBuilder> bidRequestCustomizer,
-                                              UnaryOperator<ImpBuilder> impCustomizer,
-                                              UnaryOperator<ExtImpAppnexusBuilder> extCustomizer) {
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(givenImp(impCustomizer, extCustomizer))))
-                .build();
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()).build();
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer, identity());
+    private static Imp givenImp(ExtImpAppnexus extImpAppnexus) {
+        return givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, extImpAppnexus))));
     }
 
-    private static Imp givenImp(UnaryOperator<ImpBuilder> impCustomizer,
-                                UnaryOperator<ExtImpAppnexusBuilder> extCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                        .ext(givenExt(extCustomizer)))
-                .build();
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer, ExtImpAppnexus extImpAppnexus) {
+        return impCustomizer.apply(Imp.builder().ext(mapper.valueToTree(ExtPrebid.of(null, extImpAppnexus)))).build();
     }
 
-    private static Imp givenImp(UnaryOperator<ImpBuilder> impCustomizer) {
-        return givenImp(impCustomizer, identity());
-    }
-
-    private static ObjectNode givenExt(UnaryOperator<ExtImpAppnexusBuilder> extCustomizer) {
-        return mapper.valueToTree(ExtPrebid.of(null, extCustomizer.apply(ExtImpAppnexus.builder()).build()));
-    }
-
-    private static BidderCall<BidRequest> givenHttpCall(String body) {
-        return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
-    }
-
-    private static String givenBidResponse(Integer bidType) throws JsonProcessingException {
-        return mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(Bid.builder()
-                                .impid("impId")
-                                .ext(mapper.valueToTree(AppnexusBidExt.of(
-                                        AppnexusBidExtAppnexus.builder().bidAdType(bidType).build())))
-                                .build()))
-                        .build()))
-                .build());
-    }
-
-    private static String givenBidResponse(
-            UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer,
-            UnaryOperator<Bid.BidBuilder> bidCustomizer,
-            UnaryOperator<AppnexusBidExtAppnexus.AppnexusBidExtAppnexusBuilder> bidExtCustomizer)
-            throws JsonProcessingException {
-
-        return mapper.writeValueAsString(bidResponseCustomizer.apply(
-                        BidResponse.builder()
-                                .seatbid(singletonList(SeatBid.builder()
-                                        .bid(singletonList(bidCustomizer.apply(Bid.builder()
-                                                .impid("impId")
-                                                .ext(mapper.valueToTree(AppnexusBidExt.of(bidExtCustomizer.apply(
-                                                                AppnexusBidExtAppnexus.builder()
-                                                                        .bidAdType(BANNER_TYPE))
-                                                        .build())))).build()))
-                                        .build())))
-                .build());
-    }
-
-    private static String givenBidResponse(
-            UnaryOperator<Bid.BidBuilder> bidCustomizer,
-            UnaryOperator<AppnexusBidExtAppnexus.AppnexusBidExtAppnexusBuilder> bidExtCustomizer)
-            throws JsonProcessingException {
-
-        return givenBidResponse(identity(), bidCustomizer, bidExtCustomizer);
-    }
-
-    private static String givenBidResponse(
-            UnaryOperator<AppnexusBidExtAppnexus.AppnexusBidExtAppnexusBuilder> bidExtCustomizer)
-            throws JsonProcessingException {
-
-        return givenBidResponse(identity(), bidExtCustomizer);
-    }
-
-    @Value(staticConstructor = "of")
-    private static class AppnexusReqExt {
-
-        AppnexusReqExtAppnexus appnexus;
+    private static ExtImpAppnexus givenExt(UnaryOperator<ExtImpAppnexus.ExtImpAppnexusBuilder> extCustomizer) {
+        return extCustomizer.apply(ExtImpAppnexus.builder().placementId(1)).build();
     }
 }

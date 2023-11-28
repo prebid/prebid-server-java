@@ -172,11 +172,11 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                                                SameValueValidator<Boolean> generateAdPodIdValidator) {
 
         final int placementId = ObjectUtils.defaultIfNull(extImpAppnexus.getPlacementId(), 0);
-        if (placementId == 0 && StringUtils.isAnyBlank(extImpAppnexus.getInvCode(), extImpAppnexus.getMember())) {
+        final String member = extImpAppnexus.getMember();
+        if (placementId == 0 && StringUtils.isAnyBlank(extImpAppnexus.getInvCode(), member)) {
             throw new PreBidException("No placement or member+invcode provided");
         }
 
-        final String member = extImpAppnexus.getMember();
         if (StringUtils.isNotBlank(member) && memberValidator.isInvalid(member)) {
             throw new ValidationException("all request.imp[i].ext.prebid.bidder.appnexus.member params must match."
                     + " Request contained member IDs %s and %s".formatted(memberValidator.getValue(), member));
@@ -322,16 +322,12 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final SupplyChain supplyChain = supplyChain(source);
 
         final UpdateResult<Source> updatedSource = updateSource(source, supplyChain);
+        final ExtRequest updatedExtRequest = updateExtRequest(bidRequest.getExt(), supplyChain, isAmp, isVideo);
 
-        final ExtRequest extRequest = bidRequest.getExt();
-        final UpdateResult<ExtRequest> updatedExtRequest = updateExtRequest(extRequest, supplyChain, isAmp, isVideo);
-
-        return updatedSource.isUpdated() || updatedExtRequest.isUpdated()
-                ? bidRequest.toBuilder()
+        return bidRequest.toBuilder()
                 .source(updatedSource.getValue())
-                .ext(updatedExtRequest.getValue())
-                .build()
-                : bidRequest;
+                .ext(updatedExtRequest)
+                .build();
     }
 
     private static SupplyChain supplyChain(Source source) {
@@ -362,10 +358,10 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         return extSource;
     }
 
-    private UpdateResult<ExtRequest> updateExtRequest(ExtRequest extRequest,
-                                                      SupplyChain supplyChain,
-                                                      boolean isAmp,
-                                                      boolean isVideo) {
+    private ExtRequest updateExtRequest(ExtRequest extRequest,
+                                        SupplyChain supplyChain,
+                                        boolean isAmp,
+                                        boolean isVideo) {
 
         final ExtRequest updatedExtRequest = makeCopyOrNew(extRequest);
 
@@ -379,7 +375,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 isAmp,
                 isVideo));
 
-        return UpdateResult.updated(updatedExtRequest);
+        return updatedExtRequest;
     }
 
     private ExtRequest makeCopyOrNew(ExtRequest extRequest) {
