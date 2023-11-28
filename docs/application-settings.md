@@ -25,7 +25,11 @@ There are two ways to configure application settings: database and file. This do
 - `auction.targeting.includeformat` - whether to include the “hb_format” targeting key. Default `false`.
 - `auction.targeting.preferdeals` - if targeting is returned and this is `true`, PBS will choose the highest value deal before choosing the highest value non-deal. Default `false`.
 - `auction.targeting.alwaysincludedeals` - PBS-Java only. If true, generate `hb_ATTR_BIDDER` values for all bids that have a `dealid`. Default to `false`.
-- `auction.targeting.prefix` - defines prefix for targeting keywords. Default `hb_`. May be overridden by corresponded property from bid request.
+- `auction.targeting.prefix` - defines prefix for targeting keywords. Default `hb`. 
+Keep in mind following restrictions:
+    - this prefix value may be overridden by correspond property from bid request
+    - prefix length is limited by `auction.truncate-target-attr`
+    - if custom prefix may produce keywords that exceed `auction.truncate-target-attr`, prefix value will drop to default `hb`
 - `privacy.ccpa.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
 - `privacy.ccpa.channel-enabled.web` - overrides `ccpa.enforce` property behaviour for web requests type.
 - `privacy.ccpa.channel-enabled.amp` - overrides `ccpa.enforce` property behaviour for amp requests type.
@@ -114,6 +118,13 @@ Here's an example YAML file containing account-specific settings:
           enabled: true
         price-floors:
           enabled: false
+        targeting:
+            includewinners: false
+            includebidderkeys: false
+            includeformat: false
+            preferdeals: false
+            alwaysincludedeals: false
+            prefix: hb
         debug-allow: true
       metrics:
         verbosity-level: basic
