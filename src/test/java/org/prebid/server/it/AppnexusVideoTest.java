@@ -16,6 +16,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
 public class AppnexusVideoTest extends IntegrationTest {
@@ -28,14 +29,16 @@ public class AppnexusVideoTest extends IntegrationTest {
                 .withHeader("Accept", equalTo("application/json"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/appnexus/test-video-appnexus-bid-request-1.json"), true, true))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/appnexus/test-video-appnexus-bid-response-1.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/appnexus/test-video-appnexus-bid-response-1.json"))));
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/appnexus-exchange"))
                 .withHeader("Content-Type", equalToIgnoreCase("application/json;charset=UTF-8"))
                 .withHeader("Accept", equalTo("application/json"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/appnexus/test-video-appnexus-bid-request-2.json"), true, true))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/appnexus/test-video-appnexus-bid-response-2.json"))));
+                .willReturn(aResponse().withBody(
+                        jsonFrom("openrtb2/appnexus/test-video-appnexus-bid-response-2.json"))));
 
         // pre-bid cache
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/cache"))
@@ -51,6 +54,6 @@ public class AppnexusVideoTest extends IntegrationTest {
                 Endpoint.openrtb2_video);
 
         // then
-        assertJsonEquals("openrtb2/appnexus/test-video-appnexus-response.json", response, emptyList());
+        assertJsonEquals("openrtb2/appnexus/test-video-appnexus-response.json", response, singletonList("appnexus"));
     }
 }
