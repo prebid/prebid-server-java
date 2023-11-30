@@ -1,5 +1,8 @@
 {
   "id": "tid",
+  "regs": {
+    "gdpr": 0
+  },
   "imp": [
     {
       "id": "impId1",
@@ -15,7 +18,7 @@
         "tid": "someTid",
         "prebid": {
           "bidder": {
-            "rubicon": {
+            "generic": {
               "accountId": 2001,
               "siteId": 3001,
               "zoneId": 4001
@@ -38,7 +41,7 @@
           "tid": "someTid",
         "prebid": {
           "bidder": {
-            "rubicon": {
+            "generic": {
               "accountId": 2001,
               "siteId": 3001,
               "zoneId": 4001
@@ -61,7 +64,7 @@
         "tid": "someTid",
         "prebid": {
           "bidder": {
-            "rubicon": {
+            "generic": {
               "accountId": 2001,
               "siteId": 3001,
               "zoneId": 4001,
@@ -86,7 +89,7 @@
         "tid": "someTid",
         "prebid": {
           "bidder": {
-            "rubicon": {
+            "generic": {
               "accountId": 2001,
               "siteId": 3001,
               "zoneId": 4001

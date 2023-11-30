@@ -15,6 +15,6 @@ adapters:
     usersync:
       cookie-family-name: smaato
       redirect:
-        url: https://s.ad.smaato.net/c/?adExInit=p&redir={{redirect_url}}
+        url: https://s.ad.smaato.net/c/?adExInit=p&redir={{redirect_url}}&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
         support-cors: false
         uid-macro: '$UID'

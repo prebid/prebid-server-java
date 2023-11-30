@@ -716,11 +716,11 @@ public class Metrics extends UpdatableMetrics {
         forAdapter(adapter).activities().forActivity(activity).incCounter(MetricName.disallowed_count);
     }
 
-    public void updateRequestsActivityProcessedRulesCount(int count) {
-        requests().activities().incCounter(MetricName.processed_rules_count, count);
+    public void updateRequestsActivityProcessedRulesCount() {
+        requests().activities().incCounter(MetricName.processed_rules_count);
     }
 
-    public void updateAccountActivityProcessedRulesCount(String account, int count) {
-        forAccount(account).activities().incCounter(MetricName.processed_rules_count, count);
+    public void updateAccountActivityProcessedRulesCount(String account) {
+        forAccount(account).activities().incCounter(MetricName.processed_rules_count);
     }
 }

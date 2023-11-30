@@ -1,11 +1,17 @@
 package org.prebid.server.activity.infrastructure.rule;
 
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.prebid.server.activity.infrastructure.debug.ActivityDebugUtils;
+import org.prebid.server.activity.infrastructure.debug.Loggable;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 
 import java.util.List;
 import java.util.Objects;
 
-public class AndRule implements Rule {
+public class AndRule implements Rule, Loggable {
 
     private final List<? extends Rule> rules;
 
@@ -14,11 +20,11 @@ public class AndRule implements Rule {
     }
 
     @Override
-    public Result proceed(ActivityCallPayload activityCallPayload) {
+    public Result proceed(ActivityInvocationPayload activityInvocationPayload) {
         Result result = Result.ABSTAIN;
 
         for (Rule rule : rules) {
-            final Result ruleResult = rule.proceed(activityCallPayload);
+            final Result ruleResult = rule.proceed(activityInvocationPayload);
             if (ruleResult != Result.ABSTAIN) {
                 result = ruleResult;
             }
@@ -29,5 +35,14 @@ public class AndRule implements Rule {
         }
 
         return result;
+    }
+
+    @Override
+    public JsonNode asLogEntry(ObjectMapper mapper) {
+        final ObjectNode andNode = mapper.createObjectNode();
+        final ArrayNode arrayNode = andNode.putArray("and");
+        arrayNode.addAll(ActivityDebugUtils.asLogEntry(rules, mapper));
+
+        return andNode;
     }
 }

@@ -169,7 +169,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                 .activityInfrastructure(activityInfrastructureCreator.create(
                         cookieSyncContext.getAccount(),
                         cookieSyncContext.getGppContext(),
-                        TraceLevel.basic))
+                        cookieSyncContext.isDebug() ? TraceLevel.verbose : null))
                 .build();
     }
 

@@ -1,6 +1,7 @@
 package org.prebid.server.activity.infrastructure;
 
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDebug;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 
 import java.util.List;
@@ -10,30 +11,32 @@ public class ActivityController {
 
     private final boolean allowByDefault;
     private final List<Rule> rules;
+    private final ActivityInfrastructureDebug debug;
 
-    private ActivityController(boolean allowByDefault, List<Rule> rules) {
+    private ActivityController(boolean allowByDefault, List<Rule> rules, ActivityInfrastructureDebug debug) {
         this.allowByDefault = allowByDefault;
         this.rules = Objects.requireNonNull(rules);
+        this.debug = Objects.requireNonNull(debug);
     }
 
-    public static ActivityController of(boolean allowByDefault, List<Rule> rules) {
-        return new ActivityController(allowByDefault, rules);
+    public static ActivityController of(boolean allowByDefault, List<Rule> rules, ActivityInfrastructureDebug debug) {
+        return new ActivityController(allowByDefault, rules, debug);
     }
 
-    public ActivityCallResult isAllowed(ActivityCallPayload activityCallPayload) {
-        int processedRulesCount = 0;
+    public boolean isAllowed(ActivityInvocationPayload activityInvocationPayload) {
+        debug.emitActivityInvocationDefaultResult(allowByDefault);
         boolean result = allowByDefault;
 
         for (Rule rule : rules) {
-            processedRulesCount++;
+            final Rule.Result ruleResult = rule.proceed(activityInvocationPayload);
+            debug.emitProcessedRule(rule, ruleResult);
 
-            final Rule.Result ruleResult = rule.proceed(activityCallPayload);
             if (ruleResult != Rule.Result.ABSTAIN) {
                 result = ruleResult == Rule.Result.ALLOW;
                 break;
             }
         }
 
-        return ActivityCallResult.of(result, processedRulesCount);
+        return result;
     }
 }

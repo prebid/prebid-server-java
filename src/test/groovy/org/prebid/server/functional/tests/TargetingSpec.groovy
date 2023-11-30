@@ -273,8 +273,8 @@ class TargetingSpec extends BaseSpec {
             response.targeting[customBidRequest] == uuid
             response.targeting[customAmp] == ampRequest.curl
             response.targeting[customStatic] == customValue
-            response.targeting[customBidder.replace("{{BIDDER}}", GENERIC.value)]
-                    == storedBidResponse.seatbid[0].bid[0].price.toString()
+            response.targeting[customBidder.replace("{{BIDDER}}", GENERIC.value)] ==
+                    storedBidResponse.seatbid[0].bid[0].price.stripTrailingZeros().toString()
         }
     }
 
