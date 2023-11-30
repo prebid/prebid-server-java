@@ -35,7 +35,7 @@ class Prebid {
     Boolean createTids
     Sdk sdk
     List<AdServerTargeting> adServerTargeting
-    Bidder bidders
+    PreferredBidders bidders
 
     static class Channel {
 

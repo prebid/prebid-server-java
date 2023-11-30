@@ -1,23 +1,24 @@
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.bidder.Generic
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.PreferredMediaType
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Audio
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.request.auction.Bidder
+import org.prebid.server.functional.model.request.auction.GenericPreferredBidder
 import org.prebid.server.functional.model.request.auction.Native
+import org.prebid.server.functional.model.request.auction.PreferredBidders
 
 import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
+import static org.prebid.server.functional.model.response.auction.MediaType.NULL
 
 class FilterMultiFormatSpec extends BaseSpec {
 
-    def "PBS should response with all requested media type when default adapters multi format true in config and at account level specified preferred media type"() {
+    def "PBS should respond with all requested media types when default adapters multi format is true in config and preferred media type specified at account level"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapter-defaults.ortb.multiformat-supported": "true")
@@ -29,7 +30,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         }
 
         and: "Account in the DB with preferred media type"
-        def accountConfig = new AccountAuctionConfig(preferredMediaType: new PreferredMediaType(generic: BANNER))
+        def accountConfig = new AccountAuctionConfig(preferredMediaType: [(BidderName.GENERIC): BANNER])
         def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: accountConfig))
         accountDao.save(account)
 
@@ -42,7 +43,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert bidderRequest.imp[0].audio
     }
 
-    def "PBS should response with all requested media type when default adapters multi format true in config and at request level specified preferred media type"() {
+    def "PBS should respond with all requested media types when default adapters multi format is true in config and preferred media type specified at request level"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapter-defaults.ortb.multiformat-supported": "true")
@@ -51,7 +52,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = Banner.defaultBanner
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new Bidder(generic: new Generic(preferredMediaType: BANNER))
+            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         when: "PBS processes auction request"
@@ -63,7 +64,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert bidderRequest.imp[0].audio
     }
 
-    def "PBS should response with one requested preferred media type when default adapters multi format false in config and at account level specified preferred media type"() {
+    def "PBS should respond with one requested preferred media type when default adapters multi format is false in config and  preferred media type specified at account level"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapter-defaults.ortb.multiformat-supported": "false")
@@ -75,7 +76,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         }
 
         and: "Account in the DB with preferred media type"
-        def accountConfig = new AccountAuctionConfig(preferredMediaType: new PreferredMediaType(generic: BANNER))
+        def accountConfig = new AccountAuctionConfig(preferredMediaType: [(BidderName.GENERIC): BANNER])
         def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: accountConfig))
         accountDao.save(account)
 
@@ -88,7 +89,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert !bidderRequest.imp[0].audio
     }
 
-    def "PBS should response with one requested preferred media type when default adapters multi format false in config and at request level specified preferred media type"() {
+    def "PBS should respond with one requested preferred media type when default adapters multi format is false in config and preferred media type specified at request level"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapter-defaults.ortb.multiformat-supported": "false")
@@ -97,7 +98,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = Banner.defaultBanner
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new Bidder(generic: new Generic(preferredMediaType: BANNER))
+            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         when: "PBS processes auction request"
@@ -109,7 +110,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert !bidderRequest.imp[0].audio
     }
 
-    def "PBS should response with all requested media type when multi format true in config and at request level specified preferred media type"() {
+    def "PBS should respond with all requested media type when multi format is true in config and preferred media type specified at request level"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapters.generic.ortb.multiformat-supported": "true")
@@ -118,7 +119,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = Banner.defaultBanner
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new Bidder(generic: new Generic(preferredMediaType: BANNER))
+            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         when: "PBS processes auction request"
@@ -130,7 +131,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert bidderRequest.imp.audio
     }
 
-    def "PBS should response with all requested media type when multi format true in config and at account level specified preferred media type"() {
+    def "PBS should respond with all requested media type when multi format is true in config and preferred media type specified at account level"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapters.generic.ortb.multiformat-supported": "true")
@@ -142,7 +143,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         }
 
         and: "Account in the DB with preferred media type"
-        def accountConfig = new AccountAuctionConfig(preferredMediaType: new PreferredMediaType(generic: BANNER))
+        def accountConfig = new AccountAuctionConfig(preferredMediaType: [(BidderName.GENERIC): BANNER])
         def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: accountConfig))
         accountDao.save(account)
 
@@ -155,7 +156,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert bidderRequest.imp.audio
     }
 
-    def "PBS should response with one requested preferred media type when multi format false in config and at account level specified preferred media type"() {
+    def "PBS should respond with one requested preferred media type when multi format is false in config and preferred media type specified at account level"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapters.generic.ortb.multiformat-supported": "false")
@@ -167,7 +168,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         }
 
         and: "Account in the DB with preferred media type"
-        def accountConfig = new AccountAuctionConfig(preferredMediaType: new PreferredMediaType(generic: BANNER))
+        def accountConfig = new AccountAuctionConfig(preferredMediaType: [(BidderName.GENERIC): BANNER])
         def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: accountConfig))
         accountDao.save(account)
 
@@ -180,7 +181,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert !bidderRequest.imp[0].audio
     }
 
-    def "PBS should response with one requested preferred media type when multi format false in config and at request level specified preferred media type"() {
+    def "PBS should respond with one requested preferred media type when multi format is false in config and preferred media type preferred at request level"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapters.generic.ortb.multiformat-supported": "false")
@@ -189,7 +190,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = Banner.defaultBanner
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new Bidder(generic: new Generic(preferredMediaType: BANNER))
+            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         when: "PBS processes auction request"
@@ -201,7 +202,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert !bidderRequest.imp[0].audio
     }
 
-    def "PBS should response with warning and don't make a bidder call when requested multi format doesn't specified at account preferred media type"() {
+    def "PBS should respond with warning and don't make a bidder call when multi format at request and preferred media type specified at account level with non requested media type"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapters.generic.ortb.multiformat-supported": "false")
@@ -214,7 +215,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         }
 
         and: "Account in the DB with preferred media type"
-        def accountConfig = new AccountAuctionConfig(preferredMediaType: new PreferredMediaType(generic: BANNER))
+        def accountConfig = new AccountAuctionConfig(preferredMediaType: [(BidderName.GENERIC): BANNER])
         def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: accountConfig))
         accountDao.save(account)
 
@@ -230,7 +231,7 @@ class FilterMultiFormatSpec extends BaseSpec {
                  "Bid request contains 0 impressions after filtering."]
     }
 
-    def "PBS should response with warning and don't make a bidder call when requested multi format doesn't specified at request preferred media type"() {
+    def "PBS should respond with warning and don't make a bidder call when multi format at request and preferred media type specified at request level with non requested media type"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapters.generic.ortb.multiformat-supported": "false")
@@ -240,7 +241,7 @@ class FilterMultiFormatSpec extends BaseSpec {
             imp[0].banner = null
             imp[0].audio = Audio.defaultAudio
             imp[0].nativeObj = Native.defaultNative
-            ext.prebid.bidders = new Bidder(generic: new Generic(preferredMediaType: BANNER))
+            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         when: "PBS processes auction request"
@@ -255,7 +256,7 @@ class FilterMultiFormatSpec extends BaseSpec {
                  "Bid request contains 0 impressions after filtering."]
     }
 
-    def "PBS shouldn't response with warning and make a bidder call when doesn't requested multi format that specified at account preferred media type"() {
+    def "PBS shouldn't respond with warning and make a bidder call when request doesn't contain multi format and preferred media type specified at account level"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapters.generic.ortb.multiformat-supported": "false")
@@ -267,7 +268,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         }
 
         and: "Account in the DB with preferred media type"
-        def accountConfig = new AccountAuctionConfig(preferredMediaType: new PreferredMediaType(generic: BANNER))
+        def accountConfig = new AccountAuctionConfig(preferredMediaType: [(BidderName.GENERIC): BANNER])
         def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: accountConfig))
         accountDao.save(account)
 
@@ -282,7 +283,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert !bidResponse.ext.warnings
     }
 
-    def "PBS shouldn't response with warning and make a bidder call when doesn't requested multi format that specified at request preferred media type"() {
+    def "PBS shouldn't respond with warning and make a bidder call when request doesn't contain multi format and preferred media type specified at request level"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapters.generic.ortb.multiformat-supported": "false")
@@ -291,7 +292,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = null
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new Bidder(generic: new Generic(preferredMediaType: BANNER))
+            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         when: "PBS processes auction request"
@@ -305,7 +306,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert !bidResponse.ext.warnings
     }
 
-    def "PBS shouldn't response with warning and make bidder call when multi format false and in request level preferred media type null"() {
+    def "PBS shouldn't respond with warning and make a bidder call when request doesn't contain multi format and multi format is false and preferred media type specified at request level with null"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapters.generic.ortb.multiformat-supported": "false")
@@ -314,7 +315,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = Banner.getDefaultBanner()
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new Bidder(generic: new Generic(preferredMediaType: null))
+            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: NULL))
         }
 
         when: "PBS processes auction request"
@@ -327,7 +328,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert !bidResponse.ext?.warnings
     }
 
-    def "PBS shouldn't response with warning and make bidder call when multi format false and in account level preferred media type null"() {
+    def "PBS shouldn't respond with warning and make a bidder call when request doesn't contain multi format and multi format is false and preferred media type specified at account level with null"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapters.generic.ortb.multiformat-supported": "false")
@@ -339,7 +340,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         }
 
         and: "Account in the DB without preferred media type"
-        def accountConfig = new AccountAuctionConfig(preferredMediaType: new PreferredMediaType(generic: null))
+        def accountConfig = new AccountAuctionConfig(preferredMediaType: [(BidderName.GENERIC): NULL])
         def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: accountConfig))
         accountDao.save(account)
 
@@ -353,7 +354,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         assert !bidResponse.ext?.warnings
     }
 
-    def "PBS should response with specified in request preferred media type when preferred media type specified in both places "() {
+    def "PBS should respond with preferred media type that specified in request when preferred media type specified in both places"() {
         given: "PBS with adapter configuration"
         def pbsService = pbsServiceFactory.getService(
                 "adapter-defaults.ortb.multiformat-supported": "false",
@@ -363,11 +364,11 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = Banner.defaultBanner
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new Bidder(generic: new Generic(preferredMediaType: BANNER))
+            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         and: "Account in the DB with preferred media type"
-        def accountConfig = new AccountAuctionConfig(preferredMediaType: new PreferredMediaType(generic: AUDIO))
+        def accountConfig = new AccountAuctionConfig(preferredMediaType: [(BidderName.GENERIC): AUDIO])
         def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: accountConfig))
         accountDao.save(account)
 

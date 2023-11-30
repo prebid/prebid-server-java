@@ -19,8 +19,6 @@ class Bidder {
     @JsonProperty("appnexus")
     AppNexus appNexus
     Openx openx
-    Bidder bidder
-    String prefmtype
 
     static Bidder getDefaultBidder() {
         new Bidder().tap {

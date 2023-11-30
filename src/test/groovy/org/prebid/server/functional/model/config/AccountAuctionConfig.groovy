@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.request.auction.Targeting
+import org.prebid.server.functional.model.response.auction.MediaType
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
@@ -21,5 +23,5 @@ class AccountAuctionConfig {
     AccountPriceFloorsConfig priceFloors
     Targeting targeting
     @JsonProperty("preferredmediatype")
-    PreferredMediaType preferredMediaType
+    Map<BidderName, MediaType> preferredMediaType
 }
