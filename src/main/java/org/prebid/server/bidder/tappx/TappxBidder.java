@@ -42,7 +42,7 @@ public class TappxBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpTappx>> TAPX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final Pattern NEW_ENDPOINT_PATTERN = Pattern.compile("^(zz|vz)[0-9]{3,}([a-z]{2}|test)$");
+    private static final Pattern NEW_ENDPOINT_PATTERN = Pattern.compile("^(zz|vz)[0-9]{3,}([a-z]{2,3}|test)$");
     private static final String SUBDOMAIN_MACRO = "{{subdomain}}";
 
     private final String endpointUrl;
