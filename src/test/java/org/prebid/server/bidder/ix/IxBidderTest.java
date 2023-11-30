@@ -28,10 +28,13 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.ix.model.request.IxDiag;
+import org.prebid.server.bidder.ix.model.response.IxBidResponse;
+import org.prebid.server.bidder.ix.model.response.IxExtBidResponse;
 import org.prebid.server.bidder.ix.model.response.NativeV11Wrapper;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -43,9 +46,11 @@ import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -56,6 +61,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.BDDMockito.given;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class IxBidderTest extends VertxTest {
 
@@ -747,6 +753,37 @@ public class IxBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .containsExactly(BidType.video);
+    }
+
+    @Test
+    public void makeBidderResponseShouldReturnFledgeAuctionConfig() throws JsonProcessingException {
+        // given
+        final String impId = "imp_id";
+        final BidResponse bidResponse = givenBidResponse(bidBuilder -> bidBuilder.impid(impId).mtype(1));
+        final ObjectNode fledgeAuctionConfig = mapper.createObjectNode();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(List.of(Imp.builder().id(impId).build()))
+                .build();
+        final IxBidResponse bidResponseWithFledge = IxBidResponse.builder()
+                .cur(bidResponse.getCur())
+                .seatbid(bidResponse.getSeatbid())
+                .ext(IxExtBidResponse.of(Map.of(impId, fledgeAuctionConfig)))
+                .build();
+        final BidderCall<BidRequest> httpCall =
+                givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponseWithFledge));
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids())
+                .containsOnly(BidderBid.of(Bid.builder().impid(impId).mtype(1).build(), banner, bidResponse.getCur()));
+        final FledgeAuctionConfig expectedFledge = FledgeAuctionConfig.builder()
+                .impId(impId)
+                .config(fledgeAuctionConfig)
+                .build();
+        assertThat(result.getFledgeAuctionConfigs()).containsExactly(expectedFledge);
     }
 
     private static ExtRequest givenExtRequest(String pbjsv) {

@@ -15,7 +15,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.ntv.EventTrackingMethod;
 import com.iab.openrtb.request.ntv.EventType;
 import com.iab.openrtb.response.Bid;
-import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
@@ -23,10 +22,13 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.ix.model.request.IxDiag;
+import org.prebid.server.bidder.ix.model.response.IxBidResponse;
+import org.prebid.server.bidder.ix.model.response.IxExtBidResponse;
 import org.prebid.server.bidder.ix.model.response.NativeV11Wrapper;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -41,6 +43,7 @@ import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
@@ -102,6 +105,16 @@ public class IxBidder implements Bidder<BidRequest> {
                 BidderUtil.defaultRequest(modifiedBidRequest, endpointUrl, mapper));
 
         return Result.of(httpRequests, errors);
+    }
+
+    @Override
+    public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final IxBidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), IxBidResponse.class);
+            return CompositeBidderResponse.withBids(extractIxBids(bidRequest, bidResponse), extractFledge(bidResponse));
+        } catch (DecodeException e) {
+            return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
+        }
     }
 
     private ExtImpIx parseImpExt(Imp imp) {
@@ -229,7 +242,7 @@ public class IxBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final List<BidderError> errors = new ArrayList<>();
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final IxBidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), IxBidResponse.class);
             final BidRequest payload = httpCall.getRequest().getPayload();
             return Result.of(extractBids(bidResponse, payload, errors), errors);
         } catch (DecodeException e) {
@@ -237,13 +250,15 @@ public class IxBidder implements Bidder<BidRequest> {
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest, List<BidderError> errors) {
+    private List<BidderBid> extractBids(IxBidResponse bidResponse, BidRequest bidRequest, List<BidderError> errors) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse, bidRequest, errors);
     }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest, List<BidderError> errors) {
+    private List<BidderBid> bidsFromResponse(IxBidResponse bidResponse,
+                                             BidRequest bidRequest,
+                                             List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
@@ -254,7 +269,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
+    private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, IxBidResponse bidResponse, List<BidderError> errors) {
         final BidType bidType;
         try {
             bidType = getBidType(bid, bidRequest.getImp());
@@ -383,5 +398,22 @@ public class IxBidder implements Bidder<BidRequest> {
         return mapper.mapper().valueToTree(ExtBidPrebid.builder()
                 .video(ExtBidPrebidVideo.of(duration, null))
                 .build());
+    }
+
+    private List<BidderBid> extractIxBids(BidRequest bidRequest, IxBidResponse bidResponse) {
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
+                ? Collections.emptyList()
+                : bidsFromResponse(bidResponse, bidRequest, new ArrayList<>());
+    }
+
+    private List<FledgeAuctionConfig> extractFledge(IxBidResponse bidResponse) {
+        return Optional.ofNullable(bidResponse)
+                .map(IxBidResponse::getExt)
+                .map(IxExtBidResponse::getFledgeAuctionConfigs)
+                .orElse(Collections.emptyMap())
+                .entrySet()
+                .stream()
+                .map(e -> FledgeAuctionConfig.builder().impId(e.getKey()).config(e.getValue()).build())
+                .toList();
     }
 }
