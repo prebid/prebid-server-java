@@ -567,7 +567,6 @@ class TargetingSpec extends BaseSpec {
 
         then: "Amp response should contain default targeting prefix"
         def targeting = ampResponse.targeting
-        assert !targeting.isEmpty()
         assert targeting.size() == 12
         assert targeting.keySet().every{it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
     }
@@ -594,7 +593,6 @@ class TargetingSpec extends BaseSpec {
 
         then: "Amp response should contain targeting response with custom prefix"
         def targeting = ampResponse.targeting
-        assert !targeting.isEmpty()
         assert targeting.size() == 12
         assert targeting.keySet().every{it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
     }
