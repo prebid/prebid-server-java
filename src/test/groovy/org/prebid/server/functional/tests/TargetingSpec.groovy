@@ -428,7 +428,6 @@ class TargetingSpec extends BaseSpec {
 
         then: "PBS response should contain default targeting prefix"
         def targeting = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
-        assert !targeting.isEmpty()
         assert targeting.size() == 6
         assert targeting.keySet().every{it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
     }
@@ -450,7 +449,6 @@ class TargetingSpec extends BaseSpec {
 
         then: "PBS response should contain default targeting prefix"
         def targeting = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
-        assert !targeting.isEmpty()
         assert targeting.size() == 6
         assert targeting.keySet().every{it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
     }
@@ -466,7 +464,6 @@ class TargetingSpec extends BaseSpec {
 
         then: "PBS response should contain default targeting prefix"
         def targeting = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
-        assert !targeting.isEmpty()
         assert targeting.size() == 6
         assert targeting.keySet().every{it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
 
@@ -489,7 +486,6 @@ class TargetingSpec extends BaseSpec {
 
         then: "PBS response should contain default targeting prefix"
         def targeting = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
-        assert !targeting.isEmpty()
         assert targeting.size() == 6
         assert targeting.keySet().every{it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
 
