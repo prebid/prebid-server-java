@@ -5,7 +5,7 @@
   "clientAuctions": 1,
   "lineItemStatus": [
     {
-      "lineItemSource": "rubicon",
+      "lineItemSource": "generic",
       "lineItemId": "lineItem4",
       "dealId": "dealId4",
       "extLineItemId": "extLineItem4",
@@ -41,7 +41,7 @@
       ]
     },
     {
-      "lineItemSource": "rubicon",
+      "lineItemSource": "generic",
       "lineItemId": "lineItem1",
       "dealId": "dealId1",
       "extLineItemId": "extLineItem1",
@@ -84,7 +84,7 @@
       ]
     },
     {
-      "lineItemSource": "rubicon",
+      "lineItemSource": "generic",
       "lineItemId": "lineItem2",
       "dealId": "dealId2",
       "extLineItemId": "extLineItem2",
@@ -122,7 +122,7 @@
       ]
     },
     {
-      "lineItemSource": "rubicon",
+      "lineItemSource": "generic",
       "lineItemId": "lineItem5",
       "dealId": "dealId5",
       "extLineItemId": "extLineItem5",
@@ -157,7 +157,7 @@
       ]
     },
     {
-      "lineItemSource": "rubicon",
+      "lineItemSource": "generic",
       "lineItemId": "lineItem3",
       "dealId": "dealId3",
       "extLineItemId": "extLineItem3",
@@ -175,7 +175,7 @@
       "sentToClientAsTopMatch": 1,
       "lostToLineItems": [
         {
-          "lineItemSource": "rubicon",
+          "lineItemSource": "generic",
           "lineItemId": "lineItem1",
           "count": 1
         }
