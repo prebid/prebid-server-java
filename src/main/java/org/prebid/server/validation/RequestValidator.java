@@ -105,6 +105,7 @@ public class RequestValidator {
     private final BidderParamValidator bidderParamValidator;
     private final JacksonMapper mapper;
     private final double logSamplingRate;
+    private final boolean enabledStrictAppSiteDoohValidation;
 
     /**
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
@@ -113,12 +114,14 @@ public class RequestValidator {
     public RequestValidator(BidderCatalog bidderCatalog,
                             BidderParamValidator bidderParamValidator,
                             JacksonMapper mapper,
-                            double logSamplingRate) {
+                            double logSamplingRate,
+                            boolean enabledStrictAppSiteDoohValidation) {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
         this.mapper = Objects.requireNonNull(mapper);
         this.logSamplingRate = logSamplingRate;
+        this.enabledStrictAppSiteDoohValidation = enabledStrictAppSiteDoohValidation;
     }
 
     /**
@@ -195,6 +198,10 @@ public class RequestValidator {
                 throw new ValidationException(
                         "One of request.site or request.app or request.dooh must be defined");
             } else if (channels.size() > 1) {
+                if (enabledStrictAppSiteDoohValidation) {
+                    throw new ValidationException(String.join(" and ", channels) + " are present, "
+                            + "but no more than one of request.site or request.app or request.dooh can be defined");
+                }
                 final String logMessage = String.join(" and ", channels) + " are present. "
                         + "Referer: " + httpRequestContext.getHeaders().get(HttpUtil.REFERER_HEADER);
                 conditionalLogger.warn(logMessage, logSamplingRate);

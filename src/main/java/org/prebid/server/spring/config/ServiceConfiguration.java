@@ -801,7 +801,8 @@ public class ServiceConfiguration {
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper,
-            CriteriaLogManager criteriaLogManager) {
+            CriteriaLogManager criteriaLogManager,
+            @Value("${auction.strict-app-site-dooh:false}") boolean enabledStrictAppSiteDoohValidation) {
 
         return new ExchangeService(
                 logSamplingRate,
@@ -832,7 +833,7 @@ public class ServiceConfiguration {
                 metrics,
                 clock,
                 mapper,
-                criteriaLogManager);
+                criteriaLogManager, enabledStrictAppSiteDoohValidation);
     }
 
     @Bean
@@ -920,12 +921,19 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    RequestValidator requestValidator(BidderCatalog bidderCatalog,
-                                      BidderParamValidator bidderParamValidator,
-                                      JacksonMapper mapper,
-                                      @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
+    RequestValidator requestValidator(
+            BidderCatalog bidderCatalog,
+            BidderParamValidator bidderParamValidator,
+            JacksonMapper mapper,
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
+            @Value("${auction.strict-app-site-dooh:false}") boolean enabledStrictAppSiteDoohValidation) {
 
-        return new RequestValidator(bidderCatalog, bidderParamValidator, mapper, logSamplingRate);
+        return new RequestValidator(
+                bidderCatalog,
+                bidderParamValidator,
+                mapper,
+                logSamplingRate,
+                enabledStrictAppSiteDoohValidation);
     }
 
     @Bean

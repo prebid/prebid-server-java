@@ -449,7 +449,8 @@ public class ExchangeServiceTest extends VertxTest {
                 metrics,
                 clock,
                 jacksonMapper,
-                criteriaLogManager);
+                criteriaLogManager,
+                false);
     }
 
     @Test
@@ -484,7 +485,8 @@ public class ExchangeServiceTest extends VertxTest {
                         metrics,
                         clock,
                         jacksonMapper,
-                        criteriaLogManager))
+                        criteriaLogManager,
+                        false))
                 .withMessage("Expected timeout adjustment factor should be in [0, 100].");
     }
 
@@ -3084,6 +3086,107 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void holdAuctionShouldFailWhenFpdProvidesSiteButDoohIsAlreadyInBidRequestAndStrictValidationEnabled() {
+        // given
+        target = new ExchangeService(
+                0,
+                90,
+                bidderCatalog,
+                storedResponseProcessor,
+                dealsService,
+                privacyEnforcementService,
+                fpdResolver,
+                supplyChainResolver,
+                debugResolver,
+                new NoOpMediaTypeProcessor(),
+                uidUpdater,
+                timeoutResolver,
+                timeoutFactory,
+                ortbVersionConversionManager,
+                httpBidderRequester,
+                responseBidValidator,
+                currencyService,
+                bidResponseCreator,
+                bidResponsePostProcessor,
+                hookStageExecutor,
+                applicationEventService,
+                httpInteractionLogger,
+                priceFloorAdjuster,
+                priceFloorEnforcer,
+                bidAdjustmentFactorResolver,
+                metrics,
+                clock,
+                jacksonMapper,
+                criteriaLogManager,
+                true);
+        givenBidder(givenEmptySeatBid());
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder.dooh(Dooh.builder().build()));
+
+        given(fpdResolver.resolveSite(any(), any())).willReturn(Site.builder().build());
+
+        // when
+        final Throwable cause = target.holdAuction(givenRequestContext(bidRequest)).cause();
+
+        assertThat(cause.getMessage()).isEqualTo(
+                "dooh and site are present, but no more than one of site or app or dooh can be defined");
+
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+    }
+
+    @Test
+    public void holdAuctionShouldFailWhenSiteAppAndDoohArePresentInBidRequestAndStrictValidationEnabled() {
+        // given
+        target = new ExchangeService(
+                0,
+                90,
+                bidderCatalog,
+                storedResponseProcessor,
+                dealsService,
+                privacyEnforcementService,
+                fpdResolver,
+                supplyChainResolver,
+                debugResolver,
+                new NoOpMediaTypeProcessor(),
+                uidUpdater,
+                timeoutResolver,
+                timeoutFactory,
+                ortbVersionConversionManager,
+                httpBidderRequester,
+                responseBidValidator,
+                currencyService,
+                bidResponseCreator,
+                bidResponsePostProcessor,
+                hookStageExecutor,
+                applicationEventService,
+                httpInteractionLogger,
+                priceFloorAdjuster,
+                priceFloorEnforcer,
+                bidAdjustmentFactorResolver,
+                metrics,
+                clock,
+                jacksonMapper,
+                criteriaLogManager,
+                true);
+        givenBidder(givenEmptySeatBid());
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .site(Site.builder().build())
+                        .app(App.builder().build())
+                        .dooh(Dooh.builder().build()));
+
+        // when
+        final Throwable cause = target.holdAuction(givenRequestContext(bidRequest)).cause();
+
+        //then
+        assertThat(cause.getMessage()).isEqualTo(
+                "app and dooh and site are present, but no more than one of site or app or dooh can be defined");
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+    }
+
+    @Test
     public void shouldReturnBidsWithUpdatedPriceCurrencyConversion() {
         // given
         final Bidder<?> bidder = mock(Bidder.class);
@@ -4697,7 +4800,8 @@ public class ExchangeServiceTest extends VertxTest {
                 metrics,
                 clock,
                 jacksonMapper,
-                criteriaLogManager);
+                criteriaLogManager,
+                false);
 
         // when
         final Future<AuctionContext> result = target.holdAuction(auctionContext);

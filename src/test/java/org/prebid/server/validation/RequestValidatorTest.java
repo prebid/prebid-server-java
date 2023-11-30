@@ -100,7 +100,7 @@ public class RequestValidatorTest extends VertxTest {
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
 
-        target = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper, 0.01);
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper, 0.01, false);
     }
 
     @Test
@@ -1123,6 +1123,71 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("One of request.site or request.app or request.dooh must be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenDoohSiteAndAppArePresentInRequestAndStrictValidationIsEnabled() {
+        // when
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper, 0.01, true);
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .dooh(Dooh.builder().build())
+                .app(App.builder().build())
+                .site(Site.builder().build())
+                .build();
+        final ValidationResult result = target.validate(invalidRequest, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.app and request.dooh and request.site are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenSiteAndAppArePresentInRequestAndStrictValidationIsEnabled() {
+        // when
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper, 0.01, true);
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .app(App.builder().build())
+                .site(Site.builder().build())
+                .build();
+        final ValidationResult result = target.validate(invalidRequest, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.app and request.site are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenDoohAndSiteArePresentInRequestAndStrictValidationIsEnabled() {
+        // when
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper, 0.01, true);
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .dooh(Dooh.builder().build())
+                .site(Site.builder().build())
+                .build();
+        final ValidationResult result = target.validate(invalidRequest, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.dooh and request.site are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenDoohAndAppArePresentInRequestAndStrictValidationIsEnabled() {
+        // when
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper, 0.01, true);
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .dooh(Dooh.builder().build())
+                .app(App.builder().build())
+                .build();
+        final ValidationResult result = target.validate(invalidRequest, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.app and request.dooh and request.site are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
     }
 
     @Test
