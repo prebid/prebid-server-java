@@ -19,6 +19,7 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.appnexus.proto.AppnexusBidExt;
@@ -55,6 +56,7 @@ import org.prebid.server.util.ObjectUtil;
 
 import javax.validation.ValidationException;
 import java.math.BigDecimal;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -126,13 +128,14 @@ public class AppnexusBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        final String url = makeUrl(memberValidator.getValue());
-
         final String requestEndpointName = extractEndpointName(bidRequest);
         final boolean isAmp = StringUtils.equals(requestEndpointName, Endpoint.openrtb2_amp.value());
         final boolean isVideo = StringUtils.equals(requestEndpointName, Endpoint.openrtb2_video.value());
+
+        final String url;
         final BidRequest updatedBidRequest;
         try {
+            url = makeUrl(memberValidator.getValue());
             updatedBidRequest = updateBidRequest(bidRequest, isAmp, isVideo);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
@@ -305,9 +308,13 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     }
 
     private String makeUrl(String member) {
-        return member != null
-                ? "%s?member_id=%s".formatted(endpointUrl, HttpUtil.encodeUrl(member))
-                : endpointUrl;
+        try {
+            return member != null
+                    ? new URIBuilder(endpointUrl).addParameter("member_id", member).build().toString()
+                    : endpointUrl;
+        } catch (URISyntaxException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
     private static String extractEndpointName(BidRequest bidRequest) {
