@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.consumable.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.iab.openrtb.request.Content;
+import com.iab.openrtb.request.SupplyChain;
 import lombok.Builder;
 import lombok.Value;
 
@@ -45,6 +47,12 @@ public class ConsumableBidRequest {
     String usPrivacy;
 
     ConsumableBidGdpr gdpr;
+
+    Boolean coppa;
+
+    SupplyChain sChain;
+
+    Content content;
 
     String gpp;
 

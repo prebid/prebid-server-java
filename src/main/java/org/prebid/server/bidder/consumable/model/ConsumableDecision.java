@@ -29,4 +29,8 @@ public class ConsumableDecision {
     Integer width;
 
     Integer height;
+
+    List<String> adomain;
+
+    List<String> cats;
 }

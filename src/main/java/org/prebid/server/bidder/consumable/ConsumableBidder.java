@@ -1,10 +1,12 @@
 package org.prebid.server.bidder.consumable;
 
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
@@ -19,6 +21,7 @@ import org.prebid.server.bidder.consumable.model.ConsumableBidResponse;
 import org.prebid.server.bidder.consumable.model.ConsumableDecision;
 import org.prebid.server.bidder.consumable.model.ConsumablePlacement;
 import org.prebid.server.bidder.consumable.model.ConsumablePricing;
+import org.prebid.server.bidder.consumable.model.ConsumableUser;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -39,6 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
 
@@ -97,6 +101,23 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
             }
             requestBuilder.gdpr(bidGdprBuilder.build());
         }
+
+        Optional.ofNullable(request.getSource())
+                .map(Source::getSchain)
+                .ifPresent(requestBuilder::sChain);
+
+        Optional.ofNullable(request.getRegs())
+                .map(Regs::getCoppa)
+                .ifPresent(coppa -> requestBuilder.coppa(coppa == 1));
+
+        Optional.ofNullable(request.getUser())
+                .ifPresent(requestUser -> requestBuilder.user(new ConsumableUser(null, requestUser.getEids())));
+
+        Optional.ofNullable(request.getSite())
+                .map(Site::getContent)
+                .ifPresentOrElse(requestBuilder::content, () -> Optional.ofNullable(request.getApp())
+                                .map(App::getContent)
+                                .ifPresent(requestBuilder::content));
 
         try {
             resolveRequestFields(requestBuilder, request.getImp());
@@ -214,6 +235,8 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
                             .h(decision.getHeight())
                             .crid(String.valueOf(decision.getAdId()))
                             .exp(30)
+                            .adomain(decision.getAdomain())
+                            .cat(decision.getCats())
                             .build();
                     // Consumable units are always HTML, never VAST.
                     // From Prebid's point of view, this means that Consumable units
