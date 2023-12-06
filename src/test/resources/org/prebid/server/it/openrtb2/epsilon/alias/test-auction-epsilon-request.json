@@ -8,7 +8,7 @@
         "h": 600
       },
       "ext": {
-        "conversantAlias": {
+        "conversant": {
           "site_id": "site_id"
         }
       }
@@ -17,11 +17,14 @@
   "tmax": 5000,
   "ext": {
     "prebid": {
-      "aliases": {
-        "conversantAlias": "conversant"
+      "conversant": {
+        "site_id": "site_id"
       },
       "auctiontimestamp": 0
     }
+  },
+  "aliases": {
+    "conversant": "epsilon"
   },
   "regs": {
     "ext": {

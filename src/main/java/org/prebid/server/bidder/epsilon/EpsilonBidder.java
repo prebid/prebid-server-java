@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.conversant;
+package org.prebid.server.bidder.epsilon;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.App;
@@ -22,7 +22,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.conversant.ExtImpConversant;
+import org.prebid.server.proto.openrtb.ext.request.epsilon.ExtImpEpsilon;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -37,9 +37,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class ConversantBidder implements Bidder<BidRequest> {
+public class EpsilonBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpConversant>> CONVERSANT_EXT_TYPE_REFERENCE =
+    private static final TypeReference<ExtPrebid<?, ExtImpEpsilon>> EPSILON_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
@@ -59,7 +59,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
     private final boolean generateBidId;
     private final JacksonMapper mapper;
 
-    public ConversantBidder(String endpointUrl, boolean generateBidId, JacksonMapper mapper) {
+    public EpsilonBidder(String endpointUrl, boolean generateBidId, JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.generateBidId = generateBidId;
         this.mapper = Objects.requireNonNull(mapper);
@@ -83,12 +83,12 @@ public class ConversantBidder implements Bidder<BidRequest> {
         final List<Imp> requestImps = bidRequest.getImp();
         for (int i = 0; i < requestImps.size(); i++) {
             final Imp imp = requestImps.get(i);
-            final ExtImpConversant impExt = parseImpExt(imp, i);
+            final ExtImpEpsilon impExt = parseImpExt(imp, i);
             modifiedImps.add(modifyImp(imp, impExt));
         }
 
         final Imp firstImp = requestImps.get(0);
-        final ExtImpConversant extImp = parseImpExt(firstImp, 0);
+        final ExtImpEpsilon extImp = parseImpExt(firstImp, 0);
         final String siteId = extImp.getSiteId();
         final Site requestSite = bidRequest.getSite();
         final App requestApp = bidRequest.getApp();
@@ -100,10 +100,10 @@ public class ConversantBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ExtImpConversant parseImpExt(Imp imp, int impIndex) {
-        final ExtImpConversant extImp;
+    private ExtImpEpsilon parseImpExt(Imp imp, int impIndex) {
+        final ExtImpEpsilon extImp;
         try {
-            extImp = mapper.mapper().convertValue(imp.getExt(), CONVERSANT_EXT_TYPE_REFERENCE).getBidder();
+            extImp = mapper.mapper().convertValue(imp.getExt(), EPSILON_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Impression[%d] missing ext.bidder object".formatted(impIndex));
         }
@@ -122,7 +122,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
         return app == null ? null : app.toBuilder().id(siteId).build();
     }
 
-    private static Imp modifyImp(Imp imp, ExtImpConversant impExt) {
+    private static Imp modifyImp(Imp imp, ExtImpEpsilon impExt) {
         final Banner banner = imp.getBanner();
         final Video video = imp.getVideo();
 
@@ -148,7 +148,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
                 : impBidFloor;
     }
 
-    private static Integer getSecure(Imp imp, ExtImpConversant impExt) {
+    private static Integer getSecure(Imp imp, ExtImpEpsilon impExt) {
         final Integer extSecure = impExt.getSecure();
         final Integer impSecure = imp.getSecure();
 
@@ -163,7 +163,7 @@ public class ConversantBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static Video modifyVideo(Video video, ExtImpConversant impExt) {
+    private static Video modifyVideo(Video video, ExtImpEpsilon impExt) {
         final List<String> extMimes = impExt.getMimes();
         final Integer extMaxDuration = impExt.getMaxduration();
         final Integer extPosition = impExt.getPosition();
