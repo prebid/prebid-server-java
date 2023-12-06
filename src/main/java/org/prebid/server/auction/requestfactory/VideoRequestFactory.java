@@ -107,8 +107,10 @@ public class VideoRequestFactory {
                 .compose(httpRequest ->
                         createBidRequest(httpRequest)
 
-                                .compose(bidRequest ->
-                                        validateRequest(bidRequest, initialAuctionContext.getDebugWarnings()))
+                                .compose(bidRequest -> validateRequest(
+                                                bidRequest,
+                                                httpRequest,
+                                                initialAuctionContext.getDebugWarnings()))
 
                                 .map(bidRequestWithErrors -> populatePodErrors(
                                         bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
@@ -310,9 +312,10 @@ public class VideoRequestFactory {
     }
 
     private Future<WithPodErrors<BidRequest>> validateRequest(WithPodErrors<BidRequest> requestWithPodErrors,
+                                                              HttpRequestContext httpRequestContext,
                                                               List<String> warnings) {
 
-        return ortb2RequestFactory.validateRequest(requestWithPodErrors.getData(), warnings)
+        return ortb2RequestFactory.validateRequest(requestWithPodErrors.getData(), httpRequestContext, warnings)
                 .map(bidRequest -> requestWithPodErrors);
     }
 }

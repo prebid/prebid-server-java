@@ -11,7 +11,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
-import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -20,6 +19,7 @@ import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticBidderImpExt;
@@ -27,6 +27,8 @@ import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtData;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtDataAdServer;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticWrapper;
 import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidExt;
+import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidResponse;
+import org.prebid.server.bidder.pubmatic.model.response.PubmaticExtBidResponse;
 import org.prebid.server.bidder.pubmatic.model.response.VideoCreativeInfo;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -37,6 +39,7 @@ import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
+import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -61,6 +64,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private static final String ACAT_EXT_REQUEST = "acat";
     private static final String WRAPPER_EXT_REQUEST = "wrapper";
     private static final String BIDDER_NAME = "pubmatic";
+    private static final String AE = "ae";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -180,17 +184,20 @@ public class PubmaticBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp, PubmaticBidderImpExt impExt) {
         final Banner banner = imp.getBanner();
-        final ObjectNode keywordsNode = makeKeywords(impExt);
         final ExtImpPubmatic impExtBidder = impExt.getBidder();
+
+        final ObjectNode modifiedExt = makeKeywords(impExt);
+        if (impExt.getAe() != null) {
+            modifiedExt.put(AE, impExt.getAe());
+        }
 
         final Imp.ImpBuilder impBuilder = imp.toBuilder()
                 .banner(banner != null ? assignSizesIfMissing(banner) : null)
-                .ext(!keywordsNode.isEmpty() ? keywordsNode : null)
+                .ext(!modifiedExt.isEmpty() ? modifiedExt : null)
                 .bidfloor(resolveBidFloor(impExtBidder.getKadfloor(), imp.getBidfloor()))
                 .audio(null);
 
-        return enrichWithAdSlotParameters(impBuilder, impExtBidder.getAdSlot(), banner)
-                .build();
+        return enrichWithAdSlotParameters(impBuilder, impExtBidder.getAdSlot(), banner).build();
     }
 
     private BigDecimal resolveBidFloor(String kadfloor, BigDecimal existingFloor) {
@@ -365,24 +372,35 @@ public class PubmaticBidder implements Bidder<BidRequest> {
                 : Publisher.builder().id(publisherId).build();
     }
 
+    /**
+     * @deprecated for this bidder in favor of @link{makeBidderResponse} which supports additional response data
+     */
     @Override
-    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+    @Deprecated(forRemoval = true)
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        return Result.withError(BidderError.generic("Deprecated adapter method invoked"));
+    }
+
+    @Override
+    public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final List<BidderError> bidderErrors = new ArrayList<>();
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse, bidderErrors), Collections.emptyList());
+            final PubmaticBidResponse bidResponse = mapper.decodeValue(
+                    httpCall.getResponse().getBody(),
+                    PubmaticBidResponse.class);
+            return CompositeBidderResponse.withBids(extractBids(bidResponse, bidderErrors), extractFledge(bidResponse));
         } catch (DecodeException | PreBidException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+            return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> bidderErrors) {
+    private List<BidderBid> extractBids(PubmaticBidResponse bidResponse, List<BidderError> bidderErrors) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
                 : bidsFromResponse(bidResponse, bidderErrors);
     }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> bidderErrors) {
+    private List<BidderBid> bidsFromResponse(PubmaticBidResponse bidResponse, List<BidderError> bidderErrors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
@@ -472,5 +490,16 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         return Optional.ofNullable(bidExt)
                 .map(PubmaticBidExt::getPrebidDealPriority)
                 .orElse(null);
+    }
+
+    private static List<FledgeAuctionConfig> extractFledge(PubmaticBidResponse bidResponse) {
+        return Optional.ofNullable(bidResponse)
+                .map(PubmaticBidResponse::getExt)
+                .map(PubmaticExtBidResponse::getFledgeAuctionConfigs)
+                .orElse(Collections.emptyMap())
+                .entrySet()
+                .stream()
+                .map(e -> FledgeAuctionConfig.builder().impId(e.getKey()).config(e.getValue()).build())
+                .toList();
     }
 }

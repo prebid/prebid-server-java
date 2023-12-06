@@ -1,8 +1,12 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.inner;
 
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.prebid.server.activity.infrastructure.debug.Loggable;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
+import org.prebid.server.activity.infrastructure.privacy.usnat.debug.USNatModuleLogEntry;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.Gpc;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.KnownChildSensitiveDataConsent;
 import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.MspaServiceProviderMode;
@@ -19,16 +23,19 @@ import org.prebid.server.activity.infrastructure.privacy.usnat.inner.model.USNat
 import java.util.List;
 import java.util.Objects;
 
-public class USNatSyncUser implements PrivacyModule {
+public class USNatSyncUser implements PrivacyModule, Loggable {
 
+    private final USNatGppReader gppReader;
     private final Result result;
 
     public USNatSyncUser(USNatGppReader gppReader) {
+        this.gppReader = gppReader;
+
         result = disallow(gppReader) ? Result.DISALLOW : Result.ALLOW;
     }
 
     @Override
-    public Result proceed(ActivityCallPayload activityCallPayload) {
+    public Result proceed(ActivityInvocationPayload activityInvocationPayload) {
         return result;
     }
 
@@ -90,5 +97,10 @@ public class USNatSyncUser implements PrivacyModule {
 
     private static <T> boolean equals(T providedValue, USNatField<T> expectedValue) {
         return Objects.equals(providedValue, expectedValue.value());
+    }
+
+    @Override
+    public JsonNode asLogEntry(ObjectMapper mapper) {
+        return USNatModuleLogEntry.from(this, gppReader, result);
     }
 }

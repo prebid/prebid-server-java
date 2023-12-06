@@ -25,4 +25,6 @@ public class ExtDebugTrace {
 
     @JsonProperty("lineitems")
     Map<String, List<ExtTraceDeal>> lineItems;
+
+    List<ExtTraceActivityInfrastructure> activityInfrastructure;
 }

@@ -9,10 +9,10 @@ class Eid {
     String source
     List<Uid> uids
 
-    static Eid getDefaultEid() {
+    static Eid getDefaultEid(String source = PBSUtils.randomString) {
         new Eid().tap {
-            source = PBSUtils.randomString
-            uids = [Uid.defaultUid]
+            it.source = source
+            it.uids = [Uid.defaultUid]
         }
     }
 }

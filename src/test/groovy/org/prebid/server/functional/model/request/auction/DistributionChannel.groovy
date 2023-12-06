@@ -7,4 +7,8 @@ enum DistributionChannel {
     String getValue() {
         name().toLowerCase()
     }
+
+    static DistributionChannel findByValue(String value) {
+        values().find { it.getValue().equalsIgnoreCase(value) }
+    }
 }

@@ -27,7 +27,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
-import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -198,7 +197,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         return activityInfrastructureCreator.create(
                 account,
                 GppContextCreator.from(null, null).build().getGppContext(),
-                TraceLevel.basic);
+                null);
     }
 
     private void respondWithOk(RoutingContext routingContext, boolean respondWithPixel) {

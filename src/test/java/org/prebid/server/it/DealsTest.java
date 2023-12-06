@@ -80,7 +80,7 @@ public class DealsTest extends VertxTest {
                     IntegrationTest.CacheResponseTransformer.class,
                     IntegrationTest.ResponseOrderTransformer.class));
 
-    private static final String RUBICON = "rubicon";
+    private static final String GENERIC = "generic";
 
     @Autowired
     private LineItemService lineItemService;
@@ -111,12 +111,12 @@ public class DealsTest extends VertxTest {
                 .withQueryParam("vendor", equalTo("local"))
                 .withBasicAuth("username", "password")
                 .withHeader("pg-trx-id", new AnythingPattern())
-                .willReturn(aResponse().withBody(plannerResponseFrom("deals/test-planner-plan-response-1.json"))));
+                .willReturn(aResponse().withBody(plannerResponseFrom("deals/test-planner-plan-response.json"))));
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/planner-register"))
                 .withBasicAuth("username", "password")
                 .withHeader("pg-trx-id", new AnythingPattern())
-                .withRequestBody(equalToJson(jsonFrom("deals/test-planner-register-request-1.json"), false, true))
+                .withRequestBody(equalToJson(jsonFrom("deals/test-planner-register-request.json"), false, true))
                 .willReturn(aResponse().withBody(jsonFrom("deals/test-planner-register-response.json"))));
 
         // pre-bid cache
@@ -131,36 +131,18 @@ public class DealsTest extends VertxTest {
     public void setUp() throws IOException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/user-data-win-event"))
-                .withRequestBody(equalToJson(jsonFrom("deals/test-user-data-win-event-request-1.json"), false, true))
+                .withRequestBody(equalToJson(jsonFrom("deals/test-user-data-win-event-request.json"), false, true))
                 .willReturn(aResponse()));
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/user-data-details"))
-                .withRequestBody(equalToJson(jsonFrom("deals/test-user-data-details-request-1.json"), false, true))
-                .willReturn(aResponse().withBody(jsonFrom("deals/test-user-data-details-response-1.json"))));
+                .withRequestBody(equalToJson(jsonFrom("deals/test-user-data-details-request.json"), false, true))
+                .willReturn(aResponse().withBody(jsonFrom("deals/test-user-data-details-generic-response.json"))));
 
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("deals/test-rubicon-bid-request-1.json"), false, true))
-                .willReturn(aResponse().withBody(jsonFrom("deals/test-rubicon-bid-response-1.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("deals/test-rubicon-bid-request-2.json"), false, true))
-                .willReturn(aResponse()
-                        .withFixedDelay(300)
-                        .withBody(jsonFrom("deals/test-rubicon-bid-response-2.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("deals/test-rubicon-bid-request-3.json"), false, true))
-                .willReturn(aResponse().withBody(jsonFrom("deals/test-rubicon-bid-response-3.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("deals/test-rubicon-bid-request-4.json"), false, true))
-                .willReturn(aResponse().withBody(jsonFrom("deals/test-rubicon-bid-response-4.json"))));
-
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/rubicon-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("deals/test-rubicon-bid-request-5.json"), false, true))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("deals/test-generic-bid-request.json"), false, true))
                 .willReturn(aResponse()
                         .withFixedDelay(600)
-                        .withBody(jsonFrom("deals/test-rubicon-bid-response-5.json"))));
+                        .withBody(jsonFrom("deals/test-generic-bid-response.json"))));
     }
 
     @Test
@@ -181,7 +163,7 @@ public class DealsTest extends VertxTest {
         // then
         JSONAssert.assertEquals(
                 withTemporalFields(openrtbAuctionResponseFrom(
-                        "deals/test-auction-response.json", response, singletonList(RUBICON))),
+                        "deals/test-auction-response.json", response, singletonList(GENERIC))),
                 response.asString(),
                 openrtbDeepDebugTimeComparator());
 
@@ -212,7 +194,7 @@ public class DealsTest extends VertxTest {
         final DeliveryProgressReport report = chooseReportToCompare(requestList);
 
         JSONAssert.assertEquals(
-                jsonFrom("deals/test-delivery-stats-progress-request-1.json"),
+                jsonFrom("deals/test-delivery-stats-progress-request.json"),
                 mapper.writeValueAsString(report),
                 JSONCompareMode.LENIENT);
     }
@@ -285,7 +267,7 @@ public class DealsTest extends VertxTest {
 
         arrayValueMatchers.add(new Customization("ext.debug.trace.deals", arrayValueMatcher));
         arrayValueMatchers.add(new Customization("ext.debug.httpcalls.cache", cacheArrayValueMatcher));
-        arrayValueMatchers.add(new Customization("ext.debug.httpcalls.rubicon", new ArrayValueMatcher<>(
+        arrayValueMatchers.add(new Customization("ext.debug.httpcalls.generic", new ArrayValueMatcher<>(
                 new CustomComparator(
                         JSONCompareMode.NON_EXTENSIBLE,
                         new Customization("**.requestheaders", (o1, o2) -> true),

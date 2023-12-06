@@ -3019,7 +3019,7 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
-    public void holdAuctionShouldFailWhenFpdProvidesSiteButDoohIsAlreadyInBidRequest() {
+    public void holdAuctionShouldRemoveDoohWhenFpdProvidesSiteButDoohIsAlreadyInBidRequest() {
         // given
         givenBidder(givenEmptySeatBid());
         final BidRequest bidRequest = givenBidRequest(
@@ -3029,16 +3029,18 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveSite(any(), any())).willReturn(Site.builder().build());
 
         // when
-        final Throwable cause = target.holdAuction(givenRequestContext(bidRequest)).cause();
+        target.holdAuction(givenRequestContext(bidRequest));
 
-        assertThat(cause.getMessage()).isEqualTo(
-                "site and dooh are present, but no more than one of site or app or dooh can be defined");
+        // then
+        final BidRequest captureBidRequest = captureBidRequest();
+        assertThat(captureBidRequest.getDooh()).isNotNull();
+        assertThat(captureBidRequest.getSite()).isNull();
 
         verify(metrics).updateAlertsMetrics(MetricName.general);
     }
 
     @Test
-    public void holdAuctionShouldFailWhenSiteAppAndDoohArePresentInBidRequest() {
+    public void holdAuctionShouldRemoveSiteAndDoohWhenSiteAppAndDoohArePresentInBidRequest() {
         // given
         givenBidder(givenEmptySeatBid());
         final BidRequest bidRequest = givenBidRequest(
@@ -3049,11 +3051,35 @@ public class ExchangeServiceTest extends VertxTest {
                         .dooh(Dooh.builder().build()));
 
         // when
-        final Throwable cause = target.holdAuction(givenRequestContext(bidRequest)).cause();
+        target.holdAuction(givenRequestContext(bidRequest));
 
-        //then
-        assertThat(cause.getMessage()).isEqualTo(
-                "site and dooh and app are present, but no more than one of site or app or dooh can be defined");
+        // then
+        final BidRequest captureBidRequest = captureBidRequest();
+        assertThat(captureBidRequest.getDooh()).isNull();
+        assertThat(captureBidRequest.getSite()).isNull();
+        assertThat(captureBidRequest.getApp()).isNotNull();
+
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+    }
+
+    @Test
+    public void holdAuctionShouldRemoveSiteWhenFpdProvidesAppButSiteIsAlreadyInBidRequest() {
+        // given
+        givenBidder(givenEmptySeatBid());
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder.site(Site.builder().build()));
+
+        given(fpdResolver.resolveApp(any(), any())).willReturn(App.builder().build());
+
+        // when
+        target.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final BidRequest captureBidRequest = captureBidRequest();
+        assertThat(captureBidRequest.getSite()).isNull();
+        assertThat(captureBidRequest.getApp()).isNotNull();
+
         verify(metrics).updateAlertsMetrics(MetricName.general);
     }
 

@@ -86,6 +86,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtDebugTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
+import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
@@ -841,8 +842,6 @@ public class BidResponseCreator {
                                                        CacheServiceResult cacheResult,
                                                        boolean debugEnabled) {
 
-        final DeepDebugLog deepDebugLog = auctionContext.getDeepDebugLog();
-
         final Map<String, List<ExtHttpCall>> httpCalls = debugEnabled
                 ? toExtHttpCalls(bidderResponseInfos, cacheResult, auctionContext.getDebugHttpCalls())
                 : null;
@@ -851,7 +850,7 @@ public class BidResponseCreator {
 
         final ExtDebugPgmetrics extDebugPgmetrics = debugEnabled ? toExtDebugPgmetrics(
                 auctionContext.getTxnLog()) : null;
-        final ExtDebugTrace extDebugTrace = deepDebugLog.isDeepDebugEnabled() ? toExtDebugTrace(deepDebugLog) : null;
+        final ExtDebugTrace extDebugTrace = toExtDebugTrace(auctionContext);
 
         return ObjectUtils.anyNotNull(httpCalls, bidRequest, extDebugPgmetrics, extDebugTrace)
                 ? ExtResponseDebug.of(httpCalls, bidRequest, extDebugPgmetrics, extDebugTrace)
@@ -976,19 +975,36 @@ public class BidResponseCreator {
         return extDebugPgmetrics.equals(ExtDebugPgmetrics.EMPTY) ? null : extDebugPgmetrics;
     }
 
-    private static ExtDebugTrace toExtDebugTrace(DeepDebugLog deepDebugLog) {
-        final List<ExtTraceDeal> entries = deepDebugLog.entries();
+    private static ExtDebugTrace toExtDebugTrace(AuctionContext auctionContext) {
+        final DeepDebugLog deepDebugLog = auctionContext.getDeepDebugLog();
 
-        final List<ExtTraceDeal> dealsTrace = entries.stream()
+        final boolean dealsTraceEnabled = deepDebugLog.isDeepDebugEnabled();
+        final boolean activityInfrastructureTraceEnabled = auctionContext.getDebugContext().getTraceLevel() != null;
+        if (!dealsTraceEnabled && !activityInfrastructureTraceEnabled) {
+            return null;
+        }
+
+        final List<ExtTraceDeal> entries = dealsTraceEnabled ? deepDebugLog.entries() : null;
+        final List<ExtTraceDeal> dealsTrace = dealsTraceEnabled
+                ? entries.stream()
                 .filter(extTraceDeal -> StringUtils.isEmpty(extTraceDeal.getLineItemId()))
-                .toList();
-        final Map<String, List<ExtTraceDeal>> lineItemsTrace = entries.stream()
+                .toList()
+                : null;
+        final Map<String, List<ExtTraceDeal>> lineItemsTrace = dealsTraceEnabled
+                ? entries.stream()
                 .filter(extTraceDeal -> StringUtils.isNotEmpty(extTraceDeal.getLineItemId()))
-                .collect(Collectors.groupingBy(ExtTraceDeal::getLineItemId, Collectors.toList()));
+                .collect(Collectors.groupingBy(ExtTraceDeal::getLineItemId, Collectors.toList()))
+                : null;
 
-        return CollectionUtils.isNotEmpty(entries)
-                ? ExtDebugTrace.of(CollectionUtils.isEmpty(dealsTrace) ? null : dealsTrace,
-                MapUtils.isEmpty(lineItemsTrace) ? null : lineItemsTrace)
+        final List<ExtTraceActivityInfrastructure> activityInfrastructureTrace = activityInfrastructureTraceEnabled
+                ? new ArrayList<>(auctionContext.getActivityInfrastructure().debugTrace())
+                : null;
+
+        return CollectionUtils.isNotEmpty(entries) || CollectionUtils.isNotEmpty(activityInfrastructureTrace)
+                ? ExtDebugTrace.of(
+                CollectionUtils.isEmpty(dealsTrace) ? null : dealsTrace,
+                MapUtils.isEmpty(lineItemsTrace) ? null : lineItemsTrace,
+                CollectionUtils.isEmpty(activityInfrastructureTrace) ? null : activityInfrastructureTrace)
                 : null;
     }
 

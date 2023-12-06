@@ -400,8 +400,10 @@ public class AmpRequestFactory {
                         auctionContext,
                         ENDPOINT,
                         true))
-                .compose(resolvedBidRequest ->
-                        ortb2RequestFactory.validateRequest(resolvedBidRequest, auctionContext.getDebugWarnings()));
+                .compose(resolvedBidRequest -> ortb2RequestFactory.validateRequest(
+                        resolvedBidRequest,
+                        auctionContext.getHttpRequest(),
+                        auctionContext.getDebugWarnings()));
     }
 
     private static String storedRequestId(BidRequest receivedBidRequest) {
