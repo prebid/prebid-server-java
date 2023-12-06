@@ -62,7 +62,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpFreewheelSSP.of(123456789)))));
+                        ExtImpFreewheelSSP.of("123456789")))));
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -73,7 +73,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .containsExactly(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpFreewheelSSP.of(123456789))));
+                        ExtImpFreewheelSSP.of("123456789"))));
     }
 
     @Test
@@ -217,7 +217,7 @@ public class FreewheelSSPBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpFreewheelSSP.of(123456789)))))
+                                ExtImpFreewheelSSP.of("123456789")))))
                 .build();
     }
 
