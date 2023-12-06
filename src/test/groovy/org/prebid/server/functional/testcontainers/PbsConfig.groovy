@@ -29,6 +29,7 @@ LIMIT 1
     static final Map<String, String> DEFAULT_ENV = [
             "logging.sampling-rate"                      : "1.0",
             "auction.ad-server-currency"                 : "USD",
+            "auction.topics-domain"                      : "my_domain",
             "auction.stored-requests-timeout-ms"         : "1000",
             "metrics.prefix"                             : "prebid",
             "status-response"                            : "ok",
