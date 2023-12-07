@@ -16,6 +16,7 @@ class Targeting {
     Boolean preferDeals
     Boolean alwaysIncludeDeals
     Boolean includeFormat
+    String prefix
 
     static Targeting createWithAllValuesSetTo(Boolean value) {
         new Targeting().tap {
