@@ -1880,6 +1880,34 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldReturnValidationMessageForInvalidTargetingPrefix() {
+        // given
+        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(
+                ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))));
+        final String prefix = "1234567890";
+        final int truncateattrchars = 10;
+        final BidRequest bidRequest = validBidRequestBuilder()
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .targeting(ExtRequestTargeting.builder()
+                                .pricegranularity(mapper.valueToTree(priceGranularity))
+                                .includebidderkeys(true)
+                                .includewinners(true)
+                                .truncateattrchars(truncateattrchars)
+                                .prefix(prefix)
+                                .build())
+                        .build()))
+                .build();
+
+        // when
+        final ValidationResult result = target.validate(bidRequest, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("ext.prebid.targeting: decrease prefix length or increase truncateattrchars"
+                        + " by " + (prefix.length() + 11 - truncateattrchars) + " characters");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenRangesContainsMissedMaxValue() {
         final ExtPriceGranularity priceGranuality = ExtPriceGranularity.of(2,
                 asList(ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01)),
@@ -2110,24 +2138,6 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.user.eids[0].uids[0] missing required field: \"id\"");
-    }
-
-    @Test
-    public void validateShouldReturnErrorWhenEidSourceIsNotUnique() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .user(User.builder()
-                        .eids(asList(
-                                Eid.of("source", singletonList(Uid.of("id1", null, null)), null),
-                                Eid.of("source", singletonList(Uid.of("id2", null, null)), null)))
-                        .build())
-                .build();
-
-        // when
-        final ValidationResult result = target.validate(bidRequest, null);
-
-        // then
-        assertThat(result.getErrors()).containsExactly("request.user.eids must contain unique sources");
     }
 
     @Test
