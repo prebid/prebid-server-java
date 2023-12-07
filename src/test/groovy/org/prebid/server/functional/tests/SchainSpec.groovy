@@ -157,13 +157,14 @@ class SchainSpec extends BaseSpec {
         assert bidderRequest.source?.schain?.nodes == [GLOBAL_SUPPLY_SCHAIN_NODE]
     }
 
-    def "PBS should use source.ext.schain when ext.prebid.schains.bidder doesn't requested"() {
+    def "PBS should use source.ext.schain when ext.prebid.schains.bidder isn't requested"() {
         given: "Pbs config"
         def defaultPbsService = pbsServiceFactory.getService([("adapters.generic.ortb-version"): "2.5"])
 
         and: "Default basic BidRequest with schain obj"
+        def defaultSupplyChain = SupplyChain.defaultSupplyChain
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            source = new Source(ext: new SourceExt(schain: SupplyChain.defaultSupplyChain))
+            source = new Source(ext: new SourceExt(schain: defaultSupplyChain))
             ext.prebid.schains = [new PrebidSchain(bidders: [UNKNOWN.value], schain: SupplyChain.defaultSupplyChain)]
         }
 
@@ -171,25 +172,46 @@ class SchainSpec extends BaseSpec {
         defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain requested source.ext.schain"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.source.ext.schain == bidRequest.source.ext.schain
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            source.ext.schain.ver == defaultSupplyChain.ver
+            source.ext.schain.complete == defaultSupplyChain.complete
+            source.ext.schain.nodes.size() == 1
+            source.ext.schain.nodes.first().asi == defaultSupplyChain.nodes.first().asi
+            source.ext.schain.nodes.first().sid == defaultSupplyChain.nodes.first().sid
+            source.ext.schain.nodes.first().rid == defaultSupplyChain.nodes.first().rid
+            source.ext.schain.nodes.first().name == defaultSupplyChain.nodes.first().name
+            source.ext.schain.nodes.first().domain == defaultSupplyChain.nodes.first().domain
+            source.ext.schain.nodes.first().hp == defaultSupplyChain.nodes.first().hp
+            !source.schain
+        }
     }
 
-    def "PBS should use ext.prebid.schains.schain instead of source.ext.chain when ext.prebid.schains.bidder requested"() {
+    def "PBS should use ext.prebid.schains.schain instead of source.ext.chain when ext.prebid.schains.bidder is requested"() {
         given: "Pbs config"
         def defaultPbsService = pbsServiceFactory.getService([("adapters.generic.ortb-version"): "2.5"])
 
         and: "Default basic BidRequest with schain obj"
+        def defaultSupplyChain = SupplyChain.defaultSupplyChain
         def bidRequest = BidRequest.defaultBidRequest.tap {
             source = new Source(ext: new SourceExt(schain: SupplyChain.defaultSupplyChain))
-            ext.prebid.schains = [new PrebidSchain(bidders: [GENERIC.value], schain: SupplyChain.defaultSupplyChain)]
+            ext.prebid.schains = [new PrebidSchain(bidders: [GENERIC.value], schain: defaultSupplyChain)]
         }
 
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain requested ext.prebid.schains[*].schain"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest.source.ext.schain == bidRequest.ext.prebid.schains[0].schain
+        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+            source.ext.schain.ver == defaultSupplyChain.ver
+            source.ext.schain.complete == defaultSupplyChain.complete
+            source.ext.schain.nodes.size() == 1
+            source.ext.schain.nodes.first().asi == defaultSupplyChain.nodes.first().asi
+            source.ext.schain.nodes.first().sid == defaultSupplyChain.nodes.first().sid
+            source.ext.schain.nodes.first().rid == defaultSupplyChain.nodes.first().rid
+            source.ext.schain.nodes.first().name == defaultSupplyChain.nodes.first().name
+            source.ext.schain.nodes.first().domain == defaultSupplyChain.nodes.first().domain
+            source.ext.schain.nodes.first().hp == defaultSupplyChain.nodes.first().hp
+            !source.schain
+        }
     }
 }
