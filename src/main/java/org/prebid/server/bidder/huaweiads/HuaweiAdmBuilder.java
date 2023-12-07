@@ -52,6 +52,7 @@ public class HuaweiAdmBuilder {
     private static final Integer DATA_ASSET_CTA_TEXT_TYPE = 12;
     private static final Set<Integer> DATA_ASSET_DESC_TYPES = Set.of(2, 10);
     private static final int IMAGE_ASSET_TYPE_ICON = 1;
+    private static final int IMAGE_ASSET_TYPE_MAIN = 3;
     private static final int APP_PROMOTION_INTERACTION_TYPE = 3;
     private static final String DEFAULT_NATIVE_VERSION = "1.1";
     private static final String DEFAULT_VIDEO_MIME_TYPE = "video/mp4";
@@ -364,12 +365,13 @@ public class HuaweiAdmBuilder {
                     .id(asset.getId())
                     .build();
 
-            responseAssets.add(responseAsset);
-
-            if (isImageAsset) {
-                if (!HuaweiUtils.isFormatDefined(adWidth, adHeight)) {
-                    adHeight = responseAsset.getImg().getH();
-                    adWidth = responseAsset.getImg().getW();
+            if (!responseAsset.isEmpty()) {
+                responseAssets.add(responseAsset);
+                if (isImageAsset) {
+                    if (!HuaweiUtils.isFormatDefined(adWidth, adHeight)) {
+                        adHeight = responseAsset.getImg().getH();
+                        adWidth = responseAsset.getImg().getW();
+                    }
                 }
             }
         }
@@ -412,27 +414,31 @@ public class HuaweiAdmBuilder {
     private static ImageObject buildImageObject(Integer assetImageType,
                                                 Iterator<Icon> iconsIterators,
                                                 Iterator<ImageInfo> imageIterator) {
-        final ImageObject.ImageObjectBuilder imgObjectBuilder = ImageObject.builder()
-                .url(StringUtils.EMPTY)
-                .type(assetImageType);
 
         if (Objects.equals(assetImageType, IMAGE_ASSET_TYPE_ICON)) {
             if (iconsIterators.hasNext()) {
                 final Icon icon = iconsIterators.next();
-                imgObjectBuilder.url(icon.getUrl());
-                imgObjectBuilder.w(icon.getWidth());
-                imgObjectBuilder.h(icon.getHeight());
+                return ImageObject.builder()
+                        .url(icon.getUrl())
+                        .w(icon.getWidth())
+                        .h(icon.getHeight())
+                        .type(assetImageType)
+                        .build();
             }
         } else {
             if (imageIterator.hasNext()) {
                 final ImageInfo image = imageIterator.next();
-                imgObjectBuilder.url(image.getUrl());
-                imgObjectBuilder.w(image.getWidth());
-                imgObjectBuilder.h(image.getHeight());
+                if (Objects.equals(assetImageType, IMAGE_ASSET_TYPE_MAIN)) {
+                    return ImageObject.builder()
+                            .url(image.getUrl())
+                            .w(image.getWidth())
+                            .h(image.getHeight())
+                            .type(assetImageType)
+                            .build();
+                }
             }
         }
-
-        return imgObjectBuilder.build();
+        return null;
     }
 
     private static DataObject buildDataObject(MetaData metaData, Integer assetDataType) {
