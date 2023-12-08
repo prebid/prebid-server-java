@@ -22,4 +22,7 @@ public class AccountTargetingConfig {
 
     @JsonProperty("alwaysincludedeals")
     Boolean alwaysIncludeDeals;
+
+    @JsonProperty("prefix")
+    String prefix;
 }
