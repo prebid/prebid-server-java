@@ -3,7 +3,6 @@ package org.prebid.server.bidder.freewheelssp;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
@@ -26,6 +25,8 @@ import java.util.Objects;
 public class FreewheelSSPBidder implements Bidder<BidRequest> {
 
     private static final BidType BID_TYPE = BidType.video;
+    private static final String COMPONENT_ID_HEADER_NAME = "Componentid";
+    private static final String COMPONENT_ID_HEADER_VALUE = "prebid-java";
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -36,13 +37,11 @@ public class FreewheelSSPBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final MultiMap headers = HttpUtil.headers();
-        headers.add("Componentid", "prebid-java");
         return Result.withValue(
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .headers(headers)
+                        .headers(HttpUtil.headers().add(COMPONENT_ID_HEADER_NAME, COMPONENT_ID_HEADER_VALUE))
                         .body(mapper.encodeToBytes(bidRequest))
                         .impIds(BidderUtil.impIds(bidRequest))
                         .payload(bidRequest)
