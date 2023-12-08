@@ -924,6 +924,7 @@ public class ServiceConfiguration {
     RequestValidator requestValidator(
             BidderCatalog bidderCatalog,
             BidderParamValidator bidderParamValidator,
+            Metrics metrics,
             JacksonMapper mapper,
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             @Value("${auction.strict-app-site-dooh:false}") boolean enabledStrictAppSiteDoohValidation) {
@@ -931,6 +932,7 @@ public class ServiceConfiguration {
         return new RequestValidator(
                 bidderCatalog,
                 bidderParamValidator,
+                metrics,
                 mapper,
                 logSamplingRate,
                 enabledStrictAppSiteDoohValidation);

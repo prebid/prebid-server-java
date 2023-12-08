@@ -42,6 +42,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
@@ -103,6 +105,7 @@ public class RequestValidator {
 
     private final BidderCatalog bidderCatalog;
     private final BidderParamValidator bidderParamValidator;
+    private final Metrics metrics;
     private final JacksonMapper mapper;
     private final double logSamplingRate;
     private final boolean enabledStrictAppSiteDoohValidation;
@@ -113,12 +116,14 @@ public class RequestValidator {
      */
     public RequestValidator(BidderCatalog bidderCatalog,
                             BidderParamValidator bidderParamValidator,
+                            Metrics metrics,
                             JacksonMapper mapper,
                             double logSamplingRate,
                             boolean enabledStrictAppSiteDoohValidation) {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
+        this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
         this.logSamplingRate = logSamplingRate;
         this.enabledStrictAppSiteDoohValidation = enabledStrictAppSiteDoohValidation;
@@ -198,6 +203,7 @@ public class RequestValidator {
                 throw new ValidationException(
                         "One of request.site or request.app or request.dooh must be defined");
             } else if (channels.size() > 1) {
+                metrics.updateAlertsMetrics(MetricName.general);
                 if (enabledStrictAppSiteDoohValidation) {
                     throw new ValidationException(String.join(" and ", channels) + " are present, "
                             + "but no more than one of request.site or request.app or request.dooh can be defined");
