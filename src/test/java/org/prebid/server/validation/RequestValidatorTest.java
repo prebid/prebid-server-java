@@ -40,6 +40,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -91,6 +93,8 @@ public class RequestValidatorTest extends VertxTest {
     private BidderCatalog bidderCatalog;
     @Mock
     private BidderParamValidator bidderParamValidator;
+    @Mock
+    private Metrics metrics;
 
     private RequestValidator target;
 
@@ -100,7 +104,7 @@ public class RequestValidatorTest extends VertxTest {
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
 
-        target = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper, 0.01);
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, metrics, jacksonMapper, 0.01, false);
     }
 
     @Test
@@ -1123,6 +1127,74 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("One of request.site or request.app or request.dooh must be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenDoohSiteAndAppArePresentInRequestAndStrictValidationIsEnabled() {
+        // when
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, metrics, jacksonMapper, 0.01, true);
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .dooh(Dooh.builder().build())
+                .app(App.builder().build())
+                .site(Site.builder().build())
+                .build();
+        final ValidationResult result = target.validate(invalidRequest, null);
+
+        // then
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.app and request.dooh and request.site are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenSiteAndAppArePresentInRequestAndStrictValidationIsEnabled() {
+        // when
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, metrics, jacksonMapper, 0.01, true);
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .app(App.builder().build())
+                .site(Site.builder().build())
+                .build();
+        final ValidationResult result = target.validate(invalidRequest, null);
+
+        // then
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.app and request.site are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenDoohAndSiteArePresentInRequestAndStrictValidationIsEnabled() {
+        // when
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, metrics, jacksonMapper, 0.01, true);
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .dooh(Dooh.builder().build())
+                .site(Site.builder().build())
+                .build();
+        final ValidationResult result = target.validate(invalidRequest, null);
+
+        // then
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.dooh and request.site are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenDoohAndAppArePresentInRequestAndStrictValidationIsEnabled() {
+        // when
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, metrics, jacksonMapper, 0.01, true);
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .dooh(Dooh.builder().build())
+                .app(App.builder().build())
+                .build();
+        final ValidationResult result = target.validate(invalidRequest, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.app and request.dooh and request.site are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
     }
 
     @Test

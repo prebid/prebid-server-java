@@ -143,6 +143,7 @@ auction:
     secure-markup: skip
   host-schain-node:
   category-mapping-enabled: false
+  strict-app-site-dooh: false
 video:
   stored-request-required: false
   stored-requests-timeout-ms: 90
