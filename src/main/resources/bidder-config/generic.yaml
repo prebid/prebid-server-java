@@ -61,7 +61,7 @@ adapters:
            - video
            - native
           supported-vendors:
-        vendor-id: 263
+          vendor-id: 263
     meta-info:
       maintainer-email: maintainer@example.com
       app-media-types:
