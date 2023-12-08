@@ -519,5 +519,4 @@ public class HuaweiAdmBuilder {
                 .map(str -> URLDecoder.decode(str, StandardCharsets.UTF_8))
                 .orElse(StringUtils.EMPTY);
     }
-
 }
