@@ -4,7 +4,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.conversant.ConversantBidder;
+import org.prebid.server.bidder.epsilon.EpsilonBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -21,29 +21,29 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/conversant.yaml", factory = YamlPropertySourceFactory.class)
-public class ConversantConfiguration {
+@PropertySource(value = "classpath:/bidder-config/epsilon.yaml", factory = YamlPropertySourceFactory.class)
+public class EpsilonConfiguration {
 
-    private static final String BIDDER_NAME = "conversant";
+    private static final String BIDDER_NAME = "epsilon";
 
-    @Bean("conversantConfigurationProperties")
-    @ConfigurationProperties("adapters.conversant")
-    ConversantConfigurationProperties configurationProperties() {
-        return new ConversantConfigurationProperties();
+    @Bean("epsilonConfigurationProperties")
+    @ConfigurationProperties("adapters.epsilon")
+    EpsilonConfigurationProperties configurationProperties() {
+        return new EpsilonConfigurationProperties();
     }
 
     @Bean
-    BidderDeps conversantBidderDeps(ConversantConfigurationProperties conversantConfigurationProperties,
+    BidderDeps epsilonBidderDeps(EpsilonConfigurationProperties epsilonConfigurationProperties,
                                     @NotBlank @Value("${external-url}") String externalUrl,
                                     JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(conversantConfigurationProperties)
+                .withConfig(epsilonConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config ->
-                        new ConversantBidder(
+                        new EpsilonBidder(
                                 config.getEndpoint(),
-                                conversantConfigurationProperties.getGenerateBidId(),
+                                epsilonConfigurationProperties.getGenerateBidId(),
                                 mapper))
                 .assemble();
     }
@@ -52,7 +52,7 @@ public class ConversantConfiguration {
     @Data
     @EqualsAndHashCode(callSuper = true)
     @NoArgsConstructor
-    private static class ConversantConfigurationProperties extends BidderConfigurationProperties {
+    private static class EpsilonConfigurationProperties extends BidderConfigurationProperties {
 
         @NotNull
         private Boolean generateBidId;

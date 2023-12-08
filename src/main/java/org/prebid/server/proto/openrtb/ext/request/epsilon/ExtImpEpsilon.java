@@ -1,4 +1,4 @@
-package org.prebid.server.proto.openrtb.ext.request.conversant;
+package org.prebid.server.proto.openrtb.ext.request.epsilon;
 
 import lombok.Builder;
 import lombok.Value;
@@ -8,7 +8,7 @@ import java.util.List;
 
 @Builder
 @Value
-public class ExtImpConversant {
+public class ExtImpEpsilon {
 
     String siteId;
 

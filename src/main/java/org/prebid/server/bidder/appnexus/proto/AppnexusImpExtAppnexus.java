@@ -1,13 +1,11 @@
 package org.prebid.server.bidder.appnexus.proto;
 
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Value;
 
 @Value
 @Builder
-@AllArgsConstructor(staticName = "of")
 public class AppnexusImpExtAppnexus {
 
     Integer placementId;
@@ -18,5 +16,9 @@ public class AppnexusImpExtAppnexus {
 
     Boolean usePmtRule;
 
-    ObjectNode privateSizes; // At this time we do no processing on the private sizes, so just leaving it as a JSON blob
+    JsonNode privateSizes;
+
+    String extInvCode;
+
+    String externalImpId;
 }

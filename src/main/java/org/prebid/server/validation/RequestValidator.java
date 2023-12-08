@@ -417,6 +417,22 @@ public class RequestValidator {
             throw new ValidationException("ext.prebid.targeting: At least one of includewinners or includebidderkeys"
                     + " must be enabled to enable targeting support");
         }
+
+        validateTargetingPrefix(extRequestTargeting);
+    }
+
+    private void validateTargetingPrefix(ExtRequestTargeting extRequestTargeting) throws ValidationException {
+        final Integer truncateattrchars = extRequestTargeting.getTruncateattrchars();
+        final int prefixLength = extRequestTargeting.getPrefix() != null
+                ? extRequestTargeting.getPrefix().length()
+                : 0;
+        final boolean prefixLengthInvalid = truncateattrchars != null
+                && prefixLength > 0
+                && prefixLength + 11 > truncateattrchars; // 11 - length of the longest targeting keyword without prefix
+        if (prefixLengthInvalid) {
+            throw new ValidationException("ext.prebid.targeting: decrease prefix length or increase truncateattrchars"
+                    + " by " + (prefixLength + 11 - truncateattrchars) + " characters");
+        }
     }
 
     /**
