@@ -19,18 +19,15 @@ import java.util.stream.Collectors;
 public class AnalyticsMapper {
 
     private static final String AD_QUALITY_SCAN = "ad-scan";
-
     private static final String SUCCESS_STATUS = "success";
-
     private static final String SKIPPED = "skipped";
-
     private static final String INSPECTED_HAS_ISSUE = "inspected-has-issue";
-
     private static final String INSPECTED_NO_ISSUES = "inspected-no-issues";
 
     public static Tags toAnalyticsTags(List<BidderResponse> bidderResponsesWithIssues,
                                        List<BidderResponse> bidderResponsesWithoutIssues,
                                        List<BidderResponse> bidderResponsesNotScanned) {
+
         return TagsImpl.of(Collections.singletonList(ActivityImpl.of(
                 AD_QUALITY_SCAN,
                 SUCCESS_STATUS,
@@ -40,6 +37,7 @@ public class AnalyticsMapper {
     private static List<Result> toActivityResults(List<BidderResponse> bidderResponsesWithIssues,
                                                   List<BidderResponse> bidderResponsesWithoutIssues,
                                                   List<BidderResponse> bidderResponsesNotScanned) {
+
         final List<Result> results = new ArrayList<>();
         if (!bidderResponsesNotScanned.isEmpty()) {
             results.add(ResultImpl.of(SKIPPED, null, toAppliedTo(bidderResponsesNotScanned)));

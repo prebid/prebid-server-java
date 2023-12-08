@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.Future;
@@ -45,7 +46,7 @@ public class BidsScannerTest {
 
     @Before
     public void setUp() {
-        bidsScannerTest = new BidsScanner(writeRedisNode, readRedisNode, "api-key");
+        bidsScannerTest = new BidsScanner(writeRedisNode, readRedisNode, "api-key", new ObjectMapper());
     }
 
     @Test()

@@ -46,6 +46,7 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
             BidsScanner bidsScanner,
             List<String> biddersToExcludeFromScan,
             PrivacyEnforcementService privacyEnforcementService) {
+
         this.bidsScanner = bidsScanner;
         this.biddersToExcludeFromScan = biddersToExcludeFromScan;
         this.privacyEnforcementService = privacyEnforcementService;
@@ -55,6 +56,7 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
     public Future<InvocationResult<AllProcessedBidResponsesPayload>> call(
             AllProcessedBidResponsesPayload allProcessedBidResponsesPayload,
             AuctionInvocationContext auctionInvocationContext) {
+
         final BidRequest bidRequest = getBidRequest(auctionInvocationContext);
         final List<BidderResponse> responses = allProcessedBidResponsesPayload.bidResponses();
         final Map<Boolean, List<BidderResponse>> needScanMap = responses.stream()
@@ -92,6 +94,7 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
             List<BidderResponse> scannedBidderResponses,
             List<BidderResponse> notScannedBidderResponses,
             AuctionInvocationContext auctionInvocationContext) {
+
         final boolean debugEnabled = auctionInvocationContext.debugEnabled();
         final GroupByIssues<BidderResponse> groupByIssues = bidsScanResult.toGroupByIssues(scannedBidderResponses);
         final List<BidderResponse> bidderResponsesWithIssues = groupByIssues.getWithIssues();
@@ -112,10 +115,8 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
                                 : null)
                         .analyticsTags(AnalyticsMapper.toAnalyticsTags(
                                 bidderResponsesWithIssues, bidderResponsesWithoutIssues, notScannedBidderResponses))
-                        .payloadUpdate(payload -> hasIssues
-                                ? AllProcessedBidResponsesPayloadImpl.of(
-                                        Stream.concat(bidderResponsesWithoutIssues.stream(), notScannedBidderResponses.stream()).toList())
-                                : AllProcessedBidResponsesPayloadImpl.of(payload.bidResponses()));
+                        .payloadUpdate(payload -> AllProcessedBidResponsesPayloadImpl.of(
+                                Stream.concat(bidderResponsesWithoutIssues.stream(), notScannedBidderResponses.stream()).toList()));
 
         return resultBuilder.build();
     }
