@@ -203,8 +203,8 @@ public class RequestValidator {
                 throw new ValidationException(
                         "One of request.site or request.app or request.dooh must be defined");
             } else if (channels.size() > 1) {
-                metrics.updateAlertsMetrics(MetricName.general);
                 if (enabledStrictAppSiteDoohValidation) {
+                    metrics.updateAlertsMetrics(MetricName.general);
                     throw new ValidationException(String.join(" and ", channels) + " are present, "
                             + "but no more than one of request.site or request.app or request.dooh can be defined");
                 }
