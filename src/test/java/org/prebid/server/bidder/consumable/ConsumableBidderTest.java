@@ -1,13 +1,18 @@
 package org.prebid.server.bidder.consumable;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -276,6 +281,107 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetCoppaValueFromBidRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                        bidRequestBuilder.regs(Regs.builder().coppa(1).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .allSatisfy(consumableBidRequest -> {
+                    assertThat(consumableBidRequest.getCoppa()).isTrue();
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetSChainValueFromBidRequest() {
+        // given
+        final SupplyChain expectedSupplyChain = SupplyChain.of(1, List.of(), "test_stub", null);
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                        bidRequestBuilder.source(Source.builder().schain(expectedSupplyChain).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .allSatisfy(consumableBidRequest -> {
+                    assertThat(consumableBidRequest.getSChain()).isEqualTo(expectedSupplyChain);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetSiteContentValueFromBidRequest() {
+        // given
+        final Content expectedContent = Content.builder().id("test_stub").build();
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                        bidRequestBuilder.site(Site.builder().content(expectedContent).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .allSatisfy(consumableBidRequest -> {
+                    assertThat(consumableBidRequest.getContent()).isEqualTo(expectedContent);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetAppContentValueFromBidRequest() {
+        // given
+        final Content expectedContent = Content.builder().id("test_stub").build();
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                        bidRequestBuilder.app(App.builder().content(expectedContent).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .allSatisfy(consumableBidRequest -> {
+                    assertThat(consumableBidRequest.getContent()).isEqualTo(expectedContent);
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldSetEidsValueFromBidRequest() {
+        // given
+        final List<Eid> expectedEids = List.of(
+                Eid.of("test_stub_1", null, null),
+                Eid.of("test_stub_2", null, null));
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                        bidRequestBuilder.user(User.builder().eids(expectedEids).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .allSatisfy(consumableBidRequest -> {
+                    assertThat(consumableBidRequest.getUser().getEids()).isEqualTo(expectedEids);
+                });
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<ConsumableBidRequest> httpCall = BidderCall.succeededHttp(null,
@@ -317,6 +423,33 @@ public class ConsumableBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerBidWithExpectedAdomainAndCatsFields() throws JsonProcessingException {
+        // given
+        final List<String> expectedAdomains = List.of("test_stub_1");
+        final List<String> expectedCats = List.of("test_stub_2");
+        final BidderCall<ConsumableBidRequest> httpCall = givenHttpCall(identity(),
+                decision -> decision.pricing(ConsumablePricing.of(11.1)).adId(123L)
+                        .width(300).height(250)
+                        .contents(singletonList(ConsumableContents.of("contents_body")))
+                        .adomain(expectedAdomains)
+                        .cats(expectedCats));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall,
+                givenBidRequestWithTwoImpsAndTwoFormats());
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .contains(BidderBid.of(
+                        Bid.builder()
+                                .id("request_id").impid("firstImp").price(BigDecimal.valueOf(11.1))
+                                .adm("contents_body").w(300).h(250).exp(30).crid("123")
+                                .adomain(expectedAdomains).cat(expectedCats).build(),
+                        BidType.banner, null));
     }
 
     @Test
