@@ -83,6 +83,7 @@ public class VendorListServiceTest extends VertxTest {
                 .willReturn(Buffer.buffer(mapper.writeValueAsString(givenVendorList())));
 
         target = new VendorListService(
+                0,
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
                 0,
@@ -107,6 +108,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListService(
+                        0,
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
@@ -126,6 +128,7 @@ public class VendorListServiceTest extends VertxTest {
     public void shouldStartUsingFallbackVersionIfDeprecatedIsTrue() {
         // given
         target = new VendorListService(
+                0,
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
                 0,
@@ -160,6 +163,7 @@ public class VendorListServiceTest extends VertxTest {
     public void shouldThrowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() {
         // then
         assertThatThrownBy(() -> new VendorListService(
+                0,
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
                 0,
@@ -184,6 +188,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListService(
+                        0,
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
@@ -209,6 +214,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListService(
+                        0,
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
@@ -234,6 +240,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListService(
+                        0,
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
