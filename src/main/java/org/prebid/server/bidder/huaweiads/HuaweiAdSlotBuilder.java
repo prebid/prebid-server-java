@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Video;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.huaweiads.model.AdsType;
 import org.prebid.server.bidder.huaweiads.model.request.AdSlot30;
@@ -99,9 +100,10 @@ public class HuaweiAdSlotBuilder {
         final long numImage = assets.stream().map(Asset::getImg).filter(Objects::nonNull)
                 .filter(img -> IMAGE_ASSET_TYPE_MAIN.equals(img.getType()))
                 .count();
+        final List<Format> formats = makeFormatListForNative(assets, numImage);
         return AdSlot30.builder()
                 .detailedCreativeTypeList(makeDetailedCreativeTypeList(numVideo, numImage))
-                .format(makeFormatListForNative(assets, numImage))
+                .format(CollectionUtils.isEmpty(formats) ? null : formats)
                 .build();
     }
 
@@ -118,14 +120,12 @@ public class HuaweiAdSlotBuilder {
     }
 
     private static List<Format> getBannerFormats(Banner banner) {
-        final List<Format> formats = Stream.ofNullable(banner.getFormat())
+        return Stream.ofNullable(banner.getFormat())
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .filter(format -> HuaweiUtils.isFormatDefined(format.getW(), format.getH()))
                 .map(format -> Format.of(format.getW(), format.getH()))
                 .toList();
-        formats.addAll(getPopularFormats());
-        return formats;
     }
 
     private List<Asset> parseNativeRequestAssets(Native xNative) {
@@ -147,10 +147,8 @@ public class HuaweiAdSlotBuilder {
     private static List<String> makeDetailedCreativeTypeList(long numVideo, long numImage) {
         if (numVideo >= 1) {
             return List.of("903");
-        } else if (numImage > 1) {
-            return List.of("904");
-        } else if (numImage == 1) {
-            return List.of("901");
+        } else if (numImage >= 1) {
+            return List.of("901", "904", "905");
         } else {
             return List.of("913", "914");
         }

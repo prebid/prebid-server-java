@@ -445,7 +445,14 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of("901"))
+                .detailedCreativeTypeList(List.of("901", "904", "905"))
+                .format(List.of(
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(1080, 1920),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(1080, 1620),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(300, 250),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(720, 1280),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(225, 150)
+                ))
                 .test(0)
                 .build();
 
@@ -479,7 +486,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of("901"))
+                .detailedCreativeTypeList(List.of("901", "904", "905"))
                 .test(0)
                 .build();
 
@@ -508,7 +515,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of("901"))
+                .detailedCreativeTypeList(List.of("901", "904", "905"))
                 .test(0)
                 .build();
 
@@ -539,7 +546,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of("904"))
+                .detailedCreativeTypeList(List.of("901", "904", "905"))
                 .test(0)
                 .build();
 
@@ -570,7 +577,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of("901"))
+                .detailedCreativeTypeList(List.of("901", "904", "905"))
                 .test(0)
                 .build();
 
