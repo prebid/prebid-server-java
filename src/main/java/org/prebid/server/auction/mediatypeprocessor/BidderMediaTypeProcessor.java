@@ -6,6 +6,7 @@ import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.ArrayList;
@@ -34,8 +35,8 @@ public class BidderMediaTypeProcessor implements MediaTypeProcessor {
     }
 
     @Override
-    public MediaTypeProcessingResult process(BidRequest bidRequest, String supportedBidderName) {
-        final Set<MediaType> supportedMediaTypes = extractSupportedMediaTypes(bidRequest, supportedBidderName);
+    public MediaTypeProcessingResult process(BidRequest bidRequest, String bidderName, Account account) {
+        final Set<MediaType> supportedMediaTypes = extractSupportedMediaTypes(bidRequest, bidderName);
         if (supportedMediaTypes.isEmpty()) {
             return MediaTypeProcessingResult.rejected(Collections.singletonList(
                     BidderError.badInput("Bidder does not support any media types.")));
@@ -49,8 +50,8 @@ public class BidderMediaTypeProcessor implements MediaTypeProcessor {
                 : MediaTypeProcessingResult.rejected(errors);
     }
 
-    private Set<MediaType> extractSupportedMediaTypes(BidRequest bidRequest, String supportedBidderName) {
-        final BidderInfo.CapabilitiesInfo capabilitiesInfo = bidderCatalog.bidderInfoByName(supportedBidderName)
+    private Set<MediaType> extractSupportedMediaTypes(BidRequest bidRequest, String bidderName) {
+        final BidderInfo.CapabilitiesInfo capabilitiesInfo = bidderCatalog.bidderInfoByName(bidderName)
                 .getCapabilities();
 
         final Supplier<BidderInfo.PlatformInfo> fetchSupportedMediaTypes;

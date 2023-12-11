@@ -17,6 +17,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
+import org.prebid.server.spring.config.bidder.model.Ortb;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -154,7 +155,8 @@ public class HttpBidderRequestEnricherTest {
                 0,
                 false,
                 false,
-                CompressionType.GZIP));
+                CompressionType.GZIP,
+                Ortb.of(false)));
 
         final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder().build();
 
@@ -190,7 +192,8 @@ public class HttpBidderRequestEnricherTest {
                 0,
                 false,
                 false,
-                CompressionType.GZIP));
+                CompressionType.GZIP,
+                Ortb.of(false)));
 
         final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder().build();
 
