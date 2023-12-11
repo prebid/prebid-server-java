@@ -28,9 +28,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class PbRichmediaFilterBidResponsesFilterHook implements AllProcessedBidResponsesHook {
+public class PbRichmediaFilterAllProcessedBidResponsesHook implements AllProcessedBidResponsesHook {
 
-    private static final String CODE = "pb-richmedia-filter-bid-responses-filter-hook";
+    private static final String CODE = "pb-richmedia-filter-all-processed-bid-responses-hook";
     private static final String ACTIVITY = "reject-richmedia";
     private static final String SUCCESS_STATUS = "success";
 
@@ -38,9 +38,9 @@ public class PbRichmediaFilterBidResponsesFilterHook implements AllProcessedBidR
     private final BidResponsesMraidFilter mraidFilter;
     private final boolean filterMraid;
 
-    public PbRichmediaFilterBidResponsesFilterHook(ObjectMapper mapper,
-                                                   BidResponsesMraidFilter mraidFilter,
-                                                   boolean filterMraid) {
+    public PbRichmediaFilterAllProcessedBidResponsesHook(ObjectMapper mapper,
+                                                         BidResponsesMraidFilter mraidFilter,
+                                                         boolean filterMraid) {
         this.mapper = Objects.requireNonNull(mapper);
         this.mraidFilter = Objects.requireNonNull(mraidFilter);
         this.filterMraid = filterMraid;
@@ -73,6 +73,7 @@ public class PbRichmediaFilterBidResponsesFilterHook implements AllProcessedBidR
     private InvocationResult<AllProcessedBidResponsesPayload> toInvocationResult(List<BidderResponse> bidderResponses,
                                                                                  Tags analyticsTags,
                                                                                  InvocationAction action) {
+
         final InvocationResultImpl.InvocationResultImplBuilder<AllProcessedBidResponsesPayload> resultBuilder =
                 InvocationResultImpl.<AllProcessedBidResponsesPayload>builder()
                         .status(InvocationStatus.success)

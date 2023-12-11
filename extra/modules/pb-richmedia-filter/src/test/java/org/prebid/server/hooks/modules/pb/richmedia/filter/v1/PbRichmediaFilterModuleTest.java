@@ -8,7 +8,7 @@ public class PbRichmediaFilterModuleTest {
 
     @Test
     public void shouldHaveValidInitialConfigs() {
-        // given & when & then
+        // given and when and then
         assertThat(PbRichmediaFilterModule.CODE).isEqualTo("pb-richmedia-filter");
     }
 

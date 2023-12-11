@@ -1,7 +1,7 @@
 package org.prebid.server.hooks.modules.pb.richmedia.filter.config;
 
 import org.prebid.server.hooks.modules.pb.richmedia.filter.core.BidResponsesMraidFilter;
-import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.PbRichmediaFilterBidResponsesFilterHook;
+import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.PbRichmediaFilterAllProcessedBidResponsesHook;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.PbRichmediaFilterModule;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,7 +21,7 @@ public class PbRichmediaFilterModuleConfiguration {
             @Value("${hooks.modules.pb-richmedia-filter.mraid-script-pattern}") String mraidScriptPattern) {
 
         return new PbRichmediaFilterModule(List.of(
-                new PbRichmediaFilterBidResponsesFilterHook(
+                new PbRichmediaFilterAllProcessedBidResponsesHook(
                         ObjectMapperProvider.mapper(),
                         new BidResponsesMraidFilter(mraidScriptPattern),
                         Boolean.TRUE.equals(filterMraid))));

@@ -36,7 +36,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-public class PbRichmediaFilterBidResponsesFilterHookTest {
+public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
 
     private static final ObjectMapper MAPPER = ObjectMapperProvider.mapper();
 
@@ -52,23 +52,23 @@ public class PbRichmediaFilterBidResponsesFilterHookTest {
     @Mock
     private BidResponsesMraidFilter mraidFilter;
 
-    private PbRichmediaFilterBidResponsesFilterHook target;
+    private PbRichmediaFilterAllProcessedBidResponsesHook target;
 
     @Before
     public void setUp() {
-        target = new PbRichmediaFilterBidResponsesFilterHook(ObjectMapperProvider.mapper(), mraidFilter, true);
+        target = new PbRichmediaFilterAllProcessedBidResponsesHook(ObjectMapperProvider.mapper(), mraidFilter, true);
     }
 
     @Test
     public void shouldHaveValidInitialConfigs() {
-        // given & when & then
-        assertThat(target.code()).isEqualTo("pb-richmedia-filter-bid-responses-filter-hook");
+        // given and when and then
+        assertThat(target.code()).isEqualTo("pb-richmedia-filter-all-processed-bid-responses-hook");
     }
 
     @Test
     public void callShouldReturnResultWithNoActionWhenFilterMraidIsFalse() {
         // given
-        target = new PbRichmediaFilterBidResponsesFilterHook(ObjectMapperProvider.mapper(), mraidFilter, false);
+        target = new PbRichmediaFilterAllProcessedBidResponsesHook(ObjectMapperProvider.mapper(), mraidFilter, false);
         final List<BidderResponse> givenResponses = givenBidderResponses(2);
         doReturn(givenResponses).when(allProcessedBidResponsesPayload).bidResponses();
 
@@ -91,30 +91,6 @@ public class PbRichmediaFilterBidResponsesFilterHookTest {
 
         verifyNoInteractions(mraidFilter);
     }
-
-    //todo: is the reject possible?
-/*    @Test
-    public void callShouldReturnResultWithRejectActionWhenAllBidderResponsesWereFilteredOut() {
-        // given
-        final List<BidderResponse> givenResponses = givenBidderResponses(2);
-        doReturn(givenResponses).when(allProcessedBidResponsesPayload).bidResponses();
-        given(mraidFilter.filter(givenResponses))
-                .willReturn(MraidFilterResult.of(Collections.emptyList(), Collections.emptyList()));
-
-        // when
-        final Future<InvocationResult<AllProcessedBidResponsesPayload>> future = target.call(
-                allProcessedBidResponsesPayload,
-                auctionInvocationContext);
-
-        // then
-        assertThat(future).isNotNull();
-        assertThat(future.succeeded()).isTrue();
-
-        final InvocationResult<AllProcessedBidResponsesPayload> result = future.result();
-        assertThat(result).isNotNull();
-        assertThat(result.status()).isEqualTo(InvocationStatus.success);
-        assertThat(result.action()).isEqualTo(InvocationAction.reject);
-    }*/
 
     @Test
     public void callShouldReturnResultWithUpdateActionWhenSomeResponsesWereFilteredOut() {
@@ -212,25 +188,22 @@ public class PbRichmediaFilterBidResponsesFilterHookTest {
         assertThat(result).isNotNull();
         assertThat(result.status()).isEqualTo(InvocationStatus.success);
 
-        assertThat(result.analyticsTags()).isEqualTo(TagsImpl.of(List.of(
-                ActivityImpl.of(
-                        "reject-richmedia",
-                        "success",
-                        List.of(
-                                ResultImpl.of(
-                                        "status",
-                                        MAPPER.createObjectNode().put("key", "value"),
-                                        AppliedToImpl.builder()
-                                                .bidders(singletonList("bidderA"))
-                                                .impIds(List.of("imp_id1", "imp_id2"))
-                                                .build()),
-                                ResultImpl.of(
-                                        "status",
-                                        MAPPER.createObjectNode().put("key", "value"),
-                                        AppliedToImpl.builder()
-                                                .bidders(singletonList("bidderB"))
-                                                .impIds(singletonList("imp_id3"))
-                                                .build()))))));
+        final ResultImpl expectedResult1 = ResultImpl.of(
+                "status",
+                MAPPER.createObjectNode().put("key", "value"),
+                AppliedToImpl.builder()
+                        .bidders(singletonList("bidderA"))
+                        .impIds(List.of("imp_id1", "imp_id2"))
+                        .build());
+        final ResultImpl expectedResult2 = ResultImpl.of(
+                "status",
+                MAPPER.createObjectNode().put("key", "value"),
+                AppliedToImpl.builder()
+                        .bidders(singletonList("bidderB"))
+                        .impIds(singletonList("imp_id3"))
+                        .build());
+        assertThat(result.analyticsTags()).isEqualTo(
+                TagsImpl.of(List.of(ActivityImpl.of("reject-richmedia", "success", List.of(expectedResult1, expectedResult2)))));
     }
 
     @Test

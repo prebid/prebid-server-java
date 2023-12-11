@@ -10,9 +10,12 @@ import org.prebid.server.hooks.modules.pb.richmedia.filter.model.AnalyticsResult
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.MraidFilterResult;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class BidResponsesMraidFilter {
@@ -23,7 +26,7 @@ public class BidResponsesMraidFilter {
     private final String mraidScriptPattern;
 
     public BidResponsesMraidFilter(String mraidScriptPattern) {
-        this.mraidScriptPattern = mraidScriptPattern;
+        this.mraidScriptPattern = Objects.requireNonNull(mraidScriptPattern);
     }
 
     public MraidFilterResult filter(List<BidderResponse> responses) {
@@ -33,16 +36,19 @@ public class BidResponsesMraidFilter {
         for (BidderResponse bidderResponse : responses) {
             final BidderSeatBid seatBid = bidderResponse.getSeatBid();
             final List<BidderBid> originalBids = seatBid.getBids();
-            final List<BidderBid> filteredBids = originalBids.stream()
-                    .filter(bid -> !StringUtils.contains(bid.getBid().getAdm(), mraidScriptPattern))
-                    .collect(Collectors.toList());
+            final Map<Boolean, List<BidderBid>> bidsMap = originalBids.stream()
+                    .collect(Collectors.groupingBy(this::hasMraid));
 
-            if (filteredBids.size() == originalBids.size()) {
+            final List<BidderBid> validBids = Optional.ofNullable(bidsMap.get(Boolean.FALSE))
+                    .orElse(Collections.emptyList());
+            final List<BidderBid> invalidBids = Optional.ofNullable(bidsMap.get(Boolean.TRUE))
+                    .orElse(Collections.emptyList());
+
+            if (validBids.size() == originalBids.size()) {
                 filteredResponses.add(bidderResponse.with(seatBid.with(originalBids)));
             } else {
-                final List<String> rejectedImps = originalBids.stream()
+                final List<String> rejectedImps = invalidBids.stream()
                         .map(BidderBid::getBid)
-                        .filter(bid -> StringUtils.contains(bid.getAdm(), mraidScriptPattern))
                         .map(Bid::getImpid)
                         .toList();
                 final AnalyticsResult analyticsResult = AnalyticsResult.of(
@@ -54,10 +60,14 @@ public class BidResponsesMraidFilter {
 
                 final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
                 errors.add(BidderError.of("Invalid creatives", BidderError.Type.invalid_creative, new HashSet<>(rejectedImps)));
-                filteredResponses.add(bidderResponse.with(seatBid.with(filteredBids, errors)));
+                filteredResponses.add(bidderResponse.with(seatBid.with(validBids, errors)));
             }
         }
 
         return MraidFilterResult.of(filteredResponses, analyticsResults);
+    }
+
+    private boolean hasMraid(BidderBid bid) {
+        return StringUtils.contains(bid.getBid().getAdm(), mraidScriptPattern);
     }
 }
