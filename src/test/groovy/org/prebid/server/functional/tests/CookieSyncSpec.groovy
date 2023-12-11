@@ -2119,7 +2119,7 @@ class CookieSyncSpec extends BaseSpec {
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contain corresponding bidders size due to global config"
+        then: "Response should contain corresponding bidders size due to request limit"
         assert response.bidderStatus.size() == cookieSyncRequest.limit
     }
 
