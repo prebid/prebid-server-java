@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Video;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.huaweiads.model.AdsType;
 import org.prebid.server.bidder.huaweiads.model.request.AdSlot30;
@@ -16,6 +15,9 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.huaweiads.ExtImpHuaweiAds;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -23,14 +25,24 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class HuaweiAdSlotBuilder {
 
     private static final Integer IMAGE_ASSET_TYPE_MAIN = 3;
     private static final String TEST_AUTH_ENABLED = "true";
-    private static final double FILL_RATIO = 0.5;
-
+    private static final BigDecimal FILL_RATIO = BigDecimal.valueOf(0.5);
+    private static final List<Format> POPULAR_FORMATS = List.of(
+            Format.of(225, 150),
+            Format.of(300, 250),
+            Format.of(640, 360),
+            Format.of(720, 1280),
+            Format.of(1080, 607),
+            Format.of(1080, 1620),
+            Format.of(1080, 1920),
+            Format.of(1280, 720)
+    );
     private final JacksonMapper mapper;
 
     public HuaweiAdSlotBuilder(JacksonMapper mapper) {
@@ -100,10 +112,9 @@ public class HuaweiAdSlotBuilder {
         final long numImage = assets.stream().map(Asset::getImg).filter(Objects::nonNull)
                 .filter(img -> IMAGE_ASSET_TYPE_MAIN.equals(img.getType()))
                 .count();
-        final List<Format> formats = makeFormatListForNative(assets, numImage);
         return AdSlot30.builder()
                 .detailedCreativeTypeList(makeDetailedCreativeTypeList(numVideo, numImage))
-                .format(CollectionUtils.isEmpty(formats) ? null : formats)
+                .format(makeFormatListForNative(assets, numImage))
                 .build();
     }
 
@@ -145,38 +156,37 @@ public class HuaweiAdSlotBuilder {
     }
 
     private static List<String> makeDetailedCreativeTypeList(long numVideo, long numImage) {
+        final List<String> detailedCreativeTypeList = new ArrayList<>();
         if (numVideo >= 1) {
-            return List.of("903");
-        } else if (numImage >= 1) {
-            return List.of("901", "904", "905");
-        } else {
-            return List.of("913", "914");
+            detailedCreativeTypeList.add("903");
         }
+        if (numImage >= 1) {
+            detailedCreativeTypeList.addAll(List.of("901", "904", "905"));
+        }
+        return detailedCreativeTypeList;
     }
 
-    private List<Format> makeFormatListForNative(List<Asset> assets, long numImage) {
+    private static List<Format> makeFormatListForNative(List<Asset> assets, long numImage) {
         final Set<Format> formats = new HashSet<>();
         formats.addAll(makeFormatListForVideo(assets));
         formats.addAll(makeFormatListForImage(assets, numImage));
         return formats.stream().toList();
     }
 
-    private List<Format> makeFormatListForVideo(List<Asset> assets) {
+    private static Set<Format> makeFormatListForVideo(List<Asset> assets) {
         return assets.stream()
                 .map(Asset::getVideo)
                 .filter(Objects::nonNull)
                 .filter(video -> HuaweiUtils.isFormatDefined(video.getW(), video.getH()))
                 .map(video -> Format.of(video.getW(), video.getH()))
-                .distinct()
-                .toList();
+                .collect(Collectors.toSet());
     }
 
-    private Set<Format> makeFormatListForImage(List<Asset> assets, long numImage) {
+    private static Set<Format> makeFormatListForImage(List<Asset> assets, long numImage) {
         final Set<Format> formats = new HashSet<>();
         assets.stream()
                 .map(Asset::getImg)
                 .filter(Objects::nonNull)
-                .filter(image -> HuaweiUtils.isFormatDefined(image.getW(), image.getW()))
                 .forEach(image -> {
                     if (numImage > 1
                             && HuaweiUtils.isFormatDefined(image.getW(), image.getH())
@@ -186,41 +196,36 @@ public class HuaweiAdSlotBuilder {
                     if (numImage == 1
                             && HuaweiUtils.isFormatDefined(image.getW(), image.getH())
                             && HuaweiUtils.isFormatDefined(image.getWmin(), image.getHmin())) {
-                        formats.addAll(filterPopularSizes(image.getW(), image.getH(), true));
+                        formats.addAll(filterPopularSizesByRatio(image.getW(), image.getH()));
                     }
                     if (numImage == 1
                             && !HuaweiUtils.isFormatDefined(image.getW(), image.getH())
                             && HuaweiUtils.isFormatDefined(image.getWmin(), image.getHmin())) {
-                        formats.addAll(filterPopularSizes(image.getWmin(), image.getHmin(), false));
+                        formats.addAll(filterPopularSizesByRange(image.getWmin(), image.getHmin()));
                     }
                 });
         return formats;
     }
 
-    private static List<Format> filterPopularSizes(Integer width, Integer height, boolean filterByRatio) {
-        if (filterByRatio) {
-            return getPopularFormats().stream()
-                    .filter(size ->
-                            Math.abs((double) width / height - (double) size.getW() / size.getH()) <= FILL_RATIO)
-                    .toList();
-        } else {
-            return getPopularFormats().stream()
-                    .filter(size -> size.getW() > width && size.getH() > height)
-                    .toList();
-        }
+    private static List<Format> filterPopularSizesByRatio(Integer width, Integer height) {
+        final int precision = 5;
+        final BigDecimal assetWidth = BigDecimal.valueOf(width, precision);
+        final BigDecimal assetHeight = BigDecimal.valueOf(height, precision);
+        final BigDecimal assetRatio = assetWidth.divide(assetHeight, RoundingMode.UP);
+        return POPULAR_FORMATS.stream()
+                .filter(format -> {
+                            final BigDecimal formatWidth = BigDecimal.valueOf(format.getW(), precision);
+                            final BigDecimal formatHeight = BigDecimal.valueOf(format.getH(), precision);
+                            final BigDecimal formatRatio = formatWidth.divide(formatHeight, RoundingMode.UP);
+                            return assetRatio.subtract(formatRatio).abs().compareTo(FILL_RATIO) <= 0;
+                        }
+                )
+                .toList();
     }
 
-    //look at 527
-    private static List<Format> getPopularFormats() {
-        return List.of(
-                Format.of(225, 150),
-                Format.of(300, 250),
-                Format.of(640, 360),
-                Format.of(720, 1280),
-                Format.of(1080, 607),
-                Format.of(1080, 1620),
-                Format.of(1080, 1920),
-                Format.of(1280, 720)
-        );
+    private static List<Format> filterPopularSizesByRange(Integer width, Integer height) {
+        return POPULAR_FORMATS.stream()
+                .filter(size -> size.getW() > width && size.getH() > height)
+                .toList();
     }
 }

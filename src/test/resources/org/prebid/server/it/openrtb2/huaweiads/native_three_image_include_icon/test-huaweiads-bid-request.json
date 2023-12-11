@@ -11,8 +11,11 @@
       "adtype": 3,
       "slotid": "u42ohmaufh",
       "detailedCreativeTypeList": [
-        "901", "904", "905"
+        "901",
+        "904",
+        "905"
       ],
+      "format": [],
       "test": 1
     }
   ],
