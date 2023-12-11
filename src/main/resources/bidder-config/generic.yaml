@@ -46,6 +46,22 @@ adapters:
             url: http://bid.adsinteractive.com/getuid?{{redirect_url}}
             support-cors: false
             uid-macro: '$AUID'
+      nativo:
+        enabled: false
+        endpoint: https://exchange.postrelease.com/esi?ntv_epid=7
+        pbs-enforces-ccpa: false
+        meta-info:
+          maintainer-email: prebiddev@nativo.com
+          app-media-types:
+            - banner
+            - video
+            - native
+          site-media-types:
+           - banner
+           - video
+           - native
+          supported-vendors:
+          vendor-id: 263
     meta-info:
       maintainer-email: maintainer@example.com
       app-media-types:
