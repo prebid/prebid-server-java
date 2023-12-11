@@ -238,22 +238,12 @@ public class IxBidder implements Bidder<BidRequest> {
                 .build();
     }
 
+    /**
+     * Not used, since {@link #makeBidderResponse(BidderCall, BidRequest)} was overridden.
+     */
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final List<BidderError> errors = new ArrayList<>();
-            final IxBidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), IxBidResponse.class);
-            final BidRequest payload = httpCall.getRequest().getPayload();
-            return Result.of(extractBids(bidResponse, payload, errors), errors);
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
-    }
-
-    private List<BidderBid> extractBids(IxBidResponse bidResponse, BidRequest bidRequest, List<BidderError> errors) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
-                ? Collections.emptyList()
-                : bidsFromResponse(bidResponse, bidRequest, errors);
+        return Result.withError(BidderError.generic("Invalid method call"));
     }
 
     private List<BidderBid> bidsFromResponse(IxBidResponse bidResponse,
