@@ -1,0 +1,11 @@
+adapters:
+  smartx:
+    endpoint: https://bid.smartclip.net/bid/1005
+    meta-info:
+      maintainer-email: bidding@smartclip.tv
+      app-media-types:
+        - video
+      site-media-types:
+        - video
+      supported-vendors:
+      vendor-id: 115

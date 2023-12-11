@@ -110,6 +110,55 @@ public class UidUpdaterTest extends VertxTest {
     }
 
     @Test
+    public void updateShouldReturnUpdatedUidWhenResolvedNamePresentInUserExtAndAbsentInUserIgnoringCase() {
+        // given
+        given(bidderAliases.resolveBidder(eq("requestAlias"))).willReturn("bidDER");
+
+        final User user = User.builder()
+                .ext(ExtUser.builder()
+                        .prebid(ExtUserPrebid.of(Map.of("BIDder", "buyeruid-from-ext")))
+                        .build())
+                .build();
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .httpRequest(givenHttpRequest("buyeruid-from-host-cookie"))
+                .bidRequest(BidRequest.builder().user(user).build())
+                .uidsCookie(givenUidsCookie(Map.of("bidder-cookie-family", "buyeruid-from-uids-cookie")))
+                .build();
+
+        // when
+        final UpdateResult<String> result = uidUpdater.updateUid("requestAlias", auctionContext, bidderAliases);
+
+        // then
+        assertThat(result).isEqualTo(UpdateResult.updated("buyeruid-from-ext"));
+    }
+
+    @Test
+    public void updateShouldReturnUpdatedUidWhenBaseNamePresentInUserExtAndAbsentInUserIgnoringCase() {
+        // given
+        given(bidderAliases.resolveBidder(eq("requestAlias"))).willReturn("configAlias");
+        given(bidderCatalog.resolveBaseBidder(eq("configAlias"))).willReturn("bidDER");
+
+        final User user = User.builder()
+                .ext(ExtUser.builder()
+                        .prebid(ExtUserPrebid.of(Map.of("BIDder", "buyeruid-from-ext")))
+                        .build())
+                .build();
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .httpRequest(givenHttpRequest("buyeruid-from-host-cookie"))
+                .bidRequest(BidRequest.builder().user(user).build())
+                .uidsCookie(givenUidsCookie(Map.of("bidder-cookie-family", "buyeruid-from-uids-cookie")))
+                .build();
+
+        // when
+        final UpdateResult<String> result = uidUpdater.updateUid("requestAlias", auctionContext, bidderAliases);
+
+        // then
+        assertThat(result).isEqualTo(UpdateResult.updated("buyeruid-from-ext"));
+    }
+
+    @Test
     public void updateShouldReturnUpdatedUidWhenPresentInUidsCookieAndAbsentInUserExtAndUser() {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()

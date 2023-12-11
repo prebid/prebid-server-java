@@ -2,10 +2,11 @@ adapters:
   appnexus:
     endpoint: http://ib.adnxs.com/openrtb2
     aliases:
-      districtm:
-        enabled: false
+      mediafuse:
+        meta-info:
+          maintainer-email: support@mediafuse.com
     meta-info:
-      maintainer-email: prebid-server@xandr.com
+      maintainer-email: prebid@microsoft.com
       app-media-types:
         - banner
         - video
@@ -13,6 +14,7 @@ adapters:
       site-media-types:
         - banner
         - video
+        - native
       supported-vendors:
       vendor-id: 32
     usersync:

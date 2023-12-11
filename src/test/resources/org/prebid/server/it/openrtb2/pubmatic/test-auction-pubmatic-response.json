@@ -5,7 +5,7 @@
       "bid": [
         {
           "id": "bid_id",
-          "impid": "imp_id",
+          "impid": "test-imp-id",
           "price": 4.75,
           "adm": "adm9",
           "crid": "crid9",

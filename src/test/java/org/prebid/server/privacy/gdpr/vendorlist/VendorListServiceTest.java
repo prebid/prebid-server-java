@@ -55,6 +55,7 @@ public class VendorListServiceTest extends VertxTest {
     private static final String CACHE_DIR = "/cache/dir";
     private static final long REFRESH_MISSING_LIST_PERIOD_MS = 3600000L;
     private static final String FALLBACK_VENDOR_LIST_PATH = "fallback.json";
+    private static final String GENERATION_VERSION = "v0";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -70,7 +71,7 @@ public class VendorListServiceTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
 
-    private VendorListService vendorListService;
+    private VendorListService target;
 
     @Before
     public void setUp() throws JsonProcessingException {
@@ -81,7 +82,8 @@ public class VendorListServiceTest extends VertxTest {
         given(fileSystem.readFileBlocking(eq(FALLBACK_VENDOR_LIST_PATH)))
                 .willReturn(Buffer.buffer(mapper.writeValueAsString(givenVendorList())));
 
-        vendorListService = new VendorListService(
+        target = new VendorListService(
+                0,
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
                 0,
@@ -92,6 +94,7 @@ public class VendorListServiceTest extends VertxTest {
                 fileSystem,
                 httpClient,
                 metrics,
+                GENERATION_VERSION,
                 jacksonMapper);
     }
 
@@ -105,6 +108,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListService(
+                        0,
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
@@ -115,6 +119,7 @@ public class VendorListServiceTest extends VertxTest {
                         fileSystem,
                         httpClient,
                         metrics,
+                        GENERATION_VERSION,
                         jacksonMapper))
                 .hasMessage("dir creation error");
     }
@@ -122,7 +127,8 @@ public class VendorListServiceTest extends VertxTest {
     @Test
     public void shouldStartUsingFallbackVersionIfDeprecatedIsTrue() {
         // given
-        vendorListService = new VendorListService(
+        target = new VendorListService(
+                0,
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
                 0,
@@ -133,10 +139,11 @@ public class VendorListServiceTest extends VertxTest {
                 fileSystem,
                 httpClient,
                 metrics,
+                GENERATION_VERSION,
                 jacksonMapper);
 
         // when
-        final Future<Map<Integer, Vendor>> future = vendorListService.forVersion(1);
+        final Future<Map<Integer, Vendor>> future = target.forVersion(1);
 
         // then
         verifyNoInteractions(httpClient);
@@ -156,6 +163,7 @@ public class VendorListServiceTest extends VertxTest {
     public void shouldThrowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() {
         // then
         assertThatThrownBy(() -> new VendorListService(
+                0,
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
                 0,
@@ -166,6 +174,7 @@ public class VendorListServiceTest extends VertxTest {
                 fileSystem,
                 httpClient,
                 metrics,
+                GENERATION_VERSION,
                 jacksonMapper))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("No fallback vendorList for deprecated version present");
@@ -179,6 +188,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListService(
+                        0,
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
@@ -189,6 +199,7 @@ public class VendorListServiceTest extends VertxTest {
                         fileSystem,
                         httpClient,
                         metrics,
+                        GENERATION_VERSION,
                         jacksonMapper))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
@@ -203,6 +214,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListService(
+                        0,
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
@@ -213,6 +225,7 @@ public class VendorListServiceTest extends VertxTest {
                         fileSystem,
                         httpClient,
                         metrics,
+                        GENERATION_VERSION,
                         jacksonMapper))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
@@ -227,6 +240,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListService(
+                        0,
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
@@ -237,6 +251,7 @@ public class VendorListServiceTest extends VertxTest {
                         fileSystem,
                         httpClient,
                         metrics,
+                        GENERATION_VERSION,
                         jacksonMapper))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Cannot parse vendor list from: invalid");
@@ -250,7 +265,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, null);
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(httpClient).get(eq("http://vendorlist/1"), anyLong());
@@ -262,7 +277,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException("Response exception"));
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(httpClient).get(anyString(), anyLong());
@@ -275,7 +290,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(503, null);
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(httpClient).get(anyString(), anyLong());
@@ -288,7 +303,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, "response");
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(httpClient).get(anyString(), anyLong());
@@ -302,7 +317,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(httpClient).get(anyString(), anyLong());
@@ -316,7 +331,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(httpClient).get(anyString(), anyLong());
@@ -330,7 +345,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(httpClient).get(anyString(), anyLong());
@@ -344,7 +359,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(httpClient).get(anyString(), anyLong());
@@ -358,7 +373,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(vendorList));
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(httpClient).get(anyString(), anyLong());
@@ -376,7 +391,7 @@ public class VendorListServiceTest extends VertxTest {
         final String filePath = new File("/cache/dir/1.json").getPath();
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(fileSystem).writeFile(eq(filePath), eq(Buffer.buffer(vendorListAsString)), any());
@@ -390,12 +405,12 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException());
 
         // when
-        final Future<?> result1 = vendorListService.forVersion(0);
-        final Future<?> result2 = vendorListService.forVersion(-2);
+        final Future<?> result1 = target.forVersion(0);
+        final Future<?> result2 = target.forVersion(-2);
 
         // then
-        assertThat(result1).isFailed().hasMessage("TCF 2 vendor list for version 0 not valid.");
-        assertThat(result2).isFailed().hasMessage("TCF 2 vendor list for version -2 not valid.");
+        assertThat(result1).isFailed().hasMessage("TCF 2 vendor list for version v0.0 not valid.");
+        assertThat(result2).isFailed().hasMessage("TCF 2 vendor list for version v0.-2 not valid.");
     }
 
     @Test
@@ -404,10 +419,11 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientProducesException(new RuntimeException());
 
         // when
-        final Future<Map<Integer, Vendor>> future = vendorListService.forVersion(1);
+        final Future<Map<Integer, Vendor>> future = target.forVersion(1);
 
         // then
-        assertThat(future).isFailed().hasMessage("TCF 2 vendor list for version 1 not fetched yet, try again later.");
+        assertThat(future).isFailed()
+                .hasMessage("TCF 2 vendor list for version v0.1 not fetched yet, try again later.");
     }
 
     @Test
@@ -419,8 +435,8 @@ public class VendorListServiceTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
 
         // when
-        vendorListService.forVersion(1); // populate cache
-        final Future<Map<Integer, Vendor>> result = vendorListService.forVersion(1);
+        target.forVersion(1); // populate cache
+        final Future<Map<Integer, Vendor>> result = target.forVersion(1);
 
         // then
         assertThat(result).succeededWith(singletonMap(
@@ -467,8 +483,8 @@ public class VendorListServiceTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
 
         // when
-        vendorListService.forVersion(1); // populate cache
-        final Future<Map<Integer, Vendor>> future = vendorListService.forVersion(1);
+        target.forVersion(1); // populate cache
+        final Future<Map<Integer, Vendor>> future = target.forVersion(1);
 
         // then
         assertThat(future).succeededWith(idToVendor);
@@ -482,9 +498,9 @@ public class VendorListServiceTest extends VertxTest {
         // when
 
         // first call triggers http request that results in 404
-        final Future<Map<Integer, Vendor>> future1 = vendorListService.forVersion(1);
+        final Future<Map<Integer, Vendor>> future1 = target.forVersion(1);
         // second call yields fallback vendor list
-        final Future<Map<Integer, Vendor>> future2 = vendorListService.forVersion(1);
+        final Future<Map<Integer, Vendor>> future2 = target.forVersion(1);
 
         // then
         assertThat(future1).isFailed();
@@ -508,7 +524,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(200, null);
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(metrics).updatePrivacyTcfVendorListMissingMetric(eq(2));
@@ -520,7 +536,7 @@ public class VendorListServiceTest extends VertxTest {
         givenHttpClientReturnsResponse(503, null);
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(metrics).updatePrivacyTcfVendorListErrorMetric(eq(2));
@@ -535,7 +551,7 @@ public class VendorListServiceTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture("error")));
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(metrics).updatePrivacyTcfVendorListErrorMetric(eq(2));
@@ -550,7 +566,7 @@ public class VendorListServiceTest extends VertxTest {
                 .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
 
         // when
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(metrics).updatePrivacyTcfVendorListOkMetric(eq(2));
@@ -564,9 +580,9 @@ public class VendorListServiceTest extends VertxTest {
         // when
 
         // first call triggers http request that results in 404
-        vendorListService.forVersion(1);
+        target.forVersion(1);
         // second call yields fallback vendor list
-        vendorListService.forVersion(1);
+        target.forVersion(1);
 
         // then
         verify(metrics).updatePrivacyTcfVendorListFallbackMetric(eq(2));

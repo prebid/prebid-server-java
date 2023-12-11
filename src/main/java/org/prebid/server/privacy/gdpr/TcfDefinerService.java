@@ -47,6 +47,8 @@ public class TcfDefinerService {
             new ConditionalLogger("app_corrupt_consent", logger);
     private static final ConditionalLogger SITE_CORRUPT_CONSENT_LOGGER =
             new ConditionalLogger("site_corrupt_consent", logger);
+    private static final ConditionalLogger DOOH_CORRUPT_CONSENT_LOGGER =
+            new ConditionalLogger("dooh_corrupt_consent", logger);
     private static final ConditionalLogger UNDEFINED_CORRUPT_CONSENT_LOGGER =
             new ConditionalLogger("undefined_corrupt_consent", logger);
 
@@ -380,6 +382,8 @@ public class TcfDefinerService {
                     logMessage(consent, MetricName.amp.toString(), requestLogInfo, message), 100);
             case openrtb2app -> APP_CORRUPT_CONSENT_LOGGER.info(
                     logMessage(consent, MetricName.openrtb2app.toString(), requestLogInfo, message), 100);
+            case openrtb2dooh -> DOOH_CORRUPT_CONSENT_LOGGER.info(
+                    logMessage(consent, MetricName.openrtb2dooh.toString(), requestLogInfo, message), 100);
             case openrtb2web -> SITE_CORRUPT_CONSENT_LOGGER.info(
                     logMessage(consent, MetricName.openrtb2web.toString(), requestLogInfo, message), 100);
             default -> UNDEFINED_CORRUPT_CONSENT_LOGGER.info(

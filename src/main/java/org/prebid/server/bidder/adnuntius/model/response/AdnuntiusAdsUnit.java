@@ -18,5 +18,10 @@ public class AdnuntiusAdsUnit {
 
     String html;
 
+    @JsonProperty("responseId")
+    String responseId;
+
     List<AdnuntiusAd> ads;
+
+    List<AdnuntiusAd> deals;
 }

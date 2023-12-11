@@ -25,10 +25,12 @@ public class BidderInfoCreator {
                 metaInfo.getMaintainerEmail(),
                 metaInfo.getAppMediaTypes(),
                 metaInfo.getSiteMediaTypes(),
+                metaInfo.getDoohMediaTypes(),
                 metaInfo.getSupportedVendors(),
                 metaInfo.getVendorId(),
                 configurationProperties.getPbsEnforcesCcpa(),
                 configurationProperties.getModifyingVastXmlAllowed(),
-                configurationProperties.getEndpointCompression());
+                configurationProperties.getEndpointCompression(),
+                configurationProperties.getOrtb());
     }
 }

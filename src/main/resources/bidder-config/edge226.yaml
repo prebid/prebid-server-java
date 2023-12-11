@@ -1,0 +1,15 @@
+adapters:
+  edge226:
+    endpoint: http://ssp.dauup.com/pserver
+    meta-info:
+      maintainer-email: audit@edge226.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 1202

@@ -13,8 +13,14 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 737
+    endpoint-compression: gzip
     usersync:
       cookie-family-name: amx
       redirect:
         url: https://prebid.a-mo.net/cchain/0?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
+        support-cors: false
+        userMacro: "$UID"
+      iframe:
+        url: https://prebid.a-mo.net/isyn?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&s=pbs&cb={{redirect_url}}
+        userMacro: "$UID"
         support-cors: false

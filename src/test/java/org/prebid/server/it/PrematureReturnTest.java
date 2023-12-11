@@ -89,15 +89,15 @@ public class PrematureReturnTest extends VertxTest {
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/planner-register"))
                 .withBasicAuth("username", "password")
                 .withHeader("pg-trx-id", new AnythingPattern())
-                .withRequestBody(equalToJson(IntegrationTest.jsonFrom("deals/test-planner-register-request-1.json"),
+                .withRequestBody(equalToJson(IntegrationTest.jsonFrom("deals/test-planner-register-request.json"),
                         false, true))
                 .willReturn(aResponse()));
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/user-data-details"))
                 .withRequestBody(equalToJson(IntegrationTest
-                        .jsonFrom("deals/test-user-data-details-request-1.json"), false, true))
+                        .jsonFrom("deals/test-user-data-details-request.json"), false, true))
                 .willReturn(aResponse().withBody(IntegrationTest
-                        .jsonFrom("deals/test-user-data-details-response-1.json"))));
+                        .jsonFrom("deals/test-user-data-details-rubicon-response.json"))));
     }
 
     @Test

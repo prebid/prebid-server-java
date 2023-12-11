@@ -112,7 +112,8 @@ public class FileApplicationSettingsTest extends VertxTest {
                         + "amp: true,"
                         + "web: true,"
                         + "video: true,"
-                        + "app: true"
+                        + "app: true,"
+                        + "dooh: true"
                         + "},"
                         + "purposes: {"
                         + "p1: {enforce-purpose: basic,enforce-vendors: false,vendor-exceptions: [rubicon, appnexus]},"
@@ -159,7 +160,7 @@ public class FileApplicationSettingsTest extends VertxTest {
                 .privacy(AccountPrivacyConfig.of(
                         AccountGdprConfig.builder()
                                 .enabled(true)
-                                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                                 .purposes(Purposes.builder()
                                         .p1(Purpose.of(EnforcePurpose.basic, false, asList("rubicon", "appnexus")))
                                         .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx")))

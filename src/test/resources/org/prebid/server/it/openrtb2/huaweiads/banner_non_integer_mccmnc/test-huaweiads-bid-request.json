@@ -1,0 +1,55 @@
+{
+  "app": {
+    "lang": "en",
+    "country": "ZA",
+    "name": "API1.0Demo",
+    "pkgname": "com.example.pkgname2",
+    "version": "1.11"
+  },
+  "multislot": [
+    {
+      "adtype": 8,
+      "slotid": "m8x9x3rzff",
+      "test": 1,
+      "format": [
+        {
+          "w": 300,
+          "h": 250
+        }
+      ]
+    }
+  ],
+  "device": {
+    "height": 755,
+    "language": "zh",
+    "oaid": "oaid",
+    "os": "android",
+    "localeCountry": "ZA",
+    "pxratio": 3,
+    "width": 360,
+    "model": "LYA-AL00",
+    "clientTime": "2018-11-02 16:34:07.981+1300",
+    "gaid": "gaid",
+    "useragent": "ua",
+    "version": "29",
+    "maker": "HUAWEI",
+    "belongCountry": "ZA",
+    "ip" : "193.168.244.1"
+  },
+  "geo": {
+  },
+  "network": {
+    "carrier": 99,
+    "cellInfo": [
+      {
+        "mcc": "test",
+        "mnc": "1"
+      }
+    ],
+    "type": 1
+  },
+  "regs": {
+  },
+  "version": "3.4",
+  "clientAdRequestId": "test-req-id"
+}
