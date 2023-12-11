@@ -28,8 +28,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.ix.model.request.IxDiag;
-import org.prebid.server.bidder.ix.model.response.IxBidResponse;
-import org.prebid.server.bidder.ix.model.response.IxExtBidResponse;
 import org.prebid.server.bidder.ix.model.response.NativeV11Wrapper;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -46,11 +44,13 @@ import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponseFledge;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -760,14 +760,23 @@ public class IxBidderTest extends VertxTest {
         // given
         final String impId = "imp_id";
         final BidResponse bidResponse = givenBidResponse(bidBuilder -> bidBuilder.impid(impId).mtype(1));
-        final ObjectNode fledgeAuctionConfig = mapper.createObjectNode();
+        final ObjectNode fledgeConfigNode = mapper.createObjectNode();
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(List.of(Imp.builder().id(impId).build()))
                 .build();
-        final IxBidResponse bidResponseWithFledge = IxBidResponse.builder()
+        final FledgeAuctionConfig fledgeAuctionConfig = FledgeAuctionConfig.builder()
+                .impId(impId)
+                .config(fledgeConfigNode)
+                .build();
+        final ExtBidResponseFledge extBidResponseFledge = ExtBidResponseFledge.of(List.of(fledgeAuctionConfig));
+        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.builder()
+                .fledge(extBidResponseFledge)
+                .build();
+        final ExtBidResponse extBidResponse = ExtBidResponse.builder().prebid(extBidResponsePrebid).build();
+        final BidResponse bidResponseWithFledge = BidResponse.builder()
                 .cur(bidResponse.getCur())
                 .seatbid(bidResponse.getSeatbid())
-                .ext(IxExtBidResponse.of(Map.of(impId, fledgeAuctionConfig)))
+                .ext(extBidResponse)
                 .build();
         final BidderCall<BidRequest> httpCall =
                 givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponseWithFledge));
@@ -781,7 +790,7 @@ public class IxBidderTest extends VertxTest {
                 .containsOnly(BidderBid.of(Bid.builder().impid(impId).mtype(1).build(), banner, bidResponse.getCur()));
         final FledgeAuctionConfig expectedFledge = FledgeAuctionConfig.builder()
                 .impId(impId)
-                .config(fledgeAuctionConfig)
+                .config(fledgeConfigNode)
                 .build();
         assertThat(result.getFledgeAuctionConfigs()).containsExactly(expectedFledge);
     }
