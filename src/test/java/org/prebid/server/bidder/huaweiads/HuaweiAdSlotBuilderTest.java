@@ -462,6 +462,47 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
     }
 
     @Test
+    public void buildShouldBuildNativeAdSlotWhenImpIsNativeAndHasTwoMainImagesWithFormat()
+            throws JsonProcessingException {
+        // given
+        final Request nativeRequest = Request.builder()
+                .assets(List.of(
+                        Asset.builder()
+                                .img(ImageObject.builder().w(200).h(200).wmin(300).hmin(300).type(3).build())
+                                .build(),
+                        Asset.builder()
+                                .img(ImageObject.builder().w(1080).h(1920).wmin(1080).hmin(1620).type(3).build())
+                                .build()
+                        )
+                )
+                .build();
+        final Imp givenImp = Imp.builder()
+                .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
+                .build();
+        final ExtImpHuaweiAds givenImpExt = ExtImpHuaweiAds.builder()
+                .slotId("slotId")
+                .adType("native")
+                .build();
+
+        // when
+        final AdSlot30 actual = target.build(givenImp, givenImpExt);
+
+        // then
+        final AdSlot30 expected = AdSlot30.builder()
+                .adType(3)
+                .slotId("slotId")
+                .detailedCreativeTypeList(List.of("901", "904", "905"))
+                .format(List.of(
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(1080, 1920),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(200, 200)
+                ))
+                .test(0)
+                .build();
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
     public void buildShouldBuildNativeAdSlotWhenImpIsNativeAndHasOneMainImageWithMinFormatOnly()
             throws JsonProcessingException {
         // given
@@ -598,11 +639,12 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
     }
 
     @Test
-    public void buildShouldBuildNativeAdSlotWhenImpIsNativeAndHasOneMainImageAndOneVideo()
+    public void buildShouldBuildNativeAdSlotWhenImpIsNativeAndHasTwoMainImagesAndOneVideo()
             throws JsonProcessingException {
         // given
         final Request nativeRequest = Request.builder()
                 .assets(List.of(
+                        Asset.builder().img(ImageObject.builder().type(3).build()).build(),
                         Asset.builder().img(ImageObject.builder().type(3).build()).build(),
                         Asset.builder().video(VideoObject.builder().build()).build()))
                 .build();
@@ -630,14 +672,11 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
     }
 
     @Test
-    public void buildShouldBuildNativeAdSlotWhenImpIsNativeAndHasTwoMainImagesAndOneVideo()
+    public void buildShouldBuildNativeAdSlotWhenImpIsNativeAndHasOneVideo()
             throws JsonProcessingException {
         // given
         final Request nativeRequest = Request.builder()
-                .assets(List.of(
-                        Asset.builder().img(ImageObject.builder().type(3).build()).build(),
-                        Asset.builder().img(ImageObject.builder().type(3).build()).build(),
-                        Asset.builder().video(VideoObject.builder().build()).build()))
+                .assets(List.of(Asset.builder().video(VideoObject.builder().build()).build()))
                 .build();
         final Imp givenImp = Imp.builder()
                 .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
@@ -654,7 +693,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of("903", "901", "904", "905"))
+                .detailedCreativeTypeList(List.of("903"))
                 .format(List.of())
                 .test(0)
                 .build();

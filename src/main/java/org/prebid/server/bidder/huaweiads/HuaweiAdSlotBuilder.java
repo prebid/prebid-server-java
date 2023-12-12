@@ -196,7 +196,7 @@ public class HuaweiAdSlotBuilder {
                     if (numImage == 1 && formatDefined && minFormatDefined) {
                         formats.addAll(filterPopularSizesByRatio(image.getW(), image.getH()));
                     }
-                    if (numImage == 1 && formatDefined && minFormatDefined) {
+                    if (numImage == 1 && !formatDefined && minFormatDefined) {
                         formats.addAll(filterPopularSizesByRange(image.getWmin(), image.getHmin()));
                     }
                 });
