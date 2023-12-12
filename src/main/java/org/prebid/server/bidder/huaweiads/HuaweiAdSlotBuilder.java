@@ -188,19 +188,15 @@ public class HuaweiAdSlotBuilder {
                 .map(Asset::getImg)
                 .filter(Objects::nonNull)
                 .forEach(image -> {
-                    if (numImage > 1
-                            && HuaweiUtils.isFormatDefined(image.getW(), image.getH())
-                            && HuaweiUtils.isFormatDefined(image.getWmin(), image.getHmin())) {
+                    final boolean formatDefined = HuaweiUtils.isFormatDefined(image.getW(), image.getH());
+                    final boolean minFormatDefined = HuaweiUtils.isFormatDefined(image.getWmin(), image.getHmin());
+                    if (numImage > 1 && formatDefined && minFormatDefined) {
                         formats.add(Format.of(image.getW(), image.getH()));
                     }
-                    if (numImage == 1
-                            && HuaweiUtils.isFormatDefined(image.getW(), image.getH())
-                            && HuaweiUtils.isFormatDefined(image.getWmin(), image.getHmin())) {
+                    if (numImage == 1 && formatDefined && minFormatDefined) {
                         formats.addAll(filterPopularSizesByRatio(image.getW(), image.getH()));
                     }
-                    if (numImage == 1
-                            && !HuaweiUtils.isFormatDefined(image.getW(), image.getH())
-                            && HuaweiUtils.isFormatDefined(image.getWmin(), image.getHmin())) {
+                    if (numImage == 1 && formatDefined && minFormatDefined) {
                         formats.addAll(filterPopularSizesByRange(image.getWmin(), image.getHmin()));
                     }
                 });
