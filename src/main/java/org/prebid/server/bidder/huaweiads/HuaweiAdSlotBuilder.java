@@ -3,6 +3,7 @@ package org.prebid.server.bidder.huaweiads;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.Asset;
 import com.iab.openrtb.request.Banner;
+import com.iab.openrtb.request.ImageObject;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Request;
@@ -187,20 +188,22 @@ public class HuaweiAdSlotBuilder {
         assets.stream()
                 .map(Asset::getImg)
                 .filter(Objects::nonNull)
-                .forEach(image -> {
-                    final boolean formatDefined = HuaweiUtils.isFormatDefined(image.getW(), image.getH());
-                    final boolean minFormatDefined = HuaweiUtils.isFormatDefined(image.getWmin(), image.getHmin());
-                    if (numImage > 1 && formatDefined && minFormatDefined) {
-                        formats.add(Format.of(image.getW(), image.getH()));
-                    }
-                    if (numImage == 1 && formatDefined && minFormatDefined) {
-                        formats.addAll(filterPopularSizesByRatio(image.getW(), image.getH()));
-                    }
-                    if (numImage == 1 && !formatDefined && minFormatDefined) {
-                        formats.addAll(filterPopularSizesByRange(image.getWmin(), image.getHmin()));
-                    }
-                });
+                .forEach(image -> enrichFormats(image, formats, numImage));
         return formats;
+    }
+
+    private static void enrichFormats(ImageObject image, Set<Format> formats, long numImage) {
+        final boolean formatDefined = HuaweiUtils.isFormatDefined(image.getW(), image.getH());
+        final boolean minFormatDefined = HuaweiUtils.isFormatDefined(image.getWmin(), image.getHmin());
+        if (numImage > 1 && formatDefined && minFormatDefined) {
+            formats.add(Format.of(image.getW(), image.getH()));
+        }
+        if (numImage == 1 && formatDefined && minFormatDefined) {
+            formats.addAll(filterPopularSizesByRatio(image.getW(), image.getH()));
+        }
+        if (numImage == 1 && !formatDefined && minFormatDefined) {
+            formats.addAll(filterPopularSizesByRange(image.getWmin(), image.getHmin()));
+        }
     }
 
     private static List<Format> filterPopularSizesByRatio(Integer width, Integer height) {
