@@ -192,20 +192,19 @@ public class HuaweiAdSlotBuilder {
                 .collect(Collectors.toSet());
     }
 
-    private static Set<Format> enrichFormats(ImageObject image, long numImage) {
-        Set<Format> formats = new HashSet<>();
+    private static List<Format> enrichFormats(ImageObject image, long numImage) {
         final boolean formatDefined = HuaweiUtils.isFormatDefined(image.getW(), image.getH());
         final boolean minFormatDefined = HuaweiUtils.isFormatDefined(image.getWmin(), image.getHmin());
         if (numImage > 1 && formatDefined && minFormatDefined) {
-            formats.add(Format.of(image.getW(), image.getH()));
+            return List.of(Format.of(image.getW(), image.getH()));
         }
         if (numImage == 1 && formatDefined && minFormatDefined) {
-            formats.addAll(filterPopularSizesByRatio(image.getW(), image.getH()));
+            return filterPopularSizesByRatio(image.getW(), image.getH());
         }
         if (numImage == 1 && !formatDefined && minFormatDefined) {
-            formats.addAll(filterPopularSizesByRange(image.getWmin(), image.getHmin()));
+            return filterPopularSizesByRange(image.getWmin(), image.getHmin());
         }
-        return formats;
+        return List.of();
     }
 
     private static List<Format> filterPopularSizesByRatio(Integer width, Integer height) {
