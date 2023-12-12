@@ -15,7 +15,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.ntv.EventTrackingMethod;
 import com.iab.openrtb.request.ntv.EventType;
 import com.iab.openrtb.response.Bid;
-import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
@@ -23,6 +22,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.ix.model.request.IxDiag;
+import org.prebid.server.bidder.ix.model.response.IxBidResponse;
+import org.prebid.server.bidder.ix.model.response.IxExtBidResponse;
 import org.prebid.server.bidder.ix.model.response.NativeV11Wrapper;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -42,9 +43,6 @@ import org.prebid.server.proto.openrtb.ext.request.ix.ExtImpIx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidResponseFledge;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -112,8 +110,13 @@ public class IxBidder implements Bidder<BidRequest> {
     @Override
     public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return CompositeBidderResponse.withBids(extractIxBids(bidRequest, bidResponse), extractFledge(bidResponse));
+            final IxBidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), IxBidResponse.class);
+            final List<BidderError> bidderErrors = new ArrayList<>();
+            return CompositeBidderResponse.builder()
+                    .bids(extractIxBids(bidRequest, bidResponse, bidderErrors))
+                    .fledgeAuctionConfigs(extractFledge(bidResponse))
+                    .errors(bidderErrors)
+                    .build();
         } catch (DecodeException e) {
             return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -241,24 +244,12 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     @Override
+    @Deprecated(since = "Not used, since Bidder.makeBidderResponse(...) was overridden.")
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final List<BidderError> errors = new ArrayList<>();
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final BidRequest payload = httpCall.getRequest().getPayload();
-            return Result.of(extractBids(bidResponse, payload, errors), errors);
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
+        return Result.withError(BidderError.generic("Invalid method call"));
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest, List<BidderError> errors) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
-                ? Collections.emptyList()
-                : bidsFromResponse(bidResponse, bidRequest, errors);
-    }
-
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse,
+    private List<BidderBid> bidsFromResponse(IxBidResponse bidResponse,
                                              BidRequest bidRequest,
                                              List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
@@ -271,7 +262,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
+    private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, IxBidResponse bidResponse, List<BidderError> errors) {
         final BidType bidType;
         try {
             bidType = getBidType(bid, bidRequest.getImp());
@@ -402,18 +393,22 @@ public class IxBidder implements Bidder<BidRequest> {
                 .build());
     }
 
-    private List<BidderBid> extractIxBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractIxBids(BidRequest bidRequest,
+                                          IxBidResponse bidResponse,
+                                          List<BidderError> bidderErrors) {
         return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())
                 ? Collections.emptyList()
-                : bidsFromResponse(bidResponse, bidRequest, new ArrayList<>());
+                : bidsFromResponse(bidResponse, bidRequest, bidderErrors);
     }
 
-    private List<FledgeAuctionConfig> extractFledge(BidResponse bidResponse) {
+    private List<FledgeAuctionConfig> extractFledge(IxBidResponse bidResponse) {
         return Optional.ofNullable(bidResponse)
-                .map(BidResponse::getExt)
-                .map(ExtBidResponse::getPrebid)
-                .map(ExtBidResponsePrebid::getFledge)
-                .map(ExtBidResponseFledge::getAuctionConfigs)
-                .orElse(Collections.emptyList());
+                .map(IxBidResponse::getExt)
+                .map(IxExtBidResponse::getFledgeAuctionConfigs)
+                .orElse(Collections.emptyMap())
+                .entrySet()
+                .stream()
+                .map(e -> FledgeAuctionConfig.builder().impId(e.getKey()).config(e.getValue()).build())
+                .toList();
     }
 }
