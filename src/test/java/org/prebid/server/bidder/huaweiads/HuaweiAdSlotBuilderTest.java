@@ -359,7 +359,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
     @Test
     public void buildShouldBuildNativeAdSlotWhenImpIsNativeAndHasNoImagesAndNoVideos() throws JsonProcessingException {
         // given
-        final Request nativeRequest = Request.builder().assets(List.of()).build();
+        final Request nativeRequest = Request.builder().assets(Collections.emptyList()).build();
         final Imp givenImp = Imp.builder()
                 .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
                 .build();
@@ -375,8 +375,8 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of())
-                .format(List.of())
+                .detailedCreativeTypeList(Collections.emptyList())
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
@@ -411,8 +411,8 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of())
-                .format(List.of())
+                .detailedCreativeTypeList(Collections.emptyList())
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
@@ -567,7 +567,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
                 .adType(3)
                 .slotId("slotId")
                 .detailedCreativeTypeList(List.of("901", "904", "905"))
-                .format(List.of())
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
@@ -599,7 +599,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
                 .adType(3)
                 .slotId("slotId")
                 .detailedCreativeTypeList(List.of("901", "904", "905"))
-                .format(List.of())
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
@@ -631,7 +631,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
                 .adType(3)
                 .slotId("slotId")
                 .detailedCreativeTypeList(List.of("901", "904", "905"))
-                .format(List.of())
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
@@ -664,7 +664,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
                 .adType(3)
                 .slotId("slotId")
                 .detailedCreativeTypeList(List.of("903", "901", "904", "905"))
-                .format(List.of())
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
@@ -694,7 +694,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
                 .adType(3)
                 .slotId("slotId")
                 .detailedCreativeTypeList(List.of("903"))
-                .format(List.of())
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
@@ -726,7 +726,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
                 .adType(3)
                 .slotId("slotId")
                 .detailedCreativeTypeList(List.of("903"))
-                .format(List.of())
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 

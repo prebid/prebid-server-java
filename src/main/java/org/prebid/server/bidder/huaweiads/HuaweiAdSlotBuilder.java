@@ -192,11 +192,11 @@ public class HuaweiAdSlotBuilder {
                 .collect(Collectors.toSet());
     }
 
-    private static List<Format> getFormats(ImageObject image, long numImage) {
+    private static Set<Format> getFormats(ImageObject image, long numImage) {
         final boolean formatDefined = HuaweiUtils.isFormatDefined(image.getW(), image.getH());
         final boolean minFormatDefined = HuaweiUtils.isFormatDefined(image.getWmin(), image.getHmin());
         if (numImage > 1 && formatDefined && minFormatDefined) {
-            return List.of(Format.of(image.getW(), image.getH()));
+            return Set.of(Format.of(image.getW(), image.getH()));
         }
         if (numImage == 1 && formatDefined && minFormatDefined) {
             return filterPopularSizesByRatio(image.getW(), image.getH());
@@ -204,10 +204,10 @@ public class HuaweiAdSlotBuilder {
         if (numImage == 1 && !formatDefined && minFormatDefined) {
             return filterPopularSizesByRange(image.getWmin(), image.getHmin());
         }
-        return List.of();
+        return Collections.emptySet();
     }
 
-    private static List<Format> filterPopularSizesByRatio(Integer width, Integer height) {
+    private static Set<Format> filterPopularSizesByRatio(Integer width, Integer height) {
         final int precision = 5;
         final BigDecimal assetWidth = BigDecimal.valueOf(width, precision);
         final BigDecimal assetHeight = BigDecimal.valueOf(height, precision);
@@ -220,12 +220,12 @@ public class HuaweiAdSlotBuilder {
                             return assetRatio.subtract(formatRatio).abs().compareTo(FILL_RATIO) <= 0;
                         }
                 )
-                .toList();
+                .collect(Collectors.toSet());
     }
 
-    private static List<Format> filterPopularSizesByRange(Integer width, Integer height) {
+    private static Set<Format> filterPopularSizesByRange(Integer width, Integer height) {
         return POPULAR_FORMATS.stream()
                 .filter(size -> size.getW() > width && size.getH() > height)
-                .toList();
+                .collect(Collectors.toSet());
     }
 }

@@ -22,6 +22,7 @@ import org.prebid.server.bidder.huaweiads.model.response.Monitor;
 import org.prebid.server.bidder.huaweiads.model.response.VideoInfo;
 import org.prebid.server.exception.PreBidException;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -390,7 +391,7 @@ public class HuaweiAdmBuilderTest extends VertxTest {
     @Test
     public void buildBannerShouldFailBuildingBigPicture2CreativeWhenImageInfoListIsEmpty() {
         // given
-        final MetaData metadata = MetaData.builder().imageInfoList(List.of()).build();
+        final MetaData metadata = MetaData.builder().imageInfoList(Collections.emptyList()).build();
         final Content content = Content.builder().metaData(metadata).creativeType(3).build();
 
         // when & then
@@ -1092,7 +1093,7 @@ public class HuaweiAdmBuilderTest extends VertxTest {
         final MetaData metadata = MetaData.builder()
                 .clickUrl("clickUrl")
                 .videoInfo(videoInfo)
-                .iconList(List.of())
+                .iconList(Collections.emptyList())
                 .imageInfoList(List.of(ImageInfo.builder().url("imageInfoUrl").width(400).height(400).build()))
                 .duration(2000L)
                 .build();
