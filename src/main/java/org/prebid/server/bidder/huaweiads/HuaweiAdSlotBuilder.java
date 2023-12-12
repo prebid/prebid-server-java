@@ -187,12 +187,12 @@ public class HuaweiAdSlotBuilder {
         return assets.stream()
                 .map(Asset::getImg)
                 .filter(Objects::nonNull)
-                .map(image -> enrichFormats(image, numImage))
+                .map(image -> getFormats(image, numImage))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toSet());
     }
 
-    private static List<Format> enrichFormats(ImageObject image, long numImage) {
+    private static List<Format> getFormats(ImageObject image, long numImage) {
         final boolean formatDefined = HuaweiUtils.isFormatDefined(image.getW(), image.getH());
         final boolean minFormatDefined = HuaweiUtils.isFormatDefined(image.getWmin(), image.getHmin());
         if (numImage > 1 && formatDefined && minFormatDefined) {
