@@ -75,6 +75,7 @@
         <groovy.version>3.0.14</groovy.version>
         <testcontainers.version>1.17.4</testcontainers.version>
         <mockserver.version>5.14.0</mockserver.version>
+        <amazonaws.version>1.12.600</amazonaws.version>
         <allure.version>2.19.0</allure.version>
         <aspectj.version>1.9.9.1</aspectj.version>
         <bytebuddy.version>1.12.14</bytebuddy.version>
@@ -586,6 +587,18 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mysql</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>${amazonaws.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>localstack</artifactId>
             <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>

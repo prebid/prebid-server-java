@@ -1,0 +1,113 @@
+package org.prebid.server.functional.tests.storage
+
+import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Site
+import org.prebid.server.functional.service.PrebidServerException
+import org.prebid.server.functional.service.S3Service
+import org.prebid.server.functional.util.PBSUtils
+
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
+
+class AmpS3Spec extends StorageBaseSpec {
+
+    def "PBS should take parameters from the stored request on S3 service when it's not specified in the request"() {
+        given: "AMP request"
+        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString).tap {
+            account = PBSUtils.randomNumber as String
+        }
+
+        and: "Default stored request"
+        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
+            site = Site.defaultSite
+            setAccountId(ampRequest.account)
+        }
+
+        and: "Stored request in S3 service"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        S3_SERVICE.uploadStoredRequest(DEFAULT_BUCKET, storedRequest)
+
+        when: "PBS processes amp request"
+        s3StoragePbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should contain parameters from the stored request"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+
+        assert bidderRequest.site?.page == ampStoredRequest.site.page
+        assert bidderRequest.site?.publisher?.id == ampStoredRequest.site.publisher.id
+        assert !bidderRequest.imp[0]?.tagId
+        assert bidderRequest.imp[0]?.banner?.format[0]?.h == ampStoredRequest.imp[0].banner.format[0].h
+        assert bidderRequest.imp[0]?.banner?.format[0]?.w == ampStoredRequest.imp[0].banner.format[0].w
+        assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.ext.gdpr
+    }
+
+    def "PBS should throw exception when trying to take parameters from the stored request on S3 service with invalid id in file"() {
+        given: "AMP request"
+        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString).tap {
+            account = PBSUtils.randomNumber as String
+        }
+
+        and: "Default stored request"
+        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
+            site = Site.defaultSite
+            setAccountId(ampRequest.account)
+        }
+
+        and: "Stored request in S3 service"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest).tap {
+            it.requestId = PBSUtils.randomNumber
+        }
+        S3_SERVICE.uploadStoredRequest(DEFAULT_BUCKET, storedRequest, ampRequest.tagId)
+
+        when: "PBS processes amp request"
+        s3StoragePbsService.sendAmpRequest(ampRequest)
+
+        then: "PBS should throw request format error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == BAD_REQUEST.code()
+        assert exception.responseBody == "Invalid request format: Stored request processing failed: " +
+                "No stored request found for id: ${ampRequest.tagId}"
+    }
+
+    def "PBS should throw exception when trying to take parameters from the invalid stored request on S3 service"() {
+        given: "AMP request"
+        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString).tap {
+            account = PBSUtils.randomNumber as String
+        }
+
+        and: "Default stored request"
+        def ampStoredRequest = BidRequest.defaultStoredRequest.tap {
+            site = Site.defaultSite
+            setAccountId(ampRequest.account)
+        }
+
+        and: "Stored request in S3 service"
+        S3_SERVICE.uploadFile(DEFAULT_BUCKET, INVALID_FILE_BODY, "${S3Service.DEFAULT_REQUEST_DIR}/${ampRequest.tagId}.json")
+
+        when: "PBS processes amp request"
+        s3StoragePbsService.sendAmpRequest(ampRequest)
+
+        then: "PBS should throw request format error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == BAD_REQUEST.code()
+        assert exception.responseBody == "Invalid request format: Stored request processing failed: " +
+                "Can't parse Json for stored request with id ${ampRequest.tagId}"
+    }
+
+    def "PBS should throw an exception when trying to take parameters from stored request on S3 service that do not exist"() {
+        given: "AMP request"
+        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString).tap {
+            account = PBSUtils.randomNumber as String
+        }
+
+        when: "PBS processes amp request"
+        s3StoragePbsService.sendAmpRequest(ampRequest)
+
+        then: "PBS should throw request format error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == BAD_REQUEST.code()
+        assert exception.responseBody == "Invalid request format: Stored request processing failed: " +
+                "No stored request found for id: ${ampRequest.tagId}"
+    }
+}
