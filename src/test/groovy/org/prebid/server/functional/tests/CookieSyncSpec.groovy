@@ -20,7 +20,6 @@ import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
-import spock.lang.IgnoreRest
 
 import java.time.Instant
 
@@ -1893,7 +1892,6 @@ class CookieSyncSpec extends BaseSpec {
         assert response.getBidderStatus().size() == cookieSyncRequest.limit
     }
 
-    @IgnoreRest
     def "PBS cookie sync request should return bidders matched in bidders and filter settings"() {
         given: "Cookie sync request body"
         def cookieSyncRequest = new CookieSyncRequest().tap {
