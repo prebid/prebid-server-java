@@ -1,0 +1,35 @@
+name: Publish
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Publish binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ 17 ]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          cache: 'maven'
+          java-version: ${{ matrix.java }}
+      - name: Build with Maven
+        run: mvn -B verify -Dcheckstyle.skip -Dmaven.test.skip=true --file extra/pom.xml
+      - name: .jar preparation
+        run: mkdir staging && mv target/prebid-server.jar target/prebid-server.jar && cp target/*.jar staging
+      - name: Upload .jar to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/prebid-server.java
+          asset_name: prebid-server
+          tag: ${{ github.ref }}
+          overwrite: true
+          body: "Test upload"
