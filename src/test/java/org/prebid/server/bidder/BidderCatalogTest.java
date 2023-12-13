@@ -7,6 +7,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.spring.config.bidder.model.MediaType;
+import org.prebid.server.spring.config.bidder.model.Ortb;
 
 import java.util.List;
 
@@ -99,7 +100,8 @@ public class BidderCatalogTest {
                 99,
                 true,
                 false,
-                CompressionType.NONE);
+                CompressionType.NONE,
+                Ortb.of(false));
 
         final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name("BIDder")
@@ -130,7 +132,8 @@ public class BidderCatalogTest {
                 99,
                 true,
                 false,
-                CompressionType.NONE);
+                CompressionType.NONE,
+                Ortb.of(false));
 
         final BidderInstanceDeps bidderInstanceDeps = BidderInstanceDeps.builder()
                 .name("BIDder")
@@ -152,7 +155,8 @@ public class BidderCatalogTest {
                 99,
                 true,
                 false,
-                CompressionType.NONE);
+                CompressionType.NONE,
+                Ortb.of(false));
 
         final BidderInstanceDeps aliasInstanceDeps = BidderInstanceDeps.builder()
                 .name("ALIas")
@@ -187,7 +191,8 @@ public class BidderCatalogTest {
                         0,
                         true,
                         false,
-                        CompressionType.NONE))
+                        CompressionType.NONE,
+                        Ortb.of(false)))
                 .deprecatedNames(emptyList())
                 .build()));
         target = new BidderCatalog(singletonList(bidderDeps));
@@ -252,7 +257,8 @@ public class BidderCatalogTest {
                 99,
                 true,
                 false,
-                CompressionType.NONE);
+                CompressionType.NONE,
+                Ortb.of(false));
 
         final BidderInfo infoOfBidderWithoutUsersyncConfig = BidderInfo.create(
                 true,
@@ -268,7 +274,8 @@ public class BidderCatalogTest {
                 99,
                 true,
                 false,
-                CompressionType.NONE);
+                CompressionType.NONE,
+                Ortb.of(false));
 
         final BidderInfo infoOfDisabledBidderWithUsersyncConfig = BidderInfo.create(
                 false,
@@ -284,7 +291,8 @@ public class BidderCatalogTest {
                 99,
                 true,
                 false,
-                CompressionType.NONE);
+                CompressionType.NONE,
+                Ortb.of(false));
 
         final List<BidderDeps> bidderDeps = List.of(
                 BidderDeps.of(singletonList(BidderInstanceDeps.builder()
@@ -351,7 +359,8 @@ public class BidderCatalogTest {
                 99,
                 true,
                 false,
-                CompressionType.NONE);
+                CompressionType.NONE,
+                Ortb.of(false));
 
         final BidderDeps bidderDeps = BidderDeps.of(singletonList(BidderInstanceDeps.builder()
                 .name("BIDder")

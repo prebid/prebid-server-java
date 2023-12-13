@@ -61,6 +61,7 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.deals.DealsService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.deals.model.TxnLog;
+import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -154,7 +155,6 @@ import java.util.stream.Stream;
 public class ExchangeService {
 
     private static final Logger logger = LoggerFactory.getLogger(ExchangeService.class);
-
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private static final String PREBID_EXT = "prebid";
@@ -197,6 +197,7 @@ public class ExchangeService {
     private final Clock clock;
     private final JacksonMapper mapper;
     private final CriteriaLogManager criteriaLogManager;
+    private final boolean enabledStrictAppSiteDoohValidation;
 
     public ExchangeService(double logSamplingRate,
                            int timeoutAdjustmentFactor,
@@ -226,7 +227,8 @@ public class ExchangeService {
                            Metrics metrics,
                            Clock clock,
                            JacksonMapper mapper,
-                           CriteriaLogManager criteriaLogManager) {
+                           CriteriaLogManager criteriaLogManager,
+                           boolean enabledStrictAppSiteDoohValidation) {
 
         if (timeoutAdjustmentFactor < 0 || timeoutAdjustmentFactor > 100) {
             throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 100].");
@@ -260,6 +262,7 @@ public class ExchangeService {
         this.clock = Objects.requireNonNull(clock);
         this.mapper = Objects.requireNonNull(mapper);
         this.criteriaLogManager = Objects.requireNonNull(criteriaLogManager);
+        this.enabledStrictAppSiteDoohValidation = enabledStrictAppSiteDoohValidation;
     }
 
     /**
@@ -367,7 +370,6 @@ public class ExchangeService {
             if (shouldCacheBids || shouldCacheVideoBids || shouldCacheWinningBidsOnly) {
                 final Integer cacheBidsTtl = shouldCacheBids ? cache.getBids().getTtlseconds() : null;
                 final Integer cacheVideoBidsTtl = shouldCacheVideoBids ? cache.getVastxml().getTtlseconds() : null;
-
                 final boolean returnCreativeBid = shouldCacheBids
                         ? ObjectUtils.defaultIfNull(cache.getBids().getReturnCreative(), true)
                         : false;
@@ -425,7 +427,6 @@ public class ExchangeService {
                             "Invalid MultiBid: CodePrefix %s that was specified for bidders %s will be skipped."
                                     .formatted(codePrefix, bidders));
                 }
-
                 bidders.forEach(currentBidder ->
                         tryAddBidderWithMultiBid(currentBidder, maxBids, null, bidderToMultiBid, debugWarnings));
             } else {
@@ -536,7 +537,6 @@ public class ExchangeService {
                 .filter(bidder -> isBidderCallActivityAllowed(bidder, context))
                 .distinct()
                 .toList();
-
         final Map<String, Map<String, String>> impBidderToStoredBidResponse =
                 storedResponseResult.getImpBidderToStoredBidResponse();
 
@@ -907,9 +907,16 @@ public class ExchangeService {
         Optional.ofNullable(preparedSite).ifPresent(ignored -> distributionChannels.add("site"));
 
         if (distributionChannels.size() > 1) {
+            metrics.updateAlertsMetrics(MetricName.general);
+            if (enabledStrictAppSiteDoohValidation) {
+                conditionalLogger.error("More than one distribution channel is present", logSamplingRate);
+                throw new InvalidRequestException(
+                        String.join(" and ", distributionChannels) + " are present, "
+                                + "but no more than one of site or app or dooh can be defined");
+            }
+
             context.getDebugWarnings().add("BidRequest contains " + String.join(" and ", distributionChannels)
                     + ". Only the first one is applicable, the others are ignored");
-            metrics.updateAlertsMetrics(MetricName.general);
             final String logMessage = String.join(" and ", distributionChannels) + " are present. "
                     + "Referer: " + context.getHttpRequest().getHeaders().get(HttpUtil.REFERER_HEADER) + ". "
                     + "Account: " + context.getAccount().getId();
@@ -944,7 +951,6 @@ public class ExchangeService {
             final ActivityInvocationPayload payload = BidRequestActivityInvocationPayload.of(
                     ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, bidder),
                     bidRequest);
-
             return context.getActivityInfrastructure().isAllowed(Activity.TRANSMIT_TID, payload);
         }
 
@@ -976,7 +982,6 @@ public class ExchangeService {
                            Account account) {
 
         final BigDecimal adjustedFloor = resolveBidFloor(imp, bidder, bidRequest, account);
-
         return imp.toBuilder()
                 .bidfloor(adjustedFloor)
                 .ext(prepareImpExt(bidder, imp.getExt(), adjustedFloor, transmitTid, useFirstPartyData))
@@ -1006,7 +1011,6 @@ public class ExchangeService {
                                      boolean useFirstPartyData) {
 
         final ObjectNode modifiedImpExt = impExt.deepCopy();
-
         final JsonNode impExtPrebid = prepareImpExt(impExt.get(PREBID_EXT), adjustedFloor);
         Optional.ofNullable(impExtPrebid).ifPresentOrElse(
                 ext -> modifiedImpExt.set(PREBID_EXT, ext),
@@ -1058,7 +1062,6 @@ public class ExchangeService {
     private App prepareApp(App app, ObjectNode fpdApp, boolean useFirstPartyData) {
         final ExtApp appExt = app != null ? app.getExt() : null;
         final Content content = app != null ? app.getContent() : null;
-
         final boolean shouldCleanExtData = appExt != null && appExt.getData() != null && !useFirstPartyData;
         final boolean shouldCleanContentData = content != null && content.getData() != null && !useFirstPartyData;
 
@@ -1084,7 +1087,6 @@ public class ExchangeService {
     private Site prepareSite(Site site, ObjectNode fpdSite, boolean useFirstPartyData) {
         final ExtSite siteExt = site != null ? site.getExt() : null;
         final Content content = site != null ? site.getContent() : null;
-
         final boolean shouldCleanExtData = siteExt != null && siteExt.getData() != null && !useFirstPartyData;
         final boolean shouldCleanContentData = content != null && content.getData() != null && !useFirstPartyData;
 
@@ -1110,7 +1112,6 @@ public class ExchangeService {
     private Dooh prepareDooh(Dooh dooh, ObjectNode fpdDooh, boolean useFirstPartyData) {
         final ExtDooh doohExt = dooh != null ? dooh.getExt() : null;
         final Content content = dooh != null ? dooh.getContent() : null;
-
         final boolean shouldCleanExtData = doohExt != null && doohExt.getData() != null && !useFirstPartyData;
         final boolean shouldCleanContentData = content != null && content.getData() != null && !useFirstPartyData;
 
@@ -1305,7 +1306,7 @@ public class ExchangeService {
 
         final String bidderName = bidderRequest.getBidder();
         final MediaTypeProcessingResult mediaTypeProcessingResult = mediaTypeProcessor.process(
-                bidderRequest.getBidRequest(), aliases.resolveBidder(bidderName));
+                bidderRequest.getBidRequest(), aliases.resolveBidder(bidderName), auctionContext.getAccount());
 
         final List<BidderError> mediaTypeProcessingErrors = mediaTypeProcessingResult.getErrors();
         if (mediaTypeProcessingResult.isRejected()) {

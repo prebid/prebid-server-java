@@ -7,10 +7,14 @@ enum MediaType {
     BANNER,
     VIDEO,
     AUDIO,
-    NATIVE
+    NATIVE,
+    NULL
 
     @JsonValue
     String getValue() {
+        if (name() == "NULL") {
+            return null
+        }
         name().toLowerCase()
     }
 }
