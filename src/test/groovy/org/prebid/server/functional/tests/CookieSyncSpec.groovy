@@ -2086,7 +2086,7 @@ class CookieSyncSpec extends BaseSpec {
         }
 
         and: "Save account with cookie config"
-        def defaultLimit
+        def defaultLimit = 1
         def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: defaultLimit)
         def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
