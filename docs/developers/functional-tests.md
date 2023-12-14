@@ -10,17 +10,43 @@ And [MockServer](https://www.mock-server.com/) for mocking external services.
 - Install [Docker](https://docs.docker.com/engine/install/)
 - Set launchContainers system property to 'true'
 
-### Prepare PBS image
+## Preparing the PBS Image
 
-`mvn clean -B package -DskipUnitTests=true docker:build` - to build image
+To prepare the PBS image, follow these steps from the root directory:
 
-> Don't forget to rebuild image for manual test start (after change in dev code)
+1. Build the project using Maven:
 
-### Run integration tests
+`mvn clean -B package -DskipUnitTests=true -f extra/pom.xml`
 
-- You can use `mvn verify` - to include all previous steps (including java test) because groovy runs
-  in `failsafe:integration-test` phase
-- Or use more granular `mvn -B verify -DskipUnitTests=true` for functional tests only
+2. Build the image:
+
+2.1 Build image without modules:
+
+`mvn docker:build protobuf:compile -f pom.xml`
+
+2.2 Build image with modules:
+
+`mvn docker:build protobuf:compile -f pom.xml -DdockerfileName=Dockerfile-module`
+
+**Note:** Don't forget to rebuild the image for manual test start after making changes in the dev code.
+
+## Running Integration Tests
+
+You have two options for running integration tests:
+
+1. Use `mvn verify` to include all previous steps (including Java tests and modular tests) because Groovy runs in the `failsafe:integration-test` phase.
+2. For functional tests only, use a more granular command:
+
+`mvn -B verify -DskipUnitTests=true -DskipFunctionalModularTests=true`
+
+## Running Modular Tests
+
+You have two options for running modular tests:
+
+1. Use `mvn verify -DdockerfileName=Dockerfile-module` to include all previous steps (including Java tests and functional tests) because Groovy runs in the `failsafe:integration-test` phase.
+2. For modular tests only, use a more granular command:
+
+`mvn -B verify -DskipUnitTests=true -DskipFunctionalTests=true -DdockerfileName=Dockerfile-module`
 
 ## Developing
 
