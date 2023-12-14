@@ -78,6 +78,10 @@ public class HttpBidderRequestEnricherTest {
         // given
         final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder()
                 .add("Sec-GPC", "1")
+                .add("Save-Data", "2")
+                .add("Sec-CH-UA", "3")
+                .add("Sec-CH-UA-Mobile", "4")
+                .add("Sec-CH-UA-Platform", "5")
                 .build();
 
         // when
@@ -89,8 +93,11 @@ public class HttpBidderRequestEnricherTest {
                 BidRequest.builder().build());
 
         // then
-        assertThat(resultHeaders.contains("Sec-GPC")).isTrue();
         assertThat(resultHeaders.get("Sec-GPC")).isEqualTo("1");
+        assertThat(resultHeaders.get("Save-Data")).isEqualTo("2");
+        assertThat(resultHeaders.get("Sec-CH-UA")).isEqualTo("3");
+        assertThat(resultHeaders.get("Sec-CH-UA-Mobile")).isEqualTo("4");
+        assertThat(resultHeaders.get("Sec-CH-UA-Platform")).isEqualTo("5");
     }
 
     @Test
@@ -98,17 +105,29 @@ public class HttpBidderRequestEnricherTest {
         // given
         final CaseInsensitiveMultiMap originalHeaders = CaseInsensitiveMultiMap.builder()
                 .add("Sec-GPC", "1")
+                .add("Save-Data", "2")
+                .add("Sec-CH-UA", "3")
+                .add("Sec-CH-UA-Mobile", "4")
+                .add("Sec-CH-UA-Platform", "5")
                 .build();
-        final MultiMap bidderRequestHeaders = MultiMap.caseInsensitiveMultiMap().add("Sec-GPC", "0");
+
+        final MultiMap bidderRequestHeaders = MultiMap.caseInsensitiveMultiMap()
+                .add("Sec-GPC", "0")
+                .add("Save-Data", "0")
+                .add("Sec-CH-UA", "0")
+                .add("Sec-CH-UA-Mobile", "0")
+                .add("Sec-CH-UA-Platform", "0");
 
         // when
         final MultiMap resultHeaders = target.enrichHeaders(
                 BIDDER_NAME, bidderRequestHeaders, originalHeaders, bidderAliases, BidRequest.builder().build());
 
         // then
-        assertThat(resultHeaders.contains("Sec-GPC")).isTrue();
-        assertThat(resultHeaders.getAll("Sec-GPC")).hasSize(1);
         assertThat(resultHeaders.get("Sec-GPC")).isEqualTo("0");
+        assertThat(resultHeaders.get("Save-Data")).isEqualTo("0");
+        assertThat(resultHeaders.get("Sec-CH-UA")).isEqualTo("0");
+        assertThat(resultHeaders.get("Sec-CH-UA-Mobile")).isEqualTo("0");
+        assertThat(resultHeaders.get("Sec-CH-UA-Platform")).isEqualTo("0");
     }
 
     @Test
