@@ -258,6 +258,10 @@ public class Metrics extends UpdatableMetrics {
         updateAccountRequestsMetrics(accountId, MetricName.rejected_by_invalid_stored_request);
     }
 
+    public void updateAccountRequestRejectedByFailedFetch(String accountId) {
+        updateAccountRequestsMetrics(accountId, MetricName.rejected_by_account_fetch_failed);
+    }
+
     private void updateAccountRequestsMetrics(String accountId, MetricName metricName) {
         forAccount(accountId).requests().incCounter(metricName);
     }

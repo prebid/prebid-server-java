@@ -43,8 +43,9 @@ import org.prebid.server.auction.gpp.processor.GppContextProcessor;
 import org.prebid.server.auction.gpp.processor.tcfeuv2.TcfEuV2ContextProcessor;
 import org.prebid.server.auction.gpp.processor.uspv1.UspV1ContextProcessor;
 import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.CompositeMediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
-import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.MultiFormatMediaTypeProcessor;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
@@ -687,13 +688,13 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(
-            prefix = "auction.filter-imp-media-type",
-            name = "enabled",
-            havingValue = "false",
-            matchIfMissing = true)
-    MediaTypeProcessor noOpMediaTypeProcessor() {
-        return new NoOpMediaTypeProcessor();
+    MediaTypeProcessor multiFormatMediaTypeProcessor(BidderCatalog bidderCatalog) {
+        return new MultiFormatMediaTypeProcessor(bidderCatalog);
+    }
+
+    @Bean
+    CompositeMediaTypeProcessor compositeMediaTypeProcessor(List<MediaTypeProcessor> mediaTypeProcessors) {
+        return new CompositeMediaTypeProcessor(mediaTypeProcessors);
     }
 
     @Bean
@@ -782,7 +783,7 @@ public class ServiceConfiguration {
             FpdResolver fpdResolver,
             SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
-            MediaTypeProcessor mediaTypeProcessor,
+            CompositeMediaTypeProcessor mediaTypeProcessor,
             UidUpdater uidUpdater,
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,

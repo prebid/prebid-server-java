@@ -21,6 +21,7 @@ import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.spring.config.bidder.model.MediaType;
+import org.prebid.server.spring.config.bidder.model.Ortb;
 
 import java.util.List;
 import java.util.Set;
@@ -62,7 +63,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), givenImp(BANNER));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
 
         // then
         assertThat(result.isRejected()).isTrue();
@@ -78,7 +79,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 .willReturn(givenBidderInfo(singletonList(BANNER), singletonList(AUDIO), singletonList(NATIVE)));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
 
         // then
         assertThat(result.getBidRequest()).isEqualTo(bidRequest);
@@ -96,7 +97,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 givenImp(BANNER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
 
         // then
         assertThat(result.getBidRequest())
@@ -117,7 +118,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 givenImp(BANNER, AUDIO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
 
         // then
         assertThat(result.getBidRequest())
@@ -140,7 +141,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 givenImp(NATIVE));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
 
         // then
         assertThat(result.isRejected()).isTrue();
@@ -169,7 +170,8 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 0,
                 false,
                 false,
-                CompressionType.NONE);
+                CompressionType.NONE,
+                Ortb.of(false));
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,

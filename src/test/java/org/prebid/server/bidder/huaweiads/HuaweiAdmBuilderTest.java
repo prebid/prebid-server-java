@@ -22,6 +22,7 @@ import org.prebid.server.bidder.huaweiads.model.response.Monitor;
 import org.prebid.server.bidder.huaweiads.model.response.VideoInfo;
 import org.prebid.server.exception.PreBidException;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -390,7 +391,7 @@ public class HuaweiAdmBuilderTest extends VertxTest {
     @Test
     public void buildBannerShouldFailBuildingBigPicture2CreativeWhenImageInfoListIsEmpty() {
         // given
-        final MetaData metadata = MetaData.builder().imageInfoList(List.of()).build();
+        final MetaData metadata = MetaData.builder().imageInfoList(Collections.emptyList()).build();
         final Content content = Content.builder().metaData(metadata).creativeType(3).build();
 
         // when & then
@@ -1092,7 +1093,7 @@ public class HuaweiAdmBuilderTest extends VertxTest {
         final MetaData metadata = MetaData.builder()
                 .clickUrl("clickUrl")
                 .videoInfo(videoInfo)
-                .iconList(List.of())
+                .iconList(Collections.emptyList())
                 .imageInfoList(List.of(ImageInfo.builder().url("imageInfoUrl").width(400).height(400).build()))
                 .duration(2000L)
                 .build();
@@ -1555,7 +1556,6 @@ public class HuaweiAdmBuilderTest extends VertxTest {
                 + "\"assets\":["
                 + "{\"id\":12,\"img\":{\"type\":1,\"url\":\"iconUrl\"}},"
                 + "{\"id\":13,\"img\":{\"type\":1,\"url\":\"\",\"w\":100,\"h\":100}},"
-                + "{\"id\":24,\"img\":{\"type\":2,\"url\":\"imageInfoUrl\",\"w\":200,\"h\":0}},"
                 + "{\"id\":25,\"img\":{\"type\":3,\"w\":200,\"h\":200}}"
                 + "],"
                 + "\"link\":{\"url\":\"clickUrl\",\"clicktrackers\":[]},"
@@ -1705,15 +1705,13 @@ public class HuaweiAdmBuilderTest extends VertxTest {
                 + "\"assets\":["
                 + "{\"id\":11,\"img\":{\"type\":1,\"url\":\"iconUrl\"}},"
                 + "{\"id\":12,\"img\":{\"type\":1,\"url\":\"\",\"w\":100,\"h\":100}},"
-                + "{\"id\":13,\"img\":{\"type\":2,\"url\":\"imageInfoUrl\",\"w\":200,\"h\":0}},"
                 + "{\"id\":14,\"img\":{\"type\":3,\"w\":200,\"h\":200}},"
                 + "{\"id\":21,\"data\":{\"value\":\"description description\"}},"
                 + "{\"id\":22,\"data\":{\"value\":\"description description\"}},"
                 + "{\"id\":23,\"data\":{\"value\":\"\"}},"
                 + "{\"id\":24,\"data\":{\"type\":12,\"value\":\"cta cta\"}},"
                 + "{\"id\":31,\"title\":{\"text\":\"title title\",\"len\":11}},"
-                + "{\"id\":41,\"video\":{\"vasttag\":\"" + expectedVideoAssetAdm + "\"}},"
-                + "{\"id\":51}"
+                + "{\"id\":41,\"video\":{\"vasttag\":\"" + expectedVideoAssetAdm + "\"}}"
                 + "],"
                 + "\"link\":{\"url\":\"clickUrl\",\"clicktrackers\":[\"clickUrl1\",\"clickUrl2\",\"clickUrl3\"]},"
                 + "\"eventtrackers\":["

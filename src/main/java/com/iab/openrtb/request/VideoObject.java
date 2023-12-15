@@ -18,5 +18,9 @@ public class VideoObject {
 
     List<Integer> protocols;
 
+    Integer w;
+
+    Integer h;
+
     ObjectNode ext;
 }

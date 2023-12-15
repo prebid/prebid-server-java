@@ -48,7 +48,6 @@ import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
-import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
@@ -154,6 +153,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
+import org.prebid.server.spring.config.bidder.model.Ortb;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -330,7 +330,8 @@ public class ExchangeServiceTest extends VertxTest {
                 0,
                 false,
                 false,
-                CompressionType.NONE));
+                CompressionType.NONE,
+                Ortb.of(false)));
 
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any(), any()))
                 .willAnswer(inv ->
@@ -366,6 +367,9 @@ public class ExchangeServiceTest extends VertxTest {
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         AuctionResponsePayloadImpl.of(invocation.getArgument(0)))));
+
+        given(mediaTypeProcessor.process(any(), anyString(), any()))
+                .willAnswer(invocation -> MediaTypeProcessingResult.succeeded(invocation.getArgument(0), emptyList()));
 
         given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
 
@@ -430,7 +434,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 supplyChainResolver,
                 debugResolver,
-                new NoOpMediaTypeProcessor(),
+                mediaTypeProcessor,
                 uidUpdater,
                 timeoutResolver,
                 timeoutFactory,
@@ -466,7 +470,7 @@ public class ExchangeServiceTest extends VertxTest {
                         fpdResolver,
                         supplyChainResolver,
                         debugResolver,
-                        new NoOpMediaTypeProcessor(),
+                        mediaTypeProcessor,
                         uidUpdater,
                         timeoutResolver,
                         timeoutFactory,
@@ -3098,7 +3102,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 supplyChainResolver,
                 debugResolver,
-                new NoOpMediaTypeProcessor(),
+                mediaTypeProcessor,
                 uidUpdater,
                 timeoutResolver,
                 timeoutFactory,
@@ -3148,7 +3152,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 supplyChainResolver,
                 debugResolver,
-                new NoOpMediaTypeProcessor(),
+                mediaTypeProcessor,
                 uidUpdater,
                 timeoutResolver,
                 timeoutFactory,
@@ -4754,7 +4758,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
 
-        given(mediaTypeProcessor.process(any(), anyString()))
+        given(mediaTypeProcessor.process(any(), anyString(), any()))
                 .willReturn(MediaTypeProcessingResult.rejected(Collections.singletonList(
                         BidderError.badInput("MediaTypeProcessor error."))));
         given(bidResponseCreator.create(

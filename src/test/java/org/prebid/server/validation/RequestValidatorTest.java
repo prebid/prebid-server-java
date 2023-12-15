@@ -1928,30 +1928,6 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageForInvalidTargeting() {
-        // given
-        final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(
-                ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))));
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .targeting(ExtRequestTargeting.builder()
-                                .pricegranularity(mapper.valueToTree(priceGranularity))
-                                .includebidderkeys(false)
-                                .includewinners(false)
-                                .build())
-                        .build()))
-                .build();
-
-        // when
-        final ValidationResult result = target.validate(bidRequest, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("ext.prebid.targeting: At least one of includewinners or includebidderkeys"
-                        + " must be enabled to enable targeting support");
-    }
-
-    @Test
     public void validateShouldReturnValidationMessageForInvalidTargetingPrefix() {
         // given
         final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(

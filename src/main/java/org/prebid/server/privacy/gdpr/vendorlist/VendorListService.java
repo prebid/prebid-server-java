@@ -15,8 +15,10 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
@@ -49,12 +51,14 @@ import java.util.stream.Collectors;
 public class VendorListService {
 
     private static final Logger logger = LoggerFactory.getLogger(VendorListService.class);
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
 
     private static final int TCF_VERSION = 2;
 
     private static final String JSON_SUFFIX = ".json";
     private static final String VERSION_PLACEHOLDER = "{VERSION}";
 
+    private final double logSamplingRate;
     private final String cacheDir;
     private final String endpointTemplate;
     private final int defaultTimeoutMs;
@@ -76,7 +80,8 @@ public class VendorListService {
     private final Map<Integer, Vendor> fallbackVendorList;
     private final Set<Integer> versionsToFallback;
 
-    public VendorListService(String cacheDir,
+    public VendorListService(double logSamplingRate,
+                             String cacheDir,
                              String endpointTemplate,
                              int defaultTimeoutMs,
                              long refreshMissingListPeriodMs,
@@ -89,6 +94,7 @@ public class VendorListService {
                              String generationVersion,
                              JacksonMapper mapper) {
 
+        this.logSamplingRate = logSamplingRate;
         this.cacheDir = Objects.requireNonNull(cacheDir);
         this.endpointTemplate = Objects.requireNonNull(endpointTemplate);
         this.defaultTimeoutMs = defaultTimeoutMs;
@@ -148,7 +154,7 @@ public class VendorListService {
         fetchNewVendorListFor(version);
 
         return Future.failedFuture("TCF %d vendor list for version %s.%d not fetched yet, try again later."
-                        .formatted(tcf, generationVersion, version));
+                .formatted(tcf, generationVersion, version));
     }
 
     /**
@@ -314,8 +320,10 @@ public class VendorListService {
             if (result.succeeded()) {
                 promise.complete(vendorListResult);
             } else {
-                logger.error("Could not create new vendor list for version {0}.{1}, file: {2}",
-                        result.cause(), generationVersion, version, filepath);
+                conditionalLogger.error(
+                        "Could not create new vendor list for version %s.%s, file: %s, trace: %s".formatted(
+                                generationVersion, version, filepath, ExceptionUtils.getStackTrace(result.cause())),
+                        logSamplingRate);
                 promise.fail(result.cause());
             }
         });
@@ -348,11 +356,15 @@ public class VendorListService {
         metrics.updatePrivacyTcfVendorListErrorMetric(tcf);
 
         if (logger.isDebugEnabled()) {
-            logger.debug("Error while obtaining TCF {0} vendor list for version {1}.{2}",
-                    exception, tcf, generationVersion, version);
+            conditionalLogger.debug(
+                    "Error while obtaining TCF %s vendor list for version %s.%s, trace: %s"
+                            .formatted(tcf, generationVersion, version, ExceptionUtils.getStackTrace(exception)),
+                    logSamplingRate);
         } else {
-            logger.warn("Error while obtaining TCF {0} vendor list for version {1}.{2}: {3}",
-                    tcf, generationVersion, version, exception.getMessage());
+            conditionalLogger.warn(
+                    "Error while obtaining TCF %s vendor list for version %s.%s: %s"
+                            .formatted(tcf, generationVersion, version, exception.getMessage()),
+                    logSamplingRate);
         }
 
         startUsingFallbackForVersion(version);

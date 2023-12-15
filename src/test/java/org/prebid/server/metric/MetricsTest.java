@@ -1411,6 +1411,16 @@ public class MetricsTest {
                 .isEqualTo(1);
     }
 
+    @Test
+    public void shouldIncrementUpdateAccountRequestRejectedByFailedFetchCount() {
+        // when
+        metrics.updateAccountRequestRejectedByFailedFetch("account_id");
+
+        // then
+        assertThat(metricRegistry.counter("account.account_id.requests.rejected.account-fetch-failed").getCount())
+                .isEqualTo(1);
+    }
+
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {
         final EnumMap<CounterType, Class<? extends Metric>> counterTypeClasses = new EnumMap<>(CounterType.class);
         counterTypeClasses.put(CounterType.counter, Counter.class);
