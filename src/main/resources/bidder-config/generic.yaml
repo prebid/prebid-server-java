@@ -15,6 +15,7 @@ adapters:
           supported-vendors:
           vendor-id: 1072
       ccx:
+        enabled: false
         endpoint: https://delivery.clickonometrics.pl/ortb/prebid/bid
         meta-info:
           maintainer-email: it@clickonometrics.pl
@@ -30,6 +31,7 @@ adapters:
             support-cors: false
             uid-macro: '${USER_ID}'
       infytv:
+        enabled: false
         endpoint: https://nxs.infy.tv/pbs/openrtb
         meta-info:
           maintainer-email: tech+hb@infy.tv
@@ -40,6 +42,7 @@ adapters:
           supported-vendors:
           vendor-id: 0
       loopme:
+        enabled: false
         endpoint: http://prebid-eu.loopmertb.com
         meta-info:
           maintainer-email: support@loopme.com
@@ -54,6 +57,7 @@ adapters:
           supported-vendors:
           vendor-id: 109
       medianet:
+        enabled: false
         endpoint: https://prebid-adapter.media.net/rtb/pb/prebids2s?src={{PREBID_SERVER_ENDPOINT}}
         meta-info:
           maintainer-email: prebid@media.net
@@ -75,6 +79,7 @@ adapters:
             support-cors: false
             uid-macro: '<vsid>'
       zeta_global_ssp:
+        enabled: false
         endpoint: https://ssp.disqus.com/bid/prebid-server?sid=GET_SID_FROM_ZETA
         endpoint-compression: gzip
         meta-info:
