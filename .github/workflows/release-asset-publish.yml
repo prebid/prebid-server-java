@@ -1,0 +1,42 @@
+name: Publish release .jar
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    name: Publish release .jar
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java: [ 17 ]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          cache: 'maven'
+          java-version: ${{ matrix.java }}
+
+      - name: Build base .jar via Maven
+        run: mvn clean package -Dcheckstyle.skip -Dmaven.test.skip=true
+      - name: Upload and attach base .jar to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: target/prebid-server.jar
+          asset_name: prebid-server-${{ github.ref_name }}.jar
+          tag: ${{ github.ref }}
+
+      - name: Build bundled .jar via Maven
+        run: mvn clean package --file extra/pom.xml -Dcheckstyle.skip -Dmaven.test.skip=true
+      - name: Upload and attach bundled .jar to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: extra/bundle/target/prebid-server-bundle.jar
+          asset_name: prebid-server-bundle-${{ github.ref_name }}.jar
+          tag: ${{ github.ref }}
