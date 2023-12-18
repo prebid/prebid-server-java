@@ -3,6 +3,9 @@ adapters:
     ortb-version: "2.6"
     endpoint: http://exapi-us-east.rubiconproject.com/a/api/exchange.json
     endpoint-compression: gzip
+    aliases:
+      magnite:
+        enabled: false
     meta-info:
       maintainer-email: header-bidding@rubiconproject.com
       app-media-types:
