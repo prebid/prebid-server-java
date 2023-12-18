@@ -1137,8 +1137,15 @@ public class ExchangeService {
         final Source receivedSource = bidRequest.getSource();
         final SupplyChain bidderSchain = supplyChainResolver.resolveForBidder(bidder, bidRequest);
 
-        if (bidderSchain == null && transmitTid) {
-            return receivedSource;
+        if (bidderSchain == null) {
+
+            if (receivedSource == null) {
+                return null;
+            }
+
+            return receivedSource.toBuilder()
+                    .tid(transmitTid ? receivedSource.getTid() : null)
+                    .build();
         }
 
         return receivedSource == null
