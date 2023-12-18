@@ -2,7 +2,7 @@ adapters:
   iqzone:
     endpoint: http://smartssp-us-east.iqzone.com/pserver
     meta-info:
-      maintainer-email: smartssp@iqzone.com
+      maintainer-email: adops@iqzone.com
       app-media-types:
         - banner
         - video
