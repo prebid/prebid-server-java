@@ -1489,9 +1489,6 @@ class CookieSyncSpec extends BaseSpec {
         then: "Response should have status 'NO_COOKIE'"
         assert response.status == NO_COOKIE
 
-        and: "Response shouldn't contains bidders with IFRAME"
-        assert response?.bidderStatus?.every { it.getUserSync().type != IFRAME }
-
         and: "Response should contain only bidders with IMAGE"
         assert response?.bidderStatus?.every { it.getUserSync().type == REDIRECT }
     }
@@ -1511,9 +1508,6 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Response should contains all bidders with IFRAME"
         assert response?.bidderStatus?.every { it.getUserSync().type == IFRAME }
-
-        and: "Response shouldn't contain bidders with IMAGE"
-        assert response?.bidderStatus?.every { it.getUserSync().type != REDIRECT }
     }
 
     def "PBS cookie sync request shouldn't include bidder with invalid user sync type"() {
@@ -1593,7 +1587,7 @@ class CookieSyncSpec extends BaseSpec {
     }
 
     def "PBS cookie sync request should successfully passed when account is absent"() {
-        given: "Cookie sync request with filter setting"
+        given: "Cookie sync request with empty account"
         def cookieSyncRequest = new CookieSyncRequest(account: null)
 
         when: "PBS processes cookie sync request without cookies"
@@ -1609,7 +1603,7 @@ class CookieSyncSpec extends BaseSpec {
 
     def "PBS cookie sync request should return url for all bidders when no uids cookie is present"() {
         given: "Cookie sync request with empty account"
-        def cookieSyncRequest = new CookieSyncRequest(account: null)
+        def cookieSyncRequest = new CookieSyncRequest()
 
         when: "PBS processes cookie sync request without cookies"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
@@ -1652,8 +1646,11 @@ class CookieSyncSpec extends BaseSpec {
         }
         def cookieSyncRequest = new CookieSyncRequest(filterSettings: filterSettings, limit: 0)
 
-        when: "PBS processes cookie sync request with generic uid cookies"
-        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, UidsCookie.defaultUidsCookie)
+        and: "Set up uids cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        when: "PBS processes cookie sync request with uids cookies"
+        def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest, uidsCookie)
 
         then: "Response should have status 'OK'"
         assert response.status == OK
@@ -1709,10 +1706,16 @@ class CookieSyncSpec extends BaseSpec {
         then: "Response should have status 'NO_COOKIE'"
         assert response.status == NO_COOKIE
 
-        and: "Response should contain coop sync bidder"
+        and: "Response should contain coop sync bidders"
+        assert response.bidderStatus.size() == DEFAULT_PBS_BIDDERS_SIZE
         assert response.getBidderUserSync(AAX)
         assert response.getBidderUserSync(ACUITYADS)
         assert response.getBidderUserSync(ADKERNEL)
+        assert response.getBidderUserSync(OPENX)
+        assert response.getBidderUserSync(GENERIC)
+        assert response.getBidderUserSync(APPNEXUS)
+        assert response.getBidderUserSync(RUBICON)
+        assert response.getBidderUserSync(ACEEX)
     }
 
     def "PBS cookie sync request should contain request bidders and rest from coop sync"() {
@@ -1810,7 +1813,7 @@ class CookieSyncSpec extends BaseSpec {
     }
 
     def "PBS cookie sync request shouldn't return any bidder when coop sync off and bidder is invalid"() {
-        given: "Empty cookie sync request body"
+        given: "Cookie sync request body with bidders and disabled coop-sync"
         def cookieSyncRequest = new CookieSyncRequest(coopSync: false, bidders: givenBidder)
 
         when: "PBS processes cookie sync request without cookies"
@@ -1827,7 +1830,7 @@ class CookieSyncSpec extends BaseSpec {
     }
 
     def "PBS cookie sync request shouldn't return all bidders when coop sync #coopSync and limit param specified"() {
-        given: "Empty cookie sync request body"
+        given: "Cookie sync request with bidders and limit"
         def cookieSyncRequest = new CookieSyncRequest(coopSync: coopSync, bidders: [APPNEXUS, RUBICON], limit: 1)
 
         when: "PBS processes cookie sync request without cookies"
@@ -1910,7 +1913,7 @@ class CookieSyncSpec extends BaseSpec {
         assert response.bidderStatus.bidder.containsAll(GENERIC, RUBICON)
     }
 
-    def "PBS cookie sync request should fill response with 8 coop sync bidder when limit is not specified"() {
+    def "PBS cookie sync request should fill response with all available coop sync bidder when limit is not specified"() {
         given: "Cookie sync request body"
         def cookieSyncRequest = new CookieSyncRequest().tap {
             it.coopSync = true
@@ -1920,7 +1923,7 @@ class CookieSyncSpec extends BaseSpec {
         when: "PBS processes cookie sync request without cookies"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contains 8 coop sync bidders"
+        then: "Response should contains all available coop sync bidders"
         assert response.bidderStatus.bidder.size() == DEFAULT_PBS_BIDDERS_SIZE
     }
 
@@ -1928,14 +1931,14 @@ class CookieSyncSpec extends BaseSpec {
         given: "Cookie sync request body"
         def cookieSyncRequest = new CookieSyncRequest().tap {
             it.coopSync = true
-            it.limit = 4
+            it.limit = PBSUtils.getRandomNumber(1, DEFAULT_PBS_BIDDERS_SIZE)
         }
 
         when: "PBS processes cookie sync request without cookies"
         def response = prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
 
-        then: "Response should contains 4 coop sync bidders"
-        assert response.bidderStatus.bidder.size() == cookieSyncRequest.limit
+        then: "Response should contains same count of bidder as specified limit"
+        assert response.bidderStatus.size() == cookieSyncRequest.limit
     }
 
     def "PBS cookie sync request should return bidders without excluded by filter settings"() {
