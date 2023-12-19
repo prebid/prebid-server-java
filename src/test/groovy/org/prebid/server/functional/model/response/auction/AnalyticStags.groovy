@@ -6,10 +6,7 @@ import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
-class BidResponsePrebid {
+class AnalyticStags {
 
-    Long auctionTimeStamp
-    Map passThrough
-    ExtBidResponseFledge fledge
-    ExtModule modules
+    List<AnalyticResult> activities
 }

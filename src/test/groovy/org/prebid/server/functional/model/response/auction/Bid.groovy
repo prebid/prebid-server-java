@@ -17,7 +17,7 @@ class Bid implements ObjectMapperWrapper {
     String nurl
     String burl
     String lurl
-    Adm adm
+    Object adm
     String adid
     List<String> adomain
     String bundle
@@ -65,11 +65,21 @@ class Bid implements ObjectMapperWrapper {
 
     @JsonGetter("adm")
     String getAdm() {
-        adm != null ? encode(adm) : null
+        if (adm instanceof Adm) {
+            encode(adm)
+        } else if (adm instanceof String) {
+            adm
+        } else {
+            null
+        }
     }
 
     @JsonSetter("adm")
     void getAdm(String adm) {
-        this.adm = decode(adm, Adm)
+        try {
+            this.adm = decode(adm, Adm)
+        } catch (Exception ignored) {
+            this.adm
+        }
     }
 }

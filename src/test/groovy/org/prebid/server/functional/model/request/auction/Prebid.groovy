@@ -36,6 +36,7 @@ class Prebid {
     Sdk sdk
     List<AdServerTargeting> adServerTargeting
     PreferredBidders bidders
+    HooksModulesConfig modules
 
     static class Channel {
 
