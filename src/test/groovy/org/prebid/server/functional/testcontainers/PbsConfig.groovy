@@ -105,13 +105,25 @@ LIMIT 1
 
     // due to a config validation we'll need to circumvent all future aliases this way
     static Map<String, String> getBidderAliasConfig() {
-        ["adapters.generic.aliases.cwire.meta-info.site-media-types"         : "",
-         "adapters.generic.aliases.blue.meta-info.app-media-types"           : "",
-         "adapters.generic.aliases.blue.meta-info.site-media-types"          : "",
-         "adapters.generic.aliases.adsinteractive.meta-info.app-media-types" : "",
-         "adapters.generic.aliases.adsinteractive.meta-info.site-media-types": "",
-         "adapters.generic.aliases.nativo.meta-info.app-media-types" : "",
-         "adapters.generic.aliases.nativo.meta-info.site-media-types": ""]
+        ["adapters.generic.aliases.cwire.meta-info.site-media-types"          : "",
+         "adapters.generic.aliases.blue.meta-info.app-media-types"            : "",
+         "adapters.generic.aliases.blue.meta-info.site-media-types"           : "",
+         "adapters.generic.aliases.adsinteractive.meta-info.app-media-types"  : "",
+         "adapters.generic.aliases.adsinteractive.meta-info.site-media-types" : "",
+         "adapters.generic.aliases.nativo.meta-info.app-media-types"          : "",
+         "adapters.generic.aliases.nativo.meta-info.site-media-types"         : "",
+         "adapters.generic.aliases.infytv.meta-info.app-media-types"          : "",
+         "adapters.generic.aliases.infytv.meta-info.site-media-types"         : "",
+         "adapters.generic.aliases.loopme.meta-info.app-media-types"          : "",
+         "adapters.generic.aliases.loopme.meta-info.site-media-types"         : "",
+         "adapters.generic.aliases.medianet.meta-info.app-media-types"        : "",
+         "adapters.generic.aliases.medianet.meta-info.site-media-types"       : "",
+         "adapters.generic.aliases.zeta-global-ssp.meta-info.app-media-types" : "",
+         "adapters.generic.aliases.zeta-global-ssp.meta-info.site-media-types": "",
+         "adapters.generic.aliases.ccx.meta-info.app-media-types"             : "",
+         "adapters.generic.aliases.ccx.meta-info.site-media-types"            : "",
+         "adapters.generic.aliases.adrino.meta-info.app-media-types"          : "",
+         "adapters.generic.aliases.adrino.meta-info.site-media-types"         : ""]
     }
 
     private PbsConfig() {}
