@@ -39,4 +39,5 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: extra/bundle/target/prebid-server-bundle.jar
           asset_name: prebid-server-bundle-${{ github.ref_name }}.jar
+          overwrite: true
           tag: ${{ github.ref }}
