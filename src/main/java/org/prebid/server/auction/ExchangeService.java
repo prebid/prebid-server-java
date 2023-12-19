@@ -1135,25 +1135,18 @@ public class ExchangeService {
      */
     private Source prepareSource(String bidder, BidRequest bidRequest, boolean transmitTid) {
         final Source receivedSource = bidRequest.getSource();
+
         final SupplyChain bidderSchain = supplyChainResolver.resolveForBidder(bidder, bidRequest);
 
-        if (bidderSchain == null) {
-
-            if (receivedSource == null) {
-                return null;
-            }
-
-            return receivedSource.toBuilder()
-                    .tid(transmitTid ? receivedSource.getTid() : null)
-                    .build();
+        if (bidderSchain == null && transmitTid) {
+            return receivedSource;
         }
 
         return receivedSource == null
                 ? Source.builder().schain(bidderSchain).build()
                 : receivedSource.toBuilder()
-                .schain(bidderSchain)
-                .tid(transmitTid ? receivedSource.getTid() : null)
-                .build();
+                .schain(bidderSchain != null ? bidderSchain : receivedSource.getSchain())
+                .tid(transmitTid ? receivedSource.getTid() : null).build();
     }
 
     /**
