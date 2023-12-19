@@ -15,4 +15,5 @@ class ImpExtContextData {
     String pbAdSlot
     String adSlot
     ImpExtContextDataAdServer adServer
+    String any
 }

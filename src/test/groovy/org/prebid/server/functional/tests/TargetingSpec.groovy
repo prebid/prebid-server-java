@@ -18,6 +18,8 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 
+import java.nio.charset.StandardCharsets
+
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
@@ -744,6 +746,35 @@ class TargetingSpec extends BaseSpec {
         def targeting = ampResponse.targeting
         assert !targeting.isEmpty()
         assert targeting.keySet().every { it -> it.startsWith(prefix)}
+    }
+
+    def "PBS amp should move targeting key to imp.ext.data"() {
+        given: "Create targeting"
+        def targeting = new org.prebid.server.functional.model.request.amp.Targeting().tap {
+            any = PBSUtils.randomString
+        }
+
+        and: "Encode Targeting to String"
+        def encodeTargeting =  URLEncoder.encode(encode(targeting), StandardCharsets.UTF_8)
+
+        and: "Amp request with targeting"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.targeting = encodeTargeting
+        }
+
+        and: "Default BidRequest"
+        def ampStoredRequest = BidRequest.defaultBidRequest
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Amp response should contain value from targeting in imp.ext.data"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        assert bidderRequest.imp[0].ext.data.any == targeting.any
     }
 
     private PrebidServerService getEnabledWinBidsPbsService() {
