@@ -11,6 +11,8 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.AdServerTargeting
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PrebidCache
+import org.prebid.server.functional.model.request.auction.PriceGranularity
+import org.prebid.server.functional.model.request.auction.Range
 import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.Bid
@@ -435,6 +437,73 @@ class TargetingSpec extends BaseSpec {
 
         then: "Response shouldn't contain targeting"
         assert response.targeting.isEmpty()
+    }
+
+    def "PBS amp should make right calculation for hb_pb targeting"() {
+        given: "Default amp request"
+        def ampRequest = AmpRequest.defaultAmpRequest
+
+        and: "Default bid request with targeting and stored bid response"
+        def storedBidResponseId = PBSUtils.randomString
+        def ampStoredRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedBidResponseId, bidder: GENERIC)]
+            ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true).tap {
+                priceGranularity = new PriceGranularity().tap {
+                    precision = 2
+                    ranges = [new Range(max: 1.50,increment: 1.0),
+                              new Range(max: 2.50,increment: 1.2)]}
+            }
+        }
+
+        and: "Create and save stored request into DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Create and save stored response into DB"
+        def storedBidResponse = BidResponse.getDefaultBidResponse(ampStoredRequest).tap {
+            seatbid[0].bid[0].price = BigDecimal.valueOf(2)
+        }
+        def storedResponse = new StoredResponse(responseId: storedBidResponseId, storedBidResponse: storedBidResponse)
+        storedResponseDao.save(storedResponse)
+
+        and: "Create and save account in the DB"
+        def account = new Account(uuid: ampRequest.account)
+        accountDao.save(account)
+
+        when: "PBS processes amp request"
+        def response = defaultPbsService.sendAmpRequest(ampRequest)
+
+        then: "Response should contain targeting hb_pb"
+        assert response.targeting["hb_pb"] == getRoundedTargetingValueWithDefaultPrecision(1.50)
+    }
+
+    def "PBS auction should make right calculation for hb_pb targeting"() {
+        given: "Default bid request"
+        def storedBidResponseId = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedBidResponseId, bidder: GENERIC)]
+            ext.prebid.targeting = Targeting.createWithAllValuesSetTo(true).tap {
+                priceGranularity = new PriceGranularity().tap {
+                    precision = 2
+                    ranges = [new Range(max: 1.50, increment: 1.0),
+                              new Range(max: 2.50, increment: 1.2)]
+                }
+            }
+        }
+
+        and: "Create and save stored response into DB"
+        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].price = BigDecimal.valueOf(2)
+        }
+        def storedResponse = new StoredResponse(responseId: storedBidResponseId, storedBidResponse: storedBidResponse)
+        storedResponseDao.save(storedResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain targeting hb_pb"
+        def targetingKeyMap = response.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
+        assert targetingKeyMap["hb_pb"] == getRoundedTargetingValueWithDefaultPrecision(1.50)
     }
 
     def "PBS auction should use default targeting prefix when ext.prebid.targeting.prefix is biggest that twenty"() {
