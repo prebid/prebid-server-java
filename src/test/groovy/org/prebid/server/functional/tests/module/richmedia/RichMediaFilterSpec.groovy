@@ -184,7 +184,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
         and: "Stored bid response in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].adm = amdValue as String
+            it.seatbid[0].bid[0].adm = amdValue
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -202,7 +202,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !getAnalyticResults(response)
 
         where:
-        amdValue << [null, "", ".js"]
+        amdValue << [null, '', '.js']
     }
 
     def "PBS should process request without analytics when adm is empty name and filter enabled in account config"() {
@@ -215,7 +215,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
         and: "Stored bid response in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].adm = amdValue as String
+            it.seatbid[0].bid[0].adm = amdValue
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -239,7 +239,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !getAnalyticResults(response)
 
         where:
-        amdValue << [null, "", ".js"]
+        amdValue << [null, '', '.js']
     }
 
     def "PBS should reject request with error and provide analytic when pattern is empty and filter enabled"() {
