@@ -33,10 +33,6 @@ class HttpUtil implements ObjectMapperWrapper {
         [(COOKIE_HEADER): "$value1=$value2"]
     }
 
-    static String encodeUrl(String url){
-        URLEncoder.encode(url, UTF_8)
-    }
-
     private static String decodeUrl(String url) {
         URLDecoder.decode(url, UTF_8)
     }

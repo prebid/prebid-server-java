@@ -9,28 +9,18 @@ import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.request.Targeting;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.StreamSupport;
@@ -43,7 +33,6 @@ public class FpdResolver {
     private static final String APP = "app";
     private static final String DOOH = "dooh";
     private static final Set<String> KNOWN_FPD_ATTRIBUTES = Set.of(USER, SITE, APP, DOOH, BIDDERS);
-    private static final String ALLOW_ALL_BIDDERS = "*";
     private static final String EXT = "ext";
     private static final String CONTEXT = "context";
     private static final String DATA = "data";
@@ -287,64 +276,6 @@ public class FpdResolver {
         } else {
             impExt.set(field, jsonNode);
         }
-    }
-
-    public ExtRequest resolveBidRequestExt(ExtRequest extRequest, Targeting targeting) {
-        if (targeting == null) {
-            return extRequest;
-        }
-
-        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        final ExtRequestPrebidData extRequestPrebidData = extRequestPrebid != null
-                ? extRequestPrebid.getData()
-                : null;
-
-        final ExtRequestPrebidData resolvedExtRequestPrebidData = resolveExtRequestPrebidData(extRequestPrebidData,
-                targeting.getBidders());
-        final List<ExtRequestPrebidBidderConfig> resolvedBidderConfig = createAllowedAllBidderConfig(targeting);
-
-        if (resolvedExtRequestPrebidData != null || resolvedBidderConfig != null) {
-            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidBuilder = extRequestPrebid != null
-                    ? extRequestPrebid.toBuilder()
-                    : ExtRequestPrebid.builder();
-            return ExtRequest.of(prebidBuilder
-                    .data(resolvedExtRequestPrebidData != null
-                            ? resolvedExtRequestPrebidData
-                            : extRequestPrebidData)
-                    .bidderconfig(resolvedBidderConfig)
-                    .build());
-        }
-
-        return extRequest;
-    }
-
-    private ExtRequestPrebidData resolveExtRequestPrebidData(ExtRequestPrebidData data, List<String> fpdBidders) {
-        if (CollectionUtils.isEmpty(fpdBidders)) {
-            return null;
-        }
-        final List<String> originBidders = data != null ? data.getBidders() : Collections.emptyList();
-        return CollectionUtils.isEmpty(originBidders)
-                ? ExtRequestPrebidData.of(fpdBidders, null)
-                : ExtRequestPrebidData.of(mergeBidders(fpdBidders, originBidders), null);
-    }
-
-    private List<String> mergeBidders(List<String> fpdBidders, List<String> originBidders) {
-        final Set<String> resolvedBidders = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-        resolvedBidders.addAll(originBidders);
-        resolvedBidders.addAll(fpdBidders);
-        return new ArrayList<>(resolvedBidders);
-    }
-
-    private List<ExtRequestPrebidBidderConfig> createAllowedAllBidderConfig(Targeting targeting) {
-        final ObjectNode userNode = targeting.getUser();
-        final ObjectNode siteNode = targeting.getSite();
-        if (userNode == null && siteNode == null) {
-            return null;
-        }
-        final List<String> bidders = Collections.singletonList(ALLOW_ALL_BIDDERS);
-
-        return Collections.singletonList(ExtRequestPrebidBidderConfig.of(bidders,
-                ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(siteNode, null, null, userNode))));
     }
 
     private ObjectNode mergeExtData(JsonNode fpdData, JsonNode originData) {

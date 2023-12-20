@@ -359,7 +359,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
     @Test
     public void buildShouldBuildNativeAdSlotWhenImpIsNativeAndHasNoImagesAndNoVideos() throws JsonProcessingException {
         // given
-        final Request nativeRequest = Request.builder().assets(List.of()).build();
+        final Request nativeRequest = Request.builder().assets(Collections.emptyList()).build();
         final Imp givenImp = Imp.builder()
                 .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
                 .build();
@@ -375,7 +375,8 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of("913", "914"))
+                .detailedCreativeTypeList(Collections.emptyList())
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
@@ -410,7 +411,8 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of("913", "914"))
+                .detailedCreativeTypeList(Collections.emptyList())
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
@@ -445,7 +447,55 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of("901"))
+                .detailedCreativeTypeList(List.of("901", "904", "905"))
+                .format(List.of(
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(1080, 1920),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(1080, 1620),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(300, 250),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(720, 1280),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(225, 150)
+                ))
+                .test(0)
+                .build();
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void buildShouldBuildNativeAdSlotWhenImpIsNativeAndHasTwoMainImagesWithFormat()
+            throws JsonProcessingException {
+        // given
+        final Request nativeRequest = Request.builder()
+                .assets(List.of(
+                        Asset.builder()
+                                .img(ImageObject.builder().w(200).h(200).wmin(300).hmin(300).type(3).build())
+                                .build(),
+                        Asset.builder()
+                                .img(ImageObject.builder().w(1080).h(1920).wmin(1080).hmin(1620).type(3).build())
+                                .build()
+                        )
+                )
+                .build();
+        final Imp givenImp = Imp.builder()
+                .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
+                .build();
+        final ExtImpHuaweiAds givenImpExt = ExtImpHuaweiAds.builder()
+                .slotId("slotId")
+                .adType("native")
+                .build();
+
+        // when
+        final AdSlot30 actual = target.build(givenImp, givenImpExt);
+
+        // then
+        final AdSlot30 expected = AdSlot30.builder()
+                .adType(3)
+                .slotId("slotId")
+                .detailedCreativeTypeList(List.of("901", "904", "905"))
+                .format(List.of(
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(1080, 1920),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(200, 200)
+                ))
                 .test(0)
                 .build();
 
@@ -479,7 +529,15 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of("901"))
+                .detailedCreativeTypeList(List.of("901", "904", "905"))
+                .format(List.of(
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(1080, 1920),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(640, 360),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(1080, 607),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(1080, 1620),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(1280, 720),
+                        org.prebid.server.bidder.huaweiads.model.request.Format.of(720, 1280)
+                ))
                 .test(0)
                 .build();
 
@@ -508,7 +566,8 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of("901"))
+                .detailedCreativeTypeList(List.of("901", "904", "905"))
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
@@ -539,7 +598,8 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of("904"))
+                .detailedCreativeTypeList(List.of("901", "904", "905"))
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
@@ -570,38 +630,8 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
-                .detailedCreativeTypeList(List.of("901"))
-                .test(0)
-                .build();
-
-        assertThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void buildShouldBuildNativeAdSlotWhenImpIsNativeAndHasOneMainImageAndOneVideo()
-            throws JsonProcessingException {
-        // given
-        final Request nativeRequest = Request.builder()
-                .assets(List.of(
-                        Asset.builder().img(ImageObject.builder().type(3).build()).build(),
-                        Asset.builder().video(VideoObject.builder().build()).build()))
-                .build();
-        final Imp givenImp = Imp.builder()
-                .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
-                .build();
-        final ExtImpHuaweiAds givenImpExt = ExtImpHuaweiAds.builder()
-                .slotId("slotId")
-                .adType("native")
-                .build();
-
-        // when
-        final AdSlot30 actual = target.build(givenImp, givenImpExt);
-
-        // then
-        final AdSlot30 expected = AdSlot30.builder()
-                .adType(3)
-                .slotId("slotId")
-                .detailedCreativeTypeList(List.of("903"))
+                .detailedCreativeTypeList(List.of("901", "904", "905"))
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
@@ -633,7 +663,38 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
         final AdSlot30 expected = AdSlot30.builder()
                 .adType(3)
                 .slotId("slotId")
+                .detailedCreativeTypeList(List.of("903", "901", "904", "905"))
+                .format(Collections.emptyList())
+                .test(0)
+                .build();
+
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void buildShouldBuildNativeAdSlotWhenImpIsNativeAndHasOneVideo()
+            throws JsonProcessingException {
+        // given
+        final Request nativeRequest = Request.builder()
+                .assets(List.of(Asset.builder().video(VideoObject.builder().build()).build()))
+                .build();
+        final Imp givenImp = Imp.builder()
+                .xNative(Native.builder().request(mapper.writeValueAsString(nativeRequest)).build())
+                .build();
+        final ExtImpHuaweiAds givenImpExt = ExtImpHuaweiAds.builder()
+                .slotId("slotId")
+                .adType("native")
+                .build();
+
+        // when
+        final AdSlot30 actual = target.build(givenImp, givenImpExt);
+
+        // then
+        final AdSlot30 expected = AdSlot30.builder()
+                .adType(3)
+                .slotId("slotId")
                 .detailedCreativeTypeList(List.of("903"))
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
@@ -665,6 +726,7 @@ public class HuaweiAdSlotBuilderTest extends VertxTest {
                 .adType(3)
                 .slotId("slotId")
                 .detailedCreativeTypeList(List.of("903"))
+                .format(Collections.emptyList())
                 .test(0)
                 .build();
 
