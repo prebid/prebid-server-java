@@ -9,19 +9,21 @@ import org.prebid.server.functional.util.PBSUtils
 class StorageBaseSpec extends BaseSpec {
 
     protected static final String INVALID_FILE_BODY = 'INVALID'
-    protected static final def DEFAULT_BUCKET = PBSUtils.randomString.toLowerCase()
+    protected static final String DEFAULT_BUCKET = PBSUtils.randomString.toLowerCase()
 
-    protected static final S3Service S3_SERVICE = new S3Service(DEFAULT_BUCKET)
+    protected static final S3Service s3Service = new S3Service(DEFAULT_BUCKET)
+
+
 
     protected static Map<String, String> s3StorageConfig = [
-            'settings.s3.accessKeyId'         : "${S3_SERVICE.accessKeyId}".toString(),
-            'settings.s3.secretAccessKey'     : "${S3_SERVICE.secretKeyId}".toString(),
-            'settings.s3.endpoint'            : "${S3_SERVICE.endpoint}".toString(),
-            'settings.s3.bucket'              : "${DEFAULT_BUCKET}".toString(),
-            'settings.s3.accounts-dir'        : "${S3Service.DEFAULT_ACCOUNT_DIR}".toString(),
-            'settings.s3.stored-imps-dir'     : "${S3Service.DEFAULT_IMPS_DIR}".toString(),
-            'settings.s3.stored-requests-dir' : "${S3Service.DEFAULT_REQUEST_DIR}".toString(),
-            'settings.s3.stored-responses-dir': "${S3Service.DEFAULT_RESPONSE_DIR}".toString(),
+            'settings.s3.accessKeyId'         : s3Service.accessKeyId,
+            'settings.s3.secretAccessKey'     : s3Service.secretKeyId,
+            'settings.s3.endpoint'            : s3Service.endpoint,
+            'settings.s3.bucket'              : DEFAULT_BUCKET,
+            'settings.s3.accounts-dir'        : S3Service.DEFAULT_ACCOUNT_DIR,
+            'settings.s3.stored-imps-dir'     : S3Service.DEFAULT_IMPS_DIR,
+            'settings.s3.stored-requests-dir' : S3Service.DEFAULT_REQUEST_DIR,
+            'settings.s3.stored-responses-dir': S3Service.DEFAULT_RESPONSE_DIR,
     ]
 
     protected static Map<String, String> mySqlDisabledConfig =

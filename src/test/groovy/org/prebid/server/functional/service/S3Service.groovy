@@ -20,7 +20,7 @@ import software.amazon.awssdk.core.sync.RequestBody
 final class S3Service implements ObjectMapperWrapper {
 
     private final S3Client s3PbsService
-    private final LocalStackContainer localStackContainer
+    private final LocalStackContainer localStackContainer = Dependencies.localStackContainer
 
     static final def DEFAULT_ACCOUNT_DIR = 'account'
     static final def DEFAULT_IMPS_DIR = 'stored-impressions'
@@ -28,14 +28,13 @@ final class S3Service implements ObjectMapperWrapper {
     static final def DEFAULT_RESPONSE_DIR = 'stored-responses'
 
     S3Service(String bucketName) {
-        this.localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack:s3-latest"))
-                .withNetwork(Dependencies.network)
-                .withServices(LocalStackContainer.Service.S3)
-        localStackContainer.start()
         s3PbsService = S3Client.builder()
                 .endpointOverride(localStackContainer.getEndpointOverride(LocalStackContainer.Service.S3))
-                .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(
-                        localStackContainer.getAccessKey(), localStackContainer.getSecretKey())))
+                .credentialsProvider(
+                        StaticCredentialsProvider.create(
+                                AwsBasicCredentials.create(
+                                        localStackContainer.getAccessKey(),
+                                        localStackContainer.getSecretKey())))
                 .region(Region.of(localStackContainer.getRegion()))
                 .build()
         createBucket(bucketName)
@@ -54,10 +53,13 @@ final class S3Service implements ObjectMapperWrapper {
     }
 
     void createBucket(String bucketName) {
-        CreateBucketRequest createBucketRequest = CreateBucketRequest.builder()
-                .bucket(bucketName)
-                .build()
-        s3PbsService.createBucket(createBucketRequest)
+        if (!s3PbsService.(bucketName)) {
+            CreateBucketRequest createBucketRequest = CreateBucketRequest.builder()
+                    .bucket(bucketName)
+                    .build();
+
+            s3PbsService.createBucket(createBucketRequest);
+        }
     }
 
     PutObjectResponse uploadAccount(String bucketName, AccountConfig account, String fileName = account.id) {

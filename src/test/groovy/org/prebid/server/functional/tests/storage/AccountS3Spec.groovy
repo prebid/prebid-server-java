@@ -28,7 +28,7 @@ class AccountS3Spec extends StorageBaseSpec {
         def account = new AccountConfig(id: accountId, status: AccountStatus.ACTIVE)
 
         and: "Saved account in AWS S3 storage"
-        S3_SERVICE.uploadAccount(DEFAULT_BUCKET, account)
+        s3Service.uploadAccount(DEFAULT_BUCKET, account)
 
         when: "PBS processes auction request"
         def response = s3StorageAccountPbsService.sendAuctionRequest(bidRequest)
@@ -48,7 +48,7 @@ class AccountS3Spec extends StorageBaseSpec {
         def account = new AccountConfig(id: accountId, status: AccountStatus.INACTIVE)
 
         and: "Saved account in AWS S3 storage"
-        S3_SERVICE.uploadAccount(DEFAULT_BUCKET, account)
+        s3Service.uploadAccount(DEFAULT_BUCKET, account)
 
         when: "PBS processes auction request"
         s3StorageAccountPbsService.sendAuctionRequest(bidRequest)
@@ -59,7 +59,7 @@ class AccountS3Spec extends StorageBaseSpec {
         assert exception.responseBody == "Account $accountId is inactive"
     }
 
-    def "PBS should throw exception when account have different id inside json in S3 storage"() {
+    def "PBS should throw exception when account id isn't match with bid request account id"() {
         given: "Default BidRequest with account"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -70,7 +70,7 @@ class AccountS3Spec extends StorageBaseSpec {
         def account = new AccountConfig(id: PBSUtils.randomString, status: AccountStatus.ACTIVE)
 
         and: "Saved account in AWS S3 storage"
-        S3_SERVICE.uploadAccount(DEFAULT_BUCKET, account, accountId)
+        s3Service.uploadAccount(DEFAULT_BUCKET, account, accountId)
 
         when: "PBS processes auction request"
         s3StorageAccountPbsService.sendAuctionRequest(bidRequest)
@@ -89,7 +89,7 @@ class AccountS3Spec extends StorageBaseSpec {
         }
 
         and: "Saved invalid account in AWS S3 storage"
-        S3_SERVICE.uploadFile(DEFAULT_BUCKET, INVALID_FILE_BODY, "${S3Service.DEFAULT_ACCOUNT_DIR}/${accountId}.json")
+        s3Service.uploadFile(DEFAULT_BUCKET, INVALID_FILE_BODY, "${S3Service.DEFAULT_ACCOUNT_DIR}/${accountId}.json")
 
         when: "PBS processes auction request"
         s3StorageAccountPbsService.sendAuctionRequest(bidRequest)

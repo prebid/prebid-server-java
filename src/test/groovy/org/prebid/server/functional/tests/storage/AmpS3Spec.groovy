@@ -26,7 +26,7 @@ class AmpS3Spec extends StorageBaseSpec {
 
         and: "Stored request in S3 service"
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        S3_SERVICE.uploadStoredRequest(DEFAULT_BUCKET, storedRequest)
+        s3Service.uploadStoredRequest(DEFAULT_BUCKET, storedRequest)
 
         when: "PBS processes amp request"
         s3StoragePbsService.sendAmpRequest(ampRequest)
@@ -58,7 +58,7 @@ class AmpS3Spec extends StorageBaseSpec {
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest).tap {
             it.requestId = PBSUtils.randomNumber
         }
-        S3_SERVICE.uploadStoredRequest(DEFAULT_BUCKET, storedRequest, ampRequest.tagId)
+        s3Service.uploadStoredRequest(DEFAULT_BUCKET, storedRequest, ampRequest.tagId)
 
         when: "PBS processes amp request"
         s3StoragePbsService.sendAmpRequest(ampRequest)
@@ -70,7 +70,7 @@ class AmpS3Spec extends StorageBaseSpec {
                 "No stored request found for id: ${ampRequest.tagId}"
     }
 
-    def "PBS should throw exception when trying to take parameters from the invalid stored request on S3 service"() {
+    def "PBS should throw exception when trying to take parameters from request where id isn't match with stored request id"() {
         given: "AMP request"
         def ampRequest = new AmpRequest(tagId: PBSUtils.randomString).tap {
             account = PBSUtils.randomNumber as String
@@ -83,7 +83,7 @@ class AmpS3Spec extends StorageBaseSpec {
         }
 
         and: "Stored request in S3 service"
-        S3_SERVICE.uploadFile(DEFAULT_BUCKET, INVALID_FILE_BODY, "${S3Service.DEFAULT_REQUEST_DIR}/${ampRequest.tagId}.json")
+        s3Service.uploadFile(DEFAULT_BUCKET, INVALID_FILE_BODY, "${S3Service.DEFAULT_REQUEST_DIR}/${ampRequest.tagId}.json")
 
         when: "PBS processes amp request"
         s3StoragePbsService.sendAmpRequest(ampRequest)

@@ -22,7 +22,7 @@ class StoredResponseS3Spec extends StorageBaseSpec {
         def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
         def storedResponse = new StoredResponse(responseId: storedResponseId,
                 storedAuctionResponse: storedAuctionResponse)
-        S3_SERVICE.uploadStoredResponse(DEFAULT_BUCKET, storedResponse)
+        s3Service.uploadStoredResponse(DEFAULT_BUCKET, storedResponse)
 
         when: "PBS processes auction request"
         def response = s3StoragePbsService.sendAuctionRequest(bidRequest)
@@ -39,7 +39,7 @@ class StoredResponseS3Spec extends StorageBaseSpec {
         assert !bidder.getRequestCount(bidRequest.id)
     }
 
-    def "PBS should throw request format exception when stored auction response have different id inside S3 file"() {
+    def "PBS should throw request format exception when stored auction response id isn't match with requested response id"() {
         given: "Default basic BidRequest with stored response"
         def bidRequest = BidRequest.defaultBidRequest
         def storedResponseId = PBSUtils.randomNumber
@@ -49,7 +49,7 @@ class StoredResponseS3Spec extends StorageBaseSpec {
         def storedAuctionResponse = SeatBid.getStoredResponse(bidRequest)
         def storedResponse = new StoredResponse(responseId: PBSUtils.randomNumber,
                 storedAuctionResponse: storedAuctionResponse)
-        S3_SERVICE.uploadStoredResponse(DEFAULT_BUCKET, storedResponse, storedResponseId as String)
+        s3Service.uploadStoredResponse(DEFAULT_BUCKET, storedResponse, storedResponseId as String)
 
         when: "PBS processes auction request"
         s3StoragePbsService.sendAuctionRequest(bidRequest)
@@ -68,7 +68,7 @@ class StoredResponseS3Spec extends StorageBaseSpec {
         bidRequest.imp[0].ext.prebid.storedAuctionResponse = new StoredAuctionResponse(id: storedResponseId)
 
         and: "Invalid stored auction response in S3 storage"
-        S3_SERVICE.uploadFile(DEFAULT_BUCKET, INVALID_FILE_BODY, "${S3Service.DEFAULT_RESPONSE_DIR}/${storedResponseId}.json")
+        s3Service.uploadFile(DEFAULT_BUCKET, INVALID_FILE_BODY, "${S3Service.DEFAULT_RESPONSE_DIR}/${storedResponseId}.json")
 
         when: "PBS processes auction request"
         s3StoragePbsService.sendAuctionRequest(bidRequest)

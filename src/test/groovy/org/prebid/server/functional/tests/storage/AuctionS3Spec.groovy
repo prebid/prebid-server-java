@@ -29,7 +29,7 @@ class AuctionS3Spec extends StorageBaseSpec {
                 it.secure = secureStoredRequest
             }
         }
-        S3_SERVICE.uploadStoredImp(DEFAULT_BUCKET, storedImp)
+        s3Service.uploadStoredImp(DEFAULT_BUCKET, storedImp)
 
         when: "Requesting PBS auction"
         s3StoragePbsService.sendAuctionRequest(bidRequest)
@@ -39,7 +39,7 @@ class AuctionS3Spec extends StorageBaseSpec {
         assert bidderRequest.imp[0].secure == secureStoredRequest
     }
 
-    def "PBS should throw exception when trying populate imp[0].secure from imp stored request on S3 service with invalid impId in file"() {
+    def "PBS should throw exception when trying to populate imp[0].secure from imp stored request on S3 service with impId that doesn't matches"() {
         given: "Default bid request"
         def storedRequestId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -57,7 +57,7 @@ class AuctionS3Spec extends StorageBaseSpec {
                 it.secure = secureStoredRequest
             }
         }
-        S3_SERVICE.uploadStoredImp(DEFAULT_BUCKET, storedImp, storedRequestId)
+        s3Service.uploadStoredImp(DEFAULT_BUCKET, storedImp, storedRequestId)
 
         when: "Requesting PBS auction"
         s3StoragePbsService.sendAuctionRequest(bidRequest)
@@ -69,7 +69,7 @@ class AuctionS3Spec extends StorageBaseSpec {
                 "No stored impression found for id: ${storedRequestId}"
     }
 
-    def "PBS should throw exception when trying populate imp[0].secure from invalid imp stored request on S3 service"() {
+    def "PBS should throw exception when trying to populate imp[0].secure from invalid imp stored request on S3 service"() {
         given: "Default bid request"
         def storedRequestId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -80,7 +80,7 @@ class AuctionS3Spec extends StorageBaseSpec {
         }
 
         and: "Save storedImp into S3 service"
-        S3_SERVICE.uploadFile(DEFAULT_BUCKET, INVALID_FILE_BODY, "${S3Service.DEFAULT_IMPS_DIR}/${storedRequestId}.json" )
+        s3Service.uploadFile(DEFAULT_BUCKET, INVALID_FILE_BODY, "${S3Service.DEFAULT_IMPS_DIR}/${storedRequestId}.json" )
 
         when: "Requesting PBS auction"
         s3StoragePbsService.sendAuctionRequest(bidRequest)
@@ -92,7 +92,7 @@ class AuctionS3Spec extends StorageBaseSpec {
                 "Can't parse Json for stored request with id ${storedRequestId}"
     }
 
-    def "PBS should throw exception when trying populate imp[0].secure from unexciting imp stored request on S3 service"() {
+    def "PBS should throw exception when trying to populate imp[0].secure from unexciting imp stored request on S3 service"() {
         given: "Default bid request"
         def storedRequestId = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
