@@ -13,8 +13,6 @@ class StorageBaseSpec extends BaseSpec {
 
     protected static final S3Service s3Service = new S3Service(DEFAULT_BUCKET)
 
-
-
     protected static Map<String, String> s3StorageConfig = [
             'settings.s3.accessKeyId'         : s3Service.accessKeyId,
             'settings.s3.secretAccessKey'     : s3Service.secretKeyId,
