@@ -424,6 +424,7 @@ public class Ortb2RequestFactory {
         if (exception instanceof PreBidException) {
             UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
         } else {
+            metrics.updateAccountRequestRejectedByFailedFetch(accountId);
             logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
             logger.debug("Error occurred while fetching account", exception);
         }

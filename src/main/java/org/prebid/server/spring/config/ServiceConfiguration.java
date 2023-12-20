@@ -43,8 +43,9 @@ import org.prebid.server.auction.gpp.processor.GppContextProcessor;
 import org.prebid.server.auction.gpp.processor.tcfeuv2.TcfEuV2ContextProcessor;
 import org.prebid.server.auction.gpp.processor.uspv1.UspV1ContextProcessor;
 import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.CompositeMediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
-import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.MultiFormatMediaTypeProcessor;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
@@ -687,13 +688,13 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(
-            prefix = "auction.filter-imp-media-type",
-            name = "enabled",
-            havingValue = "false",
-            matchIfMissing = true)
-    MediaTypeProcessor noOpMediaTypeProcessor() {
-        return new NoOpMediaTypeProcessor();
+    MediaTypeProcessor multiFormatMediaTypeProcessor(BidderCatalog bidderCatalog) {
+        return new MultiFormatMediaTypeProcessor(bidderCatalog);
+    }
+
+    @Bean
+    CompositeMediaTypeProcessor compositeMediaTypeProcessor(List<MediaTypeProcessor> mediaTypeProcessors) {
+        return new CompositeMediaTypeProcessor(mediaTypeProcessors);
     }
 
     @Bean
@@ -782,7 +783,7 @@ public class ServiceConfiguration {
             FpdResolver fpdResolver,
             SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
-            MediaTypeProcessor mediaTypeProcessor,
+            CompositeMediaTypeProcessor mediaTypeProcessor,
             UidUpdater uidUpdater,
             TimeoutResolver timeoutResolver,
             TimeoutFactory timeoutFactory,
@@ -801,7 +802,8 @@ public class ServiceConfiguration {
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper,
-            CriteriaLogManager criteriaLogManager) {
+            CriteriaLogManager criteriaLogManager,
+            @Value("${auction.strict-app-site-dooh:false}") boolean enabledStrictAppSiteDoohValidation) {
 
         return new ExchangeService(
                 logSamplingRate,
@@ -832,7 +834,7 @@ public class ServiceConfiguration {
                 metrics,
                 clock,
                 mapper,
-                criteriaLogManager);
+                criteriaLogManager, enabledStrictAppSiteDoohValidation);
     }
 
     @Bean
@@ -920,12 +922,21 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    RequestValidator requestValidator(BidderCatalog bidderCatalog,
-                                      BidderParamValidator bidderParamValidator,
-                                      JacksonMapper mapper,
-                                      @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
+    RequestValidator requestValidator(
+            BidderCatalog bidderCatalog,
+            BidderParamValidator bidderParamValidator,
+            Metrics metrics,
+            JacksonMapper mapper,
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
+            @Value("${auction.strict-app-site-dooh:false}") boolean enabledStrictAppSiteDoohValidation) {
 
-        return new RequestValidator(bidderCatalog, bidderParamValidator, mapper, logSamplingRate);
+        return new RequestValidator(
+                bidderCatalog,
+                bidderParamValidator,
+                metrics,
+                mapper,
+                logSamplingRate,
+                enabledStrictAppSiteDoohValidation);
     }
 
     @Bean
