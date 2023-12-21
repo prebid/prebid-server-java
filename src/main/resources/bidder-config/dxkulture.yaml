@@ -1,8 +1,8 @@
 adapters:
   dxkulture:
-    endpoint: https://ads.kulture.media/pbs
+    endpoint: https://ads.dxkulture.com/pbs
     meta-info:
-      maintainer-email: devops@kulture.media
+      maintainer-email: devops@dxkulture.com
       app-media-types:
         - banner
         - video
@@ -14,6 +14,6 @@ adapters:
     usersync:
       cookie-family-name: dxkulture
       redirect:
-        url: https://ads.kulture.media/usync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
+        url: https://ads.dxkulture.com/usync?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&cb={{.RedirectURL}}
         support-cors: false
         uid-macro: '$UID'
