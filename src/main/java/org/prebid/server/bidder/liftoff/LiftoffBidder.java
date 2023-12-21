@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -65,7 +66,11 @@ public class LiftoffBidder implements Bidder<BidRequest> {
                 final LiftoffImpressionExt impExt = parseImpExt(imp);
                 final LiftoffImpressionExt modifiedImpExt = modifyImpExt(impExt, bidRequest);
                 final Imp modifiedImp = modifyImp(imp, modifiedImpExt, price);
-                final BidRequest modifiedRequest = modifyBidRequest(bidRequest, modifiedImp, modifiedImpExt.getBidder().getAppStoreId());
+                final BidRequest modifiedRequest = modifyBidRequest(
+                        bidRequest,
+                        modifiedImp,
+                        modifiedImpExt.getBidder().getAppStoreId());
+
                 httpRequests.add(makeHttpRequest(modifiedRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -94,7 +99,11 @@ public class LiftoffBidder implements Bidder<BidRequest> {
     private static LiftoffImpressionExt modifyImpExt(LiftoffImpressionExt impExt, BidRequest bidRequest) {
         final ExtImpLiftoff bidder = impExt.getBidder();
         final String buyerId = ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getBuyeruid);
-        final ExtImpLiftoff vungle = ExtImpLiftoff.of(buyerId, bidder.getAppStoreId(), bidder.getPlacementReferenceId());
+        final ExtImpLiftoff vungle = ExtImpLiftoff.of(
+                buyerId,
+                bidder.getAppStoreId(),
+                bidder.getPlacementReferenceId());
+
         return impExt.toBuilder().vungle(vungle).build();
     }
 
@@ -108,10 +117,15 @@ public class LiftoffBidder implements Bidder<BidRequest> {
     }
 
     private static BidRequest modifyBidRequest(BidRequest bidRequest, Imp imp, String appStoreId) {
-        final App app = ObjectUtil.getIfNotNull(bidRequest, BidRequest::getApp);
+        final App app = bidRequest.getApp();
+        final Site site = bidRequest.getSite();
+        if (app == null && site == null) {
+            throw new PreBidException("The bid request must have an app or site object");
+        }
         return bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
-                .app(app != null ? app.toBuilder().id(appStoreId).build() : null)
+                .app(app == null ? App.builder().id(appStoreId).build() : app.toBuilder().id(appStoreId).build())
+                .site(app == null ? null : site)
                 .build();
     }
 
