@@ -19,6 +19,7 @@ class StorageBaseSpec extends BaseSpec {
     }
 
     def cleanupSpec() {
+        s3Service.purgeBucketFiles(DEFAULT_BUCKET)
         s3Service.deleteBucket(DEFAULT_BUCKET)
     }
 
