@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -54,14 +55,15 @@ public class S3ApplicationSettings implements ApplicationSettings {
             String storedResponsesDirectory,
             JacksonMapper jacksonMapper,
             Vertx vertx) {
-        this.asyncClient = asyncClient;
-        this.bucket = bucket;
-        this.accountsDirectory = accountsDirectory;
-        this.storedImpressionsDirectory = storedImpressionsDirectory;
-        this.storedRequestsDirectory = storedRequestsDirectory;
-        this.storedResponsesDirectory = storedResponsesDirectory;
-        this.jacksonMapper = jacksonMapper;
-        this.vertx = vertx;
+
+        this.asyncClient = Objects.requireNonNull(asyncClient);
+        this.bucket = Objects.requireNonNull(bucket);
+        this.accountsDirectory = Objects.requireNonNull(accountsDirectory);
+        this.storedImpressionsDirectory = Objects.requireNonNull(storedImpressionsDirectory);
+        this.storedRequestsDirectory = Objects.requireNonNull(storedRequestsDirectory);
+        this.storedResponsesDirectory = Objects.requireNonNull(storedResponsesDirectory);
+        this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
+        this.vertx = Objects.requireNonNull(vertx);
     }
 
     @Override
