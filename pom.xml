@@ -60,6 +60,7 @@
         <protobuf.version>3.21.7</protobuf.version>
         <protoc.version>3.17.0</protoc.version>
         <json-logic.version>1.0.7</json-logic.version>
+        <aws.awssdk.version>2.17.274</aws.awssdk.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
@@ -110,7 +111,7 @@
             <dependency>
                 <groupId>software.amazon.awssdk</groupId>
                 <artifactId>bom</artifactId>
-                <version>2.17.274</version>
+                <version>${aws.awssdk.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
