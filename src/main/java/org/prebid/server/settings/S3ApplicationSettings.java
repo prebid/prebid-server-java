@@ -100,22 +100,23 @@ public class S3ApplicationSettings implements ApplicationSettings {
 
         return getFileContents(storedRequestsDirectory, requestIds).compose(storedIdToRequest ->
                 getFileContents(storedImpressionsDirectory, impIds)
-                        .map(storedIdToImp -> {
-                                    final List<String> missingStoredRequestIds =
-                                            getMissingStoredDataIds(storedIdToRequest).stream()
-                                                    .map("No stored request found for id: %s"::formatted).toList();
-                                    final List<String> missingStoredImpressionIds =
-                                            getMissingStoredDataIds(storedIdToImp).stream()
-                                                    .map("No stored impression found for id: %s"::formatted).toList();
+                        .map(storedIdToImp -> buildStoredDataResult(storedIdToRequest, storedIdToImp)));
+    }
 
-                                    return StoredDataResult.of(
-                                            filterOptionalFileContent(storedIdToRequest),
-                                            filterOptionalFileContent(storedIdToImp),
-                                            Stream.concat(
-                                                    missingStoredImpressionIds.stream(),
-                                                    missingStoredRequestIds.stream()).toList());
-                                }
-                        ));
+    private StoredDataResult buildStoredDataResult(Map<String, Optional<String>> storedIdToRequest, Map<String, Optional<String>> storedIdToImp) {
+        final List<String> missingStoredRequestIds =
+                getMissingStoredDataIds(storedIdToRequest).stream()
+                        .map("No stored request found for id: %s"::formatted).toList();
+        final List<String> missingStoredImpressionIds =
+                getMissingStoredDataIds(storedIdToImp).stream()
+                        .map("No stored impression found for id: %s"::formatted).toList();
+
+        return StoredDataResult.of(
+                filterOptionalFileContent(storedIdToRequest),
+                filterOptionalFileContent(storedIdToImp),
+                Stream.concat(
+                        missingStoredImpressionIds.stream(),
+                        missingStoredRequestIds.stream()).toList());
     }
 
     private Map<String, String> filterOptionalFileContent(Map<String, Optional<String>> fileContents) {
