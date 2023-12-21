@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests.storage
 
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.service.S3Service
+import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsServiceFactory
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
@@ -11,7 +12,15 @@ class StorageBaseSpec extends BaseSpec {
     protected static final String INVALID_FILE_BODY = 'INVALID'
     protected static final String DEFAULT_BUCKET = PBSUtils.randomString.toLowerCase()
 
-    protected static final S3Service s3Service = new S3Service(DEFAULT_BUCKET)
+    protected static final S3Service s3Service = new S3Service(Dependencies.localStackContainer)
+
+    def setupSpec() {
+        s3Service.createBucket(DEFAULT_BUCKET)
+    }
+
+    def cleanupSpec() {
+        s3Service.deleteBucket(DEFAULT_BUCKET)
+    }
 
     protected static Map<String, String> s3StorageConfig = [
             'settings.s3.accessKeyId'         : s3Service.accessKeyId,

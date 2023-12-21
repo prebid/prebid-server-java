@@ -7,7 +7,7 @@ import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.localstack.LocalStackContainer
-import org.testcontainers.utility.DockerImageName
+import software.amazon.awssdk.services.s3.model.DeleteBucketRequest
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
@@ -20,14 +20,15 @@ import software.amazon.awssdk.core.sync.RequestBody
 final class S3Service implements ObjectMapperWrapper {
 
     private final S3Client s3PbsService
-    private final LocalStackContainer localStackContainer = Dependencies.localStackContainer
+    private final LocalStackContainer localStackContainer
 
     static final def DEFAULT_ACCOUNT_DIR = 'account'
     static final def DEFAULT_IMPS_DIR = 'stored-impressions'
     static final def DEFAULT_REQUEST_DIR = 'stored-requests'
     static final def DEFAULT_RESPONSE_DIR = 'stored-responses'
 
-    S3Service(String bucketName) {
+    S3Service(LocalStackContainer localStackContainer) {
+        this.localStackContainer = localStackContainer
         s3PbsService = S3Client.builder()
                 .endpointOverride(localStackContainer.getEndpointOverride(LocalStackContainer.Service.S3))
                 .credentialsProvider(
@@ -37,7 +38,6 @@ final class S3Service implements ObjectMapperWrapper {
                                         localStackContainer.getSecretKey())))
                 .region(Region.of(localStackContainer.getRegion()))
                 .build()
-        createBucket(bucketName)
     }
 
     String getAccessKeyId() {
@@ -53,13 +53,17 @@ final class S3Service implements ObjectMapperWrapper {
     }
 
     void createBucket(String bucketName) {
-        if (!s3PbsService.(bucketName)) {
             CreateBucketRequest createBucketRequest = CreateBucketRequest.builder()
                     .bucket(bucketName)
-                    .build();
+                    .build()
+            s3PbsService.createBucket(createBucketRequest)
+    }
 
-            s3PbsService.createBucket(createBucketRequest);
-        }
+    void deleteBucket(String bucketName) {
+        DeleteBucketRequest deleteBucketRequest = DeleteBucketRequest.builder()
+                .bucket(bucketName)
+                .build()
+        s3PbsService.deleteBucket(deleteBucketRequest)
     }
 
     PutObjectResponse uploadAccount(String bucketName, AccountConfig account, String fileName = account.id) {
@@ -85,4 +89,6 @@ final class S3Service implements ObjectMapperWrapper {
                 .build()
         s3PbsService.putObject(putObjectRequest, RequestBody.fromString(fileBody))
     }
+
+
 }
