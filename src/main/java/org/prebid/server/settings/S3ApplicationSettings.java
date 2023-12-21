@@ -100,35 +100,34 @@ public class S3ApplicationSettings implements ApplicationSettings {
 
         return getFileContents(storedRequestsDirectory, requestIds).compose(storedIdToRequest ->
                 getFileContents(storedImpressionsDirectory, impIds)
-                        .map(storedIdToImp -> buildStoredDataResult(storedIdToRequest, storedIdToImp)));
+                        .map(storedIdToImp -> buildStoredDataResult(storedIdToRequest, storedIdToImp, requestIds, impIds)));
     }
 
-    private StoredDataResult buildStoredDataResult(Map<String, Optional<String>> storedIdToRequest, Map<String, Optional<String>> storedIdToImp) {
+    private StoredDataResult buildStoredDataResult(
+            Map<String, String> storedIdToRequest,
+            Map<String, String> storedIdToImp,
+            Set<String> requestIds,
+            Set<String> impIds
+    ) {
         final List<String> missingStoredRequestIds =
-                getMissingStoredDataIds(storedIdToRequest).stream()
+                getMissingStoredDataIds(storedIdToRequest, requestIds).stream()
                         .map("No stored request found for id: %s"::formatted).toList();
         final List<String> missingStoredImpressionIds =
-                getMissingStoredDataIds(storedIdToImp).stream()
+                getMissingStoredDataIds(storedIdToImp, impIds).stream()
                         .map("No stored impression found for id: %s"::formatted).toList();
 
         return StoredDataResult.of(
-                filterOptionalFileContent(storedIdToRequest),
-                filterOptionalFileContent(storedIdToImp),
+                storedIdToRequest,
+                storedIdToImp,
                 Stream.concat(
                         missingStoredImpressionIds.stream(),
                         missingStoredRequestIds.stream()).toList());
     }
 
-    private Map<String, String> filterOptionalFileContent(Map<String, Optional<String>> fileContents) {
-        return fileContents
-                .entrySet()
-                .stream()
-                .filter(e -> e.getValue().isPresent())
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().get()));
-    }
-
-    private List<String> getMissingStoredDataIds(Map<String, Optional<String>> fileContents) {
-        return fileContents.entrySet().stream().filter(e -> e.getValue().isEmpty()).map(Map.Entry::getKey).toList();
+    private List<String> getMissingStoredDataIds(Map<String, String> fileContents, Set<String> responseIds) {
+        final List<String> missingStoredDataIds = new ArrayList<>(responseIds);
+        missingStoredDataIds.removeAll(fileContents.keySet());
+        return missingStoredDataIds;
     }
 
     @Override
@@ -153,13 +152,10 @@ public class S3ApplicationSettings implements ApplicationSettings {
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
         return getFileContents(storedResponsesDirectory, responseIds).map(storedIdToResponse -> {
             final List<String> missingStoredResponseIds =
-                    getMissingStoredDataIds(storedIdToResponse).stream()
+                    getMissingStoredDataIds(storedIdToResponse, responseIds).stream()
                             .map("No stored response found for id: %s"::formatted).toList();
 
-            return StoredResponseDataResult.of(
-                    filterOptionalFileContent(storedIdToResponse),
-                    missingStoredResponseIds
-            );
+            return StoredResponseDataResult.of(storedIdToResponse, missingStoredResponseIds);
         });
     }
 
@@ -168,7 +164,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
         return Future.succeededFuture(Collections.emptyMap());
     }
 
-    private Future<Map<String, Optional<String>>> getFileContents(String directory, Set<String> ids) {
+    private Future<Map<String, String>> getFileContents(String directory, Set<String> ids) {
         final List<Future<Tuple2<String, Optional<String>>>> futureListContents = ids.stream()
                 .map(impressionId ->
                         downloadFile(directory + withInitialSlash(impressionId) + JSON_SUFFIX)
@@ -179,7 +175,10 @@ public class S3ApplicationSettings implements ApplicationSettings {
                 .all(new ArrayList<>(futureListContents))
                 .map(CompositeFuture::list);
 
-        return composedFutures.map(one -> one.stream().collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight)));
+        // filter out IDs that had no stored request present and return a map from ids to stored request content
+        return composedFutures.map(one -> one.stream().flatMap(idContentTuple ->
+                idContentTuple.getRight().stream().map(content -> Tuple2.of(idContentTuple.getLeft(), content))
+        )).map(one -> one.collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight)));
     }
 
     /**
