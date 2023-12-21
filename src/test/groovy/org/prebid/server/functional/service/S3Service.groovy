@@ -4,7 +4,6 @@ import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse
-import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.localstack.LocalStackContainer
 import software.amazon.awssdk.services.s3.model.DeleteBucketRequest
@@ -13,6 +12,8 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.S3Client
 import software.amazon.awssdk.services.s3.model.CreateBucketRequest
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request
 import software.amazon.awssdk.services.s3.model.PutObjectRequest
 import software.amazon.awssdk.services.s3.model.PutObjectResponse
 import software.amazon.awssdk.core.sync.RequestBody
@@ -53,10 +54,10 @@ final class S3Service implements ObjectMapperWrapper {
     }
 
     void createBucket(String bucketName) {
-            CreateBucketRequest createBucketRequest = CreateBucketRequest.builder()
-                    .bucket(bucketName)
-                    .build()
-            s3PbsService.createBucket(createBucketRequest)
+        CreateBucketRequest createBucketRequest = CreateBucketRequest.builder()
+                .bucket(bucketName)
+                .build()
+        s3PbsService.createBucket(createBucketRequest)
     }
 
     void deleteBucket(String bucketName) {
@@ -64,6 +65,12 @@ final class S3Service implements ObjectMapperWrapper {
                 .bucket(bucketName)
                 .build()
         s3PbsService.deleteBucket(deleteBucketRequest)
+    }
+
+    void purgeBucketFiles(String bucketName) {
+        s3PbsService.listObjectsV2(ListObjectsV2Request.builder().bucket(bucketName).build()).contents().each { files ->
+            s3PbsService.deleteObject(DeleteObjectRequest.builder().bucket(bucketName).key(files.key()).build())
+        }
     }
 
     PutObjectResponse uploadAccount(String bucketName, AccountConfig account, String fileName = account.id) {
@@ -89,6 +96,4 @@ final class S3Service implements ObjectMapperWrapper {
                 .build()
         s3PbsService.putObject(putObjectRequest, RequestBody.fromString(fileBody))
     }
-
-
 }
