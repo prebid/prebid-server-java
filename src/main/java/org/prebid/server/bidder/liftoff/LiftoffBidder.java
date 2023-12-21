@@ -38,12 +38,12 @@ import java.util.Objects;
 
 public class LiftoffBidder implements Bidder<BidRequest> {
 
+    private static final String BIDDER_CURRENCY = "USD";
+    private static final String X_OPENRTB_VERSION = "2.5";
+
     private final String endpointUrl;
     private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
-
-    private static final String BIDDER_CURRENCY = "USD";
-    private static final String X_OPENRTB_VERSION = "2.5";
 
     public LiftoffBidder(String endpointUrl,
                          CurrencyConversionService currencyConversionService,
@@ -60,37 +60,19 @@ public class LiftoffBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
-            final Imp.ImpBuilder impBuilder = imp.toBuilder();
-            final Price price;
-            final ObjectNode convertedExtImpLiftoff;
-            final ExtImpLiftoff liftoffImpressionExtBidder;
             try {
-                price = resolveBidFloor(imp, bidRequest);
-                final LiftoffImpressionExt liftoffImpressionExt = resolveLiftoffImpressionExt(imp);
-                liftoffImpressionExtBidder = liftoffImpressionExt.getBidder();
-                convertedExtImpLiftoff = resolveExtImpLiftoff(
-                        resolveLiftoffImpExt(bidRequest, liftoffImpressionExtBidder, liftoffImpressionExt));
+                final Price price = resolveBidFloor(imp, bidRequest);
+                final LiftoffImpressionExt impExt = parseImpExt(imp);
+                final LiftoffImpressionExt modifiedImpExt = modifyImpExt(impExt, bidRequest);
+                final Imp modifiedImp = modifyImp(imp, modifiedImpExt, price);
+                final BidRequest modifiedRequest = modifyBidRequest(bidRequest, modifiedImp, modifiedImpExt.getBidder().getAppStoreId());
+                httpRequests.add(makeHttpRequest(modifiedRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
-                continue;
             }
-
-            httpRequests.add(createRequest(
-                    prepareBidRequest(bidRequest,
-                            prepareImp(impBuilder, liftoffImpressionExtBidder, convertedExtImpLiftoff, price, imp),
-                            liftoffImpressionExtBidder)));
         }
 
         return Result.of(httpRequests, errors);
-    }
-
-    private static LiftoffImpressionExt resolveLiftoffImpExt(BidRequest bidRequest,
-                                                             ExtImpLiftoff liftoffImpressionExtBidder,
-                                                             LiftoffImpressionExt liftoffImpressionExt) {
-        return liftoffImpressionExt.toBuilder()
-                .vungle(createExtImpLiftoff(
-                        ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getBuyeruid), liftoffImpressionExtBidder))
-                .build();
     }
 
     private Price resolveBidFloor(Imp imp, BidRequest bidRequest) {
@@ -105,40 +87,35 @@ public class LiftoffBidder implements Bidder<BidRequest> {
         return Price.of(BIDDER_CURRENCY, bigDecimal);
     }
 
-    private ObjectNode resolveExtImpLiftoff(LiftoffImpressionExt impressionExt) {
-        return mapper.mapper().convertValue(impressionExt, ObjectNode.class);
-    }
-
-    private LiftoffImpressionExt resolveLiftoffImpressionExt(Imp imp) {
+    private LiftoffImpressionExt parseImpExt(Imp imp) {
         return mapper.mapper().convertValue(imp.getExt(), LiftoffImpressionExt.class);
     }
 
-    private static Imp prepareImp(Imp.ImpBuilder impBuilder,
-                                  ExtImpLiftoff extImpLiftoff,
-                                  ObjectNode convertedExtImpLiftoff,
-                                  Price price,
-                                  Imp imp) {
-        return impBuilder
-                .tagid(extImpLiftoff.getPlacementReferenceId())
-                .ext(convertedExtImpLiftoff)
+    private static LiftoffImpressionExt modifyImpExt(LiftoffImpressionExt impExt, BidRequest bidRequest) {
+        final ExtImpLiftoff bidder = impExt.getBidder();
+        final String buyerId = ObjectUtil.getIfNotNull(bidRequest.getUser(), User::getBuyeruid);
+        final ExtImpLiftoff vungle = ExtImpLiftoff.of(buyerId, bidder.getAppStoreId(), bidder.getPlacementReferenceId());
+        return impExt.toBuilder().vungle(vungle).build();
+    }
+
+    private Imp modifyImp(Imp imp, LiftoffImpressionExt modifiedImpExt, Price price) {
+        return imp.toBuilder()
+                .tagid(modifiedImpExt.getBidder().getPlacementReferenceId())
+                .ext(mapper.mapper().convertValue(modifiedImpExt, ObjectNode.class))
                 .bidfloor(price.getValue() != null ? price.getValue() : imp.getBidfloor())
                 .bidfloorcur(price.getValue() != null ? price.getCurrency() : imp.getBidfloorcur())
                 .build();
     }
 
-    private static ExtImpLiftoff createExtImpLiftoff(String buyeruid, ExtImpLiftoff extImpLiftoff) {
-        return ExtImpLiftoff.of(buyeruid, extImpLiftoff.getAppStoreId(), extImpLiftoff.getPlacementReferenceId());
-    }
-
-    private static BidRequest prepareBidRequest(BidRequest bidRequest, Imp imp, ExtImpLiftoff extImpLiftoff) {
+    private static BidRequest modifyBidRequest(BidRequest bidRequest, Imp imp, String appStoreId) {
         final App app = ObjectUtil.getIfNotNull(bidRequest, BidRequest::getApp);
         return bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
-                .app(app != null ? app.toBuilder().id(extImpLiftoff.getAppStoreId()).build() : null)
+                .app(app != null ? app.toBuilder().id(appStoreId).build() : null)
                 .build();
     }
 
-    private HttpRequest<BidRequest> createRequest(BidRequest request) {
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(endpointUrl)
