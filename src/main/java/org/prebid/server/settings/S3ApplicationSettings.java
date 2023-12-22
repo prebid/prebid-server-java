@@ -127,6 +127,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
     private List<String> getMissingStoredDataIds(Map<String, String> fileContents, Set<String> responseIds) {
         final List<String> missingStoredDataIds = new ArrayList<>(responseIds);
         missingStoredDataIds.removeAll(fileContents.keySet());
+
         return missingStoredDataIds;
     }
 
@@ -136,6 +137,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
             Set<String> requestIds,
             Set<String> impIds,
             Timeout timeout) {
+
         return getStoredData(accountId, requestIds, Collections.emptySet(), timeout);
     }
 
@@ -145,6 +147,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
             Set<String> requestIds,
             Set<String> impIds,
             Timeout timeout) {
+
         return getStoredData(accountId, requestIds, impIds, timeout);
     }
 
@@ -188,7 +191,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
      * @param impressionId from the bid request
      * @return impression id with only a single slash at the beginning
      */
-    private String withInitialSlash(String impressionId) {
+    private static String withInitialSlash(String impressionId) {
         if (impressionId.startsWith("/")) {
             return impressionId;
         }
