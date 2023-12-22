@@ -8,5 +8,5 @@ import groovy.transform.ToString
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
 class RichmediaFilter {
 
-    boolean filterMraid
+    Boolean filterMraid
 }
