@@ -10,6 +10,6 @@ import groovy.transform.ToString
 @EqualsAndHashCode
 class AppliedTo {
 
+    String bidder
     List<String> impIds
-    List<String> bidders
 }
