@@ -98,9 +98,10 @@ public class S3ApplicationSettings implements ApplicationSettings {
             Set<String> impIds,
             Timeout timeout) {
 
-        return getFileContents(storedRequestsDirectory, requestIds).compose(storedIdToRequest ->
-                getFileContents(storedImpressionsDirectory, impIds)
-                        .map(storedIdToImp -> buildStoredDataResult(storedIdToRequest, storedIdToImp, requestIds, impIds)));
+        return getFileContents(storedRequestsDirectory, requestIds)
+                .compose(storedIdToRequest -> getFileContents(storedImpressionsDirectory, impIds)
+                     .map(storedIdToImp -> buildStoredDataResult(storedIdToRequest, storedIdToImp, requestIds, impIds))
+                );
     }
 
     private StoredDataResult buildStoredDataResult(
