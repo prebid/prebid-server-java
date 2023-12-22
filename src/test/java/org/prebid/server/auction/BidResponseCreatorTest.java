@@ -3836,6 +3836,43 @@ public class BidResponseCreatorTest extends VertxTest {
                         + ".ExtGranularityRange");
     }
 
+    @Test
+    public void shouldPopulateTargetingKeywordsWithDefaultPrefixAndRelatedWarning() {
+        // given
+        final Bid bid = Bid.builder().id("bidId1").price(BigDecimal.valueOf(5.67)).impid(IMP_ID).build();
+        final List<BidderResponse> bidderResponses = singletonList(BidderResponse.of("bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")), 100));
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(
+                        identity(),
+                        extBuilder -> extBuilder.targeting(
+                                givenTargeting(20, "definitely_long_and_not_suitable_prefix")),
+                        givenImp()),
+                contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
+
+        // when
+        final BidResponse bidResponse = bidResponseCreator.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
+
+        // then
+        assertThat(bidResponse.getSeatbid())
+                .flatExtracting(SeatBid::getBid).hasSize(1)
+                .extracting(extractedBid -> toExtBidPrebid(extractedBid.getExt()).getTargeting())
+                .flatExtracting(Map::entrySet)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsOnly(
+                        tuple("hb_pb", "5.00"),
+                        tuple("hb_pb_bidder1", "5.00"),
+                        tuple("hb_bidder", "bidder1"),
+                        tuple("hb_bidder_bidder1", "bidder1"));
+
+        final String expectedErrorMsg = "Key prefix value is dropped to default. "
+                + "Decrease custom prefix length or increase truncateattrchars by 30";
+        assertThat(bidResponse.getExt().getWarnings()).containsOnly(entry("targeting", Arrays.asList(
+                                ExtBidderError.of(BidderError.Type.bad_input.getCode(), expectedErrorMsg))));
+
+        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+    }
+
     private AuctionContext givenAuctionContext(BidRequest bidRequest,
                                                UnaryOperator<AuctionContext.AuctionContextBuilder> contextCustomizer) {
 
@@ -3977,6 +4014,19 @@ public class BidResponseCreatorTest extends VertxTest {
                 .includewinners(true)
                 .includebidderkeys(true)
                 .includeformat(false)
+                .build();
+    }
+
+    private static ExtRequestTargeting givenTargeting(int truncateAttrChars, String prefix) {
+        return ExtRequestTargeting.builder()
+                .pricegranularity(mapper.valueToTree(
+                        ExtPriceGranularity.of(2, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(5),
+                                BigDecimal.valueOf(0.5))))))
+                .includewinners(true)
+                .includebidderkeys(true)
+                .includeformat(false)
+                .truncateattrchars(truncateAttrChars)
+                .prefix(prefix)
                 .build();
     }
 

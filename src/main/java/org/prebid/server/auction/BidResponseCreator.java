@@ -516,6 +516,7 @@ public class BidResponseCreator {
                     CacheServiceResult.empty(),
                     VideoStoredDataResult.empty(),
                     eventsContext.getAuctionTimestamp(),
+                    null,
                     null);
             final CachedDebugLog cachedDebugLog = auctionContext.getCachedDebugLog();
             if (isCachedDebugEnabled(cachedDebugLog)) {
@@ -760,7 +761,8 @@ public class BidResponseCreator {
                                             CacheServiceResult cacheResult,
                                             VideoStoredDataResult videoStoredDataResult,
                                             long auctionTimestamp,
-                                            Map<String, List<ExtBidderError>> bidErrors) {
+                                            Map<String, List<ExtBidderError>> bidErrors,
+                                            Map<String, List<ExtBidderError>> bidWarnings) {
 
         final DebugContext debugContext = auctionContext.getDebugContext();
         final boolean debugEnabled = debugContext.isDebugEnabled();
@@ -769,7 +771,8 @@ public class BidResponseCreator {
                 bidderResponseInfos, auctionContext, cacheResult, debugEnabled);
         final Map<String, List<ExtBidderError>> errors = toExtBidderErrors(
                 bidderResponseInfos, auctionContext, cacheResult, videoStoredDataResult, bidErrors);
-        final Map<String, List<ExtBidderError>> warnings = toExtBidderWarnings(bidderResponseInfos, auctionContext);
+        final Map<String, List<ExtBidderError>> warnings = toExtBidderWarnings(
+                bidderResponseInfos, auctionContext, bidWarnings);
 
         final Map<String, Integer> responseTimeMillis = toResponseTimes(bidderResponseInfos, cacheResult);
 
@@ -1151,12 +1154,15 @@ public class BidResponseCreator {
         }
     }
 
-    private static Map<String, List<ExtBidderError>> toExtBidderWarnings(List<BidderResponseInfo> bidderResponses,
-                                                                         AuctionContext auctionContext) {
+    private static Map<String, List<ExtBidderError>> toExtBidderWarnings(
+            List<BidderResponseInfo> bidderResponses,
+            AuctionContext auctionContext,
+            Map<String, List<ExtBidderError>> bidWarnings) {
         final Map<String, List<ExtBidderError>> warnings = new HashMap<>();
 
         warnings.putAll(extractContextWarnings(auctionContext));
         warnings.putAll(extractBidderWarnings(bidderResponses));
+        warnings.putAll(MapUtils.isEmpty(bidWarnings) ? Collections.emptyMap() : bidWarnings);
 
         return warnings.isEmpty() ? null : warnings;
     }
@@ -1203,6 +1209,7 @@ public class BidResponseCreator {
         final Account account = auctionContext.getAccount();
 
         final Map<String, List<ExtBidderError>> bidErrors = new HashMap<>();
+        final Map<String, List<ExtBidderError>> bidWarnings = new HashMap<>();
         final List<SeatBid> seatBids = bidderResponseInfos.stream()
                 .map(BidderResponseInfo::getSeatBid)
                 .map(BidderSeatBidInfo::getBidsInfos)
@@ -1214,7 +1221,8 @@ public class BidResponseCreator {
                         requestCacheInfo,
                         cacheResult.getCacheBids(),
                         account,
-                        bidErrors))
+                        bidErrors,
+                        bidWarnings))
                 .toList();
 
         final Long auctionTimestamp = eventsContext.getAuctionTimestamp();
@@ -1224,7 +1232,8 @@ public class BidResponseCreator {
                 cacheResult,
                 videoStoredDataResult,
                 auctionTimestamp,
-                bidErrors);
+                bidErrors,
+                bidWarnings);
 
         final CachedDebugLog cachedDebugLog = auctionContext.getCachedDebugLog();
         if (isCachedDebugEnabled(cachedDebugLog)) {
@@ -1291,7 +1300,8 @@ public class BidResponseCreator {
                               BidRequestCacheInfo requestCacheInfo,
                               Map<Bid, CacheInfo> bidToCacheInfo,
                               Account account,
-                              Map<String, List<ExtBidderError>> bidErrors) {
+                              Map<String, List<ExtBidderError>> bidErrors,
+                              Map<String, List<ExtBidderError>> bidWarnings) {
 
         final String bidder = bidInfos.stream()
                 .map(BidInfo::getBidder)
@@ -1310,7 +1320,8 @@ public class BidResponseCreator {
                         bidInfo,
                         targeting,
                         bidRequest,
-                        account))
+                        account,
+                        bidWarnings))
                 .filter(Objects::nonNull)
                 .toList();
 
@@ -1361,7 +1372,11 @@ public class BidResponseCreator {
     /**
      * Returns an OpenRTB {@link Bid} with "prebid" and "bidder" extension fields populated.
      */
-    private Bid toBid(BidInfo bidInfo, ExtRequestTargeting targeting, BidRequest bidRequest, Account account) {
+    private Bid toBid(BidInfo bidInfo,
+                      ExtRequestTargeting targeting,
+                      BidRequest bidRequest,
+                      Account account,
+                      Map<String, List<ExtBidderError>> bidWarnings) {
         final TargetingInfo targetingInfo = bidInfo.getTargetingInfo();
         final BidType bidType = bidInfo.getBidType();
         final Bid bid = bidInfo.getBid();
@@ -1376,7 +1391,7 @@ public class BidResponseCreator {
         final String bidderCode = targetingInfo.getBidderCode();
         if (shouldIncludeTargetingInResponse(targeting, bidInfo.getTargetingInfo())) {
             final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(
-                    bidType, targeting, isApp, bidRequest, account);
+                    bidType, targeting, isApp, bidRequest, account, bidWarnings);
 
             final boolean isWinningBid = targetingInfo.isWinningBid();
             final String categoryDuration = bidInfo.getCategory();
@@ -1603,12 +1618,14 @@ public class BidResponseCreator {
                                                             ExtRequestTargeting targeting,
                                                             boolean isApp,
                                                             BidRequest bidRequest,
-                                                            Account account) {
+                                                            Account account,
+                                                            Map<String, List<ExtBidderError>> bidWarnings) {
 
         final Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType =
-                keywordsCreatorByBidType(targeting, isApp, bidRequest, account);
+                keywordsCreatorByBidType(targeting, isApp, bidRequest, account, bidWarnings);
 
-        return keywordsCreatorByBidType.getOrDefault(bidType, keywordsCreator(targeting, isApp, bidRequest, account));
+        return keywordsCreatorByBidType.getOrDefault(
+                bidType, keywordsCreator(targeting, isApp, bidRequest, account, bidWarnings));
     }
 
     /**
@@ -1618,22 +1635,25 @@ public class BidResponseCreator {
     private TargetingKeywordsCreator keywordsCreator(ExtRequestTargeting targeting,
                                                      boolean isApp,
                                                      BidRequest bidRequest,
-                                                     Account account) {
+                                                     Account account,
+                                                     Map<String, List<ExtBidderError>> bidWarnings) {
 
         final JsonNode priceGranularityNode = targeting.getPricegranularity();
         return priceGranularityNode == null || priceGranularityNode.isNull()
                 ? null
-                : createKeywordsCreator(targeting, isApp, priceGranularityNode, bidRequest, account);
+                : createKeywordsCreator(targeting, isApp, priceGranularityNode, bidRequest, account, bidWarnings);
     }
 
     /**
      * Returns a map of {@link BidType} to correspondent {@link TargetingKeywordsCreator}
      * extracted from {@link ExtRequestTargeting} if it exists.
      */
-    private Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType(ExtRequestTargeting targeting,
-                                                                            boolean isApp,
-                                                                            BidRequest bidRequest,
-                                                                            Account account) {
+    private Map<BidType, TargetingKeywordsCreator> keywordsCreatorByBidType(
+            ExtRequestTargeting targeting,
+            boolean isApp,
+            BidRequest bidRequest,
+            Account account,
+            Map<String, List<ExtBidderError>> bidWarnings) {
 
         final ExtMediaTypePriceGranularity mediaTypePriceGranularity = targeting.getMediatypepricegranularity();
         if (mediaTypePriceGranularity == null) {
@@ -1645,19 +1665,23 @@ public class BidResponseCreator {
         final ObjectNode banner = mediaTypePriceGranularity.getBanner();
         final boolean isBannerNull = banner == null || banner.isNull();
         if (!isBannerNull) {
-            result.put(BidType.banner, createKeywordsCreator(targeting, isApp, banner, bidRequest, account));
+            result.put(
+                    BidType.banner, createKeywordsCreator(targeting, isApp, banner, bidRequest, account, bidWarnings));
         }
 
         final ObjectNode video = mediaTypePriceGranularity.getVideo();
         final boolean isVideoNull = video == null || video.isNull();
         if (!isVideoNull) {
-            result.put(BidType.video, createKeywordsCreator(targeting, isApp, video, bidRequest, account));
+            result.put(
+                    BidType.video, createKeywordsCreator(targeting, isApp, video, bidRequest, account, bidWarnings));
         }
 
         final ObjectNode xNative = mediaTypePriceGranularity.getXNative();
         final boolean isNativeNull = xNative == null || xNative.isNull();
         if (!isNativeNull) {
-            result.put(BidType.xNative, createKeywordsCreator(targeting, isApp, xNative, bidRequest, account));
+            result.put(
+                    BidType.xNative, createKeywordsCreator(targeting, isApp, xNative, bidRequest, account, bidWarnings)
+            );
         }
 
         return result;
@@ -1667,9 +1691,11 @@ public class BidResponseCreator {
                                                            boolean isApp,
                                                            JsonNode priceGranularity,
                                                            BidRequest bidRequest,
-                                                           Account account) {
+                                                           Account account,
+                                                           Map<String, List<ExtBidderError>> bidWarnings) {
         final int resolvedTruncateAttrChars = resolveTruncateAttrChars(targeting, account);
-        final String resolveKeyPrefix = resolveKeyPrefix(bidRequest, account, resolvedTruncateAttrChars);
+        final String resolveKeyPrefix = resolveAndValidateKeyPrefix(
+                bidRequest, account, resolvedTruncateAttrChars, bidWarnings);
         return TargetingKeywordsCreator.create(
                 parsePriceGranularity(priceGranularity),
                 BooleanUtils.toBoolean(targeting.getIncludewinners()),
@@ -1704,7 +1730,10 @@ public class BidResponseCreator {
      * when correspond value is missing in account auction configuration or bid request ext,
      * or may compose keys longer than 'settings.targeting.truncate-attr-chars' value.
      */
-    private static String resolveKeyPrefix(BidRequest bidRequest, Account account, int truncateAttrChars) {
+    private static String resolveAndValidateKeyPrefix(BidRequest bidRequest,
+                                                      Account account,
+                                                      int truncateAttrChars,
+                                                      Map<String, List<ExtBidderError>> bidWarnings) {
         final String prefix = Optional.of(bidRequest)
                 .map(BidRequest::getExt)
                 .map(ExtRequest::getPrebid)
@@ -1715,7 +1744,18 @@ public class BidResponseCreator {
                         .map(AccountAuctionConfig::getTargeting)
                         .map(AccountTargetingConfig::getPrefix)
                         .orElse(null));
-        return StringUtils.isNotEmpty(prefix) && prefix.length() + 11 < truncateAttrChars ? prefix : "hb";
+
+        final int maxKeyLength = 11;
+        final boolean customPrefixIsNotSuitable =
+                StringUtils.isNotEmpty(prefix) && prefix.length() + maxKeyLength > truncateAttrChars;
+        if (customPrefixIsNotSuitable) {
+            final String errorMessage = "Key prefix value is dropped to default. "
+                    + "Decrease custom prefix length or increase truncateattrchars by "
+                    + (prefix.length() + maxKeyLength - truncateAttrChars);
+            bidWarnings.computeIfAbsent("targeting", ignored -> new ArrayList<>())
+                    .add(ExtBidderError.of(BidderError.Type.bad_input.getCode(), errorMessage));
+        }
+        return StringUtils.isEmpty(prefix) || customPrefixIsNotSuitable ? "hb" : prefix;
     }
 
     private static Integer truncateAttrCharsOrNull(Integer value) {
