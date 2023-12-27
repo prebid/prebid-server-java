@@ -8,6 +8,17 @@ adapters:
       evtech:
         enabled: false
         endpoint: http://ads-pbs.direct.e-volution.ai/openrtb/{{PublisherID}}?host={{Host}}
+        usersync:
+          enabled: true
+          cookie-family-name: evtech
+          iframe:
+            url: https://tracker.direct.e-volution.ai/sync.html?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            support-cors: false
+            uid-macro: '{PLL_USER_ID}'
+          redirect:
+            url: https://tracker.direct.e-volution.ai/sync?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+            support-cors: false
+            uid-macro: '{PLL_USER_ID}'
       adsyield:
         enabled: false
         endpoint: http://ads-pbs.open-adsyield.com/openrtb/{{PublisherID}}?host={{Host}}
