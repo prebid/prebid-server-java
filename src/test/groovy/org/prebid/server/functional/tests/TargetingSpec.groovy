@@ -17,7 +17,6 @@ import org.prebid.server.functional.model.request.auction.StoredBidResponse
 import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 
@@ -25,6 +24,7 @@ import java.math.RoundingMode
 
 import java.nio.charset.StandardCharsets
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.response.auction.ErrorType.TARGETING
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class TargetingSpec extends BaseSpec {
@@ -32,6 +32,8 @@ class TargetingSpec extends BaseSpec {
     private static final Integer TARGETING_PARAM_NAME_MAX_LENGTH = 20
     private static final Integer MAX_AMP_TARGETING_TRUNCATION_LENGTH = 11
     private static final String DEFAULT_TARGETING_PREFIX = "hb_"
+    private static final Integer TARGETING_PREFIX_LENGTH = 11
+    private static final Integer MAX_TRUNCATE_ATTR_CHARS = 255
 
     def "PBS should include targeting bidder specific keys when alwaysIncludeDeals is true and deal bid wins"() {
         given: "Bid request with alwaysIncludeDeals = true"
@@ -852,7 +854,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS amp should use long account targeting prefix when settings.targeting.truncate-attr-chars override"() {
         given:"PBS config with setting.targeting"
-        def prefixMaxChars = PBSUtils.getRandomNumber(35,50)
+        def prefixMaxChars = PBSUtils.getRandomNumber(35, MAX_TRUNCATE_ATTR_CHARS)
         def prebidServerService = pbsServiceFactory.getService(
                 ["settings.targeting.truncate-attr-chars":  prefixMaxChars as String])
 
@@ -867,7 +869,7 @@ class TargetingSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         and: "Account in the DB"
-        def prefix = PBSUtils.getRandomString(prefixMaxChars - 12)
+        def prefix = PBSUtils.getRandomString(prefixMaxChars - TARGETING_PREFIX_LENGTH)
         def config = new AccountAuctionConfig(targeting: new Targeting(prefix: prefix))
         def account = new Account(uuid: ampRequest.account, config: new AccountConfig(auction: config) )
         accountDao.save(account)
@@ -883,7 +885,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS amp should use long request targeting prefix when settings.targeting.truncate-attr-chars override"() {
         given:"PBS config with setting.targeting"
-        def prefixMaxChars = PBSUtils.getRandomNumber(35,50)
+        def prefixMaxChars = PBSUtils.getRandomNumber(35, MAX_TRUNCATE_ATTR_CHARS)
         def prebidServerService = pbsServiceFactory.getService(
                 ["settings.targeting.truncate-attr-chars":  prefixMaxChars as String])
 
@@ -891,7 +893,7 @@ class TargetingSpec extends BaseSpec {
         def ampRequest = AmpRequest.defaultAmpRequest
 
         and: "Bid request with prefix"
-        def prefix = PBSUtils.getRandomString(prefixMaxChars - 12)
+        def prefix = PBSUtils.getRandomString(prefixMaxChars - TARGETING_PREFIX_LENGTH)
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.targeting = new Targeting(prefix: prefix)
         }
@@ -911,12 +913,12 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS auction should use long request targeting prefix when settings.targeting.truncate-attr-chars override"() {
         given:"PBS config with setting.targeting"
-        def prefixMaxChars = PBSUtils.getRandomNumber(35,50)
+        def prefixMaxChars = PBSUtils.getRandomNumber(35, MAX_TRUNCATE_ATTR_CHARS)
         def prebidServerService = pbsServiceFactory.getService(
                 ["settings.targeting.truncate-attr-chars":  prefixMaxChars as String])
 
         and:"Bid request with prefix"
-        def prefix = PBSUtils.getRandomString(prefixMaxChars - 12)
+        def prefix = PBSUtils.getRandomString(prefixMaxChars - TARGETING_PREFIX_LENGTH)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.targeting = new Targeting(prefix: prefix)
         }
@@ -932,7 +934,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS auction should use long account targeting prefix when settings.targeting.truncate-attr-chars override"() {
         given:"PBS config with setting.targeting"
-        def prefixMaxChars = PBSUtils.getRandomNumber(35,50)
+        def prefixMaxChars = PBSUtils.getRandomNumber(35, MAX_TRUNCATE_ATTR_CHARS)
         def prebidServerService = pbsServiceFactory.getService(
                 ["settings.targeting.truncate-attr-chars":  prefixMaxChars as String])
 
@@ -942,7 +944,7 @@ class TargetingSpec extends BaseSpec {
         }
 
         and: "Account in the DB"
-        def prefix = PBSUtils.getRandomString(prefixMaxChars - 12)
+        def prefix = PBSUtils.getRandomString(prefixMaxChars - TARGETING_PREFIX_LENGTH)
         def config = new AccountAuctionConfig(targeting: new Targeting(prefix: prefix))
         def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: config) )
         accountDao.save(account)
@@ -958,9 +960,9 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS amp should ignore and add a warning to ext.warnings when value of the account prefix is longer then settings.targeting.truncate-attr-chars"() {
         given:"PBS config with setting.targeting"
-        def stringSize = PBSUtils.getRandomNumber(1,10)
+        def targetingChars = PBSUtils.getRandomNumber(1,10)
         def prebidServerService = pbsServiceFactory.getService(
-                ["settings.targeting.truncate-attr-chars":  stringSize as String])
+                ["settings.targeting.truncate-attr-chars":  targetingChars as String])
 
         and: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
@@ -973,7 +975,7 @@ class TargetingSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         and: "Account in the DB"
-        def config = new AccountAuctionConfig(targeting: new Targeting(prefix: PBSUtils.getRandomString(stringSize + 2)))
+        def config = new AccountAuctionConfig(targeting: new Targeting(prefix: PBSUtils.getRandomString(targetingChars + 1)))
         def account = new Account(uuid: ampRequest.account, config: new AccountConfig(auction: config) )
         accountDao.save(account)
 
@@ -981,21 +983,22 @@ class TargetingSpec extends BaseSpec {
         def ampResponse = prebidServerService.sendAmpRequest(ampRequest)
 
         then: "Amp response should contain error"
-        assert ampResponse.ext?.warnings[ErrorType.PREBID]*.message == ["Some error message"]
+        assert ampResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
+                                    "Decrease custom prefix length or increase truncateattrchars by 12"]
     }
 
     def "PBS amp should ignore and add a warning to ext.warnings when value of the request prefix is longer then settings.targeting.truncate-attr-chars"() {
         given:"PBS config with setting.targeting"
-        def stringSize = PBSUtils.getRandomNumber(1,10)
+        def targetingChars = PBSUtils.getRandomNumber(1,10)
         def prebidServerService = pbsServiceFactory.getService(
-                ["settings.targeting.truncate-attr-chars":  stringSize as String])
+                ["settings.targeting.truncate-attr-chars":  targetingChars as String])
 
         and: "Default AmpRequest"
         def ampRequest = AmpRequest.defaultAmpRequest
 
         and: "Bid request with prefix"
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.targeting = new Targeting(prefix: PBSUtils.getRandomString(stringSize + 2))
+            ext.prebid.targeting = new Targeting(prefix: PBSUtils.getRandomString(targetingChars + 1))
         }
 
         and: "Create and save stored request into DB"
@@ -1006,7 +1009,8 @@ class TargetingSpec extends BaseSpec {
         def ampResponse = prebidServerService.sendAmpRequest(ampRequest)
 
         then: "Amp response should contain error"
-        assert ampResponse.ext?.warnings[ErrorType.PREBID]*.message == ["Some error message"]
+        assert ampResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
+                                    "Decrease custom prefix length or increase truncateattrchars by 12"]
     }
 
     def "PBS auction should ignore and add a warning to ext.warnings when value of the request prefix is longer then settings.targeting.truncate-attr-chars"() {
@@ -1016,15 +1020,17 @@ class TargetingSpec extends BaseSpec {
                 ["settings.targeting.truncate-attr-chars":  stringSize as String])
 
         and:"Bid request with prefix"
+        def prefixSize = stringSize + 1
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.targeting = new Targeting(prefix: PBSUtils.getRandomString(stringSize + 2))
+            ext.prebid.targeting = new Targeting(prefix: PBSUtils.getRandomString(prefixSize))
         }
 
         when: "PBS processes auction request"
         def bidResponse = prebidServerService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain error"
-        assert bidResponse.ext?.warnings[ErrorType.PREBID]*.message == ["Some error message"]
+        assert bidResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
+                                    "Decrease custom prefix length or increase truncateattrchars by 12"]
     }
 
     def "PBS auction should ignore and add a warning to ext.warnings when value of the account prefix is longer then settings.targeting.truncate-attr-chars"() {
@@ -1034,10 +1040,12 @@ class TargetingSpec extends BaseSpec {
                 ["settings.targeting.truncate-attr-chars":  stringSize as String])
 
         and: "Bid request"
-        def bidRequest = BidRequest.defaultBidRequest
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.targeting = new Targeting()
+        }
 
         and: "Account in the DB"
-        def config = new AccountAuctionConfig(targeting: new Targeting(prefix: PBSUtils.getRandomString(stringSize + 2)))
+        def config = new AccountAuctionConfig(targeting: new Targeting(prefix: PBSUtils.getRandomString(stringSize + 1)))
         def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: config) )
         accountDao.save(account)
 
@@ -1045,7 +1053,8 @@ class TargetingSpec extends BaseSpec {
         def bidResponse = prebidServerService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should contain error"
-        assert bidResponse.ext?.warnings[ErrorType.PREBID]*.message == ["Some error message"]
+        assert bidResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
+                                    "Decrease custom prefix length or increase truncateattrchars by 12"]
     }
 
     private PrebidServerService getEnabledWinBidsPbsService() {
