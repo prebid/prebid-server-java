@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.frvradn.FrvrAdnBidder;
+import org.prebid.server.bidder.tpmn.TpmnBidder;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
@@ -17,27 +17,27 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/frvradn.yaml", factory = YamlPropertySourceFactory.class)
-public class FrvrAdnBidderConfiguration {
+@PropertySource(value = "classpath:/bidder-config/tpmn.yaml", factory = YamlPropertySourceFactory.class)
+public class TpmnAdnBidderConfiguration {
 
-    private static final String BIDDER_NAME = "frvradn";
+    private static final String BIDDER_NAME = "tpmn";
 
-    @Bean("frvradnConfigurationProperties")
-    @ConfigurationProperties("adapters.frvradn")
+    @Bean("tpmnConfigurationProperties")
+    @ConfigurationProperties("adapters.tpmn")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps frvradnBidderDeps(BidderConfigurationProperties frvradnConfigurationProperties,
+    BidderDeps tpmnBidderDeps(BidderConfigurationProperties tpmnConfigurationProperties,
                                  CurrencyConversionService currencyConversionService,
                                  @NotBlank @Value("${external-url}") String externalUrl,
                                  JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(frvradnConfigurationProperties)
+                .withConfig(tpmnConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new FrvrAdnBidder(config.getEndpoint(), currencyConversionService, mapper))
+                .bidderCreator(config -> new TpmnBidder(config.getEndpoint(), currencyConversionService, mapper))
                 .assemble();
     }
 }
