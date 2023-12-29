@@ -15,7 +15,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.frvradn.model.ExtImpFrvrAdn;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -260,7 +259,7 @@ public class TpmnBidderTest extends VertxTest {
 
     private ObjectNode givenImpExt(String publisherId, String adUnitId) {
         return mapper.valueToTree(
-                ExtPrebid.of(null, ExtImpFrvrAdn.of(publisherId, adUnitId)));
+                ExtPrebid.of(null, mapper.createObjectNode()));
     }
 
     private static BidResponse givenBidResponse(Bid... bids) {
