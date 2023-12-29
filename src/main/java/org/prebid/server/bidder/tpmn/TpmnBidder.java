@@ -48,18 +48,20 @@ public class TpmnBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
-        final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
+        final List<Imp> requestImps = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
             try {
-                final Imp modifiedImp = modifyImp(imp, bidRequest);
-                requests.add(makeHttpRequest(bidRequest, modifiedImp));
+                requestImps.add(modifyImp(imp, bidRequest));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
+        if (requestImps.isEmpty()) {
+            return Result.withErrors(errors);
+        }
 
-        return Result.of(requests, errors);
+        return Result.of(Collections.singletonList(makeHttpRequest(bidRequest, requestImps)), errors);
     }
 
     private Imp modifyImp(Imp imp, BidRequest bidRequest) {
@@ -87,10 +89,11 @@ public class TpmnBidder implements Bidder<BidRequest> {
         return Price.of(DEFAULT_BID_CURRENCY, convertedPrice);
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, Imp imp) {
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, List<Imp> imps) {
         final BidRequest modifiedBidRequest = bidRequest.toBuilder()
-                .imp(Collections.singletonList(imp))
+                .imp(imps)
                 .build();
+
         return BidderUtil.defaultRequest(modifiedBidRequest, endpointUrl, mapper);
     }
 

@@ -102,7 +102,7 @@ public class TpmnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateRequestPerImp() {
+    public void makeHttpRequestsShouldCreateOneRequestWithAllValidImps() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.id("123"),
@@ -113,7 +113,7 @@ public class TpmnBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .hasSize(2);
