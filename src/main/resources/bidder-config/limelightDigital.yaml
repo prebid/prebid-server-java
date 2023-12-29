@@ -28,6 +28,9 @@ adapters:
       appstock:
         enabled: false
         endpoint: http://ads-pbs.pre.vr-tb.com/openrtb/{{PublisherID}}?host={{Host}}
+      xtrmqb:
+        enabled: false
+        endpoint: http://ads-pbs.ortb.tech/openrtb/{{PublisherID}}?host={{Host}}
     meta-info:
       maintainer-email: engineering@project-limelight.com
       app-media-types:
