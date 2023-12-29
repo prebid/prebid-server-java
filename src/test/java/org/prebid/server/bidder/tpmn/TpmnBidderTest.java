@@ -15,7 +15,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.frvradn.FrvrAdnBidder;
 import org.prebid.server.bidder.frvradn.model.ExtImpFrvrAdn;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -62,7 +61,7 @@ public class TpmnBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new FrvrAdnBidder(
+        assertThatIllegalArgumentException().isThrownBy(() -> new TpmnBidder(
                 "invalid_url", currencyConversionService, jacksonMapper));
     }
 
