@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.tpmn;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -8,7 +7,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.frvradn.model.ExtImpFrvrAdn;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -19,7 +17,6 @@ import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -33,9 +30,6 @@ import java.util.Objects;
 
 public class TpmnBidder implements Bidder<BidRequest> {
 
-    private static final TypeReference<ExtPrebid<?, ExtImpFrvrAdn>> FRVRADN_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
     private static final String DEFAULT_BID_CURRENCY = "USD";
 
     private final String endpointUrl;
@@ -66,14 +60,6 @@ public class TpmnBidder implements Bidder<BidRequest> {
         }
 
         return Result.of(requests, errors);
-    }
-
-    private ExtImpFrvrAdn parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), FRVRADN_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
     }
 
     private Imp modifyImp(Imp imp, BidRequest bidRequest) {
