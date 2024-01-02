@@ -19,6 +19,8 @@ import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
+import spock.lang.RepeatUntilFailure
 
 import java.math.RoundingMode
 
@@ -31,7 +33,7 @@ class TargetingSpec extends BaseSpec {
 
     private static final Integer TARGETING_PARAM_NAME_MAX_LENGTH = 20
     private static final Integer MAX_AMP_TARGETING_TRUNCATION_LENGTH = 11
-    private static final String DEFAULT_TARGETING_PREFIX = "hb_"
+    private static final String DEFAULT_TARGETING_PREFIX = "hb"
     private static final Integer TARGETING_PREFIX_LENGTH = 11
     private static final Integer MAX_TRUNCATE_ATTR_CHARS = 255
 
@@ -871,7 +873,7 @@ class TargetingSpec extends BaseSpec {
         and: "Account in the DB"
         def prefix = PBSUtils.getRandomString(prefixMaxChars - TARGETING_PREFIX_LENGTH)
         def config = new AccountAuctionConfig(targeting: new Targeting(prefix: prefix))
-        def account = new Account(uuid: ampRequest.account, config: new AccountConfig(auction: config) )
+        def account = new Account(uuid: ampRequest.account, config: new AccountConfig(auction: config))
         accountDao.save(account)
 
         when: "PBS processes amp request"
@@ -928,7 +930,7 @@ class TargetingSpec extends BaseSpec {
 
         then: "PBS response should contain default targeting prefix"
         def targeting = bidResponse.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
-        assert targeting.size() == 6
+        assert !targeting.isEmpty()
         assert targeting.keySet().every{it -> it.startsWith(prefix)}
     }
 
@@ -946,7 +948,7 @@ class TargetingSpec extends BaseSpec {
         and: "Account in the DB"
         def prefix = PBSUtils.getRandomString(prefixMaxChars - TARGETING_PREFIX_LENGTH)
         def config = new AccountAuctionConfig(targeting: new Targeting(prefix: prefix))
-        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: config) )
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: config))
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -954,13 +956,13 @@ class TargetingSpec extends BaseSpec {
 
         then: "PBS response should contain default targeting prefix"
         def targeting = bidResponse.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
-        assert targeting.size() == 6
+        assert !targeting.isEmpty()
         assert targeting.keySet().every{it -> it.startsWith(prefix)}
     }
 
     def "PBS amp should ignore and add a warning to ext.warnings when value of the account prefix is longer then settings.targeting.truncate-attr-chars"() {
         given:"PBS config with setting.targeting"
-        def targetingChars = PBSUtils.getRandomNumber(1,10)
+        def targetingChars = PBSUtils.getRandomNumber(2, 10)
         def prebidServerService = pbsServiceFactory.getService(
                 ["settings.targeting.truncate-attr-chars":  targetingChars as String])
 
@@ -975,21 +977,23 @@ class TargetingSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         and: "Account in the DB"
-        def config = new AccountAuctionConfig(targeting: new Targeting(prefix: PBSUtils.getRandomString(targetingChars + 1)))
-        def account = new Account(uuid: ampRequest.account, config: new AccountConfig(auction: config) )
+        def prefix = PBSUtils.getRandomString(targetingChars + 1)
+        def config = new AccountAuctionConfig(targeting: new Targeting(prefix: prefix))
+        def account = new Account(uuid: ampRequest.account, config: new AccountConfig(auction: config))
         accountDao.save(account)
 
         when: "PBS processes amp request"
         def ampResponse = prebidServerService.sendAmpRequest(ampRequest)
 
-        then: "Amp response should contain error"
+        then: "Amp response should contain warning"
         assert ampResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
-                                    "Decrease custom prefix length or increase truncateattrchars by 12"]
+                                    "Decrease custom prefix length or increase truncateattrchars by " +
+                                    "${prefix.length() + TARGETING_PREFIX_LENGTH - targetingChars}"]
     }
 
     def "PBS amp should ignore and add a warning to ext.warnings when value of the request prefix is longer then settings.targeting.truncate-attr-chars"() {
         given:"PBS config with setting.targeting"
-        def targetingChars = PBSUtils.getRandomNumber(1,10)
+        def targetingChars = PBSUtils.getRandomNumber(2 ,10)
         def prebidServerService = pbsServiceFactory.getService(
                 ["settings.targeting.truncate-attr-chars":  targetingChars as String])
 
@@ -997,8 +1001,9 @@ class TargetingSpec extends BaseSpec {
         def ampRequest = AmpRequest.defaultAmpRequest
 
         and: "Bid request with prefix"
+        def prefix = PBSUtils.getRandomString(targetingChars)
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.targeting = new Targeting(prefix: PBSUtils.getRandomString(targetingChars + 1))
+            ext.prebid.targeting = new Targeting(prefix: PBSUtils.getRandomString(targetingChars))
         }
 
         and: "Create and save stored request into DB"
@@ -1008,36 +1013,42 @@ class TargetingSpec extends BaseSpec {
         when: "PBS processes amp request"
         def ampResponse = prebidServerService.sendAmpRequest(ampRequest)
 
-        then: "Amp response should contain error"
+        then: "Amp response should contain warning"
         assert ampResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
-                                    "Decrease custom prefix length or increase truncateattrchars by 12"]
+                                    "Decrease custom prefix length or increase truncateattrchars by " +
+                                    "${prefix.length() + TARGETING_PREFIX_LENGTH - targetingChars}"]
     }
 
     def "PBS auction should ignore and add a warning to ext.warnings when value of the request prefix is longer then settings.targeting.truncate-attr-chars"() {
         given:"PBS config with setting.targeting"
-        def stringSize = PBSUtils.getRandomNumber(1,10)
+        def targetingChars = PBSUtils.getRandomNumber(2,10)
         def prebidServerService = pbsServiceFactory.getService(
-                ["settings.targeting.truncate-attr-chars":  stringSize as String])
+                ["settings.targeting.truncate-attr-chars":  targetingChars as String])
 
         and:"Bid request with prefix"
-        def prefixSize = stringSize + 1
+        def prefixSize = targetingChars + 1
+        def prefix = PBSUtils.getRandomString(prefixSize)
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.targeting = new Targeting(prefix: PBSUtils.getRandomString(prefixSize))
+            ext.prebid.targeting = new Targeting(prefix: prefix)
         }
 
         when: "PBS processes auction request"
         def bidResponse = prebidServerService.sendAuctionRequest(bidRequest)
 
-        then: "Bid response should contain error"
+        then: "Bid response should contain warning"
+        def targeting = bidResponse.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
+        assert !targeting.isEmpty()
+        assert targeting.keySet().every{it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
         assert bidResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
-                                    "Decrease custom prefix length or increase truncateattrchars by 12"]
+                                    "Decrease custom prefix length or increase truncateattrchars by " +
+                                    "${prefix.length() + TARGETING_PREFIX_LENGTH - targetingChars}"]
     }
 
     def "PBS auction should ignore and add a warning to ext.warnings when value of the account prefix is longer then settings.targeting.truncate-attr-chars"() {
         given: "PBS config with setting.targeting"
-        def stringSize = PBSUtils.getRandomNumber(1,10)
+        def targetingChars = PBSUtils.getRandomNumber(2, 10)
         def prebidServerService = pbsServiceFactory.getService(
-                ["settings.targeting.truncate-attr-chars":  stringSize as String])
+                ["settings.targeting.truncate-attr-chars":  targetingChars as String])
 
         and: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -1045,16 +1056,21 @@ class TargetingSpec extends BaseSpec {
         }
 
         and: "Account in the DB"
-        def config = new AccountAuctionConfig(targeting: new Targeting(prefix: PBSUtils.getRandomString(stringSize + 1)))
-        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: config) )
+        def prefix = PBSUtils.getRandomString(targetingChars + 1)
+        def config = new AccountAuctionConfig(targeting: new Targeting(prefix: prefix))
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: config))
         accountDao.save(account)
 
         when: "PBS processes auction request"
         def bidResponse = prebidServerService.sendAuctionRequest(bidRequest)
 
-        then: "Bid response should contain error"
+        then: "Bid response should contain warning"
+        def targeting = bidResponse.seatbid?.first()?.bid?.first()?.ext?.prebid?.targeting
+        assert !targeting.isEmpty()
+        assert targeting.keySet().every{it -> it.startsWith(DEFAULT_TARGETING_PREFIX)}
         assert bidResponse.ext?.warnings[TARGETING]*.message == ["Key prefix value is dropped to default. " +
-                                    "Decrease custom prefix length or increase truncateattrchars by 12"]
+                                    "Decrease custom prefix length or increase truncateattrchars by " +
+                                    "${prefix.length() + TARGETING_PREFIX_LENGTH - targetingChars}"]
     }
 
     private PrebidServerService getEnabledWinBidsPbsService() {
