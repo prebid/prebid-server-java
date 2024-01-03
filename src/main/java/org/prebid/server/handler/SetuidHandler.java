@@ -11,6 +11,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.Activity;
@@ -52,10 +53,13 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -103,13 +107,22 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.cookieNameToSyncType = collectMap(bidderCatalog);
+    }
 
-        cookieNameToSyncType = bidderCatalog.names().stream()
+    private static Map<String, UsersyncMethodType> collectMap(BidderCatalog bidderCatalog) {
+
+        final Supplier<Stream<Usersyncer>> usersyncers = () -> bidderCatalog.names()
+                .stream()
                 .filter(bidderCatalog::isActive)
                 .map(bidderCatalog::usersyncerByName)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .distinct() // built-in aliases looks like bidders with the same usersyncers
+                .distinct();
+
+        validateUsersyncers(usersyncers.get());
+
+        return usersyncers.get()
                 .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, SetuidHandler::preferredUserSyncType));
     }
 
@@ -119,6 +132,22 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .findFirst()
                 .map(UsersyncMethod::getType)
                 .get(); // when usersyncer is present, it will contain at least one method
+    }
+
+    private static void validateUsersyncers(Stream<Usersyncer> usersyncers) {
+        final List<String> cookieFamilyNameDuplicates = usersyncers.map(Usersyncer::getCookieFamilyName)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+                .entrySet()
+                .stream()
+                .filter(name -> name.getValue() > 1)
+                .map(Map.Entry::getKey)
+                .distinct()
+                .toList();
+        if (CollectionUtils.isNotEmpty(cookieFamilyNameDuplicates)) {
+            throw new IllegalArgumentException(
+                    "Duplicated \"cookie-family-name\" found, values: "
+                            + String.join(", ", cookieFamilyNameDuplicates));
+        }
     }
 
     @Override

@@ -64,6 +64,10 @@ class Bidder extends NetworkScaffolding {
         bidderRequests.first()
     }
 
+    Map<String, List<String>> getLastRecordedBidderRequestHeaders(String bidRequestId) {
+        return getLastRecordedRequestHeaders(bidRequestId)
+    }
+
     private String getBodyByRequest(HttpRequest request) {
         def requestString = request.bodyAsString
         def jsonNode = toJsonNode(requestString)

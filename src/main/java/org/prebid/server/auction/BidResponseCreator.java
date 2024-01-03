@@ -1374,7 +1374,7 @@ public class BidResponseCreator {
 
         final Map<String, String> targetingKeywords;
         final String bidderCode = targetingInfo.getBidderCode();
-        if (targeting != null && targetingInfo.isTargetingEnabled() && targetingInfo.isBidderWinningBid()) {
+        if (shouldIncludeTargetingInResponse(targeting, bidInfo.getTargetingInfo())) {
             final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(
                     bidType, targeting, isApp, bidRequest, account);
 
@@ -1416,6 +1416,15 @@ public class BidResponseCreator {
                 .ext(updatedBidExt)
                 .exp(ttl)
                 .build();
+    }
+
+    private boolean shouldIncludeTargetingInResponse(ExtRequestTargeting targeting, TargetingInfo targetingInfo) {
+        return targeting != null
+                && targetingInfo.isTargetingEnabled()
+                && targetingInfo.isBidderWinningBid()
+                && (Objects.equals(targeting.getIncludebidderkeys(), true)
+                || Objects.equals(targeting.getIncludewinners(), true)
+                || Objects.equals(targeting.getIncludeformat(), true));
     }
 
     private JsonNode extractPassThrough(Imp imp) {

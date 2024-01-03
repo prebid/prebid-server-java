@@ -73,6 +73,12 @@ public final class HttpUtil {
     public static final CharSequence PG_TRX_ID = HttpHeaders.createOptimized("pg-trx-id");
     public static final CharSequence PG_IGNORE_PACING = HttpHeaders.createOptimized("X-Prebid-PG-ignore-pacing");
 
+    //the low-entropy client hints
+    public static final CharSequence SAVE_DATA = HttpHeaders.createOptimized("Save-Data");
+    public static final CharSequence SEC_CH_UA = HttpHeaders.createOptimized("Sec-CH-UA");
+    public static final CharSequence SEC_CH_UA_MOBILE = HttpHeaders.createOptimized("Sec-CH-UA-Mobile");
+    public static final CharSequence SEC_CH_UA_PLATFORM = HttpHeaders.createOptimized("Sec-CH-UA-Platform");
+
     private static final String BASIC_AUTH_PATTERN = "Basic %s";
 
     private HttpUtil() {
