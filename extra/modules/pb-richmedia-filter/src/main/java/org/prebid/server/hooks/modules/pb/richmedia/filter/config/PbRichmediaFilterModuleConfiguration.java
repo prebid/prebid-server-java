@@ -1,6 +1,9 @@
 package org.prebid.server.hooks.modules.pb.richmedia.filter.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.core.BidResponsesMraidFilter;
+import org.prebid.server.hooks.modules.pb.richmedia.filter.core.ModuleConfigResolver;
+import org.prebid.server.hooks.modules.pb.richmedia.filter.model.PbRichMediaFilterProperties;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.PbRichmediaFilterAllProcessedBidResponsesHook;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.PbRichmediaFilterModule;
 import org.prebid.server.json.ObjectMapperProvider;
@@ -20,11 +23,16 @@ public class PbRichmediaFilterModuleConfiguration {
             @Value("${hooks.modules.pb-richmedia-filter.filter-mraid}") Boolean filterMraid,
             @Value("${hooks.modules.pb-richmedia-filter.mraid-script-pattern}") String mraidScriptPattern) {
 
+        final ObjectMapper mapper = ObjectMapperProvider.mapper();
+        final PbRichMediaFilterProperties globalProperties = PbRichMediaFilterProperties.of(
+                filterMraid,
+                mraidScriptPattern);
+
         return new PbRichmediaFilterModule(List.of(
                 new PbRichmediaFilterAllProcessedBidResponsesHook(
-                        ObjectMapperProvider.mapper(),
-                        new BidResponsesMraidFilter(mraidScriptPattern),
-                        Boolean.TRUE.equals(filterMraid))));
+                        mapper,
+                        new BidResponsesMraidFilter(),
+                        new ModuleConfigResolver(mapper, globalProperties))));
     }
 
 }

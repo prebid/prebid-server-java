@@ -973,7 +973,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
                 .contentId("contentId")
                 .price(BigDecimal.TEN)
                 .monitorList(List.of(
-                        Monitor.of("win", List.of()),
+                        Monitor.of("win", Collections.emptyList()),
                         Monitor.of("playStart", List.of("url1")),
                         Monitor.of("win", List.of("url2", "url3")),
                         Monitor.of("win", List.of("url4"))))

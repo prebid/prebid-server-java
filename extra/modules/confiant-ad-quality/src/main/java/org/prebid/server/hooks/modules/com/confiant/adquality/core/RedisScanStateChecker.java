@@ -14,6 +14,7 @@ public class RedisScanStateChecker {
             BidsScanner bidsScanner,
             long scanStateCheckInterval,
             Vertx vertx) {
+
         this.bidsScanner = bidsScanner;
         this.scanStateCheckInterval = scanStateCheckInterval;
         this.vertx = vertx;

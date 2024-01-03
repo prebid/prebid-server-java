@@ -553,6 +553,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 AuctionContext.builder().bidRequest(bidRequest).build());
 
         // then
+        verify(metrics).updateAccountRequestRejectedByFailedFetch(accountId);
         verify(applicationSettings).getAccountById(eq(accountId), any());
 
         assertThat(result.result()).isEqualTo(Account.empty(accountId));

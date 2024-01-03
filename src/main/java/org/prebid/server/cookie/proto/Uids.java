@@ -11,9 +11,6 @@ import java.util.Map;
 @Value
 public class Uids {
 
-    @JsonProperty("uids")
-    Map<String, String> uidsLegacy;
-
     @JsonProperty("tempUIDs")
     Map<String, UidWithExpiry> uids; // transition to new UIDs format
 

@@ -11,7 +11,9 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
+import org.prebid.server.hooks.modules.pb.richmedia.filter.model.PbRichMediaFilterProperties;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.core.BidResponsesMraidFilter;
+import org.prebid.server.hooks.modules.pb.richmedia.filter.core.ModuleConfigResolver;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.AnalyticsResult;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.MraidFilterResult;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.analytics.ActivityImpl;
@@ -32,9 +34,11 @@ import java.util.stream.IntStream;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
 
@@ -52,11 +56,15 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
     @Mock
     private BidResponsesMraidFilter mraidFilter;
 
+    @Mock
+    private ModuleConfigResolver configResolver;
+
     private PbRichmediaFilterAllProcessedBidResponsesHook target;
 
     @Before
     public void setUp() {
-        target = new PbRichmediaFilterAllProcessedBidResponsesHook(ObjectMapperProvider.mapper(), mraidFilter, true);
+        target = new PbRichmediaFilterAllProcessedBidResponsesHook(ObjectMapperProvider.mapper(), mraidFilter, configResolver);
+        when(configResolver.resolve(any())).thenReturn(PbRichMediaFilterProperties.of(true, "pattern"));
     }
 
     @Test
@@ -68,7 +76,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
     @Test
     public void callShouldReturnResultWithNoActionWhenFilterMraidIsFalse() {
         // given
-        target = new PbRichmediaFilterAllProcessedBidResponsesHook(ObjectMapperProvider.mapper(), mraidFilter, false);
+        when(configResolver.resolve(any())).thenReturn(PbRichMediaFilterProperties.of(false, "pattern"));
         final List<BidderResponse> givenResponses = givenBidderResponses(2);
         doReturn(givenResponses).when(allProcessedBidResponsesPayload).bidResponses();
 
@@ -97,7 +105,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
         // given
         final List<BidderResponse> givenResponses = givenBidderResponses(2);
         doReturn(givenResponses).when(allProcessedBidResponsesPayload).bidResponses();
-        given(mraidFilter.filter(givenResponses))
+        given(mraidFilter.filterByPattern("pattern", givenResponses))
                 .willReturn(MraidFilterResult.of(givenResponses, List.of(givenAnalyticsResult("bidder", "imp_id"))));
 
         // when
@@ -120,7 +128,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
         // given
         final List<BidderResponse> givenResponses = givenBidderResponses(2);
         doReturn(givenResponses).when(allProcessedBidResponsesPayload).bidResponses();
-        given(mraidFilter.filter(givenResponses))
+        given(mraidFilter.filterByPattern("pattern", givenResponses))
                 .willReturn(MraidFilterResult.of(givenResponses, Collections.emptyList()));
 
         // when
@@ -144,7 +152,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
         final List<BidderResponse> givenResponses = givenBidderResponses(3);
         doReturn(givenResponses).when(allProcessedBidResponsesPayload).bidResponses();
         final List<BidderResponse> expectedResponses = givenBidderResponses(2);
-        given(mraidFilter.filter(givenResponses))
+        given(mraidFilter.filterByPattern("pattern", givenResponses))
                 .willReturn(MraidFilterResult.of(expectedResponses, Collections.emptyList()));
 
         // when
@@ -168,7 +176,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
         // given
         final List<BidderResponse> givenResponses = givenBidderResponses(3);
         doReturn(givenResponses).when(allProcessedBidResponsesPayload).bidResponses();
-        given(mraidFilter.filter(givenResponses))
+        given(mraidFilter.filterByPattern("pattern", givenResponses))
                 .willReturn(MraidFilterResult.of(
                         givenResponses,
                         List.of(
@@ -211,7 +219,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
         // given
         final List<BidderResponse> givenResponses = givenBidderResponses(3);
         doReturn(givenResponses).when(allProcessedBidResponsesPayload).bidResponses();
-        given(mraidFilter.filter(givenResponses))
+        given(mraidFilter.filterByPattern("pattern", givenResponses))
                 .willReturn(MraidFilterResult.of(givenResponses, Collections.emptyList()));
 
         // when

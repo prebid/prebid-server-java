@@ -7,7 +7,6 @@ import io.vertx.core.Promise;
 import io.vertx.redis.client.RedisAPI;
 import io.vertx.redis.client.Response;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.BidScanResult;
-import org.prebid.server.hooks.modules.com.confiant.adquality.model.OperationResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisBidsData;
 
 import java.util.Collections;
@@ -15,7 +14,7 @@ import java.util.List;
 
 public class BidsScanner {
 
-    private final RedisParser redisParser = new RedisParser();
+    private final RedisParser redisParser;
 
     private final String apiKey;
 
@@ -25,12 +24,19 @@ public class BidsScanner {
 
     private volatile Boolean isScanDisabled = true;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
-    public BidsScanner(RedisClient writeRedisNode, RedisClient readRedisNode, String apiKey) {
+    public BidsScanner(
+            RedisClient writeRedisNode,
+            RedisClient readRedisNode,
+            String apiKey,
+            ObjectMapper objectMapper) {
+
         this.writeRedisNode = writeRedisNode;
         this.readRedisNode = readRedisNode;
         this.apiKey = apiKey;
+        this.objectMapper = objectMapper;
+        this.redisParser = new RedisParser(objectMapper);
     }
 
     public void start(Promise<Void> startFuture) {
@@ -63,15 +69,15 @@ public class BidsScanner {
 
                     readRedisNodeAPI.evalsha(readArgs, response -> {
                         if (response.result() != null) {
-                            final OperationResult<List<BidScanResult>> parserResult = redisParser
+                            final BidsScanResult parserResult = redisParser
                                     .parseBidsScanResult(response.result().toString());
-                            final boolean isAnyRoSkipped = parserResult.getValue()
+                            final boolean isAnyRoSkipped = parserResult.getBidScanResults()
                                     .stream().anyMatch(BidScanResult::isRoSkipped);
 
                             if (isAnyRoSkipped) {
                                 reSubmitBidsToWriteNode(readArgs, scanResult);
                             } else {
-                                scanResult.complete(new BidsScanResult(parserResult));
+                                scanResult.complete(parserResult);
                             }
                         } else {
                             scanResult.complete(getEmptyScanResult());
@@ -94,10 +100,10 @@ public class BidsScanner {
             final List<String> writeArgs = readArgs.stream().limit(4).toList();
             writeRedisAPI.evalsha(writeArgs, response -> {
                 if (response.result() != null) {
-                    final OperationResult<List<BidScanResult>> parserResult = redisParser
+                    final BidsScanResult parserResult = redisParser
                             .parseBidsScanResult(response.result().toString());
 
-                    scanResult.complete(new BidsScanResult(parserResult));
+                    scanResult.complete(parserResult);
                 } else {
                     scanResult.complete(getEmptyScanResult());
                 }
@@ -132,9 +138,9 @@ public class BidsScanner {
     }
 
     private BidsScanResult getEmptyScanResult() {
-        return new BidsScanResult(OperationResult.<List<BidScanResult>>builder()
-                .value(Collections.emptyList())
+        return BidsScanResult.builder()
+                .bidScanResults(Collections.emptyList())
                 .debugMessages(Collections.emptyList())
-                .build());
+                .build();
     }
 }

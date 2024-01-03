@@ -37,7 +37,7 @@ public class RedisScanStateCheckerTest {
         scanStateChecker.run();
 
         // then
-        verify(bidsScanner, times(1)).disableScan();
+        verify(bidsScanner).disableScan();
     }
 
     @Test
@@ -78,8 +78,8 @@ public class RedisScanStateCheckerTest {
         scanStateChecker.run();
 
         // then
-        verify(bidsScanner, times(1)).disableScan();
+        verify(bidsScanner).disableScan();
         Thread.sleep(1100L);
-        verify(bidsScanner, times(1)).enableScan();
+        verify(bidsScanner).enableScan();
     }
 }

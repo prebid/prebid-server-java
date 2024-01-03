@@ -6,7 +6,9 @@ import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
+import org.prebid.server.hooks.modules.pb.richmedia.filter.model.PbRichMediaFilterProperties;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.core.BidResponsesMraidFilter;
+import org.prebid.server.hooks.modules.pb.richmedia.filter.core.ModuleConfigResolver;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.AnalyticsResult;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.MraidFilterResult;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.InvocationResultImpl;
@@ -36,14 +38,14 @@ public class PbRichmediaFilterAllProcessedBidResponsesHook implements AllProcess
 
     private final ObjectMapper mapper;
     private final BidResponsesMraidFilter mraidFilter;
-    private final boolean filterMraid;
+    private final ModuleConfigResolver configResolver;
 
     public PbRichmediaFilterAllProcessedBidResponsesHook(ObjectMapper mapper,
                                                          BidResponsesMraidFilter mraidFilter,
-                                                         boolean filterMraid) {
+                                                         ModuleConfigResolver configResolver) {
         this.mapper = Objects.requireNonNull(mapper);
         this.mraidFilter = Objects.requireNonNull(mraidFilter);
-        this.filterMraid = filterMraid;
+        this.configResolver = Objects.requireNonNull(configResolver);
     }
 
     @Override
@@ -51,10 +53,11 @@ public class PbRichmediaFilterAllProcessedBidResponsesHook implements AllProcess
             AllProcessedBidResponsesPayload allProcessedBidResponsesPayload,
             AuctionInvocationContext auctionInvocationContext) {
 
+        final PbRichMediaFilterProperties properties = configResolver.resolve(auctionInvocationContext.accountConfig());
         final List<BidderResponse> responses = allProcessedBidResponsesPayload.bidResponses();
 
-        if (filterMraid) {
-            final MraidFilterResult filterResult = mraidFilter.filter(responses);
+        if (Boolean.TRUE.equals(properties.getFilterMraid())) {
+            final MraidFilterResult filterResult = mraidFilter.filterByPattern(properties.getMraidScriptPattern(), responses);
             final InvocationAction action = filterResult.hasRejectedBids()
                         ? InvocationAction.update
                         : InvocationAction.no_action;
