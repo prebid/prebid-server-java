@@ -18,12 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class BidResponsesMraidFilterTest {
 
-    private BidResponsesMraidFilter target;
-
-    @Before
-    public void setUp() {
-        target = new BidResponsesMraidFilter("mraid.js");
-    }
+    private final BidResponsesMraidFilter target = new BidResponsesMraidFilter();
 
     @Test
     public void filterShouldReturnOriginalBidsWhenNoBidsHaveMraidScriptInAdm() {
@@ -32,7 +27,7 @@ public class BidResponsesMraidFilterTest {
         final BidderResponse responseB = givenBidderResponse("bidderB", List.of(givenBid("imp_id", "adm2")));
 
         // when
-        final MraidFilterResult filterResult = target.filter(List.of(responseA, responseB));
+        final MraidFilterResult filterResult = target.filterByPattern("mraid.js", List.of(responseA, responseB));
 
         // then
         assertThat(filterResult.getFilterResult()).containsExactly(responseA, responseB);
@@ -54,7 +49,7 @@ public class BidResponsesMraidFilterTest {
                 givenBid("imp_id2", "adm2_mraid.js")));
 
         // when
-        final MraidFilterResult filterResult = target.filter(List.of(responseA, responseB, responseC));
+        final MraidFilterResult filterResult = target.filterByPattern("mraid.js", List.of(responseA, responseB, responseC));
 
         // then
         final BidderResponse expectedResponseA = givenBidderResponse(

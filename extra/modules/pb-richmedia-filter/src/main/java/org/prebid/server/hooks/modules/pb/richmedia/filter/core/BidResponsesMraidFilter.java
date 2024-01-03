@@ -23,21 +23,15 @@ public class BidResponsesMraidFilter {
     private static final String TAG_STATUS = "success-block";
     private static final Map<String, Object> TAG_VALUES = Map.of("richmedia-format", "mraid");
 
-    private final String mraidScriptPattern;
-
-    public BidResponsesMraidFilter(String mraidScriptPattern) {
-        this.mraidScriptPattern = Objects.requireNonNull(mraidScriptPattern);
-    }
-
-    public MraidFilterResult filter(List<BidderResponse> responses) {
+    public MraidFilterResult filterByPattern(String mraidScriptPattern, List<BidderResponse> responses) {
         List<BidderResponse> filteredResponses = new ArrayList<>();
         List<AnalyticsResult> analyticsResults = new ArrayList<>();
 
         for (BidderResponse bidderResponse : responses) {
             final BidderSeatBid seatBid = bidderResponse.getSeatBid();
             final List<BidderBid> originalBids = seatBid.getBids();
-            final Map<Boolean, List<BidderBid>> bidsMap = originalBids.stream()
-                    .collect(Collectors.groupingBy(this::hasMraid));
+            final Map<Boolean, List<BidderBid>> bidsMap = originalBids.stream().collect(
+                    Collectors.groupingBy(bid -> StringUtils.contains(bid.getBid().getAdm(), mraidScriptPattern)));
 
             final List<BidderBid> validBids = Optional.ofNullable(bidsMap.get(Boolean.FALSE))
                     .orElse(Collections.emptyList());
@@ -67,7 +61,4 @@ public class BidResponsesMraidFilter {
         return MraidFilterResult.of(filteredResponses, analyticsResults);
     }
 
-    private boolean hasMraid(BidderBid bid) {
-        return StringUtils.contains(bid.getBid().getAdm(), mraidScriptPattern);
-    }
 }
