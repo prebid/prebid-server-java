@@ -261,7 +261,11 @@ public class Tcf2Service {
         final EnforcePurpose enforcePurpose = purpose.getEnforcePurpose();
 
         return enforcePurpose == null || Objects.equals(enforcePurpose, EnforcePurpose.full)
-                ? Purpose.of(EnforcePurpose.basic, purpose.getEnforceVendors(), purpose.getVendorExceptions())
+                ? Purpose.of(
+                EnforcePurpose.basic,
+                purpose.getEnforceVendors(),
+                purpose.getVendorExceptions(),
+                purpose.getEid())
                 : purpose;
     }
 
@@ -272,7 +276,7 @@ public class Tcf2Service {
                         ? EnforcePurpose.basic
                         : enforcePurpose;
 
-        return Purpose.of(downgradedEnforce, false, purpose.getVendorExceptions());
+        return Purpose.of(downgradedEnforce, false, purpose.getVendorExceptions(), purpose.getEid());
     }
 
     private Collection<VendorPermission> processSupportedSpecialFeatureStrategies(

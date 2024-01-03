@@ -120,10 +120,10 @@ public class Tcf2ServiceTest extends VertxTest {
     }
 
     private void initPurposes() {
-        purpose1 = Purpose.of(EnforcePurpose.basic, true, emptyList());
-        purpose2 = Purpose.of(EnforcePurpose.no, true, emptyList());
-        purpose4 = Purpose.of(EnforcePurpose.no, false, emptyList());
-        purpose7 = Purpose.of(EnforcePurpose.full, false, emptyList());
+        purpose1 = Purpose.of(EnforcePurpose.basic, true, emptyList(), null);
+        purpose2 = Purpose.of(EnforcePurpose.no, true, emptyList(), null);
+        purpose4 = Purpose.of(EnforcePurpose.no, false, emptyList(), null);
+        purpose7 = Purpose.of(EnforcePurpose.full, false, emptyList(), null);
         purposes = Purposes.builder()
                 .p1(purpose1)
                 .p2(purpose2)
@@ -131,10 +131,10 @@ public class Tcf2ServiceTest extends VertxTest {
                 .p7(purpose7)
                 .build();
 
-        weakPurpose1 = Purpose.of(EnforcePurpose.basic, false, emptyList());
-        weakPurpose2 = Purpose.of(EnforcePurpose.no, false, emptyList());
-        weakPurpose4 = Purpose.of(EnforcePurpose.no, false, emptyList());
-        weakPurpose7 = Purpose.of(EnforcePurpose.basic, false, emptyList());
+        weakPurpose1 = Purpose.of(EnforcePurpose.basic, false, emptyList(), null);
+        weakPurpose2 = Purpose.of(EnforcePurpose.no, false, emptyList(), null);
+        weakPurpose4 = Purpose.of(EnforcePurpose.no, false, emptyList(), null);
+        weakPurpose7 = Purpose.of(EnforcePurpose.basic, false, emptyList(), null);
     }
 
     private void initSpecialFeatures() {
@@ -198,8 +198,11 @@ public class Tcf2ServiceTest extends VertxTest {
         verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, vendorPermissionWithGvls, true);
         verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purpose4, vendorPermissionWithGvls, true);
 
-        final Purpose expectedDowngradedPurpose = Purpose.of(EnforcePurpose.basic, purpose7.getEnforceVendors(),
-                purpose1.getVendorExceptions());
+        final Purpose expectedDowngradedPurpose = Purpose.of(
+                EnforcePurpose.basic,
+                purpose7.getEnforceVendors(),
+                purpose1.getVendorExceptions(),
+                null);
         verify(purposeStrategySeven).processTypePurposeStrategy(tcString, expectedDowngradedPurpose,
                 vendorPermissionWithGvls, true);
         verifyEachSpecialFeatureStrategyReceive(singletonList(expectedVendorPermission));
@@ -211,7 +214,7 @@ public class Tcf2ServiceTest extends VertxTest {
     @Test
     public void permissionsForShouldMergeAccountPurposes() {
         // given
-        final Purpose accountPurposeOne = Purpose.of(EnforcePurpose.full, false, singletonList("test"));
+        final Purpose accountPurposeOne = Purpose.of(EnforcePurpose.full, false, singletonList("test"), null);
         final Purposes accountPurposes = Purposes.builder()
                 .p1(accountPurposeOne)
                 .build();
