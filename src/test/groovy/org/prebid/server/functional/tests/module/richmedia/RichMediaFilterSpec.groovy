@@ -21,8 +21,9 @@ import static org.prebid.server.functional.model.request.auction.TraceLevel.VERB
 
 class RichMediaFilterSpec extends ModuleBaseSpec {
 
-    private static final String PATTERN_NAME = PBSUtils.randomString
-    private final PrebidServerService pbsServiceWithMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME))
+    private static final String PATTERN_NAME_HOST = PBSUtils.randomString
+    private static final String PATTERN_NAME_ACCOUNT = PBSUtils.randomString
+    private final PrebidServerService pbsServiceWithMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME_HOST))
 
     @PendingFeature
     def "PBS should reject request with error and provide analytic when adm matches with pattern name and filter enabled in request"() {
@@ -60,7 +61,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert analyticResult == AnalyticResult.buildFromImp(bidRequest.imp.first())
 
         where:
-        amdValue << [PATTERN_NAME, "${PATTERN_NAME}.js", "${PBSUtils.randomString}-${PATTERN_NAME}.js", "${PATTERN_NAME}-${PBSUtils.randomString}.js"]
+        amdValue << [PATTERN_NAME_HOST, "${PATTERN_NAME_HOST}.js", "${PBSUtils.randomString}-${PATTERN_NAME_HOST}.js", "${PATTERN_NAME_HOST}-${PBSUtils.randomString}.js"]
     }
 
     def "PBS should reject request with error and provide analytic when adm matches with pattern name and filter enabled in account config"() {
@@ -103,7 +104,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert analyticResult == AnalyticResult.buildFromImp(bidRequest.imp.first())
 
         where:
-        amdValue << [PATTERN_NAME, "${PATTERN_NAME}.js", "${PBSUtils.randomString}-${PATTERN_NAME}.js", "${PATTERN_NAME}-${PBSUtils.randomString}.js"]
+        amdValue << [PATTERN_NAME_HOST, "${PATTERN_NAME_HOST}.js", "${PBSUtils.randomString}-${PATTERN_NAME_HOST}.js", "${PATTERN_NAME_HOST}-${PBSUtils.randomString}.js"]
     }
 
     @PendingFeature
@@ -136,15 +137,11 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !getAnalyticResults(response)
 
         where:
-        amdValue                                      | filterMraidValue
-        PATTERN_NAME                                  | null
-        "${PATTERN_NAME}.js"                          | null
-        "${PBSUtils.randomString}-${PATTERN_NAME}.js" | null
-        "${PATTERN_NAME}-${PBSUtils.randomString}.js" | null
-        PATTERN_NAME                                  | false
-        "${PATTERN_NAME}.js"                          | false
-        "${PBSUtils.randomString}-${PATTERN_NAME}.js" | false
-        "${PATTERN_NAME}-${PBSUtils.randomString}.js" | false
+        amdValue                                           | filterMraidValue
+        PATTERN_NAME_HOST                                  | false
+        "${PATTERN_NAME_HOST}.js"                          | false
+        "${PBSUtils.randomString}-${PATTERN_NAME_HOST}.js" | false
+        "${PATTERN_NAME_HOST}-${PBSUtils.randomString}.js" | false
     }
 
     def "PBS should process request without analytics when adm matches with pattern name and filter set to #filterMraidValue in account config"() {
@@ -163,7 +160,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         storedResponseDao.save(storedResponse)
 
         and: "Account with enabled richMedia config in the DB"
-        def richMediaFilterConfig = new HooksModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: filterMraidValue))
+        def richMediaFilterConfig = new HooksModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: filterMraidValue, mraidScriptPattern: PATTERN_NAME_ACCOUNT))
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: richMediaFilterConfig))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
         accountDao.save(account)
@@ -181,15 +178,11 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !getAnalyticResults(response)
 
         where:
-        amdValue                                      | filterMraidValue
-        PATTERN_NAME                                  | null
-        "${PATTERN_NAME}.js"                          | null
-        "${PBSUtils.randomString}-${PATTERN_NAME}.js" | null
-        "${PATTERN_NAME}-${PBSUtils.randomString}.js" | null
-        PATTERN_NAME                                  | false
-        "${PATTERN_NAME}.js"                          | false
-        "${PBSUtils.randomString}-${PATTERN_NAME}.js" | false
-        "${PATTERN_NAME}-${PBSUtils.randomString}.js" | false
+        amdValue                                              | filterMraidValue
+        PATTERN_NAME_ACCOUNT                                  | false
+        "${PATTERN_NAME_ACCOUNT}.js"                          | false
+        "${PBSUtils.randomString}-${PATTERN_NAME_ACCOUNT}.js" | false
+        "${PATTERN_NAME_ACCOUNT}-${PBSUtils.randomString}.js" | false
     }
 
     @PendingFeature
@@ -300,13 +293,13 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert analyticResult == AnalyticResult.buildFromImp(bidRequest.imp.first())
 
         where:
-        amdValue << [PATTERN_NAME, "${PATTERN_NAME}.js", "${PBSUtils.randomString}-${PATTERN_NAME}.js", "${PATTERN_NAME}-${PBSUtils.randomString}.js", "", ".js"]
+        amdValue << [PATTERN_NAME_HOST, "${PATTERN_NAME_HOST}.js", "${PBSUtils.randomString}-${PATTERN_NAME_HOST}.js", "${PATTERN_NAME_HOST}-${PBSUtils.randomString}.js", "", ".js"]
     }
 
     @PendingFeature
     def "PBS should process request without analytics when pattern is disabled in config and filter enabled in request"() {
         given: "PBS with empty media filter"
-        PrebidServerService pbsServiceWithEmptyMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME, false))
+        PrebidServerService pbsServiceWithEmptyMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME_HOST, false))
 
         and: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
@@ -336,7 +329,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !getAnalyticResults(response)
 
         where:
-        amdValue << [PATTERN_NAME, "${PATTERN_NAME}.js", "${PBSUtils.randomString}-${PATTERN_NAME}.js", "${PATTERN_NAME}-${PBSUtils.randomString}.js", "", ".js"]
+        amdValue << [PATTERN_NAME_HOST, "${PATTERN_NAME_HOST}.js", "${PBSUtils.randomString}-${PATTERN_NAME_HOST}.js", "${PATTERN_NAME_HOST}-${PBSUtils.randomString}.js", "", ".js"]
     }
 
     private static List<AnalyticResult> getAnalyticResults(BidResponse response) {

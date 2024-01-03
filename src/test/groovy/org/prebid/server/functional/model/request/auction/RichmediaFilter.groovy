@@ -9,4 +9,5 @@ import groovy.transform.ToString
 class RichmediaFilter {
 
     Boolean filterMraid
+    String mraidScriptPattern
 }
