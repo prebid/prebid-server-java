@@ -30,13 +30,24 @@ public class MultiFormatMediaTypeProcessor implements MediaTypeProcessor {
 
     @Override
     public MediaTypeProcessingResult process(BidRequest bidRequest, String bidderName, Account account) {
+        final BidRequest.BidRequestBuilder bidRequestBuilder = Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(prebid -> prebid.toBuilder().biddercontrols(null).build())
+                .map(prebid -> {
+                    final ExtRequest extRequest = ExtRequest.of(prebid);
+                    extRequest.addProperties(bidRequest.getExt().getProperties());
+                    return extRequest;
+                })
+                .map(extRequest -> bidRequest.toBuilder().ext(extRequest))
+                .orElse(bidRequest.toBuilder());
+
         if (isMultiFormatSupported(bidderName)) {
-            return MediaTypeProcessingResult.succeeded(bidRequest, Collections.emptyList());
+            return MediaTypeProcessingResult.succeeded(bidRequestBuilder.build(), Collections.emptyList());
         }
 
         final MediaType preferredMediaType = preferredMediaType(bidRequest, account, bidderName);
         if (preferredMediaType == null) {
-            return MediaTypeProcessingResult.succeeded(bidRequest, Collections.emptyList());
+            return MediaTypeProcessingResult.succeeded(bidRequestBuilder.build(), Collections.emptyList());
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -50,7 +61,7 @@ public class MultiFormatMediaTypeProcessor implements MediaTypeProcessor {
             return MediaTypeProcessingResult.rejected(errors);
         }
 
-        return MediaTypeProcessingResult.succeeded(bidRequest.toBuilder().imp(updatedImps).build(), errors);
+        return MediaTypeProcessingResult.succeeded(bidRequestBuilder.imp(updatedImps).build(), errors);
     }
 
     private boolean isMultiFormatSupported(String bidder) {

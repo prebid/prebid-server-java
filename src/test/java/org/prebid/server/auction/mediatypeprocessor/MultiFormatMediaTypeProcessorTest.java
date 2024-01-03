@@ -69,7 +69,7 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
 
         // then
         assertThat(result.isRejected()).isFalse();
-        assertThat(result.getBidRequest()).isSameAs(bidRequest);
+        assertThat(result.getBidRequest()).isEqualTo(bidRequest);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -85,7 +85,7 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
 
         // then
         assertThat(result.isRejected()).isFalse();
-        assertThat(result.getBidRequest()).isSameAs(bidRequest);
+        assertThat(result.getBidRequest()).isEqualTo(bidRequest);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -133,6 +133,11 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
                 .extracting(BidRequest::getImp)
                 .asInstanceOf(InstanceOfAssertFactories.list(Imp.class))
                 .containsExactly(givenImp(VIDEO));
+        assertThat(result.getBidRequest())
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getBidderconfig)
+                .isNull();
         assertThat(result.getErrors()).isEmpty();
     }
 
