@@ -79,12 +79,24 @@ public class S3ApplicationSettings implements ApplicationSettings {
                                 .failedFuture(new PreBidException("Account with id %s not found".formatted(accountId)));
                     }
                 })
+                .flatMap(account -> {
+                    if (!Objects.equals(account.getId(), accountId)) {
+                        return Future.failedFuture(new PreBidException(
+                                "Account with id %s does not match id %s in file".formatted(accountId, account.getId()))
+                        );
+                    }
+                    return Future.succeededFuture(account);
+                })
                 .recover(ex -> {
                     if (ex instanceof DecodeException) {
                         return Future
                                 .failedFuture(
                                         new PreBidException(
                                                 "Invalid json for account with id %s".formatted(accountId)));
+                    }
+                    // if a previous validation already yielded a PreBidException, just return it
+                    if(ex instanceof PreBidException) {
+                        return Future.failedFuture(ex);
                     }
                     return Future
                             .failedFuture(new PreBidException("Account with id %s not found".formatted(accountId)));
@@ -100,7 +112,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
 
         return getFileContents(storedRequestsDirectory, requestIds)
                 .compose(storedIdToRequest -> getFileContents(storedImpressionsDirectory, impIds)
-                     .map(storedIdToImp -> buildStoredDataResult(storedIdToRequest, storedIdToImp, requestIds, impIds))
+                        .map(storedIdToImp -> buildStoredDataResult(storedIdToRequest, storedIdToImp, requestIds, impIds))
                 );
     }
 
