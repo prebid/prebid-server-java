@@ -1673,6 +1673,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     public void shouldMaskCorrespondingToActivitiesRestrictions() {
         // given
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_EIDS), any())).willReturn(false);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).willReturn(false);
         given(ipAddressHelper.anonymizeIpv6(eq("2001:0db8:85a3:0000::"))).willReturn("2001:0db8:85a3:0000::");
 
@@ -1681,10 +1682,15 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .buyeruid("buyeruid")
                 .yob(1)
                 .gender("gender")
+                .keywords("keywords")
+                .kwarray(emptyList())
                 .data(emptyList())
                 .eids(emptyList())
                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
-                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
+                .ext(ExtUser.builder()
+                        .data(mapper.createObjectNode())
+                        .eids(emptyList())
+                        .build())
                 .build();
         final Device device = notMaskedDevice();
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
@@ -1712,6 +1718,8 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .buyeruid(null)
                         .yob(null)
                         .gender(null)
+                        .kwarray(null)
+                        .keywords(null)
                         .data(null)
                         .eids(null)
                         .geo(Geo.builder().lon(-85.34F).lat(189.34F).build())
@@ -1728,28 +1736,34 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final User user = User.builder().build();
 
         // when
-        final User result = privacyEnforcementService.maskUserConsideringActivityRestrictions(user, false, false);
+        final User result = privacyEnforcementService.maskUserConsideringActivityRestrictions(
+                user, false, false, false);
 
         // then
         assertThat(result).isSameAs(user);
     }
 
     @Test
-    public void maskUserConsideringActivityRestrictionsShouldReturnMaskedUser() {
+    public void maskUserConsideringActivityRestrictionsShouldReturnMaskedUserWhenUfpdDisallowed() {
         // given
         final User user = User.builder()
                 .id("id")
                 .buyeruid("buyeruid")
                 .yob(1)
                 .gender("gender")
+                .keywords("keywords")
+                .kwarray(emptyList())
                 .data(emptyList())
                 .eids(emptyList())
                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
-                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
+                .ext(ExtUser.builder()
+                        .data(mapper.createObjectNode())
+                        .eids(emptyList())
+                        .build())
                 .build();
 
         // when
-        final User result = privacyEnforcementService.maskUserConsideringActivityRestrictions(user, true, true);
+        final User result = privacyEnforcementService.maskUserConsideringActivityRestrictions(user, true, false, false);
 
         // then
         assertThat(result).isEqualTo(User.builder()
@@ -1757,10 +1771,92 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .buyeruid(null)
                 .yob(null)
                 .gender(null)
+                .keywords(null)
+                .kwarray(null)
                 .data(null)
+                .eids(emptyList())
+                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
+                .ext(ExtUser.builder().eids(emptyList()).build())
+                .build());
+    }
+
+    @Test
+    public void maskUserConsideringActivityRestrictionsShouldReturnMaskedUserWhenEidsDisallowed() {
+        // given
+        final User user = User.builder()
+                .id("id")
+                .buyeruid("buyeruid")
+                .yob(1)
+                .gender("gender")
+                .keywords("keywords")
+                .kwarray(emptyList())
+                .data(emptyList())
+                .eids(emptyList())
+                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
+                .ext(ExtUser.builder()
+                        .data(mapper.createObjectNode())
+                        .eids(emptyList())
+                        .build())
+                .build();
+
+        // when
+        final User result = privacyEnforcementService.maskUserConsideringActivityRestrictions(user, false, true, false);
+
+        // then
+        assertThat(result).isEqualTo(User.builder()
+                .id("id")
+                .buyeruid("buyeruid")
+                .yob(1)
+                .gender("gender")
+                .keywords("keywords")
+                .kwarray(emptyList())
+                .data(emptyList())
                 .eids(null)
+                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
+                .ext(ExtUser.builder()
+                        .data(mapper.createObjectNode())
+                        .eids(null)
+                        .build())
+                .build());
+    }
+
+    @Test
+    public void maskUserConsideringActivityRestrictionsShouldReturnMaskedUserWhenGeoDisallowed() {
+        // given
+        final User user = User.builder()
+                .id("id")
+                .buyeruid("buyeruid")
+                .yob(1)
+                .gender("gender")
+                .keywords("keywords")
+                .kwarray(emptyList())
+                .data(emptyList())
+                .eids(emptyList())
+                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
+                .ext(ExtUser.builder()
+                        .data(mapper.createObjectNode())
+                        .eids(emptyList())
+                        .build())
+                .build();
+
+        // when
+        final User result = privacyEnforcementService.maskUserConsideringActivityRestrictions(user, false, false, true);
+
+        // then
+        assertThat(result).isEqualTo(User.builder()
+                .id("id")
+                .buyeruid("buyeruid")
+                .yob(1)
+                .gender("gender")
+                .keywords("keywords")
+                .kwarray(emptyList())
+                .data(emptyList())
+                .eids(emptyList())
                 .geo(Geo.builder().lon(-85.34F).lat(189.34F).build())
-                .ext(null)
+                .ext(ExtUser.builder()
+                        .data(mapper.createObjectNode())
+                        .eids(emptyList())
+                        .build())
                 .build());
     }
 
@@ -1777,7 +1873,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
     }
 
     @Test
-    public void maskDeviceConsideringActivityRestrictionsShouldReturnMaskedUser() {
+    public void maskDeviceConsideringActivityRestrictionsShouldReturnMaskedDevice() {
         // given
         final Device device = notMaskedDevice();
 

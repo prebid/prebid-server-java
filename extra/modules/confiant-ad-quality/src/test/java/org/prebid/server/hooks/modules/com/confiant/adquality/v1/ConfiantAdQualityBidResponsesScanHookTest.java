@@ -225,7 +225,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
                 "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
         final User user = privacyEnforcementService.maskUserConsideringActivityRestrictions(
-                getUser(), true, !transmitGeoIsAllowed);
+                getUser(), true, true, !transmitGeoIsAllowed);
         final Device device = privacyEnforcementService.maskDeviceConsideringActivityRestrictions(
                 getDevice(), true, !transmitGeoIsAllowed);
 
@@ -254,7 +254,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
                 "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
         final User user = privacyEnforcementService.maskUserConsideringActivityRestrictions(
-                getUser(), true, !transmitGeoIsAllowed);
+                getUser(), true, true, !transmitGeoIsAllowed);
         final Device device = privacyEnforcementService.maskDeviceConsideringActivityRestrictions(
                 getDevice(), true, !transmitGeoIsAllowed);
 

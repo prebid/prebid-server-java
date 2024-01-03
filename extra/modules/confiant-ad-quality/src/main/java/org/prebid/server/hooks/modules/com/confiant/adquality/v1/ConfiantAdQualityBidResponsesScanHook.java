@@ -79,7 +79,7 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
                 .isAllowed(Activity.TRANSMIT_GEO, activityInvocationPayload);
 
         final User maskedUser = privacyEnforcementService
-                .maskUserConsideringActivityRestrictions(bidRequest.getUser(), true, disallowTransmitGeo);
+                .maskUserConsideringActivityRestrictions(bidRequest.getUser(), true, true, disallowTransmitGeo);
         final Device maskedDevice = privacyEnforcementService
                 .maskDeviceConsideringActivityRestrictions(bidRequest.getDevice(), true, disallowTransmitGeo);
 

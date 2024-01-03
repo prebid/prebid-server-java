@@ -232,12 +232,14 @@ public class AnalyticsReporterDelegator {
 
         final boolean disallowTransmitUfpd = !isAllowedActivity(
                 infrastructure, Activity.TRANSMIT_UFPD, activityInvocationPayload);
+        final boolean disallowTransmitEids = !isAllowedActivity(
+                infrastructure, Activity.TRANSMIT_EIDS, activityInvocationPayload);
         final boolean disallowTransmitGeo = !isAllowedActivity(
                 infrastructure, Activity.TRANSMIT_GEO, activityInvocationPayload);
 
         final User user = bidRequest != null ? bidRequest.getUser() : null;
-        final User resolvedUser = privacyEnforcementService
-                .maskUserConsideringActivityRestrictions(user, disallowTransmitUfpd, disallowTransmitGeo);
+        final User resolvedUser = privacyEnforcementService.maskUserConsideringActivityRestrictions(
+                user, disallowTransmitUfpd, disallowTransmitEids, disallowTransmitGeo);
 
         final Device device = bidRequest != null ? bidRequest.getDevice() : null;
         final Device resolvedDevice = privacyEnforcementService
