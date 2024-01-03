@@ -4,10 +4,13 @@ import com.iabtcf.encoder.TCStringEncoder
 import com.iabtcf.utils.BitSetIntIterable
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
+
 class TcfConsent implements ConsentString {
 
     public static final Integer RUBICON_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
-    public static final Integer GENERIC_VENDOR_ID = RUBICON_VENDOR_ID
+    public static final Integer GENERIC_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
+    public static final Integer VENDOR_LIST_VERSION = PBSUtils.getRandomNumber(0, 4095)
 
     private final TCStringEncoder.Builder tcStringEncoder
 
@@ -32,8 +35,8 @@ class TcfConsent implements ConsentString {
         Builder() {
             tcStringEncoder = TCStringEncoder.newBuilder()
             setVersion(2)
-            setTcfPolicyVersion(2)
-            setVendorListVersion(2)
+            setTcfPolicyVersion(TCF_POLICY_V2.value)
+            setVendorListVersion(VENDOR_LIST_VERSION)
         }
 
         Builder setVersion(Integer version) {
@@ -61,7 +64,7 @@ class TcfConsent implements ConsentString {
             this
         }
 
-        Builder addVendorLegitimateInterest(List<Integer> vendorLegitimateInterest) {
+        Builder setVendorLegitimateInterest(List<Integer> vendorLegitimateInterest) {
             tcStringEncoder.addVendorLegitimateInterest(BitSetIntIterable.from(vendorLegitimateInterest))
             this
         }
