@@ -854,11 +854,15 @@ public class ExchangeServiceTest extends VertxTest {
         givenBidder(bidder2Name, bidder2, givenEmptySeatBid());
 
         final ExtRequest extRequest = ExtRequest.of(
-                ExtRequestPrebid.builder()
-                        .bidders(mapper.createObjectNode()
-                                .putPOJO(bidder1Name, mapper.createObjectNode().put("test1", "test1"))
-                                .putPOJO(bidder2Name, mapper.createObjectNode().put("test2", "test2"))
-                                .putPOJO("spam", mapper.createObjectNode().put("spam", "spam")))
+                        ExtRequestPrebid.builder()
+                                .bidders(mapper.createObjectNode()
+                                        .putPOJO(bidder1Name, mapper.createObjectNode().put("test1", "test1"))
+                                        .putPOJO(bidder2Name, mapper.createObjectNode().put("test2", "test2"))
+                                        .putPOJO("spam", mapper.createObjectNode().put("spam", "spam")))
+                                .biddercontrols(mapper.createObjectNode()
+                                        .putPOJO(bidder1Name, mapper.createObjectNode().put("test1", "test1"))
+                                        .putPOJO(bidder2Name, mapper.createObjectNode().put("test2", "test2"))
+                                        .putPOJO("spam", mapper.createObjectNode().put("spam", "spam")))
                         .auctiontimestamp(1000L)
                         .build());
 
@@ -882,6 +886,10 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(bidders1).isNotNull();
         assertThat(bidders1.fields()).toIterable().hasSize(1)
                 .containsOnly(entry("bidder", mapper.createObjectNode().put("test1", "test1")));
+        final JsonNode bidderControls1 = prebid1.getBiddercontrols();
+        assertThat(bidderControls1).isNotNull();
+        assertThat(bidderControls1.fields()).toIterable().hasSize(1)
+                .containsOnly(entry("bidder", mapper.createObjectNode().put("test1", "test1")));
 
         final ArgumentCaptor<BidderRequest> bidRequest2Captor = ArgumentCaptor.forClass(BidderRequest.class);
         verify(httpBidderRequester)
@@ -892,6 +900,10 @@ public class ExchangeServiceTest extends VertxTest {
         final JsonNode bidders2 = prebid2.getBidders();
         assertThat(bidders2).isNotNull();
         assertThat(bidders2.fields()).toIterable().hasSize(1)
+                .containsOnly(entry("bidder", mapper.createObjectNode().put("test2", "test2")));
+        final JsonNode bidderControls2 = prebid2.getBiddercontrols();
+        assertThat(bidderControls2).isNotNull();
+        assertThat(bidderControls2.fields()).toIterable().hasSize(1)
                 .containsOnly(entry("bidder", mapper.createObjectNode().put("test2", "test2")));
     }
 
