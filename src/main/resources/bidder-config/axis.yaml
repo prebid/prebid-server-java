@@ -1,6 +1,6 @@
 adapters:
   axis:
-    endpoint: http://prebid.axis-marketplace.com/{{AccountID}}?token={{SourceId}}
+    endpoint: http://prebid.axis-marketplace.com/pbserver
     meta-info:
       maintainer-email: help@axis-marketplace.com
       app-media-types:

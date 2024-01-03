@@ -1,0 +1,23 @@
+adapters:
+  tpmn:
+    endpoint: https://gat.tpmn.io/ortb/pbs_bidder
+    modifying-vast-xml-allowed: true
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: prebid@tpmn.io
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0
+    usersync:
+      cookie-family-name: tpmn
+      iframe:
+        url: https://gat.tpmn.io/sync/redirect?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redir={{redirect_url}}
+        userMacro: $UID
+        support-cors: false

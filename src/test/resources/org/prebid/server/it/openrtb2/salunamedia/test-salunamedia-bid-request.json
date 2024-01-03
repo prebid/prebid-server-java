@@ -11,7 +11,8 @@
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "key": "someKey"
+          "key": "someKey",
+          "type": "network"
         }
       }
     }

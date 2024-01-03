@@ -10,6 +10,7 @@ import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsServiceFactory
 import org.prebid.server.functional.testcontainers.scaffolding.Bidder
 import org.prebid.server.functional.testcontainers.scaffolding.PrebidCache
+import org.prebid.server.functional.testcontainers.scaffolding.VendorList
 import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Specification
@@ -22,6 +23,7 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
     protected static final PbsServiceFactory pbsServiceFactory = new PbsServiceFactory(networkServiceContainer)
     protected static final Bidder bidder = new Bidder(networkServiceContainer)
+    protected static final VendorList vendorList = new VendorList(networkServiceContainer)
     protected static final PrebidCache prebidCache = new PrebidCache(networkServiceContainer)
 
     protected static final HibernateRepositoryService repository = new HibernateRepositoryService(Dependencies.mysqlContainer)
@@ -40,12 +42,14 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     def setupSpec() {
         prebidCache.setResponse()
         bidder.setResponse()
+        vendorList.setResponse()
     }
 
     def cleanupSpec() {
         bidder.reset()
         prebidCache.reset()
         repository.removeAllDatabaseData()
+        vendorList.reset()
     }
 
     protected static int getRandomTimeout() {
