@@ -33,8 +33,6 @@ public class AxisBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAxis>> ADMAN_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String ACCOUNT_ID_MACRO = "{{AccountID}}";
-    private static final String SOURCE_ID_MACRO = "{{SourceId}}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -74,13 +72,7 @@ public class AxisBidder implements Bidder<BidRequest> {
                 .imp(Collections.singletonList(imp))
                 .build();
 
-        return BidderUtil.defaultRequest(modifyBidRequest, resolveUrl(extImpAxis), mapper);
-    }
-
-    private String resolveUrl(ExtImpAxis extImpAxis) {
-        return endpointUrl
-                .replace(ACCOUNT_ID_MACRO, HttpUtil.encodeUrl(extImpAxis.getIntegration()))
-                .replace(SOURCE_ID_MACRO, HttpUtil.encodeUrl(extImpAxis.getToken()));
+        return BidderUtil.defaultRequest(modifyBidRequest, endpointUrl, mapper);
     }
 
     @Override
