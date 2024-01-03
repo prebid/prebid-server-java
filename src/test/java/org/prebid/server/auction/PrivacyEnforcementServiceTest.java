@@ -1687,10 +1687,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .data(emptyList())
                 .eids(emptyList())
                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
-                .ext(ExtUser.builder()
-                        .data(mapper.createObjectNode())
-                        .eids(emptyList())
-                        .build())
+                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
                 .build();
         final Device device = notMaskedDevice();
         final Map<String, User> bidderToUser = singletonMap(BIDDER_NAME, user);
@@ -1756,10 +1753,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .data(emptyList())
                 .eids(emptyList())
                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
-                .ext(ExtUser.builder()
-                        .data(mapper.createObjectNode())
-                        .eids(emptyList())
-                        .build())
+                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
                 .build();
 
         // when
@@ -1776,7 +1770,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .data(null)
                 .eids(emptyList())
                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
-                .ext(ExtUser.builder().eids(emptyList()).build())
+                .ext(null)
                 .build());
     }
 
@@ -1793,10 +1787,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .data(emptyList())
                 .eids(emptyList())
                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
-                .ext(ExtUser.builder()
-                        .data(mapper.createObjectNode())
-                        .eids(emptyList())
-                        .build())
+                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
                 .build();
 
         // when
@@ -1813,10 +1804,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .data(emptyList())
                 .eids(null)
                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
-                .ext(ExtUser.builder()
-                        .data(mapper.createObjectNode())
-                        .eids(null)
-                        .build())
+                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
                 .build());
     }
 
@@ -1833,10 +1821,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .data(emptyList())
                 .eids(emptyList())
                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
-                .ext(ExtUser.builder()
-                        .data(mapper.createObjectNode())
-                        .eids(emptyList())
-                        .build())
+                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
                 .build();
 
         // when
@@ -1853,10 +1838,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .data(emptyList())
                 .eids(emptyList())
                 .geo(Geo.builder().lon(-85.34F).lat(189.34F).build())
-                .ext(ExtUser.builder()
-                        .data(mapper.createObjectNode())
-                        .eids(emptyList())
-                        .build())
+                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
                 .build());
     }
 

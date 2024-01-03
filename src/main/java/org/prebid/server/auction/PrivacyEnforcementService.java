@@ -743,11 +743,9 @@ public class PrivacyEnforcementService {
         }
 
         final User.UserBuilder userBuilder = user.toBuilder();
-        final ExtUser.ExtUserBuilder extUserBuilder = Optional.ofNullable(user.getExt())
-                .map(ExtUser::toBuilder)
-                .orElseGet(ExtUser::builder);
 
         if (disallowTransmitUfpd) {
+            final ExtUser extUser = user.getExt();
             userBuilder
                     .id(null)
                     .buyeruid(null)
@@ -755,17 +753,13 @@ public class PrivacyEnforcementService {
                     .gender(null)
                     .keywords(null)
                     .kwarray(null)
-                    .data(null);
-
-            extUserBuilder.data(null);
+                    .data(null)
+                    .ext(extUser != null ? nullIfEmpty(extUser.toBuilder().data(null).build()) : null);
         }
 
         if (disallowTransmitEids) {
             userBuilder.eids(null);
-            extUserBuilder.eids(null);
         }
-
-        userBuilder.ext(nullIfEmpty(extUserBuilder.build()));
 
         if (disallowTransmitGeo) {
             userBuilder.geo(maskGeoDefault(user.getGeo()));
