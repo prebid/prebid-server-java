@@ -60,7 +60,7 @@ public class MultiFormatMediaTypeProcessor implements MediaTypeProcessor {
     private MediaType preferredMediaType(BidRequest bidRequest, Account account, String bidderName) {
         return Optional.ofNullable(bidRequest.getExt())
                 .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getBidders)
+                .map(ExtRequestPrebid::getBiddercontrols)
                 .map(bidders -> bidders.at(PREF_MTYPE_FIELD))
                 .filter(JsonNode::isTextual)
                 .map(JsonNode::textValue)

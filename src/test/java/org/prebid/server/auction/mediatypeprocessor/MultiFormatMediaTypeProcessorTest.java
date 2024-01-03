@@ -113,12 +113,12 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
         // given
         given(bidderCatalog.bidderInfoByName(BIDDER)).willReturn(givenBidderInfo(false));
 
-        final ObjectNode bidders = mapper.createObjectNode();
-        bidders.putObject("bidder").put("prefmtype", "video");
+        final ObjectNode bidderControls = mapper.createObjectNode();
+        bidderControls.putObject("bidder").put("prefmtype", "video");
 
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .bidders(bidders)
+                        .biddercontrols(bidderControls)
                         .build())),
                 givenImp(BANNER, VIDEO, AUDIO, NATIVE));
 
