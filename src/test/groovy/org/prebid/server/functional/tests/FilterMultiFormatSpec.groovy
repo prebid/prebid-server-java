@@ -9,7 +9,7 @@ import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.GenericPreferredBidder
 import org.prebid.server.functional.model.request.auction.Native
-import org.prebid.server.functional.model.request.auction.PreferredBidders
+import org.prebid.server.functional.model.request.auction.BidderControls
 
 import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
@@ -52,7 +52,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = Banner.defaultBanner
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
+            ext.prebid.bidderControls = new BidderControls(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         when: "PBS processes auction request"
@@ -98,7 +98,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = Banner.defaultBanner
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
+            ext.prebid.bidderControls = new BidderControls(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         when: "PBS processes auction request"
@@ -119,7 +119,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = Banner.defaultBanner
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
+            ext.prebid.bidderControls = new BidderControls(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         when: "PBS processes auction request"
@@ -190,7 +190,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = Banner.defaultBanner
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
+            ext.prebid.bidderControls = new BidderControls(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         when: "PBS processes auction request"
@@ -241,7 +241,7 @@ class FilterMultiFormatSpec extends BaseSpec {
             imp[0].banner = null
             imp[0].audio = Audio.defaultAudio
             imp[0].nativeObj = Native.defaultNative
-            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
+            ext.prebid.bidderControls = new BidderControls(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         when: "PBS processes auction request"
@@ -292,7 +292,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = null
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
+            ext.prebid.bidderControls = new BidderControls(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         when: "PBS processes auction request"
@@ -315,7 +315,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = Banner.getDefaultBanner()
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: NULL))
+            ext.prebid.bidderControls = new BidderControls(generic: new GenericPreferredBidder(preferredMediaType: NULL))
         }
 
         when: "PBS processes auction request"
@@ -364,7 +364,7 @@ class FilterMultiFormatSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].banner = Banner.defaultBanner
             imp[0].audio = Audio.defaultAudio
-            ext.prebid.bidders = new PreferredBidders(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
+            ext.prebid.bidderControls = new BidderControls(generic: new GenericPreferredBidder(preferredMediaType: BANNER))
         }
 
         and: "Account in the DB with preferred media type"

@@ -1,9 +1,9 @@
 package org.prebid.server.auction.mediatypeprocessor;
 
-import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -20,7 +20,7 @@ import java.util.Optional;
 
 public class MultiFormatMediaTypeProcessor implements MediaTypeProcessor {
 
-    private static final JsonPointer PREF_MTYPE_FIELD = JsonPointer.compile("/bidder/prefmtype");
+    private static final String PREF_MTYPE_FIELD = "prefmtype";
 
     private final BidderCatalog bidderCatalog;
 
@@ -29,14 +29,31 @@ public class MultiFormatMediaTypeProcessor implements MediaTypeProcessor {
     }
 
     @Override
-    public MediaTypeProcessingResult process(BidRequest bidRequest, String bidderName, Account account) {
-        if (isMultiFormatSupported(bidderName)) {
-            return MediaTypeProcessingResult.succeeded(bidRequest, Collections.emptyList());
+    public MediaTypeProcessingResult process(BidRequest bidRequest,
+                                             String bidderName,
+                                             BidderAliases aliases,
+                                             Account account) {
+        final String resolvedBidderName = aliases.resolveBidder(bidderName);
+        //todo: ext.prebid.biddercontrols clean-up should NOT be here
+        // Suggestion: keep biddercontrols in the Auction Context
+        // and clean it up on the extraction auction participants step
+        final BidRequest.BidRequestBuilder bidRequestBuilder = Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(prebid -> prebid.toBuilder().biddercontrols(null).build())
+                .map(prebid -> {
+                    final ExtRequest extRequest = ExtRequest.of(prebid);
+                    extRequest.addProperties(bidRequest.getExt().getProperties());
+                    return extRequest;
+                })
+                .map(extRequest -> bidRequest.toBuilder().ext(extRequest))
+                .orElse(bidRequest.toBuilder());
+        if (isMultiFormatSupported(resolvedBidderName)) {
+            return MediaTypeProcessingResult.succeeded(bidRequestBuilder.build(), Collections.emptyList());
         }
 
-        final MediaType preferredMediaType = preferredMediaType(bidRequest, account, bidderName);
+        final MediaType preferredMediaType = preferredMediaType(bidRequest, account, bidderName, resolvedBidderName);
         if (preferredMediaType == null) {
-            return MediaTypeProcessingResult.succeeded(bidRequest, Collections.emptyList());
+            return MediaTypeProcessingResult.succeeded(bidRequestBuilder.build(), Collections.emptyList());
         }
 
         final List<BidderError> errors = new ArrayList<>();
@@ -50,24 +67,28 @@ public class MultiFormatMediaTypeProcessor implements MediaTypeProcessor {
             return MediaTypeProcessingResult.rejected(errors);
         }
 
-        return MediaTypeProcessingResult.succeeded(bidRequest.toBuilder().imp(updatedImps).build(), errors);
+        return MediaTypeProcessingResult.succeeded(bidRequestBuilder.imp(updatedImps).build(), errors);
     }
 
     private boolean isMultiFormatSupported(String bidder) {
         return bidderCatalog.bidderInfoByName(bidder).getOrtb().isMultiFormatSupported();
     }
 
-    private MediaType preferredMediaType(BidRequest bidRequest, Account account, String bidderName) {
+    private MediaType preferredMediaType(BidRequest bidRequest,
+                                         Account account,
+                                         String originalBidderName,
+                                         String resolvedBidderName) {
         return Optional.ofNullable(bidRequest.getExt())
                 .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getBidders)
-                .map(bidders -> bidders.at(PREF_MTYPE_FIELD))
+                .map(ExtRequestPrebid::getBiddercontrols)
+                .map(bidders -> bidders.get(originalBidderName))
+                .map(bidder -> bidder.get(PREF_MTYPE_FIELD))
                 .filter(JsonNode::isTextual)
                 .map(JsonNode::textValue)
                 .map(MediaType::of)
                 .or(() -> Optional.ofNullable(account.getAuction())
                         .map(AccountAuctionConfig::getPreferredMediaTypes)
-                        .map(preferredMediaTypes -> preferredMediaTypes.get(bidderName)))
+                        .map(preferredMediaTypes -> preferredMediaTypes.get(resolvedBidderName)))
                 .orElse(null);
     }
 
