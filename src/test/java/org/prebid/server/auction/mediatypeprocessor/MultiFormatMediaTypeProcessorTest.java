@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
@@ -35,7 +36,9 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.when;
 import static org.prebid.server.spring.config.bidder.model.MediaType.AUDIO;
 import static org.prebid.server.spring.config.bidder.model.MediaType.BANNER;
 import static org.prebid.server.spring.config.bidder.model.MediaType.NATIVE;
@@ -50,12 +53,15 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
 
     @Mock
     private BidderCatalog bidderCatalog;
+    @Mock
+    private BidderAliases bidderAliases;
 
     private MultiFormatMediaTypeProcessor target;
 
     @Before
     public void setUp() {
         target = new MultiFormatMediaTypeProcessor(bidderCatalog);
+        when(bidderAliases.resolveBidder(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -65,11 +71,11 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), givenImp(BANNER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, null);
 
         // then
         assertThat(result.isRejected()).isFalse();
-        assertThat(result.getBidRequest()).isSameAs(bidRequest);
+        assertThat(result.getBidRequest()).isEqualTo(bidRequest);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -81,11 +87,11 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
         final Account account = givenAccount(null);
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, account);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
 
         // then
         assertThat(result.isRejected()).isFalse();
-        assertThat(result.getBidRequest()).isSameAs(bidRequest);
+        assertThat(result.getBidRequest()).isEqualTo(bidRequest);
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -97,7 +103,7 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
         final Account account = givenAccount(Map.of(BIDDER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, account);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
 
         // then
         assertThat(result.isRejected()).isFalse();
@@ -111,21 +117,22 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
     @Test
     public void processShouldUseRequestLevelPreferredMediaTypeFirst() {
         // given
-        given(bidderCatalog.bidderInfoByName(BIDDER)).willReturn(givenBidderInfo(false));
+        given(bidderAliases.resolveBidder(BIDDER)).willReturn("resolvedBidderName");
+        given(bidderCatalog.bidderInfoByName("resolvedBidderName")).willReturn(givenBidderInfo(false));
 
-        final ObjectNode bidders = mapper.createObjectNode();
-        bidders.putObject("bidder").put("prefmtype", "video");
+        final ObjectNode bidderControls = mapper.createObjectNode();
+        bidderControls.putObject(BIDDER).put("prefmtype", "video");
 
         final BidRequest bidRequest = givenBidRequest(
                 request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
-                        .bidders(bidders)
+                        .biddercontrols(bidderControls)
                         .build())),
                 givenImp(BANNER, VIDEO, AUDIO, NATIVE));
 
-        final Account account = givenAccount(Map.of(BIDDER, AUDIO));
+        final Account account = givenAccount(Map.of("resolvedBidderName", AUDIO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, account);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
 
         // then
         assertThat(result.isRejected()).isFalse();
@@ -133,6 +140,11 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
                 .extracting(BidRequest::getImp)
                 .asInstanceOf(InstanceOfAssertFactories.list(Imp.class))
                 .containsExactly(givenImp(VIDEO));
+        assertThat(result.getBidRequest())
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .extracting(ExtRequestPrebid::getBiddercontrols)
+                .isNull();
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -150,7 +162,7 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
         final Account account = givenAccount(Map.of(BIDDER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, account);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
 
         // then
         assertThat(result.isRejected()).isFalse();
@@ -181,7 +193,7 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
         final Account account = givenAccount(Map.of(BIDDER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, account);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
 
         // then
         assertThat(result.isRejected()).isFalse();
@@ -209,7 +221,7 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
         final Account account = givenAccount(Map.of(BIDDER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, account);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, account);
 
         // then
         assertThat(result.isRejected()).isTrue();

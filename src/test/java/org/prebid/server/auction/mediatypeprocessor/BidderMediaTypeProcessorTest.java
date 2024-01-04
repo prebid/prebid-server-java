@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
@@ -32,7 +33,9 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.when;
 import static org.prebid.server.spring.config.bidder.model.MediaType.AUDIO;
 import static org.prebid.server.spring.config.bidder.model.MediaType.BANNER;
 import static org.prebid.server.spring.config.bidder.model.MediaType.NATIVE;
@@ -47,12 +50,15 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
 
     @Mock
     private BidderCatalog bidderCatalog;
+    @Mock
+    private BidderAliases bidderAliases;
 
     private BidderMediaTypeProcessor target;
 
     @Before
     public void setUp() {
         target = new BidderMediaTypeProcessor(bidderCatalog);
+        when(bidderAliases.resolveBidder(anyString())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -63,7 +69,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(), givenImp(BANNER));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, null);
 
         // then
         assertThat(result.isRejected()).isTrue();
@@ -79,7 +85,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 .willReturn(givenBidderInfo(singletonList(BANNER), singletonList(AUDIO), singletonList(NATIVE)));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, null);
 
         // then
         assertThat(result.getBidRequest()).isEqualTo(bidRequest);
@@ -97,7 +103,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 givenImp(BANNER, VIDEO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, null);
 
         // then
         assertThat(result.getBidRequest())
@@ -118,7 +124,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 givenImp(BANNER, AUDIO));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, null);
 
         // then
         assertThat(result.getBidRequest())
@@ -141,7 +147,7 @@ public class BidderMediaTypeProcessorTest extends VertxTest {
                 givenImp(NATIVE));
 
         // when
-        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, null);
+        final MediaTypeProcessingResult result = target.process(bidRequest, BIDDER, bidderAliases, null);
 
         // then
         assertThat(result.isRejected()).isTrue();

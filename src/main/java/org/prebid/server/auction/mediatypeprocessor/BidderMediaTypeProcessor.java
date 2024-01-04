@@ -3,6 +3,7 @@ package org.prebid.server.auction.mediatypeprocessor;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.collections4.SetUtils;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
@@ -35,8 +36,12 @@ public class BidderMediaTypeProcessor implements MediaTypeProcessor {
     }
 
     @Override
-    public MediaTypeProcessingResult process(BidRequest bidRequest, String bidderName, Account account) {
-        final Set<MediaType> supportedMediaTypes = extractSupportedMediaTypes(bidRequest, bidderName);
+    public MediaTypeProcessingResult process(BidRequest bidRequest,
+                                             String bidderName,
+                                             BidderAliases aliases,
+                                             Account account) {
+        final String resolvedBidderName = aliases.resolveBidder(bidderName);
+        final Set<MediaType> supportedMediaTypes = extractSupportedMediaTypes(bidRequest, resolvedBidderName);
         if (supportedMediaTypes.isEmpty()) {
             return MediaTypeProcessingResult.rejected(Collections.singletonList(
                     BidderError.badInput("Bidder does not support any media types.")));

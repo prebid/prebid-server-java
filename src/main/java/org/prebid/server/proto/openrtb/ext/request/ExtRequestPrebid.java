@@ -111,6 +111,11 @@ public class ExtRequestPrebid {
     ObjectNode bidders;
 
     /**
+     * Defines the contract for bidrequest.ext.prebid.biddercontrols
+     */
+    ObjectNode biddercontrols;
+
+    /**
      * Defines the contract for bidrequest.ext.prebid.amp
      */
     ExtRequestPrebidAmp amp;
