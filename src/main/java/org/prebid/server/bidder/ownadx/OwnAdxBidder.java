@@ -55,37 +55,13 @@ public class OwnAdxBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpOwnAdx impOwnAdx = parseImpExt(imp);
-                httpRequests.add(createHttpRequest(bidRequest, updateUrl(impOwnAdx)));
+                httpRequests.add(createHttpRequest(bidRequest, impOwnAdx));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
         return Result.of(httpRequests, errors);
-    }
-
-    private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest, String endpointUrl) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(updateHeader())
-                .body(mapper.encodeToBytes(bidRequest))
-                .impIds(BidderUtil.impIds(bidRequest))
-                .payload(bidRequest)
-                .build();
-    }
-
-    private String updateUrl(ExtImpOwnAdx extImpOwnAdx) {
-
-        return endpointUrl
-                .replace(ACCOUNT_ID_MACROS_ENDPOINT, extImpOwnAdx.getSspId() != null ? extImpOwnAdx.getSspId() : "")
-                .replace(ZONE_ID_MACROS_ENDPOINT, extImpOwnAdx.getSeatId() != null ? extImpOwnAdx.getSeatId() : "")
-                .replace(SOURCE_ID_MACROS_ENDPOINT, extImpOwnAdx.getTokenId() != null ? extImpOwnAdx.getTokenId() : "");
-    }
-
-    private static MultiMap updateHeader() {
-        return HttpUtil.headers()
-                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPEN_RTB_VERSION);
     }
 
     private ExtImpOwnAdx parseImpExt(Imp imp) {
@@ -96,6 +72,29 @@ public class OwnAdxBidder implements Bidder<BidRequest> {
             throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
         }
         return extImpOwnAdx;
+    }
+
+    private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest, ExtImpOwnAdx extImpOwnAdx) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(updateUrl(extImpOwnAdx))
+                .headers(updateHeader())
+                .body(mapper.encodeToBytes(bidRequest))
+                .impIds(BidderUtil.impIds(bidRequest))
+                .payload(bidRequest)
+                .build();
+    }
+
+    private String updateUrl(ExtImpOwnAdx extImpOwnAdx) {
+        return endpointUrl
+                .replace(ACCOUNT_ID_MACROS_ENDPOINT, extImpOwnAdx.getSspId() != null ? extImpOwnAdx.getSspId() : "")
+                .replace(ZONE_ID_MACROS_ENDPOINT, extImpOwnAdx.getSeatId() != null ? extImpOwnAdx.getSeatId() : "")
+                .replace(SOURCE_ID_MACROS_ENDPOINT, extImpOwnAdx.getTokenId() != null ? extImpOwnAdx.getTokenId() : "");
+    }
+
+    private static MultiMap updateHeader() {
+        return HttpUtil.headers()
+                .add(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPEN_RTB_VERSION);
     }
 
     @Override
@@ -121,10 +120,7 @@ public class OwnAdxBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.builder()
-                        .bid(bid)
-                        .type(getBidMediaType(bid))
-                        .build())
+                .map(bid -> BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur()))
                 .toList();
     }
 

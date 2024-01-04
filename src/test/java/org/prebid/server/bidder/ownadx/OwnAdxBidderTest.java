@@ -170,7 +170,7 @@ public class OwnAdxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(1).build(), banner, null));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(1).build(), banner, "USD"));
     }
 
     @Test
@@ -185,7 +185,7 @@ public class OwnAdxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(2).build(), video, null));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(2).build(), video, "USD"));
     }
 
     @Test
@@ -200,7 +200,7 @@ public class OwnAdxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(3).build(), audio, null));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(3).build(), audio, "USD"));
     }
 
     @Test
@@ -215,7 +215,7 @@ public class OwnAdxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(4).build(), xNative, null));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").mtype(4).build(), xNative, "USD"));
     }
 
     @Test
