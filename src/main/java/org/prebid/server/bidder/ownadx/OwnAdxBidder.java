@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class OwnAdxBidder implements Bidder<BidRequest> {
 
@@ -65,34 +66,33 @@ public class OwnAdxBidder implements Bidder<BidRequest> {
     }
 
     private ExtImpOwnAdx parseImpExt(Imp imp) {
-        final ExtImpOwnAdx extImpOwnAdx;
         try {
-            extImpOwnAdx = mapper.mapper().convertValue(imp.getExt(), OWN_EXT_TYPE_REFERENCE).getBidder();
+            return mapper.mapper().convertValue(imp.getExt(), OWN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
         }
-        return extImpOwnAdx;
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest bidRequest, ExtImpOwnAdx extImpOwnAdx) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(updateUrl(extImpOwnAdx))
-                .headers(updateHeader())
+                .uri(makeUrl(extImpOwnAdx))
+                .headers(makeHeader())
                 .body(mapper.encodeToBytes(bidRequest))
                 .impIds(BidderUtil.impIds(bidRequest))
                 .payload(bidRequest)
                 .build();
     }
 
-    private String updateUrl(ExtImpOwnAdx extImpOwnAdx) {
+    private String makeUrl(ExtImpOwnAdx extImpOwnAdx) {
+        final Optional<ExtImpOwnAdx> ownAdx = Optional.ofNullable(extImpOwnAdx);
         return endpointUrl
-                .replace(ACCOUNT_ID_MACROS_ENDPOINT, extImpOwnAdx.getSspId() != null ? extImpOwnAdx.getSspId() : "")
-                .replace(ZONE_ID_MACROS_ENDPOINT, extImpOwnAdx.getSeatId() != null ? extImpOwnAdx.getSeatId() : "")
-                .replace(SOURCE_ID_MACROS_ENDPOINT, extImpOwnAdx.getTokenId() != null ? extImpOwnAdx.getTokenId() : "");
+                .replace(ACCOUNT_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSspId).orElse(""))
+                .replace(ZONE_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSeatId).orElse(""))
+                .replace(SOURCE_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getTokenId).orElse(""));
     }
 
-    private static MultiMap updateHeader() {
+    private static MultiMap makeHeader() {
         return HttpUtil.headers()
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPEN_RTB_VERSION);
     }
