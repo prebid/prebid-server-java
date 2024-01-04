@@ -125,7 +125,7 @@ public class LiftoffBidder implements Bidder<BidRequest> {
         return bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
                 .app(app == null ? App.builder().id(appStoreId).build() : app.toBuilder().id(appStoreId).build())
-                .site(app == null ? null : site)
+                .site(null)
                 .build();
     }
 
