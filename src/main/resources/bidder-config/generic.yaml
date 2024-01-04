@@ -62,6 +62,13 @@ adapters:
            - native
           supported-vendors:
           vendor-id: 263
+        usersync:
+          enabled: true
+          cookie-family-name: nativo
+          redirect:
+            url: http://jadserve.postrelease.com/suid/101787?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&ntv_gpp_consent={{gpp}}&ntv_r={{redirect_url}}
+            support-cors: false
+            uid-macro: 'NTV_USER_ID'
     meta-info:
       maintainer-email: maintainer@example.com
       app-media-types:
