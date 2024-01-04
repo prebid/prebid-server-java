@@ -1,12 +1,10 @@
 package org.prebid.server.bidder.consumable;
 
-import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
@@ -42,7 +40,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 
 public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
 
@@ -101,23 +98,20 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
             }
             requestBuilder.gdpr(bidGdprBuilder.build());
         }
-
-        Optional.ofNullable(request.getSource())
-                .map(Source::getSchain)
-                .ifPresent(requestBuilder::sChain);
-
-        Optional.ofNullable(request.getRegs())
-                .map(Regs::getCoppa)
-                .ifPresent(coppa -> requestBuilder.coppa(coppa == 1));
-
-        Optional.ofNullable(request.getUser())
-                .ifPresent(requestUser -> requestBuilder.user(new ConsumableUser(null, requestUser.getEids())));
-
-        Optional.ofNullable(request.getSite())
-                .map(Site::getContent)
-                .ifPresentOrElse(requestBuilder::content, () -> Optional.ofNullable(request.getApp())
-                                .map(App::getContent)
-                                .ifPresent(requestBuilder::content));
+        if (request.getSource() != null && request.getSource().getSchain() != null) {
+            requestBuilder.schain(request.getSource().getSchain());
+        }
+        if (request.getRegs() != null && request.getRegs().getCoppa() != null) {
+            requestBuilder.coppa(request.getRegs().getCoppa() == 1);
+        }
+        if (user != null) {
+            requestBuilder.user(new ConsumableUser(null, user.getEids()));
+        }
+        if (request.getSite() != null && request.getSite().getContent() != null) {
+            requestBuilder.content(request.getSite().getContent());
+        } else if (request.getApp() != null && request.getApp().getContent() != null) {
+            requestBuilder.content(request.getApp().getContent());
+        }
 
         try {
             resolveRequestFields(requestBuilder, request.getImp());

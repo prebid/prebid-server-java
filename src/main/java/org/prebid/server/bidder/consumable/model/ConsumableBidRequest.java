@@ -50,7 +50,7 @@ public class ConsumableBidRequest {
 
     Boolean coppa;
 
-    SupplyChain sChain;
+    SupplyChain schain;
 
     Content content;
 

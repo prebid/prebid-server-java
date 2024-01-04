@@ -315,7 +315,7 @@ public class ConsumableBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .allSatisfy(consumableBidRequest -> {
-                    assertThat(consumableBidRequest.getSChain()).isEqualTo(expectedSupplyChain);
+                    assertThat(consumableBidRequest.getSchain()).isEqualTo(expectedSupplyChain);
                 });
     }
 
