@@ -759,9 +759,47 @@ public class ExchangeService {
     }
 
     /**
-     * Extracts a map of bidders to their arguments from {@link ObjectNode} prebid.bidders. or prebid.biddercontrols.
+     * Returns shuffled list of {@link AuctionParticipation} with {@link BidRequest}.
      */
-    private static Map<String, JsonNode> bidderToPrebidBidders(ObjectNode bidders) {
+    private List<AuctionParticipation> getAuctionParticipation(
+            List<BidderPrivacyResult> bidderPrivacyResults,
+            BidRequest bidRequest,
+            Map<String, Map<String, String>> impBidderToStoredBidResponse,
+            List<Imp> imps,
+            Map<String, MultiBidConfig> bidderToMultiBid,
+            Map<String, ExtBidderConfigOrtb> biddersToConfigs,
+            BidderAliases aliases,
+            AuctionContext context) {
+
+        final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(bidRequest);
+        final List<AuctionParticipation> bidderRequests = bidderPrivacyResults.stream()
+                // for each bidder create a new request that is a copy of original request except buyerid, imp
+                // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
+                // Also, check whether to pass user.ext.data, app.ext.data, dooh.ext.data and site.ext.data or not.
+                .map(bidderPrivacyResult -> createAuctionParticipation(
+                        bidderPrivacyResult,
+                        impBidderToStoredBidResponse,
+                        imps,
+                        bidderToMultiBid,
+                        biddersToConfigs,
+                        bidderToPrebidBidders,
+                        aliases,
+                        context))
+                // Can't be removed after we prepare workflow to filter blocked
+                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        Collections.shuffle(bidderRequests);
+        return bidderRequests;
+    }
+
+    /**
+     * Extracts a map of bidders to their arguments from {@link ObjectNode} prebid.bidders.
+     */
+    private static Map<String, JsonNode> bidderToPrebidBidders(BidRequest bidRequest) {
+        final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
+        final ObjectNode bidders = prebid == null ? null : prebid.getBidders();
+
         if (bidders == null || bidders.isNull()) {
             return Collections.emptyMap();
         }
@@ -776,46 +814,6 @@ public class ExchangeService {
     }
 
     /**
-     * Returns shuffled list of {@link AuctionParticipation} with {@link BidRequest}.
-     */
-    private List<AuctionParticipation> getAuctionParticipation(
-            List<BidderPrivacyResult> bidderPrivacyResults,
-            BidRequest bidRequest,
-            Map<String, Map<String, String>> impBidderToStoredBidResponse,
-            List<Imp> imps,
-            Map<String, MultiBidConfig> bidderToMultiBid,
-            Map<String, ExtBidderConfigOrtb> biddersToConfigs,
-            BidderAliases aliases,
-            AuctionContext context) {
-
-        final ExtRequestPrebid prebid = extRequestPrebid(bidRequest);
-        final Map<String, JsonNode> bidderToPrebidBidders = bidderToPrebidBidders(
-                prebid == null ? null : prebid.getBidders());
-        final Map<String, JsonNode> bidderToPrebidBidderControls = bidderToPrebidBidders(
-                prebid == null ? null : prebid.getBiddercontrols());
-        final List<AuctionParticipation> bidderRequests = bidderPrivacyResults.stream()
-                // for each bidder create a new request that is a copy of original request except buyerid, imp
-                // extensions, ext.prebid.data.bidders and ext.prebid.bidders.
-                // Also, check whether to pass user.ext.data, app.ext.data, dooh.ext.data and site.ext.data or not.
-                .map(bidderPrivacyResult -> createAuctionParticipation(
-                        bidderPrivacyResult,
-                        impBidderToStoredBidResponse,
-                        imps,
-                        bidderToMultiBid,
-                        biddersToConfigs,
-                        bidderToPrebidBidders,
-                        bidderToPrebidBidderControls,
-                        aliases,
-                        context))
-                // Can't be removed after we prepare workflow to filter blocked
-                .filter(auctionParticipation -> !auctionParticipation.isRequestBlocked())
-                .collect(Collectors.toCollection(ArrayList::new));
-
-        Collections.shuffle(bidderRequests);
-        return bidderRequests;
-    }
-
-    /**
      * Returns {@link AuctionParticipation} for the given bidder.
      */
     private AuctionParticipation createAuctionParticipation(
@@ -825,7 +823,6 @@ public class ExchangeService {
             Map<String, MultiBidConfig> bidderToMultiBid,
             Map<String, ExtBidderConfigOrtb> biddersToConfigs,
             Map<String, JsonNode> bidderToPrebidBidders,
-            Map<String, JsonNode> bidderToPrebidBidderControls,
             BidderAliases bidderAliases,
             AuctionContext context) {
 
@@ -855,7 +852,6 @@ public class ExchangeService {
                 bidderToMultiBid,
                 biddersToConfigs,
                 bidderToPrebidBidders,
-                bidderToPrebidBidderControls,
                 context);
 
         final BidderRequest bidderRequest = BidderRequest.builder()
@@ -882,7 +878,6 @@ public class ExchangeService {
                                          Map<String, MultiBidConfig> bidderToMultiBid,
                                          Map<String, ExtBidderConfigOrtb> biddersToConfigs,
                                          Map<String, JsonNode> bidderToPrebidBidders,
-                                         Map<String, JsonNode> bidderToPrebidBidderControls,
                                          AuctionContext context) {
 
         final BidRequest bidRequest = context.getBidRequest();
@@ -932,13 +927,6 @@ public class ExchangeService {
         final boolean isDooh = !isApp && preparedDooh != null;
         final boolean isSite = !isApp && !isDooh && preparedSite != null;
 
-        final ExtRequest extRequest = prepareExt(
-                bidder,
-                bidderToPrebidBidders,
-                bidderToPrebidBidderControls,
-                bidderToMultiBid,
-                bidRequest.getExt());
-
         return bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
@@ -948,7 +936,7 @@ public class ExchangeService {
                 .dooh(isDooh ? preparedDooh : null)
                 .site(isSite ? preparedSite : null)
                 .source(prepareSource(bidder, bidRequest, transmitTid))
-                .ext(extRequest)
+                .ext(prepareExt(bidder, bidderToPrebidBidders, bidderToMultiBid, bidRequest.getExt()))
                 .build();
     }
 
@@ -1162,15 +1150,13 @@ public class ExchangeService {
     }
 
     /**
-     * Removes all bidders except the given bidder
-     * from bidrequest.ext.prebid.bidders and bidrequest.ext.prebid.biddercontrols
-     * to hide list of allowed bidders from initial request.
+     * Removes all bidders except the given bidder from bidrequest.ext.prebid.bidders to hide list of allowed bidders
+     * from initial request.
      * <p>
      * Also masks bidrequest.ext.prebid.schains.
      */
     private ExtRequest prepareExt(String bidder,
                                   Map<String, JsonNode> bidderToPrebidBidders,
-                                  Map<String, JsonNode> bidderToPrebidBidderControls,
                                   Map<String, MultiBidConfig> bidderToMultiBid,
                                   ExtRequest requestExt) {
 
@@ -1187,7 +1173,6 @@ public class ExchangeService {
         final boolean suppressAliases = extPrebid != null && extPrebid.getAliases() != null;
 
         if (bidderToPrebidBidders.isEmpty()
-                && bidderToPrebidBidderControls.isEmpty()
                 && bidderToMultiBid.isEmpty()
                 && !suppressSchains
                 && !suppressBidderConfig
@@ -1198,16 +1183,10 @@ public class ExchangeService {
             return requestExt;
         }
 
-        final JsonNode bidderParameter = bidderToPrebidBidders.get(bidder);
-        final ObjectNode bidders = bidderParameter != null
-                ? mapper.mapper().valueToTree(ExtPrebidBidders.of(bidderParameter))
+        final JsonNode prebidParameters = bidderToPrebidBidders.get(bidder);
+        final ObjectNode bidders = prebidParameters != null
+                ? mapper.mapper().valueToTree(ExtPrebidBidders.of(prebidParameters))
                 : null;
-
-        final JsonNode bidderControlsParameter = bidderToPrebidBidderControls.get(bidder);
-        final ObjectNode bidderControls = bidderControlsParameter != null
-                ? mapper.mapper().valueToTree(ExtPrebidBidders.of(bidderControlsParameter))
-                : null;
-
         final ExtRequestPrebid.ExtRequestPrebidBuilder extPrebidBuilder = Optional.ofNullable(extPrebid)
                 .map(ExtRequestPrebid::toBuilder)
                 .orElse(ExtRequestPrebid.builder());
@@ -1215,7 +1194,6 @@ public class ExchangeService {
         return ExtRequest.of(extPrebidBuilder
                 .multibid(resolveExtRequestMultiBids(bidderToMultiBid.get(bidder), bidder))
                 .bidders(bidders)
-                .biddercontrols(bidderControls)
                 .bidderparams(prepareBidderParameters(extPrebid, bidder))
                 .schains(null)
                 .data(null)
@@ -1328,18 +1306,16 @@ public class ExchangeService {
 
         final String bidderName = bidderRequest.getBidder();
         final MediaTypeProcessingResult mediaTypeProcessingResult = mediaTypeProcessor.process(
-                bidderRequest.getBidRequest(), aliases.resolveBidder(bidderName), auctionContext.getAccount());
+                bidderRequest.getBidRequest(), bidderName, aliases, auctionContext.getAccount());
 
         final List<BidderError> mediaTypeProcessingErrors = mediaTypeProcessingResult.getErrors();
         if (mediaTypeProcessingResult.isRejected()) {
             auctionContext.getBidRejectionTrackers()
                     .get(bidderName)
                     .rejectAll(BidRejectionReason.REJECTED_BY_MEDIA_TYPE);
-
             final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
                     .warnings(mediaTypeProcessingErrors)
                     .build();
-
             return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
         }
 
