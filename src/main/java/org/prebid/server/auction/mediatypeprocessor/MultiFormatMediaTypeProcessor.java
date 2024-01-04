@@ -1,6 +1,5 @@
 package org.prebid.server.auction.mediatypeprocessor;
 
-import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -35,6 +34,9 @@ public class MultiFormatMediaTypeProcessor implements MediaTypeProcessor {
                                              BidderAliases aliases,
                                              Account account) {
         final String resolvedBidderName = aliases.resolveBidder(bidderName);
+        //todo: ext.prebid.biddercontrols clean-up should NOT be here
+        // Suggestion: keep biddercontrols in the Auction Context
+        // and clean it up on the extraction auction participants step
         final BidRequest.BidRequestBuilder bidRequestBuilder = Optional.ofNullable(bidRequest.getExt())
                 .map(ExtRequest::getPrebid)
                 .map(prebid -> prebid.toBuilder().biddercontrols(null).build())
@@ -79,7 +81,8 @@ public class MultiFormatMediaTypeProcessor implements MediaTypeProcessor {
         return Optional.ofNullable(bidRequest.getExt())
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getBiddercontrols)
-                .map(bidders -> bidders.at(JsonPointer.compile("/" + originalBidderName + "/" + PREF_MTYPE_FIELD)))
+                .map(bidders -> bidders.get(originalBidderName))
+                .map(bidder -> bidder.get(PREF_MTYPE_FIELD))
                 .filter(JsonNode::isTextual)
                 .map(JsonNode::textValue)
                 .map(MediaType::of)
