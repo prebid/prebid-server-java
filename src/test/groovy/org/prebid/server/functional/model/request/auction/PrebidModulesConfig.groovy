@@ -6,7 +6,7 @@ import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
-class HooksModulesConfig {
+class PrebidModulesConfig {
 
     RichmediaFilter pbRichmediaFilter
 }

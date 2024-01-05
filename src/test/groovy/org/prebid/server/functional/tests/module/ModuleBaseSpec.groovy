@@ -9,7 +9,7 @@ import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 
-@Retry(mode = Retry.Mode.SETUP_FEATURE_CLEANUP)
+//@Retry(mode = Retry.Mode.SETUP_FEATURE_CLEANUP)
 class ModuleBaseSpec extends BaseSpec {
 
     def setupSpec() {
@@ -24,7 +24,7 @@ class ModuleBaseSpec extends BaseSpec {
     }
 
     protected static Map<String, String> getRichMediaFilterSettings(String scriptPattern,
-                                                                    Boolean filterMraidEnabled = true,
+                                                                    boolean filterMraidEnabled = true,
                                                                     Endpoint endpoint = OPENRTB2_AUCTION) {
 
         ["hooks.${PB_RICHMEDIA_FILTER.code}.enabled"                     : true,

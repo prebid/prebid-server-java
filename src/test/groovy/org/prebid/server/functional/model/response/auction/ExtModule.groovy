@@ -8,5 +8,5 @@ import groovy.transform.ToString
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 class ExtModule {
 
-    TraceModule trace
+    ModuleTrace trace
 }

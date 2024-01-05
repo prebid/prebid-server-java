@@ -6,7 +6,7 @@ import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
-class TraceModule {
+class ModuleTrace {
 
     Long executionTimeMillis
     List<TraceStages> stages
