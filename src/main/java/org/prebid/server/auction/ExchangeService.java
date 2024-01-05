@@ -1135,6 +1135,7 @@ public class ExchangeService {
      */
     private Source prepareSource(String bidder, BidRequest bidRequest, boolean transmitTid) {
         final Source receivedSource = bidRequest.getSource();
+
         final SupplyChain bidderSchain = supplyChainResolver.resolveForBidder(bidder, bidRequest);
 
         if (bidderSchain == null && transmitTid) {
@@ -1144,9 +1145,8 @@ public class ExchangeService {
         return receivedSource == null
                 ? Source.builder().schain(bidderSchain).build()
                 : receivedSource.toBuilder()
-                .schain(bidderSchain)
-                .tid(transmitTid ? receivedSource.getTid() : null)
-                .build();
+                .schain(bidderSchain != null ? bidderSchain : receivedSource.getSchain())
+                .tid(transmitTid ? receivedSource.getTid() : null).build();
     }
 
     /**
@@ -1306,18 +1306,16 @@ public class ExchangeService {
 
         final String bidderName = bidderRequest.getBidder();
         final MediaTypeProcessingResult mediaTypeProcessingResult = mediaTypeProcessor.process(
-                bidderRequest.getBidRequest(), aliases.resolveBidder(bidderName), auctionContext.getAccount());
+                bidderRequest.getBidRequest(), bidderName, aliases, auctionContext.getAccount());
 
         final List<BidderError> mediaTypeProcessingErrors = mediaTypeProcessingResult.getErrors();
         if (mediaTypeProcessingResult.isRejected()) {
             auctionContext.getBidRejectionTrackers()
                     .get(bidderName)
                     .rejectAll(BidRejectionReason.REJECTED_BY_MEDIA_TYPE);
-
             final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
                     .warnings(mediaTypeProcessingErrors)
                     .build();
-
             return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
         }
 
