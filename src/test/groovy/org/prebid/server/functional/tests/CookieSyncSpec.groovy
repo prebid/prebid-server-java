@@ -2155,7 +2155,7 @@ class CookieSyncSpec extends BaseSpec {
         accountCoopSyncConfig << [false, true, null]
     }
 
-    def "PBS cookie sync request should respond with an error when gdpr param is 1 and no consent is specified"() {
+    def "PBS cookie sync request should respond with an error when gdpr param is 1 and consent isn't specified"() {
         given: "Cookie sync request body with gdpr = 1 and gdprConsent = null"
         def cookieSyncRequest = new CookieSyncRequest().tap {
             gdpr = 1
