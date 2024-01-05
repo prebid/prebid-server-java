@@ -1,11 +1,10 @@
 package org.prebid.server.functional.model.request.cookiesync
 
 import groovy.transform.ToString
-import org.prebid.server.functional.model.bidder.BidderName
 
 @ToString(includeNames = true, ignoreNulls = true)
-class MethodFilter {
+class MethodFilter<T> {
 
-    List<BidderName> bidders
+    T bidders
     FilterType filter
 }
