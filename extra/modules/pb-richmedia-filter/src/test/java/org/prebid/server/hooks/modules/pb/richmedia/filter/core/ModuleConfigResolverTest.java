@@ -31,14 +31,8 @@ public class ModuleConfigResolverTest {
     public void resolveShouldReturnAccountConfigWhenAccountConfigIsPresent() throws JsonProcessingException {
         final String accountConfig = """
                 {
-                   "hooks": {
-                      "modules": {
-                         "pb-richmedia-filter": {
-                            "filter-mraid": true,
-                            "mraid-script-pattern": "<script src=\\"mraid.js\\"></script>"
-                         }
-                     }
-                   }
+                   "filter-mraid": true,
+                   "mraid-script-pattern": "<script src=\\"mraid.js\\"></script>"
                 }
                 """;
         final ObjectNode objectNode = OBJECT_MAPPER.readValue(accountConfig, ObjectNode.class);
@@ -47,24 +41,24 @@ public class ModuleConfigResolverTest {
     }
 
     @Test
-    public void resolveShouldReturnGlobalConfigWhenAccountConfigIsAbsent() {
+    public void resolveShouldReturnGlobalConfigWhenAccountConfigIsEmpty() {
         final ObjectNode emptyObjectNode = OBJECT_MAPPER.createObjectNode();
         final PbRichMediaFilterProperties actualProperties = target.resolve(emptyObjectNode);
         assertThat(actualProperties).isEqualTo(GLOBAL_PROPERTIES);
     }
 
     @Test
-    public void resolveShouldReturnGlobalConfigWhenAccountConfigCanNotBeFoundByPath() throws JsonProcessingException {
+    public void resolveShouldReturnGlobalConfigWhenAccountConfigIsAbsent() {
+        final PbRichMediaFilterProperties actualProperties = target.resolve(null);
+        assertThat(actualProperties).isEqualTo(GLOBAL_PROPERTIES);
+    }
+
+    @Test
+    public void resolveShouldReturnGlobalConfigWhenAccountConfigCanNotBeParsed() throws JsonProcessingException {
         final String invalidAccountConfig = """
                 {
-                   "hook": {
-                      "modules": {
-                         "pb-richmedia-filter": {
-                            "filter-mraid": true,
-                            "mraid-script-pattern": "<script src=\\"mraid.js\\"></script>"
-                         }
-                     }
-                   }
+                    "filter-mraid": "invalid_type",
+                    "mraid-script-pattern": "<script src=\\"mraid.js\\"></script>"
                 }
                 """;
         final ObjectNode objectNode = OBJECT_MAPPER.readValue(invalidAccountConfig, ObjectNode.class);
@@ -73,17 +67,10 @@ public class ModuleConfigResolverTest {
     }
 
     @Test
-    public void resolveShouldReturnGlobalConfigWhenAccountConfigCanNotBeParsed() throws JsonProcessingException {
+    public void resolveShouldReturnGlobalConfigWhenAccountConfigMissingProperties() throws JsonProcessingException {
         final String invalidAccountConfig = """
                 {
-                   "hooks": {
-                      "modules": {
-                         "pb-richmedia-filter": {
-                            "filter-mraid": "invalid_type",
-                            "mraid-script-pattern": "<script src=\\"mraid.js\\"></script>"
-                         }
-                     }
-                   }
+                    "mraid-script-pattern": "<script src=\\"mraid.js\\"></script>"
                 }
                 """;
         final ObjectNode objectNode = OBJECT_MAPPER.readValue(invalidAccountConfig, ObjectNode.class);
