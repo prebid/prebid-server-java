@@ -15,6 +15,7 @@ import org.prebid.server.functional.model.request.cookiesync.FilterSettings
 import org.prebid.server.functional.model.request.cookiesync.MethodFilter
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
 import org.prebid.server.functional.model.response.cookiesync.UserSyncInfo
+import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
@@ -2152,6 +2153,21 @@ class CookieSyncSpec extends BaseSpec {
 
         where:
         accountCoopSyncConfig << [false, true, null]
+    }
+
+    def "PBS cookie sync request should respond with an error when gdpr param is 1 and no consent is specified"() {
+        given: "Cookie sync request body with gdpr = 1 and gdprConsent = null"
+        def cookieSyncRequest = new CookieSyncRequest().tap {
+            gdpr = 1
+            gdprConsent = null
+        }
+
+        when: "PBS processes cookie sync request"
+        prebidServerService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should contain error"
+        def serverException = thrown(PrebidServerException)
+        assert serverException.responseBody == "Invalid request format: gdpr_consent is required if gdpr is 1"
     }
 
     private static Map<BidderName, UserSyncInfo> getValidBidderUserSyncs(CookieSyncResponse cookieSyncResponse) {
