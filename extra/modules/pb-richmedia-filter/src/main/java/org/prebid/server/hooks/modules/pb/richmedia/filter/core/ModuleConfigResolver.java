@@ -26,9 +26,7 @@ public class ModuleConfigResolver {
     private Optional<PbRichMediaFilterProperties> readAccountConfig(ObjectNode accountConfigNode) {
         try {
             return Optional.ofNullable(accountConfigNode)
-                    .map(node -> node.get("hooks"))
-                    .map(node -> node.get("modules"))
-                    .map(node -> node.get("pb-richmedia-filter"))
+                    .filter(node -> !node.isEmpty())
                     .map(node -> mapper.convertValue(node, PbRichMediaFilterProperties.class));
         } catch (IllegalArgumentException e) {
             return Optional.empty();

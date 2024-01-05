@@ -3,13 +3,15 @@ package org.prebid.server.hooks.modules.pb.richmedia.filter.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
+import javax.validation.constraints.NotBlank;
+
 @Value(staticConstructor = "of")
 public class PbRichMediaFilterProperties {
 
-    @JsonProperty("filter-mraid")
+    @JsonProperty(value = "filter-mraid", required = true)
     Boolean filterMraid;
 
-    @JsonProperty("mraid-script-pattern")
+    @JsonProperty(value = "mraid-script-pattern", required = true)
     String mraidScriptPattern;
 
 }
