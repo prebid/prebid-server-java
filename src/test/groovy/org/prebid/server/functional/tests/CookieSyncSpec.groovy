@@ -1433,7 +1433,7 @@ class CookieSyncSpec extends BaseSpec {
         assert response.bidderStatus.bidder.containsAll(ADKERNEL, ACUITYADS, ACEEX, APPNEXUS, AAX, RUBICON, OPENX, GENERIC)
     }
 
-    def "PBS cookie sync request should return bidder"() {
+    def "PBS cookie sync request shouldn't return bidder due to filter setting request"() {
         given: "Cookie sync request with filter setting"
         def filterSettings = new FilterSettings().tap {
             image = new MethodFilter().tap {
