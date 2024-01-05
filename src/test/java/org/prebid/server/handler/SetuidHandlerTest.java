@@ -10,6 +10,8 @@ import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -769,6 +771,39 @@ public class SetuidHandlerTest extends VertxTest {
                 .uid("updatedUid")
                 .success(true)
                 .build());
+    }
+
+    @Test
+    public void shouldThrowExceptionInCaseOfCookieFamilyNameDuplicates() {
+        // given
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        final String firstDuplicateName = "firstBidderWithDuplicate";
+        final String secondDuplicateName = "secondBidderWithDuplicate";
+        given(bidderCatalog.names())
+                .willReturn(new HashSet<>(asList(RUBICON, FACEBOOK, firstDuplicateName, secondDuplicateName)));
+        given(bidderCatalog.usersyncerByName(eq(firstDuplicateName))).willReturn(
+                Optional.of(Usersyncer.of(RUBICON, iframeMethod(), redirectMethod())));
+        given(bidderCatalog.usersyncerByName(eq(secondDuplicateName))).willReturn(
+                Optional.of(Usersyncer.of(FACEBOOK, iframeMethod(), redirectMethod())));
+        final Executable exceptionSource = () -> new SetuidHandler(
+                2000,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                privacyEnforcementService,
+                gppService,
+                activityInfrastructureCreator,
+                tcfDefinerService,
+                analyticsReporterDelegator,
+                metrics,
+                new TimeoutFactory(clock));
+
+        //when
+        final IllegalArgumentException exception =
+                Assertions.assertThrows(IllegalArgumentException.class, exceptionSource);
+
+        //then
+        assertThat(exception).hasMessage("Duplicated \"cookie-family-name\" found, values: audienceNetwork, rubicon");
     }
 
     private String getUidsCookie() {

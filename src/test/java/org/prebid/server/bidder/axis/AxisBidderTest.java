@@ -33,7 +33,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AxisBidderTest extends VertxTest {
 
-    public static final String ENDPOINT_URL = "https://test.endpoint.com/{{AccountID}}?token={{SourceId}}";
+    public static final String ENDPOINT_URL = "https://test.endpoint.com";
 
     private final AxisBidder target = new AxisBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -71,7 +71,7 @@ public class AxisBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://test.endpoint.com/testIntegration?token=testToken");
+                .containsExactly("https://test.endpoint.com");
     }
 
     @Test

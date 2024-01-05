@@ -1306,18 +1306,16 @@ public class ExchangeService {
 
         final String bidderName = bidderRequest.getBidder();
         final MediaTypeProcessingResult mediaTypeProcessingResult = mediaTypeProcessor.process(
-                bidderRequest.getBidRequest(), aliases.resolveBidder(bidderName), auctionContext.getAccount());
+                bidderRequest.getBidRequest(), bidderName, aliases, auctionContext.getAccount());
 
         final List<BidderError> mediaTypeProcessingErrors = mediaTypeProcessingResult.getErrors();
         if (mediaTypeProcessingResult.isRejected()) {
             auctionContext.getBidRejectionTrackers()
                     .get(bidderName)
                     .rejectAll(BidRejectionReason.REJECTED_BY_MEDIA_TYPE);
-
             final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
                     .warnings(mediaTypeProcessingErrors)
                     .build();
-
             return Future.succeededFuture(BidderResponse.of(bidderName, bidderSeatBid, 0));
         }
 

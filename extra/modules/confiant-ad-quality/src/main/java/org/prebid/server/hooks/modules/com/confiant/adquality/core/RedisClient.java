@@ -35,6 +35,7 @@ public class RedisClient {
             String password,
             RedisRetryConfig retryConfig,
             String type) {
+
         this.vertx = vertx;
         this.retryConfig = retryConfig;
         this.options = new RedisOptions().setConnectionString("redis://:" + password + "@" + host + ":" + port);

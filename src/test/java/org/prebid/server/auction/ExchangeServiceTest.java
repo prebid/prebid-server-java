@@ -368,7 +368,7 @@ public class ExchangeServiceTest extends VertxTest {
                         false,
                         AuctionResponsePayloadImpl.of(invocation.getArgument(0)))));
 
-        given(mediaTypeProcessor.process(any(), anyString(), any()))
+        given(mediaTypeProcessor.process(any(), anyString(), any(), any()))
                 .willAnswer(invocation -> MediaTypeProcessingResult.succeeded(invocation.getArgument(0), emptyList()));
 
         given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
@@ -4802,7 +4802,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
 
-        given(mediaTypeProcessor.process(any(), anyString(), any()))
+        given(mediaTypeProcessor.process(any(), anyString(), any(), any()))
                 .willReturn(MediaTypeProcessingResult.rejected(Collections.singletonList(
                         BidderError.badInput("MediaTypeProcessor error."))));
         given(bidResponseCreator.create(

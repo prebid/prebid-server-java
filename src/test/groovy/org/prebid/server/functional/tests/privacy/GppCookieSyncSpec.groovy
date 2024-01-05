@@ -167,7 +167,7 @@ class GppCookieSyncSpec extends BaseSpec {
             it.gpp = new TcfEuV2Consent.Builder().build()
             it.gdpr = null
             it.gdprConsent = new TcfConsent.Builder().setPurposesLITransparency(DEVICE_ACCESS)
-                                                     .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                                                     .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                                                      .build()
         }
 
