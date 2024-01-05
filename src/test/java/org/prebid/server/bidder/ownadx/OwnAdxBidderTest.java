@@ -45,6 +45,60 @@ public class OwnAdxBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldCorrectlyPopulateBidRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .containsExactly(bidRequest);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPassImpIdToHttpRequestImpIds() {
+        // given
+        final String firstId = "234";
+        final String secondId = "123";
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(List.of(
+                        givenImp(impBuilder -> impBuilder.id(firstId)),
+                        givenImp(impBuilder -> impBuilder.id(secondId))))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .flatExtracting(HttpRequest::getImpIds)
+                .containsExactlyInAnyOrder(firstId, secondId, firstId, secondId);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnOneValidAndInvalidInHttpRequest() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(List.of(
+                        givenImp(impBuilder ->
+                                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
+                        givenImp(identity())))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getValue()).hasSize(1);
+    }
+
+    @Test
     public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
@@ -90,8 +144,8 @@ public class OwnAdxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue())
+                .hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.com/test/sspId/seatId?token=token");
     }
@@ -108,8 +162,8 @@ public class OwnAdxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue())
+                .hasSize(1)
                 .extracting(HttpRequest::getUri)
                 .containsExactly("https://test.com/test//?token=");
     }
@@ -229,7 +283,8 @@ public class OwnAdxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
+        assertThat(result.getErrors())
+                .hasSize(1)
                 .satisfies(error -> {
                     assertThat(error).extracting(BidderError::getType)
                             .containsExactly(BidderError.Type.bad_server_response);
@@ -249,13 +304,18 @@ public class OwnAdxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
+        assertThat(result.getErrors())
+                .hasSize(1)
                 .satisfies(error -> {
                     assertThat(error).extracting(BidderError::getType)
                             .containsExactly(BidderError.Type.bad_server_response);
                     assertThat(error).extracting(BidderError::getMessage)
                             .containsExactly("Missing MType for bid: 123");
                 });
+    }
+
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return givenBidRequest(UnaryOperator.identity(), impCustomizer);
     }
 
     private static BidRequest givenBidRequest(
@@ -265,10 +325,6 @@ public class OwnAdxBidderTest extends VertxTest {
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .imp(singletonList(givenImp(impCustomizer))))
                 .build();
-    }
-
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(UnaryOperator.identity(), impCustomizer);
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

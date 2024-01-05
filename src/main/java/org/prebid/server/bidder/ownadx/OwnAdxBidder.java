@@ -77,7 +77,7 @@ public class OwnAdxBidder implements Bidder<BidRequest> {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(makeUrl(extImpOwnAdx))
-                .headers(makeHeader())
+                .headers(makeHeaders())
                 .body(mapper.encodeToBytes(bidRequest))
                 .impIds(BidderUtil.impIds(bidRequest))
                 .payload(bidRequest)
@@ -92,7 +92,7 @@ public class OwnAdxBidder implements Bidder<BidRequest> {
                 .replace(SOURCE_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getTokenId).orElse(""));
     }
 
-    private static MultiMap makeHeader() {
+    private static MultiMap makeHeaders() {
         return HttpUtil.headers()
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, X_OPEN_RTB_VERSION);
     }
