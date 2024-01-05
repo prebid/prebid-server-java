@@ -15,4 +15,5 @@ class Targeting {
     Site site
     User user
     List<String> keywords
+    String any
 }
