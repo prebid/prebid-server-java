@@ -3,6 +3,14 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.privacy.enforcement.ActivityEnforcement;
+import org.prebid.server.auction.privacy.enforcement.CcpaEnforcement;
+import org.prebid.server.auction.privacy.enforcement.CoppaEnforcement;
+import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdCcpaMask;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdCoppaMask;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdTcfMask;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.json.JacksonMapper;
@@ -294,5 +302,54 @@ public class PrivacyServiceConfiguration {
     @Bean
     SpecialFeature specialFeature() {
         return new SpecialFeature();
+    }
+
+    @Bean
+    UserFpdActivityMask userFpdActivityMask(UserFpdTcfMask userFpdTcfMask) {
+        return new UserFpdActivityMask(userFpdTcfMask);
+    }
+
+    @Bean
+    UserFpdCcpaMask userFpdCcpaMask(IpAddressHelper ipAddressHelper) {
+        return new UserFpdCcpaMask(ipAddressHelper);
+    }
+
+    @Bean
+    UserFpdCoppaMask userFpdCoppaMask(IpAddressHelper ipAddressHelper) {
+        return new UserFpdCoppaMask(ipAddressHelper);
+    }
+
+    @Bean
+    UserFpdTcfMask userFpdTcfMask(IpAddressHelper ipAddressHelper) {
+        return new UserFpdTcfMask(ipAddressHelper);
+    }
+
+    @Bean
+    ActivityEnforcement activityEnforcement(UserFpdActivityMask userFpdActivityMask) {
+        return new ActivityEnforcement(userFpdActivityMask);
+    }
+
+    @Bean
+    CcpaEnforcement ccpaEnforcement(UserFpdCcpaMask userFpdCcpaMask,
+                                    BidderCatalog bidderCatalog,
+                                    Metrics metrics,
+                                    @Value("${ccpa.enforce}") boolean ccpaEnforce) {
+
+        return new CcpaEnforcement(userFpdCcpaMask, bidderCatalog, metrics, ccpaEnforce);
+    }
+
+    @Bean
+    CoppaEnforcement coppaEnforcement(UserFpdCoppaMask userFpdCoppaMask, Metrics metrics) {
+        return new CoppaEnforcement(userFpdCoppaMask, metrics);
+    }
+
+    @Bean
+    TcfEnforcement tcfEnforcement(TcfDefinerService tcfDefinerService,
+                                  UserFpdTcfMask userFpdTcfMask,
+                                  BidderCatalog bidderCatalog,
+                                  Metrics metrics,
+                                  @Value("${lmt.enforce}") boolean lmtEnforce) {
+
+        return new TcfEnforcement(tcfDefinerService, userFpdTcfMask, bidderCatalog, metrics, lmtEnforce);
     }
 }

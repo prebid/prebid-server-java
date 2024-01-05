@@ -78,6 +78,7 @@ public abstract class PurposeStrategy {
                                                                Purpose purpose,
                                                                Collection<VendorPermissionWithGvl> vendorForPurpose,
                                                                Collection<VendorPermissionWithGvl> excludedVendors) {
+
         final boolean isEnforceVendors = BooleanUtils.isNotFalse(purpose.getEnforceVendors());
 
         final EnforcePurpose purposeType = purpose.getEnforcePurpose();

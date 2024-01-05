@@ -1,4 +1,4 @@
-package org.prebid.server.auction.privacycontextfactory;
+package org.prebid.server.auction.privacy.contextfactory;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -54,12 +54,15 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
     @Mock
     private CountryCodeMapper countryCodeMapper;
 
-    private AmpPrivacyContextFactory ampPrivacyContextFactory;
+    private AmpPrivacyContextFactory target;
 
     @Before
     public void setUp() {
-        ampPrivacyContextFactory = new AmpPrivacyContextFactory(
-                privacyExtractor, tcfDefinerService, ipAddressHelper, countryCodeMapper);
+        target = new AmpPrivacyContextFactory(
+                privacyExtractor,
+                tcfDefinerService,
+                ipAddressHelper,
+                countryCodeMapper);
     }
 
     @Test
@@ -69,20 +72,18 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .gdpr("")
                 .consentString("")
                 .ccpa(Ccpa.EMPTY)
+                .coppa(0)
                 .build();
-        given(privacyExtractor.validPrivacyFrom(any(), any()))
-                .willReturn(emptyPrivacy);
-        given(privacyExtractor.toValidPrivacy(any(), any(), any(), any(), any(), any(), any()))
-                .willReturn(emptyPrivacy);
+        given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(emptyPrivacy);
 
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final AuctionContext auctionContext = givenAuctionContext(
-                contextBuilder -> contextBuilder.httpRequest(givenHttpRequestContext("invalid")));
+                context -> context.httpRequest(givenHttpRequestContext("invalid")));
 
         // when
-        ampPrivacyContextFactory.contextFrom(auctionContext);
+        target.contextFrom(auctionContext);
 
         // then
         verify(privacyExtractor).validPrivacyFrom(any(), anyList());
@@ -95,20 +96,18 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .gdpr("")
                 .consentString("")
                 .ccpa(Ccpa.EMPTY)
+                .coppa(0)
                 .build();
-        given(privacyExtractor.validPrivacyFrom(any(), any()))
-                .willReturn(emptyPrivacy);
-        given(privacyExtractor.toValidPrivacy(any(), any(), any(), any(), any(), any(), any()))
-                .willReturn(emptyPrivacy);
+        given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(emptyPrivacy);
 
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.builder().warnings(singletonList("Error")).build()));
 
         final AuctionContext auctionContext = givenAuctionContext(
-                contextBuilder -> contextBuilder.httpRequest(givenHttpRequestContext(null)));
+                context -> context.httpRequest(givenHttpRequestContext(null)));
 
         // when
-        ampPrivacyContextFactory.contextFrom(auctionContext);
+        target.contextFrom(auctionContext);
 
         // then
         assertThat(auctionContext.getDebugWarnings()).containsExactly("Error");
@@ -121,6 +120,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .gdpr("1")
                 .consentString("consent_string")
                 .ccpa(Ccpa.EMPTY)
+                .coppa(0)
                 .build();
         given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(privacy);
 
@@ -128,13 +128,13 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final AuctionContext auctionContext = givenAuctionContext(
-                contextBuilder -> contextBuilder.httpRequest(givenHttpRequestContext(null)));
+                context -> context.httpRequest(givenHttpRequestContext(null)));
 
         // when
-        final Future<PrivacyContext> result = ampPrivacyContextFactory.contextFrom(auctionContext);
+        final PrivacyContext result = target.contextFrom(auctionContext).result();
 
         // then
-        assertThat(result.result().getPrivacy()).isEqualTo(privacy);
+        assertThat(result.getPrivacy()).isEqualTo(privacy);
         assertThat(auctionContext.getPrebidErrors()).isEmpty();
     }
 
@@ -145,36 +145,22 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .gdpr("1")
                 .consentString("consent_string")
                 .ccpa(Ccpa.EMPTY)
+                .coppa(0)
                 .build();
-        given(privacyExtractor.validPrivacyFrom(any(), any()))
-                .willReturn(privacy);
+        given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(privacy);
 
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final AuctionContext auctionContext = givenAuctionContext(
-                contextBuilder -> contextBuilder.httpRequest(givenHttpRequestContext("1")));
+                context -> context.httpRequest(givenHttpRequestContext("1")));
 
         // when
-        final Future<PrivacyContext> result = ampPrivacyContextFactory.contextFrom(auctionContext);
+        final PrivacyContext result = target.contextFrom(auctionContext).result();
 
         // then
-        assertThat(result.result().getPrivacy()).isEqualTo(privacy.withoutConsent());
+        assertThat(result.getPrivacy()).isEqualTo(privacy.withoutConsent());
         assertThat(auctionContext.getPrebidErrors()).containsExactly("Consent type tcfV1 is no longer supported");
-    }
-
-    private static AuctionContext givenAuctionContext(
-            UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer) {
-
-        final AuctionContext.AuctionContextBuilder defaultAuctionContextBuilder =
-                AuctionContext.builder()
-                        .httpRequest(givenHttpRequestContext(null))
-                        .debugWarnings(new ArrayList<>())
-                        .account(Account.builder().build())
-                        .prebidErrors(new ArrayList<>())
-                        .bidRequest(givenBidRequest(identity()));
-
-        return auctionContextCustomizer.apply(defaultAuctionContextBuilder).build();
     }
 
     @Test
@@ -186,27 +172,21 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .ccpa(Ccpa.of("1YYY"))
                 .coppa(1)
                 .build();
-        given(privacyExtractor.validPrivacyFrom(any(), any()))
-                .willReturn(privacy);
+        given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(privacy);
 
-        given(ipAddressHelper.maskIpv4(anyString()))
-                .willReturn("maskedIpV4");
-        given(ipAddressHelper.anonymizeIpv6(anyString()))
-                .willReturn("maskedIpV6");
+        given(ipAddressHelper.maskIpv4(anyString())).willReturn("maskedIpV4");
+        given(ipAddressHelper.anonymizeIpv6(anyString())).willReturn("maskedIpV6");
 
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                bidRequestBuilder.device(Device.builder().ip("ip").build()));
-
-        final AuctionContext auctionContext = givenAuctionContext(auctionContextBuilder ->
-                auctionContextBuilder
-                        .httpRequest(givenHttpRequestContext("invalid"))
-                        .bidRequest(bidRequest));
+        final BidRequest bidRequest = givenBidRequest(request -> request.device(Device.builder().ip("ip").build()));
+        final AuctionContext auctionContext = givenAuctionContext(context -> context
+                .httpRequest(givenHttpRequestContext("invalid"))
+                .bidRequest(bidRequest));
 
         // when
-        ampPrivacyContextFactory.contextFrom(auctionContext);
+        target.contextFrom(auctionContext);
 
         // then
         verify(ipAddressHelper).maskIpv4(anyString());
@@ -221,27 +201,21 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .ccpa(Ccpa.of("1YYY"))
                 .coppa(1)
                 .build();
-        given(privacyExtractor.validPrivacyFrom(any(), any()))
-                .willReturn(privacy);
+        given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(privacy);
 
-        given(ipAddressHelper.maskIpv4(anyString()))
-                .willReturn("maskedIpV4");
-        given(ipAddressHelper.anonymizeIpv6(anyString()))
-                .willReturn("maskedIpV6");
+        given(ipAddressHelper.maskIpv4(anyString())).willReturn("maskedIpV4");
+        given(ipAddressHelper.anonymizeIpv6(anyString())).willReturn("maskedIpV6");
 
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                bidRequestBuilder.device(Device.builder().ipv6("ipV6").build()));
-
-        final AuctionContext auctionContext = givenAuctionContext(auctionContextBuilder ->
-                auctionContextBuilder
-                        .httpRequest(givenHttpRequestContext("invalid"))
-                        .bidRequest(bidRequest));
+        final BidRequest bidRequest = givenBidRequest(request -> request.device(Device.builder().ipv6("ipV6").build()));
+        final AuctionContext auctionContext = givenAuctionContext(context -> context
+                .httpRequest(givenHttpRequestContext("invalid"))
+                .bidRequest(bidRequest));
 
         // when
-        ampPrivacyContextFactory.contextFrom(auctionContext);
+        target.contextFrom(auctionContext);
 
         // then
         verify(ipAddressHelper).anonymizeIpv6(anyString());
@@ -256,28 +230,38 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .ccpa(Ccpa.EMPTY)
                 .coppa(0)
                 .build();
-        given(privacyExtractor.validPrivacyFrom(any(), any()))
-                .willReturn(privacy);
+        given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(privacy);
 
         given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
-        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
-                bidRequestBuilder.site(Site.builder().ref("refUrl").build()));
-
-        final AuctionContext auctionContext = givenAuctionContext(auctionContextBuilder ->
-                auctionContextBuilder
-                        .requestTypeMetric(MetricName.openrtb2web)
-                        .httpRequest(givenHttpRequestContext("invalid"))
-                        .bidRequest(bidRequest));
+        final BidRequest bidRequest = givenBidRequest(request -> request.site(Site.builder().ref("refUrl").build()));
+        final AuctionContext auctionContext = givenAuctionContext(context -> context
+                .requestTypeMetric(MetricName.openrtb2web)
+                .httpRequest(givenHttpRequestContext("invalid"))
+                .bidRequest(bidRequest));
 
         // when
-        ampPrivacyContextFactory.contextFrom(auctionContext);
+        target.contextFrom(auctionContext);
 
         // then
         final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.openrtb2web, "refUrl", null);
         verify(tcfDefinerService)
                 .resolveTcfContext(any(), any(), any(), any(), any(), eq(expectedRequestLogInfo), any());
+    }
+
+    private static AuctionContext givenAuctionContext(
+            UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer) {
+
+        final AuctionContext.AuctionContextBuilder defaultAuctionContextBuilder =
+                AuctionContext.builder()
+                        .httpRequest(givenHttpRequestContext(null))
+                        .debugWarnings(new ArrayList<>())
+                        .account(Account.builder().build())
+                        .prebidErrors(new ArrayList<>())
+                        .bidRequest(givenBidRequest(identity()));
+
+        return auctionContextCustomizer.apply(defaultAuctionContextBuilder).build();
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {

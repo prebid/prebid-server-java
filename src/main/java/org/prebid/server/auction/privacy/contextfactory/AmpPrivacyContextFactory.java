@@ -1,4 +1,4 @@
-package org.prebid.server.auction.privacycontextfactory;
+package org.prebid.server.auction.privacy.contextfactory;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -9,7 +9,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.ConsentType;
-import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.privacy.PrivacyExtractor;
@@ -24,6 +23,7 @@ import org.prebid.server.settings.model.AccountPrivacyConfig;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class AmpPrivacyContextFactory {
 
@@ -47,33 +47,29 @@ public class AmpPrivacyContextFactory {
 
     public Future<PrivacyContext> contextFrom(AuctionContext auctionContext) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
-
-        final MetricName requestType = auctionContext.getRequestTypeMetric();
-        final Timeout timeout = auctionContext.getTimeout();
-        final List<String> errors = auctionContext.getPrebidErrors();
-
-        final Privacy initialPrivacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
-        final Privacy strippedPrivacy = stripPrivacy(initialPrivacy, auctionContext);
-
-        final Device device = bidRequest.getDevice();
         final Account account = auctionContext.getAccount();
+        final MetricName requestType = auctionContext.getRequestTypeMetric();
+
+        final Privacy initialPrivacy = privacyExtractor.validPrivacyFrom(bidRequest, auctionContext.getPrebidErrors());
+        final Privacy strippedPrivacy = stripPrivacy(initialPrivacy, auctionContext);
+        final Device device = bidRequest.getDevice();
 
         return tcfDefinerService.resolveTcfContext(
                         strippedPrivacy,
                         resolveAlpha2CountryCode(device),
                         resolveIpAddress(device, strippedPrivacy),
-                        extractGdprConfig(account),
+                        accountGdprConfig(account),
                         requestType,
                         requestLogInfo(requestType, bidRequest, account.getId()),
-                        timeout)
+                        auctionContext.getTimeout())
                 .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
                 .map(tcfContext -> PrivacyContext.of(strippedPrivacy, tcfContext, tcfContext.getIpAddress()));
     }
 
     private Privacy stripPrivacy(Privacy privacy, AuctionContext auctionContext) {
+        final String consentTypeParam = auctionContext.getHttpRequest().getQueryParams().get(CONSENT_TYPE_PARAM);
         final List<String> errors = auctionContext.getPrebidErrors();
 
-        final String consentTypeParam = auctionContext.getHttpRequest().getQueryParams().get(CONSENT_TYPE_PARAM);
         final ConsentType consentType = ConsentType.from(consentTypeParam);
 
         if (consentType == ConsentType.TCF_V1) {
@@ -84,28 +80,16 @@ public class AmpPrivacyContextFactory {
         return privacy;
     }
 
-    private AccountGdprConfig extractGdprConfig(Account account) {
-        final AccountPrivacyConfig accountPrivacyConfig = account != null ? account.getPrivacy() : null;
-
-        return accountPrivacyConfig != null ? accountPrivacyConfig.getGdpr() : null;
-    }
-
-    private static TcfContext logWarnings(List<String> debugWarnings, TcfContext tcfContext) {
-        debugWarnings.addAll(tcfContext.getWarnings());
-
-        return tcfContext;
-    }
-
     private String resolveAlpha2CountryCode(Device device) {
-        final Geo geo = device != null ? device.getGeo() : null;
-        final String alpha3CountryCode = geo != null ? geo.getCountry() : null;
-
-        return countryCodeMapper.mapToAlpha2(alpha3CountryCode);
+        return Optional.ofNullable(device)
+                .map(Device::getGeo)
+                .map(Geo::getCountry)
+                .map(countryCodeMapper::mapToAlpha2)
+                .orElse(null);
     }
 
     private String resolveIpAddress(Device device, Privacy privacy) {
-        final boolean shouldBeMasked = Objects.equals(privacy.getCoppa(), 1)
-                || (device != null && Objects.equals(device.getLmt(), 1));
+        final boolean shouldBeMasked = isCoppaMaskingRequired(privacy) || isLmtEnabled(device);
 
         final String ipV4Address = device != null ? device.getIp() : null;
         if (StringUtils.isNotBlank(ipV4Address)) {
@@ -120,13 +104,31 @@ public class AmpPrivacyContextFactory {
         return null;
     }
 
-    private static RequestLogInfo requestLogInfo(MetricName requestType, BidRequest bidRequest, String accountId) {
-        if (requestType == MetricName.openrtb2web) {
-            final Site site = bidRequest != null ? bidRequest.getSite() : null;
-            final String refUrl = site != null ? site.getRef() : null;
-            return RequestLogInfo.of(requestType, refUrl, accountId);
-        }
+    private static boolean isCoppaMaskingRequired(Privacy privacy) {
+        return privacy.getCoppa() == 1;
+    }
 
-        return RequestLogInfo.of(requestType, null, accountId);
+    private static boolean isLmtEnabled(Device device) {
+        return device != null && Objects.equals(device.getLmt(), 1);
+    }
+
+    private static AccountGdprConfig accountGdprConfig(Account account) {
+        final AccountPrivacyConfig privacyConfig = account.getPrivacy();
+        return privacyConfig != null ? privacyConfig.getGdpr() : null;
+    }
+
+    private static RequestLogInfo requestLogInfo(MetricName requestType, BidRequest bidRequest, String accountId) {
+        final String referrerUrl = MetricName.openrtb2web.equals(requestType)
+                ? Optional.ofNullable(bidRequest.getSite())
+                .map(Site::getRef)
+                .orElse(null)
+                : null;
+
+        return RequestLogInfo.of(requestType, referrerUrl, accountId);
+    }
+
+    private static TcfContext logWarnings(List<String> debugWarnings, TcfContext tcfContext) {
+        debugWarnings.addAll(tcfContext.getWarnings());
+        return tcfContext;
     }
 }

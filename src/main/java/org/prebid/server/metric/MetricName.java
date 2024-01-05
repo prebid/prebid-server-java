@@ -86,6 +86,7 @@ public enum MetricName {
     sizedout,
 
     // tcf
+    userfpd_removed,
     userid_removed,
     geo_masked,
     request_blocked,
