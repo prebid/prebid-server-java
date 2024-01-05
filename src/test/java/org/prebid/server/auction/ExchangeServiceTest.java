@@ -1040,6 +1040,50 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldRemoveTidsIfCreateTidsFalseAndKeepReceivedSchain() {
+        // given
+        final String bidderName = "bidder";
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder(bidderName, bidder, givenEmptySeatBid());
+
+        final Imp imp = givenImp(Map.of(bidderName, 1), identity());
+        imp.getExt().put("tid", "bidderTidValue");
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(imp),
+                builder -> builder
+                        .source(Source.builder().tid("sourceTidValue").schain(SupplyChain.of(1,
+                                List.of(SupplyChainNode.of("freestar.com", "66", null, null,
+                                        null, 1, null)), "1.0", null))
+                                .build())
+                        .ext(ExtRequest.of(
+                                ExtRequestPrebid.builder()
+                                        .createTids(false)
+                                        .build())));
+
+        // when
+        target.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester)
+                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
+        assertThat(capturedBidRequest)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getTid)
+                .isNull();
+        assertThat(capturedBidRequest)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getSchain)
+                .isNotNull();
+        assertThat(capturedBidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .containsOnlyNulls();
+    }
+
+    @Test
     public void shouldRemoveTidsIfTransmitTidActivityDisallowed() {
         // given
         final String bidderName = "bidder";
