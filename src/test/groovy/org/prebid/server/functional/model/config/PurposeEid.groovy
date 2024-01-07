@@ -5,12 +5,9 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
-@JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
-class PurposeConfig {
+@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
+class PurposeEid {
 
-    PurposeEnforcement enforcePurpose
-    Boolean enforceVendors
-    List<String> vendorExceptions
-    List<String> softVendorExceptions
-    PurposeEid eid
+   Boolean requireConsent
+   List<String> exceptions
 }

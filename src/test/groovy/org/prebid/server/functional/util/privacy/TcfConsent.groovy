@@ -54,8 +54,18 @@ class TcfConsent implements ConsentString {
             this
         }
 
-        Builder setPurposesConsent(List<Integer> purposesConsent) {
-            tcStringEncoder.addPurposesConsent(BitSetIntIterable.from(purposesConsent))
+        Builder setPurposesConsent(PurposeId purposesConsent) {
+            tcStringEncoder.addPurposesConsent(purposesConsent.value)
+            this
+        }
+
+        Builder setPurposesConsent(List<PurposeId> purposesConsent) {
+            tcStringEncoder.addPurposesConsent(BitSetIntIterable.from(purposesConsent.collect { it.value }))
+            this
+        }
+
+        Builder setVendorConsent(Integer vendorConsent) {
+            tcStringEncoder.addVendorConsent(vendorConsent)
             this
         }
 
@@ -63,6 +73,7 @@ class TcfConsent implements ConsentString {
             tcStringEncoder.addVendorConsent(BitSetIntIterable.from(vendorConsent))
             this
         }
+
 
         Builder setVendorLegitimateInterest(List<Integer> vendorLegitimateInterest) {
             tcStringEncoder.addVendorLegitimateInterest(BitSetIntIterable.from(vendorLegitimateInterest))
@@ -83,8 +94,14 @@ class TcfConsent implements ConsentString {
 
         DEVICE_ACCESS(1),
         BASIC_ADS(2),
+        PERSONALIZED_ADS_PROFILE(3),
         PERSONALIZED_ADS(4),
-        MEASURE_AD_PERFORMANCE(7)
+        PERSONALIZED_CONTENT_PROFILE(5),
+        PERSONALIZED_CONTENT(6),
+        MEASURE_AD_PERFORMANCE(7),
+        MEASURE_CONTENT_PERFORMANCE(8),
+        AUDIENCE_MARKET_RESEARCH(9),
+        DEVELOPMENT_IMPROVE_PRODUCTS(10)
 
         final int value
 
