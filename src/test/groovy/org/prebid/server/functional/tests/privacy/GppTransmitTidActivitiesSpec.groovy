@@ -100,7 +100,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         transmitActivityAllowStatus << [true, false]
     }
 
-    def "PBS auction shouldn't generate id for bidRequest.(source/imp[0].ext).tid and don't change schain in request when ext.prebid.createTids=false and transmit activity allowed"() {
+    def "PBS auction shouldn't generate id for bidRequest.(source/imp[0].ext).tid and don't change schain in request when ext.prebid.createTids=false and transmit activity allowed and schain specified in request"() {
         given: "Bid requests without TID fields and with schain fields, account id"
         def accountId = PBSUtils.randomNumber as String
         def sourceWithSchainAndTid = Source.defaultSource.tap {
@@ -139,7 +139,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         assert bidderRequest.source.schain == sourceWithSchainAndTid.schain
     }
 
-    def "PBS auction shouldn't generate id for bidRequest.(source/imp[0].ext).tid and don't change schain in request when ext.prebid.createTids=#createTid and transmit activity allowed and bidRequest.(source/imp[0].ext).tid are specified"() {
+    def "PBS auction shouldn't generate id for bidRequest.(source/imp[0].ext).tid and don't change schain in request when ext.prebid.createTids=#createTid, transmit activity allowed, bidRequest.(source/imp[0].ext).tid and schain are specified"() {
         given: "Bid requests with TID, schain fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def sourceWithSchainAndTid = Source.defaultSource.tap {
@@ -181,7 +181,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         createTid << [true, null]
     }
 
-    def "PBS auction should remove bidRequest.(source/imp[0].ext).tid but don't change schain in request when ext.prebid.createTids=null and activity disallowed"() {
+    def "PBS auction should remove bidRequest.(source/imp[0].ext).tid and don't change schain in request when ext.prebid.createTids=null and activity disallowed and schain specified in reques"() {
         given: "Bid requests with TID, schain fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def sourceWithSchainAndTid = Source.defaultSource.tap {
@@ -229,7 +229,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
     }
 
-    def "PBS auction should remove bidRequest.(source/imp[0].ext).tid but don't change schain in request when ext.prebid.createTids=#createTid and defaultAction=false"() {
+    def "PBS auction should remove bidRequest.(source/imp[0].ext).tid and don't change schain in request when ext.prebid.createTids=#createTid and defaultAction=false and schain specified in request"() {
         given: "Bid requests with TID, schain fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def sourceWithSchainAndTid = Source.defaultSource.tap {
@@ -504,7 +504,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         }
     }
 
-    def "PBS amp shouldn't generate id for bidRequest.(source/imp[0].ext).tid and don't change schain in request when ext.prebid.createTids=false and transmit activity allowed"() {
+    def "PBS amp shouldn't generate id for bidRequest.(source/imp[0].ext).tid and don't change schain in request when ext.prebid.createTids=false and transmit activity allowed and schain specified in request"() {
         given: "Bid requests with TID, schain fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def sourceWithSchainAndTid = Source.defaultSource.tap {
@@ -603,7 +603,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         createTid << [true, null]
     }
 
-    def "PBS amp should remove bidRequest.(source/imp[0].ext).tid but don't change schain in request when ext.prebid.createTids=null and activity disallowed"() {
+    def "PBS amp should remove bidRequest.(source/imp[0].ext).tid and don't change schain in request when ext.prebid.createTids=null and activity disallowed and schain specified in request"() {
         given: "Bid requests with TID, schain fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def sourceWithSchainAndTid = Source.defaultSource.tap {
@@ -651,7 +651,7 @@ class GppTransmitTidActivitiesSpec extends PrivacyBaseSpec {
         assert bidderRequest.source.schain == sourceWithSchainAndTid.schain
     }
 
-    def "PBS amp should remove bidRequest.(source/imp[0].ext).tid but don't change schain in request when ext.prebid.createTids=#createTid and defaultAction=false"() {
+    def "PBS amp should remove bidRequest.(source/imp[0].ext).tid and don't change schain in request when ext.prebid.createTids=#createTid and defaultAction=false and schain specified in request"() {
         given: "Bid requests with TID fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def sourceWithSchainAndTid = Source.defaultSource.tap {
