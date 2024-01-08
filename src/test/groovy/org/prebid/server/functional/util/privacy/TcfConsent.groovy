@@ -1,7 +1,11 @@
 package org.prebid.server.functional.util.privacy
 
+import com.iabtcf.encoder.PublisherRestrictionEntry
 import com.iabtcf.encoder.TCStringEncoder
 import com.iabtcf.utils.BitSetIntIterable
+import com.iabtcf.v2.RestrictionType
+import org.prebid.server.functional.model.bidder.BidderName
+import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
@@ -54,8 +58,8 @@ class TcfConsent implements ConsentString {
             this
         }
 
-        Builder setPurposesConsent(PurposeId purposesConsent) {
-            tcStringEncoder.addPurposesConsent(purposesConsent.value)
+        Builder setPurposesConsent(PurposeId purposeConsent) {
+            tcStringEncoder.addPurposesConsent(purposeConsent.value)
             this
         }
 
@@ -74,14 +78,31 @@ class TcfConsent implements ConsentString {
             this
         }
 
+        Builder setVendorLegitimateInterest(Integer vendorLegitimateInterest) {
+            tcStringEncoder.addVendorLegitimateInterest(vendorLegitimateInterest)
+            this
+        }
 
         Builder setVendorLegitimateInterest(List<Integer> vendorLegitimateInterest) {
             tcStringEncoder.addVendorLegitimateInterest(BitSetIntIterable.from(vendorLegitimateInterest))
             this
         }
 
+
+
         Builder setPurposesLITransparency(PurposeId purposesLITransparency) {
             tcStringEncoder.addPurposesLITransparency(purposesLITransparency.value)
+            this
+        }
+
+        Builder setPublisherRestrictionEntry(PurposeId purposeId, RestrictionType restrictionType, Integer vendorId) {
+            def publisherRestrictionEntry = PublisherRestrictionEntry
+                    .newBuilder()
+                    .purposeId(purposeId.value)
+                    .restrictionType(restrictionType)
+                    .addVendor(vendorId)
+                    .build()
+            tcStringEncoder.addPublisherRestrictionEntry(publisherRestrictionEntry)
             this
         }
 
@@ -107,6 +128,11 @@ class TcfConsent implements ConsentString {
 
         PurposeId(int value) {
             this.value = value
+        }
+
+        static PurposeId convertPurposeToPurposeId(Purpose purpose) {
+            int purposeValue = purpose.ordinal() + 1
+            values().find { it.value == purposeValue }
         }
     }
 

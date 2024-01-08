@@ -1,45 +1,50 @@
 package org.prebid.server.functional.tests.privacy
 
+import com.iabtcf.v2.RestrictionType
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.config.PurposeEid
+import org.prebid.server.functional.model.privacy.EnforcementRequirments
 import org.prebid.server.functional.model.request.auction.Eid
+import org.prebid.server.functional.util.privacy.TcfUtils
+import spock.lang.IgnoreRest
 
+import static com.iabtcf.v2.RestrictionType.REQUIRE_CONSENT
+import static com.iabtcf.v2.RestrictionType.REQUIRE_LEGITIMATE_INTEREST
+import static com.iabtcf.v2.RestrictionType.UNDEFINED
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.config.Purpose.P4
 import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
+import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.Vendor
 import static org.prebid.server.functional.util.privacy.TcfConsent.Builder
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
-import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.AUDIENCE_MARKET_RESEARCH
-import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
-import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVELOPMENT_IMPROVE_PRODUCTS
-import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
-import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.MEASURE_AD_PERFORMANCE
-import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.MEASURE_CONTENT_PERFORMANCE
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.PERSONALIZED_ADS
-import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.PERSONALIZED_ADS_PROFILE
-import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.PERSONALIZED_CONTENT
-import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.PERSONALIZED_CONTENT_PROFILE
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 
 class TcfTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
-    def "PBS should leave the original request with eids data when requireConsent is enabled and P4 have consent"() {
+    private static final def DEFAULT_TCF_POLICY_VERSION = TCF_POLICY_V2
+
+    def "PBS should leave the original request with eids data when requireConsent is enabled and P4 have full consent"() {
         given: "Default Generic BidRequests with EID fields"
         def userEids = [Eid.defaultEid]
         def userExtEids = [Eid.defaultEid]
+        def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
         def bidRequest = getGdprBidRequest(tcfConsent).tap {
             it.user.eids = userEids
             it.user.ext.eids = userExtEids
         }
 
         and: "Save account config with requireConsent into DB"
-        def purposeConfigWithRequiredConsent = purposeConfig.tap {
-            eid = new PurposeEid(requireConsent: true)
-        }
-        def accountGdprConfig = new AccountGdprConfig(purposes: [(Purpose.P4): purposeConfigWithRequiredConsent])
+        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, true)
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
         accountDao.save(account)
+
+        and: "Set vendor list response"
+        vendorListResponse.setResponse(DEFAULT_TCF_POLICY_VERSION, TcfUtils.getGvlVendor(enforcementRequirments))
 
         when: "PBS processes auction requests"
         activityPbsService.sendAuctionRequest(bidRequest)
@@ -51,299 +56,37 @@ class TcfTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         assert bidderRequest.user.ext.eids == userExtEids
 
         where:
-        purposeConfig                                                                   | tcfConsent
-        new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(PERSONALIZED_ADS).build()
-        new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(PERSONALIZED_ADS).build()
-        new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(PERSONALIZED_ADS)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
+        enforcementRequirments << [
+                new EnforcementRequirments(purpose: P4, purposeGvl: P4, vendorIdGvl: GENERIC_VENDOR_ID, flexiblePurposeGvl: null, restrictionType: [REQUIRE_CONSENT, UNDEFINED], enforcePurpose: null, enforceVendor: null),
+                new EnforcementRequirments(purpose: P4, purposeGvl: P4, vendorIdGvl: GENERIC_VENDOR_ID, flexiblePurposeGvl: null, restrictionType: [REQUIRE_CONSENT, UNDEFINED], purposeConsent: P4, enforceVendor: null),
+                new EnforcementRequirments(purpose: P4, purposeGvl: P4, vendorIdGvl: GENERIC_VENDOR_ID, flexiblePurposeGvl: null, restrictionType: [REQUIRE_CONSENT, UNDEFINED], enforcePurpose: null, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: P4, purposeGvl: P4, vendorIdGvl: GENERIC_VENDOR_ID, flexiblePurposeGvl: null, restrictionType: [REQUIRE_CONSENT, UNDEFINED], purposeConsent: P4, vendorConsentBitField: GENERIC_VENDOR_ID),
+
+                new EnforcementRequirments(purpose: P4, legIntPurposeGvl: P4, vendorIdGvl: GENERIC_VENDOR_ID, flexiblePurposeGvl: null, restrictionType: [REQUIRE_LEGITIMATE_INTEREST, UNDEFINED], enforcePurpose: null, enforceVendor: null),
+                new EnforcementRequirments(purpose: P4, legIntPurposeGvl: P4, vendorIdGvl: GENERIC_VENDOR_ID, flexiblePurposeGvl: null, restrictionType: [REQUIRE_LEGITIMATE_INTEREST, UNDEFINED], purposesLITransparency: P4, enforceVendor: null),
+                new EnforcementRequirments(purpose: P4, legIntPurposeGvl: P4, vendorIdGvl: GENERIC_VENDOR_ID, flexiblePurposeGvl: null, restrictionType: [REQUIRE_LEGITIMATE_INTEREST, UNDEFINED], enforcePurpose: null, vendorLegitimateInterestBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: P4, legIntPurposeGvl: P4, vendorIdGvl: GENERIC_VENDOR_ID, flexiblePurposeGvl: null, restrictionType: [REQUIRE_LEGITIMATE_INTEREST, UNDEFINED], purposesLITransparency: P4, vendorLegitimateInterestBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, enforceVendor: false),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: P4, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, softVendorExceptions: [GENERIC])
+        ]
     }
 
-    def "PBS should remove the original request with eids data when requireConsent is enabled and #purposeVersion have consent"() {
+    def "PBS should leave the original request with eids data when requireConsent is enabled and P4 have basic consent"() {
         given: "Default Generic BidRequests with EID fields"
         def userEids = [Eid.defaultEid]
         def userExtEids = [Eid.defaultEid]
+        def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
         def bidRequest = getGdprBidRequest(tcfConsent).tap {
             it.user.eids = userEids
             it.user.ext.eids = userExtEids
         }
 
         and: "Save account config with requireConsent into DB"
-        def purposeConfigWithRequiredConsent = new PurposeConfig(eid: new PurposeEid(requireConsent: true))
-        def purposes = [(Purpose.P4): purposeConfigWithRequiredConsent, (purposeVersion): purposeConfig]
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Generic bidder request shouldn't have data in Eid fields"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-
-        assert !bidderRequest.user.eids
-        assert !bidderRequest.user.ext.eids
-
-        where:
-        purposeVersion | purposeConfig                                                                   | tcfConsent
-        Purpose.P2     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(BASIC_ADS).build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(BASIC_ADS).build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P2     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(BASIC_ADS).build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(BASIC_ADS)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(PERSONALIZED_ADS_PROFILE).build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P3     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(PERSONALIZED_ADS_PROFILE).build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(PERSONALIZED_ADS_PROFILE)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(PERSONALIZED_CONTENT_PROFILE).build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P5     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(PERSONALIZED_CONTENT_PROFILE).build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(PERSONALIZED_CONTENT_PROFILE)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(PERSONALIZED_CONTENT).build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P6     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(PERSONALIZED_CONTENT).build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(PERSONALIZED_CONTENT)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(MEASURE_AD_PERFORMANCE).build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P7     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(MEASURE_AD_PERFORMANCE).build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(MEASURE_AD_PERFORMANCE)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(MEASURE_CONTENT_PERFORMANCE).build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P8     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(MEASURE_CONTENT_PERFORMANCE).build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(MEASURE_CONTENT_PERFORMANCE)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(AUDIENCE_MARKET_RESEARCH).build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P9     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(AUDIENCE_MARKET_RESEARCH).build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(AUDIENCE_MARKET_RESEARCH)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(DEVELOPMENT_IMPROVE_PRODUCTS).build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P10    | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(DEVELOPMENT_IMPROVE_PRODUCTS).build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(DEVELOPMENT_IMPROVE_PRODUCTS)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-    }
-
-    def "PBS should leave the original request with eids data when requireConsent is enabled but bidder is excepted and #purposeVersion have consent"() {
-        given: "Default Generic BidRequests with EID fields"
-        def userEids = [Eid.defaultEid]
-        def userExtEids = [Eid.defaultEid]
-        def bidRequest = getGdprBidRequest(tcfConsent).tap {
-            it.user.eids = userEids
-            it.user.ext.eids = userExtEids
-        }
-
-        and: "Save account config with requireConsent into DB"
-        def purposeConfigWithRequiredConsent = new PurposeConfig(eid: new PurposeEid(requireConsent: true, exceptions: [GENERIC.value]))
-        def purposes = [(Purpose.P4): purposeConfigWithRequiredConsent, (purposeVersion): purposeConfig]
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Generic bidder request shouldn't have data in Eid fields"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-
-        assert !bidderRequest.user.eids
-        assert !bidderRequest.user.ext.eids
-
-        where:
-        purposeVersion | purposeConfig                                                                   | tcfConsent
-        Purpose.P2     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(BASIC_ADS).build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(BASIC_ADS).build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P2     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(BASIC_ADS).build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(BASIC_ADS)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(PERSONALIZED_ADS_PROFILE).build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P3     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(PERSONALIZED_ADS_PROFILE).build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(PERSONALIZED_ADS_PROFILE)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(PERSONALIZED_CONTENT_PROFILE).build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P5     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(PERSONALIZED_CONTENT_PROFILE).build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(PERSONALIZED_CONTENT_PROFILE)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(PERSONALIZED_CONTENT).build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P6     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(PERSONALIZED_CONTENT).build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(PERSONALIZED_CONTENT)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(MEASURE_AD_PERFORMANCE).build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P7     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(MEASURE_AD_PERFORMANCE).build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(MEASURE_AD_PERFORMANCE)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(MEASURE_CONTENT_PERFORMANCE).build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P8     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(MEASURE_CONTENT_PERFORMANCE).build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(MEASURE_CONTENT_PERFORMANCE)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(AUDIENCE_MARKET_RESEARCH).build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P9     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(AUDIENCE_MARKET_RESEARCH).build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(AUDIENCE_MARKET_RESEARCH)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(DEVELOPMENT_IMPROVE_PRODUCTS).build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P10    | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(DEVELOPMENT_IMPROVE_PRODUCTS).build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(DEVELOPMENT_IMPROVE_PRODUCTS)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-    }
-
-    def "PBS should remove the original request with eids data when requireConsent is enabled, bidder is excepted and #purposeVersion have unsupported consent"() {
-        given: "Default Generic BidRequests with EID fields"
-        def userEids = [Eid.defaultEid]
-        def userExtEids = [Eid.defaultEid]
-        def bidRequest = getGdprBidRequest(tcfConsent).tap {
-            it.user.eids = userEids
-            it.user.ext.eids = userExtEids
-        }
-
-        and: "Save account config with requireConsent into DB"
-        def purposeConfigWithRequiredConsent = new PurposeConfig(eid: new PurposeEid(requireConsent: true, exceptions: [GENERIC.value]))
-        def purposes = [(Purpose.P4): purposeConfigWithRequiredConsent, (purposeVersion): purposeConfig]
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
-        accountDao.save(account)
-
-        when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(bidRequest)
-
-        then: "Generic bidder request shouldn't have data in Eid fields"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-
-        assert !bidderRequest.user.eids
-        assert !bidderRequest.user.ext.eids
-
-        where:
-        purposeVersion | purposeConfig                                                                   | tcfConsent
-        Purpose.P10    | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(DEVELOPMENT_IMPROVE_PRODUCTS).build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(AUDIENCE_MARKET_RESEARCH).build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(MEASURE_CONTENT_PERFORMANCE).build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(MEASURE_AD_PERFORMANCE).build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(PERSONALIZED_CONTENT).build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(PERSONALIZED_CONTENT_PROFILE).build()
-        Purpose.P4     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(PERSONALIZED_ADS).build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(PERSONALIZED_ADS_PROFILE).build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(DEVICE_ACCESS).build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(DEVICE_ACCESS).build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P1     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(DEVICE_ACCESS).build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(DEVICE_ACCESS)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-    }
-
-    def "PBS should leave the original request with eids data when requireConsent is disabled and #purposeVersion have consent"() {
-        given: "Default Generic BidRequests with EID fields"
-        def userEids = [Eid.defaultEid]
-        def userExtEids = [Eid.defaultEid]
-        def bidRequest = getGdprBidRequest(tcfConsent).tap {
-            it.user.eids = userEids
-            it.user.ext.eids = userExtEids
-        }
-
-        and: "Save account config with requireConsent into DB"
-        def purposeConfigWithRequiredConsent = new PurposeConfig(eid: new PurposeEid(requireConsent: false))
-        def purposes = [(Purpose.P4): purposeConfigWithRequiredConsent, (purposeVersion): purposeConfig]
+        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, true)
         def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
         accountDao.save(account)
@@ -358,108 +101,18 @@ class TcfTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         assert bidderRequest.user.ext.eids == userExtEids
 
         where:
-        purposeVersion | purposeConfig                                                                   | tcfConsent
-        Purpose.P2     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(BASIC_ADS).build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(BASIC_ADS).build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P2     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(BASIC_ADS).build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P2     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(BASIC_ADS)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(PERSONALIZED_ADS_PROFILE).build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P3     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(PERSONALIZED_ADS_PROFILE).build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(PERSONALIZED_ADS_PROFILE)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P4     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false,
-                eid: new PurposeEid(requireConsent: false))                                              | new Builder().setPurposesConsent(PERSONALIZED_ADS).build()
-        Purpose.P4     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true,
-                eid: new PurposeEid(requireConsent: false))                                              | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P4     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false,
-                eid: new PurposeEid(requireConsent: false))                                              | new Builder().build()
-        Purpose.P4     | new PurposeConfig(vendorExceptions: [GENERIC.value],
-                eid: new PurposeEid(requireConsent: false))                                              | new Builder().build()
-        Purpose.P4     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value],
-                eid: new PurposeEid(requireConsent: false))                                              | new Builder().setPurposesConsent(PERSONALIZED_ADS).build()
-        Purpose.P4     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value],
-                eid: new PurposeEid(requireConsent: false))                                              | new Builder().build()
-        Purpose.P4     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true,
-                eid: new PurposeEid(requireConsent: false))                                              | new Builder()
-                .setPurposesConsent(PERSONALIZED_ADS)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(PERSONALIZED_CONTENT_PROFILE).build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P5     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(PERSONALIZED_CONTENT_PROFILE).build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(PERSONALIZED_CONTENT_PROFILE)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(PERSONALIZED_CONTENT).build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P6     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(PERSONALIZED_CONTENT).build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(PERSONALIZED_CONTENT)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(MEASURE_AD_PERFORMANCE).build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P7     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(MEASURE_AD_PERFORMANCE).build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(MEASURE_AD_PERFORMANCE)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(MEASURE_CONTENT_PERFORMANCE).build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P8     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(MEASURE_CONTENT_PERFORMANCE).build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(MEASURE_CONTENT_PERFORMANCE)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(AUDIENCE_MARKET_RESEARCH).build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P9     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(AUDIENCE_MARKET_RESEARCH).build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(AUDIENCE_MARKET_RESEARCH)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(DEVELOPMENT_IMPROVE_PRODUCTS).build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P10    | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(DEVELOPMENT_IMPROVE_PRODUCTS).build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P10    | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(DEVELOPMENT_IMPROVE_PRODUCTS)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
+        enforcementRequirments << [
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, enforceVendor: false),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: P4, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, softVendorExceptions: [GENERIC])
+        ]
     }
 
-    def "PBS should remove the original request with eids data when requireConsent is disabled and purpose #purposeVersion have unsupported consent"() {
+    def "PBS should remove the original request with eids data when requireConsent is enabled and #purposeVersion have basic consent"() {
         given: "Default Generic BidRequests with EID fields"
         def userEids = [Eid.defaultEid]
         def userExtEids = [Eid.defaultEid]
@@ -469,8 +122,7 @@ class TcfTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Save account config with requireConsent into DB"
-        def purposeConfigWithRequiredConsent = new PurposeConfig(eid: new PurposeEid(requireConsent: false))
-        def purposes = [(Purpose.P4): purposeConfigWithRequiredConsent, (purposeVersion): purposeConfig]
+        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, true)
         def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
         accountDao.save(account)
@@ -485,25 +137,378 @@ class TcfTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         assert !bidderRequest.user.ext.eids
 
         where:
-        purposeVersion | purposeConfig                                                                   | tcfConsent
-        Purpose.P10    | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(DEVELOPMENT_IMPROVE_PRODUCTS).build()
-        Purpose.P9     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(AUDIENCE_MARKET_RESEARCH).build()
-        Purpose.P8     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(MEASURE_CONTENT_PERFORMANCE).build()
-        Purpose.P7     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(MEASURE_AD_PERFORMANCE).build()
-        Purpose.P6     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(PERSONALIZED_CONTENT).build()
-        Purpose.P5     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(PERSONALIZED_CONTENT_PROFILE).build()
-        Purpose.P4     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(PERSONALIZED_ADS).build()
-        Purpose.P3     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(PERSONALIZED_ADS_PROFILE).build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder().setPurposesLITransparency(DEVICE_ACCESS).build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: false)                 | new Builder().setPurposesConsent(DEVICE_ACCESS).build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: NO, enforceVendors: true)                     | new Builder().setVendorConsent(GENERIC_VENDOR_ID).build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: NO, enforceVendors: false)                    | new Builder().build()
-        Purpose.P1     | new PurposeConfig(vendorExceptions: [GENERIC.value])                            | new Builder().build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: BASIC, softVendorExceptions: [GENERIC.value]) | new Builder().setPurposesConsent(DEVICE_ACCESS).build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: NO, softVendorExceptions: [GENERIC.value])    | new Builder().build()
-        Purpose.P1     | new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)                  | new Builder()
-                .setPurposesConsent(DEVICE_ACCESS)
-                .setVendorConsent(GENERIC_VENDOR_ID)
-                .build()
+        enforcementRequirments << [
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P2, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P2, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P2, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P2, enforcePurpose: BASIC, purposesLITransparency: Purpose.P2),
+                new EnforcementRequirments(purpose: Purpose.P2, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P2, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P2, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P2, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P3, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P3, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: BASIC, purposesLITransparency: Purpose.P3),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P3, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P3, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, enforceVendor: false),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: P4, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P5, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P5, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P5, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P5, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P5, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P5, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P5, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P6, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P6, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P6, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P6, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P6, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P6, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P6, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P7, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P7, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P7, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P7, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P7, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P7, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P7, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P8, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P8, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P8, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P8, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P8, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P8, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P8, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P9, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P9, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P9, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P9, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P9, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P9, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P9, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P10, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P10, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P10, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P10, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P10, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P10, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P10, enforcePurpose: NO, softVendorExceptions: [GENERIC])
+        ]
+    }
+
+    def "PBS should leave the original request with eids data when requireConsent is enabled but bidder is excepted and #purposeVersion have basic consent"() {
+        given: "Default Generic BidRequests with EID fields"
+        def userEids = [Eid.defaultEid]
+        def userExtEids = [Eid.defaultEid]
+        def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
+        def bidRequest = getGdprBidRequest(tcfConsent).tap {
+            it.user.eids = userEids
+            it.user.ext.eids = userExtEids
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, true, [GENERIC])
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Generic bidder request shouldn't have data in Eid fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        assert !bidderRequest.user.eids
+        assert !bidderRequest.user.ext.eids
+
+        where:
+        enforcementRequirments << [
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P2, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P2, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P2, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P2, enforcePurpose: BASIC, purposesLITransparency: Purpose.P2),
+                new EnforcementRequirments(purpose: Purpose.P2, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P2, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P2, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P2, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P3, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P3, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: BASIC, purposesLITransparency: Purpose.P3),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P3, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P3, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, enforceVendor: false),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: P4, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P5, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P5, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P5, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P5, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P5, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P5, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P5, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P6, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P6, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P6, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P6, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P6, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P6, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P6, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P7, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P7, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P7, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P7, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P7, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P7, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P7, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P8, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P8, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P8, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P8, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P8, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P8, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P8, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P9, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P9, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P9, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P9, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P9, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P9, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P9, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P10, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P10, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P10, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P10, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P10, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P10, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P10, enforcePurpose: NO, softVendorExceptions: [GENERIC])
+        ]
+    }
+
+    def "PBS should remove the original request with eids data when requireConsent is enabled, bidder is excepted and #purposeVersion have unsupported basic consent"() {
+        given: "Default Generic BidRequests with EID fields"
+        def userEids = [Eid.defaultEid]
+        def userExtEids = [Eid.defaultEid]
+        def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
+        def bidRequest = getGdprBidRequest(tcfConsent).tap {
+            it.user.eids = userEids
+            it.user.ext.eids = userExtEids
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, true, [GENERIC])
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Generic bidder request shouldn't have data in Eid fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        assert !bidderRequest.user.eids
+        assert !bidderRequest.user.ext.eids
+
+        where:
+        enforcementRequirments << [
+                new EnforcementRequirments(purpose: Purpose.P10, enforcePurpose: BASIC, purposesLITransparency: Purpose.P10),
+                new EnforcementRequirments(purpose: Purpose.P9, enforcePurpose: BASIC, purposesLITransparency: Purpose.P9),
+                new EnforcementRequirments(purpose: Purpose.P8, enforcePurpose: BASIC, purposesLITransparency: Purpose.P8),
+                new EnforcementRequirments(purpose: Purpose.P7, enforcePurpose: BASIC, purposesLITransparency: Purpose.P7),
+                new EnforcementRequirments(purpose: Purpose.P6, enforcePurpose: BASIC, purposesLITransparency: Purpose.P6),
+                new EnforcementRequirments(purpose: Purpose.P5, enforcePurpose: BASIC, purposesLITransparency: Purpose.P5),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: BASIC, purposesLITransparency: P4),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: BASIC, purposesLITransparency: Purpose.P3),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P1, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P1, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P1, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P1, enforcePurpose: BASIC, purposesLITransparency: Purpose.P1),
+                new EnforcementRequirments(purpose: Purpose.P1, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P1, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P1, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P1, enforcePurpose: NO, softVendorExceptions: [GENERIC])
+        ]
+    }
+
+    def "PBS should leave the original request with eids data when requireConsent is disabled and #purposeVersion have basic consent"() {
+        given: "Default Generic BidRequests with EID fields"
+        def userEids = [Eid.defaultEid]
+        def userExtEids = [Eid.defaultEid]
+        def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
+        def bidRequest = getGdprBidRequest(tcfConsent).tap {
+            it.user.eids = userEids
+            it.user.ext.eids = userExtEids
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, false)
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Generic bidder request should have data in Eid fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        assert bidderRequest.user.eids == userEids
+        assert bidderRequest.user.ext.eids == userExtEids
+
+        where:
+        enforcementRequirments << [
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P2, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P2, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P2, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P2, enforcePurpose: BASIC, purposesLITransparency: Purpose.P2),
+                new EnforcementRequirments(purpose: Purpose.P2, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P2, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P2, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P2, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P3, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P3, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: BASIC, purposesLITransparency: Purpose.P3),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P3, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P3, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, enforceVendor: false),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: P4, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: P4, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P5, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P5, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P5, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P5, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P5, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P5, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P5, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P6, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P6, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P6, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P6, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P6, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P6, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P6, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P7, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P7, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P7, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P7, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P7, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P7, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P7, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P8, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P8, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P8, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P8, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P8, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P8, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P8, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P9, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P9, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P9, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P9, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P9, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P9, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P9, enforcePurpose: NO, softVendorExceptions: [GENERIC]),
+
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P10, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P10, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P10, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P10, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P10, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P10, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P10, enforcePurpose: NO, softVendorExceptions: [GENERIC])
+        ]
+    }
+
+    def "PBS should remove the original request with eids data when requireConsent is disabled and purpose #purposeVersion have unsupported basic consent"() {
+        given: "Default Generic BidRequests with EID fields"
+        def userEids = [Eid.defaultEid]
+        def userExtEids = [Eid.defaultEid]
+        def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
+        def bidRequest = getGdprBidRequest(tcfConsent).tap {
+            it.user.eids = userEids
+            it.user.ext.eids = userExtEids
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, false)
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Generic bidder request shouldn't have data in Eid fields"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        assert !bidderRequest.user.eids
+        assert !bidderRequest.user.ext.eids
+
+        where:
+        enforcementRequirments << [
+                new EnforcementRequirments(purpose: Purpose.P10, enforcePurpose: BASIC, purposesLITransparency: Purpose.P10),
+                new EnforcementRequirments(purpose: Purpose.P9, enforcePurpose: BASIC, purposesLITransparency: Purpose.P9),
+                new EnforcementRequirments(purpose: Purpose.P8, enforcePurpose: BASIC, purposesLITransparency: Purpose.P8),
+                new EnforcementRequirments(purpose: Purpose.P7, enforcePurpose: BASIC, purposesLITransparency: Purpose.P7),
+                new EnforcementRequirments(purpose: Purpose.P6, enforcePurpose: BASIC, purposesLITransparency: Purpose.P6),
+                new EnforcementRequirments(purpose: Purpose.P5, enforcePurpose: BASIC, purposesLITransparency: Purpose.P5),
+                new EnforcementRequirments(purpose: P4, enforcePurpose: BASIC, purposesLITransparency: P4),
+                new EnforcementRequirments(purpose: Purpose.P3, enforcePurpose: BASIC, purposesLITransparency: Purpose.P3),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P1, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P1, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P1, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+                new EnforcementRequirments(purpose: Purpose.P1, enforcePurpose: BASIC, purposesLITransparency: Purpose.P1),
+                new EnforcementRequirments(purpose: Purpose.P1, enforcePurpose: NO, enforceVendor: false),
+                new EnforcementRequirments(purpose: Purpose.P1, vendorExceptions: [GENERIC]),
+                new EnforcementRequirments(enforcePurpose: BASIC, purposeConsent: Purpose.P1, softVendorExceptions: [GENERIC]),
+                new EnforcementRequirments(purpose: Purpose.P1, enforcePurpose: NO, softVendorExceptions: [GENERIC])
+        ]
     }
 }
