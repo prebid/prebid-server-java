@@ -143,7 +143,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         def isVendorListCachedClosure = {
             def validConsentString = new TcfConsent.Builder()
                     .setPurposesLITransparency(BASIC_ADS)
-                    .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                     .build()
             def bidRequest = getGdprBidRequest(validConsentString)
 

@@ -1,6 +1,8 @@
 package org.prebid.server.functional.testcontainers.scaffolding
 
 import org.mockserver.client.MockServerClient
+import org.mockserver.configuration.ClientConfiguration
+import org.mockserver.configuration.Configuration
 import org.mockserver.matchers.Times
 import org.mockserver.model.ClearType
 import org.mockserver.model.Header
@@ -25,7 +27,10 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
     protected String endpoint
 
     NetworkScaffolding(MockServerContainer mockServerContainer, String endpoint) {
-        this.mockServerClient = new MockServerClient(mockServerContainer.host, mockServerContainer.serverPort)
+        this.mockServerClient = new MockServerClient(
+                new ClientConfiguration(new Configuration(alwaysCloseSocketConnections: true)),
+                mockServerContainer.host,
+                mockServerContainer.serverPort)
         this.endpoint = endpoint
     }
 
