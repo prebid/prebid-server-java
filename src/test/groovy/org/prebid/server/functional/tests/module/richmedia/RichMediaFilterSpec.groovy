@@ -101,6 +101,50 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         amdValue << [PATTERN_NAME, "${PATTERN_NAME}.js", "${PBSUtils.randomString}-${PATTERN_NAME}.js", "${PATTERN_NAME}-${PBSUtils.randomString}.js"]
     }
 
+    def "PBS should reject request with error and provide analytic when adm matches with extended pattern name and filter set to enabled in host config"() {
+        given: "PBS with extended pattern name"
+        def pbsServiceWithEnabledMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings("<${PBSUtils.randomString}=${PATTERN_NAME}.js></${PBSUtils.randomString}>"))
+
+        and: "BidRequest with stored response"
+        def storedResponseId = PBSUtils.randomNumber
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.trace = VERBOSE
+            it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
+        }
+
+        and: "Stored bid response in DB"
+        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid[0].bid[0].adm = amdValue as String
+        }
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
+        storedResponseDao.save(storedResponse)
+
+        and: "Account in the DB"
+        def account = new Account(uuid: bidRequest.getAccountId())
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithEnabledMediaFilter.sendAuctionRequest(bidRequest)
+
+        then: "Response header shouldn't contain any seatbid"
+        assert !response.seatbid
+
+        and: "Response should contain error of invalid creation for imp with code 350"
+        def responseErrors = response.ext.errors
+        assert responseErrors[ErrorType.GENERIC]*.message == ['Invalid creatives']
+        assert responseErrors[ErrorType.GENERIC]*.code == [350]
+        assert responseErrors[ErrorType.GENERIC].collectMany { it.impIds } == bidRequest.imp.id
+
+        and: "Add an entry to the analytics tag for this rejected bid response"
+        def analyticsTags = getAnalyticResults(response)
+        assert analyticsTags.size() == 1
+        def analyticResult = analyticsTags.first()
+        assert analyticResult == AnalyticResult.buildFromImp(bidRequest.imp.first())
+
+        where:
+        amdValue << [PATTERN_NAME, "${PATTERN_NAME}.js", "${PBSUtils.randomString}-${PATTERN_NAME}.js", "${PATTERN_NAME}-${PBSUtils.randomString}.js"]
+    }
+
     def "PBS should process request without analytics when adm is empty name and filter enabled in host config"() {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
