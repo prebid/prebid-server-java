@@ -31,6 +31,9 @@ adapters:
       xtrmqb:
         enabled: false
         endpoint: http://ads-pbs.ortb.tech/openrtb/{{PublisherID}}?host={{Host}}
+      embimedia:
+        enabled: false
+        endpoint: http://ads-pbs.bidder-embi.media/openrtb/{{PublisherID}}?host={{Host}}
     meta-info:
       maintainer-email: engineering@project-limelight.com
       app-media-types:

@@ -16,7 +16,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
-public class XtrmqbGameTest extends IntegrationTest {
+public class XtrmqbTest extends IntegrationTest {
 
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheXtrmqbBidder() throws IOException, JSONException {
