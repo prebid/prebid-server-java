@@ -103,6 +103,7 @@ public class CurrencyConversionService implements Initializable {
         }
 
         final String body = response.getBody();
+        logger.debug("Body of response" + body);
         try {
             return mapper.mapper().readValue(body, CurrencyConversionRates.class);
         } catch (IOException e) {

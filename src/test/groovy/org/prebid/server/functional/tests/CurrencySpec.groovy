@@ -35,7 +35,6 @@ class CurrencySpec extends BaseSpec {
         def response = pbsService.sendCurrencyRatesRequest()
 
         then: "Response should contain bidders params"
-        println networkServiceContainer.rootUri
         assert response.rates?.size() > 0
     }
 
