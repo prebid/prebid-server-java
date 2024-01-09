@@ -12,9 +12,9 @@
       },
       "ext": {
         "liftoff": {
-          "bid_token": "123",
-          "app_store_id": "123",
-          "placement_reference_id": "123"
+          "bid_token": "bid_token",
+          "app_store_id": "app_store_id",
+          "placement_reference_id": "placement_reference_id"
         }
       }
     }

@@ -414,30 +414,6 @@ public class FlippBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetIpToRequestBodyWhenIpPresentInImpExtFlipp() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity(),
-                impBuilder -> impBuilder
-                        .banner(Banner.builder().format(null).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFlipp.builder()
-                                .publisherNameIdentifier("publisherName")
-                                .ip("Any-ip-address")
-                                .options(ExtImpFlippOptions.of(false, false, null))
-                                .zoneIds(List.of(12))
-                                .build()))));
-
-        // when
-        final Result<List<HttpRequest<CampaignRequestBody>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(CampaignRequestBody::getIp)
-                .containsExactly("Any-ip-address");
-    }
-
-    @Test
     public void makeHttpRequestsShouldSetIpToRequestBodyWhenPresentInDeviceIp() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -445,7 +421,6 @@ public class FlippBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFlipp.builder()
                                 .publisherNameIdentifier("publisherName")
-                                .ip(null)
                                 .options(ExtImpFlippOptions.of(false, false, null))
                                 .zoneIds(List.of(12))
                                 .build()))));
@@ -462,14 +437,13 @@ public class FlippBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldAddErrorWhenExtImpAndDeviceIpAbsent() {
+    public void makeHttpRequestsShouldAddErrorWhendDeviceIpAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 bidRequestBuilder -> bidRequestBuilder.device(Device.builder().ip(null).build()),
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpFlipp.builder()
                                 .publisherNameIdentifier("publisherName")
-                                .ip(null)
                                 .options(ExtImpFlippOptions.of(false, false, null))
                                 .zoneIds(List.of(12))
                                 .build()))));
