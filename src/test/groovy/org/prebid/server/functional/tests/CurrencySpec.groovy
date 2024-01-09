@@ -8,6 +8,7 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 
 import java.math.RoundingMode
+import java.time.Instant
 
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.JPY
@@ -28,13 +29,17 @@ class CurrencySpec extends BaseSpec {
 
     def "PBS should return currency rates"() {
         given: "Set up currency conversion"
+        def start = Instant.now().minusSeconds(100)
         currencyConversion.setCurrencyConversionRatesResponse(
                 CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
 
         when: "PBS processes bidders params request"
-        def response = pbsService.sendCurrencyRatesRequest()
+        def response = pbsService.withWarmup().sendCurrencyRatesRequest()
 
         then: "Response should contain bidders params"
+        def byTime = pbsService.getLogsByTime(start)
+        def text = getLogsByText(byTime, "Body of response")
+        println text
         assert response.rates?.size() > 0
     }
 
