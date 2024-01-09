@@ -11,6 +11,8 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.util.PBSUtils
 
+import java.time.Instant
+
 import static org.prebid.server.functional.model.Currency.BOGUS
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.GBP
@@ -290,6 +292,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
     def "PBS should make FP enforcement with currency conversion when request.cur, floor cur, bidResponse cur are different"() {
         given: "Default BidRequest with cur"
         def requestCur = EUR
+        def start = Instant.now().minusSeconds(100)
         def bidRequest = bidRequestWithFloors.tap {
             cur = [requestCur]
         }
@@ -314,6 +317,9 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         def currencyRatesResponse = currencyFloorsPbsService.sendCurrencyRatesRequest()
 
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
+        def byTime = currencyFloorsPbsService.getLogsByTime(start)
+        def text = getLogsByText(byTime, "Body of response")
+        println text
         def bidResponseCur = GBP
         def convertedMinFloorValueGbp = getPriceAfterCurrencyConversion(floorValue,
                 floorCur, bidResponseCur, currencyRatesResponse)

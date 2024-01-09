@@ -100,6 +100,7 @@ class CurrencySpec extends BaseSpec {
 
     def "PBS should use reverse currency conversion when direct conversion is not available"() {
         given: "Default BidRequest with #requestCurrency currency"
+        def start = Instant.now().minusSeconds(100)
         def bidRequest = BidRequest.defaultBidRequest.tap { cur = [requestCurrency] }
 
         and: "Default Bid with a #bidCurrency currency"
@@ -110,6 +111,9 @@ class CurrencySpec extends BaseSpec {
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Auction response should contain bid in #requestCurrency currency"
+        def byTime = pbsService.getLogsByTime(start)
+        def text = getLogsByText(byTime, "Body of response")
+        println text
         assert bidResponse.cur == requestCurrency
         def bidPrice = bidResponse.seatbid[0].bid[0].price
         assert bidPrice == convertCurrency(bidderResponse.seatbid[0].bid[0].price, bidCurrency, requestCurrency)
