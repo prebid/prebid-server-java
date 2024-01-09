@@ -31,10 +31,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class PurposeFiveStrategyTest {
+public class Purpose01StrategyTest {
 
     private static final PurposeCode PURPOSE_CODE =
-            PurposeCode.FIVE;
+            PurposeCode.ONE;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -48,14 +48,16 @@ public class PurposeFiveStrategyTest {
     @Mock
     private NoEnforcePurposeStrategy noEnforcePurposeStrategy;
 
-    private PurposeFiveStrategy target;
+    private Purpose01Strategy target;
 
     @Mock
     private TCString tcString;
 
     @Before
     public void setUp() {
-        target = new PurposeFiveStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+        target = new Purpose01Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
@@ -80,7 +82,9 @@ public class PurposeFiveStrategyTest {
         target.allowNaturally(privacyEnforcementAction);
 
         // then
-        assertThat(privacyEnforcementAction).usingRecursiveComparison().isEqualTo(allowNatural());
+        assertThat(privacyEnforcementAction)
+                .usingRecursiveComparison()
+                .isEqualTo(PrivacyEnforcementAction.restrictAll());
     }
 
     @Test
@@ -142,6 +146,7 @@ public class PurposeFiveStrategyTest {
                 Vendor.empty(3));
         final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2, vendorPermissionWitGvl3);
+
         given(basicEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
                 .willReturn(asList(vendorPermission1, vendorPermission2));
 
@@ -163,9 +168,10 @@ public class PurposeFiveStrategyTest {
     }
 
     @Test
-    public void processTypePurposeStrategyShouldPassListWithEnforcementsAndExcludeBiddersToFullType() {
+    public void processTypePurposeStrategyShouldPassEmptyListWithEnforcementsWhenAllBiddersAreExcluded() {
         // given
-        final Purpose purpose = Purpose.of(EnforcePurpose.basic, null, asList("b1", "b2", "b3", "b5", "b7"), null);
+        final List<String> vendorExceptions = asList("b1", "b2", "b3", "b5", "b7");
+        final Purpose purpose = Purpose.of(EnforcePurpose.basic, null, vendorExceptions, null);
         final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());
@@ -269,8 +275,8 @@ public class PurposeFiveStrategyTest {
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurposeAndNaturally());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurposeAndNaturally());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowPurpose());
-        assertThat(result).usingRecursiveFieldByFieldElementComparator().isEqualTo(
-                asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
+        assertThat(result).usingRecursiveFieldByFieldElementComparator()
+                .isEqualTo(asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
         verify(fullEnforcePurposeStrategy, times(2)).allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 singletonList(vendorPermissionWitGvl3), excludedVendorPermissionsWithGvl, true);
@@ -322,21 +328,13 @@ public class PurposeFiveStrategyTest {
                 singletonList(vendorPermissionWitGvl3), excludedVendorPermissionsWithGvl, true);
     }
 
-    private static PrivacyEnforcementAction allowPurposeAndNaturally() {
-        return allowNatural(allowPurpose());
-    }
-
     private static PrivacyEnforcementAction allowPurpose() {
-        return PrivacyEnforcementAction.restrictAll();
-    }
-
-    private static PrivacyEnforcementAction allowNatural() {
-        return allowNatural(PrivacyEnforcementAction.restrictAll());
-    }
-
-    private static PrivacyEnforcementAction allowNatural(PrivacyEnforcementAction privacyEnforcementAction) {
-        privacyEnforcementAction.setRemoveUserIds(false);
-        privacyEnforcementAction.setMaskDeviceInfo(false);
+        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
+        privacyEnforcementAction.setBlockPixelSync(false);
         return privacyEnforcementAction;
+    }
+
+    private static PrivacyEnforcementAction allowPurposeAndNaturally() {
+        return allowPurpose();
     }
 }

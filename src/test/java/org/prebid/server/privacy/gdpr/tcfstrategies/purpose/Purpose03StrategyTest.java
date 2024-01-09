@@ -31,10 +31,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class PurposeEightStrategyTest {
+public class Purpose03StrategyTest {
 
     private static final PurposeCode PURPOSE_CODE =
-            PurposeCode.EIGHT;
+            PurposeCode.THREE;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -48,14 +48,16 @@ public class PurposeEightStrategyTest {
     @Mock
     private NoEnforcePurposeStrategy noEnforcePurposeStrategy;
 
-    private PurposeEightStrategy target;
+    private Purpose03Strategy target;
 
     @Mock
     private TCString tcString;
 
     @Before
     public void setUp() {
-        target = new PurposeEightStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+        target = new Purpose03Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 

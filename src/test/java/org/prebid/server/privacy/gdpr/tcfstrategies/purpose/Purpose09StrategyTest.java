@@ -31,7 +31,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class PurposeNineStrategyTest {
+public class Purpose09StrategyTest {
 
     private static final PurposeCode PURPOSE_CODE =
             PurposeCode.NINE;
@@ -48,14 +48,16 @@ public class PurposeNineStrategyTest {
     @Mock
     private NoEnforcePurposeStrategy noEnforcePurposeStrategy;
 
-    private PurposeNineStrategy target;
+    private Purpose09Strategy target;
 
     @Mock
     private TCString tcString;
 
     @Before
     public void setUp() {
-        target = new PurposeNineStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+        target = new Purpose09Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 

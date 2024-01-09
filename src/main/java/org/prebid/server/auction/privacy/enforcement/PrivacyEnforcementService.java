@@ -42,7 +42,7 @@ public class PrivacyEnforcementService {
         return coppaEnforcement.isApplicable(auctionContext)
                 ? coppaEnforcement.enforce(auctionContext, bidderToUser)
                 : ccpaEnforcement.enforce(auctionContext, bidderToUser, aliases)
-                .flatMap(ccpaResult -> tcfEnforcement.enforce(
+                .compose(ccpaResult -> tcfEnforcement.enforce(
                                 auctionContext,
                                 bidderToUser,
                                 biddersToApplyTcf(bidderToUser.keySet(), ccpaResult),

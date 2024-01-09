@@ -31,10 +31,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class PurposeTwoStrategyTest {
+public class Purpose05StrategyTest {
 
     private static final PurposeCode PURPOSE_CODE =
-            PurposeCode.TWO;
+            PurposeCode.FIVE;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -48,14 +48,16 @@ public class PurposeTwoStrategyTest {
     @Mock
     private NoEnforcePurposeStrategy noEnforcePurposeStrategy;
 
-    private PurposeTwoStrategy target;
+    private Purpose05Strategy target;
 
     @Mock
     private TCString tcString;
 
     @Before
     public void setUp() {
-        target = new PurposeTwoStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+        target = new Purpose05Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
@@ -327,9 +329,7 @@ public class PurposeTwoStrategyTest {
     }
 
     private static PrivacyEnforcementAction allowPurpose() {
-        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        privacyEnforcementAction.setBlockBidderRequest(false);
-        return privacyEnforcementAction;
+        return PrivacyEnforcementAction.restrictAll();
     }
 
     private static PrivacyEnforcementAction allowNatural() {

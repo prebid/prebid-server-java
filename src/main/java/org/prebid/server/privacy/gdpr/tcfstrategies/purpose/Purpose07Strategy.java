@@ -6,17 +6,18 @@ import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.FullE
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 
-public class PurposeFourStrategy extends PurposeStrategy {
+public class Purpose07Strategy extends PurposeStrategy {
 
-    public PurposeFourStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                               BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                               NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+    public Purpose07Strategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+                             BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                             NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
 
         super(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy, noEnforcePurposeStrategy);
     }
 
     @Override
     public void allow(PrivacyEnforcementAction privacyEnforcementAction) {
+        privacyEnforcementAction.setBlockAnalyticsReport(false);
     }
 
     @Override
@@ -27,7 +28,8 @@ public class PurposeFourStrategy extends PurposeStrategy {
 
     @Override
     public PurposeCode getPurpose() {
-        return PurposeCode.FOUR;
+        return PurposeCode.SEVEN;
     }
+
 }
 

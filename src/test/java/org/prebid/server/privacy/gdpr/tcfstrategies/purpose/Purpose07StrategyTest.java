@@ -31,10 +31,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class PurposeOneStrategyTest {
+public class Purpose07StrategyTest {
 
     private static final PurposeCode PURPOSE_CODE =
-            PurposeCode.ONE;
+            PurposeCode.SEVEN;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -48,14 +48,16 @@ public class PurposeOneStrategyTest {
     @Mock
     private NoEnforcePurposeStrategy noEnforcePurposeStrategy;
 
-    private PurposeOneStrategy target;
+    private Purpose07Strategy target;
 
     @Mock
     private TCString tcString;
 
     @Before
     public void setUp() {
-        target = new PurposeOneStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+        target = new Purpose07Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
@@ -80,9 +82,7 @@ public class PurposeOneStrategyTest {
         target.allowNaturally(privacyEnforcementAction);
 
         // then
-        assertThat(privacyEnforcementAction)
-                .usingRecursiveComparison()
-                .isEqualTo(PrivacyEnforcementAction.restrictAll());
+        assertThat(privacyEnforcementAction).usingRecursiveComparison().isEqualTo(allowNatural());
     }
 
     @Test
@@ -273,8 +273,8 @@ public class PurposeOneStrategyTest {
         final VendorPermission vendorPermission1Changed = VendorPermission.of(1, "b1", allowPurposeAndNaturally());
         final VendorPermission vendorPermission2Changed = VendorPermission.of(2, "b2", allowPurposeAndNaturally());
         final VendorPermission vendorPermission3Changed = VendorPermission.of(3, "b3", allowPurpose());
-        assertThat(result).usingRecursiveFieldByFieldElementComparator()
-                .isEqualTo(asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
+        assertThat(result).usingRecursiveFieldByFieldElementComparator().isEqualTo(
+                asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
         verify(fullEnforcePurposeStrategy, times(2)).allowedByTypeStrategy(PURPOSE_CODE, tcString,
                 singletonList(vendorPermissionWitGvl3), excludedVendorPermissionsWithGvl, true);
@@ -326,13 +326,23 @@ public class PurposeOneStrategyTest {
                 singletonList(vendorPermissionWitGvl3), excludedVendorPermissionsWithGvl, true);
     }
 
+    private static PrivacyEnforcementAction allowPurposeAndNaturally() {
+        return allowNatural(allowPurpose());
+    }
+
     private static PrivacyEnforcementAction allowPurpose() {
         final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        privacyEnforcementAction.setBlockPixelSync(false);
+        privacyEnforcementAction.setBlockAnalyticsReport(false);
         return privacyEnforcementAction;
     }
 
-    private static PrivacyEnforcementAction allowPurposeAndNaturally() {
-        return allowPurpose();
+    private static PrivacyEnforcementAction allowNatural() {
+        return allowNatural(PrivacyEnforcementAction.restrictAll());
+    }
+
+    private static PrivacyEnforcementAction allowNatural(PrivacyEnforcementAction privacyEnforcementAction) {
+        privacyEnforcementAction.setRemoveUserIds(false);
+        privacyEnforcementAction.setMaskDeviceInfo(false);
+        return privacyEnforcementAction;
     }
 }

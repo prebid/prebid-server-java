@@ -31,10 +31,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class PurposeTenStrategyTest {
+public class Purpose04StrategyTest {
 
     private static final PurposeCode PURPOSE_CODE =
-            PurposeCode.TEN;
+            PurposeCode.FOUR;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -48,14 +48,16 @@ public class PurposeTenStrategyTest {
     @Mock
     private NoEnforcePurposeStrategy noEnforcePurposeStrategy;
 
-    private PurposeTenStrategy target;
+    private Purpose04Strategy target;
 
     @Mock
     private TCString tcString;
 
     @Before
     public void setUp() {
-        target = new PurposeTenStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+        target = new Purpose04Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
@@ -142,6 +144,7 @@ public class PurposeTenStrategyTest {
                 Vendor.empty(3));
         final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2, vendorPermissionWitGvl3);
+
         given(basicEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
                 .willReturn(asList(vendorPermission1, vendorPermission2));
 
@@ -158,14 +161,15 @@ public class PurposeTenStrategyTest {
                 asList(vendorPermission1Changed, vendorPermission2Changed, vendorPermission3Changed));
 
         verify(basicEnforcePurposeStrategy).allowedByTypeStrategy(PURPOSE_CODE, tcString,
-                asList(vendorPermissionWitGvl1, vendorPermissionWitGvl3), singletonList(vendorPermissionWitGvl2),
-                false);
+                asList(vendorPermissionWitGvl1, vendorPermissionWitGvl3),
+                singletonList(vendorPermissionWitGvl2), false);
     }
 
     @Test
-    public void processTypePurposeStrategyShouldPassListWithEnforcementsAndExcludeBiddersToFullType() {
+    public void processTypePurposeStrategyShouldPassEmptyListWithEnforcementsWhenAllBiddersAreExcluded() {
         // given
-        final Purpose purpose = Purpose.of(EnforcePurpose.basic, null, asList("b1", "b2", "b3", "b5", "b7"), null);
+        final List<String> vendorExceptions = asList("b1", "b2", "b3", "b5", "b7");
+        final Purpose purpose = Purpose.of(EnforcePurpose.basic, null, vendorExceptions, null);
         final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());
@@ -291,6 +295,7 @@ public class PurposeTenStrategyTest {
                 Vendor.empty(3));
         final List<VendorPermission> vendorPermissions = asList(vendorPermission1, vendorPermission2,
                 vendorPermission3);
+
         final List<VendorPermission> excludedVendorPermissions = asList(vendorPermission1, vendorPermission2);
 
         given(noEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))

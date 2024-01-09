@@ -31,10 +31,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class PurposeSevenStrategyTest {
+public class Purpose08StrategyTest {
 
     private static final PurposeCode PURPOSE_CODE =
-            PurposeCode.SEVEN;
+            PurposeCode.EIGHT;
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -48,14 +48,16 @@ public class PurposeSevenStrategyTest {
     @Mock
     private NoEnforcePurposeStrategy noEnforcePurposeStrategy;
 
-    private PurposeSevenStrategy target;
+    private Purpose08Strategy target;
 
     @Mock
     private TCString tcString;
 
     @Before
     public void setUp() {
-        target = new PurposeSevenStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+        target = new Purpose08Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
@@ -142,7 +144,6 @@ public class PurposeSevenStrategyTest {
                 Vendor.empty(3));
         final List<VendorPermissionWithGvl> vendorPermissionsWithGvl = asList(vendorPermissionWitGvl1,
                 vendorPermissionWitGvl2, vendorPermissionWitGvl3);
-
         given(basicEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
                 .willReturn(asList(vendorPermission1, vendorPermission2));
 
@@ -164,10 +165,9 @@ public class PurposeSevenStrategyTest {
     }
 
     @Test
-    public void processTypePurposeStrategyShouldPassEmptyListWithEnforcementsWhenAllBiddersAreExcluded() {
+    public void processTypePurposeStrategyShouldPassListWithEnforcementsAndExcludeBiddersToFullType() {
         // given
-        final List<String> vendorExceptions = asList("b1", "b2", "b3", "b5", "b7");
-        final Purpose purpose = Purpose.of(EnforcePurpose.basic, null, vendorExceptions, null);
+        final Purpose purpose = Purpose.of(EnforcePurpose.basic, null, asList("b1", "b2", "b3", "b5", "b7"), null);
         final VendorPermission vendorPermission1 = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission2 = VendorPermission.of(2, "b2", PrivacyEnforcementAction.restrictAll());
         final VendorPermission vendorPermission3 = VendorPermission.of(3, "b3", PrivacyEnforcementAction.restrictAll());
@@ -329,9 +329,7 @@ public class PurposeSevenStrategyTest {
     }
 
     private static PrivacyEnforcementAction allowPurpose() {
-        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
-        privacyEnforcementAction.setBlockAnalyticsReport(false);
-        return privacyEnforcementAction;
+        return PrivacyEnforcementAction.restrictAll();
     }
 
     private static PrivacyEnforcementAction allowNatural() {

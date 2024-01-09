@@ -173,7 +173,7 @@ public class ActivityInfrastructureCreatorTest {
                 .privacy(AccountPrivacyConfig.of(
                         AccountGdprConfig.builder()
                                 .purposes(Purposes.builder()
-                                        .p4(Purpose.of(null, null, null, PurposeEid.of(false)))
+                                        .p4(Purpose.of(null, null, null, PurposeEid.of(false, false, null)))
                                         .build())
                                 .build(),
                         null,

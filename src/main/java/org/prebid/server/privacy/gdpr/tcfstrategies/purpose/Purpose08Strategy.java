@@ -6,27 +6,28 @@ import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.FullE
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 
-public class PurposeOneStrategy extends PurposeStrategy {
+public class Purpose08Strategy extends PurposeStrategy {
 
-    public PurposeOneStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                              BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                              NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+    public Purpose08Strategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+                             BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                             NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
 
         super(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy, noEnforcePurposeStrategy);
     }
 
     @Override
     public void allow(PrivacyEnforcementAction privacyEnforcementAction) {
-        privacyEnforcementAction.setBlockPixelSync(false);
     }
 
     @Override
     public void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction) {
+        privacyEnforcementAction.setRemoveUserIds(false);
+        privacyEnforcementAction.setMaskDeviceInfo(false);
     }
 
     @Override
     public PurposeCode getPurpose() {
-        return PurposeCode.ONE;
+        return PurposeCode.EIGHT;
     }
 }
 
