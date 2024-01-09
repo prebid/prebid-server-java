@@ -89,20 +89,21 @@ class TcfConsent implements ConsentString {
         }
 
 
-
         Builder setPurposesLITransparency(PurposeId purposesLITransparency) {
             tcStringEncoder.addPurposesLITransparency(purposesLITransparency.value)
             this
         }
 
-        Builder setPublisherRestrictionEntry(PurposeId purposeId, RestrictionType restrictionType, Integer vendorId) {
-            def publisherRestrictionEntry = PublisherRestrictionEntry
-                    .newBuilder()
-                    .purposeId(purposeId.value)
-                    .restrictionType(restrictionType)
-                    .addVendor(vendorId)
-                    .build()
-            tcStringEncoder.addPublisherRestrictionEntry(publisherRestrictionEntry)
+        Builder setPublisherRestrictionEntry(PurposeId purposeId, List<RestrictionType> restrictionTypes, Integer vendorId) {
+            restrictionTypes.each { restrictionType ->
+                def publisherRestrictionEntry = PublisherRestrictionEntry
+                        .newBuilder()
+                        .purposeId(purposeId.value)
+                        .restrictionType(restrictionType)
+                        .addVendor(vendorId)
+                        .build()
+                tcStringEncoder.addPublisherRestrictionEntry(publisherRestrictionEntry)
+            }
             this
         }
 

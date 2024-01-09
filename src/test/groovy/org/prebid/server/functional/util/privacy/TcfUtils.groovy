@@ -7,19 +7,17 @@ import org.prebid.server.functional.model.config.PurposeEid
 import org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse
 import org.prebid.server.functional.model.privacy.EnforcementRequirments
 
-import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
-import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
+import static org.prebid.server.functional.util.privacy.TcfConsent.Builder
+import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId
 
 class TcfUtils {
 
     static Map<Purpose, PurposeConfig> getPurposeConfigsForPersonalizedAds(EnforcementRequirments enforcementRequirments, boolean requireConsent = false, List<BidderName> exceptions = []) {
-        def purpose = enforcementRequirments.purposeConsent != null ? enforcementRequirments.purposeConsent : enforcementRequirments.purpose
-        def purposeConfig = new PurposeConfig(
-                enforcePurpose: enforcementRequirments.enforcePurpose,
+        def purpose = enforcementRequirments.purposeConsent ?: enforcementRequirments.purpose
+        def purposeConfig = new PurposeConfig(enforcePurpose: enforcementRequirments.enforcePurpose,
                 enforceVendors: enforcementRequirments.enforceVendor,
-                softVendorExceptions: enforcementRequirments.softVendorExceptions.value,
-                vendorExceptions: enforcementRequirments.vendorExceptions.value
-        )
+                softVendorExceptions: enforcementRequirments?.softVendorExceptions?.value,
+                vendorExceptions: enforcementRequirments?.vendorExceptions?.value)
         def purposeEid = new PurposeEid(requireConsent: requireConsent, exceptions: exceptions.value)
         if (purpose == Purpose.P4) {
             purposeConfig.eid = purposeEid
@@ -31,21 +29,36 @@ class TcfUtils {
     }
 
     static ConsentString getConsentString(EnforcementRequirments enforcementRequirments) {
-        def purpose = enforcementRequirments.purposeConsent != null ? enforcementRequirments.purposeConsent : enforcementRequirments.purpose
-        new TcfConsent.Builder()
-                .setPurposesConsent(TcfConsent.PurposeId.convertPurposeToPurposeId(enforcementRequirments.purposeConsent))
-                .setVendorConsent(enforcementRequirments.getVendorConsentBitField())
-                .setPurposesLITransparency(TcfConsent.PurposeId.convertPurposeToPurposeId(enforcementRequirments.getPurposesLITransparency()))
-                .setPublisherRestrictionEntry(TcfConsent.PurposeId.convertPurposeToPurposeId(purpose), enforcementRequirments.restrictionType, enforcementRequirments.vendorIdGvl)
-                .setVendorLegitimateInterest(enforcementRequirments.vendorIdGvl)
-                .build()
+        def purposeConsent = enforcementRequirments.purposeConsent
+        def purpose = enforcementRequirments.purposeConsent ?: enforcementRequirments.purpose
+        def vendorConsentBitField = enforcementRequirments.getVendorConsentBitField()
+        def purposesLITransparency = enforcementRequirments.getPurposesLITransparency()
+        def restrictionType = enforcementRequirments.restrictionType
+        def vendorIdGvl = enforcementRequirments.vendorIdGvl
+        def builder = new Builder()
+        if (purposeConsent != null) {
+            builder.setPurposesConsent(PurposeId.convertPurposeToPurposeId(purposeConsent))
+        }
+        if (vendorConsentBitField != null) {
+            builder.setVendorConsent(vendorConsentBitField)
+        }
+        if (purposesLITransparency != null) {
+            builder.setPurposesLITransparency(PurposeId.convertPurposeToPurposeId(purposesLITransparency))
+        }
+        if (purpose != null && restrictionType != null && vendorIdGvl != null) {
+            builder.setPublisherRestrictionEntry(PurposeId.convertPurposeToPurposeId(purpose), restrictionType, vendorIdGvl)
+        }
+        if (vendorIdGvl != null) {
+            builder.setVendorLegitimateInterest(vendorIdGvl)
+        }
+        return builder.build()
     }
 
     static Map<Integer, VendorListResponse.Vendor> getGvlVendor(EnforcementRequirments enforcementRequirments) {
-        def vendor = VendorListResponse.Vendor.getDefaultVendor(enforcementRequirments.vendorIdGvl).tap {
-            it.purposes = [TcfConsent.PurposeId.convertPurposeToPurposeId(enforcementRequirments.purposeGvl).value]
-            it.legIntPurposes = [TcfConsent.PurposeId.convertPurposeToPurposeId(enforcementRequirments.legIntPurposeGvl).value]
-            it.flexiblePurposes = [TcfConsent.PurposeId.convertPurposeToPurposeId(enforcementRequirments.flexiblePurposeGvl).value]
+        def vendor = VendorListResponse.Vendor.getDefaultVendor(enforcementRequirments?.vendorIdGvl).tap {
+            purposes = enforcementRequirments?.purposeGvl ? [PurposeId.convertPurposeToPurposeId(enforcementRequirments.purposeGvl).value] : []
+            legIntPurposes = enforcementRequirments?.legIntPurposeGvl ? [PurposeId.convertPurposeToPurposeId(enforcementRequirments.legIntPurposeGvl).value] : []
+            flexiblePurposes = enforcementRequirments?.flexiblePurposeGvl ? [PurposeId.convertPurposeToPurposeId(enforcementRequirments.flexiblePurposeGvl).value] : []
         }
         [(enforcementRequirments.vendorIdGvl): vendor]
     }

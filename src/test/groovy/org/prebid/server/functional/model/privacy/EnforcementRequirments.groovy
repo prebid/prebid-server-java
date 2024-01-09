@@ -14,7 +14,7 @@ class EnforcementRequirments {
     Purpose purposeConsent
     Boolean enforceVendor
     Integer vendorConsentBitField
-    Integer vendorLegitimateInterestBitfield
+    Integer vendorLegitimateInterestBitField
     List<BidderName> softVendorExceptions
     List<BidderName> vendorExceptions
     Purpose purposesLITransparency
