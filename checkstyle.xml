@@ -24,9 +24,6 @@
         <property name="severity" value="error"/>
         <property name="fileExtensions" value="groovy,java"/>
     </module>
-    <module name="RegexpMultiline">
-        <property name="format" value="System\.(out|err)\.print"/>
-    </module>
     <module name="LineLength">
         <property name="max" value="120"/>
         <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|@see|//"/>
