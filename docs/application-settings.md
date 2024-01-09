@@ -427,7 +427,9 @@ example:
   "cookie-sync": {
     "default-limit": 5,
     "max-limit": 8,
-    "default-coop-sync": true
+    "coop-sync": {
+      "default": true
+    }
   }
 }
 ```
