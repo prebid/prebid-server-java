@@ -115,7 +115,8 @@ public class CurrencyConversionService implements Initializable {
     private Void updateCurrencyRates(CurrencyConversionRates currencyConversionRates) {
         final Map<String, Map<String, BigDecimal>> receivedCurrencyRates = currencyConversionRates.getConversions();
         if (receivedCurrencyRates != null) {
-            logger.warn("External currency populated : " +  Instant.now() + " : " + receivedCurrencyRates);
+
+            logger.warn("External currency populated : " + Instant.now() + " : " + receivedCurrencyRates);
             externalCurrencyRates = receivedCurrencyRates;
             lastUpdated = now();
         }

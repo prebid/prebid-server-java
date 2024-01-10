@@ -42,8 +42,8 @@ public class CurrencyRatesHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext routingContext) {
         try {
-            logger.warn("Currency conversion : " + Instant.now() + " : " +
-                    currencyConversionService.getExternalCurrencyRates());
+            logger.warn("Currency conversion : " + Instant.now() + " : "
+                    + currencyConversionService.getExternalCurrencyRates());
             final String body = mapper.mapper().writeValueAsString(Response.of(
                     currencyConversionService.isExternalRatesActive(),
                     currencyConversionService.getCurrencyServerUrl(),
