@@ -45,22 +45,7 @@ public class OwnAdxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCorrectlyPopulateBidRequest() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .containsExactly(bidRequest);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldPassImpIdToHttpRequestImpIds() {
+    public void makeHttpRequestsShouldPassImpIdToHttpRequestImpIdsAndCorrectlyPopulateBidRequest() {
         // given
         final String firstId = "234";
         final String secondId = "123";
@@ -78,6 +63,9 @@ public class OwnAdxBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .flatExtracting(HttpRequest::getImpIds)
                 .containsExactlyInAnyOrder(firstId, secondId, firstId, secondId);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .containsExactlyInAnyOrder(bidRequest, bidRequest);
     }
 
     @Test
@@ -86,7 +74,7 @@ public class OwnAdxBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(List.of(
                         givenImp(impBuilder ->
-                                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
+                                impBuilder.id("321").ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
                         givenImp(identity())))
                 .build();
 
@@ -94,8 +82,10 @@ public class OwnAdxBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
         assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getErrors())
+                .hasSize(1)
+                .containsExactly(BidderError.badInput("Missing bidder ext in impression with id: 321"));
     }
 
     @Test
@@ -126,8 +116,9 @@ public class OwnAdxBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
+                .hasSize(1)
                 .containsExactly(BidderError.badInput("Missing bidder ext in impression with id: 123"));
     }
 
