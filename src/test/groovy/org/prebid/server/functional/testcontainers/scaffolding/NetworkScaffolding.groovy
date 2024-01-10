@@ -27,10 +27,7 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
     protected String endpoint
 
     NetworkScaffolding(MockServerContainer mockServerContainer, String endpoint) {
-        this.mockServerClient = new MockServerClient(
-                new ClientConfiguration(new Configuration(alwaysCloseSocketConnections: true)),
-                mockServerContainer.host,
-                mockServerContainer.serverPort)
+        this.mockServerClient = new MockServerClient(mockServerContainer.host, mockServerContainer.serverPort)
         this.endpoint = endpoint
     }
 

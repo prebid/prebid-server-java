@@ -38,7 +38,7 @@ class CurrencySpec extends BaseSpec {
                 CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
 
         when: "PBS processes bidders params request"
-        def response = pbsService.withWarmup().sendCurrencyRatesRequest()
+        def response = pbsService.sendCurrencyRatesRequest()
 
         then: "Response should contain bidders params"
         def byTime = pbsService.getLogsByTime(start)
