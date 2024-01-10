@@ -23,11 +23,16 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
+import org.prebid.server.settings.model.Purpose;
+import org.prebid.server.settings.model.PurposeEid;
+import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.util.ObjectUtil;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public class TcfEnforcement {
@@ -64,16 +69,18 @@ public class TcfEnforcement {
                                                      BidderAliases aliases) {
 
         final Device device = auctionContext.getBidRequest().getDevice();
+        final AccountGdprConfig accountGdprConfig = accountGdprConfig(auctionContext.getAccount());
         final MetricName requestType = auctionContext.getRequestTypeMetric();
 
         return tcfDefinerService.resultForBidderNames(
                         bidders,
                         VendorIdResolver.of(aliases, bidderCatalog),
                         auctionContext.getPrivacyContext().getTcfContext(),
-                        accountGdprConfig(auctionContext.getAccount()))
+                        accountGdprConfig)
                 .map(TcfResponse::getActions)
                 .map(enforcements -> updateMetrics(enforcements, aliases, requestType, bidderToUser, device))
-                .map(enforcements -> bidderToPrivacyResult(enforcements, bidders, bidderToUser, device));
+                .map(enforcements -> bidderToPrivacyResult(
+                        enforcements, bidders, bidderToUser, device, accountGdprConfig));
     }
 
     private static AccountGdprConfig accountGdprConfig(Account account) {
@@ -158,9 +165,11 @@ public class TcfEnforcement {
     private List<BidderPrivacyResult> bidderToPrivacyResult(Map<String, PrivacyEnforcementAction> bidderToEnforcement,
                                                             Set<String> bidders,
                                                             Map<String, User> bidderToUser,
-                                                            Device device) {
+                                                            Device device,
+                                                            AccountGdprConfig accountGdprConfig) {
 
         final boolean isLmtEnabled = isLmtEnforcedAndEnabled(device);
+        final Set<String> purpose4EidExceptions = purpose4EidExceptions(accountGdprConfig);
 
         return bidders.stream()
                 .map(bidder -> createBidderPrivacyResult(
@@ -168,15 +177,28 @@ public class TcfEnforcement {
                         bidderToUser.get(bidder),
                         device,
                         bidderToEnforcement,
-                        isLmtEnabled))
+                        isLmtEnabled,
+                        purpose4EidExceptions))
                 .toList();
+    }
+
+    // TODO: remove after transition period
+    private static Set<String> purpose4EidExceptions(AccountGdprConfig accountGdprConfig) {
+        return Optional.ofNullable(accountGdprConfig)
+                .map(AccountGdprConfig::getPurposes)
+                .map(Purposes::getP4)
+                .map(Purpose::getEid)
+                .filter(PurposeEid::isRequireConsent)
+                .map(PurposeEid::getExceptions)
+                .orElseGet(Collections::emptySet);
     }
 
     private BidderPrivacyResult createBidderPrivacyResult(String bidder,
                                                           User user,
                                                           Device device,
                                                           Map<String, PrivacyEnforcementAction> bidderToEnforcement,
-                                                          boolean isLmtEnabled) {
+                                                          boolean isLmtEnabled,
+                                                          Set<String> purpose4EidExceptions) {
 
         final PrivacyEnforcementAction privacyEnforcementAction = bidderToEnforcement.get(bidder);
         final boolean blockBidderRequest = privacyEnforcementAction.isBlockBidderRequest();
@@ -192,7 +214,7 @@ public class TcfEnforcement {
         final boolean maskUserFpd = privacyEnforcementAction.isRemoveUserFpd() || isLmtEnabled;
         final boolean maskUserIds = privacyEnforcementAction.isRemoveUserIds() || isLmtEnabled;
         final boolean maskGeo = privacyEnforcementAction.isMaskGeo() || isLmtEnabled;
-        final User maskedUser = userFpdTcfMask.maskUser(user, maskUserFpd, maskUserIds, maskGeo);
+        final User maskedUser = userFpdTcfMask.maskUser(user, maskUserFpd, maskUserIds, maskGeo, purpose4EidExceptions);
 
         final boolean maskIp = privacyEnforcementAction.isMaskDeviceIp() || isLmtEnabled;
         final boolean maskDeviceInfo = privacyEnforcementAction.isMaskDeviceInfo() || isLmtEnabled;

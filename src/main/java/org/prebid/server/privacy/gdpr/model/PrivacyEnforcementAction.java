@@ -25,6 +25,7 @@ public class PrivacyEnforcementAction {
 
     public static PrivacyEnforcementAction restrictAll() {
         return PrivacyEnforcementAction.builder()
+                .removeUserFpd(true)
                 .removeUserIds(true)
                 .maskGeo(true)
                 .maskDeviceIp(true)

@@ -5,6 +5,8 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.User;
 import org.prebid.server.auction.IpAddressHelper;
 
+import java.util.Collections;
+
 public class UserFpdCoppaMask extends UserFpdPrivacyMask {
 
     public UserFpdCoppaMask(IpAddressHelper ipAddressHelper) {
@@ -12,7 +14,7 @@ public class UserFpdCoppaMask extends UserFpdPrivacyMask {
     }
 
     public User maskUser(User user) {
-        return maskUser(user, true, true, true);
+        return maskUser(user, true, true, true, Collections.emptySet());
     }
 
     public Device maskDevice(Device device) {

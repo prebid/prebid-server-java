@@ -1,12 +1,16 @@
 package org.prebid.server.auction.privacy.enforcement.mask;
 
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.User;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 public abstract class UserFpdPrivacyMask {
 
@@ -16,7 +20,12 @@ public abstract class UserFpdPrivacyMask {
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
     }
 
-    protected User maskUser(User user, boolean maskUserFpd, boolean maskEids, boolean maskGeo) {
+    protected User maskUser(User user,
+                            boolean maskUserFpd,
+                            boolean maskEids,
+                            boolean maskGeo,
+                            Set<String> eidExceptions) {
+
         if (user == null || !(maskUserFpd || maskEids || maskGeo)) {
             return user;
         }
@@ -35,7 +44,7 @@ public abstract class UserFpdPrivacyMask {
         }
 
         if (maskEids) {
-            userBuilder.eids(null);
+            userBuilder.eids(removeEids(user.getEids(), eidExceptions));
         }
 
         if (maskGeo) {
@@ -49,6 +58,19 @@ public abstract class UserFpdPrivacyMask {
         return extUser != null
                 ? nullIfEmpty(extUser.toBuilder().data(null).build())
                 : null;
+    }
+
+    private static List<Eid> removeEids(List<Eid> eids, Set<String> exceptions) {
+        if (exceptions.isEmpty() || CollectionUtils.isEmpty(eids)) {
+            return null;
+        }
+
+        final List<Eid> clearedEids = eids.stream()
+                .filter(Objects::nonNull)
+                .filter(eid -> exceptions.contains(eid.getSource()))
+                .toList();
+
+        return clearedEids.isEmpty() ? null : clearedEids;
     }
 
     private Geo maskNullableGeo(Geo geo) {

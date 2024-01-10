@@ -1,6 +1,7 @@
 package org.prebid.server.auction.privacy.enforcement.mask;
 
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.User;
 import org.junit.Before;
@@ -13,7 +14,11 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
@@ -50,7 +55,7 @@ public class UserFpdTcfMaskTest extends VertxTest {
                 .build();
 
         // when
-        final User result = target.maskUser(user, true, false, false);
+        final User result = target.maskUser(user, true, false, false, emptySet());
 
         // then
         assertThat(result).isEqualTo(
@@ -71,13 +76,16 @@ public class UserFpdTcfMaskTest extends VertxTest {
                 .keywords("keywords")
                 .kwarray(emptyList())
                 .data(emptyList())
-                .eids(emptyList())
+                .eids(asList(
+                        Eid.of("1", null, null),
+                        Eid.of("2", null, null),
+                        Eid.of("3", null, null)))
                 .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
                 .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
                 .build();
 
         // when
-        final User result = target.maskUser(user, false, true, false);
+        final User result = target.maskUser(user, false, true, false, singleton("2"));
 
         // then
         assertThat(result).isEqualTo(
@@ -89,6 +97,7 @@ public class UserFpdTcfMaskTest extends VertxTest {
                         .keywords("keywords")
                         .kwarray(emptyList())
                         .data(emptyList())
+                        .eids(singletonList(Eid.of("2", null, null)))
                         .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
                         .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
                         .build());
@@ -111,7 +120,7 @@ public class UserFpdTcfMaskTest extends VertxTest {
                 .build();
 
         // when
-        final User result = target.maskUser(user, false, false, true);
+        final User result = target.maskUser(user, false, false, true, emptySet());
 
         // then
         assertThat(result).isEqualTo(

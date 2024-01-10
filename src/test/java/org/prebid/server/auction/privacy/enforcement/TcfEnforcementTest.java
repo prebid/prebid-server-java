@@ -25,6 +25,11 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
+import org.prebid.server.settings.model.Purpose;
+import org.prebid.server.settings.model.PurposeEid;
+import org.prebid.server.settings.model.Purposes;
 
 import java.util.Collections;
 import java.util.List;
@@ -32,10 +37,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.BiConsumer;
 
+import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
@@ -64,7 +71,7 @@ public class TcfEnforcementTest {
 
     @Before
     public void setUp() {
-        given(userFpdTcfMask.maskUser(any(), anyBoolean(), anyBoolean(), anyBoolean()))
+        given(userFpdTcfMask.maskUser(any(), anyBoolean(), anyBoolean(), anyBoolean(), anySet()))
                 .willAnswer(invocation -> invocation.getArgument(0));
         given(userFpdTcfMask.maskDevice(any(), anyBoolean(), anyBoolean(), anyBoolean()))
                 .willAnswer(invocation -> invocation.getArgument(0));
@@ -273,7 +280,7 @@ public class TcfEnforcementTest {
         final User maskedUser = User.builder().id("maskedUser").build();
         final Device maskedDevice = Device.builder().ip("maskedDevice").build();
 
-        given(userFpdTcfMask.maskUser(any(), eq(true), eq(true), eq(true)))
+        given(userFpdTcfMask.maskUser(any(), eq(true), eq(true), eq(true), eq(singleton("eidException"))))
                 .willReturn(maskedUser);
         given(userFpdTcfMask.maskDevice(any(), eq(true), eq(true), eq(true)))
                 .willReturn(maskedDevice);
@@ -330,7 +337,7 @@ public class TcfEnforcementTest {
         final User maskedUser = User.builder().id("maskedUser").build();
         final Device maskedDevice = Device.builder().ip("maskedDevice").build();
 
-        given(userFpdTcfMask.maskUser(any(), eq(true), eq(true), eq(true)))
+        given(userFpdTcfMask.maskUser(any(), eq(true), eq(true), eq(true), eq(singleton("eidException"))))
                 .willReturn(maskedUser);
         given(userFpdTcfMask.maskDevice(any(), eq(true), eq(true), eq(true)))
                 .willReturn(maskedDevice);
@@ -364,7 +371,21 @@ public class TcfEnforcementTest {
         return AuctionContext.builder()
                 .bidRequest(BidRequest.builder().device(device).build())
                 .requestTypeMetric(MetricName.openrtb2web)
-                .account(Account.builder().build())
+                .account(Account.builder()
+                        .privacy(AccountPrivacyConfig.of(
+                                AccountGdprConfig.builder()
+                                        .purposes(Purposes.builder()
+                                                .p4(Purpose.of(
+                                                        null,
+                                                        null,
+                                                        null,
+                                                        PurposeEid.of(null, true, singleton("eidException"))))
+                                                .build())
+                                        .build(),
+                                null,
+                                null,
+                                null))
+                        .build())
                 .privacyContext(PrivacyContext.of(null, TcfContext.empty(), null))
                 .build();
     }

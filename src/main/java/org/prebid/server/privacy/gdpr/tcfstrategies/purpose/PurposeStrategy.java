@@ -45,11 +45,11 @@ public abstract class PurposeStrategy {
      */
     public abstract void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction);
 
-    public Collection<VendorPermission> processTypePurposeStrategy(
-            TCString vendorConsent,
-            Purpose purpose,
-            Collection<VendorPermissionWithGvl> vendorPermissions,
-            boolean wasDowngraded) {
+    public void processTypePurposeStrategy(TCString vendorConsent,
+                                           Purpose purpose,
+                                           Collection<VendorPermissionWithGvl> vendorPermissions,
+                                           boolean wasDowngraded,
+                                           boolean allowNaturalPermissions) {
 
         final Collection<VendorPermissionWithGvl> excludedVendors = excludedVendors(vendorPermissions, purpose);
         final Collection<VendorPermissionWithGvl> vendorForPurpose = vendorPermissions.stream()
@@ -60,17 +60,15 @@ public abstract class PurposeStrategy {
                 .map(VendorPermission::getPrivacyEnforcementAction)
                 .forEach(this::allow);
 
-        final Collection<VendorPermission> naturalVendorPermission = wasDowngraded
-                ? allowedByBasicTypeStrategy(vendorConsent, true, vendorForPurpose, excludedVendors)
-                : allowedByFullTypeStrategy(vendorConsent, true, vendorForPurpose, excludedVendors);
+        if (allowNaturalPermissions) {
+            final Collection<VendorPermission> naturalVendorPermission = wasDowngraded
+                    ? allowedByBasicTypeStrategy(vendorConsent, true, vendorForPurpose, excludedVendors)
+                    : allowedByFullTypeStrategy(vendorConsent, true, vendorForPurpose, excludedVendors);
 
-        naturalVendorPermission.stream()
-                .map(VendorPermission::getPrivacyEnforcementAction)
-                .forEach(this::allowNaturally);
-
-        return vendorPermissions.stream()
-                .map(VendorPermissionWithGvl::getVendorPermission)
-                .toList();
+            naturalVendorPermission.stream()
+                    .map(VendorPermission::getPrivacyEnforcementAction)
+                    .forEach(this::allowNaturally);
+        }
     }
 
     private Collection<VendorPermissionWithGvl> excludedVendors(Collection<VendorPermissionWithGvl> vendorPermissions,
