@@ -93,7 +93,7 @@ public class AdxcgBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidSuccessfully() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerWhenMtypeIsOne() throws JsonProcessingException {
         // given
         final Bid bannerBid = Bid.builder().impid("1").mtype(1).build();
 
@@ -111,7 +111,7 @@ public class AdxcgBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnAudioBidSuccessfully() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerWhenMtypeIsThree() throws JsonProcessingException {
         // given
         final Bid audioBid = Bid.builder().impid("3").mtype(3).build();
 
@@ -126,7 +126,7 @@ public class AdxcgBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidSuccessfully() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerWhenMtypeIsTwo() throws JsonProcessingException {
         // given
         final Bid videoBid = Bid.builder().impid("2").mtype(2).build();
 
@@ -140,7 +140,7 @@ public class AdxcgBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnNativeBidSuccessfully() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerWhenMtypeIsFour() throws JsonProcessingException {
         // given
         final Bid nativeBid = Bid.builder().impid("4").mtype(4).build();
 
