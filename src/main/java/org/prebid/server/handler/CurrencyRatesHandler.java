@@ -15,6 +15,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.Objects;
@@ -41,6 +42,7 @@ public class CurrencyRatesHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext routingContext) {
         try {
+            logger.warn("Currency conversion : " + Instant.now() + " : " + currencyConversionService.getExternalCurrencyRates());
             final String body = mapper.mapper().writeValueAsString(Response.of(
                     currencyConversionService.isExternalRatesActive(),
                     currencyConversionService.getCurrencyServerUrl(),
