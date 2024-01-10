@@ -73,8 +73,9 @@ public class OwnAdxBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(List.of(
-                        givenImp(impBuilder ->
-                                impBuilder.id("321").ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
+                        givenImp(impBuilder -> impBuilder
+                                .id("321")
+                                .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))),
                         givenImp(identity())))
                 .build();
 
