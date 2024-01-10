@@ -23,6 +23,7 @@
         <postgresql.version>42.4.3</postgresql.version>
         <jackson.version>2.14.1</jackson.version>
         <mysql.connector.version>8.0.28</mysql.connector.version>
+        <lombok.version>1.18.24</lombok.version>
         <maven-release-plugin.version>3.0.0-M6</maven-release-plugin.version>
     </properties>
 
