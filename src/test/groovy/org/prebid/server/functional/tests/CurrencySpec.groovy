@@ -42,8 +42,10 @@ class CurrencySpec extends BaseSpec {
 
         then: "Response should contain bidders params"
         def byTime = pbsService.getLogsByTime(start)
-        def text = getLogsByText(byTime, "Body of response")
-        println text
+        def text1 = getLogsByText(byTime, "Body of response")
+        def text2 = getLogsByText(byTime, "Currency conversion")
+        println text1
+        println text2
         assert response.rates?.size() > 0
     }
 
