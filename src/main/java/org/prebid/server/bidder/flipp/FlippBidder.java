@@ -1,14 +1,17 @@
 package org.prebid.server.bidder.flipp;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
+import com.iabtcf.decoder.TCString;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
@@ -60,9 +63,11 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     private static final String CREATIVE_TYPE = "DTX";
     private static final Set<Integer> AD_TYPES = Set.of(4309, 641);
     private static final Set<Integer> DTX_TYPES = Set.of(5061);
+    private static final int CONTENT_SELECTION_DELIVERY_REPORTING_PURPOSE = 3;
     private static final TypeReference<ExtPrebid<?, ExtImpFlipp>> FLIPP_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final String EXT_REQUEST_TRANSMIT_EIDS = "transmitEids";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -103,16 +108,6 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Flipp params not found. " + e.getMessage());
         }
-    }
-
-    private static CampaignRequestBody makeCampaignRequest(BidRequest bidRequest, Imp imp, ExtImpFlipp extImpFlipp) {
-        return CampaignRequestBody.builder()
-                .ip(resolveIpFromDevice(bidRequest.getDevice()))
-                .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImpFlipp)))
-                .url(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage))
-                .keywords(resolveKeywords(bidRequest))
-                .user(CampaignRequestBodyUser.of(resolveKey(bidRequest, extImpFlipp)))
-                .build();
     }
 
     private static PrebidRequest createPrebidRequest(ExtImpFlipp extImpFlipp, Imp imp) {
@@ -178,16 +173,62 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
                 .build();
     }
 
+    private static CampaignRequestBody makeCampaignRequest(BidRequest bidRequest, Imp imp, ExtImpFlipp extImpFlipp) {
+        return CampaignRequestBody.builder()
+                .ip(resolveIpFromDevice(bidRequest.getDevice()))
+                .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImpFlipp)))
+                .url(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage))
+                .keywords(resolveKeywords(bidRequest))
+                .user(CampaignRequestBodyUser.of(resolveKey(bidRequest, extImpFlipp)))
+                .build();
+    }
+
     private static String resolveKey(BidRequest bidRequest, ExtImpFlipp extImpFlipp) {
         return Optional.ofNullable(bidRequest.getUser())
                 .map(User::getId)
                 .filter(StringUtils::isNotEmpty)
-                .orElseGet(() -> extractUserKey(extImpFlipp));
+                .orElseGet(() -> extractUserKey(bidRequest, extImpFlipp));
     }
 
-    private static String extractUserKey(ExtImpFlipp extImpFlipp) {
+    private static boolean isUserKeyPermitted(BidRequest request) {
+        final Regs regs = request.getRegs();
+        final Optional<Boolean> restrictedByCoppa = Optional.ofNullable(regs)
+                .map(Regs::getCoppa)
+                .map(coppa -> coppa == 1);
+
+        final Optional<Boolean> restrictedByGdpr = Optional.ofNullable(regs)
+                .map(Regs::getGdpr)
+                .map(gdpr -> gdpr == 1);
+
+        final Optional<Boolean> restrictedByTransmitEids = Optional.ofNullable(request.getExt())
+                .map(ext -> ext.getProperty(EXT_REQUEST_TRANSMIT_EIDS))
+                .map(JsonNode::asBoolean)
+                .map(transmitEids -> !transmitEids);
+
+        final Optional<Boolean> restrictedByUserConsent = Optional.ofNullable(request.getUser())
+                .map(User::getConsent)
+                .filter(StringUtils::isNotBlank)
+                .map(FlippBidder::decode)
+                .map(TCString::getPurposesConsent)
+                .map(purposesAllowed -> !purposesAllowed.contains(CONTENT_SELECTION_DELIVERY_REPORTING_PURPOSE));
+
+        return !restrictedByCoppa.orElse(false)
+                && !restrictedByGdpr.orElse(false)
+                && !restrictedByTransmitEids.orElse(false)
+                && !restrictedByUserConsent.orElse(false);
+    }
+
+    private static TCString decode(String consent) {
+        try {
+            return TCString.decode(consent);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
+    }
+
+    private static String extractUserKey(BidRequest bidRequest, ExtImpFlipp extImpFlipp) {
         return Optional.ofNullable(extImpFlipp.getUserKey())
-                .filter(StringUtils::isNotEmpty)
+                .filter(userKey -> StringUtils.isNotEmpty(userKey) && isUserKeyPermitted(bidRequest))
                 .orElseGet(() -> UUID.randomUUID().toString());
     }
 
