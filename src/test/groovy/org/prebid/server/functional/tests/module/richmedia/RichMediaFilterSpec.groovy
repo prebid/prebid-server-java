@@ -2,6 +2,7 @@ package org.prebid.server.functional.tests.module.richmedia
 
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
+import org.prebid.server.functional.model.config.PbsModulesConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -161,7 +162,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         storedResponseDao.save(storedResponse)
 
         and: "Account with enabled richMedia config in the DB"
-        def richMediaFilterConfig = new PrebidModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: true))
+        def richMediaFilterConfig = new PbsModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: true))
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: richMediaFilterConfig))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
         accountDao.save(account)
@@ -191,7 +192,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         }
 
         and: "Account with enabled richMedia config in the DB"
-        def richMediaFilterConfig = new PrebidModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: true, mraidScriptPattern: PATTERN_NAME))
+        def richMediaFilterConfig = new PbsModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: true, mraidScriptPattern: PATTERN_NAME))
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: richMediaFilterConfig))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
         accountDao.save(account)
@@ -234,7 +235,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         }
 
         and: "Account with disabled richMedia config in the DB"
-        def richMediaFilterConfig = new PrebidModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: false, mraidScriptPattern: PATTERN_NAME))
+        def richMediaFilterConfig = new PbsModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: false, mraidScriptPattern: PATTERN_NAME))
         def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: richMediaFilterConfig))
         def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
         accountDao.save(account)

@@ -12,8 +12,8 @@ enum Stage {
     BIDDER_REQUEST("bidder-request"),
     RAW_BIDDER_RESPONSE("raw-bidder-response"),
     PROCESSED_BIDDER_RESPONSE("processed-bidder-response"),
-    AUCTION_RESPONSE("auction-response"),
-    ALL_PROCESSED_BID_RESPONSES("all-processed-bid-responses")
+    ALL_PROCESSED_BID_RESPONSES("all-processed-bid-responses"),
+    AUCTION_RESPONSE("auction-response")
 
     @JsonValue
     final String value

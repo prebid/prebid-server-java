@@ -16,30 +16,30 @@ To prepare the PBS image, follow these steps from the root directory:
 
 1. Build the project using Maven:
 
-`mvn clean -B package -DskipUnitTests=true -f extra/pom.xml`
+`mvn clean -B package -f extra/pom.xml`
 
 2. Build the image:
 
 2.1 Build image without modules:
 
-`mvn docker:build protobuf:compile -f pom.xml`
+`mvn docker:build -f pom.xml`
 
 2.2 Build image with modules:
 
-`mvn docker:build protobuf:compile -f pom.xml -DdockerfileName=Dockerfile-modules`
+`mvn docker:build -f pom.xml -DdockerfileName=Dockerfile-modules`
 
 **Note:** Don't forget to rebuild the image for manual test start after making changes in the dev code.
 
-## Running Integration Tests
+## Running Functional Tests
 
-You have two options for running integration tests:
+You have two options for running functional tests:
 
 1. Use `mvn verify` to include all previous steps (including Java tests and modular tests) because Groovy runs in the `failsafe:integration-test` phase.
 2. For functional tests only, use a more granular command:
 
-`mvn -B verify -DskipUnitTests=true -DskipFunctionalModularTests=true`
+`mvn -B verify -DskipModuleFunctionalTests=true`
 
-## Running Modular Tests
+## Running Module Functional Tests
 
 You have two options for running modular tests:
 

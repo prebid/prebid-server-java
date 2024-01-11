@@ -9,7 +9,6 @@ import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
 import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 
-//@Retry(mode = Retry.Mode.SETUP_FEATURE_CLEANUP)
 class ModuleBaseSpec extends BaseSpec {
 
     def setupSpec() {
