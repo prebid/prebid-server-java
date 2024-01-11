@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
+import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
 import java.time.Instant
@@ -46,7 +47,7 @@ class CurrencySpec extends BaseSpec {
         def text2 = getLogsByText(byTime, "Currency conversion")
         println text1
         println text2
-        assert response.rates?.size() > 0
+        PBSUtils.waitUntil { response.rates.size() > 0 }
     }
 
     def "PBS should use default server currency if not specified in the request"() {
