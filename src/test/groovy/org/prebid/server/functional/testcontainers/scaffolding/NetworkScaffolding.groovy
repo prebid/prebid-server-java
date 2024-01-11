@@ -55,7 +55,7 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
     void setResponse(HttpRequest httpRequest,
                      ResponseModel responseModel,
                      HttpStatusCode statusCode = OK_200,
-                     Times times = Times.unlimited()) {
+                     Times times = Times.exactly(1)) {
         def mockResponse = encode(responseModel)
         mockServerClient.when(httpRequest, times)
                         .respond(response().withStatusCode(statusCode.code())
