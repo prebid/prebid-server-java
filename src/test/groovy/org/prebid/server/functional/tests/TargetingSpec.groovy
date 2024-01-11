@@ -392,7 +392,7 @@ class TargetingSpec extends BaseSpec {
         }
 
         and: "Account in the DB"
-        def targetingLength = PBSUtils.getRandomNumber(2, 10)
+        def targetingLength = PBSUtils.getRandomNumber(2,10)
         def account = new Account(uuid: accountId, truncateTargetAttr: targetingLength)
         accountDao.save(account)
 
@@ -437,7 +437,7 @@ class TargetingSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         and: "Create and save account in the DB"
-        def account = new Account(uuid: ampRequest.account, truncateTargetAttr: PBSUtils.getRandomNumber(1, 10))
+        def account = new Account(uuid: ampRequest.account, truncateTargetAttr: PBSUtils.getRandomNumber(1,10))
         accountDao.save(account)
 
         when: "PBS processes amp request"
@@ -856,7 +856,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS amp should use long account targeting prefix when settings.targeting.truncate-attr-chars override"() {
         given:"PBS config with setting.targeting"
-        def prefixMaxChars = PBSUtils.getRandomNumber(35, MAX_TRUNCATE_ATTR_CHARS)
+        def prefixMaxChars = PBSUtils.getRandomNumber(35,MAX_TRUNCATE_ATTR_CHARS)
         def prebidServerService = pbsServiceFactory.getService(
                 ["settings.targeting.truncate-attr-chars":  prefixMaxChars as String])
 
@@ -887,7 +887,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS amp should use long request targeting prefix when settings.targeting.truncate-attr-chars override"() {
         given:"PBS config with setting.targeting"
-        def prefixMaxChars = PBSUtils.getRandomNumber(35, MAX_TRUNCATE_ATTR_CHARS)
+        def prefixMaxChars = PBSUtils.getRandomNumber(35,MAX_TRUNCATE_ATTR_CHARS)
         def prebidServerService = pbsServiceFactory.getService(
                 ["settings.targeting.truncate-attr-chars":  prefixMaxChars as String])
 
@@ -915,7 +915,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS auction should use long request targeting prefix when settings.targeting.truncate-attr-chars override"() {
         given:"PBS config with setting.targeting"
-        def prefixMaxChars = PBSUtils.getRandomNumber(35, MAX_TRUNCATE_ATTR_CHARS)
+        def prefixMaxChars = PBSUtils.getRandomNumber(35,MAX_TRUNCATE_ATTR_CHARS)
         def prebidServerService = pbsServiceFactory.getService(
                 ["settings.targeting.truncate-attr-chars":  prefixMaxChars as String])
 
@@ -936,7 +936,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS auction should use long account targeting prefix when settings.targeting.truncate-attr-chars override"() {
         given:"PBS config with setting.targeting"
-        def prefixMaxChars = PBSUtils.getRandomNumber(35, MAX_TRUNCATE_ATTR_CHARS)
+        def prefixMaxChars = PBSUtils.getRandomNumber(35,MAX_TRUNCATE_ATTR_CHARS)
         def prebidServerService = pbsServiceFactory.getService(
                 ["settings.targeting.truncate-attr-chars":  prefixMaxChars as String])
 
@@ -962,7 +962,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS amp should ignore and add a warning to ext.warnings when value of the account prefix is longer then settings.targeting.truncate-attr-chars"() {
         given:"PBS config with setting.targeting"
-        def targetingChars = PBSUtils.getRandomNumber(2, 10)
+        def targetingChars = PBSUtils.getRandomNumber(2,10)
         def prebidServerService = pbsServiceFactory.getService(
                 ["settings.targeting.truncate-attr-chars":  targetingChars as String])
 
@@ -993,7 +993,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS amp should ignore and add a warning to ext.warnings when value of the request prefix is longer then settings.targeting.truncate-attr-chars"() {
         given:"PBS config with setting.targeting"
-        def targetingChars = PBSUtils.getRandomNumber(2 ,10)
+        def targetingChars = PBSUtils.getRandomNumber(2,10)
         def prebidServerService = pbsServiceFactory.getService(
                 ["settings.targeting.truncate-attr-chars":  targetingChars as String])
 
@@ -1046,7 +1046,7 @@ class TargetingSpec extends BaseSpec {
 
     def "PBS auction should ignore and add a warning to ext.warnings when value of the account prefix is longer then settings.targeting.truncate-attr-chars"() {
         given: "PBS config with setting.targeting"
-        def targetingChars = PBSUtils.getRandomNumber(2, 10)
+        def targetingChars = PBSUtils.getRandomNumber(2,10)
         def prebidServerService = pbsServiceFactory.getService(
                 ["settings.targeting.truncate-attr-chars":  targetingChars as String])
 
