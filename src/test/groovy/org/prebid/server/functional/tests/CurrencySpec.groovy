@@ -39,7 +39,7 @@ class CurrencySpec extends BaseSpec {
                 CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
 
         when: "PBS processes bidders params request"
-        def response = pbsService.sendCurrencyRatesRequest()
+        def response = pbsService.withWarmup().sendCurrencyRatesRequest()
 
         then: "Response should contain bidders params"
         def byTime = pbsService.getLogsByTime(start)
@@ -47,7 +47,7 @@ class CurrencySpec extends BaseSpec {
         def text2 = getLogsByText(byTime, "Currency conversion")
         println text1
         println text2
-        PBSUtils.waitUntil { response.rates.size() > 0 }
+        assert response.rates.size() > 0
     }
 
     def "PBS should use default server currency if not specified in the request"() {
