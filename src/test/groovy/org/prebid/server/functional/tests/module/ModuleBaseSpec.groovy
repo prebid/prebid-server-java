@@ -3,7 +3,6 @@ package org.prebid.server.functional.tests.module
 import org.prebid.server.functional.model.config.Endpoint
 import org.prebid.server.functional.model.config.ExecutionPlan
 import org.prebid.server.functional.tests.BaseSpec
-import spock.lang.Retry
 
 import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION

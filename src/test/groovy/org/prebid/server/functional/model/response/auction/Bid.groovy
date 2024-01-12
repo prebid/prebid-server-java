@@ -1,7 +1,5 @@
 package org.prebid.server.functional.model.response.auction
 
-import com.fasterxml.jackson.annotation.JsonGetter
-import com.fasterxml.jackson.annotation.JsonSetter
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.Imp
