@@ -88,6 +88,7 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         final User user = request.getUser();
         final ExtUser extUser = user != null ? user.getExt() : null;
         final String gdprConsent = extUser != null ? extUser.getConsent() : null;
+
         if (gdpr != null || gdprConsent != null) {
             final ConsumableBidGdpr.ConsumableBidGdprBuilder bidGdprBuilder = ConsumableBidGdpr.builder();
             if (gdpr != null) {
@@ -98,15 +99,19 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
             }
             requestBuilder.gdpr(bidGdprBuilder.build());
         }
+
         if (request.getSource() != null && request.getSource().getSchain() != null) {
             requestBuilder.schain(request.getSource().getSchain());
         }
+
         if (request.getRegs() != null && request.getRegs().getCoppa() != null) {
             requestBuilder.coppa(request.getRegs().getCoppa() == 1);
         }
+
         if (user != null) {
             requestBuilder.user(new ConsumableUser(null, user.getEids()));
         }
+
         if (request.getSite() != null && request.getSite().getContent() != null) {
             requestBuilder.content(request.getSite().getContent());
         } else if (request.getApp() != null && request.getApp().getContent() != null) {
@@ -218,7 +223,7 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
                 final ConsumablePricing pricing = decision.getPricing();
                 if (pricing != null && pricing.getClearPrice() != null) {
                     final String impId = entry.getKey();
-
+                    final int mtype = getBidMediaType(bidRequest.getImp(), impId);
                     final Bid bid = Bid.builder()
                             .id(bidRequest.getId())
                             .impid(impId)
@@ -231,14 +236,37 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
                             .exp(30)
                             .adomain(decision.getAdomain())
                             .cat(decision.getCats())
+                            .mtype(mtype)
                             .build();
                     // Consumable units are always HTML, never VAST.
                     // From Prebid's point of view, this means that Consumable units
                     // are always "banners".
-                    bidderBids.add(BidderBid.of(bid, BidType.banner, null));
+                    bidderBids.add(BidderBid.of(bid, getBidType(mtype), null));
                 }
             }
         }
         return bidderBids;
+    }
+
+    private static int getBidMediaType(List<Imp> imps, String impId) {
+        return imps.stream()
+                .filter(imp -> impId.equals(imp.getId()))
+                .findFirst()
+                .map(imp -> {
+                    if (imp.getAudio() != null) {
+                        return 3;
+                    } else if (imp.getVideo() != null) {
+                        return 2;
+                    }
+                    return 1;
+                }).orElse(1);
+    }
+
+    private static BidType getBidType(int mtype) {
+        return switch (mtype) {
+            case 3 -> BidType.audio;
+            case 2 -> BidType.video;
+            default -> BidType.banner;
+        };
     }
 }

@@ -2,6 +2,7 @@ package org.prebid.server.bidder.consumable;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
@@ -14,6 +15,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
@@ -448,7 +450,7 @@ public class ConsumableBidderTest extends VertxTest {
                         Bid.builder()
                                 .id("request_id").impid("firstImp").price(BigDecimal.valueOf(11.1))
                                 .adm("contents_body").w(300).h(250).exp(30).crid("123")
-                                .adomain(expectedAdomains).cat(expectedCats).build(),
+                                .adomain(expectedAdomains).cat(expectedCats).mtype(1).build(),
                         BidType.banner, null));
     }
 
@@ -470,8 +472,54 @@ public class ConsumableBidderTest extends VertxTest {
                 .contains(BidderBid.of(
                         Bid.builder()
                                 .id("request_id").impid("firstImp").price(BigDecimal.valueOf(11.1))
-                                .adm("contents_body").w(300).h(250).exp(30).crid("123").build(),
+                                .adm("contents_body").w(300).h(250).exp(30).crid("123").mtype(1).build(),
                         BidType.banner, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnAudioBidWithExpectedFields() throws JsonProcessingException {
+        // given
+        final String secondImpId = "secondImp";
+        final BidderCall<ConsumableBidRequest> httpCall = givenHttpCall(identity(),
+                decision -> decision.pricing(ConsumablePricing.of(11.1)).adId(123L)
+                        .contents(singletonList(ConsumableContents.of("contents_body"))),
+                secondImpId);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall,
+                givenBidRequestWithTwoImpsOfDifferentTypes(Audio.builder().build(), null, secondImpId));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .contains(BidderBid.of(
+                        Bid.builder()
+                                .id("request_id").impid(secondImpId).price(BigDecimal.valueOf(11.1))
+                                .adm("contents_body").exp(30).crid("123").mtype(3).build(),
+                        BidType.audio, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidWithExpectedFields() throws JsonProcessingException {
+        // given
+        final String secondImpId = "secondImp";
+        final BidderCall<ConsumableBidRequest> httpCall = givenHttpCall(identity(),
+                decision -> decision.pricing(ConsumablePricing.of(11.1)).adId(123L)
+                        .contents(singletonList(ConsumableContents.of("contents_body"))),
+                secondImpId);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall,
+                givenBidRequestWithTwoImpsOfDifferentTypes(null, Video.builder().build(), secondImpId));
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .contains(BidderBid.of(
+                        Bid.builder()
+                                .id("request_id").impid(secondImpId).price(BigDecimal.valueOf(11.1))
+                                .adm("contents_body").exp(30).crid("123").mtype(2).build(),
+                        BidType.video, null));
     }
 
     private static BidRequest givenBidRequestWithTwoImpsAndTwoFormats() {
@@ -484,6 +532,23 @@ public class ConsumableBidderTest extends VertxTest {
                                         .format(Arrays.asList(Format.builder().w(468).h(60).build(),
                                                 Format.builder().w(486).h(60).build()))
                                         .build())
+                                .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                        ExtImpConsumable.of(123, 234, 345, "unit"))))
+                                .build()))
+                .user(User.builder()
+                        .ext(ExtUser.builder().consent("consent").build())
+                        .build())
+                .build();
+    }
+
+    private static BidRequest givenBidRequestWithTwoImpsOfDifferentTypes(Audio audio, Video video, String secondImpId) {
+        return BidRequest.builder()
+                .id("request_id")
+                .imp(Arrays.asList(givenImp(identity()),
+                        Imp.builder()
+                                .id(secondImpId)
+                                .audio(audio)
+                                .video(video)
                                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                                         ExtImpConsumable.of(123, 234, 345, "unit"))))
                                 .build()))
@@ -536,6 +601,22 @@ public class ConsumableBidderTest extends VertxTest {
 
         final String body = mapper.writeValueAsString(
                 bidResponse.apply(ConsumableBidResponse.of(singletonMap("firstImp", givenDecision(decision)))));
+
+        return BidderCall.succeededHttp(
+                HttpRequest.<ConsumableBidRequest>builder().build(),
+                HttpResponse.of(200, null, body),
+                null);
+    }
+
+    private static BidderCall<ConsumableBidRequest> givenHttpCall(
+            Function<ConsumableBidResponse, ConsumableBidResponse> bidResponse,
+            Function<ConsumableDecision.ConsumableDecisionBuilder,
+                    ConsumableDecision.ConsumableDecisionBuilder> decision,
+            String impId)
+            throws JsonProcessingException {
+
+        final String body = mapper.writeValueAsString(
+                bidResponse.apply(ConsumableBidResponse.of(singletonMap(impId, givenDecision(decision)))));
 
         return BidderCall.succeededHttp(
                 HttpRequest.<ConsumableBidRequest>builder().build(),
