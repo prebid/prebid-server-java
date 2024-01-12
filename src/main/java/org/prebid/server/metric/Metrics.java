@@ -405,7 +405,7 @@ public class Metrics extends UpdatableMetrics {
         final TcfMetrics tcf = forAdapter(bidder).requestType(requestType).tcf();
 
         if (userFpdRemoved) {
-            tcf.incCounter(MetricName.userfpd_removed);
+            tcf.incCounter(MetricName.userfpd_masked);
         }
         if (userIdsRemoved) {
             tcf.incCounter(MetricName.userid_removed);

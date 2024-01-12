@@ -61,8 +61,7 @@ public class Tcf2Service {
     }
 
     public Future<Collection<VendorPermission>> permissionsFor(Set<Integer> vendorIds, TCString tcfConsent) {
-        return Future.succeededFuture(vendorPermissions(vendorIds))
-                .map(vendorPermissions -> permissionsForInternal(vendorPermissions, tcfConsent, null));
+        return permissionsForInternal(vendorPermissions(vendorIds), tcfConsent, null);
     }
 
     public Future<Collection<VendorPermission>> permissionsFor(Set<String> bidderNames,
@@ -70,8 +69,7 @@ public class Tcf2Service {
                                                                TCString tcfConsent,
                                                                AccountGdprConfig accountGdprConfig) {
 
-        return Future.succeededFuture(vendorPermissions(bidderNames, vendorIdResolver))
-                .map(vendorPermissions -> permissionsForInternal(vendorPermissions, tcfConsent, accountGdprConfig));
+        return permissionsForInternal(vendorPermissions(bidderNames, vendorIdResolver), tcfConsent, accountGdprConfig);
     }
 
     private Collection<VendorPermission> vendorPermissions(Set<Integer> vendorIds) {
@@ -96,32 +94,30 @@ public class Tcf2Service {
                 .toList();
     }
 
-    private Collection<VendorPermission> permissionsForInternal(Collection<VendorPermission> vendorPermissions,
-                                                                TCString tcfConsent,
-                                                                AccountGdprConfig accountGdprConfig) {
+    private Future<Collection<VendorPermission>> permissionsForInternal(Collection<VendorPermission> vendorPermissions,
+                                                                        TCString tcfConsent,
+                                                                        AccountGdprConfig accountGdprConfig) {
 
         final Purposes mergedPurposes = mergeAccountPurposes(accountGdprConfig);
         final VendorPermissionsByType<VendorPermission> vendorPermissionsByType =
                 toVendorPermissionsByType(vendorPermissions, accountGdprConfig);
 
-        versionedVendorListService.forConsent(tcfConsent)
-                .onSuccess(vendorGvlPermissions -> processSupportedPurposeStrategies(
+        // TODO: always merge account config for purpose1 with next major release
+        return versionedVendorListService.forConsent(tcfConsent)
+                .compose(vendorGvlPermissions -> processSupportedPurposeStrategies(
+                                tcfConsent,
+                                wrapWithGVL(vendorPermissionsByType, vendorGvlPermissions),
+                                mergedPurposes,
+                                purposeOneTreatmentInterpretation),
+                        ignored -> processDowngradedSupportedPurposeStrategies(
+                                tcfConsent,
+                                wrapWithGVL(vendorPermissionsByType, Collections.emptyMap()),
+                                mergedPurposes,
+                                mergePurposeOneTreatmentInterpretation(accountGdprConfig)))
+                .map(ignored -> processSupportedSpecialFeatureStrategies(
                         tcfConsent,
-                        wrapWithGVL(vendorPermissionsByType, vendorGvlPermissions),
-                        mergedPurposes,
-                        purposeOneTreatmentInterpretation))
-                .onFailure(ignored -> processDowngradedSupportedPurposeStrategies(
-                        tcfConsent,
-                        wrapWithGVL(vendorPermissionsByType, Collections.emptyMap()),
-                        mergedPurposes,
-                        mergePurposeOneTreatmentInterpretation(accountGdprConfig)));
-
-        processSupportedSpecialFeatureStrategies(
-                tcfConsent,
-                vendorPermissions,
-                mergeAccountSpecialFeatures(accountGdprConfig));
-
-        return vendorPermissions;
+                        vendorPermissions,
+                        mergeAccountSpecialFeatures(accountGdprConfig)));
     }
 
     private static VendorPermissionsByType<VendorPermission> toVendorPermissionsByType(
@@ -171,7 +167,7 @@ public class Tcf2Service {
         return VendorPermissionWithGvl.of(vendorPermission, vendorGvlByVendorId);
     }
 
-    private void processSupportedPurposeStrategies(
+    private Future<Void> processSupportedPurposeStrategies(
             TCString tcfConsent,
             VendorPermissionsByType<VendorPermissionWithGvl> permissions,
             Purposes purposes,
@@ -204,9 +200,11 @@ public class Tcf2Service {
                     true,
                     allowNaturalPermissions);
         }
+
+        return Future.succeededFuture();
     }
 
-    private void processDowngradedSupportedPurposeStrategies(
+    private Future<Void> processDowngradedSupportedPurposeStrategies(
             TCString tcfConsent,
             VendorPermissionsByType<VendorPermissionWithGvl> permissions,
             Purposes purposes,
@@ -239,6 +237,8 @@ public class Tcf2Service {
                     true,
                     allowNaturalPermissions);
         }
+
+        return Future.succeededFuture();
     }
 
     // TODO: remove after transition period
@@ -318,15 +318,18 @@ public class Tcf2Service {
         }
     }
 
-    private void processSupportedSpecialFeatureStrategies(TCString tcfConsent,
-                                                          Collection<VendorPermission> vendorPermissions,
-                                                          SpecialFeatures specialFeatures) {
+    private Collection<VendorPermission> processSupportedSpecialFeatureStrategies(
+            TCString tcfConsent,
+            Collection<VendorPermission> vendorPermissions,
+            SpecialFeatures specialFeatures) {
 
         for (SpecialFeaturesStrategy specialFeaturesStrategy : specialFeaturesStrategies) {
             final int specialFeatureId = specialFeaturesStrategy.getSpecialFeatureId();
             final SpecialFeature specialFeatureById = findSpecialFeatureById(specialFeatureId, specialFeatures);
             specialFeaturesStrategy.processSpecialFeaturesStrategy(tcfConsent, specialFeatureById, vendorPermissions);
         }
+
+        return vendorPermissions;
     }
 
     private Purposes mergeAccountPurposes(AccountGdprConfig accountGdprConfig) {

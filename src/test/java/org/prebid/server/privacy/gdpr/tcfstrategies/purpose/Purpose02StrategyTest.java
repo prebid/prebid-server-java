@@ -19,6 +19,7 @@ import org.prebid.server.settings.model.EnforcePurpose;
 import org.prebid.server.settings.model.Purpose;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -106,7 +107,7 @@ public class Purpose02StrategyTest {
                 vendorPermissionWitGvl3);
 
         given(noEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
-                .willReturn(asList(vendorPermission1, vendorPermission2));
+                .willReturn(Stream.of(vendorPermission1, vendorPermission2));
 
         // when
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, false, true);
@@ -142,7 +143,7 @@ public class Purpose02StrategyTest {
                 vendorPermissionWitGvl3);
 
         given(basicEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
-                .willReturn(asList(vendorPermission1, vendorPermission2));
+                .willReturn(Stream.of(vendorPermission1, vendorPermission2));
 
         // when
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, false, true);
@@ -177,7 +178,7 @@ public class Purpose02StrategyTest {
                 vendorPermissionWitGvl3);
 
         given(basicEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
-                .willReturn(asList(vendorPermission1, vendorPermission2, vendorPermission3));
+                .willReturn(Stream.of(vendorPermission1, vendorPermission2, vendorPermission3));
 
         // when
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, false, true);
@@ -207,7 +208,7 @@ public class Purpose02StrategyTest {
                 vendorPermissionWitGvl3);
 
         given(fullEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
-                .willReturn(asList(vendorPermission1, vendorPermission2, vendorPermission3));
+                .willAnswer(invocation -> Stream.of(vendorPermission1, vendorPermission2, vendorPermission3));
 
         // when
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, false, true);
@@ -237,8 +238,8 @@ public class Purpose02StrategyTest {
                 vendorPermissionWitGvl3);
 
         given(fullEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
-                .willReturn(asList(vendorPermission1, vendorPermission2, vendorPermission3))
-                .willReturn(asList(vendorPermission1, vendorPermission2));
+                .willReturn(Stream.of(vendorPermission1, vendorPermission2, vendorPermission3))
+                .willReturn(Stream.of(vendorPermission1, vendorPermission2));
 
         // when
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, false, true);
@@ -273,8 +274,8 @@ public class Purpose02StrategyTest {
                 vendorPermissionWitGvl3);
 
         given(fullEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
-                .willReturn(asList(vendorPermission1, vendorPermission2, vendorPermission3))
-                .willReturn(asList(vendorPermission1, vendorPermission2));
+                .willReturn(Stream.of(vendorPermission1, vendorPermission2, vendorPermission3))
+                .willReturn(Stream.of(vendorPermission1, vendorPermission2));
 
         // when
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, false, false);
@@ -309,9 +310,9 @@ public class Purpose02StrategyTest {
                 vendorPermissionWitGvl3);
 
         given(noEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
-                .willReturn(asList(vendorPermission1, vendorPermission2, vendorPermission3));
+                .willReturn(Stream.of(vendorPermission1, vendorPermission2, vendorPermission3));
         given(basicEnforcePurposeStrategy.allowedByTypeStrategy(any(), any(), any(), any(), anyBoolean()))
-                .willReturn(asList(vendorPermission1, vendorPermission2));
+                .willReturn(Stream.of(vendorPermission1, vendorPermission2));
 
         // when
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, true, true);

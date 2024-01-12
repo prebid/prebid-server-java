@@ -814,12 +814,12 @@ public class MetricsTest {
         metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.openrtb2app, false, true, false, true, false);
 
         // then
-        assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.userfpd_removed").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.userfpd_masked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.userid_removed").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.geo_masked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.analytics_blocked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.request_blocked").getCount()).isOne();
-        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.userfpd_removed").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.userfpd_masked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.conversant.openrtb2-app.tcf.userid_removed").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.geo_masked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.conversant.openrtb2-app.tcf.analytics_blocked").getCount()).isOne();

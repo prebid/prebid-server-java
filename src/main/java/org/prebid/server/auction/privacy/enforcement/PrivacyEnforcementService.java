@@ -48,7 +48,7 @@ public class PrivacyEnforcementService {
                                 biddersToApplyTcf(bidderToUser.keySet(), ccpaResult),
                                 aliases)
                         .map(tcfResult -> ListUtils.union(ccpaResult, tcfResult)))
-                .flatMap(bidderPrivacyResults -> activityEnforcement.enforce(bidderPrivacyResults, auctionContext));
+                .compose(bidderPrivacyResults -> activityEnforcement.enforce(bidderPrivacyResults, auctionContext));
     }
 
     private static Set<String> biddersToApplyTcf(Set<String> bidders, List<BidderPrivacyResult> ccpaResult) {
