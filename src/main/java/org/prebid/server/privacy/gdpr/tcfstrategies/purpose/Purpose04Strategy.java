@@ -25,6 +25,7 @@ public class Purpose04Strategy extends PurposeStrategy {
 
     @Override
     public void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction) {
+        privacyEnforcementAction.setRemoveUserIds(false);
     }
 
     @Override

@@ -11,7 +11,7 @@ public class PurposeTwoBasicEnforcePurposeStrategy extends BasicEnforcePurposeSt
                                                boolean isEnforceVendor,
                                                TCString tcString) {
 
-        return super.isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString)
-                || tcString.getPurposesLITransparency().contains(purpose.code());
+        return tcString.getPurposesLITransparency().contains(purpose.code())
+                || super.isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString);
     }
 }
