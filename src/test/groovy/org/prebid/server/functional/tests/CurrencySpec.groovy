@@ -31,7 +31,7 @@ class CurrencySpec extends BaseSpec {
         def response = pbsService.withWarmup().sendCurrencyRatesRequest()
 
         then: "Response should contain bidders params"
-        assert response.rates.size() > 0
+        assert response.rates?.size() > 0
     }
 
     def "PBS should use default server currency if not specified in the request"() {

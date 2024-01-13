@@ -33,10 +33,6 @@ class CurrencySpec extends BasePgSpec {
         pgCurrencyConverterPbsService.sendForceDealsUpdateRequest(ForceDealsUpdateRequest.invalidateLineItemsRequest)
     }
 
-    void cleanup() {
-        currencyConversion.reset()
-    }
-
     def "PBS should convert non-default line item currency to the default one during the bidder auction"() {
         given: "Planner Mock line items with the same CPM but different currencies"
         def accountId = bidRequest.site.publisher.id
