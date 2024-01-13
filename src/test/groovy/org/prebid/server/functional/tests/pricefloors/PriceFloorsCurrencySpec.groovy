@@ -11,8 +11,6 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
 import org.prebid.server.functional.util.PBSUtils
 
-import java.time.Instant
-
 import static org.prebid.server.functional.model.Currency.BOGUS
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.GBP
