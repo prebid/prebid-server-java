@@ -6,10 +6,8 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversion
-import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
-import java.time.Instant
 
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.JPY
@@ -28,25 +26,11 @@ class CurrencySpec extends BaseSpec {
     }
     private static final PrebidServerService pbsService = pbsServiceFactory.getService(externalCurrencyConverterConfig)
 
-    void cleanup() {
-        currencyConversion.reset()
-    }
-
     def "PBS should return currency rates"() {
-        given: "Set up currency conversion"
-        def start = Instant.now().minusSeconds(100)
-        currencyConversion.setCurrencyConversionRatesResponse(
-                CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
-
         when: "PBS processes bidders params request"
         def response = pbsService.withWarmup().sendCurrencyRatesRequest()
 
         then: "Response should contain bidders params"
-        def byTime = pbsService.getLogsByTime(start)
-        def text1 = getLogsByText(byTime, "Body of response")
-        def text2 = getLogsByText(byTime, "Currency conversion")
-        println text1
-        println text2
         assert response.rates.size() > 0
     }
 
@@ -107,7 +91,6 @@ class CurrencySpec extends BaseSpec {
 
     def "PBS should use reverse currency conversion when direct conversion is not available"() {
         given: "Default BidRequest with #requestCurrency currency"
-        def start = Instant.now().minusSeconds(100)
         def bidRequest = BidRequest.defaultBidRequest.tap { cur = [requestCurrency] }
 
         and: "Default Bid with a #bidCurrency currency"
@@ -118,9 +101,6 @@ class CurrencySpec extends BaseSpec {
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Auction response should contain bid in #requestCurrency currency"
-        def byTime = pbsService.getLogsByTime(start)
-        def text = getLogsByText(byTime, "Body of response")
-        println text
         assert bidResponse.cur == requestCurrency
         def bidPrice = bidResponse.seatbid[0].bid[0].price
         assert bidPrice == convertCurrency(bidderResponse.seatbid[0].bid[0].price, bidCurrency, requestCurrency)

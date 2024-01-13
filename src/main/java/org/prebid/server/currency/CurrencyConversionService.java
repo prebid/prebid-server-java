@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
-import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,7 +103,6 @@ public class CurrencyConversionService implements Initializable {
         }
 
         final String body = response.getBody();
-        logger.warn("Body of response" + body);
         try {
             return mapper.mapper().readValue(body, CurrencyConversionRates.class);
         } catch (IOException e) {
@@ -115,8 +113,6 @@ public class CurrencyConversionService implements Initializable {
     private Void updateCurrencyRates(CurrencyConversionRates currencyConversionRates) {
         final Map<String, Map<String, BigDecimal>> receivedCurrencyRates = currencyConversionRates.getConversions();
         if (receivedCurrencyRates != null) {
-
-            logger.warn("External currency populated : " + Instant.now() + " : " + receivedCurrencyRates);
             externalCurrencyRates = receivedCurrencyRates;
             lastUpdated = now();
         }

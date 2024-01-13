@@ -34,6 +34,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
     private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
         setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
     }
+    private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
     private static final Map<String, String> CURRENCY_CONVERTER_CONFIG = ["auction.ad-server-currency"                          : "USD",
                                                                           "currency-converter.external-rates.enabled"           : "true",
                                                                           "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
@@ -41,11 +42,6 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
                                                                           "currency-converter.external-rates.refresh-period-ms" : "900000"]
     private final PrebidServerService currencyFloorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
             CURRENCY_CONVERTER_CONFIG)
-
-    void cleanup() {
-        currencyConversion.reset()
-    }
-    private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
 
     def "PBS should update bidFloor, bidFloorCur for signalling when request.cur is specified"() {
         given: "Default BidRequest with cur"
@@ -295,7 +291,6 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
     def "PBS should make FP enforcement with currency conversion when request.cur, floor cur, bidResponse cur are different"() {
         given: "Default BidRequest with cur"
         def requestCur = EUR
-        def start = Instant.now().minusSeconds(100)
         def bidRequest = bidRequestWithFloors.tap {
             cur = [requestCur]
         }
@@ -320,9 +315,6 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         def currencyRatesResponse = currencyFloorsPbsService.sendCurrencyRatesRequest()
 
         and: "Bid response with 2 bids: price < floorMin, price = floorMin"
-        def byTime = currencyFloorsPbsService.getLogsByTime(start)
-        def text = getLogsByText(byTime, "Body of response")
-        println text
         def bidResponseCur = GBP
         def convertedMinFloorValueGbp = getPriceAfterCurrencyConversion(floorValue,
                 floorCur, bidResponseCur, currencyRatesResponse)

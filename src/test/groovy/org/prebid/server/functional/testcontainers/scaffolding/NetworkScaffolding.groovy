@@ -1,8 +1,6 @@
 package org.prebid.server.functional.testcontainers.scaffolding
 
 import org.mockserver.client.MockServerClient
-import org.mockserver.configuration.ClientConfiguration
-import org.mockserver.configuration.Configuration
 import org.mockserver.matchers.Times
 import org.mockserver.model.ClearType
 import org.mockserver.model.Header
