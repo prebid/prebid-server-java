@@ -44,12 +44,12 @@ public class GppModelWrapperTest {
         // then
         assertThat(wrappedGpp.encodeSection(HeaderV1.ID)).isEqualTo(originalGpp.encodeSection(HeaderV1.ID));
         assertThat(wrappedGpp.encodeSection(TcfEuV2.ID))
-                .usingComparator(Comparator.comparing(GppModelWrapperTest::encodedTcfEuV2SectionNormalizer))
+                .usingComparator(Comparator.comparing(GppModelWrapperTest::normalizeEncodedTcfEuV2Section))
                 .isEqualTo(originalGpp.encodeSection(TcfEuV2.ID));
         assertThat(wrappedGpp.encodeSection(UspV1.ID)).isEqualTo(originalGpp.encodeSection(UspV1.ID));
     }
 
-    public static String encodedTcfEuV2SectionNormalizer(String encodedSection) {
+    public static String normalizeEncodedTcfEuV2Section(String encodedSection) {
         try {
             final GppModel normalizer = new GppModel();
             normalizer.decodeSection(TcfEuV2.ID, encodedSection);
