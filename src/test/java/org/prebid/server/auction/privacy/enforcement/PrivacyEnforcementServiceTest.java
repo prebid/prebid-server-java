@@ -16,10 +16,9 @@ import java.util.Map;
 
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
-import static org.apache.commons.collections.SetUtils.isEqualSet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -76,11 +75,7 @@ public class PrivacyEnforcementServiceTest {
         given(ccpaEnforcement.enforce(any(), any(), any())).willReturn(Future.succeededFuture(
                 singletonList(BidderPrivacyResult.builder().requestBidder("bidder1").build())));
 
-        given(tcfEnforcement.enforce(
-                any(),
-                any(),
-                argThat(bidders -> isEqualSet(bidders, singleton("bidder0"))),
-                any()))
+        given(tcfEnforcement.enforce(any(), any(), eq(singleton("bidder0")), any()))
                 .willReturn(Future.succeededFuture(
                         singletonList(BidderPrivacyResult.builder().requestBidder("bidder0").build())));
 
