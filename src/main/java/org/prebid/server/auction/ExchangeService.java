@@ -47,6 +47,7 @@ import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
+import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcementService;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.Bidder;
@@ -329,7 +330,6 @@ public class ExchangeService {
                         .map(auctionParticipations -> validateAndAdjustBids(auctionParticipations, context, aliases))
                         .map(auctionParticipations -> updateResponsesMetrics(auctionParticipations, account, aliases))
                         .map(context::with))
-
                 // produce response from bidder results
                 .compose(context -> bidResponseCreator.create(context, cacheInfo, bidderToMultiBid)
                         .map(bidResponse -> publishAuctionEvent(bidResponse, context))
@@ -604,7 +604,7 @@ public class ExchangeService {
         final Map<String, User> bidderToUser =
                 prepareUsers(bidders, context, aliases, biddersToConfigs, eidPermissions);
 
-        return privacyEnforcementService.mask(context, bidderToUser, bidders, aliases)
+        return privacyEnforcementService.mask(context, bidderToUser, aliases)
                 .map(bidderToPrivacyResult ->
                         getAuctionParticipation(bidderToPrivacyResult, bidRequest, impBidderToStoredResponse, imps,
                                 bidderToMultiBid, biddersToConfigs, aliases, context));

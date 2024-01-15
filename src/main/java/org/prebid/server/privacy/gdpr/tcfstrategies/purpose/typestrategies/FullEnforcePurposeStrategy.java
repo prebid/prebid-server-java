@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -29,19 +30,20 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
                 .filter(publisherRestriction -> publisherRestriction.getPurposeId() == purpose.code())
                 .toList();
 
-        final List<VendorPermission> allowedExcluded = allowedExcludedVendorPermission(excludedVendors,
-                publisherRestrictions);
+        final List<VendorPermission> allowedExcluded = allowedExcludedVendorPermission(
+                excludedVendors, publisherRestrictions);
 
-        final Map<VendorPermissionWithGvl, RestrictionType> vendorPermissionToRestriction = mapVendorPermission(
-                vendorsForPurpose, publisherRestrictions);
-
-        final List<VendorPermission> allowedVendorPermissions = vendorPermissionToRestriction.entrySet().stream()
-                .filter(permissionAndRestriction ->
-                        isAllowedByPublisherRestrictionAndFlexible(purpose, isEnforceVendors,
-                                permissionAndRestriction.getKey(), vendorConsent, permissionAndRestriction.getValue()))
-                .map(Map.Entry::getKey)
-                .map(VendorPermissionWithGvl::getVendorPermission)
-                .toList();
+        final List<VendorPermission> allowedVendorPermissions =
+                mapVendorPermission(vendorsForPurpose, publisherRestrictions).entrySet().stream()
+                        .filter(permissionAndRestriction -> isAllowedByPublisherRestrictionAndFlexible(
+                                purpose,
+                                isEnforceVendors,
+                                permissionAndRestriction.getKey(),
+                                vendorConsent,
+                                permissionAndRestriction.getValue()))
+                        .map(Map.Entry::getKey)
+                        .map(VendorPermissionWithGvl::getVendorPermission)
+                        .toList();
 
         return CollectionUtils.union(allowedExcluded, allowedVendorPermissions);
     }
@@ -50,12 +52,11 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
             Collection<VendorPermissionWithGvl> excludedVendors,
             Collection<PublisherRestriction> publisherRestrictions) {
 
-        final List<Integer> notAllowedVendorIds = publisherRestrictions.stream()
-                .filter(publisherRestriction -> publisherRestriction.getRestrictionType()
-                        .equals(RestrictionType.NOT_ALLOWED))
+        final Set<Integer> notAllowedVendorIds = publisherRestrictions.stream()
+                .filter(FullEnforcePurposeStrategy::isNotAllowed)
                 .map(PublisherRestriction::getVendorIds)
                 .flatMap(vendorIds -> StreamSupport.stream(vendorIds.spliterator(), false))
-                .toList();
+                .collect(Collectors.toSet());
 
         return excludedVendors.stream()
                 .map(VendorPermissionWithGvl::getVendorPermission)
@@ -63,7 +64,11 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
                 .toList();
     }
 
-    private boolean isNotRestricted(List<Integer> notAllowedVendorIds, VendorPermission vendorPermission) {
+    private static boolean isNotAllowed(PublisherRestriction publisherRestriction) {
+        return publisherRestriction.getRestrictionType() == RestrictionType.NOT_ALLOWED;
+    }
+
+    private boolean isNotRestricted(Set<Integer> notAllowedVendorIds, VendorPermission vendorPermission) {
         final Integer vendorId = vendorPermission.getVendorId();
         return vendorId == null || !notAllowedVendorIds.contains(vendorId);
     }
@@ -112,7 +117,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
                                                                TCString tcString,
                                                                RestrictionType restrictionType) {
 
-        if (restrictionType.equals(RestrictionType.NOT_ALLOWED)) {
+        if (restrictionType == RestrictionType.NOT_ALLOWED) {
             return false;
         }
 
@@ -133,8 +138,8 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
         if (legIntGvlPurposeCodes != null && legIntGvlPurposeCodes.contains(purpose)) {
             return isFlexible
                     ? isAllowedByFlexible(purpose, vendorId, isEnforceVendor, tcString, restrictionType)
-                    : isAllowedByNotFlexibleLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString,
-                    restrictionType);
+                    : isAllowedByNotFlexibleLegitimateInterest(
+                        purpose, vendorId, isEnforceVendor, tcString, restrictionType);
         }
 
         return false;
@@ -145,10 +150,9 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
                                                   boolean isEnforceVendor,
                                                   TCString tcString,
                                                   RestrictionType restrictionType) {
-        final boolean isSupportedRestriction = restrictionType.equals(RestrictionType.REQUIRE_CONSENT)
-                || restrictionType.equals(RestrictionType.UNDEFINED);
 
-        return isSupportedRestriction && isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString);
+        return (restrictionType == RestrictionType.REQUIRE_CONSENT || restrictionType == RestrictionType.UNDEFINED)
+                && isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString);
     }
 
     private boolean isAllowedByNotFlexibleLegitimateInterest(PurposeCode purpose,
@@ -156,6 +160,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
                                                              boolean isEnforceVendor,
                                                              TCString tcString,
                                                              RestrictionType restrictionType) {
+
         final boolean isSupportedRestriction = restrictionType.equals(RestrictionType.REQUIRE_LEGITIMATE_INTEREST)
                 || restrictionType.equals(RestrictionType.UNDEFINED);
 

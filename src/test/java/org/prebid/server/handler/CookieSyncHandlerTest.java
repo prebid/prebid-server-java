@@ -18,8 +18,8 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
+import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContextFactory;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -84,7 +84,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Mock
     private ApplicationSettings applicationSettings;
     @Mock
-    private PrivacyEnforcementService privacyEnforcementService;
+    private CookieSyncPrivacyContextFactory cookieSyncPrivacyContextFactory;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
@@ -108,7 +108,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(httpResponse.setStatusCode(anyInt())).willReturn(httpResponse);
         given(httpResponse.putHeader(any(CharSequence.class), any(AsciiString.class))).willReturn(httpResponse);
 
-        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+        given(cookieSyncPrivacyContextFactory.contextFrom(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(
                         Privacy.builder()
                                 .gdpr("")
@@ -126,7 +126,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 activityInfrastructureCreator,
                 cookieSyncService,
                 applicationSettings,
-                privacyEnforcementService,
+                cookieSyncPrivacyContextFactory,
                 analyticsReporterDelegator,
                 metrics,
                 timeoutFactory,
@@ -232,7 +232,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                         .gdprConsent("invalid")
                         .build()));
 
-        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+        given(cookieSyncPrivacyContextFactory.contextFrom(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(null,
                         TcfContext.builder().inGdprScope(true).consentValid(false).build())));
 
@@ -257,7 +257,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                         .gdprConsent("valid")
                         .build()));
 
-        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+        given(cookieSyncPrivacyContextFactory.contextFrom(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(null,
                         TcfContext.builder().inGdprScope(true).consentValid(true).build())));
 
@@ -321,7 +321,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
-        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+        given(cookieSyncPrivacyContextFactory.contextFrom(any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("fail"));
 
         // when
@@ -329,8 +329,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         verify(applicationSettings).getAccountById(eq("account"), any());
-
-        verify(privacyEnforcementService).contextFromCookieSyncRequest(any(), any(), eq(account), any());
+        verify(cookieSyncPrivacyContextFactory).contextFrom(any(), any(), eq(account), any());
     }
 
     @Test
@@ -341,7 +340,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.failedFuture("bad"));
 
-        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+        given(cookieSyncPrivacyContextFactory.contextFrom(any(), any(), any(), any()))
                 .willReturn(Future.failedFuture("fail"));
         givenDefaultCookieSyncServicePipelineResult();
 
@@ -350,9 +349,7 @@ public class CookieSyncHandlerTest extends VertxTest {
 
         // then
         verify(applicationSettings).getAccountById(eq("account"), any());
-
-        verify(privacyEnforcementService)
-                .contextFromCookieSyncRequest(any(), any(), eq(Account.empty("account")), any());
+        verify(cookieSyncPrivacyContextFactory).contextFrom(any(), any(), eq(Account.empty("account")), any());
     }
 
     @Test

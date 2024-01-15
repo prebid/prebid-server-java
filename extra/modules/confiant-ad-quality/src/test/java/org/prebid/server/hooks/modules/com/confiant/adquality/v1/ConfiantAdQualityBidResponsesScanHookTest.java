@@ -13,9 +13,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsMapper;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsScanResult;
@@ -60,7 +60,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     private ActivityInfrastructure activityInfrastructure;
 
     @Mock
-    private PrivacyEnforcementService privacyEnforcementService;
+    private UserFpdActivityMask userFpdActivityMask;
 
     private ConfiantAdQualityBidResponsesScanHook hook;
 
@@ -68,7 +68,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
 
     @Before
     public void setUp() {
-        hook = new ConfiantAdQualityBidResponsesScanHook(bidsScanner, List.of(), privacyEnforcementService);
+        hook = new ConfiantAdQualityBidResponsesScanHook(bidsScanner, List.of(), userFpdActivityMask);
     }
 
     @Test
@@ -170,7 +170,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final BidderResponse notSecureGoodBidderResponse = AdQualityModuleTestUtils.getBidderResponse(notSecureGoodBidderName, "imp_c", "bid_id_c");
 
         final ConfiantAdQualityBidResponsesScanHook hookWithExcludeConfig = new ConfiantAdQualityBidResponsesScanHook(
-                bidsScanner, List.of(secureBidderName), privacyEnforcementService);
+                bidsScanner, List.of(secureBidderName), userFpdActivityMask);
         final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
                 "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]],[[{\"tag_key\": \"key_b\", \"imp_id\": \"imp_b\", \"issues\": []}]]]]");
         final AuctionContext auctionContext = AuctionContext.builder()
@@ -224,9 +224,9 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final Boolean transmitGeoIsAllowed = true;
         final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
                 "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
-        final User user = privacyEnforcementService.maskUserConsideringActivityRestrictions(
-                getUser(), true, !transmitGeoIsAllowed);
-        final Device device = privacyEnforcementService.maskDeviceConsideringActivityRestrictions(
+        final User user = userFpdActivityMask.maskUser(
+                getUser(), true, true, !transmitGeoIsAllowed);
+        final Device device = userFpdActivityMask.maskDevice(
                 getDevice(), true, !transmitGeoIsAllowed);
 
         bidsScanner.enableScan();
@@ -253,9 +253,9 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final Boolean transmitGeoIsAllowed = false;
         final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
                 "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
-        final User user = privacyEnforcementService.maskUserConsideringActivityRestrictions(
-                getUser(), true, !transmitGeoIsAllowed);
-        final Device device = privacyEnforcementService.maskDeviceConsideringActivityRestrictions(
+        final User user = userFpdActivityMask.maskUser(
+                getUser(), true, true, !transmitGeoIsAllowed);
+        final Device device = userFpdActivityMask.maskDevice(
                 getDevice(), true, !transmitGeoIsAllowed);
 
         bidsScanner.enableScan();

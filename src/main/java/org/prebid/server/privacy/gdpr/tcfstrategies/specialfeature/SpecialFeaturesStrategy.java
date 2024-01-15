@@ -1,7 +1,6 @@
 package org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature;
 
 import com.iabtcf.decoder.TCString;
-import com.iabtcf.utils.IntIterable;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
@@ -21,15 +20,12 @@ public abstract class SpecialFeaturesStrategy {
     public Collection<VendorPermission> processSpecialFeaturesStrategy(TCString vendorConsent,
                                                                        SpecialFeature specialFeature,
                                                                        Collection<VendorPermission> vendorPermissions) {
-        // Default True
+
         if (BooleanUtils.isFalse(specialFeature.getEnforce())) {
             return allowFor(vendorPermissions);
         }
 
-        final IntIterable specialFeatureOptIns = vendorConsent.getSpecialFeatureOptIns();
-        final boolean isSpecialFeatureIsOptIn = specialFeatureOptIns.contains(getSpecialFeatureId());
-
-        return isSpecialFeatureIsOptIn
+        return vendorConsent.getSpecialFeatureOptIns().contains(getSpecialFeatureId())
                 ? allowFor(vendorPermissions)
                 : allowOnlyExcluded(vendorPermissions, specialFeature);
     }
@@ -41,14 +37,18 @@ public abstract class SpecialFeaturesStrategy {
 
     private Collection<VendorPermission> allowOnlyExcluded(Collection<VendorPermission> vendorPermissions,
                                                            SpecialFeature specialFeature) {
+
         excludedVendors(vendorPermissions, specialFeature)
                 .forEach(vendorPermission -> allow(vendorPermission.getPrivacyEnforcementAction()));
+
         return vendorPermissions;
     }
 
-    protected Collection<VendorPermission> excludedVendors(Collection<VendorPermission> vendorPermissions,
-                                                           SpecialFeature specialFeature) {
+    private Collection<VendorPermission> excludedVendors(Collection<VendorPermission> vendorPermissions,
+                                                         SpecialFeature specialFeature) {
+
         final List<String> bidderNameExceptions = specialFeature.getVendorExceptions();
+
         return CollectionUtils.isEmpty(bidderNameExceptions)
                 ? Collections.emptyList()
                 : CollectionUtils.select(vendorPermissions, vendorPermission ->

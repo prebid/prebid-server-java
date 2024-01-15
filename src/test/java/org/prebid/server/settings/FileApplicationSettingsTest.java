@@ -162,8 +162,12 @@ public class FileApplicationSettingsTest extends VertxTest {
                                 .enabled(true)
                                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                                 .purposes(Purposes.builder()
-                                        .p1(Purpose.of(EnforcePurpose.basic, false, asList("rubicon", "appnexus")))
-                                        .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx")))
+                                        .p1(Purpose.of(
+                                                EnforcePurpose.basic,
+                                                false,
+                                                asList("rubicon", "appnexus"),
+                                                null))
+                                        .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx"), null))
                                         .build())
                                 .specialFeatures(SpecialFeatures.builder()
                                         .sf1(SpecialFeature.of(true, asList("rubicon", "appnexus")))

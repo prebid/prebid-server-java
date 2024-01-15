@@ -16,7 +16,6 @@ import org.prebid.server.settings.model.Purpose;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 public abstract class PurposeStrategy {
 
@@ -74,31 +73,8 @@ public abstract class PurposeStrategy {
                 .toList();
     }
 
-    private Collection<VendorPermission> allowedByTypeStrategy(TCString vendorConsent,
-                                                               Purpose purpose,
-                                                               Collection<VendorPermissionWithGvl> vendorForPurpose,
-                                                               Collection<VendorPermissionWithGvl> excludedVendors) {
-        final boolean isEnforceVendors = BooleanUtils.isNotFalse(purpose.getEnforceVendors());
-
-        final EnforcePurpose purposeType = purpose.getEnforcePurpose();
-        if (Objects.equals(purposeType, EnforcePurpose.basic)) {
-            return allowedByBasicTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
-        }
-
-        if (Objects.equals(purposeType, EnforcePurpose.no)) {
-            return allowedByNoTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
-        }
-
-        // Full by default
-        if (purposeType == null || purposeType.equals(EnforcePurpose.full)) {
-            return allowedByFullTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
-        }
-
-        throw new IllegalArgumentException("Invalid type strategy provided. no/base/full != " + purposeType);
-    }
-
-    protected Collection<VendorPermissionWithGvl> excludedVendors(Collection<VendorPermissionWithGvl> vendorPermissions,
-                                                                  Purpose purpose) {
+    private Collection<VendorPermissionWithGvl> excludedVendors(Collection<VendorPermissionWithGvl> vendorPermissions,
+                                                                Purpose purpose) {
 
         final List<String> bidderNameExceptions = purpose.getVendorExceptions();
 
@@ -108,7 +84,26 @@ public abstract class PurposeStrategy {
                 bidderNameExceptions.contains(vendorPermission.getVendorPermission().getBidderName()));
     }
 
-    protected Collection<VendorPermission> allowedByBasicTypeStrategy(
+    private Collection<VendorPermission> allowedByTypeStrategy(TCString vendorConsent,
+                                                               Purpose purpose,
+                                                               Collection<VendorPermissionWithGvl> vendorForPurpose,
+                                                               Collection<VendorPermissionWithGvl> excludedVendors) {
+
+        final boolean isEnforceVendors = BooleanUtils.isNotFalse(purpose.getEnforceVendors());
+
+        final EnforcePurpose purposeType = purpose.getEnforcePurpose();
+        if (purposeType == EnforcePurpose.no) {
+            return allowedByNoTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
+        }
+
+        if (purposeType == EnforcePurpose.basic) {
+            return allowedByBasicTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
+        }
+
+        return allowedByFullTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
+    }
+
+    private Collection<VendorPermission> allowedByBasicTypeStrategy(
             TCString vendorConsent,
             boolean isEnforceVendors,
             Collection<VendorPermissionWithGvl> vendorForPurpose,
@@ -118,7 +113,7 @@ public abstract class PurposeStrategy {
                 getPurpose(), vendorConsent, vendorForPurpose, excludedVendors, isEnforceVendors);
     }
 
-    protected Collection<VendorPermission> allowedByNoTypeStrategy(
+    private Collection<VendorPermission> allowedByNoTypeStrategy(
             TCString vendorConsent,
             boolean isEnforceVendors,
             Collection<VendorPermissionWithGvl> vendorForPurpose,
@@ -128,7 +123,7 @@ public abstract class PurposeStrategy {
                 getPurpose(), vendorConsent, vendorForPurpose, excludedVendors, isEnforceVendors);
     }
 
-    protected Collection<VendorPermission> allowedByFullTypeStrategy(
+    private Collection<VendorPermission> allowedByFullTypeStrategy(
             TCString vendorConsent,
             boolean isEnforceVendors,
             Collection<VendorPermissionWithGvl> vendorForPurpose,
