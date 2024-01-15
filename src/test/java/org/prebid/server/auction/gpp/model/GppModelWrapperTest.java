@@ -51,9 +51,9 @@ public class GppModelWrapperTest {
 
     public static String encodedTcfEuV2SectionNormalizer(String encodedSection) {
         try {
-            final GppModel tcfComparator = new GppModel();
-            tcfComparator.decodeSection(TcfEuV2.ID, encodedSection);
-            return tcfComparator.encodeSection(TcfEuV2.ID);
+            final GppModel normalizer = new GppModel();
+            normalizer.decodeSection(TcfEuV2.ID, encodedSection);
+            return normalizer.encodeSection(TcfEuV2.ID);
         } catch (DecodingException | EncodingException e) {
             throw new RuntimeException(e);
         }
