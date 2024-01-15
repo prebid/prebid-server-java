@@ -229,16 +229,13 @@ public class AnalyticsReporterDelegator {
                                         String adapter,
                                         ActivityInfrastructure infrastructure) {
 
-        final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
+        final ActivityInvocationPayload payload = BidRequestActivityInvocationPayload.of(
                 activityInvocationPayload(adapter),
                 bidRequest);
 
-        final boolean disallowTransmitUfpd = !isAllowedActivity(
-                infrastructure, Activity.TRANSMIT_UFPD, activityInvocationPayload);
-        final boolean disallowTransmitEids = !isAllowedActivity(
-                infrastructure, Activity.TRANSMIT_EIDS, activityInvocationPayload);
-        final boolean disallowTransmitGeo = !isAllowedActivity(
-                infrastructure, Activity.TRANSMIT_GEO, activityInvocationPayload);
+        final boolean disallowTransmitUfpd = !isAllowedActivity(infrastructure, Activity.TRANSMIT_UFPD, payload);
+        final boolean disallowTransmitEids = !isAllowedActivity(infrastructure, Activity.TRANSMIT_EIDS, payload);
+        final boolean disallowTransmitGeo = !isAllowedActivity(infrastructure, Activity.TRANSMIT_GEO, payload);
 
         final User user = bidRequest != null ? bidRequest.getUser() : null;
         final User resolvedUser = mask.maskUser(user, disallowTransmitUfpd, disallowTransmitEids, disallowTransmitGeo);

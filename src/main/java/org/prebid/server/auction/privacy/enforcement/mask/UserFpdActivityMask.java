@@ -3,6 +3,7 @@ package org.prebid.server.auction.privacy.enforcement.mask;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
 
+import java.util.Collections;
 import java.util.Objects;
 
 public class UserFpdActivityMask {
@@ -18,7 +19,12 @@ public class UserFpdActivityMask {
                          boolean disallowTransmitEids,
                          boolean disallowTransmitGeo) {
 
-        return userFpdTcfMask.maskUser(user, disallowTransmitUfpd, disallowTransmitEids, disallowTransmitGeo);
+        return userFpdTcfMask.maskUser(
+                user,
+                disallowTransmitUfpd,
+                disallowTransmitEids,
+                disallowTransmitGeo,
+                Collections.emptySet());
     }
 
     public Device maskDevice(Device device, boolean disallowTransmitUfpd, boolean disallowTransmitGeo) {

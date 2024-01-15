@@ -28,7 +28,7 @@ class CurrencySpec extends BaseSpec {
 
     def "PBS should return currency rates"() {
         when: "PBS processes bidders params request"
-        def response = pbsService.sendCurrencyRatesRequest()
+        def response = pbsService.withWarmup().sendCurrencyRatesRequest()
 
         then: "Response should contain bidders params"
         assert response.rates?.size() > 0

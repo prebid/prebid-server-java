@@ -7,6 +7,7 @@ import org.prebid.server.auction.IpAddressHelper;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Set;
 
 public class UserFpdTcfMask extends UserFpdPrivacyMask {
 
@@ -14,8 +15,8 @@ public class UserFpdTcfMask extends UserFpdPrivacyMask {
         super(ipAddressHelper);
     }
 
-    public User maskUser(User user, boolean maskUserFpd, boolean maskEids, boolean maskGeo) {
-        return super.maskUser(user, maskUserFpd, maskEids, maskGeo);
+    public User maskUser(User user, boolean maskUserFpd, boolean maskEids, boolean maskGeo, Set<String> eidExceptions) {
+        return super.maskUser(user, maskUserFpd, maskEids, maskGeo, eidExceptions);
     }
 
     public Device maskDevice(Device device, boolean maskIp, boolean maskGeo, boolean maskDeviceInfo) {

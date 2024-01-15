@@ -1,0 +1,11 @@
+adapters:
+  oms:
+    endpoint: http://rt.marphezis.com/pbs
+    meta-info:
+      maintainer-email: prebid@onlinemediasolutions.com
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 0

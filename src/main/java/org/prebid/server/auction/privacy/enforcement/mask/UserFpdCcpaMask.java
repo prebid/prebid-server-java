@@ -7,6 +7,7 @@ import org.prebid.server.auction.IpAddressHelper;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Collections;
 
 public class UserFpdCcpaMask extends UserFpdPrivacyMask {
 
@@ -15,7 +16,7 @@ public class UserFpdCcpaMask extends UserFpdPrivacyMask {
     }
 
     public User maskUser(User user) {
-        return maskUser(user, true, true, true);
+        return maskUser(user, true, true, true, Collections.emptySet());
     }
 
     public Device maskDevice(Device device) {

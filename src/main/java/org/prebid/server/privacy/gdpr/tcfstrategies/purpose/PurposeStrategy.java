@@ -16,6 +16,7 @@ import org.prebid.server.settings.model.Purpose;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 public abstract class PurposeStrategy {
 
@@ -39,38 +40,40 @@ public abstract class PurposeStrategy {
      */
     public abstract void allow(PrivacyEnforcementAction privacyEnforcementAction);
 
+    public void allow(VendorPermission vendorPermission) {
+        vendorPermission.consent(getPurpose());
+        allow(vendorPermission.getPrivacyEnforcementAction());
+    }
+
     /**
      * This method represents allowance of permission that purpose should provide after full enforcement
      * (can downgrade to basic if GVL failed) despite of host company or account configuration.
      */
     public abstract void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction);
 
-    public Collection<VendorPermission> processTypePurposeStrategy(
-            TCString vendorConsent,
-            Purpose purpose,
-            Collection<VendorPermissionWithGvl> vendorPermissions,
-            boolean wasDowngraded) {
+    public void allowNaturally(VendorPermission vendorPermission) {
+        vendorPermission.consent(getPurpose());
+        allowNaturally(vendorPermission.getPrivacyEnforcementAction());
+    }
+
+    public void processTypePurposeStrategy(TCString vendorConsent,
+                                           Purpose purpose,
+                                           Collection<VendorPermissionWithGvl> vendorPermissions,
+                                           boolean wasDowngraded) {
 
         final Collection<VendorPermissionWithGvl> excludedVendors = excludedVendors(vendorPermissions, purpose);
         final Collection<VendorPermissionWithGvl> vendorForPurpose = vendorPermissions.stream()
                 .filter(vendorPermission -> !excludedVendors.contains(vendorPermission))
                 .toList();
 
-        allowedByTypeStrategy(vendorConsent, purpose, vendorForPurpose, excludedVendors).stream()
-                .map(VendorPermission::getPrivacyEnforcementAction)
+        allowedByTypeStrategy(vendorConsent, purpose, vendorForPurpose, excludedVendors)
                 .forEach(this::allow);
 
-        final Collection<VendorPermission> naturalVendorPermission = wasDowngraded
+        final Stream<VendorPermission> naturalVendorPermission = wasDowngraded
                 ? allowedByBasicTypeStrategy(vendorConsent, true, vendorForPurpose, excludedVendors)
                 : allowedByFullTypeStrategy(vendorConsent, true, vendorForPurpose, excludedVendors);
 
-        naturalVendorPermission.stream()
-                .map(VendorPermission::getPrivacyEnforcementAction)
-                .forEach(this::allowNaturally);
-
-        return vendorPermissions.stream()
-                .map(VendorPermissionWithGvl::getVendorPermission)
-                .toList();
+        naturalVendorPermission.forEach(this::allowNaturally);
     }
 
     private Collection<VendorPermissionWithGvl> excludedVendors(Collection<VendorPermissionWithGvl> vendorPermissions,
@@ -84,10 +87,10 @@ public abstract class PurposeStrategy {
                 bidderNameExceptions.contains(vendorPermission.getVendorPermission().getBidderName()));
     }
 
-    private Collection<VendorPermission> allowedByTypeStrategy(TCString vendorConsent,
-                                                               Purpose purpose,
-                                                               Collection<VendorPermissionWithGvl> vendorForPurpose,
-                                                               Collection<VendorPermissionWithGvl> excludedVendors) {
+    private Stream<VendorPermission> allowedByTypeStrategy(TCString vendorConsent,
+                                                           Purpose purpose,
+                                                           Collection<VendorPermissionWithGvl> vendorForPurpose,
+                                                           Collection<VendorPermissionWithGvl> excludedVendors) {
 
         final boolean isEnforceVendors = BooleanUtils.isNotFalse(purpose.getEnforceVendors());
 
@@ -103,7 +106,7 @@ public abstract class PurposeStrategy {
         return allowedByFullTypeStrategy(vendorConsent, isEnforceVendors, vendorForPurpose, excludedVendors);
     }
 
-    private Collection<VendorPermission> allowedByBasicTypeStrategy(
+    private Stream<VendorPermission> allowedByBasicTypeStrategy(
             TCString vendorConsent,
             boolean isEnforceVendors,
             Collection<VendorPermissionWithGvl> vendorForPurpose,
@@ -113,7 +116,7 @@ public abstract class PurposeStrategy {
                 getPurpose(), vendorConsent, vendorForPurpose, excludedVendors, isEnforceVendors);
     }
 
-    private Collection<VendorPermission> allowedByNoTypeStrategy(
+    private Stream<VendorPermission> allowedByNoTypeStrategy(
             TCString vendorConsent,
             boolean isEnforceVendors,
             Collection<VendorPermissionWithGvl> vendorForPurpose,
@@ -123,7 +126,7 @@ public abstract class PurposeStrategy {
                 getPurpose(), vendorConsent, vendorForPurpose, excludedVendors, isEnforceVendors);
     }
 
-    private Collection<VendorPermission> allowedByFullTypeStrategy(
+    private Stream<VendorPermission> allowedByFullTypeStrategy(
             TCString vendorConsent,
             boolean isEnforceVendors,
             Collection<VendorPermissionWithGvl> vendorForPurpose,

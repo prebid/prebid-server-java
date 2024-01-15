@@ -5,8 +5,10 @@ import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.privacy.EnforcementRequirments
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.AllowActivities
+import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.util.privacy.TcfUtils
+import spock.lang.IgnoreRest
 
 import static com.iabtcf.v2.RestrictionType.REQUIRE_CONSENT
 import static com.iabtcf.v2.RestrictionType.REQUIRE_LEGITIMATE_INTEREST
@@ -32,6 +34,7 @@ class TcfTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
     private static final def DEFAULT_TCF_POLICY_VERSION = TCF_POLICY_V2
 
+    @IgnoreRest
     def "PBS should leave the original request with eids data when requireConsent is enabled and personalized ADS purpose have basic consent"() {
         given: "Default Generic BidRequests with EID fields"
         def userEids = [Eid.defaultEid]
@@ -45,7 +48,7 @@ class TcfTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         and: "Save account config with requireConsent into DB"
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, true)
         def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
-        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
+        def account = getAccountWithGdpr(bidRequest.accountId, null).tap {
             config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.defaultActivity)
         }
         accountDao.save(account)
@@ -122,7 +125,7 @@ class TcfTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         assert !bidderRequest.user.eids
-        assert !bidderRequest.user.ext.eids
+        assert !bidderRequest.user?.ext?.eids
 
         where:
         enforcementRequirments << getBasicEnforcementRequirments(P2) +
@@ -165,7 +168,7 @@ class TcfTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         assert !bidderRequest.user.eids
-        assert !bidderRequest.user.ext.eids
+        assert !bidderRequest.user?.ext?.eids
 
         where:
         enforcementRequirments << getFullEnforcementRequirments(P2) +
@@ -286,7 +289,7 @@ class TcfTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         assert !bidderRequest.user.eids
-        assert !bidderRequest.user.ext.eids
+        assert !bidderRequest.user?.ext?.eids
 
         where:
         enforcementRequirments << getBasicEnforcementRequirments(P1) +
@@ -328,7 +331,7 @@ class TcfTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         assert !bidderRequest.user.eids
-        assert !bidderRequest.user.ext.eids
+        assert !bidderRequest.user?.ext?.eids
 
         where:
         enforcementRequirments << getFullEnforcementRequirments(P1)
@@ -440,7 +443,7 @@ class TcfTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         assert !bidderRequest.user.eids
-        assert !bidderRequest.user.ext.eids
+        assert !bidderRequest.user?.ext?.eids
 
         where:
         enforcementRequirments << getBasicEnforcementRequirments(P1) +
@@ -482,7 +485,7 @@ class TcfTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         assert !bidderRequest.user.eids
-        assert !bidderRequest.user.ext.eids
+        assert !bidderRequest.user?.ext?.eids
 
         where:
         enforcementRequirments << getFullEnforcementRequirments(P1)

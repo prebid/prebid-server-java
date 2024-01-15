@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
+import static java.util.Collections.emptySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.verify;
@@ -37,7 +38,7 @@ public class UserFpdActivityMaskTest {
         target.maskUser(user, true, false, false);
 
         // then
-        verify(userFpdTcfMask).maskUser(same(user), eq(true), eq(false), eq(false));
+        verify(userFpdTcfMask).maskUser(same(user), eq(true), eq(false), eq(false), eq(emptySet()));
     }
 
     @Test
@@ -49,7 +50,7 @@ public class UserFpdActivityMaskTest {
         target.maskUser(user, false, true, false);
 
         // then
-        verify(userFpdTcfMask).maskUser(same(user), eq(false), eq(true), eq(false));
+        verify(userFpdTcfMask).maskUser(same(user), eq(false), eq(true), eq(false), eq(emptySet()));
     }
 
     @Test
@@ -61,7 +62,7 @@ public class UserFpdActivityMaskTest {
         target.maskUser(user, false, false, true);
 
         // then
-        verify(userFpdTcfMask).maskUser(same(user), eq(false), eq(false), eq(true));
+        verify(userFpdTcfMask).maskUser(same(user), eq(false), eq(false), eq(true), eq(emptySet()));
     }
 
     @Test
