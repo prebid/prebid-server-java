@@ -6,6 +6,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
@@ -202,11 +203,11 @@ public class Tcf2ServiceTest extends VertxTest {
                 purpose7.getVendorExceptions(),
                 purpose7.getEid());
         final List<VendorPermissionWithGvl> permissionsWithGvl = singletonList(withGvl(expectedVendorPermission, 1));
-        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, permissionsWithGvl, true, true);
-        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, permissionsWithGvl, true, true);
-        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purpose4, permissionsWithGvl, true, true);
+        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, permissionsWithGvl, true);
+        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, permissionsWithGvl, true);
+        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purpose4, permissionsWithGvl, true);
         verify(purposeStrategySeven)
-                .processTypePurposeStrategy(tcString, downgradedPurpose7, permissionsWithGvl, true, true);
+                .processTypePurposeStrategy(tcString, downgradedPurpose7, permissionsWithGvl, true);
         verifyEachSpecialFeatureStrategyReceive(singletonList(expectedVendorPermission));
 
         verify(vendorListService).forConsent(any());
@@ -232,8 +233,7 @@ public class Tcf2ServiceTest extends VertxTest {
                 tcString,
                 accountPurposeOne,
                 singletonList(withGvl(expectedVendorPermission, null)),
-                false,
-                true);
+                false);
 
         verify(vendorIdResolver).resolve(anyString());
         verify(vendorListService).forConsent(argThat(tcString -> tcString.getVendorListVersion() == 10));
@@ -347,13 +347,13 @@ public class Tcf2ServiceTest extends VertxTest {
 
         final List<VendorPermissionWithGvl> permissions = singletonList(withGvl(expectedVendorPermission, 1));
         verify(purposeStrategyOne, never())
-                .processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean(), anyBoolean());
-        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false), eq(true));
-        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false), eq(true));
-        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false), eq(true));
-        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true), eq(true));
-        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true), eq(true));
-        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true), eq(true));
+                .processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false));
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false));
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false));
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true));
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true));
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true));
         verifyEachSpecialFeatureStrategyReceive(singletonList(expectedVendorPermission));
 
         verify(vendorListService).forConsent(any());
@@ -375,14 +375,14 @@ public class Tcf2ServiceTest extends VertxTest {
 
         final List<VendorPermissionWithGvl> permissions = singletonList(withGvl(expectedVendorPermission, 1));
         verify(purposeStrategyOne, never())
-                .processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean(), anyBoolean());
-        verify(purposeStrategyOne).allow(any());
-        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false), eq(true));
-        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false), eq(true));
-        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false), eq(true));
-        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true), eq(true));
-        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true), eq(true));
-        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true), eq(true));
+                .processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+        verify(purposeStrategyOne).allow(Mockito.<VendorPermission>any());
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false));
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false));
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false));
+        verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true));
+        verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true));
+        verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), eq(emptyList()), eq(true));
         verifyEachSpecialFeatureStrategyReceive(singletonList(expectedVendorPermission));
 
         verify(vendorListService).forConsent(any());
@@ -403,7 +403,7 @@ public class Tcf2ServiceTest extends VertxTest {
         assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
         final List<VendorPermissionWithGvl> standardPermissions = singletonList(withGvl(expectedVendorPermission, 1));
-        verify(purposeStrategyOne, never()).allow(any());
+        verify(purposeStrategyOne, never()).allow(Mockito.<VendorPermission>any());
         verifyEachPurposeStrategyReceive(standardPermissions);
         verifyEachPurposeStrategyReceiveWeak(emptyList());
         verifyEachSpecialFeatureStrategyReceive(singletonList(expectedVendorPermission));
@@ -412,7 +412,7 @@ public class Tcf2ServiceTest extends VertxTest {
     }
 
     @Test
-    public void permissionsForShouldDisallowNaturalPermissionsIfConfigured() {
+    public void permissionsForShouldRequirePurpose4ConsentIfConfigured() {
         // given
         given(vendorIdResolver.resolve(eq("b1"))).willReturn(1);
         given(vendorIdResolver.resolve(eq("b2"))).willReturn(2);
@@ -437,10 +437,10 @@ public class Tcf2ServiceTest extends VertxTest {
         assertThat(result).succeededWith(asList(expectedVendorPermission2, expectedVendorPermission1));
 
         final List<VendorPermissionWithGvl> permissions1 = singletonList(withGvl(expectedVendorPermission1, 1));
-        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, permissions1, false, false);
-        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, permissions1, false, false);
-        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purposeFour, permissions1, false, false);
-        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, purpose7, permissions1, false, false);
+        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, permissions1, false);
+        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, permissions1, false);
+        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purposeFour, permissions1, false);
+        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, purpose7, permissions1, false);
 
         final Purpose weakPurposeFour = Purpose.of(
                 purposeFour.getEnforcePurpose(),
@@ -448,10 +448,10 @@ public class Tcf2ServiceTest extends VertxTest {
                 purposeFour.getVendorExceptions(),
                 purposeFour.getEid());
         final List<VendorPermissionWithGvl> permissions2 = singletonList(withGvl(expectedVendorPermission2, 2));
-        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, weakPurpose1, permissions2, true, false);
-        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, weakPurpose2, permissions2, true, false);
-        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, weakPurposeFour, permissions2, true, false);
-        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, weakPurpose7, permissions2, true, false);
+        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, weakPurpose1, permissions2, true);
+        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, weakPurpose2, permissions2, true);
+        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, weakPurposeFour, permissions2, true);
+        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, weakPurpose7, permissions2, true);
 
         verifyEachSpecialFeatureStrategyReceive(asList(expectedVendorPermission2, expectedVendorPermission1));
 
@@ -460,17 +460,17 @@ public class Tcf2ServiceTest extends VertxTest {
     }
 
     public void verifyEachPurposeStrategyReceive(List<VendorPermissionWithGvl> permissions) {
-        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, permissions, false, true);
-        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, permissions, false, true);
-        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purpose4, permissions, false, true);
-        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, purpose7, permissions, false, true);
+        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, permissions, false);
+        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, permissions, false);
+        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purpose4, permissions, false);
+        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, purpose7, permissions, false);
     }
 
     public void verifyEachPurposeStrategyReceiveWeak(List<VendorPermissionWithGvl> permissions) {
-        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, weakPurpose1, permissions, true, true);
-        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, weakPurpose2, permissions, true, true);
-        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, weakPurpose4, permissions, true, true);
-        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, weakPurpose7, permissions, true, true);
+        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, weakPurpose1, permissions, true);
+        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, weakPurpose2, permissions, true);
+        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, weakPurpose4, permissions, true);
+        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, weakPurpose7, permissions, true);
     }
 
     public void verifyEachSpecialFeatureStrategyReceive(List<VendorPermission> vendorPermission) {

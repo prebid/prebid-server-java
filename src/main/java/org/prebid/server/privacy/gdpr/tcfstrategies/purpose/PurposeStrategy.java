@@ -40,17 +40,26 @@ public abstract class PurposeStrategy {
      */
     public abstract void allow(PrivacyEnforcementAction privacyEnforcementAction);
 
+    public void allow(VendorPermission vendorPermission) {
+        vendorPermission.consent(getPurpose());
+        allow(vendorPermission.getPrivacyEnforcementAction());
+    }
+
     /**
      * This method represents allowance of permission that purpose should provide after full enforcement
      * (can downgrade to basic if GVL failed) despite of host company or account configuration.
      */
     public abstract void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction);
 
+    public void allowNaturally(VendorPermission vendorPermission) {
+        vendorPermission.consent(getPurpose());
+        allowNaturally(vendorPermission.getPrivacyEnforcementAction());
+    }
+
     public void processTypePurposeStrategy(TCString vendorConsent,
                                            Purpose purpose,
                                            Collection<VendorPermissionWithGvl> vendorPermissions,
-                                           boolean wasDowngraded,
-                                           boolean allowNaturalPermissions) {
+                                           boolean wasDowngraded) {
 
         final Collection<VendorPermissionWithGvl> excludedVendors = excludedVendors(vendorPermissions, purpose);
         final Collection<VendorPermissionWithGvl> vendorForPurpose = vendorPermissions.stream()
@@ -58,18 +67,13 @@ public abstract class PurposeStrategy {
                 .toList();
 
         allowedByTypeStrategy(vendorConsent, purpose, vendorForPurpose, excludedVendors)
-                .map(VendorPermission::getPrivacyEnforcementAction)
                 .forEach(this::allow);
 
-        if (allowNaturalPermissions) {
-            final Stream<VendorPermission> naturalVendorPermission = wasDowngraded
-                    ? allowedByBasicTypeStrategy(vendorConsent, true, vendorForPurpose, excludedVendors)
-                    : allowedByFullTypeStrategy(vendorConsent, true, vendorForPurpose, excludedVendors);
+        final Stream<VendorPermission> naturalVendorPermission = wasDowngraded
+                ? allowedByBasicTypeStrategy(vendorConsent, true, vendorForPurpose, excludedVendors)
+                : allowedByFullTypeStrategy(vendorConsent, true, vendorForPurpose, excludedVendors);
 
-            naturalVendorPermission
-                    .map(VendorPermission::getPrivacyEnforcementAction)
-                    .forEach(this::allowNaturally);
-        }
+        naturalVendorPermission.forEach(this::allowNaturally);
     }
 
     private Collection<VendorPermissionWithGvl> excludedVendors(Collection<VendorPermissionWithGvl> vendorPermissions,

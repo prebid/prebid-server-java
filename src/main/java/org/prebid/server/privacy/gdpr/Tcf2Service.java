@@ -173,8 +173,6 @@ public class Tcf2Service {
             Purposes purposes,
             PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation) {
 
-        final boolean allowNaturalPermissions = allowNaturalPermissions(purposes);
-
         for (PurposeStrategy purposeStrategy : purposeStrategies) {
             final PurposeCode tcfPurpose = purposeStrategy.getPurpose();
             final Purpose purposeById = findPurposeByTcfPurpose(tcfPurpose, purposes);
@@ -189,17 +187,17 @@ public class Tcf2Service {
                     purposeById,
                     purposeStrategy,
                     purposeOneTreatmentInterpretation,
-                    false,
-                    allowNaturalPermissions);
+                    false);
             processPurposeStrategy(
                     tcfConsent,
                     weakPermissions,
                     weakPurpose,
                     purposeStrategy,
                     purposeOneTreatmentInterpretation,
-                    true,
-                    allowNaturalPermissions);
+                    true);
         }
+
+        enforcePurpose4IfRequired(purposes, permissions);
 
         return Future.succeededFuture();
     }
@@ -209,8 +207,6 @@ public class Tcf2Service {
             VendorPermissionsByType<VendorPermissionWithGvl> permissions,
             Purposes purposes,
             PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation) {
-
-        final boolean allowNaturalPermissions = allowNaturalPermissions(purposes);
 
         for (PurposeStrategy purposeStrategy : purposeStrategies) {
             final PurposeCode tcfPurpose = purposeStrategy.getPurpose();
@@ -226,25 +222,19 @@ public class Tcf2Service {
                     downgradedPurposeById,
                     purposeStrategy,
                     purposeOneTreatmentInterpretation,
-                    true,
-                    allowNaturalPermissions);
+                    true);
             processPurposeStrategy(
                     tcfConsent,
                     weakPermissions,
                     weakPurpose,
                     purposeStrategy,
                     purposeOneTreatmentInterpretation,
-                    true,
-                    allowNaturalPermissions);
+                    true);
         }
 
-        return Future.succeededFuture();
-    }
+        enforcePurpose4IfRequired(purposes, permissions);
 
-    // TODO: remove after transition period
-    private static boolean allowNaturalPermissions(Purposes purposes) {
-        final PurposeEid purposeEid = findPurposeByTcfPurpose(PurposeCode.FOUR, purposes).getEid();
-        return purposeEid == null || !purposeEid.isRequireConsent();
+        return Future.succeededFuture();
     }
 
     private static Purpose downgradePurpose(Purpose purpose) {
@@ -273,8 +263,7 @@ public class Tcf2Service {
                                                Purpose purpose,
                                                PurposeStrategy purposeStrategy,
                                                PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation,
-                                               boolean wasDowngraded,
-                                               boolean allowNaturalPermissions) {
+                                               boolean wasDowngraded) {
 
         if (purposeStrategy.getPurpose() == PurposeCode.ONE && tcfConsent.getPurposeOneTreatment()) {
             processPurposeOneTreatment(
@@ -283,15 +272,9 @@ public class Tcf2Service {
                     purpose,
                     purposeStrategy,
                     vendorPermissionsWithGvl,
-                    wasDowngraded,
-                    allowNaturalPermissions);
+                    wasDowngraded);
         } else {
-            purposeStrategy.processTypePurposeStrategy(
-                    tcfConsent,
-                    purpose,
-                    vendorPermissionsWithGvl,
-                    wasDowngraded,
-                    allowNaturalPermissions);
+            purposeStrategy.processTypePurposeStrategy(tcfConsent, purpose, vendorPermissionsWithGvl, wasDowngraded);
         }
     }
 
@@ -300,22 +283,41 @@ public class Tcf2Service {
                                                    Purpose purposeOne,
                                                    PurposeStrategy purposeOneStrategy,
                                                    Collection<VendorPermissionWithGvl> vendorPermissionsWithGvl,
-                                                   boolean wasDowngraded,
-                                                   boolean allowNaturalPermissions) {
+                                                   boolean wasDowngraded) {
 
         switch (purposeOneTreatmentInterpretation) {
-            case accessAllowed -> vendorPermissionsWithGvl.forEach(vendorPermission ->
-                    purposeOneStrategy.allow(vendorPermission.getVendorPermission().getPrivacyEnforcementAction()));
+            case accessAllowed -> vendorPermissionsWithGvl.stream()
+                    .map(VendorPermissionWithGvl::getVendorPermission)
+                    .forEach(purposeOneStrategy::allow);
             case noAccessAllowed -> {
                 // no need for special processing of no-access-allowed since everything is disallowed from the beginning
             }
-            case ignore -> purposeOneStrategy.processTypePurposeStrategy(
-                    tcfConsent,
-                    purposeOne,
-                    vendorPermissionsWithGvl,
-                    wasDowngraded,
-                    allowNaturalPermissions);
+            case ignore -> purposeOneStrategy
+                    .processTypePurposeStrategy(tcfConsent, purposeOne, vendorPermissionsWithGvl, wasDowngraded);
         }
+    }
+
+    // TODO: remove after transition period
+    private static void enforcePurpose4IfRequired(Purposes purposes,
+                                                  VendorPermissionsByType<VendorPermissionWithGvl> permissions) {
+
+        if (isConsentRequiredForPurpose4(purposes)) {
+            requireConsentForPurpose4(permissions.getStandardPermissions());
+            requireConsentForPurpose4(permissions.getWeakPermissions());
+        }
+    }
+
+    private static boolean isConsentRequiredForPurpose4(Purposes purposes) {
+        final PurposeEid purposeEid = findPurposeByTcfPurpose(PurposeCode.FOUR, purposes).getEid();
+        return purposeEid != null && purposeEid.isRequireConsent();
+    }
+
+    private static void requireConsentForPurpose4(Collection<VendorPermissionWithGvl> permissions) {
+        permissions.stream()
+                .map(VendorPermissionWithGvl::getVendorPermission)
+                .filter(vendorPermission -> !vendorPermission.isConsented(PurposeCode.FOUR))
+                .map(VendorPermission::getPrivacyEnforcementAction)
+                .forEach(privacyEnforcementAction -> privacyEnforcementAction.setRemoveUserIds(true));
     }
 
     private Collection<VendorPermission> processSupportedSpecialFeatureStrategies(
