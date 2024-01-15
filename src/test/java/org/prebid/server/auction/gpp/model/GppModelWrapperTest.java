@@ -3,7 +3,6 @@ package org.prebid.server.auction.gpp.model;
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.error.DecodingException;
 import com.iab.gpp.encoder.error.EncodingException;
-import com.iab.gpp.encoder.error.InvalidFieldException;
 import com.iab.gpp.encoder.section.HeaderV1;
 import com.iab.gpp.encoder.section.TcfEuV2;
 import com.iab.gpp.encoder.section.UspV1;
@@ -36,7 +35,7 @@ public class GppModelWrapperTest {
             + "1YN-";
 
     @Test
-    public void test() throws DecodingException, EncodingException, InvalidFieldException {
+    public void test() throws DecodingException, EncodingException {
         // given and when
         final GppModel originalGpp = new GppModel(GPP_STRING);
         final GppModel wrappedGpp = new GppModelWrapper(GPP_STRING);
