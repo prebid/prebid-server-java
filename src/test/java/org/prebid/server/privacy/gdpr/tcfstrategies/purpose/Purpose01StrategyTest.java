@@ -63,27 +63,25 @@ public class Purpose01StrategyTest {
     @Test
     public void allowShouldReturnExpectedValue() {
         // given
-        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
+        final VendorPermission vendorPermission = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
 
         // when
-        target.allow(privacyEnforcementAction);
+        target.allow(vendorPermission);
 
         // then
-        assertThat(privacyEnforcementAction).usingRecursiveComparison().isEqualTo(allowPurpose());
+        assertThat(vendorPermission).isEqualTo(vendorPermissionResult(1, "b1", allowPurpose()));
     }
 
     @Test
     public void allowNaturallyShouldReturnExpectedValue() {
         // given
-        final PrivacyEnforcementAction privacyEnforcementAction = PrivacyEnforcementAction.restrictAll();
+        final VendorPermission vendorPermission = VendorPermission.of(1, "b1", PrivacyEnforcementAction.restrictAll());
 
         // when
-        target.allowNaturally(privacyEnforcementAction);
+        target.allowNaturally(vendorPermission);
 
         // then
-        assertThat(privacyEnforcementAction)
-                .usingRecursiveComparison()
-                .isEqualTo(PrivacyEnforcementAction.restrictAll());
+        assertThat(vendorPermission).isEqualTo(vendorPermissionResult(1, "b1", allowNatural()));
     }
 
     @Test
@@ -350,7 +348,7 @@ public class Purpose01StrategyTest {
                                                            PrivacyEnforcementAction privacyEnforcementAction) {
 
         final VendorPermission vendorPermission = VendorPermission.of(vendorId, bidderName, privacyEnforcementAction);
-        vendorPermission.consent(PURPOSE_CODE);
+        vendorPermission.consentWith(PURPOSE_CODE);
         return vendorPermission;
     }
 

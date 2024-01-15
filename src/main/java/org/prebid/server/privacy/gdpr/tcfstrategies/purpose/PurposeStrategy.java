@@ -38,10 +38,10 @@ public abstract class PurposeStrategy {
     /**
      * This method is allow permission for purpose when account and server config was used.
      */
-    public abstract void allow(PrivacyEnforcementAction privacyEnforcementAction);
+    protected abstract void allow(PrivacyEnforcementAction privacyEnforcementAction);
 
     public void allow(VendorPermission vendorPermission) {
-        vendorPermission.consent(getPurpose());
+        vendorPermission.consentWith(getPurpose());
         allow(vendorPermission.getPrivacyEnforcementAction());
     }
 
@@ -49,10 +49,10 @@ public abstract class PurposeStrategy {
      * This method represents allowance of permission that purpose should provide after full enforcement
      * (can downgrade to basic if GVL failed) despite of host company or account configuration.
      */
-    public abstract void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction);
+    protected abstract void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction);
 
     public void allowNaturally(VendorPermission vendorPermission) {
-        vendorPermission.consent(getPurpose());
+        vendorPermission.consentWith(getPurpose());
         allowNaturally(vendorPermission.getPrivacyEnforcementAction());
     }
 

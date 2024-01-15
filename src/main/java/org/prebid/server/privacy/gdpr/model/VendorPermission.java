@@ -20,11 +20,11 @@ public class VendorPermission {
 
     PrivacyEnforcementAction privacyEnforcementAction;
 
-    public void consent(PurposeCode purposeCode) {
+    public void consentWith(PurposeCode purposeCode) {
         consentedPurposes.add(purposeCode);
     }
 
-    public boolean isConsented(PurposeCode purposeCode) {
+    public boolean consentedWith(PurposeCode purposeCode) {
         return consentedPurposes.contains(purposeCode);
     }
 }

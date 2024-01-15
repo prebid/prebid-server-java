@@ -118,7 +118,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
             return isFlexible
                     ? isAllowedByFlexible(purpose, vendorId, isEnforceVendor, tcString, restrictionType)
                     : isAllowedByNotFlexibleLegitimateInterest(
-                    purpose, vendorId, isEnforceVendor, tcString, restrictionType);
+                        purpose, vendorId, isEnforceVendor, tcString, restrictionType);
         }
 
         return false;
