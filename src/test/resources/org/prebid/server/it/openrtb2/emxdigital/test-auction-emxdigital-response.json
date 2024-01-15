@@ -21,14 +21,14 @@
           }
         }
       ],
-      "seat": "emxdigital",
+      "seat": "emx_digital",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "emxdigital": 0
+      "emx_digital": 0
     },
     "prebid": {
       "auctiontimestamp": 0

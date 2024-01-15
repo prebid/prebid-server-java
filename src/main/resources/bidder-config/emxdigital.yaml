@@ -2,7 +2,7 @@ adapters:
   emxdigital:
     endpoint: https://hb.emxdgt.com
     aliases:
-      cadentaperturemx:
+      cadent_aperture_mx:
         enabled: false
     meta-info:
       maintainer-email: contactaperturemx@cadent.tv
@@ -15,7 +15,7 @@ adapters:
       supported-vendors:
       vendor-id: 183
     usersync:
-      cookie-family-name: emxdigital
+      cookie-family-name: emx_digital
       iframe:
         url: https://cs.emxdgt.com/um?ssp=pbs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
         support-cors: false

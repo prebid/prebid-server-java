@@ -10,7 +10,7 @@
       "ext": {
         "prebid": {
           "bidder": {
-            "cadentaperturemx": {
+            "cadent_aperture_mx": {
               "tagid": "25251"
             }
           }

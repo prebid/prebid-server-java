@@ -21,7 +21,7 @@ public class EmxdigitalTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromEmxdigital() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/emxdigital-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/emx_digital-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/emxdigital/test-emxdigital-bid-request.json"),
                         true, false))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/emxdigital/test-emxdigital-bid-response.json"))));
@@ -32,7 +32,7 @@ public class EmxdigitalTest extends IntegrationTest {
 
         // then
         assertJsonEquals("openrtb2/emxdigital/test-auction-emxdigital-response.json",
-                response, singletonList("emxdigital"));
+                response, singletonList("emx_digital"));
     }
 }
 

@@ -19,7 +19,7 @@ import javax.validation.constraints.NotBlank;
 @PropertySource(value = "classpath:/bidder-config/emxdigital.yaml", factory = YamlPropertySourceFactory.class)
 public class EmxDigitalConfiguration {
 
-    private static final String BIDDER_NAME = "emxdigital";
+    private static final String BIDDER_NAME = "emx_digital";
 
     @Bean("emxdigitalConfigurationProperties")
     @ConfigurationProperties("adapters.emxdigital")

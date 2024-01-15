@@ -10,7 +10,7 @@
       "ext": {
         "prebid": {
           "bidder": {
-            "emxdigital": {
+            "emx_digital": {
               "tagid": "25251"
             }
           }

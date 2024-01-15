@@ -21,14 +21,14 @@
           }
         }
       ],
-      "seat": "cadentaperturemx",
+      "seat": "cadent_aperture_mx",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "cadentaperturemx": 0
+      "cadent_aperture_mx": 0
     },
     "prebid": {
       "auctiontimestamp": 0

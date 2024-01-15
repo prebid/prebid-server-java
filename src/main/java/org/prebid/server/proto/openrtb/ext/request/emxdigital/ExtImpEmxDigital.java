@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 
 /**
- * Defines the contract for bidRequest.imp[i].ext.emxdigital
+ * Defines the contract for bidRequest.imp[i].ext.emx_digital
  */
 @AllArgsConstructor(staticName = "of")
 @Value

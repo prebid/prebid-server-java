@@ -21,7 +21,7 @@ public class CadentApertureMxTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromCadentApertureMx() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/emxdigital-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/emx_digital-exchange"))
                 .withRequestBody(
                         equalToJson(jsonFrom("openrtb2/cadentaperturemx/test-cadentaperturemx-bid-request.json"),
                         true, false))
@@ -35,7 +35,7 @@ public class CadentApertureMxTest extends IntegrationTest {
 
         // then
         assertJsonEquals("openrtb2/cadentaperturemx/test-auction-cadentaperturemx-response.json",
-                response, singletonList("cadentaperturemx"));
+                response, singletonList("cadent_aperture_mx"));
     }
 }
 
