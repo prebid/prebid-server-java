@@ -107,7 +107,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
 
     private static CampaignRequestBody makeCampaignRequest(BidRequest bidRequest, Imp imp, ExtImpFlipp extImpFlipp) {
         return CampaignRequestBody.builder()
-                .ip(resolveIp(bidRequest, extImpFlipp))
+                .ip(resolveIpFromDevice(bidRequest.getDevice()))
                 .placements(Collections.singletonList(createPlacement(bidRequest, imp, extImpFlipp)))
                 .url(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage))
                 .keywords(resolveKeywords(bidRequest))
@@ -156,12 +156,6 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
                 .map(NameValuePair::getValue)
                 .findFirst()
                 .orElse(null);
-    }
-
-    private static String resolveIp(BidRequest bidRequest, ExtImpFlipp extImpFlipp) {
-        return Optional.ofNullable(extImpFlipp.getIp())
-                .filter(StringUtils::isNotEmpty)
-                .orElseGet(() -> resolveIpFromDevice(bidRequest.getDevice()));
     }
 
     private static String resolveIpFromDevice(Device device) {

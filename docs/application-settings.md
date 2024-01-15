@@ -222,7 +222,8 @@ Here's an example YAML file containing account-specific settings:
       cookie-sync:
         default-limit: 5
         max-limit: 8
-        default-coop-sync: true
+        coop-sync:
+          default: true
 ```
 
 ## Setting Account Configuration in the Database
@@ -426,7 +427,9 @@ example:
   "cookie-sync": {
     "default-limit": 5,
     "max-limit": 8,
-    "default-coop-sync": true
+    "coop-sync": {
+      "default": true
+    }
   }
 }
 ```
