@@ -9,8 +9,8 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
-import org.prebid.server.activity.infrastructure.payload.impl.TcfContextActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.TcfContextActivityInvocationPayload;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
@@ -330,8 +330,8 @@ public class CookieSyncService {
                 cookieSyncContext,
                 bidder -> !cookieSyncContext.getActivityInfrastructure().isAllowed(
                         Activity.SYNC_USER,
-                        TcfContextActivityCallPayload.of(
-                                ActivityCallPayloadImpl.of(ComponentType.BIDDER, bidder),
+                        TcfContextActivityInvocationPayload.of(
+                                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, bidder),
                                 tcfContext)),
                 RejectionReason.DISALLOWED_ACTIVITY);
     }

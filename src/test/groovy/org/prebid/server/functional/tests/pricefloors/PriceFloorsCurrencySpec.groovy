@@ -32,6 +32,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
     private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
         setCurrencyConversionRatesResponse(CurrencyConversionRatesResponse.getDefaultCurrencyConversionRatesResponse(DEFAULT_CURRENCY_RATES))
     }
+    private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
     private static final Map<String, String> CURRENCY_CONVERTER_CONFIG = ["auction.ad-server-currency"                          : "USD",
                                                                           "currency-converter.external-rates.enabled"           : "true",
                                                                           "currency-converter.external-rates.url"               : "$networkServiceContainer.rootUri/currency".toString(),
@@ -39,8 +40,6 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
                                                                           "currency-converter.external-rates.refresh-period-ms" : "900000"]
     private final PrebidServerService currencyFloorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
             CURRENCY_CONVERTER_CONFIG)
-
-    private static final String GENERAL_ERROR_METRIC = "price-floors.general.err"
 
     def "PBS should update bidFloor, bidFloorCur for signalling when request.cur is specified"() {
         given: "Default BidRequest with cur"

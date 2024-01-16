@@ -51,6 +51,7 @@ public class PrivacyServiceConfiguration {
 
     @Bean
     VendorListService vendorListServiceV2(
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             @Value("${gdpr.vendorlist.v2.cache-dir}") String cacheDir,
             @Value("${gdpr.vendorlist.v2.http-endpoint-template}") String endpointTemplate,
             @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
@@ -64,6 +65,7 @@ public class PrivacyServiceConfiguration {
             JacksonMapper mapper) {
 
         return new VendorListService(
+                logSamplingRate,
                 cacheDir,
                 endpointTemplate,
                 defaultTimeoutMs,
@@ -74,11 +76,13 @@ public class PrivacyServiceConfiguration {
                 fileSystem,
                 httpClient,
                 metrics,
+                "v2",
                 mapper);
     }
 
     @Bean
     VendorListService vendorListServiceV3(
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             @Value("${gdpr.vendorlist.v3.cache-dir}") String cacheDir,
             @Value("${gdpr.vendorlist.v3.http-endpoint-template}") String endpointTemplate,
             @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
@@ -92,6 +96,7 @@ public class PrivacyServiceConfiguration {
             JacksonMapper mapper) {
 
         return new VendorListService(
+                logSamplingRate,
                 cacheDir,
                 endpointTemplate,
                 defaultTimeoutMs,
@@ -102,6 +107,7 @@ public class PrivacyServiceConfiguration {
                 fileSystem,
                 httpClient,
                 metrics,
+                "v3",
                 mapper);
     }
 

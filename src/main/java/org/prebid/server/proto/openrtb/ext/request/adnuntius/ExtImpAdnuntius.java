@@ -1,9 +1,11 @@
 package org.prebid.server.proto.openrtb.ext.request.adnuntius;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
 import lombok.Value;
 
-@Value(staticConstructor = "of")
+@Builder(toBuilder = true)
+@Value
 public class ExtImpAdnuntius {
 
     @JsonProperty("auId")
@@ -13,4 +15,10 @@ public class ExtImpAdnuntius {
 
     @JsonProperty("noCookies")
     Boolean noCookies;
+
+    @JsonProperty("maxDeals")
+    Integer maxDeals;
+
+    @JsonProperty("bidType")
+    String bidType;
 }

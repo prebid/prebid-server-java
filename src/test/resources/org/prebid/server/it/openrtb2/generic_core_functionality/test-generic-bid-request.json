@@ -71,6 +71,22 @@
         "gvlid" : 1,
         "datacenter" : "local",
         "endpoint" : "/openrtb2/auction"
+      },
+      "sdk": {
+        "renderers": [
+          {
+            "name":"PrebidRenderer",
+            "version":"2.1.1",
+            "data": {
+              "someData": "someData"
+            }
+          },
+          {
+            "name":"SampleRenderer",
+            "version":"1.0.0",
+            "url": "rendererUrl"
+          }
+        ]
       }
     }
   }

@@ -15,7 +15,6 @@
           "zoneIds": [
             285431
           ],
-          "ip": "123.123.123.124",
           "options": {
             "startCompact": true,
             "contentCode": "publisher-test-2"
@@ -24,6 +23,9 @@
       }
     }
   ],
+  "device": {
+    "ip": "123.123.123.124"
+  },
   "user": {
     "id": "123-123"
   },

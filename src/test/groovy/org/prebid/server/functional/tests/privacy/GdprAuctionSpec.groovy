@@ -31,7 +31,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default gdpr BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         def bidRequest = getGdprBidRequest(validConsentString)
@@ -102,7 +102,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString)
 
@@ -125,7 +125,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString)
 
@@ -148,7 +148,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString)
 
@@ -172,7 +172,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString)
 
@@ -196,7 +196,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "BidRequest with channel: #requestChannel, gdpr"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString).tap {
             ext.prebid.channel = new Channel().tap {
@@ -262,7 +262,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                 .setPurposesLITransparency(BASIC_ADS)
                 .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         and: "Bid request"
@@ -278,11 +278,12 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/${tcfPolicyVersion.vendorListVersion}.json"
         PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
         def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
-        assert vendorList.vendorListVersion == tcfPolicyVersion.vendorListVersion
+        assert vendorList.tcfPolicyVersion == tcfPolicyVersion.vendorListVersion
 
         and: "Logs should contain proper vendor list version"
         def logs = privacyPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Created new TCF 2 vendor list for version ${tcfPolicyVersion.vendorListVersion}")
+        assert getLogsByText(logs, "Created new TCF 2 vendor list for version " +
+                "v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion}")
 
         cleanup: "Stop container with default request"
         serverContainer.stop()

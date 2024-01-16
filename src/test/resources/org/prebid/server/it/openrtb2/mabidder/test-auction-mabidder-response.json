@@ -1,0 +1,41 @@
+{
+  "id": "test-request-id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "test-imp-id",
+          "impid": "test-imp-id",
+          "price": 2.734,
+          "adm": "<script type='text/javascript' src='https://adsvr.ecdrsvc.com/js?6002677'></script>",
+          "adomain": [
+            "https://www.loblaws.ca/"
+          ],
+          "crid": "6002677",
+          "dealid": "testdeal",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "origbidcpm": 3.5764000415802,
+            "origbidcur": "CAD",
+            "prebid": {
+              "type": "banner"
+            }
+          }
+        }
+      ],
+      "seat": "mabidder",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "mabidder": "{{ mabidder.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import com.iab.openrtb.request.User;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.BidderCatalog;
@@ -9,7 +10,9 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
+import org.prebid.server.util.ObjectUtil;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -36,28 +39,31 @@ public class UidUpdater {
         }
 
         final String resolvedBidder = aliases.resolveBidder(bidder);
+        final String baseBidder = bidderCatalog.resolveBaseBidder(resolvedBidder);
 
-        final String uidFromExt = uidFromExtUser(user, resolvedBidder);
+        final String uidFromExt = uidFromExtUser(user, bidder, resolvedBidder, baseBidder);
         final String uidFromUidsCookie = uidFromUidsCookie(auctionContext.getUidsCookie(), resolvedBidder);
         final String uidFromHostCookie = uidFromHostCookie(auctionContext, resolvedBidder);
 
         return Stream.of(uidFromExt, uidFromUidsCookie, uidFromHostCookie)
                 .filter(StringUtils::isNotBlank)
-                .map(UpdateResult::updated)
                 .findFirst()
+                .map(UpdateResult::updated)
                 .orElse(UpdateResult.unaltered(null));
     }
 
-    private static String uidFromExtUser(User user, String bidder) {
-        return Optional.ofNullable(user)
+    private static String uidFromExtUser(User user, String bidder, String resolvedBidder, String baseBidder) {
+        final Map<String, String> buyeruids = Optional.ofNullable(user)
                 .map(User::getExt)
                 .map(ExtUser::getPrebid)
                 .map(ExtUserPrebid::getBuyeruids)
-                .flatMap(uids -> uids.entrySet().stream()
-                        .filter(entry -> StringUtils.equalsIgnoreCase(entry.getKey(), bidder))
-                        .findFirst())
-                .map(Map.Entry::getValue)
-                .orElse(null);
+                .<Map<String, String>>map(CaseInsensitiveMap::new)
+                .orElse(Collections.emptyMap());
+
+        return ObjectUtil.firstNonNull(
+                () -> buyeruids.get(bidder),
+                () -> buyeruids.get(resolvedBidder),
+                () -> buyeruids.get(baseBidder));
     }
 
     private String uidFromUidsCookie(UidsCookie uidsCookie, String bidder) {

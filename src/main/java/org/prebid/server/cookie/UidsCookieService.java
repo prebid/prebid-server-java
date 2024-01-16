@@ -106,9 +106,6 @@ public class UidsCookieService {
     UidsCookie parseFromCookies(Map<String, String> cookies) {
         final Uids parsedUids = parseUids(cookies);
 
-        final Uids.UidsBuilder uidsBuilder = Uids.builder()
-                .uidsLegacy(Collections.emptyMap());
-
         final Boolean optout;
         final Map<String, UidWithExpiry> uidsMap;
 
@@ -120,7 +117,9 @@ public class UidsCookieService {
             uidsMap = enrichAndSanitizeUids(parsedUids, cookies);
         }
 
-        return new UidsCookie(uidsBuilder.uids(uidsMap).optout(optout).build(), mapper);
+        final Uids uids = Uids.builder().uids(uidsMap).optout(optout).build();
+
+        return new UidsCookie(uids, mapper);
     }
 
     /**
@@ -195,11 +194,6 @@ public class UidsCookieService {
         final Map<String, UidWithExpiry> workingUidsMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         if (originalUidsMap != null) {
             workingUidsMap.putAll(originalUidsMap);
-        }
-
-        final Map<String, String> legacyUids = uids != null ? uids.getUidsLegacy() : null;
-        if (workingUidsMap.isEmpty() && legacyUids != null) {
-            legacyUids.forEach((key, value) -> workingUidsMap.put(key, UidWithExpiry.expired(value)));
         }
 
         final String hostCookie = parseHostCookie(cookies);

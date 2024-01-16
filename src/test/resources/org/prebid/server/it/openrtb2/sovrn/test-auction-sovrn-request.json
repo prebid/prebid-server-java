@@ -7,7 +7,6 @@
         "mimes": [
           "video/mp4"
         ],
-        "minduration": 30,
         "maxduration": 30,
         "protocols": [
           2,

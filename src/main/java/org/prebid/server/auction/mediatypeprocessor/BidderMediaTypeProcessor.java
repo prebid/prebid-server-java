@@ -2,20 +2,22 @@ package org.prebid.server.auction.mediatypeprocessor;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.SetUtils;
+import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.bidder.model.BidderError;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.spring.config.bidder.model.MediaType;
-import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -25,6 +27,8 @@ import java.util.stream.Stream;
  */
 public class BidderMediaTypeProcessor implements MediaTypeProcessor {
 
+    private static final EnumSet<MediaType> NONE_OF_MEDIA_TYPES = EnumSet.noneOf(MediaType.class);
+
     private final BidderCatalog bidderCatalog;
 
     public BidderMediaTypeProcessor(BidderCatalog bidderCatalog) {
@@ -32,8 +36,12 @@ public class BidderMediaTypeProcessor implements MediaTypeProcessor {
     }
 
     @Override
-    public MediaTypeProcessingResult process(BidRequest bidRequest, String supportedBidderName) {
-        final Set<MediaType> supportedMediaTypes = extractSupportedMediaTypes(bidRequest, supportedBidderName);
+    public MediaTypeProcessingResult process(BidRequest bidRequest,
+                                             String bidderName,
+                                             BidderAliases aliases,
+                                             Account account) {
+        final String resolvedBidderName = aliases.resolveBidder(bidderName);
+        final Set<MediaType> supportedMediaTypes = extractSupportedMediaTypes(bidRequest, resolvedBidderName);
         if (supportedMediaTypes.isEmpty()) {
             return MediaTypeProcessingResult.rejected(Collections.singletonList(
                     BidderError.badInput("Bidder does not support any media types.")));
@@ -47,22 +55,24 @@ public class BidderMediaTypeProcessor implements MediaTypeProcessor {
                 : MediaTypeProcessingResult.rejected(errors);
     }
 
-    private Set<MediaType> extractSupportedMediaTypes(BidRequest bidRequest, String supportedBidderName) {
-        final BidderInfo.CapabilitiesInfo capabilitiesInfo = bidderCatalog
-                .bidderInfoByName(supportedBidderName).getCapabilities();
+    private Set<MediaType> extractSupportedMediaTypes(BidRequest bidRequest, String bidderName) {
+        final BidderInfo.CapabilitiesInfo capabilitiesInfo = bidderCatalog.bidderInfoByName(bidderName)
+                .getCapabilities();
 
-        final List<MediaType> supportedMediaTypes;
+        final Supplier<BidderInfo.PlatformInfo> fetchSupportedMediaTypes;
         if (bidRequest.getSite() != null) {
-            supportedMediaTypes = ObjectUtil.getIfNotNull(
-                    capabilitiesInfo.getSite(), BidderInfo.PlatformInfo::getMediaTypes);
+            fetchSupportedMediaTypes = capabilitiesInfo::getSite;
+        } else if (bidRequest.getApp() != null) {
+            fetchSupportedMediaTypes = capabilitiesInfo::getApp;
         } else {
-            supportedMediaTypes = ObjectUtil.getIfNotNull(
-                    capabilitiesInfo.getApp(), BidderInfo.PlatformInfo::getMediaTypes);
+            fetchSupportedMediaTypes = capabilitiesInfo::getDooh;
         }
 
-        return CollectionUtils.isNotEmpty(supportedMediaTypes)
-                ? EnumSet.copyOf(supportedMediaTypes)
-                : EnumSet.noneOf(MediaType.class);
+        return Optional.ofNullable(fetchSupportedMediaTypes.get())
+                .map(BidderInfo.PlatformInfo::getMediaTypes)
+                .filter(mediaTypes -> !mediaTypes.isEmpty())
+                .map(EnumSet::copyOf)
+                .orElse(NONE_OF_MEDIA_TYPES);
     }
 
     private BidRequest processBidRequest(BidRequest bidRequest,

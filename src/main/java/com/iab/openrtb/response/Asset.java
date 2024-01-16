@@ -1,5 +1,6 @@
 package com.iab.openrtb.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
@@ -23,4 +24,9 @@ public class Asset {
     Link link;
 
     ObjectNode ext;
+
+    @JsonIgnore
+    public boolean isEmpty() {
+        return title == null && img == null && video == null && data == null;
+    }
 }

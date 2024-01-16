@@ -38,14 +38,30 @@ adapters:
           site-media-types:
             - banner
           supported-vendors:
-          vendor-id: 0
+          vendor-id: 1212
         usersync:
           enabled: true
           cookie-family-name: adsinteractive
           redirect:
-            url: http://bid.adsinteractive.com/getuid?{{redirect_url}}
+            url: https://sync.adsinteractive.com/getuid?{{redirect_url}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}
             support-cors: false
             uid-macro: '$AUID'
+      nativo:
+        enabled: false
+        endpoint: https://exchange.postrelease.com/esi?ntv_epid=7
+        pbs-enforces-ccpa: false
+        meta-info:
+          maintainer-email: prebiddev@nativo.com
+          app-media-types:
+            - banner
+            - video
+            - native
+          site-media-types:
+           - banner
+           - video
+           - native
+          supported-vendors:
+          vendor-id: 263
     meta-info:
       maintainer-email: maintainer@example.com
       app-media-types:

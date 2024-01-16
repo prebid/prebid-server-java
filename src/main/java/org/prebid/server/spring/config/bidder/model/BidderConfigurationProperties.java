@@ -49,6 +49,8 @@ public class BidderConfigurationProperties {
 
     private CompressionType endpointCompression;
 
+    private Ortb ortb;
+
     private final Class<? extends BidderConfigurationProperties> selfClass;
 
     public BidderConfigurationProperties() {
@@ -67,6 +69,9 @@ public class BidderConfigurationProperties {
         deprecatedNames = ObjectUtils.defaultIfNull(deprecatedNames, defaultProperties.getDeprecatedNames());
         endpointCompression = ObjectUtils.defaultIfNull(
                 endpointCompression, defaultProperties.getEndpointCompression());
+        ortb = ortb != null && ortb.getMultiFormatSupported() != null
+                ? ortb
+                : defaultProperties.getOrtb();
 
         if (usersync != null && usersync.getEnabled() == null) {
             usersync.setEnabled(true);

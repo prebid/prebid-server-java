@@ -52,6 +52,7 @@ And configure
   - `long-interval-attempts` - Maximum attempts with long interval value to try to reconnect to Confiant's Redis server in case any connection error happens. This attempts are used when short-attempts were not successful.
   - `long-interval` - Long time interval in milliseconds after which another one attempt to connect to Redis will be executed.
 - `scan-state-check-interval` - Time interval in milliseconds between periodic calls to check if scan state is enabled on the side of Redis server.
+- `bidders-to-exclude-from-scan` - List of bidders which won't be scanned by Confiant
 
 ```yaml
 hooks:
@@ -73,6 +74,9 @@ hooks:
         long-interval-attempts: 336
         long-interval: 1800000
       scan-state-check-interval: 100000
+      bidders-to-exclude-from-scan: >
+        adyoulike,
+        rtbhouse    
 ```
 
 ## Maintainer contacts

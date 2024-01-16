@@ -10,6 +10,8 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.UNKNOWN
 import static org.prebid.server.functional.model.request.auction.Fd.EXCHANGE
 
 class SchainSpec extends BaseSpec {
@@ -17,7 +19,7 @@ class SchainSpec extends BaseSpec {
     private static final GLOBAL_SUPPLY_SCHAIN_NODE = new SupplyChainNode().tap {
         asi = PBSUtils.randomString
         sid = PBSUtils.randomString
-        hp  = PBSUtils.randomNumber
+        hp = PBSUtils.randomNumber
         rid = PBSUtils.randomString
     }
 
@@ -153,5 +155,45 @@ class SchainSpec extends BaseSpec {
         then: "Configured schain node should be appended to the end of the node array"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.source?.schain?.nodes == [GLOBAL_SUPPLY_SCHAIN_NODE]
+    }
+
+    def "PBS should use source.ext.schain when ext.prebid.schains.bidder isn't requested"() {
+        given: "Pbs config"
+        def defaultPbsService = pbsServiceFactory.getService([("adapters.generic.ortb-version"): "2.5"])
+
+        and: "Default basic BidRequest with schain obj"
+        def supplyChain = SupplyChain.defaultSupplyChain
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            source = new Source(ext: new SourceExt(schain: supplyChain))
+            ext.prebid.schains = [new PrebidSchain(bidders: [UNKNOWN.value], schain: SupplyChain.defaultSupplyChain)]
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain requested source.ext.schain"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.source.ext.schain == supplyChain
+        assert !bidderRequest.source.schain
+    }
+
+    def "PBS should use ext.prebid.schains.schain instead of source.ext.chain when ext.prebid.schains.bidder is requested"() {
+        given: "Pbs config"
+        def defaultPbsService = pbsServiceFactory.getService([("adapters.generic.ortb-version"): "2.5"])
+
+        and: "Default basic BidRequest with schain obj"
+        def supplyChain = SupplyChain.defaultSupplyChain
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            source = new Source(ext: new SourceExt(schain: SupplyChain.defaultSupplyChain))
+            ext.prebid.schains = [new PrebidSchain(bidders: [GENERIC.value], schain: supplyChain)]
+        }
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain requested ext.prebid.schains[*].schain"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.source.ext.schain == supplyChain
+        assert !bidderRequest.source.schain
     }
 }

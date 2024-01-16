@@ -11,15 +11,16 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
-import org.prebid.server.activity.infrastructure.payload.impl.TcfContextActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.TcfContextActivityInvocationPayload;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -47,16 +48,18 @@ import org.prebid.server.privacy.gdpr.model.HostVendorTcfResponse;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
-import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -104,13 +107,22 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
+        this.cookieNameToSyncType = collectMap(bidderCatalog);
+    }
 
-        cookieNameToSyncType = bidderCatalog.names().stream()
+    private static Map<String, UsersyncMethodType> collectMap(BidderCatalog bidderCatalog) {
+
+        final Supplier<Stream<Usersyncer>> usersyncers = () -> bidderCatalog.names()
+                .stream()
                 .filter(bidderCatalog::isActive)
                 .map(bidderCatalog::usersyncerByName)
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .distinct() // built-in aliases looks like bidders with the same usersyncers
+                .distinct();
+
+        validateUsersyncers(usersyncers.get());
+
+        return usersyncers.get()
                 .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, SetuidHandler::preferredUserSyncType));
     }
 
@@ -120,6 +132,22 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .findFirst()
                 .map(UsersyncMethod::getType)
                 .get(); // when usersyncer is present, it will contain at least one method
+    }
+
+    private static void validateUsersyncers(Stream<Usersyncer> usersyncers) {
+        final List<String> cookieFamilyNameDuplicates = usersyncers.map(Usersyncer::getCookieFamilyName)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+                .entrySet()
+                .stream()
+                .filter(name -> name.getValue() > 1)
+                .map(Map.Entry::getKey)
+                .distinct()
+                .toList();
+        if (CollectionUtils.isNotEmpty(cookieFamilyNameDuplicates)) {
+            throw new IllegalArgumentException(
+                    "Duplicated \"cookie-family-name\" found, values: "
+                            + String.join(", ", cookieFamilyNameDuplicates));
+        }
     }
 
     @Override
@@ -167,7 +195,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                 .activityInfrastructure(activityInfrastructureCreator.create(
                         setuidContext.getAccount(),
                         setuidContext.getGppContext(),
-                        TraceLevel.basic))
+                        null))
                 .build();
     }
 
@@ -214,11 +242,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
         }
 
         final ActivityInfrastructure activityInfrastructure = setuidContext.getActivityInfrastructure();
-        final ActivityCallPayload activityCallPayload = TcfContextActivityCallPayload.of(
-                ActivityCallPayloadImpl.of(ComponentType.BIDDER, bidder),
+        final ActivityInvocationPayload activityInvocationPayload = TcfContextActivityInvocationPayload.of(
+                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, bidder),
                 tcfContext);
 
-        if (!activityInfrastructure.isAllowed(Activity.SYNC_USER, activityCallPayload)) {
+        if (!activityInfrastructure.isAllowed(Activity.SYNC_USER, activityInvocationPayload)) {
             throw new UnavailableForLegalReasonsException();
         }
     }

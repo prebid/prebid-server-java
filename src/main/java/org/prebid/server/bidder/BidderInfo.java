@@ -36,6 +36,8 @@ public class BidderInfo {
 
     CompressionType compressionType;
 
+    Ortb ortb;
+
     public static BidderInfo create(boolean enabled,
                                     OrtbVersion ortbVersion,
                                     boolean debugAllowed,
@@ -44,11 +46,13 @@ public class BidderInfo {
                                     String maintainerEmail,
                                     List<MediaType> appMediaTypes,
                                     List<MediaType> siteMediaTypes,
+                                    List<MediaType> doohMediaTypes,
                                     List<String> supportedVendors,
                                     int vendorId,
                                     boolean ccpaEnforced,
                                     boolean modifyingVastXmlAllowed,
-                                    CompressionType compressionType) {
+                                    CompressionType compressionType,
+                                    org.prebid.server.spring.config.bidder.model.Ortb ortb) {
 
         return of(
                 enabled,
@@ -57,12 +61,16 @@ public class BidderInfo {
                 StringUtils.startsWith(endpoint, "https://"),
                 aliasOf,
                 new MaintainerInfo(maintainerEmail),
-                new CapabilitiesInfo(platformInfo(appMediaTypes), platformInfo(siteMediaTypes)),
+                new CapabilitiesInfo(
+                        platformInfo(appMediaTypes),
+                        platformInfo(siteMediaTypes),
+                        platformInfo(doohMediaTypes)),
                 supportedVendors,
                 new GdprInfo(vendorId),
                 ccpaEnforced,
                 modifyingVastXmlAllowed,
-                compressionType);
+                compressionType,
+                Ortb.of(ortb.getMultiFormatSupported()));
     }
 
     private static PlatformInfo platformInfo(List<MediaType> mediaTypes) {
@@ -81,6 +89,8 @@ public class BidderInfo {
         PlatformInfo app;
 
         PlatformInfo site;
+
+        PlatformInfo dooh;
     }
 
     @Value
@@ -105,5 +115,12 @@ public class BidderInfo {
          */
         @JsonProperty("vendorId")
         int vendorId;
+    }
+
+    @Value(staticConstructor = "of")
+    public static class Ortb {
+
+        @JsonProperty("multiformat-supported")
+        boolean multiFormatSupported;
     }
 }

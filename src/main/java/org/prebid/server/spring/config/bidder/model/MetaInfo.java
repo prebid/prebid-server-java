@@ -20,6 +20,8 @@ public class MetaInfo {
 
     private List<MediaType> siteMediaTypes;
 
+    private List<MediaType> doohMediaTypes;
+
     private List<String> supportedVendors;
 
     @NotNull

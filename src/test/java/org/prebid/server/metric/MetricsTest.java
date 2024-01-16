@@ -1395,20 +1395,30 @@ public class MetricsTest {
     @Test
     public void shouldIncrementUpdateRequestsActivityProcessedRulesCount() {
         // when
-        metrics.updateRequestsActivityProcessedRulesCount(2);
+        metrics.updateRequestsActivityProcessedRulesCount();
 
         // then
-        assertThat(metricRegistry.counter("requests.activity.processedrules.count").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter("requests.activity.processedrules.count").getCount()).isEqualTo(1);
     }
 
     @Test
     public void shouldIncrementUpdateAccountActivityProcessedRulesCount() {
         // when
-        metrics.updateAccountActivityProcessedRulesCount("account_id", 2);
+        metrics.updateAccountActivityProcessedRulesCount("account_id");
 
         // then
         assertThat(metricRegistry.counter("account.account_id.activity.processedrules.count").getCount())
-                .isEqualTo(2);
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateAccountRequestRejectedByFailedFetchCount() {
+        // when
+        metrics.updateAccountRequestRejectedByFailedFetch("account_id");
+
+        // then
+        assertThat(metricRegistry.counter("account.account_id.requests.rejected.account-fetch-failed").getCount())
+                .isEqualTo(1);
     }
 
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {

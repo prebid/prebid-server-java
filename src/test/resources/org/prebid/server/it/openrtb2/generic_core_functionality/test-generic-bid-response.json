@@ -12,7 +12,19 @@
           "cid": "cid001",
           "adm": "adm001",
           "h": 250,
-          "w": 300
+          "w": 300,
+          "ext": {
+            "prebid": {
+              "meta": {
+                "rendererName": "SamplePluginRenderer",
+                "rendererVersion": "1.0.0",
+                "rendererData": {
+                  "data": "some data"
+                },
+                "rendererUrl": "rendererUrl"
+              }
+            }
+          }
         }
       ]
     }

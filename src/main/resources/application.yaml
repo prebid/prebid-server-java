@@ -114,6 +114,8 @@ profile: profile
 adapter-defaults:
   enabled: false
   ortb-version: "2.5"
+  ortb:
+    multiformat-supported: true
   pbs-enforces-ccpa: true
   modifying-vast-xml-allowed: true
   debug:
@@ -134,7 +136,6 @@ auction:
     log-failure-only: false
     log-sampling-rate: 0.0
   max-request-size: 262144
-  generate-source-tid: true
   generate-bid-id: false
   cache:
     expected-request-time-ms: 10
@@ -144,6 +145,7 @@ auction:
     secure-markup: skip
   host-schain-node:
   category-mapping-enabled: false
+  strict-app-site-dooh: false
 video:
   stored-request-required: false
   stored-requests-timeout-ms: 90

@@ -16,9 +16,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
-import org.prebid.server.activity.infrastructure.payload.impl.PrivacyEnforcementServiceActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.PrivacyEnforcementServiceActivityInvocationPayload;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.IpAddress;
@@ -700,19 +700,20 @@ public class PrivacyEnforcementService {
         final Device device = bidderPrivacyResult.getDevice();
 
         final Geo geo = device != null ? device.getGeo() : null;
-        final ActivityCallPayload activityCallPayload = PrivacyEnforcementServiceActivityCallPayload.of(
-                ActivityCallPayloadImpl.of(ComponentType.BIDDER, bidder),
-                geo != null ? geo.getCountry() : null,
-                geo != null ? geo.getRegion() : null,
-                Optional.ofNullable(auctionContext.getBidRequest().getRegs())
-                        .map(Regs::getExt)
-                        .map(ExtRegs::getGpc)
-                        .orElse(null));
+        final ActivityInvocationPayload activityInvocationPayload =
+                PrivacyEnforcementServiceActivityInvocationPayload.of(
+                        ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, bidder),
+                        geo != null ? geo.getCountry() : null,
+                        geo != null ? geo.getRegion() : null,
+                        Optional.ofNullable(auctionContext.getBidRequest().getRegs())
+                                .map(Regs::getExt)
+                                .map(ExtRegs::getGpc)
+                                .orElse(null));
 
         final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(
-                Activity.TRANSMIT_UFPD, activityCallPayload);
+                Activity.TRANSMIT_UFPD, activityInvocationPayload);
         final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(
-                Activity.TRANSMIT_GEO, activityCallPayload);
+                Activity.TRANSMIT_GEO, activityInvocationPayload);
 
         final User resolvedUser = disallowTransmitUfpd || disallowTransmitGeo
                 ? maskUserConsideringActivityRestrictions(user, disallowTransmitUfpd, disallowTransmitGeo)

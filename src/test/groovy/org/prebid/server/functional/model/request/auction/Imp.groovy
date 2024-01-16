@@ -8,6 +8,7 @@ import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
 import org.prebid.server.functional.model.response.auction.MediaType
 
+import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.NATIVE
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
@@ -38,6 +39,7 @@ class Imp {
     Integer ssai
     Integer exp
     Qty qty
+    Double dt
     Refresh refresh
     ImpExt ext
 
@@ -54,6 +56,10 @@ class Imp {
             case NATIVE:
                 return defaultImp.tap {
                     nativeObj = Native.defaultNative
+                }
+            case AUDIO:
+                return defaultImp.tap {
+                    audio = Audio.defaultAudio
                 }
             default:
                 return defaultImp.tap {

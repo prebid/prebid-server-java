@@ -67,4 +67,9 @@ public class ExtRequestTargeting {
 
     @JsonAlias("alwaysIncludeDeals")
     Boolean alwaysincludedeals;
+
+    /**
+     * Defines the contract for bidrequest.ext.prebid.targeting.prefix
+     */
+    String prefix;
 }

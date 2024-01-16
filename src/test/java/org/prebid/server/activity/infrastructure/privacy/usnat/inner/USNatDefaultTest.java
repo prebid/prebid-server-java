@@ -10,7 +10,7 @@ public class USNatDefaultTest {
     @Test
     public void proceedShouldAlwaysReturnAbstain() {
         // when
-        final Rule.Result result = new USNatDefault().proceed(null);
+        final Rule.Result result = USNatDefault.instance().proceed(null);
 
         // then
         assertThat(result).isEqualTo(Rule.Result.ABSTAIN);

@@ -86,6 +86,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtDebugTrace;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseCache;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
+import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceDeal;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
@@ -95,6 +96,7 @@ import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountAuctionEventConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
+import org.prebid.server.settings.model.AccountTargetingConfig;
 import org.prebid.server.settings.model.VideoStoredDataResult;
 import org.prebid.server.util.LineItemUtil;
 import org.prebid.server.util.StreamUtil;
@@ -841,8 +843,6 @@ public class BidResponseCreator {
                                                        CacheServiceResult cacheResult,
                                                        boolean debugEnabled) {
 
-        final DeepDebugLog deepDebugLog = auctionContext.getDeepDebugLog();
-
         final Map<String, List<ExtHttpCall>> httpCalls = debugEnabled
                 ? toExtHttpCalls(bidderResponseInfos, cacheResult, auctionContext.getDebugHttpCalls())
                 : null;
@@ -851,7 +851,7 @@ public class BidResponseCreator {
 
         final ExtDebugPgmetrics extDebugPgmetrics = debugEnabled ? toExtDebugPgmetrics(
                 auctionContext.getTxnLog()) : null;
-        final ExtDebugTrace extDebugTrace = deepDebugLog.isDeepDebugEnabled() ? toExtDebugTrace(deepDebugLog) : null;
+        final ExtDebugTrace extDebugTrace = toExtDebugTrace(auctionContext);
 
         return ObjectUtils.anyNotNull(httpCalls, bidRequest, extDebugPgmetrics, extDebugTrace)
                 ? ExtResponseDebug.of(httpCalls, bidRequest, extDebugPgmetrics, extDebugTrace)
@@ -976,19 +976,36 @@ public class BidResponseCreator {
         return extDebugPgmetrics.equals(ExtDebugPgmetrics.EMPTY) ? null : extDebugPgmetrics;
     }
 
-    private static ExtDebugTrace toExtDebugTrace(DeepDebugLog deepDebugLog) {
-        final List<ExtTraceDeal> entries = deepDebugLog.entries();
+    private static ExtDebugTrace toExtDebugTrace(AuctionContext auctionContext) {
+        final DeepDebugLog deepDebugLog = auctionContext.getDeepDebugLog();
 
-        final List<ExtTraceDeal> dealsTrace = entries.stream()
+        final boolean dealsTraceEnabled = deepDebugLog.isDeepDebugEnabled();
+        final boolean activityInfrastructureTraceEnabled = auctionContext.getDebugContext().getTraceLevel() != null;
+        if (!dealsTraceEnabled && !activityInfrastructureTraceEnabled) {
+            return null;
+        }
+
+        final List<ExtTraceDeal> entries = dealsTraceEnabled ? deepDebugLog.entries() : null;
+        final List<ExtTraceDeal> dealsTrace = dealsTraceEnabled
+                ? entries.stream()
                 .filter(extTraceDeal -> StringUtils.isEmpty(extTraceDeal.getLineItemId()))
-                .toList();
-        final Map<String, List<ExtTraceDeal>> lineItemsTrace = entries.stream()
+                .toList()
+                : null;
+        final Map<String, List<ExtTraceDeal>> lineItemsTrace = dealsTraceEnabled
+                ? entries.stream()
                 .filter(extTraceDeal -> StringUtils.isNotEmpty(extTraceDeal.getLineItemId()))
-                .collect(Collectors.groupingBy(ExtTraceDeal::getLineItemId, Collectors.toList()));
+                .collect(Collectors.groupingBy(ExtTraceDeal::getLineItemId, Collectors.toList()))
+                : null;
 
-        return CollectionUtils.isNotEmpty(entries)
-                ? ExtDebugTrace.of(CollectionUtils.isEmpty(dealsTrace) ? null : dealsTrace,
-                MapUtils.isEmpty(lineItemsTrace) ? null : lineItemsTrace)
+        final List<ExtTraceActivityInfrastructure> activityInfrastructureTrace = activityInfrastructureTraceEnabled
+                ? new ArrayList<>(auctionContext.getActivityInfrastructure().debugTrace())
+                : null;
+
+        return CollectionUtils.isNotEmpty(entries) || CollectionUtils.isNotEmpty(activityInfrastructureTrace)
+                ? ExtDebugTrace.of(
+                CollectionUtils.isEmpty(dealsTrace) ? null : dealsTrace,
+                MapUtils.isEmpty(lineItemsTrace) ? null : lineItemsTrace,
+                CollectionUtils.isEmpty(activityInfrastructureTrace) ? null : activityInfrastructureTrace)
                 : null;
     }
 
@@ -1357,7 +1374,7 @@ public class BidResponseCreator {
 
         final Map<String, String> targetingKeywords;
         final String bidderCode = targetingInfo.getBidderCode();
-        if (targeting != null && targetingInfo.isTargetingEnabled() && targetingInfo.isBidderWinningBid()) {
+        if (shouldIncludeTargetingInResponse(targeting, bidInfo.getTargetingInfo())) {
             final TargetingKeywordsCreator keywordsCreator = resolveKeywordsCreator(
                     bidType, targeting, isApp, bidRequest, account);
 
@@ -1399,6 +1416,15 @@ public class BidResponseCreator {
                 .ext(updatedBidExt)
                 .exp(ttl)
                 .build();
+    }
+
+    private boolean shouldIncludeTargetingInResponse(ExtRequestTargeting targeting, TargetingInfo targetingInfo) {
+        return targeting != null
+                && targetingInfo.isTargetingEnabled()
+                && targetingInfo.isBidderWinningBid()
+                && (Objects.equals(targeting.getIncludebidderkeys(), true)
+                || Objects.equals(targeting.getIncludewinners(), true)
+                || Objects.equals(targeting.getIncludeformat(), true));
     }
 
     private JsonNode extractPassThrough(Imp imp) {
@@ -1642,7 +1668,8 @@ public class BidResponseCreator {
                                                            JsonNode priceGranularity,
                                                            BidRequest bidRequest,
                                                            Account account) {
-
+        final int resolvedTruncateAttrChars = resolveTruncateAttrChars(targeting, account);
+        final String resolveKeyPrefix = resolveKeyPrefix(bidRequest, account, resolvedTruncateAttrChars);
         return TargetingKeywordsCreator.create(
                 parsePriceGranularity(priceGranularity),
                 BooleanUtils.toBoolean(targeting.getIncludewinners()),
@@ -1650,10 +1677,11 @@ public class BidResponseCreator {
                 BooleanUtils.toBoolean(targeting.getAlwaysincludedeals()),
                 BooleanUtils.isTrue(targeting.getIncludeformat()),
                 isApp,
-                resolveTruncateAttrChars(targeting, account),
+                resolvedTruncateAttrChars,
                 cacheHost,
                 cachePath,
-                TargetingKeywordsResolver.create(bidRequest, mapper));
+                TargetingKeywordsResolver.create(bidRequest, mapper),
+                resolveKeyPrefix);
     }
 
     /**
@@ -1668,6 +1696,26 @@ public class BidResponseCreator {
                 truncateAttrCharsOrNull(targeting.getTruncateattrchars()),
                 truncateAttrCharsOrNull(accountTruncateTargetAttr),
                 truncateAttrChars);
+    }
+
+    /**
+     * Returns targeting key prefix.
+     * Default prefix for targeting keys used in cases,
+     * when correspond value is missing in account auction configuration or bid request ext,
+     * or may compose keys longer than 'settings.targeting.truncate-attr-chars' value.
+     */
+    private static String resolveKeyPrefix(BidRequest bidRequest, Account account, int truncateAttrChars) {
+        final String prefix = Optional.of(bidRequest)
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getTargeting)
+                .map(ExtRequestTargeting::getPrefix)
+                .orElse(Optional.ofNullable(account)
+                        .map(Account::getAuction)
+                        .map(AccountAuctionConfig::getTargeting)
+                        .map(AccountTargetingConfig::getPrefix)
+                        .orElse(null));
+        return StringUtils.isNotEmpty(prefix) && prefix.length() + 11 < truncateAttrChars ? prefix : "hb";
     }
 
     private static Integer truncateAttrCharsOrNull(Integer value) {

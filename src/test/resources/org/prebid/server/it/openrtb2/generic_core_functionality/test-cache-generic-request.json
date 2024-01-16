@@ -14,7 +14,15 @@
         "h": 250,
         "ext": {
           "prebid": {
-            "type": "video"
+            "type": "video",
+            "meta": {
+              "rendererName": "SamplePluginRenderer",
+              "rendererVersion": "1.0.0",
+              "rendererData": {
+                "data": "some data"
+              },
+              "rendererUrl": "rendererUrl"
+            }
           },
           "origbidcpm": 3.33
         }

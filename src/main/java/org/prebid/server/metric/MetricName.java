@@ -41,6 +41,7 @@ public enum MetricName {
     // request types,
     openrtb2web("openrtb2-web"),
     openrtb2app("openrtb2-app"),
+    openrtb2dooh("openrtb2-dooh"),
     amp,
     video,
     cookiesync,
@@ -118,6 +119,7 @@ public enum MetricName {
     rejected_by_invalid_account("rejected.invalid-account"),
     rejected_by_invalid_stored_impr("rejected.invalid-stored-impr"),
     rejected_by_invalid_stored_request("rejected.invalid-stored-request"),
+    rejected_by_account_fetch_failed("rejected.account-fetch-failed"),
 
     // currency rates
     stale,

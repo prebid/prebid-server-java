@@ -13,7 +13,7 @@
         "tid": "${json-unit.any-string}",
         "bidder": {
           "zoneid": "testZoneId",
-          "host": "testHostValue"
+          "host": "eu"
         }
       }
     }
