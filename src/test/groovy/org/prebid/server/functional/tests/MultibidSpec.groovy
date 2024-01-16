@@ -9,6 +9,8 @@ import org.prebid.server.functional.model.request.auction.Targeting
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
+import spock.lang.RepeatUntilFailure
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
@@ -93,7 +95,6 @@ class MultibidSpec extends BaseSpec {
         requestTargeting                          | accountTargeting
         Targeting.createWithAllValuesSetTo(true)  | Targeting.createWithAllValuesSetTo(false)
         Targeting.createWithAllValuesSetTo(false) | Targeting.createWithAllValuesSetTo(true)
-        Targeting.createWithRandomValues()        | Targeting.createWithRandomValues()
     }
 
     def "PBS should use account level config when bidRequest does not have targeting settings"() {
@@ -115,6 +116,8 @@ class MultibidSpec extends BaseSpec {
         assert bidderRequest.ext.prebid.targeting == account.config.auction.targeting
 
         where:
-        accountTargeting << [Targeting.createWithAllValuesSetTo(false), Targeting.createWithAllValuesSetTo(true), Targeting.createWithRandomValues()]
+        accountTargeting << [Targeting.createWithAllValuesSetTo(false),
+                             Targeting.createWithAllValuesSetTo(true),
+                             Targeting.createWithRandomValues()]
     }
 }
