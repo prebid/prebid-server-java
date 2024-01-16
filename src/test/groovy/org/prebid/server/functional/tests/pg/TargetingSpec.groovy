@@ -12,7 +12,7 @@ import org.prebid.server.functional.model.request.auction.Bidder
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.GeoExt
-import org.prebid.server.functional.model.request.auction.GeoExtNetAcuity
+import org.prebid.server.functional.model.request.auction.GeoExtGeoProvider
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
 import org.prebid.server.functional.model.request.auction.ImpExtContext
@@ -432,7 +432,7 @@ class TargetingSpec extends BasePgSpec {
     def "PBS should support line item targeting by device geo region, metro when request region, metro as int or str value are given"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            device = new Device(geo: new Geo(ext: new GeoExt(netAcuity: new GeoExtNetAcuity(region: requestValue,
+            device = new Device(geo: new Geo(ext: new GeoExt(geoProvider: new GeoExtGeoProvider(region: requestValue,
                     metro: requestValue))))
         }
 

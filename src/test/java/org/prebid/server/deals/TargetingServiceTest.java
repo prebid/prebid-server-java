@@ -716,9 +716,9 @@ public class TargetingServiceTest extends VertxTest {
                 jsonFrom("targeting/test-device-targeting.json"), "lineItemId");
 
         final ExtGeo extGeo = ExtGeo.of();
-        extGeo.addProperty("netacuity", mapper.createObjectNode().set("country", new TextNode("us")));
+        extGeo.addProperty("geoprovider", mapper.createObjectNode().set("country", new TextNode("us")));
         final ExtDevice extDevice = ExtDevice.empty();
-        extDevice.addProperty("deviceatlas", mapper.createObjectNode().set("browser", new TextNode("Chrome")));
+        extDevice.addProperty("deviceinfoprovider", mapper.createObjectNode().set("browser", new TextNode("Chrome")));
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device
                         .builder()
