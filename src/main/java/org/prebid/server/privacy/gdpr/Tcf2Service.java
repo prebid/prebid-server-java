@@ -286,14 +286,13 @@ public class Tcf2Service {
                                                    boolean wasDowngraded) {
 
         switch (purposeOneTreatmentInterpretation) {
-            case accessAllowed -> vendorPermissionsWithGvl.stream()
-                    .map(VendorPermissionWithGvl::getVendorPermission)
-                    .forEach(purposeOneStrategy::allow);
+            case accessAllowed -> vendorPermissionsWithGvl.forEach(vendorPermissionWithGvl ->
+                    purposeOneStrategy.allow(vendorPermissionWithGvl.getVendorPermission()));
             case noAccessAllowed -> {
                 // no need for special processing of no-access-allowed since everything is disallowed from the beginning
             }
-            case ignore -> purposeOneStrategy
-                    .processTypePurposeStrategy(tcfConsent, purposeOne, vendorPermissionsWithGvl, wasDowngraded);
+            case ignore -> purposeOneStrategy.processTypePurposeStrategy(
+                    tcfConsent, purposeOne, vendorPermissionsWithGvl, wasDowngraded);
         }
     }
 
@@ -315,7 +314,7 @@ public class Tcf2Service {
     private static void requireConsentForPurpose4(Collection<VendorPermissionWithGvl> permissions) {
         permissions.stream()
                 .map(VendorPermissionWithGvl::getVendorPermission)
-                .filter(vendorPermission -> !vendorPermission.isConsented(PurposeCode.FOUR))
+                .filter(vendorPermission -> !vendorPermission.consentedWith(PurposeCode.FOUR))
                 .map(VendorPermission::getPrivacyEnforcementAction)
                 .forEach(privacyEnforcementAction -> privacyEnforcementAction.setRemoveUserIds(true));
     }

@@ -35,7 +35,7 @@ public class UserFpdTcfMask extends UserFpdPrivacyMask {
 
     private static Float maskGeoCoordinate(Float coordinate) {
         return coordinate != null
-                ? BigDecimal.valueOf(coordinate).setScale(2, RoundingMode.DOWN).floatValue()
+                ? BigDecimal.valueOf(coordinate).setScale(2, RoundingMode.HALF_UP).floatValue()
                 : null;
     }
 }
