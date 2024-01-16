@@ -15,7 +15,7 @@
     "tid": "${json-unit.any-string}"
   },
   "site": {
-    "domain": "",
+    "domain": "www.example.com",
     "page": "http://www.example.com",
     "ext": {
       "amp": 0
