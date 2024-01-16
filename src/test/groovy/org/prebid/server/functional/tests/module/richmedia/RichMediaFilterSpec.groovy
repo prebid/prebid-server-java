@@ -292,10 +292,49 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !getAnalyticResults(response)
     }
 
+    def "PBS should process any request without analytics and errors when pb-richmedia-filter hook is disabled"() {
+        given: "PBS with disabled pb-richmedia-filter hook"
+        def pbsServiceWithDisabledMediaFilterHook = pbsServiceFactory.getService(getDisabledRichMediaFilterSettings(PATTERN_NAME))
+
+        and: "BidRequest with stored response"
+        def storedResponseId = PBSUtils.randomNumber
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.trace = VERBOSE
+            it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
+        }
+
+        and: "Account with enabled richMedia config in the DB"
+        def richMediaFilterConfig = new PbsModulesConfig(pbRichmediaFilter: new RichmediaFilter(filterMraid: true, mraidScriptPattern: PATTERN_NAME_ACCOUNT))
+        def accountConfig = new AccountConfig(hooks: new AccountHooksConfiguration(modules: richMediaFilterConfig))
+        def account = new Account(uuid: bidRequest.getAccountId(), config: accountConfig)
+        accountDao.save(account)
+
+        and: "Stored bid response in DB"
+        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid[0].bid[0].adm = amdValue
+        }
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
+        storedResponseDao.save(storedResponse)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithDisabledMediaFilterHook.sendAuctionRequest(bidRequest)
+
+        then: "Response header should contain seatbid"
+        assert response.seatbid.size() == 1
+
+        and: "Response shouldn't contain errors of invalid creation"
+        assert !response.ext.errors
+
+        and: "Response shouldn't contain analytics"
+        assert !getAnalyticResults(response)
+
+        where:
+        amdValue << [PATTERN_NAME, PATTERN_NAME_ACCOUNT]
+    }
 
     private static List<AnalyticResult> getAnalyticResults(BidResponse response) {
-        response.ext.prebid.modules
-                .trace.stages.first().outcomes.first().groups.first()
-                .invocationResults.first().analyticStags?.activities
+        response.ext.prebid.modules?.trace?.stages?.first()
+                ?.outcomes?.first()?.groups?.first()
+                ?.invocationResults?.first()?.analyticStags?.activities
     }
 }
