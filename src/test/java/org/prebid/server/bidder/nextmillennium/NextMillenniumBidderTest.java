@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.nextmillennium;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -41,11 +42,13 @@ public class NextMillenniumBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test-url.com/";
 
-    private final NextMillenniumBidder target = new NextMillenniumBidder(ENDPOINT_URL, jacksonMapper);
+    private final NextMillenniumBidder target =
+            new NextMillenniumBidder(ENDPOINT_URL, jacksonMapper, List.of("valueOne", "valueTwo"));
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new NextMillenniumBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() ->
+                new NextMillenniumBidder("invalid_url", jacksonMapper, List.of("valueOne", "valueTwo")));
     }
 
     @Test
@@ -251,6 +254,24 @@ public class NextMillenniumBidderTest extends VertxTest {
                     assertThat(bidderError.getMessage()).startsWith("Cannot deserialize value of type");
                 });
         assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnImpExtNextMillenniumWhenNmmFlagsConfigured() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity(),
+                givenImpWithExt(identity(), ExtImpNextMillennium.of("placement1", "group1")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .containsExactly(createImpExt(List.of("valueOne", "valueTwo")));
     }
 
     @Test
@@ -477,4 +498,11 @@ public class NextMillenniumBidderTest extends VertxTest {
                 ExtPrebid.of(null, extImpNextMillennium))))::apply);
     }
 
+    private static ObjectNode createImpExt(List<String> values) {
+        final ObjectNode objectNode = mapper.createObjectNode();
+        objectNode.set("prebid", mapper.valueToTree(ExtRequestPrebid.builder()
+                .storedrequest(ExtStoredRequest.of("ggroup1;;")).build()));
+        objectNode.set("nextMillennium", mapper.valueToTree(values));
+        return objectNode;
+    }
 }

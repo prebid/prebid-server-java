@@ -44,41 +44,14 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
             };
 
     private final String endpointUrl;
+    private final List<String> nmmFlags;
     private final JacksonMapper mapper;
 
-    public NextMillenniumBidder(String endpointUrl, JacksonMapper mapper) {
+    public NextMillenniumBidder(String endpointUrl, JacksonMapper mapper, List<String> nmmFlags) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
-    }
+        this.nmmFlags = Objects.requireNonNull(nmmFlags);
 
-    private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium ext) {
-
-        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
-                .storedrequest(ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext)))
-                .build());
-
-        final ObjectNode impExt = mapper.mapper().valueToTree(extRequest);
-
-        final List<Imp> imps = bidRequest.getImp().stream()
-                .map(imp -> imp.toBuilder().ext(impExt).build())
-                .toList();
-
-        return bidRequest.toBuilder().imp(imps).ext(extRequest).build();
-    }
-
-    private static String resolveStoredRequestId(BidRequest bidRequest, ExtImpNextMillennium extImpNextMillennium) {
-        final String groupId = extImpNextMillennium.getGroupId();
-        if (StringUtils.isEmpty(groupId)) {
-            return extImpNextMillennium.getPlacementId();
-        }
-
-        final String size = formattedSizeFromBanner(bidRequest.getImp().get(0).getBanner());
-        final String domain = ObjectUtils.firstNonNull(
-                ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getDomain),
-                ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getDomain),
-                StringUtils.EMPTY);
-
-        return "g%s;%s;%s".formatted(groupId, size, domain);
     }
 
     @Override
@@ -98,6 +71,12 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
+    private List<HttpRequest<BidRequest>> makeRequests(BidRequest bidRequest, List<ExtImpNextMillennium> extImps) {
+        return extImps.stream()
+                .map(extImp -> makeHttpRequest(updateBidRequest(bidRequest, extImp)))
+                .toList();
+    }
+
     private ExtImpNextMillennium convertExt(Imp imp, List<BidderError> errors) {
         try {
             return mapper.mapper()
@@ -109,10 +88,33 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
         return null;
     }
 
-    private List<HttpRequest<BidRequest>> makeRequests(BidRequest bidRequest, List<ExtImpNextMillennium> extImps) {
-        return extImps.stream()
-                .map(extImp -> makeHttpRequest(updateBidRequest(bidRequest, extImp)))
+    private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium ext) {
+
+        final ExtRequestPrebid prebid = ExtRequestPrebid.builder()
+                .storedrequest(ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext)))
+                .build();
+        final ExtRequest extRequest = ExtRequest.of(prebid);
+
+        final List<Imp> imps = bidRequest.getImp().stream()
+                .map(imp -> imp.toBuilder().ext(createImpExt(prebid)).build())
                 .toList();
+
+        return bidRequest.toBuilder().imp(imps).ext(extRequest).build();
+    }
+
+    private static String resolveStoredRequestId(BidRequest bidRequest, ExtImpNextMillennium extImpNextMillennium) {
+        final String groupId = extImpNextMillennium.getGroupId();
+        if (StringUtils.isEmpty(groupId)) {
+            return extImpNextMillennium.getPlacementId();
+        }
+
+        final String size = formattedSizeFromBanner(bidRequest.getImp().get(0).getBanner());
+        final String domain = ObjectUtils.firstNonNull(
+                ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getDomain),
+                ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getDomain),
+                StringUtils.EMPTY);
+
+        return "g%s;%s;%s".formatted(groupId, size, domain);
     }
 
     private static String formattedSizeFromBanner(Banner banner) {
@@ -135,6 +137,13 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
         return w != null && h != null
                 ? "%dx%d".formatted(w, h)
                 : null;
+    }
+
+    private ObjectNode createImpExt(ExtRequestPrebid prebid) {
+        final ObjectNode impExt = mapper.mapper().createObjectNode();
+        impExt.set("prebid", mapper.mapper().valueToTree(prebid));
+        impExt.set("nextMillennium", mapper.mapper().valueToTree(nmmFlags));
+        return impExt;
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest) {

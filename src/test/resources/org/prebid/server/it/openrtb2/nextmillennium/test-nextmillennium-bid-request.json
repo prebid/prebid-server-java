@@ -13,7 +13,10 @@
           "storedrequest": {
             "id": "placement_id"
           }
-        }
+        },
+        "nextMillennium": [
+          "1"
+        ]
       }
     }
   ],
