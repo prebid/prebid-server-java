@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.execution.retry.ExponentialBackoffRetryPolicy;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
@@ -77,7 +78,8 @@ public class PrivacyServiceConfiguration {
                 httpClient,
                 metrics,
                 "v2",
-                mapper);
+                mapper,
+                ExponentialBackoffRetryPolicy.of(60000, 200000, 1.2, 0.1));
     }
 
     @Bean
@@ -108,7 +110,8 @@ public class PrivacyServiceConfiguration {
                 httpClient,
                 metrics,
                 "v3",
-                mapper);
+                mapper,
+                ExponentialBackoffRetryPolicy.of(60000, 200000, 1.2, 0.1));
     }
 
     @Bean

@@ -17,6 +17,8 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.execution.retry.RetryPolicy;
+import org.prebid.server.execution.retry.Retryable;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
@@ -29,6 +31,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Objects;
@@ -80,6 +84,9 @@ public class VendorListService {
     private final Map<Integer, Vendor> fallbackVendorList;
     private final Set<Integer> versionsToFallback;
 
+    private final Map<Integer, FetchAttempt> versionToFetchAttempt;
+    private final RetryPolicy retryPolicy;
+
     public VendorListService(double logSamplingRate,
                              String cacheDir,
                              String endpointTemplate,
@@ -92,7 +99,8 @@ public class VendorListService {
                              HttpClient httpClient,
                              Metrics metrics,
                              String generationVersion,
-                             JacksonMapper mapper) {
+                             JacksonMapper mapper,
+                             RetryPolicy retryPolicy) {
 
         this.logSamplingRate = logSamplingRate;
         this.cacheDir = Objects.requireNonNull(cacheDir);
@@ -106,6 +114,7 @@ public class VendorListService {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
+        this.retryPolicy = Objects.requireNonNull(retryPolicy);
 
         createAndCheckWritePermissionsFor(fileSystem, cacheDir);
         cache = Objects.requireNonNull(createCache(fileSystem, cacheDir));
@@ -117,6 +126,8 @@ public class VendorListService {
         }
         versionsToFallback = fallbackVendorList != null
                 ? ConcurrentHashMap.newKeySet() : null;
+
+        versionToFetchAttempt = new ConcurrentHashMap<>();
     }
 
     private void validateFallbackVendorListIfDeprecatedVersion() {
@@ -149,12 +160,42 @@ public class VendorListService {
 
         metrics.updatePrivacyTcfVendorListMissingMetric(tcf);
 
-        logger.info("TCF {0} vendor list for version {1}.{2} not found, started downloading.",
-                tcf, generationVersion, version);
-        fetchNewVendorListFor(version);
+        if (shouldFetchVendorList(version)) {
+            logger.info("TCF {0} vendor list for version {1}.{2} not found, started downloading.",
+                    tcf, generationVersion, version);
+            fetchNewVendorListFor(version);
+        }
 
         return Future.failedFuture("TCF %d vendor list for version %s.%d not fetched yet, try again later."
                 .formatted(tcf, generationVersion, version));
+    }
+
+    private boolean shouldFetchVendorList(int version) {
+        final Instant now = Instant.now();
+        final FetchAttempt computedAttempt = versionToFetchAttempt.compute(
+                version, (ignored, previousAttempt) -> resolveAttempt(previousAttempt, now));
+
+        // Memory address of object returned by Instant.now() is used as unique identifier of attempt.
+        // If memory address of computed `computedAttempt.attemptedAt` is equal to the `now` that we provided for
+        // resolving, then it is our attempt, and we can fetch vendor list.
+        return computedAttempt.attemptedAt == now;
+    }
+
+    private FetchAttempt resolveAttempt(FetchAttempt previousAttempt, Instant currentAttemptStart) {
+        if (previousAttempt == null) {
+            return FetchAttempt.of(retryPolicy, currentAttemptStart);
+        }
+
+        if (previousAttempt.retryPolicy instanceof Retryable previousAttemptRetryPolicy) {
+            final Instant previouslyDecidedToRetryAt = previousAttempt.attemptedAt.plus(
+                    Duration.ofMillis(previousAttemptRetryPolicy.delay()));
+
+            return previouslyDecidedToRetryAt.isBefore(currentAttemptStart)
+                    ? FetchAttempt.of(previousAttemptRetryPolicy.next(), currentAttemptStart)
+                    : previousAttempt;
+        }
+
+        return previousAttempt;
     }
 
     /**
@@ -305,6 +346,7 @@ public class VendorListService {
             throw new PreBidException("Fetched vendor list parsed but has invalid data: " + body);
         }
 
+        versionToFetchAttempt.remove(version);
         return VendorListResult.of(version, body, vendorList);
     }
 
@@ -406,5 +448,13 @@ public class VendorListService {
         MissingVendorListException(String message) {
             super(message);
         }
+    }
+
+    @Value(staticConstructor = "of")
+    private static class FetchAttempt {
+
+        RetryPolicy retryPolicy;
+
+        Instant attemptedAt;
     }
 }
