@@ -33,10 +33,8 @@ public class BidResponsesMraidFilter {
             final Map<Boolean, List<BidderBid>> bidsMap = originalBids.stream().collect(
                     Collectors.groupingBy(bid -> StringUtils.contains(bid.getBid().getAdm(), mraidScriptPattern)));
 
-            final List<BidderBid> validBids = Optional.ofNullable(bidsMap.get(Boolean.FALSE))
-                    .orElse(Collections.emptyList());
-            final List<BidderBid> invalidBids = Optional.ofNullable(bidsMap.get(Boolean.TRUE))
-                    .orElse(Collections.emptyList());
+            final List<BidderBid> validBids = bidsMap.getOrDefault(false, Collections.emptyList());
+            final List<BidderBid> invalidBids = bidsMap.getOrDefault(true, Collections.emptyList());
 
             if (validBids.size() == originalBids.size()) {
                 filteredResponses.add(bidderResponse.with(seatBid.with(originalBids)));
@@ -53,7 +51,10 @@ public class BidResponsesMraidFilter {
                 analyticsResults.add(analyticsResult);
 
                 final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
-                errors.add(BidderError.of("Invalid creatives", BidderError.Type.invalid_creative, new HashSet<>(rejectedImps)));
+                errors.add(BidderError.of(
+                        "Invalid creatives",
+                        BidderError.Type.invalid_creative,
+                        new HashSet<>(rejectedImps)));
                 filteredResponses.add(bidderResponse.with(seatBid.with(validBids, errors)));
             }
         }

@@ -49,7 +49,9 @@ public class BidResponsesMraidFilterTest {
                 givenBid("imp_id2", "adm2_mraid.js")));
 
         // when
-        final MraidFilterResult filterResult = target.filterByPattern("mraid.js", List.of(responseA, responseB, responseC));
+        final MraidFilterResult filterResult = target.filterByPattern(
+                "mraid.js",
+                List.of(responseA, responseB, responseC));
 
         // then
         final BidderResponse expectedResponseA = givenBidderResponse(

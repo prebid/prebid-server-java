@@ -29,6 +29,7 @@ public class ModuleConfigResolverTest {
 
     @Test
     public void resolveShouldReturnAccountConfigWhenAccountConfigIsPresent() throws JsonProcessingException {
+        // given
         final String accountConfig = """
                 {
                    "filter-mraid": true,
@@ -36,25 +37,38 @@ public class ModuleConfigResolverTest {
                 }
                 """;
         final ObjectNode objectNode = OBJECT_MAPPER.readValue(accountConfig, ObjectNode.class);
+
+        // when
         final PbRichMediaFilterProperties actualProperties = target.resolve(objectNode);
+
+        // then
         assertThat(actualProperties).isEqualTo(ACCOUNT_PROPERTIES);
     }
 
     @Test
     public void resolveShouldReturnGlobalConfigWhenAccountConfigIsEmpty() {
+        // given
         final ObjectNode emptyObjectNode = OBJECT_MAPPER.createObjectNode();
+
+        // when
         final PbRichMediaFilterProperties actualProperties = target.resolve(emptyObjectNode);
+
+        // then
         assertThat(actualProperties).isEqualTo(GLOBAL_PROPERTIES);
     }
 
     @Test
     public void resolveShouldReturnGlobalConfigWhenAccountConfigIsAbsent() {
+        // when
         final PbRichMediaFilterProperties actualProperties = target.resolve(null);
+
+        // then
         assertThat(actualProperties).isEqualTo(GLOBAL_PROPERTIES);
     }
 
     @Test
     public void resolveShouldReturnGlobalConfigWhenAccountConfigCanNotBeParsed() throws JsonProcessingException {
+        // given
         final String invalidAccountConfig = """
                 {
                     "filter-mraid": "invalid_type",
@@ -62,19 +76,28 @@ public class ModuleConfigResolverTest {
                 }
                 """;
         final ObjectNode objectNode = OBJECT_MAPPER.readValue(invalidAccountConfig, ObjectNode.class);
+
+        // when
         final PbRichMediaFilterProperties actualProperties = target.resolve(objectNode);
+
+        // then
         assertThat(actualProperties).isEqualTo(GLOBAL_PROPERTIES);
     }
 
     @Test
     public void resolveShouldReturnGlobalConfigWhenAccountConfigMissingProperties() throws JsonProcessingException {
+        // given
         final String invalidAccountConfig = """
                 {
                     "mraid-script-pattern": "<script src=\\"mraid.js\\"></script>"
                 }
                 """;
         final ObjectNode objectNode = OBJECT_MAPPER.readValue(invalidAccountConfig, ObjectNode.class);
+
+        // when
         final PbRichMediaFilterProperties actualProperties = target.resolve(objectNode);
+
+        // then
         assertThat(actualProperties).isEqualTo(GLOBAL_PROPERTIES);
     }
 

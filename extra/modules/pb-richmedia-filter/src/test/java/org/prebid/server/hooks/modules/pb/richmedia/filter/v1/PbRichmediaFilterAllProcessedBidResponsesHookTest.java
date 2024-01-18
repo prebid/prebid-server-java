@@ -11,11 +11,11 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
-import org.prebid.server.hooks.modules.pb.richmedia.filter.model.PbRichMediaFilterProperties;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.core.BidResponsesMraidFilter;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.core.ModuleConfigResolver;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.AnalyticsResult;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.MraidFilterResult;
+import org.prebid.server.hooks.modules.pb.richmedia.filter.model.PbRichMediaFilterProperties;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.analytics.ActivityImpl;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.analytics.AppliedToImpl;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.analytics.ResultImpl;
@@ -210,8 +210,10 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
                         .bidders(singletonList("bidderB"))
                         .impIds(singletonList("imp_id3"))
                         .build());
-        assertThat(result.analyticsTags()).isEqualTo(
-                TagsImpl.of(List.of(ActivityImpl.of("reject-richmedia", "success", List.of(expectedResult1, expectedResult2)))));
+        assertThat(result.analyticsTags()).isEqualTo(TagsImpl.of(List.of(ActivityImpl.of(
+                "reject-richmedia",
+                "success",
+                List.of(expectedResult1, expectedResult2)))));
     }
 
     @Test

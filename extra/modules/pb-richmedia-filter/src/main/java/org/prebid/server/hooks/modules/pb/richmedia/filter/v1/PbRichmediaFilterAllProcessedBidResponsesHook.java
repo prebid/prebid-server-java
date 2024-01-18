@@ -4,13 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
-import org.prebid.server.hooks.modules.pb.richmedia.filter.model.PbRichMediaFilterProperties;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.core.BidResponsesMraidFilter;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.core.ModuleConfigResolver;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.AnalyticsResult;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.MraidFilterResult;
+import org.prebid.server.hooks.modules.pb.richmedia.filter.model.PbRichMediaFilterProperties;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.analytics.ActivityImpl;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.v1.model.analytics.AppliedToImpl;
@@ -56,11 +57,11 @@ public class PbRichmediaFilterAllProcessedBidResponsesHook implements AllProcess
         final PbRichMediaFilterProperties properties = configResolver.resolve(auctionInvocationContext.accountConfig());
         final List<BidderResponse> responses = allProcessedBidResponsesPayload.bidResponses();
 
-        if (Boolean.TRUE.equals(properties.getFilterMraid())) {
+        if (BooleanUtils.isTrue(properties.getFilterMraid())) {
             final MraidFilterResult filterResult = mraidFilter.filterByPattern(properties.getMraidScriptPattern(), responses);
             final InvocationAction action = filterResult.hasRejectedBids()
-                        ? InvocationAction.update
-                        : InvocationAction.no_action;
+                    ? InvocationAction.update
+                    : InvocationAction.no_action;
             return Future.succeededFuture(toInvocationResult(
                     filterResult.getFilterResult(),
                     toAnalyticsTags(filterResult.getAnalyticsResult()),
@@ -73,18 +74,17 @@ public class PbRichmediaFilterAllProcessedBidResponsesHook implements AllProcess
                 InvocationAction.no_action));
     }
 
-    private InvocationResult<AllProcessedBidResponsesPayload> toInvocationResult(List<BidderResponse> bidderResponses,
-                                                                                 Tags analyticsTags,
-                                                                                 InvocationAction action) {
+    private static InvocationResult<AllProcessedBidResponsesPayload> toInvocationResult(
+            List<BidderResponse> bidderResponses,
+            Tags analyticsTags,
+            InvocationAction action) {
 
-        final InvocationResultImpl.InvocationResultImplBuilder<AllProcessedBidResponsesPayload> resultBuilder =
-                InvocationResultImpl.<AllProcessedBidResponsesPayload>builder()
-                        .status(InvocationStatus.success)
-                        .action(action)
-                        .analyticsTags(analyticsTags)
-                        .payloadUpdate(payload -> AllProcessedBidResponsesPayloadImpl.of(bidderResponses));
-
-        return resultBuilder.build();
+        return InvocationResultImpl.<AllProcessedBidResponsesPayload>builder()
+                .status(InvocationStatus.success)
+                .action(action)
+                .analyticsTags(analyticsTags)
+                .payloadUpdate(payload -> AllProcessedBidResponsesPayloadImpl.of(bidderResponses))
+                .build();
     }
 
     private Tags toAnalyticsTags(List<AnalyticsResult> analyticsResults) {
