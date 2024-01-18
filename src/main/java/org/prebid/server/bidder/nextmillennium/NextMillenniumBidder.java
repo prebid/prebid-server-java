@@ -44,13 +44,13 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
             };
 
     private final String endpointUrl;
-    private final List<String> nmmFlags;
     private final JacksonMapper mapper;
+    private final List<String> nmmFlags;
 
     public NextMillenniumBidder(String endpointUrl, JacksonMapper mapper, List<String> nmmFlags) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
-        this.nmmFlags = Objects.requireNonNull(nmmFlags);
+        this.nmmFlags = nmmFlags;
 
     }
 
@@ -142,7 +142,9 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
     private ObjectNode createImpExt(ExtRequestPrebid prebid) {
         final ObjectNode impExt = mapper.mapper().createObjectNode();
         impExt.set("prebid", mapper.mapper().valueToTree(prebid));
-        impExt.set("nextMillennium", mapper.mapper().valueToTree(nmmFlags));
+        impExt.set("nextMillennium", CollectionUtils.isNotEmpty(nmmFlags)
+                ? mapper.mapper().valueToTree(nmmFlags)
+                : null);
         return impExt;
     }
 
