@@ -7,7 +7,7 @@ adapters:
       yahoossp: ~
       yahooAdvertising: ~
     meta-info:
-      maintainer-email: hb-fe-tech@yahooinc.com
+      maintainer-email: prebid-tech-team@yahooinc.com
       app-media-types:
         - banner
         - video
