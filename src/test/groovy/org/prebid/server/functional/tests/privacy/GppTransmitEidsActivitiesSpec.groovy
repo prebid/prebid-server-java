@@ -142,7 +142,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -173,7 +173,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
     }
 
@@ -263,7 +263,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
     }
 
@@ -348,7 +348,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -670,7 +670,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         where:
@@ -706,7 +706,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         where:
@@ -814,7 +814,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         where:
@@ -895,7 +895,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         and: "Generic bidder should be called due to positive allow in activities"
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         where:
@@ -1050,7 +1050,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         where:
@@ -1144,7 +1144,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         where:
@@ -1291,7 +1291,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -1330,7 +1330,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
     }
 
@@ -1446,7 +1446,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
     }
 
@@ -1489,7 +1489,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -1582,7 +1582,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         where:
@@ -1627,7 +1627,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         where:
@@ -1744,7 +1744,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         where:
@@ -2033,7 +2033,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         where:
@@ -2147,7 +2147,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
-            !genericBidderRequest.user.ext.eids
+            !genericBidderRequest.user?.ext?.eids
         }
 
         where:

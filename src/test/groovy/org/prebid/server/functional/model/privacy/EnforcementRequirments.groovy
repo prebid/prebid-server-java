@@ -18,10 +18,8 @@ class EnforcementRequirments {
     List<BidderName> softVendorExceptions
     List<BidderName> vendorExceptions
     Purpose purposesLITransparency
-    Purpose purposeGvl
-    Purpose legIntPurposeGvl
-    Purpose flexiblePurposeGvl
-    BidderName vendorGvl
-    Integer vendorIdGvl
     List<RestrictionType> restrictionType
+    Integer vendorIdGvl
+    Integer vendorListVersion
+
 }
