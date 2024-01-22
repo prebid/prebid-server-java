@@ -11,6 +11,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+/*
+ * This class is a dirty hack, that will be removed with Vertx update to 4.0
+ * TODO: Replace with Vertx 4.0 Circuit breaker's backoff.
+ */
 public class VendorListFetchThrottler {
 
     private final Map<Integer, FetchAttempt> versionToFetchAttempt;
