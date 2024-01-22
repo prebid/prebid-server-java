@@ -4,7 +4,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.execution.retry.ExponentialBackoffRetryPolicy;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
@@ -36,6 +35,7 @@ import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.SpecialFeature;
 import org.prebid.server.settings.model.SpecialFeatures;
+import org.prebid.server.spring.config.retry.RetryPolicyConfigurationProperties;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -61,6 +61,7 @@ public class PrivacyServiceConfiguration {
             @Value("${gdpr.vendorlist.v2.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
             @Value("${gdpr.vendorlist.v2.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
             @Value("${gdpr.vendorlist.v2.deprecated}") boolean deprecated,
+            RetryPolicyConfigurationProperties vendorListV2RetryPolicyConfigurationProperties,
             Vertx vertx,
             Clock clock,
             FileSystem fileSystem,
@@ -82,9 +83,13 @@ public class PrivacyServiceConfiguration {
                 metrics,
                 "v2",
                 mapper,
-                new VendorListFetchThrottler(
-                        ExponentialBackoffRetryPolicy.of(60000, 200000, 1.2, 0.1),
-                        clock));
+                new VendorListFetchThrottler(vendorListV2RetryPolicyConfigurationProperties.toPolicy(), clock));
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.vendorlist.v2.retry-policy")
+    RetryPolicyConfigurationProperties vendorListV2RetryPolicyConfigurationProperties() {
+        return new RetryPolicyConfigurationProperties();
     }
 
     @Bean
@@ -96,6 +101,7 @@ public class PrivacyServiceConfiguration {
             @Value("${gdpr.vendorlist.v3.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
             @Value("${gdpr.vendorlist.v3.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
             @Value("${gdpr.vendorlist.v3.deprecated}") boolean deprecated,
+            RetryPolicyConfigurationProperties vendorListV3RetryPolicyConfigurationProperties,
             Vertx vertx,
             Clock clock,
             FileSystem fileSystem,
@@ -118,8 +124,14 @@ public class PrivacyServiceConfiguration {
                 "v3",
                 mapper,
                 new VendorListFetchThrottler(
-                        ExponentialBackoffRetryPolicy.of(60000, 200000, 1.2, 0.1),
+                        vendorListV3RetryPolicyConfigurationProperties.toPolicy(),
                         clock));
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.vendorlist.v3.retry-policy")
+    RetryPolicyConfigurationProperties vendorListV3RetryPolicyConfigurationProperties() {
+        return new RetryPolicyConfigurationProperties();
     }
 
     @Bean
