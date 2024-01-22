@@ -18,8 +18,8 @@ public class RetryPolicyConfigurationProperties {
             throw new IllegalArgumentException("Invalid configuration of retry policy. No retry policy specified.");
         }
         if (ObjectUtils.allNotNull(exponentialBackoff, fixedInterval)) {
-            throw new IllegalArgumentException("Invalid configuration of retry policy." +
-                    " Should be either exponential backoff or fixed interval, but not both.");
+            throw new IllegalArgumentException("Invalid configuration of retry policy."
+                    + " Should be either exponential backoff or fixed interval, but not both.");
         }
 
         return exponentialBackoff != null ? exponentialBackoff.toPolicy() : fixedInterval.toPolicy();

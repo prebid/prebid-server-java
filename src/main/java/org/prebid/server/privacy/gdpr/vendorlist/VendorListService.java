@@ -81,7 +81,6 @@ public class VendorListService {
     private final Set<Integer> versionsToFallback;
     private final VendorListFetchThrottler fetchThrottler;
 
-
     public VendorListService(double logSamplingRate,
                              String cacheDir,
                              String endpointTemplate,
@@ -162,7 +161,6 @@ public class VendorListService {
         return Future.failedFuture("TCF %d vendor list for version %s.%d not fetched yet, try again later."
                 .formatted(tcf, generationVersion, version));
     }
-
 
     /**
      * Creates vendorList object from string content or throw {@link PreBidException}.
