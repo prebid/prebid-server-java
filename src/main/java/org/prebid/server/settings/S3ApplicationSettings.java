@@ -95,7 +95,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
                                                 "Invalid json for account with id %s".formatted(accountId)));
                     }
                     // if a previous validation already yielded a PreBidException, just return it
-                    if(ex instanceof PreBidException) {
+                    if (ex instanceof PreBidException) {
                         return Future.failedFuture(ex);
                     }
                     return Future
