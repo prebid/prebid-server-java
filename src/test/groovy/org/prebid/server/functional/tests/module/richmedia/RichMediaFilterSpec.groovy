@@ -240,7 +240,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithDisabledMediaFilter.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithEnabledMediaFilter.sendAuctionRequest(bidRequest)
 
         then: "Response header shouldn't contain any seatbid"
         assert !response.seatbid
@@ -280,7 +280,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         storedResponseDao.save(storedResponse)
 
         when: "PBS processes auction request"
-        def response = pbsServiceWithDisabledMediaFilter.sendAuctionRequest(bidRequest)
+        def response = pbsServiceWithEnabledMediaFilter.sendAuctionRequest(bidRequest)
 
         then: "Response header should contain seatbid"
         assert response.seatbid.size() == 1
