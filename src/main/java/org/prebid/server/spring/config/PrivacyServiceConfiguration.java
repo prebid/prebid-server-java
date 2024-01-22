@@ -28,6 +28,7 @@ import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnf
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.PurposeTwoBasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesOneStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListFetchThrottler;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.VersionedVendorListService;
 import org.prebid.server.settings.model.GdprConfig;
@@ -42,6 +43,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -60,6 +62,7 @@ public class PrivacyServiceConfiguration {
             @Value("${gdpr.vendorlist.v2.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
             @Value("${gdpr.vendorlist.v2.deprecated}") boolean deprecated,
             Vertx vertx,
+            Clock clock,
             FileSystem fileSystem,
             HttpClient httpClient,
             Metrics metrics,
@@ -79,7 +82,9 @@ public class PrivacyServiceConfiguration {
                 metrics,
                 "v2",
                 mapper,
-                ExponentialBackoffRetryPolicy.of(60000, 200000, 1.2, 0.1));
+                new VendorListFetchThrottler(
+                        ExponentialBackoffRetryPolicy.of(60000, 200000, 1.2, 0.1),
+                        clock));
     }
 
     @Bean
@@ -92,6 +97,7 @@ public class PrivacyServiceConfiguration {
             @Value("${gdpr.vendorlist.v3.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
             @Value("${gdpr.vendorlist.v3.deprecated}") boolean deprecated,
             Vertx vertx,
+            Clock clock,
             FileSystem fileSystem,
             HttpClient httpClient,
             Metrics metrics,
@@ -111,7 +117,9 @@ public class PrivacyServiceConfiguration {
                 metrics,
                 "v3",
                 mapper,
-                ExponentialBackoffRetryPolicy.of(60000, 200000, 1.2, 0.1));
+                new VendorListFetchThrottler(
+                        ExponentialBackoffRetryPolicy.of(60000, 200000, 1.2, 0.1),
+                        clock));
     }
 
     @Bean
