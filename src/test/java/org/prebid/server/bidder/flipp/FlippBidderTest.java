@@ -402,8 +402,7 @@ public class FlippBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetKeywordToRequestBodyWhenUserKeywords() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder
-                        .user(User.builder().keywords("Hi,bye").build()),
+                bidRequestBuilder -> bidRequestBuilder.site(Site.builder().keywords("Hi,bye").build()),
                 identity());
 
         // when
@@ -488,7 +487,7 @@ public class FlippBidderTest extends VertxTest {
         // given
         final String consent = TCStringEncoder.newBuilder().version(2)
                 .addPurposesConsent(1)
-                .addPurposesConsent(3)
+                .addPurposesConsent(4)
                 .encode();
         final ExtRequest extRequest = ExtRequest.empty();
         extRequest.addProperty("transmitEids", BooleanNode.valueOf(true));
@@ -926,7 +925,7 @@ public class FlippBidderTest extends VertxTest {
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
                 mapper.writeValueAsString(givenCampaignResponseBody(inlineBuilder ->
                         inlineBuilder.contents(singletonList(
-                                Content.of("any", "custom", null, "type"))))));
+                                Content.of("any", "custom", Data.of(null, 10, 20), "type"))))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
