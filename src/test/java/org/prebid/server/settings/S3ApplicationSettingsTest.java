@@ -185,7 +185,6 @@ public class S3ApplicationSettingsTest extends VertxTest {
                     .isInstanceOf(PreBidException.class)
                     .hasMessage("Account with id another-id does not match id wrong-id in file");
 
-
             verify(s3AsyncClient).getObject(
                     eq(GetObjectRequest.builder().bucket(BUCKET).key(ACCOUNTS_DIR + "/another-id.json").build()),
                     any(AsyncResponseTransformer.class));

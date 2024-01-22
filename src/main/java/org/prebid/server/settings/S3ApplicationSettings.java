@@ -112,7 +112,8 @@ public class S3ApplicationSettings implements ApplicationSettings {
 
         return getFileContents(storedRequestsDirectory, requestIds)
                 .compose(storedIdToRequest -> getFileContents(storedImpressionsDirectory, impIds)
-                        .map(storedIdToImp -> buildStoredDataResult(storedIdToRequest, storedIdToImp, requestIds, impIds))
+                        .map(storedIdToImp ->
+                                buildStoredDataResult(storedIdToRequest, storedIdToImp, requestIds, impIds))
                 );
     }
 
