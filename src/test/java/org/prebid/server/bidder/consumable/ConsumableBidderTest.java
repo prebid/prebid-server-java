@@ -2,12 +2,10 @@ package org.prebid.server.bidder.consumable;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -15,6 +13,8 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpHeaderValues;
+import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,9 +22,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.consumable.model.request.ConsumableDiag;
-import org.prebid.server.bidder.consumable.model.response.ConsumableBidResponse;
-import org.prebid.server.bidder.consumable.model.response.ConsumableExtBidResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -33,14 +30,11 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.consumable.ExtImpConsumable;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.List;
@@ -52,10 +46,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.mockito.BDDMockito.given;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class ConsumableBidderTest extends VertxTest {
 
@@ -71,20 +62,50 @@ public class ConsumableBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        target = new ConsumableBidder(ENDPOINT_URL, prebidVersionProvider, jacksonMapper);
-        given(prebidVersionProvider.getNameVersionRecord()).willReturn(null);
+        target = new ConsumableBidder(ENDPOINT_URL, jacksonMapper);
     }
 
     @Test
-    public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(
-                () -> new ConsumableBidder("invalid_url", prebidVersionProvider, jacksonMapper));
+    public void makeHttpRequestsShouldHaveCorrectHeaders() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenSiteBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
+                .flatExtracting(MultiMap::entries)
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
+                        tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
+                        tuple(HttpUtil.X_OPENRTB_VERSION_HEADER.toString(), "2.5")
+                );
+    }
+
+    @Test
+    public void makeBidderResponseShouldReturnBidderBidWithNoErrors() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenSiteBidRequest(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+
+        // when
+        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getBids())
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), BidType.banner, "USD"));
     }
 
     @Test
     public void makeHttpRequestsShouldReturnErrorIfImpExtCouldNotBeParsed() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
+        final BidRequest bidRequest = givenSiteBidRequest(
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
@@ -98,119 +119,30 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyImpExtWithSiteIds() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(givenImpExt(11, 32, 42, "cnsmbl-audio-728x90-slider", null)));
+    public void makeHttpRequestsShouldReturnEmptyListIfRequiredSiteParametersAreNotPresent(){
+        final BidRequest bidRequest = givenSiteBidRequest(impBuilder -> impBuilder
+                .ext(mapper.valueToTree(ExtPrebid.of(null,  ExtImpConsumable.of(11, 32,
+                        0, "cnsmbl-audio-728x90-slider", null)))));
 
-        // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .hasSize(4)
-                .allSatisfy(ext -> assertThat(ext.get("networkId")).isEqualTo(TextNode.valueOf("11")))
-                .allSatisfy(ext -> assertThat(ext.get("siteId")).isEqualTo(TextNode.valueOf("32")))
-                .allSatisfy(ext -> assertThat(ext.get("unitId")).isEqualTo(TextNode.valueOf("42")))
-                .allSatisfy(ext -> assertThat(ext.get("unitName")).isEqualTo(TextNode.valueOf("cnsmbl-audio-728x90-slider")));
+
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnConsumableDiagWithPbjsVersionIfRequestExtPrebidChannelVersionProvided() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.ext(givenExtRequest("pbjsv")),
-                singletonList(identity()));
-
-        // when
+    public void makeHttpRequestsShouldReturnEmptyListIfRequiredAppParametersAreNotPresent(){
+        final BidRequest bidRequest = givenAppBidRequest(impBuilder -> impBuilder
+                .ext(mapper.valueToTree(ExtPrebid.of(null,  ExtImpConsumable.of(null, 32,
+                        null, null, null)))));
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getExt)
-                .extracting(ext -> ext.getProperty("consumablediag"))
-                .extracting(diagNode -> mapper.treeToValue(diagNode, ConsumableDiag.class))
-                .containsExactly(ConsumableDiag.of(null, "pbjsv"));
-    }
 
-    @Test
-    public void makeHttpRequestsShouldReturnConsumableDiagWithPbsVersion() {
-        // given
-        given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbsv");
-        final BidRequest bidRequest = givenBidRequest(identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getExt)
-                .extracting(ext -> ext.getProperty("consumablediag"))
-                .extracting(diagNode -> mapper.treeToValue(diagNode, ConsumableDiag.class))
-                .containsExactly(ConsumableDiag.of("pbsv", null));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotCreateRequestSiteWhenImpExtSiteIdPresentAndSiteIsAbsent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(givenImpExt("site1", null)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getSite)
-                .containsOnlyNulls();
-    }
-
-    @Test
-    public void makeHttpRequestsShouldModifyRequestAppWithPublisherAndSetIdWhenImpExtSiteIdPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.app(App.builder().build()),
-                singletonList(impBuilder -> impBuilder.ext(givenImpExt("site1", null))));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        final App expectedApp = App.builder()
-                .publisher(Publisher.builder().id("site1").build())
-                .build();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getApp)
-                .containsExactly(expectedApp);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotCreateRequestAppWhenImpExtSiteIdPresentAndSiteIsAbsent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.ext(givenImpExt("site1", null)));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getApp)
-                .containsOnlyNulls();
     }
 
     @Test
@@ -273,7 +205,7 @@ public class ConsumableBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.banner, "EUR"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.banner, "USD"));
     }
 
     @Test
@@ -293,7 +225,7 @@ public class ConsumableBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.audio, "EUR"));
+                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), BidType.audio, "USD"));
     }
 
     @Test
@@ -328,9 +260,8 @@ public class ConsumableBidderTest extends VertxTest {
                         givenBidResponse(
                                 bidBuilder -> bidBuilder
                                         .impid("123")
-                                        .ext(mapper.valueToTree(ExtBidPrebid.builder()
-                                                .video(ExtBidPrebidVideo.of(1, null))
-                                                .build())))));
+                                        .dur(1)
+                                        .mtype(2))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
@@ -342,10 +273,9 @@ public class ConsumableBidderTest extends VertxTest {
                 .extracting(Bid::getExt)
                 .extracting(node -> mapper.treeToValue(node, ExtBidPrebid.class))
                 .extracting(ExtBidPrebid::getVideo)
-                .extracting(ExtBidPrebidVideo::getDuration, ExtBidPrebidVideo::getPrimaryCategory)
-                .containsExactly(tuple(1, null));
+                .extracting(ExtBidPrebidVideo::getDuration)
+                .containsExactly(1);
     }
-
 
     @Test
     public void makeBidderResponseShouldReturnBannerBidIfMTypeIsOne() throws JsonProcessingException {
@@ -435,35 +365,6 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidderResponseShouldReturnNativeBidIfMTypeIsFour() throws JsonProcessingException {
-        // given
-        final Banner banner = Banner.builder().w(300).h(200).build();
-        final Video video = Video.builder().build();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("123")
-                        .banner(banner)
-                        .video(video).build()))
-                .build();
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(
-                                bidBuilder -> bidBuilder
-                                        .impid("123")
-                                        .mtype(4))));
-
-        // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
-                .extracting(BidderBid::getType)
-                .containsExactly(BidType.xNative);
-    }
-
-    @Test
     public void makeBidderResponseShouldReturnCorrectTypeExtPrebidTypeInResponse() throws JsonProcessingException {
         // given
         final Banner banner = Banner.builder().w(300).h(200).build();
@@ -493,73 +394,63 @@ public class ConsumableBidderTest extends VertxTest {
                 .containsExactly(BidType.video);
     }
 
-    @Test
-    public void makeBidderResponseShouldReturnFledgeAuctionConfig() throws JsonProcessingException {
-        // given
-        final String impId = "imp_id";
-        final BidResponse bidResponse = givenBidResponse(bidBuilder -> bidBuilder.impid(impId).mtype(1));
-        final ObjectNode fledgeAuctionConfig = mapper.createObjectNode();
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(List.of(Imp.builder().id(impId).build()))
-                .build();
-        final ConsumableBidResponse bidResponseWithFledge = ConsumableBidResponse.builder()
-                .cur(bidResponse.getCur())
-                .seatbid(bidResponse.getSeatbid())
-                .ext(ConsumableExtBidResponse.of(Map.of(impId, fledgeAuctionConfig)))
-                .build();
-        final BidderCall<BidRequest> httpCall =
-                givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponseWithFledge));
-
-        // when
-        final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getBids())
-                .containsOnly(BidderBid.of(Bid.builder().impid(impId).mtype(1).build(), banner, bidResponse.getCur()));
-        final FledgeAuctionConfig expectedFledge = FledgeAuctionConfig.builder()
-                .impId(impId)
-                .config(fledgeAuctionConfig)
-                .build();
-        assertThat(result.getFledgeAuctionConfigs()).containsExactly(expectedFledge);
+    private static BidRequest givenSiteBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
+        return givenSiteBidRequest(bidRequestBuilder -> bidRequestBuilder.site(Site.builder().page("http://www.some.com/page-where-ad-will-be-shown").domain("www.some.com").build()), List.of(impCustomizers));
     }
 
-    private static ExtRequest givenExtRequest(String pbjsv) {
-        return ExtRequest.of(ExtRequestPrebid.builder()
-                .channel(ExtRequestPrebidChannel.of("pbjs", pbjsv))
-                .build());
+    private static BidRequest givenAppBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
+        return givenAppBidRequest(bidRequestBuilder -> bidRequestBuilder.app(App.builder().id("1").bundle("com.foo.bar").build()), List.of(impCustomizers));
     }
 
-    private static ObjectNode givenImpExt(Integer networkId, Integer siteId, Integer unitId, String unitName, String placementId) {
-        return mapper.valueToTree(ExtPrebid.of(null, ExtImpConsumable.of(networkId, siteId, unitId, unitName, placementId)));
-    }
-
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
-        return givenBidRequest(identity(), List.of(impCustomizers));
-    }
-
-    private static BidRequest givenBidRequest(
+    private static BidRequest givenSiteBidRequest(
             UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
             List<UnaryOperator<Imp.ImpBuilder>> impCustomizers) {
 
         return bidRequestCustomizer.apply(
                         BidRequest.builder()
                                 .imp(impCustomizers.stream()
+<<<<<<< HEAD
                                         .map(ConsumableBidderTest::givenImp)
                                         .toList())).build();
+=======
+                                        .map(ConsumableBidderTest::givenSiteImp)
+                                        .toList()))
+                .build();
+>>>>>>> 8c8260c49 (App Support initial Commit)
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenAppBidRequest(
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            List<UnaryOperator<Imp.ImpBuilder>> impCustomizers) {
+
+        return bidRequestCustomizer.apply(
+                        BidRequest.builder()
+                                .imp(impCustomizers.stream()
+                                        .map(ConsumableBidderTest::givenAppImp)
+                                        .toList()))
+                .build();
+    }
+
+    private static Imp givenSiteImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().w(1).h(1).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpConsumable.of(SITE_ID, null, null)))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpConsumable.of(11, 32,
+                                42, "cnsmbl-audio-728x90-slider", null)))))
+                .build();
+    }
+    private static Imp givenAppImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                        .id("123")
+                        .banner(Banner.builder().w(1).h(1).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpConsumable.of(null, null,
+                                null, null, "0421008445828ceb46f496700a5fa65e")))))
                 .build();
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
-                .cur("EUR")
+                .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
