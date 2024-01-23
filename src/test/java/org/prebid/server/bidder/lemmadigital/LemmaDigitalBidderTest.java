@@ -115,7 +115,8 @@ public class LemmaDigitalBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
                 .hasSize(1)
-                .containsExactly(BidderError.badInput("Missing bidder ext in impression with id: 123"));
+                .containsExactly(BidderError.badInput("Invalid imp.ext.bidder for impression index 0. "
+                        + "Error Infomation: 123"));
     }
 
     @Test
