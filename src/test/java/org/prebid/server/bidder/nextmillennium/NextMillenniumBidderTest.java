@@ -502,7 +502,8 @@ public class NextMillenniumBidderTest extends VertxTest {
         final ObjectNode objectNode = mapper.createObjectNode();
         objectNode.set("prebid", mapper.valueToTree(ExtRequestPrebid.builder()
                 .storedrequest(ExtStoredRequest.of("ggroup1;;")).build()));
-        objectNode.set("nextMillennium", mapper.valueToTree(values));
+        objectNode.putObject("nextMillennium")
+                .set("nmmFlags", mapper.valueToTree(values));
         return objectNode;
     }
 }

@@ -67,7 +67,6 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
     private List<ExtImpNextMillennium> getImpExts(BidRequest bidRequest, List<BidderError> errors) {
         return bidRequest.getImp().stream()
                 .map(imp -> convertExt(imp, errors))
-                .filter(Objects::nonNull)
                 .toList();
     }
 
@@ -89,7 +88,6 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium ext) {
-
         final ExtRequestPrebid prebid = ExtRequestPrebid.builder()
                 .storedrequest(ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext)))
                 .build();
@@ -142,9 +140,10 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
     private ObjectNode createImpExt(ExtRequestPrebid prebid) {
         final ObjectNode impExt = mapper.mapper().createObjectNode();
         impExt.set("prebid", mapper.mapper().valueToTree(prebid));
-        impExt.set("nextMillennium", CollectionUtils.isNotEmpty(nmmFlags)
-                ? mapper.mapper().valueToTree(nmmFlags)
-                : null);
+        if (CollectionUtils.isNotEmpty(nmmFlags)) {
+            impExt.putObject("nextMillennium")
+                    .set("nmmFlags", mapper.mapper().valueToTree(nmmFlags));
+        }
         return impExt;
     }
 

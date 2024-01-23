@@ -39,10 +39,11 @@ public class NextMillenniumConfiguration {
         return BidderDepsAssembler.<NextMillenniumConfigurationProperties>forBidder(BIDDER_NAME)
                 .withConfig(nextMillenniumConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> {
-                    final ExtraInfo extraInfo = config.getExtraInfo();
-                    return new NextMillenniumBidder(config.getEndpoint(), mapper, extraInfo.getNmmFlags());
-                }).assemble();
+                .bidderCreator(config -> new NextMillenniumBidder(
+                        config.getEndpoint(),
+                        mapper,
+                        config.getExtraInfo().getNmmFlags())
+                ).assemble();
     }
 
     @Data

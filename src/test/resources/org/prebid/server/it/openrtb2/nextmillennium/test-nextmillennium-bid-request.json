@@ -14,9 +14,11 @@
             "id": "placement_id"
           }
         },
-        "nextMillennium": [
-          "1"
-        ]
+        "nextMillennium": {
+          "nmmFlags": [
+            "1"
+          ]
+        }
       }
     }
   ],
