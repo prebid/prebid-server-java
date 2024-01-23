@@ -31,13 +31,12 @@ public class ConsumableConfiguration {
     @Bean
     BidderDeps consumableBidderDeps(BidderConfigurationProperties consumableConfigurationProperties,
                                     @NotBlank @Value("${external-url}") String externalUrl,
-                                    PrebidVersionProvider prebidVersionProvider,
                                     JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(consumableConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new ConsumableBidder(config.getEndpoint(), prebidVersionProvider, mapper))
+                .bidderCreator(config -> new ConsumableBidder(externalUrl, mapper))
                 .assemble();
     }
 }
