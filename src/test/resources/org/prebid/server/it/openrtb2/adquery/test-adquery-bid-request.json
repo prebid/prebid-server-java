@@ -1,0 +1,16 @@
+{
+  "v": "server",
+  "placementCode": "6d93f2a0e5f0fe2cc3a6e9e3ade964b43b07f897",
+  "auctionId": "",
+  "type": "banner",
+  "bidQid": "",
+  "bidId": "22e26bd9a702bc22e26bd9a702bc",
+  "bidIp": "193.168.244.1",
+  "bidUa": "userAgent",
+  "bidder": "adquery",
+  "bidPageUrl": "http://www.example.com",
+  "bidderRequestId": "22e26bd9a702bc",
+  "bidRequestsCount": 1,
+  "bidderRequestsCount": 1,
+  "sizes": "300x250"
+}
