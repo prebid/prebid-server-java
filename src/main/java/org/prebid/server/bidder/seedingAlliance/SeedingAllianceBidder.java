@@ -67,27 +67,14 @@ public class SeedingAllianceBidder implements Bidder<BidRequest> {
         }
         final BidRequest modifiedBidRequest = modifyBidRequest(bidRequest, modifiedImps);
 
-        return Result.withValue(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(makeEndpoint(seatId))
-                        .headers(HttpUtil.headers())
-                        .body(mapper.encodeToBytes(modifiedBidRequest))
-                        .impIds(BidderUtil.impIds(modifiedBidRequest))
-                        .payload(modifiedBidRequest)
-                        .build());
-    }
-
-    private String makeEndpoint(String seatId) {
-        final String accountId = Optional.ofNullable(seatId).filter(StringUtils::isNotBlank).orElse(DEFAULT_SEAT_ID);
-        return endpointUrl.replace(ACCOUNT_ID_MACRO, accountId);
+        return Result.withValue(makeHttpRequest(seatId, modifiedBidRequest));
     }
 
     private ExtImpSeedingAlliance parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), EXT_IMP_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
+            throw new PreBidException("could not unmarshal imp.ext.prebid.bidder: " + e.getMessage());
         }
     }
 
@@ -109,6 +96,22 @@ public class SeedingAllianceBidder implements Bidder<BidRequest> {
         resolvedCurrencies.add(EUR_CURRENCY);
 
         return Collections.unmodifiableList(resolvedCurrencies);
+    }
+
+    private HttpRequest<BidRequest> makeHttpRequest(String seatId, BidRequest modifiedBidRequest) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(makeEndpoint(seatId))
+                .headers(HttpUtil.headers())
+                .body(mapper.encodeToBytes(modifiedBidRequest))
+                .impIds(BidderUtil.impIds(modifiedBidRequest))
+                .payload(modifiedBidRequest)
+                .build();
+    }
+
+    private String makeEndpoint(String seatId) {
+        final String accountId = StringUtils.isNotBlank(seatId) ? seatId : DEFAULT_SEAT_ID;
+        return endpointUrl.replace(ACCOUNT_ID_MACRO, accountId);
     }
 
     @Override

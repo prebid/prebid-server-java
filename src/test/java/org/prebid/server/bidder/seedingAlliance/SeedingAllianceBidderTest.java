@@ -253,7 +253,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
 
     private static BidRequest givenBidRequest(List<String> currencies) {
         return BidRequest.builder()
-                .imp(List.of(SeedingAllianceBidderTest.givenImp(identity())))
+                .imp(List.of(givenImp(identity())))
                 .cur(currencies)
                 .build();
     }
