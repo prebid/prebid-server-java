@@ -59,13 +59,8 @@ public class BematterfullBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(2).satisfiesExactlyInAnyOrder(
-                error -> {
+        assertThat(result.getErrors()).hasSize(1).allSatisfy(error -> {
                     assertThat(error.getMessage()).startsWith("Failed to deserialize Bematterfull extension");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                },
-                error -> {
-                    assertThat(error.getMessage()).isEqualTo("Adapter request is empty");
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
                 }
         );
@@ -82,12 +77,10 @@ public class BematterfullBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getErrors()).hasSize(1).satisfiesExactlyInAnyOrder(
-                error -> {
-                    assertThat(error.getMessage()).startsWith("Failed to deserialize Bematterfull extension");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                }
-        );
+        assertThat(result.getErrors()).hasSize(1).allSatisfy(error -> {
+            assertThat(error.getMessage()).startsWith("Failed to deserialize Bematterfull extension");
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+        });
     }
 
     @Test
@@ -99,9 +92,9 @@ public class BematterfullBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1).first()
-                .satisfies(request -> assertThat(request.getUri())
-                        .isEqualTo("https://test-url.com?host=env&pid=pid"));
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://test-url.com?host=env&pid=pid");
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -114,12 +107,12 @@ public class BematterfullBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(1).first()
+        assertThat(result.getValue())
                 .extracting(HttpRequest::getHeaders)
-                .satisfies(headers -> assertThat(headers.get(CONTENT_TYPE_HEADER))
-                        .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
-                .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
-                        .isEqualTo(APPLICATION_JSON_VALUE));
+                .allSatisfy(headers -> {
+                    assertThat(headers.get(CONTENT_TYPE_HEADER)).isEqualTo(APPLICATION_JSON_CONTENT_TYPE);
+                    assertThat(headers.get(ACCEPT_HEADER)).isEqualTo(APPLICATION_JSON_VALUE);
+                });
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -178,7 +171,10 @@ public class BematterfullBidderTest extends VertxTest {
 
         // then
         assertThat(actual.getValue()).isEmpty();
-        assertThat(actual.getErrors()).containsExactly(badServerResponse("Bad Server Response"));
+        assertThat(actual.getErrors()).allSatisfy(error -> {
+            assertThat(error.getMessage()).startsWith("Failed to decode");
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+        });
     }
 
     @Test
@@ -261,12 +257,10 @@ public class BematterfullBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1).satisfiesExactlyInAnyOrder(
-                error -> {
-                    assertThat(error.getMessage()).startsWith("Failed to parse bid[i].ext.prebid.type");
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                }
-        );
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getMessage()).startsWith("Failed to parse bid[i].ext.prebid.type");
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+        });
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {

@@ -2,13 +2,16 @@ package org.prebid.server.bidder.bematterfull;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -25,6 +28,7 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -59,11 +63,6 @@ public class BematterfullBidder implements Bidder<BidRequest> {
             }
         }
 
-        if (CollectionUtils.isEmpty(httpRequests)) {
-            errors.add(BidderError.badInput("Adapter request is empty"));
-            return Result.withErrors(errors);
-        }
-
         return Result.of(httpRequests, errors);
     }
 
@@ -88,8 +87,8 @@ public class BematterfullBidder implements Bidder<BidRequest> {
 
     private String makeUrl(ExtImpBematterfull extImp) {
         return endpointUrl
-                .replace(HOST_MACRO, extImp.getEnv())
-                .replace(SOURCE_ID_MACRO, extImp.getPid());
+                .replace(HOST_MACRO, StringUtils.defaultString(extImp.getEnv()))
+                .replace(SOURCE_ID_MACRO, StringUtils.defaultString(extImp.getPid()));
     }
 
     @Override
@@ -98,9 +97,7 @@ public class BematterfullBidder implements Bidder<BidRequest> {
             final List<BidderError> errors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, errors), errors);
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse("Bad Server Response"));
-        } catch (PreBidException e) {
+        } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
@@ -111,7 +108,11 @@ public class BematterfullBidder implements Bidder<BidRequest> {
         }
         return bidResponse.getSeatbid()
                 .stream()
-                .flatMap(seatBid -> Optional.ofNullable(seatBid.getBid()).orElse(List.of()).stream())
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
@@ -119,7 +120,9 @@ public class BematterfullBidder implements Bidder<BidRequest> {
 
     private BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
         return Optional.ofNullable(bid.getExt())
-                .map(ext -> (ObjectNode) ext.get(EXT_PREBID))
+                .map(ext -> ext.get(EXT_PREBID))
+                .filter(JsonNode::isObject)
+                .map(ObjectNode.class::cast)
                 .map(prebid -> parseExtBidPrebid(prebid, errors))
                 .map(ExtBidPrebid::getType)
                 .map(type -> BidderBid.of(bid, type, currency))
@@ -134,5 +137,4 @@ public class BematterfullBidder implements Bidder<BidRequest> {
             return null;
         }
     }
-
 }
