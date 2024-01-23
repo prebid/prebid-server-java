@@ -5,7 +5,7 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class ExtImpLemmaDigital {
 
-    Integer pid;
+    int pid;
 
-    Integer aid;
+    int aid;
 }

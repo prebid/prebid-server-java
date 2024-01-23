@@ -65,7 +65,8 @@ public class LemmaDigitalBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), LEMMA_DIGITAL_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
+            throw new PreBidException(String.format("Invalid imp.ext.bidder for impression index 0. "
+                    + "Error Infomation: %s", imp.getId()));
         }
     }
 
@@ -82,15 +83,14 @@ public class LemmaDigitalBidder implements Bidder<BidRequest> {
 
     private String resolveUrl(ExtImpLemmaDigital extImpLemmaDigital) {
         return endpointUrl
-                .replace(AD_UNIT_MACRO, extImpLemmaDigital.getAid().toString())
-                .replace(PUBLISHER_ID_MACRO, extImpLemmaDigital.getPid().toString());
+                .replace(AD_UNIT_MACRO, String.valueOf(extImpLemmaDigital.getAid()))
+                .replace(PUBLISHER_ID_MACRO, String.valueOf(extImpLemmaDigital.getPid()));
     }
 
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(),
-                    BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidRequest, bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
@@ -105,12 +105,13 @@ public class LemmaDigitalBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+        final BidType bidType = resolveBidType(bidRequest);
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, resolveBidType(bidRequest), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, bidType, bidResponse.getCur()))
                 .toList();
     }
 
