@@ -19,7 +19,6 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-
         <maven-release-plugin.version>3.0.0-M6</maven-release-plugin.version>
     </properties>
 

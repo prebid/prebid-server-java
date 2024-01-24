@@ -1,13 +1,12 @@
-package org.prebid.server.functional.model.config
+package org.prebid.server.functional.model.response.auction
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
-@JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
-class AccountHooksConfiguration {
+@JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
+class AnalyticStags {
 
-    ExecutionPlan executionPlan
-    PbsModulesConfig modules
+    List<AnalyticResult> activities
 }

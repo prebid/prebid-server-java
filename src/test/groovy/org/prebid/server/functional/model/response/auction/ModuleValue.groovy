@@ -1,13 +1,14 @@
-package org.prebid.server.functional.model.config
+package org.prebid.server.functional.model.response.auction
 
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
+import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
-class AccountHooksConfiguration {
+@EqualsAndHashCode
+class ModuleValue {
 
-    ExecutionPlan executionPlan
-    PbsModulesConfig modules
+   String richmediaFormat
 }
