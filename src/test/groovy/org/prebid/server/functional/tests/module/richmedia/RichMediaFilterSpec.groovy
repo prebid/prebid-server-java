@@ -218,7 +218,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         amdValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}-${PBSUtils.randomString}"]
     }
 
-    def "PBS should prioritize account config and reject request with error and provide analytic when adm matches with pattern name on filters in account config and host config is enabled"() {
+    def "PBS should prioritize account config and reject request with error and provide analytic when adm matches with account pattern and both host and account configs are enabled"() {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -258,7 +258,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert analyticResult == AnalyticResult.buildFromImp(bidRequest.imp.first())
     }
 
-    def "PBS should prioritize account config and process request without analytics when adm matches with pattern name on filters in host config and account config is enabled"() {
+    def "PBS should prioritize account config and process request without analytics when adm matches with host pattern and both host and account configs are enabled"() {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
