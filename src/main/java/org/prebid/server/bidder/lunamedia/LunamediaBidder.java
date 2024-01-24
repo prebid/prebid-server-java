@@ -177,7 +177,7 @@ public class LunamediaBidder implements Bidder<BidRequest> {
 
         final Site site = preBidRequest.getSite();
         if (site != null) {
-            bidRequestBuilder.site(site.toBuilder().publisher(null).domain("").build());
+            bidRequestBuilder.site(site.toBuilder().publisher(null).build());
         }
 
         final App app = preBidRequest.getApp();

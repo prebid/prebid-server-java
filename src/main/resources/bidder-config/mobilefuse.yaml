@@ -2,6 +2,10 @@ adapters:
   mobilefuse:
     endpoint: http://mfx.mobilefuse.com/openrtb?pub_id=
     endpoint-compression: gzip
+    # This bidder does not operate globally. Please consider setting "disabled: true" outside of the following regions:
+    geoscope:
+      - USA
+      - CAN
     meta-info:
       maintainer-email: prebid@mobilefuse.com
       app-media-types:

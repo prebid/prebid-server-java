@@ -1,0 +1,15 @@
+adapters:
+  bematterfull:
+    endpoint: http://prebid-srv.mtflll-system.live/?pid={{SourceId}}&host={{Host}}
+    meta-info:
+      maintainer-email: adops@bematterfull.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

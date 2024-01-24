@@ -5,8 +5,6 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Native;
-import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -21,7 +19,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adxcg.ExtImpAdxcg;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -30,6 +28,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -83,8 +82,7 @@ public class AdxcgBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(BidResponse.builder().build()));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, givenBidResponse());
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -95,89 +93,98 @@ public class AdxcgBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBannerBidIfBannerIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerWhenMtypeIsOne() throws JsonProcessingException {
         // given
+        final Bid bannerBid = Bid.builder().impid("1").mtype(1).build();
+
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-        final BidRequest bidRequest = givenBidRequest(identity());
+                givenBidRequest(identity()),
+                givenBidResponse(bannerBid));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+        assertThat(result.getValue()).containsOnly(BidderBid.of(bannerBid, banner, "USD"));
+
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidIfVideoIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerWhenMtypeIsThree() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.video(Video.builder().build())
-                .banner(null));
+        final Bid audioBid = Bid.builder().impid("3").mtype(3).build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(audioBid));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+        assertThat(result.getValue()).containsOnly(BidderBid.of(audioBid, audio, "USD"));
     }
 
     @Test
-    public void makeBidsShouldReturnNativeBidIfNativeIsPresent() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerWhenMtypeIsTwo() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
-                        .build(),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.xNative(Native.builder().build()));
+        final Bid videoBid = Bid.builder().impid("2").mtype(2).build();
 
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(videoBid));
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+        assertThat(result.getValue()).containsOnly(BidderBid.of(videoBid, video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerWhenMtypeIsFour() throws JsonProcessingException {
+        // given
+        final Bid nativeBid = Bid.builder().impid("4").mtype(4).build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(nativeBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).containsOnly(BidderBid.of(nativeBid, xNative, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenImpTypeIsNotSupported() throws JsonProcessingException {
+        // given
+        final Bid audioBid = Bid.builder().impid("id").mtype(5).build();
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                givenBidRequest(identity()),
+                givenBidResponse(audioBid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+        // then
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Unable to fetch mediaType 5 in multi-format: id"));
     }
 
     @Test
     public void makeBidsShouldReturnNativeBidAndErrorIfNativeAndEmptyImpsArePresent() throws JsonProcessingException {
         // given
-        final BidResponse bidResponse = BidResponse.builder()
-                .cur("USD")
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(Arrays.asList(Bid.builder().impid("123").build(),
-                                Bid.builder().impid("12").build()))
-                        .build()))
-                .build();
+        final Bid invalidBid = Bid.builder().impid("id1").mtype(5).build();
+        final Bid validBid = Bid.builder().impid("id2").mtype(1).build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(Arrays.asList(Imp.builder().id("123").xNative(Native.builder().build()).build(),
-                                Imp.builder().id("12").build())).build(),
-                mapper.writeValueAsString(bidResponse));
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.xNative(Native.builder().build()));
+                givenBidRequest(identity()),
+                givenBidResponse(invalidBid, validBid));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .extracting(BidderError::getMessage)
-                .containsExactly("Failed to find native/banner/video impression 12");
-        assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .containsExactly(BidderError.badInput("Unable to fetch mediaType 5 in multi-format: id1"));
+        assertThat(result.getValue()).containsOnly(BidderBid.of(validBid, banner, "USD"));
     }
 
     @Test
@@ -213,13 +220,14 @@ public class AdxcgBidderTest extends VertxTest {
                 HttpResponse.of(200, null, body), null);
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .cur("USD")
-                .seatbid(singletonList(SeatBid.builder()
-                        .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
+    private static String givenBidResponse(Bid... bids) throws JsonProcessingException {
+        return mapper.writeValueAsString(
+                BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(bids.length == 0
+                                ? Collections.emptyList()
+                                : List.of(SeatBid.builder().bid(List.of(bids)).build()))
+                        .build());
     }
 
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {

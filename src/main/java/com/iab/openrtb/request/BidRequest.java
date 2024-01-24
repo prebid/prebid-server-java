@@ -138,9 +138,16 @@ public class BidRequest {
     List<String> wlangb;
 
     /**
-     * Blocked advertiser categories using the specified category taxonomy. <p/>
-     * The taxonomy to be used is defined by the cattax field. If no cattax
-     * field is supplied IAB Content Category Taxonomy 1.0 is assumed.
+     * Allowed advertiser categories using the specified category taxonomy.
+     * The taxonomy to be used is defined by the cattax field.
+     * If no cattax field is supplied IAB Content Taxonomy 1.0 is assumed. Only one of acat or bcat should be present.
+     */
+    List<String> acat;
+
+    /**
+     * Blocked advertiser categories using the specified category taxonomy.
+     * The taxonomy to be used is defined by the cattax field.
+     * If no cattax field is supplied IAB Content Taxonomy 1.0 is assumed. Only one of acat or bcat should be present.
      */
     List<String> bcat;
 

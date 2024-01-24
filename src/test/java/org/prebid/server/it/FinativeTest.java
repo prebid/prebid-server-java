@@ -10,29 +10,32 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
-public class XtrmqbGameTest extends IntegrationTest {
+public class FinativeTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromTheXtrmqbBidder() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromFinative() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/xtrmqb-exchange/test.host/123456"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/finative-exchange"))
+                .withQueryParam("ssp", equalTo("pbs"))
                 .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/xtrmqb/test-xtrmqb-bid-request.json")))
+                        jsonFrom("openrtb2/finative/test-finative-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/xtrmqb/test-xtrmqb-bid-response.json"))));
+                        jsonFrom("openrtb2/finative/test-finative-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/xtrmqb/test-auction-xtrmqb-request.json",
+        final Response response = responseFor("openrtb2/finative/test-auction-finative-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/xtrmqb/test-auction-xtrmqb-response.json", response,
-                singletonList("xtrmqb"));
+        assertJsonEquals("openrtb2/finative/test-auction-finative-response.json", response,
+                singletonList("finative"));
     }
 }
+
