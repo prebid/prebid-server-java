@@ -44,7 +44,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
     private static final int GEO_PRECISION = 2
 
-    private static final Map<String, String> GENERIC_COOKIE_SYNC_CONFIG = ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync".toString(),
+    protected static final Map<String, String> GENERIC_COOKIE_SYNC_CONFIG = ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync".toString(),
                                                                            "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": false.toString()]
     private static final Map<String, String> OPENX_COOKIE_SYNC_CONFIG = ["adaptrs.${OPENX.value}.enabled"                     : "true",
                                                                          "adapters.${OPENX.value}.usersync.cookie-family-name": OPENX.value]
@@ -52,8 +52,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                                                              "adapters.${OPENX.value}.enabled" : 'true']
     static final Map<String, String> GDPR_VENDOR_LIST_CONFIG = ["gdpr.vendorlist.v2.http-endpoint-template": "$networkServiceContainer.rootUri/v2/vendor-list.json".toString(),
                                                                 "gdpr.vendorlist.v3.http-endpoint-template": "$networkServiceContainer.rootUri/v3/vendor-list.json".toString()]
-    private static final Map<String, String> SETTING_CONFIG = ["settings.enforce-valid-account": 'true']
-    private static final Map<String, String> GENERIC_VENDOR_CONFIG = ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String,
+    protected static final Map<String, String> SETTING_CONFIG = ["settings.enforce-valid-account": 'true']
+    protected static final Map<String, String> GENERIC_VENDOR_CONFIG = ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String,
                                                                       "gdpr.host-vendor-id"                 : GENERIC_VENDOR_ID as String,
                                                                       "adapters.generic.ccpa-enforced"      : "true"]
 
@@ -70,7 +70,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
             GENERIC_COOKIE_SYNC_CONFIG + GENERIC_VENDOR_CONFIG)
 
     @Shared
-    protected PrebidServerService activityPbsService = pbsServiceFactory.getService(PBS_CONFIG)
+    protected final PrebidServerService activityPbsService = pbsServiceFactory.getService(PBS_CONFIG)
 
     void setup() {
         vendorListResponse.setResponse()

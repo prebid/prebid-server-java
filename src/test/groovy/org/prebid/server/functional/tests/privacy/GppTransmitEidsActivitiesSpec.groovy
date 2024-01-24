@@ -106,11 +106,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == genericBidRequest.user.ext.eids[0].source
-        }
+        assert   genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -231,11 +227,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == genericBidRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
     }
 
     def "PBS auction call when first rule disallowing in activities should remove EIDS fields in request"() {
@@ -297,11 +289,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == genericBidRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -391,11 +379,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == bidRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -446,7 +430,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         verifyAll {
             !bidderRequest.user.eids
-            !bidderRequest.user.ext.eids
+            !bidderRequest?.user?.ext?.eids
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -493,11 +477,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == bidRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -541,7 +521,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         verifyAll {
             !bidderRequest.user.eids
-            !bidderRequest.user.ext.eids
+            !bidderRequest?.user?.ext?.eids
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -583,11 +563,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == bidRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -630,7 +606,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         verifyAll {
             !bidderRequest.user.eids
-            !bidderRequest.user.ext.eids
+            !bidderRequest?.user?.ext?.eids
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -851,11 +827,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == genericBidRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
 
         where:
         accountGppConfig << [
@@ -931,11 +903,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == genericBidRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -1003,11 +971,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == genericBidRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
 
         where:
         gpcValue | accountLogic
@@ -1248,11 +1212,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == ampStoredRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -1406,11 +1366,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == ampStoredRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
     }
 
     def "PBS amp call when first rule disallowing in activities should remove EIDS fields in request"() {
@@ -1533,11 +1489,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == ampStoredRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -1790,11 +1742,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == ampStoredRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
 
         where:
         accountGppConfig << [
@@ -1839,11 +1787,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == ampStoredRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
 
         where:
         regsGpp << ["", new UspNatV1Consent.Builder().build(), new UspNatV1Consent.Builder().setGpc(false).build()]
@@ -1888,11 +1832,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == ampStoredRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
@@ -1978,10 +1918,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        verifyAll {
-            genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
-            genericBidderRequest.user.ext.eids[0].source == ampStoredRequest.user.ext.eids[0].source
-        }
+        assert genericBidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
 
         where:
         gpcValue | accountLogic

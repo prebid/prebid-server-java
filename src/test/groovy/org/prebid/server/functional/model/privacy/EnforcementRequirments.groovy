@@ -10,16 +10,13 @@ class EnforcementRequirments {
 
     Purpose purpose
     PurposeEnforcement enforcePurpose
-    List<PublisherRestriction> publisherRestrictions
     Purpose purposeConsent
     Boolean enforceVendor
     Integer vendorConsentBitField
     Integer vendorLegitimateInterestBitField
-    List<BidderName> softVendorExceptions
     List<BidderName> vendorExceptions
     Purpose purposesLITransparency
     List<RestrictionType> restrictionType
     Integer vendorIdGvl
     Integer vendorListVersion
-
 }
