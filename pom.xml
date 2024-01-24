@@ -28,12 +28,13 @@
 
         <!-- dependencies versions -->
         <spring.boot.version>2.5.6</spring.boot.version>
+        <javax.annotation-api.version>1.3.1</javax.annotation-api.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
         <hibernate-validator.version>6.1.5.Final</hibernate-validator.version>
         <vertx.version>3.9.10</vertx.version>
         <netty.version>4.1.69.Final</netty.version>
+        <lombok.version>1.18.24</lombok.version>
         <commons.version>3.12.0</commons.version>
-        <commons-text.version>1.10.0</commons-text.version>
         <commons.collections.version>4.4</commons.collections.version>
         <commons.compress.version>1.21</commons.compress.version>
         <commons-math3.version>3.6.1</commons-math3.version>
@@ -51,6 +52,7 @@
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
         <iabtcf.version>2.0.7</iabtcf.version>
+        <metrics-prometheus.version>0.12.0</metrics-prometheus.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
         <logback.version>1.2.13</logback.version>
         <log4j.version>2.19.0</log4j.version>
@@ -114,14 +116,17 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
+            <version>${spring.boot.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
+            <version>${spring.boot.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.annotation</groupId>
             <artifactId>javax.annotation-api</artifactId>
+            <version>${javax.annotation-api.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.validation</groupId>
@@ -131,6 +136,7 @@
         <dependency>
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
+            <version>${hibernate-validator.version}</version>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
@@ -171,6 +177,7 @@
             <groupId>io.netty</groupId>
             <artifactId>netty-transport-native-epoll</artifactId>
             <classifier>linux-x86_64</classifier>
+            <version>${netty.version}</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -201,6 +208,7 @@
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
+            <version>${httpclient.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.seancfoley</groupId>
@@ -262,7 +270,7 @@
         <dependency>
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
-            <version>${mysql.connector.version}</version>
+            <version>${mysql.version}</version>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
@@ -272,6 +280,7 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
+            <version>${caffeine.version}</version>
         </dependency>
         <dependency>
             <groupId>de.malkusch.whois-server-list</groupId>
@@ -287,14 +296,17 @@
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
+            <version>${metrics.version}</version>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jvm</artifactId>
+            <version>${metrics.version}</version>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-graphite</artifactId>
+            <version>${metrics.version}</version>
         </dependency>
         <dependency>
             <groupId>com.izettle</groupId>
@@ -324,10 +336,12 @@
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_vertx</artifactId>
+            <version>${metrics-prometheus.version}</version>
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_dropwizard</artifactId>
+            <version>${metrics-prometheus.version}</version>
         </dependency>
         <dependency>
             <groupId>com.maxmind.geoip2</groupId>
@@ -348,10 +362,12 @@
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-to-slf4j</artifactId>
+            <version>${log4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
+            <version>${log4j.version}</version>
         </dependency>
         <dependency>
             <groupId>com.zaxxer</groupId>
