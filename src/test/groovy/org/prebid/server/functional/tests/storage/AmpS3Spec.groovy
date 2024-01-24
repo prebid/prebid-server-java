@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.S3Service
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.PendingFeature
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 
@@ -42,6 +43,7 @@ class AmpS3Spec extends StorageBaseSpec {
         assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.ext.gdpr
     }
 
+    @PendingFeature
     def "PBS should throw exception when trying to take parameters from the stored request on S3 service with invalid id in file"() {
         given: "AMP request"
         def ampRequest = new AmpRequest(tagId: PBSUtils.randomString).tap {

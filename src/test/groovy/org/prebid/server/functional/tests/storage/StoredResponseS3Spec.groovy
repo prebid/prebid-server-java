@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.S3Service
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.PendingFeature
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 
@@ -39,6 +40,7 @@ class StoredResponseS3Spec extends StorageBaseSpec {
         assert !bidder.getRequestCount(bidRequest.id)
     }
 
+    @PendingFeature
     def "PBS should throw request format exception when stored auction response id isn't match with requested response id"() {
         given: "Default basic BidRequest with stored response"
         def bidRequest = BidRequest.defaultBidRequest

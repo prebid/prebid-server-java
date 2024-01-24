@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.S3Service
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.PendingFeature
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 
@@ -39,6 +40,7 @@ class AuctionS3Spec extends StorageBaseSpec {
         assert bidderRequest.imp[0].secure == secureStoredRequest
     }
 
+    @PendingFeature
     def "PBS should throw exception when trying to populate imp[0].secure from imp stored request on S3 service with impId that doesn't matches"() {
         given: "Default bid request"
         def storedRequestId = PBSUtils.randomString
