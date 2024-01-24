@@ -5,6 +5,8 @@ adapters:
     meta-info:
       maintainer-email: prebid@rtbhouse.com
       app-media-types:
+        - banner
+        - native
       site-media-types:
         - banner
         - native
