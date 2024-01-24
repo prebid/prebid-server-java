@@ -66,10 +66,10 @@ public class S3PeriodicRefreshService implements Initializable {
                                     Metrics metrics,
                                     Clock clock) {
 
-        this.asyncClient = asyncClient;
-        this.bucket = bucket;
-        this.storedRequestsDirectory = storedRequestsDirectory;
-        this.storedImpressionsDirectory = storedImpressionsDirectory;
+        this.asyncClient = Objects.requireNonNull(asyncClient);
+        this.bucket = Objects.requireNonNull(bucket);
+        this.storedRequestsDirectory = Objects.requireNonNull(storedRequestsDirectory);
+        this.storedImpressionsDirectory = Objects.requireNonNull(storedImpressionsDirectory);
         this.refreshPeriod = refreshPeriod;
         this.timeout = timeout;
         this.cacheType = Objects.requireNonNull(cacheType);

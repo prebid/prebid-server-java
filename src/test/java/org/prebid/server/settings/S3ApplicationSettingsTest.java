@@ -160,6 +160,39 @@ public class S3ApplicationSettingsTest extends VertxTest {
     }
 
     @Test
+    public void getAccountByIdWithAccountIdMismatch(TestContext context) throws JsonProcessingException {
+        // given
+        final Account account = Account.builder()
+                .id("wrong-id")
+                .auction(AccountAuctionConfig.builder().build())
+                .privacy(AccountPrivacyConfig.of(null, null, null, null))
+                .build();
+
+        given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
+                .willReturn(CompletableFuture.completedFuture(
+                        ResponseBytes.fromByteArray(
+                                GetObjectResponse.builder().build(),
+                                mapper.writeValueAsString(account).getBytes())));
+
+        // when
+        final Future<Account> future = s3ApplicationSettings.getAccountById("another-id", timeout);
+
+        // then
+        final Async async = context.async();
+
+        future.onComplete(context.asyncAssertFailure(cause -> {
+            assertThat(cause)
+                    .isInstanceOf(PreBidException.class)
+                    .hasMessage("Account with id another-id does not match id wrong-id in file");
+
+            verify(s3AsyncClient).getObject(
+                    eq(GetObjectRequest.builder().bucket(BUCKET).key(ACCOUNTS_DIR + "/another-id.json").build()),
+                    any(AsyncResponseTransformer.class));
+            async.complete();
+        }));
+    }
+
+    @Test
     public void getStoredDataShouldReturnFetchedStoredRequest(TestContext context) {
         // given
         given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
