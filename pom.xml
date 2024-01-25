@@ -21,7 +21,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
 
@@ -32,7 +32,7 @@
         <hibernate-validator.version>6.1.5.Final</hibernate-validator.version>
         <vertx.version>3.9.10</vertx.version>
         <netty.version>4.1.69.Final</netty.version>
-        <lombok.version>1.18.24</lombok.version>
+        <lombok.version>1.18.30</lombok.version>
         <commons.version>3.12.0</commons.version>
         <commons.collections.version>4.4</commons.collections.version>
         <commons.compress.version>1.21</commons.compress.version>
@@ -71,8 +71,8 @@
         <jetty.version>9.4.53.v20231009</jetty.version>
         <restassured.version>4.4.0</restassured.version>
         <h2.version>2.2.220</h2.version>
-        <spock.version>2.4-M1-groovy-3.0</spock.version>
-        <groovy.version>3.0.14</groovy.version>
+        <spock.version>2.4-M1-groovy-4.0</spock.version>
+        <groovy.version>4.0.15</groovy.version>
         <testcontainers.version>1.17.4</testcontainers.version>
         <mockserver.version>5.14.0</mockserver.version>
         <allure.version>2.19.0</allure.version>
@@ -85,11 +85,11 @@
         <download-plugin.version>1.2.0</download-plugin.version>
         <jacoco-plugin.version>0.8.7</jacoco-plugin.version>
         <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
-        <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
         <maven-failsafe-plugin.version>${maven-surefire-plugin.version}</maven-failsafe-plugin.version>
         <docker-maven-plugin.version>0.40.2</docker-maven-plugin.version>
-        <gmavenplus-plugin.version>1.13.1</gmavenplus-plugin.version>
+        <gmavenplus-plugin.version>3.0.2</gmavenplus-plugin.version>
         <allure-maven.version>2.10.0</allure-maven.version>
         <skipFunctionalTests>false</skipFunctionalTests>
         <skipUnitTests>false</skipUnitTests>
@@ -529,15 +529,21 @@
             <artifactId>spock-core</artifactId>
             <version>${spock.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.groovy</groupId>
+                    <artifactId>groovy</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.groovy</groupId>
+            <groupId>org.apache.groovy</groupId>
             <artifactId>groovy</artifactId>
             <version>${groovy.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.codehaus.groovy</groupId>
+            <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-yaml</artifactId>
             <version>${groovy.version}</version>
             <scope>test</scope>
@@ -915,8 +921,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>17</source>
-                    <target>17</target>
+                    <source>21</source>
+                    <target>21</target>
                 </configuration>
             </plugin>
         </plugins>
