@@ -105,7 +105,7 @@ public class YieldlabBidderTest extends VertxTest {
                                         .build())))
                         .build()))
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
-                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy", null)).build())
+                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy", null, null)).build())
                 .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
                 .site(Site.builder().page("http://www.example.com").build())
                 .build();
@@ -171,7 +171,7 @@ public class YieldlabBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(imps)
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
-                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy", null)).build())
+                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy", null, null)).build())
                 .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
                 .site(Site.builder().page("http://www.example.com").build())
                 .build();
@@ -220,7 +220,7 @@ public class YieldlabBidderTest extends VertxTest {
                                 .build())))
                         .build()))
                 .device(Device.builder().ip("ip").ua("Agent").language("fr").devicetype(1).build())
-                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy", null)).build())
+                .regs(Regs.builder().coppa(1).ext(ExtRegs.of(1, "usPrivacy", null, null)).build())
                 .user(User.builder().buyeruid("buyeruid").ext(ExtUser.builder().consent("consent").build()).build())
                 .site(Site.builder().page("http://www.example.com").build())
                 .build();
