@@ -1,22 +1,37 @@
 {
-  "id": "request_id",
+  "id": "test-request-id",
   "imp": [
     {
-      "id": "imp_id",
+      "id": "test-imp-id",
       "banner": {
-        "w": 300,
-        "h": 250
+        "format": [
+          {
+            "w": 728,
+            "h": 250
+          }
+        ]
       },
       "ext": {
         "consumable": {
-          "networkId": 123,
-          "siteId": 345,
-          "unitId": 4123,
-          "unitName": "unit_name"
+          "networkId": 11,
+          "siteId": 32,
+          "unitId": 42,
+          "unitName": "cnsmbl-audio-728x90-slider"
         }
       }
     }
   ],
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "site": {
+    "domain": "www.example.com",
+    "page": "http://www.example.com",
+    "publisher": {
+      "domain": "example.com"
+    }
+  },
   "tmax": 5000,
   "regs": {
     "ext": {
