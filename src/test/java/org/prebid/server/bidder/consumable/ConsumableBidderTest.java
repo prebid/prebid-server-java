@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.consumable;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
@@ -119,9 +118,9 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnEmptyListIfRequiredSiteParametersAreNotPresent(){
+    public void makeHttpRequestsShouldReturnEmptyListIfRequiredSiteParametersAreNotPresent() {
         final BidRequest bidRequest = givenSiteBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,  ExtImpConsumable.of(11, 32,
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpConsumable.of(11, 32,
                         0, "cnsmbl-audio-728x90-slider", null)))));
 
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -133,9 +132,9 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnEmptyListIfRequiredAppParametersAreNotPresent(){
+    public void makeHttpRequestsShouldReturnEmptyListIfRequiredAppParametersAreNotPresent() {
         final BidRequest bidRequest = givenAppBidRequest(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,  ExtImpConsumable.of(null, 32,
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpConsumable.of(null, 32,
                         null, null, null)))));
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -395,11 +394,9 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     private static BidRequest givenSiteBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
-        return givenSiteBidRequest(bidRequestBuilder -> bidRequestBuilder.site(Site.builder().page("http://www.some.com/page-where-ad-will-be-shown").domain("www.some.com").build()), List.of(impCustomizers));
-    }
-
-    private static BidRequest givenAppBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
-        return givenAppBidRequest(bidRequestBuilder -> bidRequestBuilder.app(App.builder().id("1").bundle("com.foo.bar").build()), List.of(impCustomizers));
+        return givenSiteBidRequest(bidRequestBuilder -> bidRequestBuilder.site(Site.builder()
+                .page("http://www.some.com/page-where-ad-will-be-shown").domain("www.some.com").build()),
+                List.of(impCustomizers));
     }
 
     private static BidRequest givenSiteBidRequest(
@@ -417,6 +414,11 @@ public class ConsumableBidderTest extends VertxTest {
                                         .toList()))
                 .build();
 >>>>>>> 8c8260c49 (App Support initial Commit)
+    }
+
+    private static BidRequest givenAppBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
+        return givenAppBidRequest(bidRequestBuilder -> bidRequestBuilder.app(App.builder().id("1")
+                .bundle("com.foo.bar").build()), List.of(impCustomizers));
     }
 
     private static BidRequest givenAppBidRequest(
@@ -439,6 +441,7 @@ public class ConsumableBidderTest extends VertxTest {
                                 42, "cnsmbl-audio-728x90-slider", null)))))
                 .build();
     }
+
     private static Imp givenAppImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("123")

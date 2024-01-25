@@ -27,17 +27,12 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.consumable.ExtImpConsumable;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
-import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.version.PrebidVersionProvider;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,7 +48,10 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     };
     private final JacksonMapper mapper;
 
+    private final String endpointUrl;
+
     public ConsumableBidder(String endpointUrl, JacksonMapper mapper) {
+        this.endpointUrl = endpointUrl;
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -75,7 +73,7 @@ public class ConsumableBidder implements Bidder<BidRequest> {
                 }
             }
             httpRequests.add(BidderUtil.defaultRequest(modifyBidRequest(bidRequest, imps), resolveHeaders(),
-                    "https://e.serverbid.com/sb/rtb", mapper));
+                    this.endpointUrl + "/sb/rtb", mapper));
         } else if (bidRequest.getApp() != null) {
             for (Imp imp : bidRequest.getImp()) {
                 try {
@@ -84,7 +82,7 @@ public class ConsumableBidder implements Bidder<BidRequest> {
                     if (!Strings.isNullOrEmpty(impExt.getPlacementId())) {
                         httpRequests.add(BidderUtil.defaultRequest(modifyBidRequest(bidRequest,
                                 Collections.singletonList(modifyImp(imp, impExt))), resolveHeaders(),
-                                "https://e.serverbid.com/rtb/bid?s=" + impExt.getPlacementId(), mapper));
+                                this.endpointUrl + "/rtb/bid?s=" + impExt.getPlacementId(), mapper));
                     }
                 } catch (PreBidException e) {
                     errors.add(BidderError.badInput(e.getMessage()));
@@ -103,7 +101,8 @@ public class ConsumableBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<BidderError> bidderErrors = new ArrayList<>();
-            return CompositeBidderResponse.builder().bids(extractConsumableBids(bidRequest, bidResponse, bidderErrors)).errors(bidderErrors).build();
+            return CompositeBidderResponse.builder().bids(extractConsumableBids(bidRequest, bidResponse, bidderErrors))
+                    .errors(bidderErrors).build();
         } catch (DecodeException e) {
             return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
         }
@@ -121,7 +120,8 @@ public class ConsumableBidder implements Bidder<BidRequest> {
         final UpdateResult<ObjectNode> impExtUpdateResult = modifyImpExt(imp, impExt);
         final UpdateResult<Banner> bannerUpdateResult = modifyImpBanner(imp.getBanner());
 
-        return impExtUpdateResult.isUpdated() || bannerUpdateResult.isUpdated() ? imp.toBuilder().ext(impExtUpdateResult.getValue()).banner(bannerUpdateResult.getValue()).build() : imp;
+        return impExtUpdateResult.isUpdated() || bannerUpdateResult.isUpdated() ? imp.toBuilder().ext(impExtUpdateResult
+                .getValue()).banner(bannerUpdateResult.getValue()).build() : imp;
     }
 
     private UpdateResult<ObjectNode> modifyImpExt(Imp imp, ExtImpConsumable extImpConsumable) {
@@ -172,7 +172,9 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest, List<BidderError> errors) {
-        return bidResponse.getSeatbid().stream().filter(Objects::nonNull).map(SeatBid::getBid).filter(Objects::nonNull).flatMap(Collection::stream).map(bid -> toBidderBid(bid, bidRequest, bidResponse, errors)).filter(Objects::nonNull).toList();
+        return bidResponse.getSeatbid().stream().filter(Objects::nonNull).map(SeatBid::getBid).filter(Objects::nonNull)
+                .flatMap(Collection::stream).map(bid -> toBidderBid(bid, bidRequest, bidResponse, errors))
+                .filter(Objects::nonNull).toList();
     }
 
     private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
@@ -194,7 +196,8 @@ public class ConsumableBidder implements Bidder<BidRequest> {
 
     private Bid updateBidWithVideoAttributes(Bid bid) {
         final ObjectNode bidExt = bid.getExt();
-        final ExtBidPrebid extPrebid = bidExt != null ? parseBidExt(bidExt) : ExtBidPrebid.builder().video(ExtBidPrebidVideo.of(null,null)).build();
+        final ExtBidPrebid extPrebid = bidExt != null ? parseBidExt(bidExt) : ExtBidPrebid.builder()
+                .video(ExtBidPrebidVideo.of(null, null)).build();
         final ExtBidPrebidVideo extVideo = extPrebid != null ? extPrebid.getVideo() : null;
         final Bid updatedBid;
         if (extVideo != null) {
@@ -208,7 +211,8 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(Bid bid, List<Imp> imps) {
-        return getBidTypeFromMtype(bid.getMtype()).or(() -> getBidTypeFromExtPrebidType(bid.getExt())).orElseGet(() -> getBidTypeFromImp(imps, bid.getImpid()));
+        return getBidTypeFromMtype(bid.getMtype()).or(() -> getBidTypeFromExtPrebidType(bid.getExt()))
+                .orElseGet(() -> getBidTypeFromImp(imps, bid.getImpid()));
     }
 
     private static Optional<BidType> getBidTypeFromMtype(Integer mType) {
@@ -224,7 +228,8 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     }
 
     private static Optional<BidType> getBidTypeFromExtPrebidType(ObjectNode bidExt) {
-        return Optional.ofNullable(bidExt).map(ext -> ext.get("prebid")).map(prebid -> prebid.get("type")).map(JsonNode::asText).map(BidType::fromString);
+        return Optional.ofNullable(bidExt).map(ext -> ext.get("prebid")).map(prebid -> prebid.get("type"))
+                .map(JsonNode::asText).map(BidType::fromString);
     }
 
     private static BidType getBidTypeFromImp(List<Imp> imps, String impId) {
@@ -253,11 +258,14 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     }
 
     private ObjectNode resolveBidExt(Integer duration) {
-        return mapper.mapper().valueToTree(ExtBidPrebid.builder().video(ExtBidPrebidVideo.of(duration, null)).build());
+        return mapper.mapper().valueToTree(ExtBidPrebid.builder().video(ExtBidPrebidVideo
+                .of(duration, null)).build());
     }
 
-    private List<BidderBid> extractConsumableBids(BidRequest bidRequest, BidResponse bidResponse, List<BidderError> bidderErrors) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid()) ? Collections.emptyList() : bidsFromResponse(bidResponse, bidRequest, bidderErrors);
+    private List<BidderBid> extractConsumableBids(BidRequest bidRequest, BidResponse bidResponse,
+                                                  List<BidderError> bidderErrors) {
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid()) ? Collections.emptyList()
+                : bidsFromResponse(bidResponse, bidRequest, bidderErrors);
     }
 
     @Override
