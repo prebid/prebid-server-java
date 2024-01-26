@@ -88,7 +88,7 @@ java -jar target/prebid-server.jar --spring.config.additional-location=sample/pr
 For more options how to start the server, please follow [documentation](docs/run.md).
 
 ## Running prebuilt .jar
-Starting from PBS Java v2.7, you can download prebuilt .jar packages from [Release Notes](https://github.com/prebid/prebid-server-java/releases) page, instead of building them by yourself. 
+Starting from PBS Java v2.9, you can download prebuilt .jar packages from [Release Notes](https://github.com/prebid/prebid-server-java/releases) page, instead of building them by yourself. 
 This prebuilt packages are delivered with or without extra modules.
 
 ## Verifying
