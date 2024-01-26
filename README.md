@@ -85,8 +85,11 @@ Run your local server with the command:
 ```bash
 java -jar target/prebid-server.jar --spring.config.additional-location=sample/prebid-config.yaml
 ```
-
 For more options how to start the server, please follow [documentation](docs/run.md).
+
+## Running prebuilt .jar
+Starting from PBS Java v2.9, you can download prebuilt .jar packages from [Release Notes](https://github.com/prebid/prebid-server-java/releases) page, instead of building them by yourself. 
+This prebuilt packages are delivered with or without extra modules.
 
 ## Verifying
 
