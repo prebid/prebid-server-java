@@ -40,7 +40,6 @@ adapters:
           supported-vendors:
           vendor-id: 1212
         usersync:
-          enabled: true
           cookie-family-name: adsinteractive
           redirect:
             url: https://sync.adsinteractive.com/getuid?{{redirect_url}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}
