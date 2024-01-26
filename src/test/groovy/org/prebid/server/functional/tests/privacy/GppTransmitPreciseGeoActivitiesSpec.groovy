@@ -5,7 +5,7 @@ import org.prebid.server.functional.model.config.ActivityConfig
 import org.prebid.server.functional.model.config.EqualityValueRule
 import org.prebid.server.functional.model.config.InequalityValueRule
 import org.prebid.server.functional.model.config.LogicalRestrictedRule
-import org.prebid.server.functional.model.config.ModuleConfig
+import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
@@ -956,7 +956,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         where:
         accountGppConfig << [
                 new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
-                new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: true)
+                new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [USP_NAT_V1]), enabled: true)
         ]
     }
 
@@ -1021,8 +1021,8 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: false)
-        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: []), enabled: true)
+        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [USP_NAT_V1]), enabled: false)
+        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: []), enabled: true)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
@@ -1099,7 +1099,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], accountLogic))
+            it.config = GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], accountLogic))
         }
 
         and: "Existed account with privacy regulation setup"
@@ -1150,7 +1150,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], accountLogic))
+            it.config = GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], accountLogic))
         }
 
         and: "Existed account with privacy regulation setup"
@@ -1207,7 +1207,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], restrictedRule), [USP_CT_V1], false)
+            it.config = GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], restrictedRule), [USP_CT_V1], false)
         }
 
         and: "Flush metrics"
@@ -1253,7 +1253,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
+            it.config = GppModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
         }
 
         and: "Flush metrics"
@@ -1948,7 +1948,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         where:
         accountGppConfig << [
                 new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
-                new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: true)
+                new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [USP_NAT_V1]), enabled: true)
         ]
     }
 
@@ -2024,8 +2024,8 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         flushMetrics(activityPbsService)
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: false)
-        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: []), enabled: true)
+        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [USP_NAT_V1]), enabled: false)
+        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: []), enabled: true)
 
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
         accountDao.save(account)
@@ -2121,7 +2121,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], accountLogic))
+            it.config = GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], accountLogic))
         }
 
         and: "Existed account with privacy regulation setup"
@@ -2182,7 +2182,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], accountLogic))
+            it.config = GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], accountLogic))
         }
 
         and: "Existed account with privacy regulation setup"
@@ -2246,7 +2246,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], restrictedRule), [USP_NAT_V1], false)
+            it.config = GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([TRANSMIT_PRECISE_GEO], restrictedRule), [USP_NAT_V1], false)
         }
 
         and: "Flush metrics"
@@ -2302,7 +2302,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
+            it.config = GppModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
         }
 
         and: "Flush metrics"

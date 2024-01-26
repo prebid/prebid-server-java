@@ -24,6 +24,7 @@
         <java.version>17</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
+        <dockerfileName>Dockerfile</dockerfileName>
 
         <!-- dependencies versions -->
         <spring.boot.version>2.5.6</spring.boot.version>
@@ -92,6 +93,7 @@
         <gmavenplus-plugin.version>1.13.1</gmavenplus-plugin.version>
         <allure-maven.version>2.10.0</allure-maven.version>
         <skipFunctionalTests>false</skipFunctionalTests>
+        <skipModuleFunctionalTests>false</skipModuleFunctionalTests>
         <skipUnitTests>false</skipUnitTests>
         <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
         <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
@@ -620,8 +622,21 @@
                         <systemPropertyVariables>
                             <launchContainers>true</launchContainers>
                         </systemPropertyVariables>
-                        <skipITs>${skipFunctionalTests}</skipITs>
                     </configuration>
+                    <executions>
+                        <execution>
+                            <id>functional-tests</id>
+                            <configuration>
+                                <skip>${skipFunctionalTests}</skip>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>module-functional-tests</id>
+                            <configuration>
+                                <skip>${skipModuleFunctionalTests}</skip>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -846,6 +861,16 @@
                 <groupId>io.fabric8</groupId>
                 <artifactId>docker-maven-plugin</artifactId>
                 <version>${docker-maven-plugin.version}</version>
+                <configuration>
+                    <images>
+                        <image>
+                            <name>prebid/prebid-server</name>
+                            <build>
+                                <dockerFile>${project.basedir}/${dockerfileName}</dockerFile>
+                            </build>
+                        </image>
+                    </images>
+                </configuration>
                 <executions>
                     <execution>
                         <id>build-containers</id>
@@ -861,6 +886,14 @@
                 <artifactId>gmavenplus-plugin</artifactId>
                 <configuration>
                     <parallelParsing>true</parallelParsing>
+                    <testSources>
+                        <testSource>
+                            <directory>${project.basedir}/src/test/groovy</directory>
+                            <includes>
+                                <include>**/*.groovy</include>
+                            </includes>
+                        </testSource>
+                    </testSources>
                 </configuration>
                 <executions>
                     <execution>
@@ -887,13 +920,29 @@
                 </configuration>
                 <executions>
                     <execution>
+                        <id>functional-tests</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/tests/module/**/*Spec</exclude>
+                            </excludes>
+                            <includes>
+                                <include>**/*Spec</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>module-functional-tests</id>
                         <goals>
                             <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
                         <configuration>
                             <includes>
-                                <include>**/*Spec.java</include>
+                                <include>**/tests/module/**/*Spec</include>
                             </includes>
                         </configuration>
                     </execution>
