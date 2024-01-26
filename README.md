@@ -95,6 +95,15 @@ and verify response status is `200 OK`.
 
 There are a couple of 'hello world' test requests described in sample/requests/README.txt
 
+## Running Docker image
+
+Starting from PBS Java v2.9, you can download prebuilt Docker images from [GitHub Packages](https://github.com/orgs/prebid/packages?repo_name=prebid-server-java) page,
+and use them instead of plain .jar files. This prebuilt images are delivered with or without extra modules.
+
+In order to run such image correctly, you should attach PBS config file. Easiest way is to mount config file into container,
+using [--mount or --volume (-v) Docker CLI arguments](https://docs.docker.com/engine/reference/commandline/run/).
+Keep in mind, that config file should be mounted into specific location: ```/app/prebid-server/``` or ```/app/prebid-server/conf/```.
+
 # Documentation
 
 ## Development
