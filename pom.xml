@@ -61,6 +61,7 @@
         <protobuf.version>3.21.7</protobuf.version>
         <protoc.version>3.17.3</protoc.version>
         <json-logic.version>1.0.7</json-logic.version>
+        <aws.awssdk.version>2.17.274</aws.awssdk.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
@@ -76,6 +77,7 @@
         <groovy.version>3.0.14</groovy.version>
         <testcontainers.version>1.17.4</testcontainers.version>
         <mockserver.version>5.14.0</mockserver.version>
+        <amazonaws.version>1.12.600</amazonaws.version>
         <allure.version>2.19.0</allure.version>
         <aspectj.version>1.9.9.1</aspectj.version>
         <bytebuddy.version>1.12.14</bytebuddy.version>
@@ -106,6 +108,13 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>${spring.boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws.awssdk.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -276,6 +285,11 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>${aws.awssdk.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
@@ -577,6 +591,18 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mysql</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+            <version>${amazonaws.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>localstack</artifactId>
             <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
