@@ -124,6 +124,8 @@ public class BidResponseCreator {
     private static final String CACHE = "cache";
     private static final String PREBID_EXT = "prebid";
     private static final Integer DEFAULT_BID_LIMIT_MIN = 1;
+    private static final Integer MAX_TARGETING_KEY_LENGTH = 11;
+    private static final String DEFAULT_TARGETING_KEY_PREFIX = "hb";
 
     private final CacheService cacheService;
     private final BidderCatalog bidderCatalog;
@@ -1745,17 +1747,18 @@ public class BidResponseCreator {
                         .map(AccountTargetingConfig::getPrefix)
                         .orElse(null));
 
-        final int maxKeyLength = 11;
         final boolean customPrefixIsNotSuitable =
-                StringUtils.isNotEmpty(prefix) && prefix.length() + maxKeyLength > truncateAttrChars;
+                StringUtils.isNotEmpty(prefix) && prefix.length() + MAX_TARGETING_KEY_LENGTH > truncateAttrChars;
         if (customPrefixIsNotSuitable) {
             final String errorMessage = "Key prefix value is dropped to default. "
                     + "Decrease custom prefix length or increase truncateattrchars by "
-                    + (prefix.length() + maxKeyLength - truncateAttrChars);
+                    + (prefix.length() + MAX_TARGETING_KEY_LENGTH - truncateAttrChars);
             bidWarnings.computeIfAbsent("targeting", ignored -> new ArrayList<>())
                     .add(ExtBidderError.of(BidderError.Type.bad_input.getCode(), errorMessage));
         }
-        return StringUtils.isEmpty(prefix) || customPrefixIsNotSuitable ? "hb" : prefix;
+        return StringUtils.isEmpty(prefix) || customPrefixIsNotSuitable
+                ? DEFAULT_TARGETING_KEY_PREFIX
+                : prefix;
     }
 
     private static Integer truncateAttrCharsOrNull(Integer value) {
