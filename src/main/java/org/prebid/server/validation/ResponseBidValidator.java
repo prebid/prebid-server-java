@@ -166,7 +166,7 @@ public class ResponseBidValidator {
 
     private void validateDsaFor(Bid bid) throws ValidationException {
         final ObjectNode bidExt = bid.getExt();
-        if (bidExt != null && (!bidExt.hasNonNull(DSA_EXT) || bidExt.get(DSA_EXT).isEmpty())) {
+        if (bidExt == null || !bidExt.hasNonNull(DSA_EXT) || bidExt.get(DSA_EXT).isEmpty()) {
             throw new ValidationException("Bid \"%s\" missing DSA", bid.getId());
         }
     }
