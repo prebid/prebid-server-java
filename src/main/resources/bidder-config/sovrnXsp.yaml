@@ -1,0 +1,17 @@
+adapters:
+  sovrnXsp:
+    endpoint: http://xsp.lijit.com/json/rtb/prebid/server
+    endpoint-compression: gzip
+    modifyingVastXmlAllowed: true
+    meta-info:
+      maintainer-email: sovrnoss@sovrn.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 13

@@ -1,6 +1,6 @@
 package org.prebid.server.functional.model.request.auction
 
-class GeoExtNetAcuity {
+class GeoExtGeoProvider {
 
     String country
     Object region
