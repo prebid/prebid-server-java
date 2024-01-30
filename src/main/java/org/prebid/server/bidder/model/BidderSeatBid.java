@@ -60,6 +60,10 @@ public class BidderSeatBid {
         return toBuilder().bids(bids).build();
     }
 
+    public BidderSeatBid with(List<BidderBid> bids, List<BidderError> errors) {
+        return toBuilder().bids(bids).errors(errors).build();
+    }
+
     public static BidderSeatBid empty() {
         return BidderSeatBid.builder().build();
     }

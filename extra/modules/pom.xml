@@ -19,6 +19,7 @@
     <modules>
         <module>ortb2-blocking</module>
         <module>confiant-ad-quality</module>
+        <module>pb-richmedia-filter</module>
     </modules>
 
     <properties>

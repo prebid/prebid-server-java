@@ -1,0 +1,59 @@
+name: Publish Docker image for new tag/release
+
+on:
+  push:
+    tags:
+      - '*'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build:
+    name: Publish Docker image for new tag/release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        java: [ 17 ]
+        dockerfile-path: [Dockerfile, extra/Dockerfile]
+        include:
+          - dockerfile-path: Dockerfile
+            build-cmd: mvn clean package -Dcheckstyle.skip -Dmaven.test.skip=true
+            package-name: ghcr.io/${{ github.repository }}
+          - dockerfile-path: extra/Dockerfile
+            build-cmd: mvn clean package --file extra/pom.xml -Dcheckstyle.skip -Dmaven.test.skip=true
+            package-name: ghcr.io/${{ github.repository }}-bundle
+    steps:
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          cache: 'maven'
+          java-version: ${{ matrix.java }}
+      - name: Build .jar via Maven
+        run: ${{ matrix.build-cmd }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker Image
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ matrix.package-name }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.dockerfile-path }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

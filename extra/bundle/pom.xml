@@ -39,6 +39,11 @@
             <artifactId>ortb2-blocking</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.prebid.server.hooks.modules</groupId>
+            <artifactId>pb-richmedia-filter</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -57,6 +62,15 @@
                         <goals>
                             <goal>repackage</goal>
                         </goals>
+                    </execution>
+                    <execution>
+                        <id>pbs-build</id>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>../../target</outputDirectory>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
