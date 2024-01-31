@@ -1744,7 +1744,7 @@ public class ExchangeService {
             case failed_to_request_bids -> MetricName.failedtorequestbids;
             case timeout -> MetricName.timeout;
             case invalid_bid -> MetricName.bid_validation;
-            case rejected_ipf, generic -> MetricName.unknown_error;
+            case rejected_ipf, generic, invalid_creative -> MetricName.unknown_error;
         };
     }
 

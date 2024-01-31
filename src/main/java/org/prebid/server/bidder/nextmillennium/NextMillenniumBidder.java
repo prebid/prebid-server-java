@@ -45,22 +45,56 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
+    private final List<String> nmmFlags;
 
-    public NextMillenniumBidder(String endpointUrl, JacksonMapper mapper) {
+    public NextMillenniumBidder(String endpointUrl, JacksonMapper mapper, List<String> nmmFlags) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
+        this.nmmFlags = nmmFlags;
+
+    }
+
+    @Override
+    public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
+        final List<BidderError> errors = new ArrayList<>();
+        final List<ExtImpNextMillennium> impExts = getImpExts(bidRequest, errors);
+
+        return errors.isEmpty()
+                ? Result.withValues(makeRequests(bidRequest, impExts))
+                : Result.withErrors(errors);
+    }
+
+    private List<ExtImpNextMillennium> getImpExts(BidRequest bidRequest, List<BidderError> errors) {
+        return bidRequest.getImp().stream()
+                .map(imp -> convertExt(imp, errors))
+                .toList();
+    }
+
+    private List<HttpRequest<BidRequest>> makeRequests(BidRequest bidRequest, List<ExtImpNextMillennium> extImps) {
+        return extImps.stream()
+                .map(extImp -> makeHttpRequest(updateBidRequest(bidRequest, extImp)))
+                .toList();
+    }
+
+    private ExtImpNextMillennium convertExt(Imp imp, List<BidderError> errors) {
+        try {
+            return mapper.mapper()
+                    .convertValue(imp.getExt(), NEXTMILLENNIUM_EXT_TYPE_REFERENCE)
+                    .getBidder();
+        } catch (IllegalArgumentException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+        }
+        return null;
     }
 
     private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium ext) {
-
-        final ExtRequest extRequest = ExtRequest.of(ExtRequestPrebid.builder()
+        final ExtRequestPrebid prebid = ExtRequestPrebid.builder()
                 .storedrequest(ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext)))
-                .build());
-
-        final ObjectNode impExt = mapper.mapper().valueToTree(extRequest);
+                .build();
+        final ExtRequest extRequest = ExtRequest.of(prebid);
 
         final List<Imp> imps = bidRequest.getImp().stream()
-                .map(imp -> imp.toBuilder().ext(impExt).build())
+                .map(imp -> imp.toBuilder().ext(createImpExt(prebid)).build())
                 .toList();
 
         return bidRequest.toBuilder().imp(imps).ext(extRequest).build();
@@ -79,40 +113,6 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
                 StringUtils.EMPTY);
 
         return "g%s;%s;%s".formatted(groupId, size, domain);
-    }
-
-    @Override
-    public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final List<BidderError> errors = new ArrayList<>();
-        final List<ExtImpNextMillennium> impExts = getImpExts(bidRequest, errors);
-
-        return errors.isEmpty()
-                ? Result.withValues(makeRequests(bidRequest, impExts))
-                : Result.withErrors(errors);
-    }
-
-    private List<ExtImpNextMillennium> getImpExts(BidRequest bidRequest, List<BidderError> errors) {
-        return bidRequest.getImp().stream()
-                .map(imp -> convertExt(imp, errors))
-                .filter(Objects::nonNull)
-                .toList();
-    }
-
-    private ExtImpNextMillennium convertExt(Imp imp, List<BidderError> errors) {
-        try {
-            return mapper.mapper()
-                    .convertValue(imp.getExt(), NEXTMILLENNIUM_EXT_TYPE_REFERENCE)
-                    .getBidder();
-        } catch (IllegalArgumentException e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-        }
-        return null;
-    }
-
-    private List<HttpRequest<BidRequest>> makeRequests(BidRequest bidRequest, List<ExtImpNextMillennium> extImps) {
-        return extImps.stream()
-                .map(extImp -> makeHttpRequest(updateBidRequest(bidRequest, extImp)))
-                .toList();
     }
 
     private static String formattedSizeFromBanner(Banner banner) {
@@ -135,6 +135,16 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
         return w != null && h != null
                 ? "%dx%d".formatted(w, h)
                 : null;
+    }
+
+    private ObjectNode createImpExt(ExtRequestPrebid prebid) {
+        final ObjectNode impExt = mapper.mapper().createObjectNode();
+        impExt.set("prebid", mapper.mapper().valueToTree(prebid));
+        if (CollectionUtils.isNotEmpty(nmmFlags)) {
+            impExt.putObject("nextMillennium")
+                    .set("nmmFlags", mapper.mapper().valueToTree(nmmFlags));
+        }
+        return impExt;
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest) {

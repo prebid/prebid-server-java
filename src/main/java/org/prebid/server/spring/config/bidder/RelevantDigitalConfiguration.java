@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.seedingAlliance.SeedingAllianceBidder;
+import org.prebid.server.bidder.relevantdigital.RelevantDigitalBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -16,27 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import javax.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/suntContent.yaml", factory = YamlPropertySourceFactory.class)
-public class SuntContentBidderConfiguration {
+@PropertySource(value = "classpath:/bidder-config/relevantdigital.yaml", factory = YamlPropertySourceFactory.class)
+public class RelevantDigitalConfiguration {
 
-    private static final String BIDDER_NAME = "suntContent";
+    private static final String BIDDER_NAME = "relevantdigital";
 
-    @Bean("suntContentConfigurationProperties")
-    @ConfigurationProperties("adapters.suntcontent")
+    @Bean("relevantDigitalConfigurationProperties")
+    @ConfigurationProperties("adapters.relevantdigital")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps suntContentBidderDeps(BidderConfigurationProperties suntContentConfigurationProperties,
+    BidderDeps relevantdigitalBidderDeps(BidderConfigurationProperties relevantDigitalConfigurationProperties,
                                          @NotBlank @Value("${external-url}") String externalUrl,
                                          JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(suntContentConfigurationProperties)
+                .withConfig(relevantDigitalConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                // Temporary use of SeedingAllianceBidder before divergent changes will appear
-                .bidderCreator(config -> new SeedingAllianceBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new RelevantDigitalBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

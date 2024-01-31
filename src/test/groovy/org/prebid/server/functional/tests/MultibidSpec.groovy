@@ -93,7 +93,6 @@ class MultibidSpec extends BaseSpec {
         requestTargeting                          | accountTargeting
         Targeting.createWithAllValuesSetTo(true)  | Targeting.createWithAllValuesSetTo(false)
         Targeting.createWithAllValuesSetTo(false) | Targeting.createWithAllValuesSetTo(true)
-        Targeting.createWithRandomValues()        | Targeting.createWithRandomValues()
     }
 
     def "PBS should use account level config when bidRequest does not have targeting settings"() {
@@ -115,6 +114,8 @@ class MultibidSpec extends BaseSpec {
         assert bidderRequest.ext.prebid.targeting == account.config.auction.targeting
 
         where:
-        accountTargeting << [Targeting.createWithAllValuesSetTo(false), Targeting.createWithAllValuesSetTo(true), Targeting.createWithRandomValues()]
+        accountTargeting << [Targeting.createWithAllValuesSetTo(false),
+                             Targeting.createWithAllValuesSetTo(true),
+                             Targeting.createWithRandomValues()]
     }
 }
