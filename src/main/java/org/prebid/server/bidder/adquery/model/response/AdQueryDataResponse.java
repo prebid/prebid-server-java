@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Builder(toBuilder = true)
@@ -14,11 +15,11 @@ public class AdQueryDataResponse {
     String requestId;
 
     @JsonProperty("creationId")
-    Integer creationId;
+    String creationId;
 
     String currency;
 
-    String cpm;
+    BigDecimal cpm;
 
     String code;
 
@@ -30,7 +31,8 @@ public class AdQueryDataResponse {
     @JsonProperty("adDomains")
     List<String> adDomains;
 
-    String deadlid;
+    @JsonProperty("dealid")
+    String dealId;
 
     @JsonProperty("mediaType")
     AdQueryMediaType adQueryMediaType;

@@ -8,7 +8,7 @@ public class AdQueryMediaType {
 
     BidType name;
 
-    String width;
+    Integer width;
 
-    String height;
+    Integer height;
 }

@@ -278,8 +278,9 @@ public class AdQueryBidderTest extends VertxTest {
         final BidderCall<AdQueryRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(AdQueryResponse.of(AdQueryDataResponse.builder()
                         .requestId("abs")
-                        .cpm("123")
-                        .adQueryMediaType(AdQueryMediaType.of(BidType.audio, "120", "320"))
+                        .cpm(BigDecimal.valueOf(123))
+                        .adQueryMediaType(AdQueryMediaType.of(BidType.audio, 120,
+                                320))
                         .build())));
 
         // when
@@ -301,12 +302,12 @@ public class AdQueryBidderTest extends VertxTest {
         final BidderCall<AdQueryRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(AdQueryResponse.of(AdQueryDataResponse.builder()
                         .requestId("abs")
-                        .cpm("123")
+                        .cpm(BigDecimal.valueOf(123))
                         .adqLib("AnyLib")
                         .tag("AnyTag")
                         .adDomains(singletonList("any"))
-                        .creationId(312)
-                        .adQueryMediaType(AdQueryMediaType.of(BidType.banner, "120", "320"))
+                        .creationId("312")
+                        .adQueryMediaType(AdQueryMediaType.of(BidType.banner, 120, 320))
                         .build())));
 
         // when
@@ -338,67 +339,19 @@ public class AdQueryBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnThrowErrorWheResponseBodyAdQueryMediaTypeWidthIsInvalid()
-            throws JsonProcessingException {
-        // given
-        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(AdQueryResponse.of(AdQueryDataResponse.builder()
-                        .requestId("abs")
-                        .cpm("123")
-                        .adqLib("AnyLib")
-                        .tag("AnyTag")
-                        .adDomains(singletonList("any"))
-                        .creationId(312)
-                        .adQueryMediaType(AdQueryMediaType.of(BidType.banner, "ab", "320"))
-                        .build())));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().id("abs1").build());
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badServerResponse("Value of measure: ab can not be parsed."));
-    }
-
-    @Test
-    public void makeBidsShouldReturnThrowErrorWheResponseBodyAdQueryMediaTypeHeightIsInvalid()
-            throws JsonProcessingException {
-        // given
-        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(AdQueryResponse.of(AdQueryDataResponse.builder()
-                        .requestId("abs")
-                        .cpm("123")
-                        .adqLib("AnyLib")
-                        .tag("AnyTag")
-                        .adDomains(singletonList("any"))
-                        .creationId(312)
-                        .adQueryMediaType(AdQueryMediaType.of(BidType.banner, "312", "as"))
-                        .build())));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().id("abs1").build());
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsExactly(BidderError.badServerResponse("Value of measure: as can not be parsed."));
-    }
-
-    @Test
     public void makeBidsShouldCorrectPopulateCurrencyWhenCurrencyInResponseSpecified()
             throws JsonProcessingException {
         // given
         final BidderCall<AdQueryRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(AdQueryResponse.of(AdQueryDataResponse.builder()
                         .requestId("abs")
-                        .cpm("321")
+                        .cpm(BigDecimal.valueOf(123))
                         .adqLib("AnyLib")
                         .currency("UAH")
                         .tag("AnyTag")
                         .adDomains(singletonList("any"))
-                        .creationId(312)
-                        .adQueryMediaType(AdQueryMediaType.of(BidType.banner, "312", "321"))
+                        .creationId("312")
+                        .adQueryMediaType(AdQueryMediaType.of(BidType.banner, 312, 312))
                         .build())));
 
         // when
@@ -419,12 +372,12 @@ public class AdQueryBidderTest extends VertxTest {
         final BidderCall<AdQueryRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(AdQueryResponse.of(AdQueryDataResponse.builder()
                         .requestId("abs")
-                        .cpm("321")
+                        .cpm(BigDecimal.valueOf(321))
                         .adqLib("AnyLib")
                         .currency(null)
                         .tag("AnyTag")
                         .adDomains(singletonList("any"))
-                        .adQueryMediaType(AdQueryMediaType.of(BidType.banner, "312", "321"))
+                        .adQueryMediaType(AdQueryMediaType.of(BidType.banner, 312, 321))
                         .build())));
 
         // when

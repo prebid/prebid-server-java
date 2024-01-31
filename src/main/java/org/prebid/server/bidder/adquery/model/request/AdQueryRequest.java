@@ -2,12 +2,10 @@ package org.prebid.server.bidder.adquery.model.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
+import lombok.Value;
 
 @Builder(toBuilder = true)
-@EqualsAndHashCode
-@Getter
+@Value
 public class AdQueryRequest {
 
     String v;
@@ -20,7 +18,7 @@ public class AdQueryRequest {
 
     String type;
 
-    @JsonProperty("AdUnitCode")
+    @JsonProperty("adUnitCode")
     String adUnitCode;
 
     @JsonProperty("bidQid")
@@ -38,7 +36,6 @@ public class AdQueryRequest {
     @JsonProperty("bidUa")
     String bidUa;
 
-    @JsonProperty("bidder")
     String bidder;
 
     @JsonProperty("bidPageUrl")

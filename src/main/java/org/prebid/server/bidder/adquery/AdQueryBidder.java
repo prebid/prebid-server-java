@@ -1,6 +1,5 @@
 package org.prebid.server.bidder.adquery;
 
-import com.fasterxml.jackson.core.io.BigDecimalParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -13,6 +12,7 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.adquery.model.request.AdQueryRequest;
@@ -38,6 +38,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class AdQueryBidder implements Bidder<AdQueryRequest> {
 
@@ -99,25 +101,25 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
     }
 
     private AdQueryRequest createAdQueryRequest(BidRequest bidRequest, Imp imp, ExtImpAdQuery extImpAdQuery) {
+        final Optional<Device> optionalDevice = Optional.ofNullable(bidRequest.getDevice());
         return AdQueryRequest.builder()
                 .v(PREBID_VERSION)
                 .placementCode(extImpAdQuery.getPlacementId())
                 .auctionId(StringUtils.EMPTY)
                 .type(extImpAdQuery.getType())
                 .adUnitCode(imp.getTagid())
-                .bidQid(ObjectUtil.getIfNotNullOrDefault(bidRequest.getUser(), User::getId, () -> StringUtils.EMPTY))
-                .bidId(String.format("%s%s", bidRequest.getId(), imp.getId()))
+                .bidQid(Optional.ofNullable(bidRequest.getUser()).map(User::getId).orElse(StringUtils.EMPTY))
+                .bidId(bidRequest.getId() + imp.getId())
                 .bidder(BIDDER_NAME)
                 .bidderRequestId(bidRequest.getId())
                 .bidRequestsCount(1)
                 .bidderRequestsCount(1)
                 .sizes(getImpSizes(imp))
-                .bidIp(ObjectUtil.getIfNotNull(bidRequest.getDevice(), Device::getIp))
-                .bidIpv6(ObjectUtil.getIfNotNull(bidRequest.getDevice(), Device::getIpv6))
-                .bidUa(ObjectUtil.getIfNotNull(bidRequest.getDevice(), Device::getUa))
-                .bidPageUrl(ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getPage))
+                .bidIp(optionalDevice.map(Device::getIp).orElse(null))
+                .bidIpv6(optionalDevice.map(Device::getIpv6).orElse(null))
+                .bidUa(optionalDevice.map(Device::getUa).orElse(null))
+                .bidPageUrl(Optional.ofNullable(bidRequest.getSite()).map(Site::getPage).orElse(null))
                 .build();
-
     }
 
     private String getImpSizes(Imp imp) {
@@ -128,10 +130,11 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
 
         final List<Format> format = banner.getFormat();
         if (CollectionUtils.isNotEmpty(format)) {
-            final List<String> sizes = new ArrayList<>();
-            format.forEach(singleFormat -> sizes.add(
-                    "%sx%s".formatted(getIntOrElseZero(singleFormat.getW()), getIntOrElseZero(singleFormat.getH()))));
-            return String.join("_", sizes);
+            return format.stream()
+                    .map(singleFormat -> "%sx%s".formatted(
+                            ObjectUtils.defaultIfNull(singleFormat.getW(), 0),
+                            ObjectUtils.defaultIfNull(singleFormat.getH(), 0)))
+                    .collect(Collectors.joining("_"));
         }
 
         final Integer w = banner.getW();
@@ -143,17 +146,14 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
         return StringUtils.EMPTY;
     }
 
-    private int getIntOrElseZero(Integer number) {
-        return number != null ? number : 0;
-    }
-
     private MultiMap resolveHeader(Device device) {
         final MultiMap headers = HttpUtil.headers();
         headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, ORTB_VERSION);
 
-        if (Objects.nonNull(device) && StringUtils.isNotBlank(device.getIp()) && device.getIp().length() > 0) {
-            headers.add(HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp());
-        }
+        Optional.ofNullable(device)
+                .map(Device::getIp)
+                .map(StringUtils::isNotBlank)
+                .ifPresent(ip -> headers.add(HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp()));
 
         return headers;
     }
@@ -170,44 +170,36 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
     }
 
     private static List<BidderBid> extractBids(AdQueryResponse adQueryResponse, BidRequest bidRequest) {
-        if (adQueryResponse == null || Objects.isNull(adQueryResponse.getData())) {
+        if (adQueryResponse == null || adQueryResponse.getData() == null) {
             return Collections.emptyList();
         }
 
         final AdQueryDataResponse data = adQueryResponse.getData();
         final Bid bid = Bid.builder()
                 .id(data.getRequestId())
-                .impid(resoleImpId(bidRequest, data))
-                .price(BigDecimalParser.parse(data.getCpm()))
-                .adm(String.format(ADM_TEMPLATE, data.getAdqLib(), data.getTag()))
+                .impid(resolveImpId(bidRequest, data))
+                .price(data.getCpm())
+                .adm(ADM_TEMPLATE.formatted(data.getAdqLib(), data.getTag()))
                 .adomain(data.getAdDomains())
-                .crid(String.format("%d", data.getCreationId()))
-                .w(parseMeasure(ObjectUtil.getIfNotNull(data.getAdQueryMediaType(), AdQueryMediaType::getWidth)))
-                .h(parseMeasure(ObjectUtil.getIfNotNull(data.getAdQueryMediaType(), AdQueryMediaType::getHeight)))
+                .crid(data.getCreationId())
+                .w(ObjectUtil.getIfNotNull(data.getAdQueryMediaType(), AdQueryMediaType::getWidth))
+                .h(ObjectUtil.getIfNotNull(data.getAdQueryMediaType(), AdQueryMediaType::getHeight))
                 .build();
 
-        return Collections.singletonList(BidderBid.of(bid, resolveMediaType(data),
+        return Collections.singletonList(BidderBid.of(bid, resolveMediaType(data.getAdQueryMediaType()),
                 StringUtils.isNotBlank(data.getCurrency()) ? data.getCurrency() : DEFAULT_CURRENCY));
     }
 
-    private static String resoleImpId(BidRequest bidRequest, AdQueryDataResponse data) {
-        return Objects.nonNull(data.getRequestId())
+    private static String resolveImpId(BidRequest bidRequest, AdQueryDataResponse data) {
+        return data.getRequestId() != null
                 ? bidRequest.getId().replaceAll(data.getRequestId(), StringUtils.EMPTY)
                 : bidRequest.getId();
     }
 
-    private static Integer parseMeasure(String measure) {
-        try {
-            return Integer.valueOf(measure);
-        } catch (NumberFormatException e) {
-            throw new PreBidException("Value of measure: %s can not be parsed.".formatted(measure));
+    private static BidType resolveMediaType(AdQueryMediaType mediaType) {
+        if (mediaType.getName() != BidType.banner) {
+            throw new PreBidException(String.format("Unsupported MediaType: %s", mediaType.getName()));
         }
-    }
-
-    private static BidType resolveMediaType(AdQueryDataResponse data) {
-        if (data.getAdQueryMediaType().getName() != BidType.banner) {
-            throw new PreBidException(String.format("Unsupported MediaType: %s", data.getAdQueryMediaType().getName()));
-        }
-        return data.getAdQueryMediaType().getName();
+        return BidType.banner;
     }
 }
