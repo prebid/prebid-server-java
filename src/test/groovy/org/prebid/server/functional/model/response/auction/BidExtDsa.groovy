@@ -1,10 +1,10 @@
 package org.prebid.server.functional.model.response.auction
 
-import lombok.EqualsAndHashCode
+import groovy.transform.ToString
 import org.prebid.server.functional.model.request.auction.DsaTransparency
 import org.prebid.server.functional.util.PBSUtils
 
-@EqualsAndHashCode
+@ToString(includeNames = true, ignoreNulls = true)
 class BidExtDsa {
 
     String behalf
@@ -14,11 +14,10 @@ class BidExtDsa {
 
     static BidExtDsa getDefaultBidExtDsa() {
         new BidExtDsa(
-                "behalf": PBSUtils.randomString,
-                "paid": PBSUtils.randomString,
-                "adrender": PBSUtils.getRandomNumber(0, 2),
-                "transparency": [DsaTransparency.defaultRegsDsaTransparency]
+                behalf: PBSUtils.randomString,
+                paid: PBSUtils.randomString,
+                adrender: PBSUtils.getRandomNumber(0, 2),
+                transparency: [DsaTransparency.defaultRegsDsaTransparency]
         )
     }
-
 }
