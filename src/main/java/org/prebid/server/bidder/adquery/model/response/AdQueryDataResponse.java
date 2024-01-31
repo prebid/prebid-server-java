@@ -2,13 +2,13 @@ package org.prebid.server.bidder.adquery.model.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 @Builder(toBuilder = true)
-@Getter
+@Value(staticConstructor = "of")
 public class AdQueryDataResponse {
 
     @JsonProperty("requestId")

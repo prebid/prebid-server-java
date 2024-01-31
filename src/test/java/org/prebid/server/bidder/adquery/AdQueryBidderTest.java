@@ -229,7 +229,7 @@ public class AdQueryBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<AdQueryRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -246,8 +246,7 @@ public class AdQueryBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfAdQueryResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(null));
+        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -260,8 +259,7 @@ public class AdQueryBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfAdQueryRequestDataIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(AdQueryResponse.of(null)));
+        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(mapper.writeValueAsString(AdQueryResponse.of(null)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -275,7 +273,7 @@ public class AdQueryBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorWhenAdQueryResponseMediaTypeDoesNotContainBannerType()
             throws JsonProcessingException {
         // given
-        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(null,
+        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(AdQueryResponse.of(AdQueryDataResponse.builder()
                         .requestId("abs")
                         .cpm(BigDecimal.valueOf(123))
@@ -299,16 +297,7 @@ public class AdQueryBidderTest extends VertxTest {
     public void makeBidsShouldReturnCorrectResponseBody()
             throws JsonProcessingException {
         // given
-        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(AdQueryResponse.of(AdQueryDataResponse.builder()
-                        .requestId("abs")
-                        .cpm(BigDecimal.valueOf(123))
-                        .adqLib("AnyLib")
-                        .tag("AnyTag")
-                        .adDomains(singletonList("any"))
-                        .creationId("312")
-                        .adQueryMediaType(AdQueryMediaType.of(BidType.banner, 120, 320))
-                        .build())));
+        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(identity());
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().id("abs1").build());
@@ -317,7 +306,7 @@ public class AdQueryBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(BidderBid::getBidCurrency)
                 .hasSize(1)
-                .containsExactly("PLN");
+                .containsExactly("UAH");
         assertThat(result.getValue())
                 .extracting(BidderBid::getType)
                 .hasSize(1)
@@ -328,7 +317,7 @@ public class AdQueryBidderTest extends VertxTest {
                 .containsExactly(Bid.builder()
                         .id("abs")
                         .impid("1")
-                        .price(BigDecimal.valueOf(123))
+                        .price(BigDecimal.valueOf(321))
                         .adm("<script src=\"AnyLib\"></script>AnyTag")
                         .adomain(singletonList("any"))
                         .crid("312")
@@ -342,17 +331,7 @@ public class AdQueryBidderTest extends VertxTest {
     public void makeBidsShouldCorrectPopulateCurrencyWhenCurrencyInResponseSpecified()
             throws JsonProcessingException {
         // given
-        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(AdQueryResponse.of(AdQueryDataResponse.builder()
-                        .requestId("abs")
-                        .cpm(BigDecimal.valueOf(123))
-                        .adqLib("AnyLib")
-                        .currency("UAH")
-                        .tag("AnyTag")
-                        .adDomains(singletonList("any"))
-                        .creationId("312")
-                        .adQueryMediaType(AdQueryMediaType.of(BidType.banner, 312, 312))
-                        .build())));
+        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(identity());
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().id("abs1").build());
@@ -369,16 +348,8 @@ public class AdQueryBidderTest extends VertxTest {
     public void makeBidsShouldUseDefaultCurrencyWhenCurrencyInResponseDoesNotSpecified()
             throws JsonProcessingException {
         // given
-        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(AdQueryResponse.of(AdQueryDataResponse.builder()
-                        .requestId("abs")
-                        .cpm(BigDecimal.valueOf(321))
-                        .adqLib("AnyLib")
-                        .currency(null)
-                        .tag("AnyTag")
-                        .adDomains(singletonList("any"))
-                        .adQueryMediaType(AdQueryMediaType.of(BidType.banner, 312, 321))
-                        .build())));
+        final BidderCall<AdQueryRequest> httpCall = givenHttpCall(
+                adQueryDataResponse -> adQueryDataResponse.currency(null));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().id("abs1").build());
@@ -420,14 +391,27 @@ public class AdQueryBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(String body) {
+    private static BidderCall<AdQueryRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 
-    private static BidderCall<AdQueryRequest> givenHttpCall(AdQueryRequest adQueryRequest, String body) {
-        return BidderCall.succeededHttp(
-                HttpRequest.<AdQueryRequest>builder().payload(adQueryRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
+    private static BidderCall<AdQueryRequest> givenHttpCall(
+            UnaryOperator<AdQueryDataResponse.AdQueryDataResponseBuilder> adQueryResponse)
+            throws JsonProcessingException {
+        final String body = mapper.writeValueAsString(
+                AdQueryResponse.of(
+                        adQueryResponse.apply(
+                                        AdQueryDataResponse.builder()
+                                                .requestId("abs")
+                                                .cpm(BigDecimal.valueOf(321))
+                                                .creationId("312")
+                                                .adqLib("AnyLib")
+                                                .currency("UAH")
+                                                .tag("AnyTag")
+                                                .adDomains(singletonList("any"))
+                                                .adQueryMediaType(
+                                                        AdQueryMediaType.of(BidType.banner, 120, 320)))
+                                .build()));
+        return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 }
