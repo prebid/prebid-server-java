@@ -15,6 +15,7 @@ class EnforcementRequirments {
     Integer vendorConsentBitField
     Integer vendorLegitimateInterestBitField
     List<BidderName> vendorExceptions
+    List<BidderName> softVendorExceptions
     Purpose purposesLITransparency
     List<RestrictionType> restrictionType
     Integer vendorIdGvl

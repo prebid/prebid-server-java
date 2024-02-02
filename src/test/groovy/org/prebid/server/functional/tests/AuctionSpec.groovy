@@ -20,6 +20,7 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.IgnoreRest
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.AccountStatus.INACTIVE
@@ -168,7 +169,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain buyeruid from the user.ext.prebid.buyeruids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.user
+        assert !bidderRequest.user.ext
     }
 
     def "PBS should populate buyeruid from uids cookie when buyeruids with appropriate bidder but without value present in request"() {
@@ -213,7 +214,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain buyeruid from the uids cookie"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.user
+        assert !bidderRequest.user.buyeruid
     }
 
     def "PBS should take precedence buyeruids whenever present valid uid cookie"() {

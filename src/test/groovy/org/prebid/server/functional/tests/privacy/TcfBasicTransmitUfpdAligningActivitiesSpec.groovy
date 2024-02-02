@@ -28,11 +28,14 @@ import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 
 class TcfBasicTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
-    private static final Map<String, String> PBS_CONFIG = SETTING_CONFIG + GENERIC_VENDOR_CONFIG + GENERIC_COOKIE_SYNC_CONFIG
+    private static final Map<String, String> PBS_CONFIG = SETTING_CONFIG + GENERIC_VENDOR_CONFIG + GENERIC_COOKIE_SYNC_CONFIG + ["gdpr.vendorlist.v2.http-endpoint-template": null,
+                                                                                                                                 "gdpr.vendorlist.v3.http-endpoint-template": null]
 
     private final PrebidServerService activityPbsServiceExcludeGvl = pbsServiceFactory.getService(PBS_CONFIG)
 
@@ -51,7 +54,7 @@ class TcfBasicTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, true)
         // Basic Ads required for bidder call, should be ignored for testing other exceptions
         purposes[P2] = new PurposeConfig(vendorExceptions: [GENERIC.value])
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC.value])
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
             config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
@@ -82,7 +85,7 @@ class TcfBasicTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Save account config with requireConsent into DB"
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, true)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC.value])
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
             config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
@@ -115,7 +118,7 @@ class TcfBasicTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Save account config with requireConsent into DB"
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, true, requestEids.source)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC.value])
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
             config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
@@ -148,7 +151,7 @@ class TcfBasicTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Save account config with requireConsent into DB"
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, true, requestEids.source)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC.value])
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
             config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
@@ -188,7 +191,7 @@ class TcfBasicTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Save account config with requireConsent into DB"
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, false)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC.value])
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
             config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
@@ -204,7 +207,8 @@ class TcfBasicTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         assert bidderRequest.user.eids == userEids
 
         where:
-        enforcementRequirments << getBasicEnforcementRequirments(P2) +
+        enforcementRequirments <<
+                getBasicEnforcementRequirments(P2) +
                 getBasicPurposesLITEnforcementRequirments(P2)
     }
 
@@ -221,7 +225,7 @@ class TcfBasicTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Save account config with requireConsent into DB"
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, false)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC.value])
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
             config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
@@ -250,13 +254,14 @@ class TcfBasicTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
     }
 
     private static List<EnforcementRequirments> getBasicEnforcementRequirments(Purpose purpose) {
-        [new EnforcementRequirments(purpose: purpose, enforcePurpose: BASIC, purposeConsent: purpose, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+        [
+         new EnforcementRequirments(purpose: purpose, enforcePurpose: BASIC, purposeConsent: purpose, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
          new EnforcementRequirments(purpose: purpose, enforcePurpose: BASIC, purposeConsent: purpose, enforceVendor: false),
          new EnforcementRequirments(purpose: purpose, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
          new EnforcementRequirments(purpose: purpose, enforcePurpose: NO, enforceVendor: false),
          new EnforcementRequirments(purpose: purpose, vendorExceptions: [GENERIC]),
-         new EnforcementRequirments(purpose: purpose, enforcePurpose: BASIC, purposeConsent: purpose, vendorConsentBitField: GENERIC_VENDOR_ID),
-         new EnforcementRequirments(purpose: purpose, enforcePurpose: NO, vendorConsentBitField: GENERIC_VENDOR_ID)]
+         new EnforcementRequirments(purpose: purpose, enforcePurpose: BASIC, purposeConsent: purpose, softVendorExceptions: [GENERIC_VENDOR_ID]),
+         new EnforcementRequirments(purpose: purpose, enforcePurpose: NO, softVendorExceptions: [GENERIC_VENDOR_ID])]
     }
 
     private static List<EnforcementRequirments> getBasicPurposesLITEnforcementRequirments(Purpose purpose) {
