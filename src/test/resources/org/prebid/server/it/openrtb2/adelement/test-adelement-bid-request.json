@@ -11,6 +11,7 @@
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
+          "supply_id": "1"
         }
       }
     }
