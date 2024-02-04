@@ -79,6 +79,7 @@ public class VendorListService {
 
     private final Map<Integer, Vendor> fallbackVendorList;
     private final Set<Integer> versionsToFallback;
+    private final VendorListFetchThrottler fetchThrottler;
 
     public VendorListService(double logSamplingRate,
                              String cacheDir,
@@ -92,7 +93,8 @@ public class VendorListService {
                              HttpClient httpClient,
                              Metrics metrics,
                              String generationVersion,
-                             JacksonMapper mapper) {
+                             JacksonMapper mapper,
+                             VendorListFetchThrottler fetchThrottler) {
 
         this.logSamplingRate = logSamplingRate;
         this.cacheDir = Objects.requireNonNull(cacheDir);
@@ -106,6 +108,7 @@ public class VendorListService {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
+        this.fetchThrottler = Objects.requireNonNull(fetchThrottler);
 
         createAndCheckWritePermissionsFor(fileSystem, cacheDir);
         cache = Objects.requireNonNull(createCache(fileSystem, cacheDir));
@@ -149,9 +152,11 @@ public class VendorListService {
 
         metrics.updatePrivacyTcfVendorListMissingMetric(tcf);
 
-        logger.info("TCF {0} vendor list for version {1}.{2} not found, started downloading.",
-                tcf, generationVersion, version);
-        fetchNewVendorListFor(version);
+        if (fetchThrottler.registerFetchAttempt(version)) {
+            logger.info("TCF {0} vendor list for version {1}.{2} not found, started downloading.",
+                    tcf, generationVersion, version);
+            fetchNewVendorListFor(version);
+        }
 
         return Future.failedFuture("TCF %d vendor list for version %s.%d not fetched yet, try again later."
                 .formatted(tcf, generationVersion, version));
@@ -305,6 +310,7 @@ public class VendorListService {
             throw new PreBidException("Fetched vendor list parsed but has invalid data: " + body);
         }
 
+        fetchThrottler.succeedFetchAttempt(version);
         return VendorListResult.of(version, body, vendorList);
     }
 
