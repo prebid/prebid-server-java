@@ -34,7 +34,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AidemBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://randomurl.com";
+    private static final String ENDPOINT_URL = "https://randomurl.com?param={{PublisherId}}";
 
     private final AidemBidder target = new AidemBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -46,7 +46,9 @@ public class AidemBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateExpectedUrl() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final ExtImpAidem impExt = ExtImpAidem.of(null, "publisherId", null, null);
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, impExt))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -55,7 +57,7 @@ public class AidemBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://randomurl.com");
+                .containsExactly("https://randomurl.com?param=publisherId");
     }
 
     @Test
