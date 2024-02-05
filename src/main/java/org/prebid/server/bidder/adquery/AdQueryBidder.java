@@ -30,7 +30,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.adquery.ExtImpAdQuery;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -51,6 +50,7 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
     private static final String DEFAULT_CURRENCY = "PLN";
     private static final String ORTB_VERSION = "2.5";
     private static final String ADM_TEMPLATE = "<script src=\"%s\"></script>%s";
+    private static final String FORMAT_TEMPLATE = "%sx%s";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -87,17 +87,15 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
         }
     }
 
-    private HttpRequest<AdQueryRequest> createRequest(BidRequest bidRequest, Imp imp, ExtImpAdQuery extImpAdQuery) {
-        final AdQueryRequest outgoingRequest = createAdQueryRequest(bidRequest, imp, extImpAdQuery);
-
-        return HttpRequest.<AdQueryRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(resolveHeader(bidRequest.getDevice()))
-                .impIds(BidderUtil.impIds(bidRequest))
-                .payload(outgoingRequest)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .build();
+    @Override
+    public final Result<List<BidderBid>> makeBids(BidderCall<AdQueryRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final AdQueryResponse bidResponse = mapper.decodeValue(
+                    httpCall.getResponse().getBody(), AdQueryResponse.class);
+            return Result.withValues(extractBids(bidResponse, bidRequest.getId()));
+        } catch (DecodeException | PreBidException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
     }
 
     private AdQueryRequest createAdQueryRequest(BidRequest bidRequest, Imp imp, ExtImpAdQuery extImpAdQuery) {
@@ -122,6 +120,55 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
                 .build();
     }
 
+    private static List<BidderBid> extractBids(AdQueryResponse adQueryResponse, String bidRequestId) {
+        if (adQueryResponse == null || adQueryResponse.getData() == null) {
+            return Collections.emptyList();
+        }
+
+        final AdQueryDataResponse data = adQueryResponse.getData();
+        final AdQueryMediaType mediaType = data.getAdQueryMediaType();
+        final Bid bid = Bid.builder()
+                .id(data.getRequestId())
+                .impid(resolveImpId(bidRequestId, data.getRequestId()))
+                .price(data.getCpm())
+                .adm(ADM_TEMPLATE.formatted(data.getAdqLib(), data.getTag()))
+                .adomain(data.getAdDomains())
+                .crid(data.getCreationId())
+                .w(ObjectUtil.getIfNotNull(mediaType, AdQueryMediaType::getWidth))
+                .h(ObjectUtil.getIfNotNull(mediaType, AdQueryMediaType::getHeight))
+                .build();
+
+        final BidType bidType = ObjectUtil.getIfNotNull(mediaType, AdQueryMediaType::getName);
+        final String currency = StringUtils.isNotBlank(data.getCurrency()) ? data.getCurrency() : DEFAULT_CURRENCY;
+        return Collections.singletonList(BidderBid.of(bid, resolveMediaType(bidType), currency));
+    }
+
+    private static String resolveImpId(String bidRequestId, String adQueryRequestId) {
+        return adQueryRequestId != null
+                ? bidRequestId.replaceAll(adQueryRequestId, StringUtils.EMPTY)
+                : bidRequestId;
+    }
+
+    private static BidType resolveMediaType(BidType bidType) {
+        if (bidType != BidType.banner) {
+            throw new PreBidException("Unsupported MediaType: %s".formatted(bidType));
+        }
+        return BidType.banner;
+    }
+
+    private HttpRequest<AdQueryRequest> createRequest(BidRequest bidRequest, Imp imp, ExtImpAdQuery extImpAdQuery) {
+        final AdQueryRequest outgoingRequest = createAdQueryRequest(bidRequest, imp, extImpAdQuery);
+
+        return HttpRequest.<AdQueryRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .headers(makeHeaders(bidRequest.getDevice()))
+                .impIds(Collections.singleton(imp.getId()))
+                .payload(outgoingRequest)
+                .body(mapper.encodeToBytes(outgoingRequest))
+                .build();
+    }
+
     private String getImpSizes(Imp imp) {
         final Banner banner = imp.getBanner();
         if (banner == null) {
@@ -131,7 +178,7 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
         final List<Format> format = banner.getFormat();
         if (CollectionUtils.isNotEmpty(format)) {
             return format.stream()
-                    .map(singleFormat -> "%sx%s".formatted(
+                    .map(singleFormat -> FORMAT_TEMPLATE.formatted(
                             ObjectUtils.defaultIfNull(singleFormat.getW(), 0),
                             ObjectUtils.defaultIfNull(singleFormat.getH(), 0)))
                     .collect(Collectors.joining("_"));
@@ -140,66 +187,21 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
         final Integer w = banner.getW();
         final Integer h = banner.getH();
         if (w != null && h != null) {
-            return "%sx%s".formatted(w, h);
+            return FORMAT_TEMPLATE.formatted(w, h);
         }
 
         return StringUtils.EMPTY;
     }
 
-    private MultiMap resolveHeader(Device device) {
+    private MultiMap makeHeaders(Device device) {
         final MultiMap headers = HttpUtil.headers();
         headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, ORTB_VERSION);
 
         Optional.ofNullable(device)
                 .map(Device::getIp)
-                .map(StringUtils::isNotBlank)
-                .ifPresent(ip -> headers.add(HttpUtil.X_FORWARDED_FOR_HEADER, device.getIp()));
+                .filter(StringUtils::isNotBlank)
+                .ifPresent(ip -> headers.add(HttpUtil.X_FORWARDED_FOR_HEADER, ip));
 
         return headers;
-    }
-
-    @Override
-    public final Result<List<BidderBid>> makeBids(BidderCall<AdQueryRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final AdQueryResponse bidResponse = mapper.decodeValue(
-                    httpCall.getResponse().getBody(), AdQueryResponse.class);
-            return Result.withValues(extractBids(bidResponse, bidRequest));
-        } catch (DecodeException | PreBidException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
-    }
-
-    private static List<BidderBid> extractBids(AdQueryResponse adQueryResponse, BidRequest bidRequest) {
-        if (adQueryResponse == null || adQueryResponse.getData() == null) {
-            return Collections.emptyList();
-        }
-
-        final AdQueryDataResponse data = adQueryResponse.getData();
-        final Bid bid = Bid.builder()
-                .id(data.getRequestId())
-                .impid(resolveImpId(bidRequest, data))
-                .price(data.getCpm())
-                .adm(ADM_TEMPLATE.formatted(data.getAdqLib(), data.getTag()))
-                .adomain(data.getAdDomains())
-                .crid(data.getCreationId())
-                .w(ObjectUtil.getIfNotNull(data.getAdQueryMediaType(), AdQueryMediaType::getWidth))
-                .h(ObjectUtil.getIfNotNull(data.getAdQueryMediaType(), AdQueryMediaType::getHeight))
-                .build();
-
-        return Collections.singletonList(BidderBid.of(bid, resolveMediaType(data.getAdQueryMediaType()),
-                StringUtils.isNotBlank(data.getCurrency()) ? data.getCurrency() : DEFAULT_CURRENCY));
-    }
-
-    private static String resolveImpId(BidRequest bidRequest, AdQueryDataResponse data) {
-        return data.getRequestId() != null
-                ? bidRequest.getId().replaceAll(data.getRequestId(), StringUtils.EMPTY)
-                : bidRequest.getId();
-    }
-
-    private static BidType resolveMediaType(AdQueryMediaType mediaType) {
-        if (mediaType.getName() != BidType.banner) {
-            throw new PreBidException(String.format("Unsupported MediaType: %s", mediaType.getName()));
-        }
-        return BidType.banner;
     }
 }

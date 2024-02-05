@@ -93,9 +93,8 @@ public class AdQueryBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdQueryRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
-                .startsWith("Cannot deserialize value of type ");
+        assertThat(result.getErrors()).hasSize(1).first()
+                .satisfies(error -> assertThat(error.getMessage()).startsWith("Cannot deserialize value of type"));
     }
 
     @Test
@@ -249,7 +248,7 @@ public class AdQueryBidderTest extends VertxTest {
         final BidderCall<AdQueryRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().id("requestId").build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -262,7 +261,7 @@ public class AdQueryBidderTest extends VertxTest {
         final BidderCall<AdQueryRequest> httpCall = givenHttpCall(mapper.writeValueAsString(AdQueryResponse.of(null)));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().id("requestId").build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -277,8 +276,7 @@ public class AdQueryBidderTest extends VertxTest {
                 mapper.writeValueAsString(AdQueryResponse.of(AdQueryDataResponse.builder()
                         .requestId("abs")
                         .cpm(BigDecimal.valueOf(123))
-                        .adQueryMediaType(AdQueryMediaType.of(BidType.audio, 120,
-                                320))
+                        .adQueryMediaType(AdQueryMediaType.of(BidType.audio, 120, 320))
                         .build())));
 
         // when
@@ -396,22 +394,20 @@ public class AdQueryBidderTest extends VertxTest {
     }
 
     private static BidderCall<AdQueryRequest> givenHttpCall(
-            UnaryOperator<AdQueryDataResponse.AdQueryDataResponseBuilder> adQueryResponse)
+            UnaryOperator<AdQueryDataResponse.AdQueryDataResponseBuilder> adQueryResponseBuilder)
             throws JsonProcessingException {
-        final String body = mapper.writeValueAsString(
-                AdQueryResponse.of(
-                        adQueryResponse.apply(
-                                        AdQueryDataResponse.builder()
-                                                .requestId("abs")
-                                                .cpm(BigDecimal.valueOf(321))
-                                                .creationId("312")
-                                                .adqLib("AnyLib")
-                                                .currency("UAH")
-                                                .tag("AnyTag")
-                                                .adDomains(singletonList("any"))
-                                                .adQueryMediaType(
-                                                        AdQueryMediaType.of(BidType.banner, 120, 320)))
-                                .build()));
+
+        final AdQueryDataResponse adQueryResponse = adQueryResponseBuilder.apply(AdQueryDataResponse.builder()
+                        .requestId("abs")
+                        .cpm(BigDecimal.valueOf(321))
+                        .creationId("312")
+                        .adqLib("AnyLib")
+                        .currency("UAH")
+                        .tag("AnyTag")
+                        .adDomains(singletonList("any"))
+                        .adQueryMediaType(AdQueryMediaType.of(BidType.banner, 120, 320)))
+                .build();
+        final String body = mapper.writeValueAsString(AdQueryResponse.of(adQueryResponse));
         return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 }
