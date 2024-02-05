@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>2.8.0-SNAPSHOT</version>
+        <version>${revision}</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -24,20 +24,17 @@
         <java.version>17</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
+        <dockerfileName>Dockerfile</dockerfileName>
 
         <!-- dependencies versions -->
         <spring.boot.version>2.5.6</spring.boot.version>
-        <javax.annotation-api.version>1.3.1</javax.annotation-api.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
-        <hibernate-validator.version>6.1.5.Final</hibernate-validator.version>
         <vertx.version>3.9.10</vertx.version>
-        <netty.version>4.1.69.Final</netty.version>
-        <lombok.version>1.18.24</lombok.version>
         <commons.version>3.12.0</commons.version>
         <commons.collections.version>4.4</commons.collections.version>
         <commons.compress.version>1.21</commons.compress.version>
         <commons-math3.version>3.6.1</commons-math3.version>
-        <httpclient.version>4.5.13</httpclient.version>
+        <httpclient.version>4.5.14</httpclient.version>
         <ipaddress.version>5.3.1</ipaddress.version>
         <oshi.version>6.4.5</oshi.version>
         <jackson.version>2.14.1</jackson.version>
@@ -45,21 +42,18 @@
         <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.28</mysql.version>
         <postgresql.version>42.4.3</postgresql.version>
-        <caffeine.version>2.6.2</caffeine.version>
         <psl.version>2.2.0</psl.version>
-        <metrics.version>4.0.3</metrics.version>
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
         <iabtcf.version>2.0.7</iabtcf.version>
-        <metrics-prometheus.version>0.12.0</metrics-prometheus.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
         <logback.version>1.2.13</logback.version>
-        <log4j.version>2.19.0</log4j.version>
         <hikari.version>5.0.1</hikari.version>
         <gpp-encoder.version>3.0.10</gpp-encoder.version>
         <protobuf.version>3.21.7</protobuf.version>
         <protoc.version>3.17.3</protoc.version>
         <json-logic.version>1.0.7</json-logic.version>
+        <slf4j.version>1.7.32</slf4j.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
@@ -92,6 +86,7 @@
         <gmavenplus-plugin.version>1.13.1</gmavenplus-plugin.version>
         <allure-maven.version>2.10.0</allure-maven.version>
         <skipFunctionalTests>false</skipFunctionalTests>
+        <skipModuleFunctionalTests>false</skipModuleFunctionalTests>
         <skipUnitTests>false</skipUnitTests>
         <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
         <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
@@ -107,6 +102,28 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <dependency>
+                <groupId>com.google.code.gson</groupId>
+                <artifactId>gson</artifactId>
+            </dependency>
+            <dependency>
+                <groupId>commons-codec</groupId>
+                <artifactId>commons-codec</artifactId>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore</artifactId>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.rabbitmq</groupId>
+                <artifactId>amqp-client</artifactId>
+            </dependency>
+            <dependency>
+                <groupId>org.jboss.logging</groupId>
+                <artifactId>jboss-logging</artifactId>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -114,17 +131,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
-            <version>${spring.boot.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
-            <version>${spring.boot.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.annotation</groupId>
             <artifactId>javax.annotation-api</artifactId>
-            <version>${javax.annotation-api.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.validation</groupId>
@@ -134,7 +148,6 @@
         <dependency>
             <groupId>org.hibernate.validator</groupId>
             <artifactId>hibernate-validator</artifactId>
-            <version>${hibernate-validator.version}</version>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
@@ -175,13 +188,6 @@
             <groupId>io.netty</groupId>
             <artifactId>netty-transport-native-epoll</artifactId>
             <classifier>linux-x86_64</classifier>
-            <version>${netty.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -278,7 +284,6 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
-            <version>${caffeine.version}</version>
         </dependency>
         <dependency>
             <groupId>de.malkusch.whois-server-list</groupId>
@@ -294,17 +299,14 @@
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
-            <version>${metrics.version}</version>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-jvm</artifactId>
-            <version>${metrics.version}</version>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-graphite</artifactId>
-            <version>${metrics.version}</version>
         </dependency>
         <dependency>
             <groupId>com.izettle</groupId>
@@ -334,12 +336,10 @@
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_vertx</artifactId>
-            <version>${metrics-prometheus.version}</version>
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_dropwizard</artifactId>
-            <version>${metrics-prometheus.version}</version>
         </dependency>
         <dependency>
             <groupId>com.maxmind.geoip2</groupId>
@@ -358,14 +358,17 @@
             <version>${logback.version}</version>
         </dependency>
         <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-to-slf4j</artifactId>
-            <version>${log4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-api</artifactId>
-            <version>${log4j.version}</version>
         </dependency>
         <dependency>
             <groupId>com.zaxxer</groupId>
@@ -620,8 +623,21 @@
                         <systemPropertyVariables>
                             <launchContainers>true</launchContainers>
                         </systemPropertyVariables>
-                        <skipITs>${skipFunctionalTests}</skipITs>
                     </configuration>
+                    <executions>
+                        <execution>
+                            <id>functional-tests</id>
+                            <configuration>
+                                <skip>${skipFunctionalTests}</skip>
+                            </configuration>
+                        </execution>
+                        <execution>
+                            <id>module-functional-tests</id>
+                            <configuration>
+                                <skip>${skipModuleFunctionalTests}</skip>
+                            </configuration>
+                        </execution>
+                    </executions>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -846,6 +862,16 @@
                 <groupId>io.fabric8</groupId>
                 <artifactId>docker-maven-plugin</artifactId>
                 <version>${docker-maven-plugin.version}</version>
+                <configuration>
+                    <images>
+                        <image>
+                            <name>prebid/prebid-server</name>
+                            <build>
+                                <dockerFile>${project.basedir}/${dockerfileName}</dockerFile>
+                            </build>
+                        </image>
+                    </images>
+                </configuration>
                 <executions>
                     <execution>
                         <id>build-containers</id>
@@ -861,6 +887,14 @@
                 <artifactId>gmavenplus-plugin</artifactId>
                 <configuration>
                     <parallelParsing>true</parallelParsing>
+                    <testSources>
+                        <testSource>
+                            <directory>${project.basedir}/src/test/groovy</directory>
+                            <includes>
+                                <include>**/*.groovy</include>
+                            </includes>
+                        </testSource>
+                    </testSources>
                 </configuration>
                 <executions>
                     <execution>
@@ -887,13 +921,29 @@
                 </configuration>
                 <executions>
                     <execution>
+                        <id>functional-tests</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <excludes>
+                                <exclude>**/tests/module/**/*Spec</exclude>
+                            </excludes>
+                            <includes>
+                                <include>**/*Spec</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>module-functional-tests</id>
                         <goals>
                             <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
                         <configuration>
                             <includes>
-                                <include>**/*Spec.java</include>
+                                <include>**/tests/module/**/*Spec</include>
                             </includes>
                         </configuration>
                     </execution>

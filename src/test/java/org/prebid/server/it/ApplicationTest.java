@@ -447,6 +447,10 @@ public class ApplicationTest extends IntegrationTest {
 
         final List<String> bidders = getBidderNamesFromParamFiles();
         final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
+        //todo: necessary since the config file is not a source of truth in terms of defining aliases for the bidders
+        // the suggestion is eventually resolving static json file name from the bidder config file
+        // and not from the name hard-coded in the Configuration class
+        aliases.put("cadent_aperture_mx", "emx_digital");
         final Map<String, JsonNode> expectedMap = CollectionUtils.union(bidders, aliases.keySet()).stream()
                 .collect(Collectors.toMap(
                         Function.identity(),

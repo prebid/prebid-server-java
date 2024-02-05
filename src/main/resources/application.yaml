@@ -219,10 +219,22 @@ gdpr:
       http-endpoint-template: https://vendor-list.consensu.org/v2/archives/vendor-list-v{VERSION}.json
       refresh-missing-list-period-ms: 3600000
       deprecated: false
+      retry-policy:
+        exponential-backoff:
+          delay-millis: 60000
+          max-delay-millis: 120000
+          factor: 1.1
+          jitter: 0.2
     v3:
       http-endpoint-template: https://vendor-list.consensu.org/v3/archives/vendor-list-v{VERSION}.json
       refresh-missing-list-period-ms: 3600000
       deprecated: false
+      retry-policy:
+        exponential-backoff:
+          delay-millis: 60000
+          max-delay-millis: 120000
+          factor: 1.1
+          jitter: 0.2
   purposes:
     p1:
       enforce-purpose: full
