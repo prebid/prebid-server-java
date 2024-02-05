@@ -210,13 +210,6 @@ public class AidemBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
-    }
-
     private static BidResponse givenBidResponse(Bid... bids) {
         return BidResponse.builder()
                 .cur("USD")
@@ -233,10 +226,6 @@ public class AidemBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpAidem.of("testSiteId", "testPubId", "testPlcmt", "testRateLimit"))))
                 .build();
-    }
-
-    private static Bid givenBid() {
-        return Bid.builder().impid("123").build();
     }
 
     private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
