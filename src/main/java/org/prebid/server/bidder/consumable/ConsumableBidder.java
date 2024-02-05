@@ -46,6 +46,8 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     private static final String OPENRTB_VERSION = "2.5";
     private static final TypeReference<ExtPrebid<?, ExtImpConsumable>> CONS_EXT_TYPE_REFERENCE = new TypeReference<>() {
     };
+    public static final String SITE_URI_PATH = "/sb/rtb";
+    public static final String APP_URI_PATH = "/rtb/bid?s=";
     private final JacksonMapper mapper;
 
     private final String endpointUrl;
@@ -73,7 +75,7 @@ public class ConsumableBidder implements Bidder<BidRequest> {
                 }
             }
             httpRequests.add(BidderUtil.defaultRequest(modifyBidRequest(bidRequest, imps), resolveHeaders(),
-                    this.endpointUrl + "/sb/rtb", mapper));
+                    this.endpointUrl + SITE_URI_PATH, mapper));
         } else if (bidRequest.getApp() != null) {
             for (Imp imp : bidRequest.getImp()) {
                 try {
@@ -82,7 +84,7 @@ public class ConsumableBidder implements Bidder<BidRequest> {
                     if (!Strings.isNullOrEmpty(impExt.getPlacementId())) {
                         httpRequests.add(BidderUtil.defaultRequest(modifyBidRequest(bidRequest,
                                 Collections.singletonList(modifyImp(imp, impExt))), resolveHeaders(),
-                                this.endpointUrl + "/rtb/bid?s=" + impExt.getPlacementId(), mapper));
+                                this.endpointUrl + APP_URI_PATH + impExt.getPlacementId(), mapper));
                     }
                 } catch (PreBidException e) {
                     errors.add(BidderError.badInput(e.getMessage()));
@@ -118,10 +120,8 @@ public class ConsumableBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp, ExtImpConsumable impExt) {
         final UpdateResult<ObjectNode> impExtUpdateResult = modifyImpExt(imp, impExt);
-        final UpdateResult<Banner> bannerUpdateResult = modifyImpBanner(imp.getBanner());
 
-        return impExtUpdateResult.isUpdated() || bannerUpdateResult.isUpdated() ? imp.toBuilder().ext(impExtUpdateResult
-                .getValue()).banner(bannerUpdateResult.getValue()).build() : imp;
+        return imp;
     }
 
     private UpdateResult<ObjectNode> modifyImpExt(Imp imp, ExtImpConsumable extImpConsumable) {
