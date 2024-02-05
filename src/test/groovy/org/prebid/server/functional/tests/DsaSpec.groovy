@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -50,9 +51,8 @@ class DsaSpec extends BaseSpec {
         }
 
         and: "Bidder response should not contain DSA"
-        def bidderResponse = decode(response.ext.debug.httpcalls.get("generic")[0].responseBody, BidResponse)
-        assert bidderResponse.seatbid[0].bid[0].ext?.dsa == null
-
+        def bidderResponse = decode(response.ext.debug.httpcalls.get(BidderName.GENERIC.value)[0].responseBody, BidResponse)
+        assert !bidderResponse.seatbid[0].bid[0].ext?.dsa
 
         and: "PBS should not log warning"
         assert !response.ext.warnings
@@ -102,7 +102,7 @@ class DsaSpec extends BaseSpec {
         }
 
         and: "Bidder response should contain DSA"
-        def bidderResponse = decode(response.ext.debug.httpcalls.get("generic")[0].responseBody, BidResponse)
+        def bidderResponse = decode(response.ext.debug.httpcalls.get(BidderName.GENERIC.value)[0].responseBody, BidResponse)
         def actualDsa = bidderResponse.seatbid[0].bid[0].ext.dsa
         verifyAll {
             actualDsa.transparency[0].domain == bidDsa.transparency[0].domain
@@ -117,7 +117,7 @@ class DsaSpec extends BaseSpec {
         assert !response.ext.errors
 
         where:
-        dsaRequired << [ReqsDsaRequiredType.NOT_REQUIRED, ReqsDsaRequiredType.SUPPORTED, ReqsDsaRequiredType.REQUIRED, ReqsDsaRequiredType.REQUIRED_PUBLISHER_ONLINE_PLATFORM]
+        dsaRequired << ReqsDsaRequiredType.values()
     }
 
     def "AMP request should send DSA to bidder and fail on response when DSA is required and bidder does not return DSA"() {
@@ -157,8 +157,8 @@ class DsaSpec extends BaseSpec {
         }
 
         and: "Bidder response should not contain DSA"
-        def bidderResponse = decode(response.ext.debug.httpcalls.get("generic")[0].responseBody, BidResponse)
-        assert bidderResponse.seatbid[0].bid[0].ext?.dsa == null
+        def bidderResponse = decode(response.ext.debug.httpcalls.get(BidderName.GENERIC.value)[0].responseBody, BidResponse)
+        assert !bidderResponse.seatbid[0].bid[0].ext?.dsa
 
         and: "Response should contain error"
         def expectedBidId = bidResponse.seatbid[0].bid[0].id
@@ -200,7 +200,7 @@ class DsaSpec extends BaseSpec {
         }
 
         and: "DSA is not returned"
-        assert response.seatbid[0].bid[0].ext.dsa == null
+        assert !response.seatbid[0].bid[0].ext.dsa
 
         where:
         dsaRequired << [ReqsDsaRequiredType.NOT_REQUIRED, ReqsDsaRequiredType.SUPPORTED]
@@ -246,7 +246,7 @@ class DsaSpec extends BaseSpec {
         }
 
         where:
-        dsaRequired << [ReqsDsaRequiredType.NOT_REQUIRED, ReqsDsaRequiredType.SUPPORTED, ReqsDsaRequiredType.REQUIRED, ReqsDsaRequiredType.REQUIRED_PUBLISHER_ONLINE_PLATFORM]
+        dsaRequired << ReqsDsaRequiredType.values()
     }
 
     def "Auction request should send DSA to bidder and fail on response when DSA is required and bidder does not return DSA"() {
