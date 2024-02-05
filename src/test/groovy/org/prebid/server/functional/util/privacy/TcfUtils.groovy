@@ -17,11 +17,10 @@ class TcfUtils {
         def purpose = enforcementRequirments.purposeConsent ?: enforcementRequirments.purpose
         def purposeConfig = new PurposeConfig(enforcePurpose: enforcementRequirments.enforcePurpose,
                 enforceVendors: enforcementRequirments?.enforceVendor,
-                softVendorExceptions: enforcementRequirments?.softVendorExceptions,
+                softVendorExceptions: enforcementRequirments?.softVendorExceptions?.value,
                 vendorExceptions: enforcementRequirments?.vendorExceptions?.value)
         def purposeEid = new PurposeEid(requireConsent: requireConsent, exceptions: eidsExceptions)
         Map<Purpose, PurposeConfig> purposes = [:]
-//        purposes[Purpose.P2] = new PurposeConfig(enforcePurpose: PurposeEnforcement.BASIC, enforceVendors: false)
         if (purpose == Purpose.P4) {
             purposeConfig.eid = purposeEid
             purposes[Purpose.P4] = purposeConfig
@@ -40,7 +39,6 @@ class TcfUtils {
         def restrictionType = enforcementRequirments.restrictionType
         def vendorIdGvl = enforcementRequirments.vendorIdGvl
         def builder = new Builder()
-//        builder.setPurposesConsent(PurposeId.convertPurposeToPurposeId(Purpose.P2))
         if (purposeConsent != null) {
             builder.setPurposesConsent(PurposeId.convertPurposeToPurposeId(purposeConsent))
         }

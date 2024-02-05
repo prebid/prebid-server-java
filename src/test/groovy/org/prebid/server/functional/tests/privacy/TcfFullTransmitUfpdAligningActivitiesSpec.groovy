@@ -164,7 +164,7 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         enforcementRequirments << getFullEnforcementRequirments(P2)
     }
 
-    @PendingFeature
+    @PendingFeature(reason = "can't separate purposes from basic ads")
     def "PBS should remove the original request with eids data when requireConsent is enabled, bidder is excepted and #enforcementRequirments.purpose have unsupported full consent"() {
         given: "Default Generic BidRequests with EID fields"
         def userEids = [Eid.defaultEid]
@@ -228,7 +228,7 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         enforcementRequirments << getFullEnforcementRequirments(P2)
     }
 
-    @PendingFeature
+    @PendingFeature(reason = "can't separate purposes from basic ads")
     def "PBS should remove the original request with eids data when requireConsent is disabled and #enforcementRequirments.purpose have unsupported full consent"() {
         given: "Default Generic BidRequests with EID fields"
         def userEids = [Eid.defaultEid]

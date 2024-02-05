@@ -9,9 +9,9 @@ enum ActivityType {
     ENRICH_UFPD("enrichUfpd"),
     REPORT_ANALYTICS("reportAnalytics"),
     TRANSMIT_UFPD("transmitUfpd"),
-    TRANSMIT_EIDS("transmitEids"),
     TRANSMIT_PRECISE_GEO("transmitPreciseGeo"),
-    TRANSMIT_TID("transmitTid")
+    TRANSMIT_TID("transmitTid"),
+    TRANSMIT_EIDS("transmitEids")
 
     @JsonValue
     final String value

@@ -6,7 +6,6 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
@@ -24,7 +23,6 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.CcpaConsent
-import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC

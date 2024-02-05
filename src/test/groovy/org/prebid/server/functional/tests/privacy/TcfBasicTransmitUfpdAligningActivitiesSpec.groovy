@@ -137,7 +137,7 @@ class TcfBasicTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         enforcementRequirments << getBasicEnforcementRequirments(P2) + getBasicPurposesLITEnforcementRequirments(P2)
     }
 
-    @PendingFeature
+    @PendingFeature(reason = "can't separate purposes from basic ads")
     def "PBS should remove the original request with eids data when requireConsent is enabled, bidder is excepted and #enforcementRequirments.purpose have unsupported basic consent"() {
         given: "Default Generic BidRequests with EID fields"
         def userEids = [Eid.defaultEid]
@@ -212,7 +212,7 @@ class TcfBasicTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
                 getBasicPurposesLITEnforcementRequirments(P2)
     }
 
-    @PendingFeature
+    @PendingFeature(reason = "can't separate purposes from basic ads")
     def "PBS should remove the original request with eids data when requireConsent is disabled and #enforcementRequirments.purpose have unsupported basic consent"() {
         given: "Default Generic BidRequests with EID fields"
         def userEids = [Eid.defaultEid]
@@ -260,8 +260,8 @@ class TcfBasicTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
          new EnforcementRequirments(purpose: purpose, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
          new EnforcementRequirments(purpose: purpose, enforcePurpose: NO, enforceVendor: false),
          new EnforcementRequirments(purpose: purpose, vendorExceptions: [GENERIC]),
-         new EnforcementRequirments(purpose: purpose, enforcePurpose: BASIC, purposeConsent: purpose, softVendorExceptions: [GENERIC_VENDOR_ID]),
-         new EnforcementRequirments(purpose: purpose, enforcePurpose: NO, softVendorExceptions: [GENERIC_VENDOR_ID])]
+         new EnforcementRequirments(purpose: purpose, enforcePurpose: BASIC, purposeConsent: purpose, softVendorExceptions: [GENERIC]),
+         new EnforcementRequirments(purpose: purpose, enforcePurpose: NO, softVendorExceptions: [GENERIC])]
     }
 
     private static List<EnforcementRequirments> getBasicPurposesLITEnforcementRequirments(Purpose purpose) {
