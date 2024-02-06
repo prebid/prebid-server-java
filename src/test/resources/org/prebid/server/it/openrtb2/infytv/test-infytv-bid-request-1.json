@@ -4,9 +4,12 @@
     {
       "id": "imp_id",
       "secure": 1,
-      "banner": {
-        "w": 300,
-        "h": 250
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 640,
+        "h": 480
       },
       "ext": {
         "tid": "${json-unit.any-string}",

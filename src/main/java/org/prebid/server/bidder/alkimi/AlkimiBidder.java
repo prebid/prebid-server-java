@@ -36,8 +36,6 @@ public class AlkimiBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    private static final String TYPE_BANNER = "Banner";
-    private static final String TYPE_VIDEO = "Video";
     private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
     private static final TypeReference<ExtPrebid<?, ExtImpAlkimi>> ALKIMI_EXT_TYPE_REFERENCE = new TypeReference<>() {

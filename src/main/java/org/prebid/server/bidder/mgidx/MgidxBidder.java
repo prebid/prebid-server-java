@@ -42,7 +42,6 @@ public class MgidxBidder implements Bidder<BidRequest> {
     private static final String PUBLISHER_PROPERTY = "publisher";
     private static final String NETWORK_PROPERTY = "network";
     private static final String BIDDER_PROPERTY = "bidder";
-    private static final String PREBID_EXT = "prebid";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;

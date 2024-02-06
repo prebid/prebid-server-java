@@ -3,9 +3,12 @@
   "imp": [
     {
       "id": "imp_id",
-      "banner": {
-        "w": 300,
-        "h": 250
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "w": 640,
+        "h": 480
       },
       "ext": {
         "infytv": {
