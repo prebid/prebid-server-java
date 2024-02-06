@@ -1553,7 +1553,7 @@ public class ExchangeService {
         return auctionParticipation.with(resultBidderResponse);
     }
 
-    private static Boolean isDsaValidationRequired(BidRequest bidRequest) {
+    private static boolean isDsaValidationRequired(BidRequest bidRequest) {
         return Optional.ofNullable(bidRequest.getRegs())
                 .map(Regs::getExt)
                 .map(ExtRegs::getDsa)
