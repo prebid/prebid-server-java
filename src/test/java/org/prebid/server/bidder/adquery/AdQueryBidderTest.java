@@ -64,7 +64,7 @@ public class AdQueryBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .containsExactly(AdQueryRequest.builder()
-                        .v("server")
+                        .version("server")
                         .placementCode("pl1")
                         .auctionId("")
                         .type("6d93f2a0e5f0fe2cc3a6e9e3ade964b43b07f897")

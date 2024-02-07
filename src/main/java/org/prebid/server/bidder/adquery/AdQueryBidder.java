@@ -103,7 +103,7 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
     private static AdQueryRequest createAdQueryRequest(BidRequest bidRequest, Imp imp, ExtImpAdQuery extImpAdQuery) {
         final Optional<Device> optionalDevice = Optional.ofNullable(bidRequest.getDevice());
         return AdQueryRequest.builder()
-                .v(PREBID_VERSION)
+                .version(PREBID_VERSION)
                 .placementCode(extImpAdQuery.getPlacementId())
                 .auctionId(StringUtils.EMPTY)
                 .type(extImpAdQuery.getType())

@@ -9,7 +9,7 @@ import lombok.Value;
 public class AdQueryRequest {
 
     @JsonProperty("v")
-    String v;
+    String version;
 
     @JsonProperty("placementCode")
     String placementCode;
