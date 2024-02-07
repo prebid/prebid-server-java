@@ -87,18 +87,20 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
         }
     }
 
-    @Override
-    public final Result<List<BidderBid>> makeBids(BidderCall<AdQueryRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final AdQueryResponse bidResponse = mapper.decodeValue(
-                    httpCall.getResponse().getBody(), AdQueryResponse.class);
-            return Result.withValues(extractBids(bidResponse, bidRequest.getId()));
-        } catch (DecodeException | PreBidException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
+    private HttpRequest<AdQueryRequest> createRequest(BidRequest bidRequest, Imp imp, ExtImpAdQuery extImpAdQuery) {
+        final AdQueryRequest outgoingRequest = createAdQueryRequest(bidRequest, imp, extImpAdQuery);
+
+        return HttpRequest.<AdQueryRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(endpointUrl)
+                .headers(makeHeaders(bidRequest.getDevice()))
+                .impIds(Collections.singleton(imp.getId()))
+                .payload(outgoingRequest)
+                .body(mapper.encodeToBytes(outgoingRequest))
+                .build();
     }
 
-    private AdQueryRequest createAdQueryRequest(BidRequest bidRequest, Imp imp, ExtImpAdQuery extImpAdQuery) {
+    private static AdQueryRequest createAdQueryRequest(BidRequest bidRequest, Imp imp, ExtImpAdQuery extImpAdQuery) {
         final Optional<Device> optionalDevice = Optional.ofNullable(bidRequest.getDevice());
         return AdQueryRequest.builder()
                 .v(PREBID_VERSION)
@@ -107,7 +109,7 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
                 .type(extImpAdQuery.getType())
                 .adUnitCode(imp.getTagid())
                 .bidQid(Optional.ofNullable(bidRequest.getUser()).map(User::getId).orElse(StringUtils.EMPTY))
-                .bidId(bidRequest.getId() + imp.getId())
+                .bidId(StringUtils.defaultString(bidRequest.getId()) + StringUtils.defaultString(imp.getId()))
                 .bidder(BIDDER_NAME)
                 .bidderRequestId(bidRequest.getId())
                 .bidRequestsCount(1)
@@ -118,6 +120,53 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
                 .bidUa(optionalDevice.map(Device::getUa).orElse(null))
                 .bidPageUrl(Optional.ofNullable(bidRequest.getSite()).map(Site::getPage).orElse(null))
                 .build();
+    }
+
+    private static String getImpSizes(Imp imp) {
+        final Banner banner = imp.getBanner();
+        if (banner == null) {
+            return StringUtils.EMPTY;
+        }
+
+        final List<Format> format = banner.getFormat();
+        if (CollectionUtils.isNotEmpty(format)) {
+            return format.stream()
+                    .map(singleFormat -> FORMAT_TEMPLATE.formatted(
+                            ObjectUtils.defaultIfNull(singleFormat.getW(), 0),
+                            ObjectUtils.defaultIfNull(singleFormat.getH(), 0)))
+                    .collect(Collectors.joining(","));
+        }
+
+        final Integer w = banner.getW();
+        final Integer h = banner.getH();
+        if (w != null && h != null) {
+            return FORMAT_TEMPLATE.formatted(w, h);
+        }
+
+        return StringUtils.EMPTY;
+    }
+
+    private static MultiMap makeHeaders(Device device) {
+        final MultiMap headers = HttpUtil.headers();
+        headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, ORTB_VERSION);
+
+        Optional.ofNullable(device)
+                .map(Device::getIp)
+                .filter(StringUtils::isNotBlank)
+                .ifPresent(ip -> headers.add(HttpUtil.X_FORWARDED_FOR_HEADER, ip));
+
+        return headers;
+    }
+
+    @Override
+    public final Result<List<BidderBid>> makeBids(BidderCall<AdQueryRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final AdQueryResponse bidResponse = mapper.decodeValue(
+                    httpCall.getResponse().getBody(), AdQueryResponse.class);
+            return Result.withValues(extractBids(bidResponse, bidRequest.getId()));
+        } catch (DecodeException | PreBidException e) {
+            return Result.withError(BidderError.badServerResponse(e.getMessage()));
+        }
     }
 
     private static List<BidderBid> extractBids(AdQueryResponse adQueryResponse, String bidRequestId) {
@@ -154,54 +203,5 @@ public class AdQueryBidder implements Bidder<AdQueryRequest> {
             throw new PreBidException("Unsupported MediaType: %s".formatted(bidType));
         }
         return BidType.banner;
-    }
-
-    private HttpRequest<AdQueryRequest> createRequest(BidRequest bidRequest, Imp imp, ExtImpAdQuery extImpAdQuery) {
-        final AdQueryRequest outgoingRequest = createAdQueryRequest(bidRequest, imp, extImpAdQuery);
-
-        return HttpRequest.<AdQueryRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(makeHeaders(bidRequest.getDevice()))
-                .impIds(Collections.singleton(imp.getId()))
-                .payload(outgoingRequest)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .build();
-    }
-
-    private String getImpSizes(Imp imp) {
-        final Banner banner = imp.getBanner();
-        if (banner == null) {
-            return StringUtils.EMPTY;
-        }
-
-        final List<Format> format = banner.getFormat();
-        if (CollectionUtils.isNotEmpty(format)) {
-            return format.stream()
-                    .map(singleFormat -> FORMAT_TEMPLATE.formatted(
-                            ObjectUtils.defaultIfNull(singleFormat.getW(), 0),
-                            ObjectUtils.defaultIfNull(singleFormat.getH(), 0)))
-                    .collect(Collectors.joining("_"));
-        }
-
-        final Integer w = banner.getW();
-        final Integer h = banner.getH();
-        if (w != null && h != null) {
-            return FORMAT_TEMPLATE.formatted(w, h);
-        }
-
-        return StringUtils.EMPTY;
-    }
-
-    private MultiMap makeHeaders(Device device) {
-        final MultiMap headers = HttpUtil.headers();
-        headers.add(HttpUtil.X_OPENRTB_VERSION_HEADER, ORTB_VERSION);
-
-        Optional.ofNullable(device)
-                .map(Device::getIp)
-                .filter(StringUtils::isNotBlank)
-                .ifPresent(ip -> headers.add(HttpUtil.X_FORWARDED_FOR_HEADER, ip));
-
-        return headers;
     }
 }

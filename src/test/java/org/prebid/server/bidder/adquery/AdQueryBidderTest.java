@@ -79,7 +79,7 @@ public class AdQueryBidderTest extends VertxTest {
                         .bidderRequestId("22e26bd9a702bc")
                         .bidderRequestsCount(1)
                         .bidRequestsCount(1)
-                        .sizes("320x100_300x250")
+                        .sizes("320x100,300x250")
                         .build());
     }
 
