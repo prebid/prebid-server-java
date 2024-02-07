@@ -8,6 +8,7 @@ import lombok.Value;
 @Value
 public class AdQueryRequest {
 
+    @JsonProperty("v")
     String v;
 
     @JsonProperty("placementCode")
