@@ -715,7 +715,7 @@ public class RubiconBidderTest extends VertxTest {
                 builder -> builder
                         .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build())
                         .video(Video.builder().mimes(singletonList("mime1")).protocols(singletonList(1))
-                                .maxduration(60).linearity(2).build()),
+                                .maxduration(60).linearity(2).api(singletonList(3)).build()),
                 identity());
 
         // when
@@ -730,7 +730,7 @@ public class RubiconBidderTest extends VertxTest {
                 .containsOnly(tuple(
                         null, // banner is removed
                         Video.builder().mimes(singletonList("mime1")).protocols(singletonList(1))
-                                .maxduration(60).linearity(2).build()));
+                                .maxduration(60).linearity(2).api(singletonList(3)).build()));
     }
 
     @Test
@@ -3295,6 +3295,7 @@ public class RubiconBidderTest extends VertxTest {
                                 .protocols(singletonList(1))
                                 .maxduration(10)
                                 .linearity(10)
+                                .api(singletonList(12))
                                 .build())
                         .banner(Banner.builder()
                                 .format(singletonList(Format.builder().h(300).w(250).build()))
@@ -3610,7 +3611,7 @@ public class RubiconBidderTest extends VertxTest {
                 givenBidRequest(builder -> builder
                         .banner(Banner.builder().build())
                         .video(Video.builder().mimes(singletonList("mime1")).protocols(singletonList(1))
-                                .maxduration(60).linearity(2).build())),
+                                .maxduration(60).linearity(2).api(singletonList(3)).build())),
                 givenBidResponse(ONE));
 
         // when

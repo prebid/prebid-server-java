@@ -1026,10 +1026,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static boolean isFullyPopulatedVideo(Video video) {
         // These are just recommended video fields for XAPI
-        return video.getMimes() != null
-                && video.getProtocols() != null
-                && video.getMaxduration() != null
-                && video.getLinearity() != null;
+        return video.getMimes() != null && video.getProtocols() != null && video.getMaxduration() != null
+                && video.getLinearity() != null && video.getApi() != null;
     }
 
     private static String referer(Site site) {
