@@ -256,15 +256,15 @@ public class Ortb2RequestFactory {
         }
 
         final boolean isGdprOnly = BooleanUtils.isTrue(accountDsaConfig.getGdprOnly());
-        if (!isGdprOnly || privacyContext.getTcfContext().isInGdprScope()) {
-            return Optional.ofNullable(regs)
-                    .map(Regs::toBuilder)
-                    .orElseGet(Regs::builder)
-                    .ext(mapRegsExtDsa(defaultDsa, regsExt))
-                    .build();
+        if (isGdprOnly && !privacyContext.getTcfContext().isInGdprScope()) {
+            return null;
         }
 
-        return regs;
+        return Optional.ofNullable(regs)
+                .map(Regs::toBuilder)
+                .orElseGet(Regs::builder)
+                .ext(mapRegsExtDsa(defaultDsa, regsExt))
+                .build();
     }
 
     private static ExtRegs mapRegsExtDsa(DefaultDsa defaultDsa, ExtRegs regsExt) {
@@ -277,17 +277,11 @@ public class Ortb2RequestFactory {
                 defaultDsa.getPubRender(),
                 defaultDsa.getDataToPub(),
                 enrichedDsaTransparencies);
-        if (regsExt == null) {
-            return ExtRegs.of(null,
-                    null,
-                    null,
-                    enrichedRegsExtDsa);
-        } else {
-            return ExtRegs.of(regsExt.getGdpr(),
-                    regsExt.getUsPrivacy(),
-                    regsExt.getGpc(),
-                    enrichedRegsExtDsa);
-        }
+
+        return ExtRegs.of(regsExt != null ? regsExt.getGdpr() : null,
+                regsExt != null ? regsExt.getUsPrivacy() : null,
+                regsExt != null ? regsExt.getGpc() : null,
+                enrichedRegsExtDsa);
     }
 
     public Future<HttpRequestContext> executeEntrypointHooks(RoutingContext routingContext,

@@ -1461,7 +1461,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void enrichBidRequestWithAccountAndPrivacyDataShouldAddDsaFromAccountWhenRequestLacksDsa() {
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldSetDsaFromAccountWhenRequestLacksDsa() {
         // given
         final String accountId = "accId";
         final BidRequest bidRequest = givenBidRequest(builder -> builder
@@ -1520,14 +1520,16 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void enrichBidRequestWithAccountAndPrivacyDataShouldNotAddDsaFromAccountWhenAccountLacksDefaultDsa() {
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldNotSetDsaFromAccountWhenAccountLacksDefaultDsa() {
         // given
         final String accountId = "accId";
+        final Regs regs = Regs.builder().build();
         final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .imp(emptyList())
                 .site(Site.builder()
                         .publisher(Publisher.builder().id(accountId).build())
-                        .build()));
+                        .build())
+                .regs(regs));
 
         final PrivacyContext privacyContext = PrivacyContext.of(
                 Privacy.builder()
@@ -1562,11 +1564,15 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getRegs)
+                .extracting(Regs::getExt)
                 .isNull();
+        assertThat(result)
+                .extracting(BidRequest::getRegs)
+                .isSameAs(regs);
     }
 
     @Test
-    public void enrichBidRequestWithAccountAndPrivacyDataShouldNotAddDsaFromAccountWhenRequestContainsDsa() {
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldNotSetDsaFromAccountWhenRequestContainsDsa() {
         // given
         final String accountId = "accId";
         final BidRequest bidRequest = givenBidRequest(builder -> builder
@@ -1634,7 +1640,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void enrichBidRequestWithAccountAndPrivacyDataShouldAddDsaFromAccountWhenGdprScopingEnabledAndMatches() {
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldSetDsaFromAccountWhenGdprScopeMatches() {
         // given
         final String accountId = "accId";
         final BidRequest bidRequest = givenBidRequest(builder -> builder
@@ -1693,14 +1699,16 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void enrichBidRequestWithAccountAndPrivacyDataShouldAddDsaFromAccountWhenGdprScopingEnabledAndDoesntMatch() {
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldNotSetDsaFromAccountWhenGdprScopeDoesntMatch() {
         // given
         final String accountId = "accId";
+        final Regs regs = Regs.builder().build();
         final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .imp(emptyList())
                 .site(Site.builder()
                         .publisher(Publisher.builder().id(accountId).build())
-                        .build()));
+                        .build())
+                .regs(regs));
 
         final PrivacyContext privacyContext = PrivacyContext.of(
                 Privacy.builder()
@@ -1739,7 +1747,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getRegs)
+                .extracting(Regs::getExt)
                 .isNull();
+        assertThat(result)
+                .extracting(BidRequest::getRegs)
+                .isSameAs(regs);
     }
 
     private static String bidRequestToString(BidRequest bidRequest) {
