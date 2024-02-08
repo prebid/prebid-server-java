@@ -1,5 +1,6 @@
 package org.prebid.server.settings.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
 import java.util.List;
@@ -7,11 +8,14 @@ import java.util.List;
 @Value(staticConstructor = "of")
 public class DefaultDsa {
 
-    Integer required;
+    @JsonProperty("dsarequired")
+    Integer dsaRequired;
 
-    Integer pubrender;
+    @JsonProperty("pubrender")
+    Integer pubRender;
 
-    Integer datatopub;
+    @JsonProperty("datatopub")
+    Integer dataToPub;
 
     List<DsaTransparency> transparency;
 }

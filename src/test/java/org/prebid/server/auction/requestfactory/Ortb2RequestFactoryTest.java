@@ -1510,9 +1510,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .extracting(Regs::getExt)
                 .extracting(ExtRegs::getDsa)
                 .satisfies(dsa -> {
-                    assertThat(dsa.getRequired()).isEqualTo(0);
-                    assertThat(dsa.getPubrender()).isEqualTo(1);
-                    assertThat(dsa.getDatatopub()).isEqualTo(2);
+                    assertThat(dsa.getDsaRequired()).isEqualTo(0);
+                    assertThat(dsa.getPubRender()).isEqualTo(1);
+                    assertThat(dsa.getDataToPub()).isEqualTo(2);
                     assertThat(dsa.getTransparency()).satisfies(transparencies ->
                             assertThat(transparencies).isEqualTo(List.of(ExtRegsDsaTransparency.of("",
                                     List.of(0)))));
@@ -1624,9 +1624,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .extracting(Regs::getExt)
                 .extracting(ExtRegs::getDsa)
                 .satisfies(dsa -> {
-                    assertThat(dsa.getRequired()).isEqualTo(0);
-                    assertThat(dsa.getPubrender()).isEqualTo(1);
-                    assertThat(dsa.getDatatopub()).isEqualTo(2);
+                    assertThat(dsa.getDsaRequired()).isEqualTo(0);
+                    assertThat(dsa.getPubRender()).isEqualTo(1);
+                    assertThat(dsa.getDataToPub()).isEqualTo(2);
                     assertThat(dsa.getTransparency()).satisfies(transparencies ->
                             assertThat(transparencies).isEqualTo(List.of(ExtRegsDsaTransparency.of("",
                                     List.of(0)))));
@@ -1683,9 +1683,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .extracting(Regs::getExt)
                 .extracting(ExtRegs::getDsa)
                 .satisfies(dsa -> {
-                    assertThat(dsa.getRequired()).isEqualTo(0);
-                    assertThat(dsa.getPubrender()).isEqualTo(1);
-                    assertThat(dsa.getDatatopub()).isEqualTo(2);
+                    assertThat(dsa.getDsaRequired()).isEqualTo(0);
+                    assertThat(dsa.getPubRender()).isEqualTo(1);
+                    assertThat(dsa.getDataToPub()).isEqualTo(2);
                     assertThat(dsa.getTransparency()).satisfies(transparencies ->
                             assertThat(transparencies).isEqualTo(List.of(ExtRegsDsaTransparency.of("",
                                     List.of(0)))));

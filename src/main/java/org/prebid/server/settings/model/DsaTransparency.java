@@ -1,5 +1,6 @@
 package org.prebid.server.settings.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
 import java.util.List;
@@ -9,5 +10,6 @@ public class DsaTransparency {
 
     String domain;
 
-    List<Integer> params;
+    @JsonProperty("dsaparams")
+    List<Integer> dsaParams;
 }

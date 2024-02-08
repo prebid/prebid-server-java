@@ -271,11 +271,11 @@ public class Ortb2RequestFactory {
         final List<ExtRegsDsaTransparency> enrichedDsaTransparencies = defaultDsa.getTransparency()
                 .stream()
                 .map(dsaTransparency -> ExtRegsDsaTransparency.of(dsaTransparency.getDomain(),
-                        dsaTransparency.getParams()))
+                        dsaTransparency.getDsaParams()))
                 .toList();
-        final ExtRegsDsa enrichedRegsExtDsa = ExtRegsDsa.of(defaultDsa.getRequired(),
-                defaultDsa.getPubrender(),
-                defaultDsa.getDatatopub(),
+        final ExtRegsDsa enrichedRegsExtDsa = ExtRegsDsa.of(defaultDsa.getDsaRequired(),
+                defaultDsa.getPubRender(),
+                defaultDsa.getDataToPub(),
                 enrichedDsaTransparencies);
         if (regsExt == null) {
             return ExtRegs.of(null,
