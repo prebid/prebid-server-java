@@ -9,14 +9,14 @@ import org.prebid.server.functional.util.PBSUtils
 @ToString(includeNames = true, ignoreNulls = true)
 class RegsDsa {
 
-    Integer dsarequired
+    Integer dsaRequired
     Integer pubRender
     Integer dataToPub
     List<DsaTransparency> transparency
 
     static RegsDsa getDefaultRegsDsa(ReqsDsaRequiredType required) {
         new RegsDsa(
-                dsarequired: required.value,
+                dsaRequired: required.value,
                 pubRender: PBSUtils.getRandomNumber(0, 2),
                 dataToPub: PBSUtils.getRandomNumber(0, 2),
                 transparency: [DsaTransparency.defaultRegsDsaTransparency]

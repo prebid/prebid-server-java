@@ -1,5 +1,6 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
 import java.util.List;
@@ -13,17 +14,20 @@ public class ExtRegsDsa {
     /**
      * Defines the contract for bidrequest.regs.ext.dsa.dsarequired
      */
-    Integer dsarequired;
+    @JsonProperty("dsarequired")
+    Integer dsaRequired;
 
     /**
      * Defines the contract for bidrequest.regs.ext.dsa.pubrender
      */
-    Integer pubrender;
+    @JsonProperty("pubrender")
+    Integer pubRender;
 
     /**
      * Defines the contract for bidrequest.regs.ext.dsa.datatopub
      */
-    Integer datatopub;
+    @JsonProperty("datatopub")
+    Integer dataToPub;
 
     /**
      * Defines the contract for bidrequest.regs.ext.dsa.transparency[]
