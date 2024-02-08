@@ -370,14 +370,22 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             return PrebidConfigParameter.wildcard();
         }
 
-        final JsonNode adServerNameNode = impExt.at(ADSERVER_NAME_POINTER);
-        final JsonNode adSlotNode = adServerNameNode.isTextual() && "gam".equals(adServerNameNode.textValue())
-                ? impExt.at(ADSLOT_POINTER)
-                : impExt.at(PB_ADSLOT_POINTER);
-        final String gptAdSlot = !adSlotNode.isMissingNode() ? adSlotNode.asText() : null;
+        final String adServerName = stringByPath(impExt, ADSERVER_NAME_POINTER);
+        final String gptAdSlot = "gam".equals(adServerName)
+                ? stringByPath(impExt, ADSLOT_POINTER)
+                : stringByPath(impExt, PB_ADSLOT_POINTER);
 
-        return gptAdSlot != null
-                ? parameter(gptAdSlot)
+        return wildcardIfBlank(gptAdSlot);
+    }
+
+    private static String stringByPath(ObjectNode node, JsonPointer pointer) {
+        final JsonNode nodeAtPointer = node.at(pointer);
+        return !nodeAtPointer.isMissingNode() ? nodeAtPointer.asText() : null;
+    }
+
+    private static PrebidConfigParameter wildcardIfBlank(String value) {
+        return StringUtils.isNotBlank(value)
+                ? parameter(value)
                 : PrebidConfigParameter.wildcard();
     }
 
@@ -403,17 +411,6 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         }
 
         return wildcardIfBlank(stringByPath(impExt, STORED_REQUEST_ID_POINTER));
-    }
-
-    private static PrebidConfigParameter wildcardIfBlank(String value) {
-        return StringUtils.isNotBlank(value)
-                ? parameter(value)
-                : PrebidConfigParameter.wildcard();
-    }
-
-    private static String stringByPath(ObjectNode node, JsonPointer pointer) {
-        final JsonNode nodeAtPointer = node.at(pointer);
-        return !nodeAtPointer.isMissingNode() ? nodeAtPointer.asText() : null;
     }
 
     private PrebidConfigParameter countryFromRequest(BidRequest bidRequest) {

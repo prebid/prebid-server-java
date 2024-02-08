@@ -62,7 +62,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         this.floorResolver = Objects.requireNonNull(floorResolver);
         this.mapper = Objects.requireNonNull(mapper);
 
-        this.modelPicker = new RandomWeightedEntrySupplier<>(BasicPriceFloorProcessor::resolveModelGroupWeight);
+        modelPicker = new RandomWeightedEntrySupplier<>(BasicPriceFloorProcessor::resolveModelGroupWeight);
     }
 
     private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {

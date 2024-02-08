@@ -13,11 +13,19 @@ public class RandomWeightedEntrySupplier<E> {
     }
 
     public E get(Iterable<E> entries) {
-        final int totalWeight = totalWeight(entries);
+        int totalWeight = 0;
+        int size = 0;
+        for (E entry : entries) {
+            totalWeight += weight(entry);
+            size++;
+        }
+
+        final boolean allZeros = totalWeight == 0;
+        totalWeight = allZeros ? size : totalWeight;
 
         int randomInt = ThreadLocalRandom.current().nextInt(totalWeight);
         for (E entry : entries) {
-            randomInt -= weightExtractor.apply(entry);
+            randomInt -= allZeros ? 1 : weight(entry);
 
             if (randomInt < 0) {
                 return entry;
@@ -27,11 +35,7 @@ public class RandomWeightedEntrySupplier<E> {
         throw new AssertionError();
     }
 
-    private int totalWeight(Iterable<E> entries) {
-        int sum = 0;
-        for (E entry : entries) {
-            sum += weightExtractor.apply(entry);
-        }
-        return sum;
+    private int weight(E entry) {
+        return Math.max(weightExtractor.apply(entry), 0);
     }
 }
