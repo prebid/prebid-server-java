@@ -1,17 +1,23 @@
-package org.prebid.server.functional.tests
+package org.prebid.server.functional.tests.privacy
 
+import org.prebid.server.functional.model.config.AccountDsaConfig
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Dsa
 import org.prebid.server.functional.model.request.auction.Dsa as RequestDsa
 import org.prebid.server.functional.model.request.auction.DsaRequired
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.Dsa as BidDsa
+import org.prebid.server.functional.util.PBSUtils
+import org.prebid.server.functional.util.privacy.TcfConsent
 
 import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
+import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
+import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
-class DsaSpec extends BaseSpec {
+class DsaSpec extends PrivacyBaseSpec {
 
     def "AMP request should always forward DSA to bidders"() {
         given: "Default AmpRequest"
@@ -28,7 +34,7 @@ class DsaSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should contain DSA"
         assert bidder.getBidderRequest(ampStoredRequest.id).regs?.ext?.dsa == dsa
@@ -57,7 +63,7 @@ class DsaSpec extends BaseSpec {
         storedRequestDao.save(storedRequest)
 
         and: "Default bidder response with DSA"
-        def bidDsa = BidDsa.getDefaultDsa()
+        def bidDsa = BidDsa.defaultDsa
         def bidResponse = BidResponse.getDefaultBidResponse(ampStoredRequest).tap {
             seatbid[0].bid[0].ext = new BidExt(dsa: bidDsa)
         }
@@ -66,7 +72,7 @@ class DsaSpec extends BaseSpec {
         bidder.setResponse(ampStoredRequest.id, bidResponse)
 
         when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
+        def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "PBS should return bid"
         assert response.targeting
@@ -108,7 +114,7 @@ class DsaSpec extends BaseSpec {
         bidder.setResponse(ampStoredRequest.id, bidResponse)
 
         when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
+        def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "PBS should return bid"
         assert response.targeting
@@ -146,7 +152,7 @@ class DsaSpec extends BaseSpec {
         bidder.setResponse(ampStoredRequest.id, bidResponse)
 
         when: "PBS processes amp request"
-        def response = defaultPbsService.sendAmpRequest(ampRequest)
+        def response = privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "PBS should reject bid"
         assert !response.targeting
@@ -168,7 +174,7 @@ class DsaSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain DSA"
         assert bidder.getBidderRequest(bidRequest.id).regs?.ext?.dsa == dsa
@@ -189,7 +195,7 @@ class DsaSpec extends BaseSpec {
         }
 
         and: "Default bidder response with DSA"
-        def bidDsa = BidDsa.getDefaultDsa()
+        def bidDsa = BidDsa.defaultDsa
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
             seatbid[0].bid[0].ext = new BidExt(dsa: bidDsa)
         }
@@ -198,7 +204,7 @@ class DsaSpec extends BaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should return bid"
         assert response.seatbid[0].bid[0]
@@ -234,7 +240,7 @@ class DsaSpec extends BaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should return bid"
         assert response.seatbid[0].bid[0]
@@ -263,7 +269,7 @@ class DsaSpec extends BaseSpec {
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should reject bid"
         assert !response.seatbid
@@ -276,5 +282,143 @@ class DsaSpec extends BaseSpec {
         where:
         dsaRequired << [DsaRequired.REQUIRED,
                         DsaRequired.REQUIRED_PUBLISHER_IS_ONLINE_PLATFORM]
+    }
+
+    def "Auction request should set account DSA when BidRequest DSA is null"() {
+        given: "Default bid request without DSA"
+        def accountId = PBSUtils.randomNumber.toString()
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+            regs.ext.dsa = null
+        }
+
+        and: "Account with default DSA config"
+        def accountDsa = Dsa.defaultDsa
+        def account = getAccountWithDsa(accountId, new AccountDsaConfig(defaultDsa: accountDsa))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain DSA from account config"
+        assert bidder.getBidderRequest(bidRequest.id).regs.ext.dsa == accountDsa
+    }
+
+    def "Auction request shouldn't set account DSA when BidRequest DSA is not null"() {
+        given: "Default bid request with DSA"
+        def accountId = PBSUtils.randomNumber.toString()
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+            regs.ext.dsa = requestDsa
+        }
+
+        and: "Account with default DSA config"
+        def account = getAccountWithDsa(accountId, new AccountDsaConfig(defaultDsa: accountDsa))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain DSA from request"
+        assert bidder.getBidderRequest(bidRequest.id).regs.ext.dsa == requestDsa
+
+        where:
+        requestDsa     || accountDsa
+        new Dsa()      || null
+        new Dsa()      || Dsa.defaultDsa
+        Dsa.defaultDsa || null
+        Dsa.defaultDsa || Dsa.defaultDsa
+    }
+
+    def "Auction request shouldn't populate DSA when account DSA is null and request DSA is null"() {
+        given: "Default bid request without DSA"
+        def accountId = PBSUtils.randomNumber.toString()
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+            regs.ext.dsa = null
+        }
+
+        and: "Account without default DSA config"
+        def account = getAccountWithDsa(accountId, new AccountDsaConfig(defaultDsa: null))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't contain DSA"
+        assert !bidder.getBidderRequest(bidRequest.id)?.regs?.ext?.dsa
+    }
+
+    def "Auction request should set account DSA when gdpr-only is false and not in GDPR scope"() {
+        given: "Default bid request not in GDPR scope without DSA"
+        def accountId = PBSUtils.randomNumber.toString()
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+            regs.ext.dsa = null
+            regs.ext.gdpr = 0
+        }
+
+        and: "Account with default DSA config"
+        def accountDsa = Dsa.defaultDsa
+        def account = getAccountWithDsa(accountId,
+                new AccountDsaConfig(defaultDsa: accountDsa, gdprOnly: false))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain DSA from account config"
+        assert bidder.getBidderRequest(bidRequest.id).regs.ext.dsa == accountDsa
+    }
+
+    def "Auction request should set account DSA when gdpr-only is #gdprOnly and in GDPR scope"() {
+        given: "Default bid request in GDPR scope with DSA"
+        def consentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        def accountId = PBSUtils.randomNumber.toString()
+        def bidRequest = getGdprBidRequest(consentString).tap {
+            setAccountId(accountId)
+            regs.ext.dsa = null
+        }
+
+        and: "Account with default DSA config"
+        def accountDsa = Dsa.defaultDsa
+        def account = getAccountWithDsa(accountId,
+                new AccountDsaConfig(defaultDsa: accountDsa, gdprOnly: gdprOnly))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain DSA from account config"
+        assert bidder.getBidderRequest(bidRequest.id).regs.ext.dsa == accountDsa
+
+        where:
+        gdprOnly << [true, false]
+    }
+
+    def "Auction request shouldn't set account DSA when gdpr-only is true and not in GDPR scope"() {
+        given: "Default bid request not in GDPR scope without DSA"
+        def accountId = PBSUtils.randomNumber.toString()
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            setAccountId(accountId)
+            regs.ext.dsa = null
+            regs.ext.gdpr = 0
+        }
+
+        and: "Account with default DSA config"
+        def accountDsa = Dsa.defaultDsa
+        def account = getAccountWithDsa(accountId,
+                new AccountDsaConfig(defaultDsa: accountDsa, gdprOnly: true))
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't contain DSA"
+        assert !bidder.getBidderRequest(bidRequest.id)?.regs?.ext?.dsa
     }
 }
