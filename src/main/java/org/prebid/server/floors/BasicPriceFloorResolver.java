@@ -18,13 +18,10 @@ import com.iab.openrtb.request.Video;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.IterableUtils;
-import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.math3.util.CombinatoricsUtils;
 import org.prebid.server.bidder.model.Price;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
@@ -47,26 +44,27 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.util.BidderUtil;
+import org.prebid.server.util.IterableUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.dsl.config.PrebidConfigMatchingStrategy;
+import org.prebid.server.util.dsl.config.PrebidConfigParameter;
+import org.prebid.server.util.dsl.config.PrebidConfigParameters;
+import org.prebid.server.util.dsl.config.PrebidConfigSource;
+import org.prebid.server.util.dsl.config.impl.MostAccurateCombinationStrategy;
+import org.prebid.server.util.dsl.config.impl.SimpleDirectParameter;
+import org.prebid.server.util.dsl.config.impl.SimpleParameters;
+import org.prebid.server.util.dsl.config.impl.SimpleSource;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.Spliterator;
-import java.util.Spliterators;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public class BasicPriceFloorResolver implements PriceFloorResolver {
 
@@ -76,22 +74,27 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
     private static final String DEFAULT_RULES_CURRENCY = "USD";
     private static final String SCHEMA_DEFAULT_DELIMITER = "|";
     private static final String WILDCARD_CATCH_ALL = "*";
-    private static final String VIDEO_ALIAS = "video-instream";
-    private static final JsonPointer PB_ADSLOT_POINTER = JsonPointer.valueOf("/data/pbadslot");
-    private static final JsonPointer ADSLOT_POINTER = JsonPointer.valueOf("/data/adserver/adslot");
-    private static final JsonPointer ADSERVER_NAME_POINTER = JsonPointer.valueOf("/data/adserver/name");
 
-    private static final Set<String> PHONE_PATTERNS = Set.of("Phone", "iPhone", "Android.*Mobile", "Mobile.*Android");
-    private static final Set<String> TABLET_PATTERNS = Set.of("tablet", "iPad", "Windows NT.*touch",
-            "touch.*Windows NT", "Android");
-    private static final String GPID_PATH = "/gpid";
-    private static final String PBADSLOT_PATH = "/data/pbadslot";
-    private static final String STORED_REQUEST_ID_PATH = "/prebid/storedrequest/id";
+    private static final String VIDEO_ALIAS = "video-instream";
+
+    private static final JsonPointer ADSERVER_NAME_POINTER = JsonPointer.valueOf("/data/adserver/name");
+    private static final JsonPointer ADSLOT_POINTER = JsonPointer.valueOf("/data/adserver/adslot");
+    private static final JsonPointer PB_ADSLOT_POINTER = JsonPointer.valueOf("/data/pbadslot");
+    private static final JsonPointer GPID_POINTER = JsonPointer.valueOf("/gpid");
+    private static final JsonPointer PBADSLOT_POINTER = JsonPointer.valueOf("/data/pbadslot");
+    private static final JsonPointer STORED_REQUEST_ID_POINTER = JsonPointer.valueOf("/prebid/storedrequest/id");
+
+    private static final List<Pattern> PHONE_PATTERNS =
+            createPatterns("Phone", "iPhone", "Android.*Mobile", "Mobile.*Android");
+    private static final List<Pattern> TABLET_PATTERNS =
+            createPatterns("tablet", "iPad", "Windows NT.*touch", "touch.*Windows NT", "Android");
 
     private final CurrencyConversionService currencyConversionService;
     private final CountryCodeMapper countryCodeMapper;
     private final Metrics metrics;
     private final JacksonMapper mapper;
+
+    private final PrebidConfigMatchingStrategy matchingStrategy;
 
     public BasicPriceFloorResolver(CurrencyConversionService currencyConversionService,
                                    CountryCodeMapper countryCodeMapper,
@@ -102,6 +105,8 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
         this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
+
+        matchingStrategy = new MostAccurateCombinationStrategy();
     }
 
     @Override
@@ -131,14 +136,15 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             return null;
         }
 
-        final String delimiter = ObjectUtils.defaultIfNull(schema.getDelimiter(), SCHEMA_DEFAULT_DELIMITER);
-        final List<List<String>> desiredRuleKey = createRuleKey(schema, bidRequest, imp, mediaType, format);
+        final Map<String, BigDecimal> values = keysToLowerCase(modelGroup.getValues());
+        final PrebidConfigSource source = SimpleSource.of(
+                WILDCARD_CATCH_ALL,
+                ObjectUtils.defaultIfNull(schema.getDelimiter(), SCHEMA_DEFAULT_DELIMITER),
+                values.keySet());
+        final PrebidConfigParameters parameters = createParameters(schema, bidRequest, imp, mediaType, format);
 
-        final Map<String, BigDecimal> rules = keysToLowerCase(modelGroup.getValues());
-
-        final String rule = findRule(rules, delimiter, desiredRuleKey);
-        final BigDecimal floorForRule = rule != null ? rules.get(rule) : null;
-
+        final String rule = matchingStrategy.match(source, parameters);
+        final BigDecimal floorForRule = rule != null ? values.get(rule) : null;
         final BigDecimal floor = floorForRule != null ? floorForRule : modelGroup.getDefaultFloor();
         final String modelGroupCurrency = modelGroup.getCurrency();
         final String floorCurrency = StringUtils.isNotEmpty(modelGroupCurrency)
@@ -181,42 +187,26 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.get(0) : null;
     }
 
-    private List<List<String>> createRuleKey(PriceFloorSchema schema,
-                                             BidRequest bidRequest,
-                                             Imp imp,
-                                             ImpMediaType mediaType,
-                                             Format format) {
-
-        return schema.getFields().stream()
-                .map(field -> toFieldValues(field, bidRequest, imp, mediaType, format))
-                .map(BasicPriceFloorResolver::prepareFieldValues)
-                .toList();
+    private static <V> Map<String, V> keysToLowerCase(Map<String, V> map) {
+        return map.entrySet().stream()
+                .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Map.Entry::getValue));
     }
 
-    private List<String> toFieldValues(PriceFloorField field,
-                                       BidRequest bidRequest,
-                                       Imp imp,
-                                       ImpMediaType mediaType,
-                                       Format format) {
+    private PrebidConfigParameters createParameters(PriceFloorSchema schema,
+                                                    BidRequest bidRequest,
+                                                    Imp imp,
+                                                    ImpMediaType mediaType,
+                                                    Format format) {
 
         final List<ImpMediaType> resolvedMediaTypes = mediaType != null
                 ? Collections.singletonList(mediaType)
                 : mediaTypesFromImp(imp);
 
-        return switch (field) {
-            case siteDomain -> siteDomainFromRequest(bidRequest);
-            case pubDomain -> pubDomainFromRequest(bidRequest);
-            case domain -> domainFromRequest(bidRequest);
-            case bundle -> bundleFromRequest(bidRequest);
-            case channel -> channelFromRequest(bidRequest);
-            case mediaType -> mediaTypeToRuleKey(resolvedMediaTypes);
-            case size ->
-                    sizeFromFormat(ObjectUtils.defaultIfNull(format, resolveFormatFromImp(imp, resolvedMediaTypes)));
-            case gptSlot -> gptAdSlotFromImp(imp);
-            case adUnitCode -> adUnitCodeFromImp(imp);
-            case country -> countryFromRequest(bidRequest);
-            case deviceType -> resolveDeviceTypeFromRequest(bidRequest);
-        };
+        final List<PrebidConfigParameter> conditionsMatchers = schema.getFields().stream()
+                .map(field -> createParameter(field, bidRequest, imp, resolvedMediaTypes, format))
+                .toList();
+
+        return SimpleParameters.of(conditionsMatchers);
     }
 
     private static List<ImpMediaType> mediaTypesFromImp(Imp imp) {
@@ -246,56 +236,94 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         return impMediaTypes;
     }
 
-    private static List<String> siteDomainFromRequest(BidRequest bidRequest) {
+    private PrebidConfigParameter createParameter(PriceFloorField field,
+                                                  BidRequest bidRequest,
+                                                  Imp imp,
+                                                  List<ImpMediaType> mediaTypes,
+                                                  Format format) {
+
+        return switch (field) {
+            case siteDomain -> siteDomainFromRequest(bidRequest);
+            case pubDomain -> pubDomainFromRequest(bidRequest);
+            case domain -> domainFromRequest(bidRequest);
+            case bundle -> bundleFromRequest(bidRequest);
+            case channel -> channelFromRequest(bidRequest);
+            case mediaType -> mediaTypeFrom(mediaTypes);
+            case size -> sizeFrom(format, imp, mediaTypes);
+            case gptSlot -> gptAdSlotFromImp(imp);
+            case adUnitCode -> adUnitCodeFromImp(imp);
+            case country -> countryFromRequest(bidRequest);
+            case deviceType -> resolveDeviceTypeFromRequest(bidRequest);
+        };
+    }
+
+    private static PrebidConfigParameter siteDomainFromRequest(BidRequest bidRequest) {
         return Optional.ofNullable(bidRequest.getSite()).map(Site::getDomain)
                 .or(() -> Optional.ofNullable(bidRequest.getApp()).map(App::getDomain))
                 .or(() -> Optional.ofNullable(bidRequest.getDooh()).map(Dooh::getDomain))
-                .map(List::of)
-                .orElse(Collections.emptyList());
+                .map(BasicPriceFloorResolver::parameter)
+                .orElse(PrebidConfigParameter.wildcard());
     }
 
-    private static List<String> pubDomainFromRequest(BidRequest bidRequest) {
+    private static PrebidConfigParameter pubDomainFromRequest(BidRequest bidRequest) {
         return Optional.ofNullable(bidRequest.getSite()).map(Site::getPublisher)
                 .or(() -> Optional.ofNullable(bidRequest.getApp()).map(App::getPublisher))
                 .or(() -> Optional.ofNullable(bidRequest.getDooh()).map(Dooh::getPublisher))
                 .map(Publisher::getDomain)
-                .map(List::of)
-                .orElse(Collections.emptyList());
+                .map(BasicPriceFloorResolver::parameter)
+                .orElse(PrebidConfigParameter.wildcard());
     }
 
-    private static List<String> domainFromRequest(BidRequest bidRequest) {
-        return ListUtils.union(siteDomainFromRequest(bidRequest), pubDomainFromRequest(bidRequest));
+    private static PrebidConfigParameter domainFromRequest(BidRequest bidRequest) {
+        final PrebidConfigParameter siteDomain = siteDomainFromRequest(bidRequest);
+        final PrebidConfigParameter pubDomain = pubDomainFromRequest(bidRequest);
+        if (isWildcard(siteDomain)) {
+            return pubDomain;
+        } else if (isWildcard(pubDomain)) {
+            return siteDomain;
+        }
+
+        return SimpleDirectParameter.of(IterableUtil.union(
+                ((PrebidConfigParameter.Direct) siteDomain).values(),
+                ((PrebidConfigParameter.Direct) pubDomain).values()));
     }
 
-    private static List<String> bundleFromRequest(BidRequest bidRequest) {
-        final App app = bidRequest.getApp();
-        final String appBundle = ObjectUtil.getIfNotNull(app, App::getBundle);
-
-        return Collections.singletonList(appBundle);
+    private static boolean isWildcard(PrebidConfigParameter parameter) {
+        return parameter instanceof PrebidConfigParameter.Indirect.Wildcard;
     }
 
-    private static List<String> channelFromRequest(BidRequest bidRequest) {
-        final ExtRequest extRequest = bidRequest.getExt();
-        final ExtRequestPrebid prebid = ObjectUtil.getIfNotNull(extRequest, ExtRequest::getPrebid);
-        final ExtRequestPrebidChannel channel = ObjectUtil.getIfNotNull(prebid, ExtRequestPrebid::getChannel);
-        final String channelName = ObjectUtil.getIfNotNull(channel, ExtRequestPrebidChannel::getName);
-
-        return Collections.singletonList(channelName);
+    private static PrebidConfigParameter bundleFromRequest(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getApp())
+                .map(App::getBundle)
+                .map(BasicPriceFloorResolver::parameter)
+                .orElse(PrebidConfigParameter.wildcard());
     }
 
-    private static List<String> mediaTypeToRuleKey(List<ImpMediaType> impMediaTypes) {
+    private static PrebidConfigParameter channelFromRequest(BidRequest bidRequest) {
+        return Optional.ofNullable(bidRequest.getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getChannel)
+                .map(ExtRequestPrebidChannel::getName)
+                .map(BasicPriceFloorResolver::parameter)
+                .orElse(PrebidConfigParameter.wildcard());
+    }
 
+    private static PrebidConfigParameter mediaTypeFrom(List<ImpMediaType> impMediaTypes) {
         if (CollectionUtils.isEmpty(impMediaTypes) || CollectionUtils.size(impMediaTypes) > 1) {
-            return Collections.singletonList(WILDCARD_CATCH_ALL);
+            return PrebidConfigParameter.wildcard();
         }
 
         final ImpMediaType impMediaType = impMediaTypes.get(0);
+        return impMediaType == ImpMediaType.video
+                ? SimpleDirectParameter.of(List.of(impMediaType.toString(), VIDEO_ALIAS))
+                : SimpleDirectParameter.of(impMediaType.toString());
+    }
 
-        if (impMediaType == ImpMediaType.video) {
-            return List.of(impMediaType.toString(), VIDEO_ALIAS);
-        }
-
-        return Collections.singletonList(impMediaType.toString());
+    private static PrebidConfigParameter sizeFrom(Format size, Imp imp, List<ImpMediaType> mediaTypes) {
+        final Format resolvedSize = size != null ? size : resolveFormatFromImp(imp, mediaTypes);
+        return resolvedSize != null
+                ? SimpleDirectParameter.of("%dx%d".formatted(resolvedSize.getW(), resolvedSize.getH()))
+                : PrebidConfigParameter.wildcard();
     }
 
     private static Format resolveFormatFromImp(Imp imp, List<ImpMediaType> mediaTypes) {
@@ -303,170 +331,129 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             return null;
         }
 
-        final ImpMediaType mediaType = mediaTypes.get(0);
-        if (mediaType == ImpMediaType.banner) {
-            return resolveFormatFromBannerImp(imp);
-        }
-        if (mediaType == ImpMediaType.video) {
-            return resolveFormatFromVideoImp(imp);
-        }
-
-        return null;
+        return switch (mediaTypes.get(0)) {
+            case banner -> resolveFormatFromBannerImp(imp);
+            case video -> resolveFormatFromVideoImp(imp);
+            default -> null;
+        };
     }
 
     private static Format resolveFormatFromBannerImp(Imp imp) {
         final Banner banner = imp.getBanner();
         final List<Format> formats = ObjectUtil.getIfNotNull(banner, Banner::getFormat);
 
-        final int formatsSize = CollectionUtils.size(formats);
-        if (formatsSize == 1) {
-            return formats.get(0);
-        } else if (formatsSize > 1) {
-            return null;
-        }
-
-        final Integer bannerWidth = ObjectUtil.getIfNotNull(banner, Banner::getW);
-        final Integer bannerHeight = ObjectUtil.getIfNotNull(banner, Banner::getH);
-
-        return ObjectUtils.allNotNull(bannerWidth, bannerHeight)
-                ? Format.builder().w(bannerWidth).h(bannerHeight).build()
-                : null;
+        return switch (CollectionUtils.size(formats)) {
+            case 0 -> formatOf(
+                    ObjectUtil.getIfNotNull(banner, Banner::getW),
+                    ObjectUtil.getIfNotNull(banner, Banner::getH));
+            case 1 -> formats.get(0);
+            default -> null;
+        };
     }
 
     private static Format resolveFormatFromVideoImp(Imp imp) {
         final Video video = imp.getVideo();
+        return formatOf(
+                ObjectUtil.getIfNotNull(video, Video::getW),
+                ObjectUtil.getIfNotNull(video, Video::getH));
+    }
 
-        final Integer videoWidth = ObjectUtil.getIfNotNull(video, Video::getW);
-        final Integer videoHeight = ObjectUtil.getIfNotNull(video, Video::getH);
-
-        return ObjectUtils.allNotNull(videoWidth, videoHeight)
-                ? Format.builder().w(videoWidth).h(videoHeight).build()
+    private static Format formatOf(Integer width, Integer height) {
+        return width != null && height != null
+                ? Format.builder().w(width).h(height).build()
                 : null;
     }
 
-    private static List<String> sizeFromFormat(Format size) {
-        final String sizeRuleKey = size != null
-                ? "%dx%d".formatted(size.getW(), size.getH())
-                : WILDCARD_CATCH_ALL;
-
-        return Collections.singletonList(sizeRuleKey);
-    }
-
-    private static List<String> gptAdSlotFromImp(Imp imp) {
+    private static PrebidConfigParameter gptAdSlotFromImp(Imp imp) {
         final ObjectNode impExt = imp.getExt();
-
         if (impExt == null) {
-            return Collections.singletonList(WILDCARD_CATCH_ALL);
+            return PrebidConfigParameter.wildcard();
         }
 
         final JsonNode adServerNameNode = impExt.at(ADSERVER_NAME_POINTER);
-        final JsonNode adSlotNode = adServerNameNode.isTextual() && Objects.equals(adServerNameNode.asText(), "gam")
+        final JsonNode adSlotNode = adServerNameNode.isTextual() && "gam".equals(adServerNameNode.textValue())
                 ? impExt.at(ADSLOT_POINTER)
                 : impExt.at(PB_ADSLOT_POINTER);
         final String gptAdSlot = !adSlotNode.isMissingNode() ? adSlotNode.asText() : null;
 
-        return Collections.singletonList(gptAdSlot);
+        return gptAdSlot != null
+                ? parameter(gptAdSlot)
+                : PrebidConfigParameter.wildcard();
     }
 
-    private static List<String> adUnitCodeFromImp(Imp imp) {
+    private static PrebidConfigParameter adUnitCodeFromImp(Imp imp) {
         final ObjectNode impExt = imp.getExt();
         final String tagId = imp.getTagid();
         if (impExt == null) {
-            return catchAllIfBlank(tagId);
+            return wildcardIfBlank(tagId);
         }
 
-        final String gpid = stringByPath(impExt, GPID_PATH);
+        final String gpid = stringByPath(impExt, GPID_POINTER);
         if (StringUtils.isNotBlank(gpid)) {
-            return Collections.singletonList(gpid);
+            return parameter(gpid);
         }
 
         if (StringUtils.isNotBlank(tagId)) {
-            return Collections.singletonList(tagId);
+            return parameter(tagId);
         }
 
-        final String adSlot = stringByPath(impExt, PBADSLOT_PATH);
+        final String adSlot = stringByPath(impExt, PBADSLOT_POINTER);
         if (StringUtils.isNotBlank(adSlot)) {
-            return Collections.singletonList(adSlot);
+            return parameter(adSlot);
         }
 
-        final String storedRequestId = stringByPath(impExt, STORED_REQUEST_ID_PATH);
-
-        return catchAllIfBlank(storedRequestId);
+        return wildcardIfBlank(stringByPath(impExt, STORED_REQUEST_ID_POINTER));
     }
 
-    private static List<String> catchAllIfBlank(String value) {
+    private static PrebidConfigParameter wildcardIfBlank(String value) {
         return StringUtils.isNotBlank(value)
-                ? Collections.singletonList(value)
-                : Collections.singletonList(WILDCARD_CATCH_ALL);
+                ? parameter(value)
+                : PrebidConfigParameter.wildcard();
     }
 
-    private static String stringByPath(ObjectNode node, String path) {
-        final JsonNode gpidNode = node.at(path);
-        return !gpidNode.isMissingNode() ? gpidNode.asText() : null;
+    private static String stringByPath(ObjectNode node, JsonPointer pointer) {
+        final JsonNode nodeAtPointer = node.at(pointer);
+        return !nodeAtPointer.isMissingNode() ? nodeAtPointer.asText() : null;
     }
 
-    private List<String> countryFromRequest(BidRequest bidRequest) {
-        final Device device = bidRequest.getDevice();
-        final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
-        final String country = ObjectUtil.getIfNotNull(geo, Geo::getCountry);
-        final String alpha3Code = StringUtils.isNotBlank(country) ? countryCodeMapper.mapToAlpha3(country) : null;
-        final String countryRuleKey = StringUtils.isNotBlank(alpha3Code) ? alpha3Code : country;
+    private PrebidConfigParameter countryFromRequest(BidRequest bidRequest) {
+        final Optional<String> country = Optional.ofNullable(bidRequest.getDevice())
+                .map(Device::getGeo)
+                .map(Geo::getCountry);
 
-        return Collections.singletonList(countryRuleKey);
+        return country
+                .filter(StringUtils::isNotBlank)
+                .map(countryCodeMapper::mapToAlpha3)
+                .or(() -> country)
+                .map(BasicPriceFloorResolver::parameter)
+                .orElse(PrebidConfigParameter.wildcard());
     }
 
-    public static List<String> resolveDeviceTypeFromRequest(BidRequest bidRequest) {
+    public static PrebidConfigParameter resolveDeviceTypeFromRequest(BidRequest bidRequest) {
         final Device device = bidRequest.getDevice();
         final String userAgent = ObjectUtil.getIfNotNull(device, Device::getUa);
 
         if (StringUtils.isBlank(userAgent)) {
-            return Collections.singletonList(WILDCARD_CATCH_ALL);
+            return PrebidConfigParameter.wildcard();
         }
 
-        for (String pattern : PHONE_PATTERNS) {
-            if (userAgent.matches(pattern)) {
-                return Collections.singletonList(DeviceType.phone.name());
+        for (Pattern pattern : PHONE_PATTERNS) {
+            if (pattern.matcher(userAgent).matches()) {
+                return SimpleDirectParameter.of(DeviceType.phone.name());
             }
         }
 
-        for (String pattern : TABLET_PATTERNS) {
-            if (userAgent.matches(pattern)) {
-                return Collections.singletonList(DeviceType.tablet.name());
+        for (Pattern pattern : TABLET_PATTERNS) {
+            if (pattern.matcher(userAgent).matches()) {
+                return SimpleDirectParameter.of(DeviceType.tablet.name());
             }
         }
 
-        return Collections.singletonList(DeviceType.desktop.name());
-    }
-
-    private static List<String> prepareFieldValues(List<String> fieldValues) {
-        final List<String> preparedFieldValues = CollectionUtils.emptyIfNull(fieldValues).stream()
-                .filter(StringUtils::isNotEmpty)
-                .map(String::toLowerCase)
-                .toList();
-
-        if (CollectionUtils.isEmpty(preparedFieldValues)) {
-            return Collections.singletonList(WILDCARD_CATCH_ALL);
-        }
-
-        return preparedFieldValues;
-    }
-
-    private static String findRule(Map<String, BigDecimal> rules, String delimiter, List<List<String>> desiredRuleKey) {
-        return RuleKeyCandidateIterator.from(desiredRuleKey, delimiter).asStream()
-                .filter(rules::containsKey)
-                .filter(Objects::nonNull)
-                .findFirst()
-                .orElse(null);
-    }
-
-    private static <V> Map<String, V> keysToLowerCase(Map<String, V> map) {
-        return map.entrySet().stream()
-                .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Map.Entry::getValue));
+        return SimpleDirectParameter.of(DeviceType.desktop.name());
     }
 
     private static String getDataCurrency(PriceFloorRules rules) {
         final PriceFloorData data = ObjectUtil.getIfNotNull(rules, PriceFloorRules::getData);
-
         return ObjectUtil.getIfNotNull(data, PriceFloorData::getCurrency);
     }
 
@@ -528,8 +515,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         final BigDecimal requestFloorMin = floorRules.map(PriceFloorRules::getFloorMin).orElse(null);
         final String requestFloorMinCur = floorRules.map(PriceFloorRules::getFloorMinCur).orElse(null);
 
-        if (ObjectUtils.allNotNull(impFloorMinCur, requestFloorMinCur)
-                && !impFloorMinCur.equals(requestFloorMinCur)) {
+        if (impFloorMinCur != null && !impFloorMinCur.equals(requestFloorMinCur)) {
             warnings.add("imp[].ext.prebid.floors.floorMinCur and ext.prebid.floors.floorMinCur has different values");
         }
 
@@ -553,10 +539,6 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 .map(ExtRequestPrebid::getFloors);
     }
 
-    private static Price roundPrice(Price price) {
-        return price != null ? Price.of(price.getCurrency(), BidderUtil.roundFloor(price.getValue())) : null;
-    }
-
     private static Price resolvePrice(Price floor, Price convertedFloorMin, Price floorMin) {
         final BigDecimal floorValue = ObjectUtil.getIfNotNull(floor, Price::getValue);
         final String floorCurrency = ObjectUtil.getIfNotNull(floor, Price::getCurrency);
@@ -574,140 +556,15 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         return roundPrice(ObjectUtils.defaultIfNull(floor, floorMin));
     }
 
-    private static class RuleKeyCandidateIterator implements Iterator<String> {
+    private static Price roundPrice(Price price) {
+        return price != null ? Price.of(price.getCurrency(), BidderUtil.roundFloor(price.getValue())) : null;
+    }
 
-        private final List<List<String>> desiredRuleKey;
-        private final String delimiter;
+    private static List<Pattern> createPatterns(String... regexes) {
+        return Arrays.stream(regexes).map(Pattern::compile).toList();
+    }
 
-        private int wildcardNum;
-        private Iterator<String> currentIterator = null;
-        private final List<Integer> implicitWildcardIndexes;
-
-        private RuleKeyCandidateIterator(List<List<String>> desiredRuleKey, String delimiter) {
-            this.desiredRuleKey = desiredRuleKey;
-            this.delimiter = delimiter;
-
-            implicitWildcardIndexes = findImplicitWildcards(desiredRuleKey);
-            wildcardNum = implicitWildcardIndexes.size();
-        }
-
-        public static RuleKeyCandidateIterator from(List<List<String>> desiredRuleKey, String delimiter) {
-            return new RuleKeyCandidateIterator(desiredRuleKey, delimiter);
-        }
-
-        @Override
-        public boolean hasNext() {
-            return wildcardNum <= desiredRuleKey.size();
-        }
-
-        @Override
-        public String next() {
-            if (currentIterator == null && wildcardNum <= desiredRuleKey.size()) {
-                currentIterator = createIterator(wildcardNum, desiredRuleKey, delimiter);
-            }
-
-            if (currentIterator != null) {
-                final String candidate = currentIterator.next();
-
-                if (!currentIterator.hasNext()) {
-                    currentIterator = null;
-                    wildcardNum++;
-                }
-
-                return candidate;
-            }
-
-            throw new NoSuchElementException();
-        }
-
-        public Stream<String> asStream() {
-            return asStream(this);
-        }
-
-        private static <T> Stream<T> asStream(Iterator<T> iterator) {
-            return StreamSupport.stream(
-                    Spliterators.spliteratorUnknownSize(iterator, Spliterator.ORDERED), false);
-        }
-
-        private static List<Integer> findImplicitWildcards(List<List<String>> desiredRuleKey) {
-            return IntStream.range(0, desiredRuleKey.size())
-                    .filter(i -> desiredRuleKey.get(i).get(0).equals(WILDCARD_CATCH_ALL))
-                    .boxed()
-                    .toList();
-        }
-
-        private Iterator<String> createIterator(int wildcardNum, List<List<String>> desiredRuleKey, String delimiter) {
-            final int ruleSegmentsNum = desiredRuleKey.size();
-
-            return asStream(CombinatoricsUtils.combinationsIterator(ruleSegmentsNum, wildcardNum))
-                    .map(combination -> IntStream.of(combination).boxed().toList())
-                    .filter(combination -> combination.containsAll(implicitWildcardIndexes))
-                    .sorted(Comparator.comparingInt(combination -> calculateWeight(combination, ruleSegmentsNum)))
-                    .flatMap(combination -> combinationToCandidate(combination, desiredRuleKey, delimiter).stream())
-                    .iterator();
-        }
-
-        private static Integer calculateWeight(List<Integer> combination, int ruleSegmentsNum) {
-            return combination.stream()
-                    .mapToInt(i -> 1 << (ruleSegmentsNum - i))
-                    .sum();
-        }
-
-        private static Set<String> combinationToCandidate(List<Integer> combination,
-                                                          List<List<String>> desiredRuleKey,
-                                                          String delimiter) {
-
-            final int biggestRuleKeySize = desiredRuleKey.stream().mapToInt(List::size)
-                    .boxed()
-                    .max(Integer::compare)
-                    .orElse(0);
-
-            final List<List<String>> candidates = IntStream.range(0, desiredRuleKey.size())
-                    .boxed()
-                    .map(position -> candidatesForPosition(position, desiredRuleKey, biggestRuleKeySize))
-                    .flatMap(Collection::stream)
-                    .toList();
-
-            for (final int positionToReplace : combination) {
-                candidates.forEach(candidate -> candidate.set(positionToReplace, WILDCARD_CATCH_ALL));
-            }
-
-            return candidates.stream()
-                    .map(candidate -> String.join(delimiter, candidate))
-                    .collect(Collectors.toSet());
-        }
-
-        private static List<List<String>> candidatesForPosition(int multPosition,
-                                                                List<List<String>> desiredRuleKey,
-                                                                int biggestRuleKeySize) {
-            return desiredRuleKey.get(multPosition).stream()
-                    .flatMap(ruleKey -> IntStream.range(0, biggestRuleKeySize)
-                            .mapToObj(i -> candidateForPosition(desiredRuleKey, ruleKey, multPosition, i)))
-                    .toList();
-        }
-
-        private static List<String> candidateForPosition(List<List<String>> desiredRuleKey,
-                                                         String currentRuleKey,
-                                                         int currentPosition,
-                                                         int position) {
-
-            return IntStream.range(0, desiredRuleKey.size())
-                    .mapToObj(index -> {
-                        if (index == currentPosition) {
-                            return currentRuleKey;
-                        } else {
-                            return getLastOrNext(desiredRuleKey.get(index), position);
-                        }
-                    })
-                    .collect(Collectors.toCollection(ArrayList::new));
-        }
-
-        private static String getLastOrNext(List<String> ruleKeys, int index) {
-            if (ruleKeys.size() <= index) {
-                return ruleKeys.get(ruleKeys.size() - 1);
-            }
-
-            return IterableUtils.get(ruleKeys, index);
-        }
+    private static PrebidConfigParameter parameter(String value) {
+        return SimpleDirectParameter.of(value.toLowerCase());
     }
 }
