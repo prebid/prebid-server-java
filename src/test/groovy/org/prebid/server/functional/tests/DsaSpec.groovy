@@ -43,11 +43,11 @@ class DsaSpec extends BaseSpec {
         then: "Bidder request should contain DSA"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll {
-            bidderRequests.regs.ext.dsa.required == dsa.required
+            bidderRequests.regs.ext.dsa.dsarequired == dsa.dsarequired
             bidderRequests.regs.ext.dsa.dataToPub == dsa.dataToPub
             bidderRequests.regs.ext.dsa.pubRender == dsa.pubRender
             bidderRequests.regs.ext.dsa.transparency[0].domain == dsa.transparency[0].domain
-            bidderRequests.regs.ext.dsa.transparency[0].params == dsa.transparency[0].params
+            bidderRequests.regs.ext.dsa.transparency[0].dsaparams == dsa.transparency[0].dsaparams
         }
 
         and: "Bidder response should not contain DSA"
@@ -94,11 +94,11 @@ class DsaSpec extends BaseSpec {
         then: "Bidder request should contain DSA"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll {
-            bidderRequests.regs.ext.dsa.required == dsa.required
+            bidderRequests.regs.ext.dsa.dsarequired == dsa.dsarequired
             bidderRequests.regs.ext.dsa.dataToPub == dsa.dataToPub
             bidderRequests.regs.ext.dsa.pubRender == dsa.pubRender
             bidderRequests.regs.ext.dsa.transparency[0].domain == dsa.transparency[0].domain
-            bidderRequests.regs.ext.dsa.transparency[0].params == dsa.transparency[0].params
+            bidderRequests.regs.ext.dsa.transparency[0].dsaparams == dsa.transparency[0].dsaparams
         }
 
         and: "Bidder response should contain DSA"
@@ -106,7 +106,7 @@ class DsaSpec extends BaseSpec {
         def actualDsa = bidderResponse.seatbid[0].bid[0].ext.dsa
         verifyAll {
             actualDsa.transparency[0].domain == bidDsa.transparency[0].domain
-            actualDsa.transparency[0].params == bidDsa.transparency[0].params
+            actualDsa.transparency[0].dsaparams == bidDsa.transparency[0].dsaparams
             actualDsa.adrender == bidDsa.adrender
             actualDsa.behalf == bidDsa.behalf
             actualDsa.paid == bidDsa.paid
@@ -149,11 +149,11 @@ class DsaSpec extends BaseSpec {
         then: "Bidder request should contain DSA"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
         verifyAll {
-            bidderRequests.regs.ext.dsa.required == dsa.required
+            bidderRequests.regs.ext.dsa.dsarequired == dsa.dsarequired
             bidderRequests.regs.ext.dsa.dataToPub == dsa.dataToPub
             bidderRequests.regs.ext.dsa.pubRender == dsa.pubRender
             bidderRequests.regs.ext.dsa.transparency[0].domain == dsa.transparency[0].domain
-            bidderRequests.regs.ext.dsa.transparency[0].params == dsa.transparency[0].params
+            bidderRequests.regs.ext.dsa.transparency[0].dsaparams == dsa.transparency[0].dsaparams
         }
 
         and: "Bidder response should not contain DSA"
@@ -192,11 +192,11 @@ class DsaSpec extends BaseSpec {
         then: "Bidder request should contain DSA"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
         verifyAll {
-            bidderRequests.regs.ext.dsa.required == dsa.required
+            bidderRequests.regs.ext.dsa.dsarequired == dsa.dsarequired
             bidderRequests.regs.ext.dsa.dataToPub == dsa.dataToPub
             bidderRequests.regs.ext.dsa.pubRender == dsa.pubRender
             bidderRequests.regs.ext.dsa.transparency[0].domain == dsa.transparency[0].domain
-            bidderRequests.regs.ext.dsa.transparency[0].params == dsa.transparency[0].params
+            bidderRequests.regs.ext.dsa.transparency[0].dsaparams == dsa.transparency[0].dsaparams
         }
 
         and: "DSA is not returned"
@@ -228,18 +228,18 @@ class DsaSpec extends BaseSpec {
         then: "Bidder request should contain DSA"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
         verifyAll {
-            bidderRequests.regs.ext.dsa.required == dsa.required
+            bidderRequests.regs.ext.dsa.dsarequired == dsa.dsarequired
             bidderRequests.regs.ext.dsa.dataToPub == dsa.dataToPub
             bidderRequests.regs.ext.dsa.pubRender == dsa.pubRender
             bidderRequests.regs.ext.dsa.transparency[0].domain == dsa.transparency[0].domain
-            bidderRequests.regs.ext.dsa.transparency[0].params == dsa.transparency[0].params
+            bidderRequests.regs.ext.dsa.transparency[0].dsaparams == dsa.transparency[0].dsaparams
         }
 
         and: "DSA is not returned"
         def actualDsa = response.seatbid[0].bid[0].ext.dsa
         verifyAll {
             actualDsa.transparency[0].domain == bidDsa.transparency[0].domain
-            actualDsa.transparency[0].params == bidDsa.transparency[0].params
+            actualDsa.transparency[0].dsaparams == bidDsa.transparency[0].dsaparams
             actualDsa.adrender == bidDsa.adrender
             actualDsa.behalf == bidDsa.behalf
             actualDsa.paid == bidDsa.paid
@@ -270,11 +270,11 @@ class DsaSpec extends BaseSpec {
         then: "Bidder request should contain DSA"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
         verifyAll {
-            bidderRequests.regs.ext.dsa.required == dsa.required
+            bidderRequests.regs.ext.dsa.dsarequired == dsa.dsarequired
             bidderRequests.regs.ext.dsa.dataToPub == dsa.dataToPub
             bidderRequests.regs.ext.dsa.pubRender == dsa.pubRender
             bidderRequests.regs.ext.dsa.transparency[0].domain == dsa.transparency[0].domain
-            bidderRequests.regs.ext.dsa.transparency[0].params == dsa.transparency[0].params
+            bidderRequests.regs.ext.dsa.transparency[0].dsaparams == dsa.transparency[0].dsaparams
         }
 
         and: "Response should contain error"

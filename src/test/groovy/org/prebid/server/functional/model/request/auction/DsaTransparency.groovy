@@ -7,7 +7,7 @@ import org.prebid.server.functional.util.PBSUtils
 class DsaTransparency {
 
     String domain
-    List<Integer> params
+    List<Integer> dsaparams
 
     static DsaTransparency getDefaultRegsDsaTransparency() {
         new DsaTransparency(domain: PBSUtils.randomString)

@@ -109,7 +109,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
     public void convertShouldMoveRegsData() {
         // given
         final Map<String, Object> dsaMap = Map.of(
-                "required", 1,
+                "dsarequired", 1,
                 "pubrender", 2,
                 "datatopub", 3,
                 "transparency", emptyList());

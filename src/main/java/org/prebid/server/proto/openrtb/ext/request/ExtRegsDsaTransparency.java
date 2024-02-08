@@ -16,7 +16,7 @@ public class ExtRegsDsaTransparency {
     String domain;
 
     /**
-     * Defines the contract for bidrequest.regs.ext.dsa.transparency[i].params[]
+     * Defines the contract for bidrequest.regs.ext.dsa.transparency[i].dsaparams[]
      */
-    List<Integer> params;
+    List<Integer> dsaparams;
 }

@@ -41,19 +41,19 @@
     "ext" : {
       "gdpr" : 0,
       "dsa": {
-        "required": 1,
+        "dsarequired": 1,
         "pubrender": 0,
         "datatopub": 2,
         "transparency": [
           {
             "domain": "platform1domain.com",
-            "params": [
+            "dsaparams": [
               1
             ]
           },
           {
             "domain": "SSP2domain.com",
-            "params": [
+            "dsaparams": [
               1,
               2
             ]

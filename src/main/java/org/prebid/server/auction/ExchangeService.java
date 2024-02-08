@@ -1557,7 +1557,7 @@ public class ExchangeService {
         return Optional.ofNullable(bidRequest.getRegs())
                 .map(Regs::getExt)
                 .map(ExtRegs::getDsa)
-                .map(ExtRegsDsa::getRequired)
+                .map(ExtRegsDsa::getDsarequired)
                 .map(DSA_REQUIRED::contains)
                 .orElse(false);
     }

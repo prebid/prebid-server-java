@@ -11,9 +11,9 @@ import java.util.List;
 public class ExtRegsDsa {
 
     /**
-     * Defines the contract for bidrequest.regs.ext.dsa.required
+     * Defines the contract for bidrequest.regs.ext.dsa.dsarequired
      */
-    Integer required;
+    Integer dsarequired;
 
     /**
      * Defines the contract for bidrequest.regs.ext.dsa.pubrender

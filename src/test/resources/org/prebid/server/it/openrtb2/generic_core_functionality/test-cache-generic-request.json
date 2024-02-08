@@ -18,7 +18,7 @@
             "paid" : "Advertiser",
             "transparency" : {
               "domain" : "dsp1domain.com",
-              "params" : [ 1, 2 ]
+              "dsaparams" : [ 1, 2 ]
             },
             "adrender" : 1
           },
