@@ -2,8 +2,13 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.Generic
+import org.prebid.server.functional.model.config.AccountAuctionConfig
+import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.PrivacySandbox
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Device
+import org.prebid.server.functional.model.request.auction.DeviceExt
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.request.auction.Renderer
 import org.prebid.server.functional.model.request.auction.RendererData
@@ -22,11 +27,13 @@ import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
+import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.AccountStatus.INACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
@@ -44,6 +51,8 @@ class AuctionSpec extends BaseSpec {
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
+
+    private static final String COOKIE_DEPRECATION_HEADER = 'Sec-Cookie-Deprecation'
 
     def "PBS should return version in response header for auction request for #description"() {
         when: "PBS processes auction request"
@@ -306,7 +315,7 @@ class AuctionSpec extends BaseSpec {
     def "PBS should move and not populate certain fields when debug enabled"() {
         given: "Default bid request with aliases"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            ext.prebid.aliases = [(PBSUtils.randomString):GENERIC]
+            ext.prebid.aliases = [(PBSUtils.randomString): GENERIC]
         }
 
         when: "Requesting PBS auction"
@@ -380,7 +389,7 @@ class AuctionSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].ext.prebid.bidder.alias = new Generic()
             imp[0].ext.prebid.bidder.generic = null
-            ext.prebid.aliases = [ (ALIAS.value): bidderName]
+            ext.prebid.aliases = [(ALIAS.value): bidderName]
             user = new User(ext: new UserExt(prebid: new UserExtPrebid(buyeruids: [(GENERIC): buyeruid])))
         }
 
@@ -431,4 +440,109 @@ class AuctionSpec extends BaseSpec {
         where:
         bidderName << [GENERIC, GENERIC_CAMEL_CASE]
     }
+
+
+    def "PBS should set device.ext.cdep from header when cookieDeprecation and Deprecation header is specified"() {
+        given: "Default basic BidRequest with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Account in the DB"
+        def privacySandbox = PrivacySandbox.defaultPrivacySandbox
+        def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: privacySandbox)
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        accountDao.save(account)
+
+        and: "Sec-Cookie-Deprecation header"
+        def secCookieDeprecation = [(COOKIE_DEPRECATION_HEADER): PBSUtils.randomString]
+
+        when: "PBS processes auction request with header"
+        defaultPbsService.sendAuctionRequest(bidRequest, secCookieDeprecation)
+
+        then: "BidResponse should have device.ext.cdep from sec-cookie-deprecation header"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.device.ext.cdep == secCookieDeprecation[COOKIE_DEPRECATION_HEADER]
+    }
+
+    def "PBS shouldn't set device.ext.cdep from header when cookieDeprecation is #privacySandbox and Deprecation header is #deprecationHeader"() {
+        given: "Default basic BidRequest with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Account in the DB"
+        def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: privacySandbox)
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        accountDao.save(account)
+
+        and: "Sec-Cookie-Deprecation header"
+        def secCookieDeprecation = [(COOKIE_DEPRECATION_HEADER): PBSUtils.randomString]
+
+        when: "PBS processes auction request with header"
+        defaultPbsService.sendAuctionRequest(bidRequest, secCookieDeprecation)
+
+        then: "BidResponse shouldn't have device.ext.cdep"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest?.device?.ext?.cdep
+
+        where:
+        deprecationHeader                                    | privacySandbox
+        [(COOKIE_DEPRECATION_HEADER): PBSUtils.randomString] | null
+        [(COOKIE_DEPRECATION_HEADER): PBSUtils.randomString] | PrivacySandbox.getDefaultPrivacySandbox(null)
+        [(COOKIE_DEPRECATION_HEADER): PBSUtils.randomString] | PrivacySandbox.getDefaultPrivacySandbox(false)
+        null                                                 | PrivacySandbox.defaultPrivacySandbox
+    }
+
+    def "PBS shouldn't update device.ext.cdep from header when it's present in original request"() {
+        given: "BidRequest with device.ext.cdep"
+        def cdep = PBSUtils.randomString
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            device = new Device(ext: new DeviceExt(cdep: cdep))
+        }
+
+        and: "Account in the DB"
+        def privacySandbox = PrivacySandbox.defaultPrivacySandbox
+        def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: privacySandbox)
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        accountDao.save(account)
+
+        and: "Sec-Cookie-Deprecation header"
+        def secCookieDeprecation = [(COOKIE_DEPRECATION_HEADER): PBSUtils.randomString]
+
+        when: "PBS processes auction request with header"
+        defaultPbsService.sendAuctionRequest(bidRequest, secCookieDeprecation)
+
+        then: "BidResponse should have original device.ext.cdep"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.device.ext.cdep == cdep
+    }
+
+    def "PBS should include warning and don't set device.ext.cdep from header when Deprecation header is longer then 100 chars"() {
+        given: "Default basic BidRequest with generic bidder"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Account in the DB"
+        def privacySandbox = PrivacySandbox.defaultPrivacySandbox
+        def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: privacySandbox)
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        accountDao.save(account)
+
+        and: "Long Sec-Cookie-Deprecation header"
+        def secCookieDeprecation = [(COOKIE_DEPRECATION_HEADER): PBSUtils.getRandomString(101)]
+
+        when: "PBS processes auction request with header"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest, secCookieDeprecation)
+
+        then: "PBS should include warning in responce"
+        def auctionWarnings = response.ext?.warnings?.get(PREBID)
+        assert auctionWarnings.size() == 1
+        assert auctionWarnings[0].code == 999
+        assert auctionWarnings[0].message == 'request.device.ext.cdep must be less than 100 characters'
+
+        and: "BidResponse shouldn't have device.ext.cdep"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert !bidderRequest?.device?.ext?.cdep
+    }
+
 }
