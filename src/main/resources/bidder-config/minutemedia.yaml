@@ -1,0 +1,20 @@
+adapters:
+  minutemedia:
+    endpoint: "https://pbs.minutemedia-prebid.com/pbs-mm"
+    modifyingVastXmlAllowed: true
+    meta-info:
+      maintainer-email: hb@minutemedia.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 918
+    usersync:
+      cookie-family-name: aax
+      redirect:
+        url: https://pbs-cs.minutemedia-prebid.com/pbs-iframe?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&redirect={{.RedirectURL}}
+        support-cors: false
+        uid-macro: "[PBS_UID]"
