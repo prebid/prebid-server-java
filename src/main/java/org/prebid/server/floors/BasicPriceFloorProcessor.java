@@ -30,7 +30,8 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.ObjectUtil;
-import org.prebid.server.util.algorithms.RandomWeightedEntrySupplier;
+import org.prebid.server.util.algorithms.random.RandomPositiveWeightedEntrySupplier;
+import org.prebid.server.util.algorithms.random.RandomWeightedEntrySupplier;
 
 import java.math.BigDecimal;
 import java.util.Collections;
@@ -62,7 +63,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         this.floorResolver = Objects.requireNonNull(floorResolver);
         this.mapper = Objects.requireNonNull(mapper);
 
-        modelPicker = new RandomWeightedEntrySupplier<>(BasicPriceFloorProcessor::resolveModelGroupWeight);
+        modelPicker = new RandomPositiveWeightedEntrySupplier<>(BasicPriceFloorProcessor::resolveModelGroupWeight);
     }
 
     private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {
