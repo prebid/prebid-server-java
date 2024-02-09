@@ -15,9 +15,7 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Geo
-import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.User
-import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.PbsPgConfig
 import org.prebid.server.functional.testcontainers.scaffolding.VendorList
@@ -95,14 +93,14 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
     protected static BidRequest getCcpaBidRequest(DistributionChannel channel = SITE, ConsentString consentString) {
         getBidRequestWithGeo(channel).tap {
-            regs.ext = new RegsExt(usPrivacy: consentString)
+            regs.usPrivacy = consentString
         }
     }
 
     protected static BidRequest getGdprBidRequest(DistributionChannel channel = SITE, ConsentString consentString) {
         getBidRequestWithGeo(channel).tap {
-            regs.ext = new RegsExt(gdpr: 1)
-            user = new User(ext: new UserExt(consent: consentString))
+            regs.gdpr = 1
+            user = new User(consent: consentString)
         }
     }
 

@@ -107,7 +107,7 @@ class AmpSpec extends BaseSpec {
 
         and: "Default stored request with specified: gdpr, debug"
         def ampStoredRequest = BidRequest.defaultStoredRequest
-        ampStoredRequest.regs.ext.gdpr = 1
+        ampStoredRequest.regs.gdpr = 1
 
         and: "Stored request in DB"
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
@@ -178,6 +178,6 @@ class AmpSpec extends BaseSpec {
         assert !bidderRequest.imp[0]?.tagId
         assert bidderRequest.imp[0]?.banner?.format[0]?.h == ampStoredRequest.imp[0].banner.format[0].h
         assert bidderRequest.imp[0]?.banner?.format[0]?.w == ampStoredRequest.imp[0].banner.format[0].w
-        assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.ext.gdpr
+        assert bidderRequest.regs?.gdpr == ampStoredRequest.regs.gdpr
     }
 }
