@@ -6,6 +6,9 @@ import lombok.Value;
 @Value(staticConstructor = "of")
 public class ExtImpBizzclick {
 
+    @JsonProperty("host")
+    String host;
+
     @JsonProperty("accountId")
     String accountId;
 
