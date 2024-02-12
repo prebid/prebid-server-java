@@ -93,6 +93,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
@@ -2112,11 +2113,12 @@ public class RubiconBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldFillRegsIfRegsAndGdprArePresent() {
         // given
+        final ExtRegsDsa dsa = ExtRegsDsa.of(2, 2, 3, emptyList());
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.regs(Regs.builder()
                         .gdpr(50)
                         .usPrivacy("us")
-                        .ext(ExtRegs.of(null, null, "1"))
+                        .ext(ExtRegs.of(null, null, "1", dsa))
                         .build()),
                 builder -> builder.video(Video.builder().build()),
                 identity());
@@ -2129,7 +2131,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .extracting(BidRequest::getRegs).doesNotContainNull()
-                .containsOnly(Regs.builder().ext(ExtRegs.of(50, "us", "1")).build());
+                .containsOnly(Regs.builder().ext(ExtRegs.of(50, "us", "1", dsa)).build());
     }
 
     @Test

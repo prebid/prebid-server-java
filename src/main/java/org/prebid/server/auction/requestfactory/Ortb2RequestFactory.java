@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -13,6 +14,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -52,6 +54,9 @@ import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -59,8 +64,11 @@ import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountDsaConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.AccountStatus;
 import org.prebid.server.settings.model.AccountTargetingConfig;
+import org.prebid.server.settings.model.DefaultDsa;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.validation.RequestValidator;
@@ -217,14 +225,67 @@ public class Ortb2RequestFactory {
         final Device device = bidRequest.getDevice();
         final Device enrichedDevice = enrichDevice(device, privacyContext);
 
-        if (enrichedRequestExt != null || enrichedDevice != null) {
+        final Regs regs = bidRequest.getRegs();
+        final Regs enrichedRegs = enrichRegs(regs, privacyContext, account);
+
+        if (enrichedRequestExt != null || enrichedDevice != null || enrichedRegs != null) {
             return bidRequest.toBuilder()
                     .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
                     .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
+                    .regs(ObjectUtils.defaultIfNull(enrichedRegs, regs))
                     .build();
         }
 
         return bidRequest;
+    }
+
+    private static Regs enrichRegs(Regs regs, PrivacyContext privacyContext, Account account) {
+        final ExtRegs regsExt = regs != null ? regs.getExt() : null;
+        final ExtRegsDsa regsExtDsa = regsExt != null ? regsExt.getDsa() : null;
+        if (regsExtDsa != null) {
+            return null;
+        }
+
+        final AccountDsaConfig accountDsaConfig = Optional.ofNullable(account)
+                .map(Account::getPrivacy)
+                .map(AccountPrivacyConfig::getDsa)
+                .orElse(null);
+        final DefaultDsa defaultDsa = accountDsaConfig != null ? accountDsaConfig.getDefaultDsa() : null;
+        if (defaultDsa == null) {
+            return null;
+        }
+
+        final boolean isGdprOnly = BooleanUtils.isTrue(accountDsaConfig.getGdprOnly());
+        if (isGdprOnly && !privacyContext.getTcfContext().isInGdprScope()) {
+            return null;
+        }
+
+        return Optional.ofNullable(regs)
+                .map(Regs::toBuilder)
+                .orElseGet(Regs::builder)
+                .ext(mapRegsExtDsa(defaultDsa, regsExt))
+                .build();
+    }
+
+    private static ExtRegs mapRegsExtDsa(DefaultDsa defaultDsa, ExtRegs regsExt) {
+        final List<ExtRegsDsaTransparency> enrichedDsaTransparencies = defaultDsa.getTransparency()
+                .stream()
+                .map(dsaTransparency -> ExtRegsDsaTransparency.of(
+                        dsaTransparency.getDomain(), dsaTransparency.getDsaParams()))
+                .toList();
+
+        final ExtRegsDsa enrichedRegsExtDsa = ExtRegsDsa.of(
+                defaultDsa.getDsaRequired(),
+                defaultDsa.getPubRender(),
+                defaultDsa.getDataToPub(),
+                enrichedDsaTransparencies);
+
+        final boolean isRegsExtPresent = regsExt != null;
+        return ExtRegs.of(
+                isRegsExtPresent ? regsExt.getGdpr() : null,
+                isRegsExtPresent ? regsExt.getUsPrivacy() : null,
+                isRegsExtPresent ? regsExt.getGpc() : null,
+                enrichedRegsExtDsa);
     }
 
     public Future<HttpRequestContext> executeEntrypointHooks(RoutingContext routingContext,

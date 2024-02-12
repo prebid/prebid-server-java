@@ -23,6 +23,7 @@ import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverter
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
@@ -422,7 +423,8 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
 
         final ExtRegs originalExtRegs = regs.getExt();
         final String gpc = originalExtRegs != null ? originalExtRegs.getGpc() : null;
-        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy, gpc);
+        final ExtRegsDsa dsa = originalExtRegs != null ? originalExtRegs.getDsa() : null;
+        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy, gpc, dsa);
         copyProperties(originalExtRegs, extRegs);
 
         return regs.toBuilder()
