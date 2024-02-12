@@ -317,7 +317,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true)).build();
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null, null, null))
+                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null, null, null, null))
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 

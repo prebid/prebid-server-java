@@ -251,6 +251,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                                     .build(),
                             null,
                             null,
+                            null,
                             null))
                     .analytics(AccountAnalyticsConfig.of(
                             expectedEventsConfig,
