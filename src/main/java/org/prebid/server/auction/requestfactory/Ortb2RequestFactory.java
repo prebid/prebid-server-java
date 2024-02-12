@@ -239,7 +239,7 @@ public class Ortb2RequestFactory {
         return bidRequest;
     }
 
-    private Regs enrichRegs(Regs regs, PrivacyContext privacyContext, Account account) {
+    private static Regs enrichRegs(Regs regs, PrivacyContext privacyContext, Account account) {
         final ExtRegs regsExt = regs != null ? regs.getExt() : null;
         final ExtRegsDsa regsExtDsa = regsExt != null ? regsExt.getDsa() : null;
         if (regsExtDsa != null) {
@@ -270,18 +270,21 @@ public class Ortb2RequestFactory {
     private static ExtRegs mapRegsExtDsa(DefaultDsa defaultDsa, ExtRegs regsExt) {
         final List<ExtRegsDsaTransparency> enrichedDsaTransparencies = defaultDsa.getTransparency()
                 .stream()
-                .map(dsaTransparency -> ExtRegsDsaTransparency.of(dsaTransparency.getDomain(),
-                        dsaTransparency.getDsaParams()))
+                .map(dsaTransparency -> ExtRegsDsaTransparency.of(
+                        dsaTransparency.getDomain(), dsaTransparency.getDsaParams()))
                 .toList();
 
-        final ExtRegsDsa enrichedRegsExtDsa = ExtRegsDsa.of(defaultDsa.getDsaRequired(),
+        final ExtRegsDsa enrichedRegsExtDsa = ExtRegsDsa.of(
+                defaultDsa.getDsaRequired(),
                 defaultDsa.getPubRender(),
                 defaultDsa.getDataToPub(),
                 enrichedDsaTransparencies);
 
-        return ExtRegs.of(regsExt != null ? regsExt.getGdpr() : null,
-                regsExt != null ? regsExt.getUsPrivacy() : null,
-                regsExt != null ? regsExt.getGpc() : null,
+        final boolean isRegsExtPresent = regsExt != null;
+        return ExtRegs.of(
+                isRegsExtPresent ? regsExt.getGdpr() : null,
+                isRegsExtPresent ? regsExt.getUsPrivacy() : null,
+                isRegsExtPresent ? regsExt.getGpc() : null,
                 enrichedRegsExtDsa);
     }
 
