@@ -11,6 +11,5 @@ class RegsExt {
     Integer gdpr
     String usPrivacy
     String gpc
-    RegsDsa dsa
-
+    Dsa dsa
 }
