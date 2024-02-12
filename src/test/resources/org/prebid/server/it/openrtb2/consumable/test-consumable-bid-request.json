@@ -11,8 +11,10 @@
           }
         ]
       },
+      "secure": 1,
       "ext": {
-        "consumable": {
+        "tid": "${json-unit.any-string}",
+        "bidder": {
           "networkId": 11,
           "siteId": 32,
           "unitId": 42,
@@ -30,9 +32,30 @@
     "page": "http://www.example.com",
     "publisher": {
       "domain": "example.com"
+    },
+    "ext": {
+      "amp": 0
     }
   },
-  "tmax": 5000,
+  "ext": {
+    "prebid": {
+      "channel": {
+        "name": "web"
+      },
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
+      }
+    }
+  },
+  "at": 1,
+  "cur": ["USD"],
+  "tmax": "${json-unit.any-number}",
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "regs": {
     "ext": {
       "gdpr": 0
