@@ -441,7 +441,6 @@ class AuctionSpec extends BaseSpec {
         bidderName << [GENERIC, GENERIC_CAMEL_CASE]
     }
 
-
     def "PBS should set device.ext.cdep from header when cookieDeprecation and Deprecation header is specified"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest
@@ -544,5 +543,4 @@ class AuctionSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert !bidderRequest?.device?.ext?.cdep
     }
-
 }

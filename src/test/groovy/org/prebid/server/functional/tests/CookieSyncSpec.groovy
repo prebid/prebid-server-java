@@ -2226,7 +2226,8 @@ class CookieSyncSpec extends BaseSpec {
 
 
         when: "PBS processes cookie sync request"
-        def response = prebidServerService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie, ['receive-cookie-deprecation': '1'])
+        def setCookieDefaultHeader =  ['receive-cookie-deprecation': '1']
+        def response = prebidServerService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie, setCookieDefaultHeader)
 
         then:  "Response shouldn't contain cookie header"
         assert !response.headers[SET_COOKIE_HEADER]
