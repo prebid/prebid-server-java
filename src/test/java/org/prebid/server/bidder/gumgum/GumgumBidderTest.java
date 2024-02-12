@@ -96,7 +96,7 @@ public class GumgumBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().w(0).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null))))
+                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null, null))))
                         .build()))
                 .build();
 
@@ -124,7 +124,7 @@ public class GumgumBidderTest extends VertxTest {
                                 .linearity(233)
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null))))
+                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null, null))))
                         .build()))
                 .build();
 
@@ -231,7 +231,7 @@ public class GumgumBidderTest extends VertxTest {
                         givenImp(impBuilder -> impBuilder
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                        ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId", null))))),
+                                        ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId", null, null))))),
                         givenImp(identity())))
                 .build();
 
@@ -259,14 +259,14 @@ public class GumgumBidderTest extends VertxTest {
                                         .format(singletonList(Format.builder().w(1).h(1).build()))
                                         .build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("ignored zone",
-                                        BigInteger.TEN, "irisId", 0L))))),
+                                        BigInteger.TEN, "irisId", 0L, null))))),
                         givenImp(impBuilder -> impBuilder
                                 .id("345")
                                 .banner(Banner.builder()
                                         .format(singletonList(Format.builder().w(1).h(1).build()))
                                         .build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                        ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId", null))))
+                                        ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId", null, null))))
                         )))
                 .build();
 
@@ -295,7 +295,7 @@ public class GumgumBidderTest extends VertxTest {
                                 Format.builder().w(100).h(100).build()))
                         .build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("ignored zone",
-                        BigInteger.TEN, "irisId", 42L)))));
+                        BigInteger.TEN, "irisId", 42L, null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -441,7 +441,7 @@ public class GumgumBidderTest extends VertxTest {
                         .id("123")
                         .banner(Banner.builder().id("banner_id").build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", 1L)))))
+                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", 1L, null)))))
                 .build();
     }
 
@@ -461,3 +461,4 @@ public class GumgumBidderTest extends VertxTest {
                 null);
     }
 }
+

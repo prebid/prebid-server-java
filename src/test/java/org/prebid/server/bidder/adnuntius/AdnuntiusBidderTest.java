@@ -25,6 +25,8 @@ import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAd;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdsUnit;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusBid;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusResponse;
+import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusGrossBid;
+import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusNetBid;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -77,7 +79,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).extracting(BidderError::getMessage)
                 .containsExactly("Fail on Imp.Id=test: Adnuntius supports only Banner");
     }
@@ -92,9 +94,45 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).hasSize(0);
+        assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).extracting(BidderError::getMessage)
                 .allMatch(errorMessage -> errorMessage.startsWith("Unmarshalling error:"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnRequestsWithMaxDealsIfMaxDealsIsBiggestThatZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(ExtImpAdnuntius.builder().maxDeals(10).build(), identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(AdnuntiusRequest::getAdUnits)
+                .extracting(AdnuntiusAdUnit::getMaxDeals)
+                .containsExactly(10);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotReturnRequestsWithMaxDealsIfMaxDealsIsLowestThatZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(ExtImpAdnuntius.builder().maxDeals(-10).build(), identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(AdnuntiusRequest::getAdUnits)
+                .extracting(AdnuntiusAdUnit::getMaxDeals)
+                .containsNull();
     }
 
     @Test
@@ -107,7 +145,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(AdnuntiusRequest::getAdUnits)
@@ -126,7 +164,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(AdnuntiusRequest::getAdUnits)
@@ -145,7 +183,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(AdnuntiusRequest::getAdUnits)
@@ -157,10 +195,10 @@ public class AdnuntiusBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnRequestsWithAdUnitsSeparatedByImpExtNetwork() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenImp(ExtImpAdnuntius.of("auId1", null, null), identity()),
-                givenImp(ExtImpAdnuntius.of("auId2", null, null), identity()),
-                givenImp(ExtImpAdnuntius.of("auId1", "network", null), identity()),
-                givenImp(ExtImpAdnuntius.of("auId2", "network", null), identity()));
+                givenImp(ExtImpAdnuntius.builder().auId("auId1").build(), identity()),
+                givenImp(ExtImpAdnuntius.builder().auId("auId2").build(), identity()),
+                givenImp(ExtImpAdnuntius.builder().auId("auId1").network("network").build(), identity()),
+                givenImp(ExtImpAdnuntius.builder().auId("auId2").network("network").build(), identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -171,7 +209,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 .extracting(AdnuntiusRequest::getAdUnits)
                 .allSatisfy(adUnits -> assertThat(adUnits).extracting(AdnuntiusAdUnit::getAuId)
                         .containsExactly("auId1", "auId2"));
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -179,8 +217,8 @@ public class AdnuntiusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(imp -> imp.id(null)),
-                givenImp(ExtImpAdnuntius.of("auId", null, null), imp -> imp.id(null)),
-                givenImp(ExtImpAdnuntius.of("auId", null, null), imp -> imp.id("impId")));
+                givenImp(ExtImpAdnuntius.builder().auId("auId").build(), imp -> imp.id(null)),
+                givenImp(ExtImpAdnuntius.builder().auId("auId").build(), imp -> imp.id("impId")));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -191,14 +229,14 @@ public class AdnuntiusBidderTest extends VertxTest {
                 .flatExtracting(AdnuntiusRequest::getAdUnits)
                 .extracting(AdnuntiusAdUnit::getAuId, AdnuntiusAdUnit::getTargetId)
                 .containsExactly(tuple(null, "null-null"), tuple("auId", "auId-null"), tuple("auId", "auId-impId"));
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithMetaDataIfUserIdIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request.user(User.builder().id("userId").build()),
-                givenImp(ExtImpAdnuntius.of(null, "network", null), identity()), givenImp(identity()));
+                givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()), givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -208,7 +246,7 @@ public class AdnuntiusBidderTest extends VertxTest {
                 .extracting(AdnuntiusRequest::getMetaData)
                 .extracting(AdnuntiusMetaData::getUsi)
                 .containsExactly("userId", "userId");
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -238,7 +276,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnRequestsWithContextIfSitePageIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request.site(Site.builder().page("page").build()),
-                givenImp(ExtImpAdnuntius.of(null, "network", null), identity()), givenImp(identity()));
+                givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()), givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -247,16 +285,16 @@ public class AdnuntiusBidderTest extends VertxTest {
         assertThat(result.getValue()).extracting(HttpRequest::getPayload)
                 .extracting(AdnuntiusRequest::getContext)
                 .containsExactly("page", "page");
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfGdprAndConsentAreAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request
-                        .regs(Regs.builder().ext(ExtRegs.of(null, null, null)).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null, null, null)).build())
                         .user(User.builder().ext(ExtUser.builder().consent(null).build()).build()),
-                givenImp(identity()), givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
+                givenImp(identity()), givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -266,16 +304,16 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfGdprIsAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request
-                        .regs(Regs.builder().ext(ExtRegs.of(null, null, null)).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null, null, null)).build())
                         .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build()),
-                givenImp(identity()), givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
+                givenImp(identity()), givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -285,16 +323,16 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfConsentIsAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request
-                        .regs(Regs.builder().ext(ExtRegs.of(1, null, null)).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(1, null, null, null)).build())
                         .user(User.builder().ext(ExtUser.builder().consent(null).build()).build()),
-                givenImp(identity()), givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
+                givenImp(identity()), givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -304,7 +342,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -313,9 +351,9 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Integer gdpr = 1;
         final String consent = "con sent";
         final BidRequest bidRequest = givenBidRequest(request -> request
-                        .regs(Regs.builder().ext(ExtRegs.of(gdpr, null, null)).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(gdpr, null, null, null)).build())
                         .user(User.builder().ext(ExtUser.builder().consent(consent).build()).build()),
-                givenImp(identity()), givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
+                givenImp(identity()), givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -325,7 +363,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -333,7 +371,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(identity(),
                 givenImp(identity()),
-                givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
+                givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -343,7 +381,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -352,7 +390,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Boolean noCookies = false;
         final BidRequest bidRequest = givenBidRequest(identity(),
                 givenImp(identity()),
-                givenImp(ExtImpAdnuntius.of(null, "network", noCookies), identity()));
+                givenImp(ExtImpAdnuntius.builder().network("network").noCookies(noCookies).build(), identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -362,7 +400,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -371,7 +409,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Boolean noCookies = true;
         final BidRequest bidRequest = givenBidRequest(identity(),
                 givenImp(identity()),
-                givenImp(ExtImpAdnuntius.of(null, "network", noCookies), identity()));
+                givenImp(ExtImpAdnuntius.builder().network("network").noCookies(noCookies).build(), identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -381,7 +419,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -390,7 +428,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(request -> request
                         .device(Device.builder().ext(givenExtDeviceNoCookies(null)).build()),
                 givenImp(identity()),
-                givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
+                givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -400,7 +438,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -410,7 +448,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(request -> request
                         .device(Device.builder().ext(givenExtDeviceNoCookies(noCookies)).build()),
                 givenImp(identity()),
-                givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
+                givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -420,7 +458,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -430,7 +468,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(request -> request
                         .device(Device.builder().ext(givenExtDeviceNoCookies(noCookies)).build()),
                 givenImp(identity()),
-                givenImp(ExtImpAdnuntius.of(null, "network", null), identity()));
+                givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -440,7 +478,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
                 .containsExactly(expectedUrl, expectedUrl);
-        assertThat(result.getErrors()).hasSize(0);
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -502,7 +540,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldSkipInvalidAdsUnits() throws JsonProcessingException {
         // given
-        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnit());
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnitWithAds());
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
 
         // when
@@ -517,9 +555,9 @@ public class AdnuntiusBidderTest extends VertxTest {
     public void makeBidsShouldUseCurrencyOfFirstBidOfLastAdsUnit() throws JsonProcessingException {
         // given
         final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(
-                givenAdsUnit(givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "1.1"))),
+                givenAdsUnitWithAds(givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "1.1"))),
                         givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "1.2")))),
-                givenAdsUnit(givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "2.1"))),
+                givenAdsUnitWithAds(givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "2.1"))),
                         givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "2.2")))));
 
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()), givenImp(identity()));
@@ -534,11 +572,112 @@ public class AdnuntiusBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldPopulateGrossBidPriceWhenGrossBidSpecified() throws JsonProcessingException {
+        // given
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnitWithAds(
+                givenAd(ad -> ad.adnuntiusGrossBid(AdnuntiusGrossBid.of(BigDecimal.ONE)))));
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(ExtImpAdnuntius.builder().bidType("gross").build(), identity()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getPrice)
+                .containsExactly(BigDecimal.valueOf(1000));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldPopulateNetBidPriceWhenGrossBidSpecified() throws JsonProcessingException {
+        // given
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnitWithAds(
+                givenAd(ad -> ad.adnuntiusNetBid(AdnuntiusNetBid.of(BigDecimal.ONE)))));
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(ExtImpAdnuntius.builder().bidType("net").build(), identity()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getPrice)
+                .containsExactly(BigDecimal.valueOf(1000));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldNotReturnBidFromDealsWhenAdsIsAbsentAndDealsIsSpecified() throws JsonProcessingException {
+        // given
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnitWithDeals(givenAd(identity())));
+
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnTwoBidFromDealsAndAdsWhenAdsAndDealsIsSpecified() throws JsonProcessingException {
+        // given
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnitWithDealsAndAds(
+                List.of(givenAd(ad -> ad
+                        .bid(AdnuntiusBid.of(BigDecimal.ONE, "USD"))
+                        .adId("adId")
+                        .creativeId("creativeId")
+                        .lineItemId("lineItemId")
+                        .dealId("dealId")
+                        .destinationUrls(Map.of("key1", "https://www.domain1.com/uri",
+                                "key2", "http://www.domain2.dt/uri")))),
+                List.of(givenAd(ad -> ad
+                        .bid(AdnuntiusBid.of(BigDecimal.ONE, "USD"))
+                        .adId("adId")
+                        .creativeId("creativeId")
+                        .lineItemId("lineItemId")
+                        .dealId("dealId")
+                        .destinationUrls(Map.of("key1", "https://www.domain1.com/uri",
+                                "key2", "http://www.domain2.dt/uri"))))));
+
+        final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(2).allSatisfy(bidderBid -> {
+            assertThat(bidderBid).extracting(BidderBid::getBid).satisfies(bid -> {
+                assertThat(bid).extracting(Bid::getId).isEqualTo("adId");
+                assertThat(bid).extracting(Bid::getImpid).isEqualTo("test");
+                assertThat(bid).extracting(Bid::getW).isEqualTo(21);
+                assertThat(bid).extracting(Bid::getH).isEqualTo(9);
+                assertThat(bid).extracting(Bid::getAdid).isEqualTo("adId");
+                assertThat(bid).extracting(Bid::getAdm).isEqualTo("html");
+                assertThat(bid).extracting(Bid::getCid).isEqualTo("lineItemId");
+                assertThat(bid).extracting(Bid::getDealid).isEqualTo("dealId");
+                assertThat(bid).extracting(Bid::getCrid).isEqualTo("creativeId");
+                assertThat(bid).extracting(Bid::getPrice).isEqualTo(BigDecimal.valueOf(1000));
+                assertThat(bid).extracting(Bid::getAdomain).asList()
+                        .containsExactlyInAnyOrder("domain1.com", "domain2.dt");
+            });
+            assertThat(bidderBid).extracting(BidderBid::getType).isEqualTo(BidType.banner);
+            assertThat(bidderBid).extracting(BidderBid::getBidCurrency).isEqualTo("USD");
+        });
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfCreativeHeightOfSomeAdIsAbsent() throws JsonProcessingException {
         // given
         final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(
-                givenAdsUnit(givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "CUR")))),
-                givenAdsUnit(givenAd(ad -> ad.creativeHeight(null))));
+                givenAdsUnitWithAds(givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "CUR")))),
+                givenAdsUnitWithAds(givenAd(ad -> ad.creativeHeight(null))));
 
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()), givenImp(identity()));
 
@@ -555,8 +694,8 @@ public class AdnuntiusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorIfCreativeWidthtOfSomeAdIsAbsent() throws JsonProcessingException {
         // given
         final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(
-                givenAdsUnit(givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "CUR")))),
-                givenAdsUnit(givenAd(ad -> ad.creativeWidth(null))));
+                givenAdsUnitWithAds(givenAd(ad -> ad.bid(AdnuntiusBid.of(null, "CUR")))),
+                givenAdsUnitWithAds(givenAd(ad -> ad.creativeWidth(null))));
 
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()), givenImp(identity()));
 
@@ -572,7 +711,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnCorrectSeatBids() throws JsonProcessingException {
         // given
-        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnit(givenAd(ad -> ad
+        final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnitWithAds(givenAd(ad -> ad
                 .bid(AdnuntiusBid.of(BigDecimal.ONE, "CUR"))
                 .adId("adId")
                 .creativeId("creativeId")
@@ -612,8 +751,8 @@ public class AdnuntiusBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorWhenAdsUnitsCountGreaterThanImpsCount() throws JsonProcessingException {
         // given
         final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(
-                givenAdsUnit(givenAd(identity())),
-                givenAdsUnit(givenAd(identity())));
+                givenAdsUnitWithAds(givenAd(identity())),
+                givenAdsUnitWithAds(givenAd(identity())));
 
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()));
 
@@ -641,7 +780,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     }
 
     private Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenImp(ExtImpAdnuntius.of(null, null, null), impCustomizer);
+        return givenImp(ExtImpAdnuntius.builder().build(), impCustomizer);
     }
 
     private BidderCall<AdnuntiusRequest> givenHttpCall(String body) {
@@ -655,12 +794,25 @@ public class AdnuntiusBidderTest extends VertxTest {
         return givenHttpCall(mapper.writeValueAsString(AdnuntiusResponse.of(List.of(adsUnits))));
     }
 
-    private AdnuntiusAdsUnit givenAdsUnit(AdnuntiusAd... ads) {
+    private AdnuntiusAdsUnit givenAdsUnitWithAds(AdnuntiusAd... ads) {
+        return givenAdsUnit(List.of(ads), null);
+    }
+
+    private AdnuntiusAdsUnit givenAdsUnitWithDeals(AdnuntiusAd... deals) {
+        return givenAdsUnit(null, List.of(deals));
+    }
+
+    private AdnuntiusAdsUnit givenAdsUnitWithDealsAndAds(List<AdnuntiusAd> ads, List<AdnuntiusAd> deals) {
+        return givenAdsUnit(ads, deals);
+    }
+
+    private AdnuntiusAdsUnit givenAdsUnit(List<AdnuntiusAd> ads, List<AdnuntiusAd> deals) {
         return AdnuntiusAdsUnit.builder()
                 .auId("auId")
                 .targetId("auId-impId")
                 .html("html")
-                .ads(List.of(ads))
+                .ads(ads)
+                .deals(deals)
                 .build();
     }
 

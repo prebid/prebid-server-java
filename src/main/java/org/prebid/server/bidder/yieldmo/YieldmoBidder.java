@@ -16,6 +16,7 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.yieldmo.proto.YieldmoBidExt;
 import org.prebid.server.bidder.yieldmo.proto.YieldmoImpExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -97,13 +98,13 @@ public class YieldmoBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -114,16 +115,20 @@ public class YieldmoBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, resolveBidType(bid, bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> {
+                    final BidType bidType = resolveBidType(bid);
+                    return bidType != null ? BidderBid.of(bid, bidType, bidResponse.getCur()) : null;
+                })
+                .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidType resolveBidType(Bid bid, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (Objects.equals(imp.getId(), bid.getImpid())) {
-                return imp.getBanner() != null ? BidType.banner : BidType.video;
-            }
+    private BidType resolveBidType(Bid bid) {
+        try {
+            final YieldmoBidExt bidExt = mapper.mapper().treeToValue(bid.getExt(), YieldmoBidExt.class);
+            return BidType.fromString(bidExt.getMediaType());
+        } catch (Exception e) {
+            return null;
         }
-        return BidType.video;
     }
 }

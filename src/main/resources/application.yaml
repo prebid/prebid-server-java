@@ -114,6 +114,8 @@ profile: profile
 adapter-defaults:
   enabled: false
   ortb-version: "2.5"
+  ortb:
+    multiformat-supported: true
   pbs-enforces-ccpa: true
   modifying-vast-xml-allowed: true
   debug:
@@ -143,6 +145,7 @@ auction:
     secure-markup: skip
   host-schain-node:
   category-mapping-enabled: false
+  strict-app-site-dooh: false
 video:
   stored-request-required: false
   stored-requests-timeout-ms: 90
@@ -216,10 +219,22 @@ gdpr:
       http-endpoint-template: https://vendor-list.consensu.org/v2/archives/vendor-list-v{VERSION}.json
       refresh-missing-list-period-ms: 3600000
       deprecated: false
+      retry-policy:
+        exponential-backoff:
+          delay-millis: 60000
+          max-delay-millis: 120000
+          factor: 1.1
+          jitter: 0.2
     v3:
       http-endpoint-template: https://vendor-list.consensu.org/v3/archives/vendor-list-v{VERSION}.json
       refresh-missing-list-period-ms: 3600000
       deprecated: false
+      retry-policy:
+        exponential-backoff:
+          delay-millis: 60000
+          max-delay-millis: 120000
+          factor: 1.1
+          jitter: 0.2
   purposes:
     p1:
       enforce-purpose: full

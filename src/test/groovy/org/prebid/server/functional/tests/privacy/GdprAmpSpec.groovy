@@ -36,7 +36,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         given: "AmpRequest with consent string"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         def ampRequest = getGdprAmpRequest(validConsentString)
@@ -233,7 +233,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         given: "Default AmpRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def ampRequest = getGdprAmpRequest(validConsentString)
 
@@ -264,7 +264,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         given: "Default AmpRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def ampRequest = getGdprAmpRequest(validConsentString)
 
@@ -307,7 +307,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
                 .setPurposesLITransparency(BASIC_ADS)
                 .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         and: "AMP request"
@@ -330,11 +330,12 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/${tcfPolicyVersion.vendorListVersion}.json"
         PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
         def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
-        assert vendorList.vendorListVersion == tcfPolicyVersion.vendorListVersion
+        assert vendorList.tcfPolicyVersion == tcfPolicyVersion.vendorListVersion
 
         and: "Logs should contain proper vendor list version"
         def logs = privacyPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Created new TCF 2 vendor list for version ${tcfPolicyVersion.vendorListVersion}")
+        assert getLogsByText(logs, "Created new TCF 2 vendor list for version " +
+                "v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion}")
 
         cleanup: "Stop container with default request"
         serverContainer.stop()

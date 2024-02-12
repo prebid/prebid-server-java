@@ -173,6 +173,7 @@ public class FileApplicationSettingsTest extends VertxTest {
                                 .build(),
                         null,
                         null,
+                        null,
                         null))
                 .analytics(AccountAnalyticsConfig.of(
                         expectedEventsConfig,

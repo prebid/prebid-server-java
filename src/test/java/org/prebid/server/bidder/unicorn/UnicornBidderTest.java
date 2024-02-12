@@ -107,7 +107,7 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfGdprIsOne() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null)).build()), identity());
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build()), identity());
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -119,7 +119,7 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfUsPrivacyIsPresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
-                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(0, "privacy", null)).build()), identity());
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(0, "privacy", null, null)).build()), identity());
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 

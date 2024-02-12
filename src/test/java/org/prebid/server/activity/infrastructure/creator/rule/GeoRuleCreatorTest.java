@@ -7,9 +7,9 @@ import com.iab.openrtb.request.Regs;
 import org.junit.Test;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.creator.ActivityControllerCreationContext;
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.impl.ActivityCallPayloadImpl;
-import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityCallPayload;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
@@ -56,23 +56,23 @@ public class GeoRuleCreatorTest {
         final Rule rule = target.from(config, creationContext);
 
         // then
-        final ActivityCallPayload payload1 = BidRequestActivityCallPayload.of(
-                ActivityCallPayloadImpl.of(ComponentType.BIDDER, "NaMe"),
+        final ActivityInvocationPayload payload1 = BidRequestActivityInvocationPayload.of(
+                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, "NaMe"),
                 givenBidRequest("country1", "region", "2"));
         assertThat(rule.proceed(payload1)).isEqualTo(Rule.Result.DISALLOW);
 
-        final ActivityCallPayload payload2 = BidRequestActivityCallPayload.of(
-                ActivityCallPayloadImpl.of(ComponentType.BIDDER, "nAmE"),
+        final ActivityInvocationPayload payload2 = BidRequestActivityInvocationPayload.of(
+                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, "nAmE"),
                 givenBidRequest("country2", "region", "2"));
         assertThat(rule.proceed(payload2)).isEqualTo(Rule.Result.DISALLOW);
 
-        final ActivityCallPayload payload3 = BidRequestActivityCallPayload.of(
-                ActivityCallPayloadImpl.of(ComponentType.BIDDER, "name"),
+        final ActivityInvocationPayload payload3 = BidRequestActivityInvocationPayload.of(
+                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, "name"),
                 givenBidRequest("country3", "region", "2"));
         assertThat(rule.proceed(payload3)).isEqualTo(Rule.Result.DISALLOW);
 
-        final ActivityCallPayload payload4 = BidRequestActivityCallPayload.of(
-                ActivityCallPayloadImpl.of(ComponentType.BIDDER, "name"),
+        final ActivityInvocationPayload payload4 = BidRequestActivityInvocationPayload.of(
+                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, "name"),
                 givenBidRequest("country1", null, "2"));
         assertThat(rule.proceed(payload4)).isEqualTo(Rule.Result.DISALLOW);
     }
@@ -80,7 +80,7 @@ public class GeoRuleCreatorTest {
     private static BidRequest givenBidRequest(String country, String region, String gpc) {
         return BidRequest.builder()
                 .device(Device.builder().geo(Geo.builder().country(country).region(region).build()).build())
-                .regs(Regs.builder().ext(ExtRegs.of(null, null, gpc)).build())
+                .regs(Regs.builder().ext(ExtRegs.of(null, null, gpc, null)).build())
                 .build();
     }
 

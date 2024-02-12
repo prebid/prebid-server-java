@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.GenericBidder;
+import org.prebid.server.bidder.adelement.AdelementBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -35,7 +35,7 @@ public class AdelementConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(adelementConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new GenericBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new AdelementBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }

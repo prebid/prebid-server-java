@@ -13,6 +13,11 @@
           "storedrequest": {
             "id": "placement_id"
           }
+        },
+        "nextMillennium": {
+          "nmmFlags": [
+            "1"
+          ]
         }
       }
     }

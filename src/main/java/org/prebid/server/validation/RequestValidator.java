@@ -33,6 +33,7 @@ import com.iab.openrtb.request.ntv.EventTrackingMethod;
 import com.iab.openrtb.request.ntv.EventType;
 import com.iab.openrtb.request.ntv.PlacementType;
 import com.iab.openrtb.request.ntv.Protocol;
+import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -40,6 +41,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -61,6 +66,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -77,7 +83,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -85,6 +90,9 @@ import java.util.stream.Stream;
  * Validations are processed by the validate method and returns {@link ValidationResult}.
  */
 public class RequestValidator {
+
+    private static final ConditionalLogger conditionalLogger = new ConditionalLogger(
+            LoggerFactory.getLogger(RequestValidator.class));
 
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
@@ -97,7 +105,10 @@ public class RequestValidator {
 
     private final BidderCatalog bidderCatalog;
     private final BidderParamValidator bidderParamValidator;
+    private final Metrics metrics;
     private final JacksonMapper mapper;
+    private final double logSamplingRate;
+    private final boolean enabledStrictAppSiteDoohValidation;
 
     /**
      * Constructs a RequestValidator that will use the BidderParamValidator passed in order to validate all critical
@@ -105,18 +116,24 @@ public class RequestValidator {
      */
     public RequestValidator(BidderCatalog bidderCatalog,
                             BidderParamValidator bidderParamValidator,
-                            JacksonMapper mapper) {
+                            Metrics metrics,
+                            JacksonMapper mapper,
+                            double logSamplingRate,
+                            boolean enabledStrictAppSiteDoohValidation) {
 
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.bidderParamValidator = Objects.requireNonNull(bidderParamValidator);
+        this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
+        this.logSamplingRate = logSamplingRate;
+        this.enabledStrictAppSiteDoohValidation = enabledStrictAppSiteDoohValidation;
     }
 
     /**
      * Validates the {@link BidRequest} against a list of validation checks, however, reports only one problem
      * at a time.
      */
-    public ValidationResult validate(BidRequest bidRequest) {
+    public ValidationResult validate(BidRequest bidRequest, HttpRequestContext httpRequestContext) {
         final List<String> warnings = new ArrayList<>();
         try {
             if (StringUtils.isBlank(bidRequest.getId())) {
@@ -174,24 +191,34 @@ public class RequestValidator {
             }
 
             final List<String> channels = new ArrayList<>();
-            Optional.ofNullable(bidRequest.getSite()).ifPresent(ignored -> channels.add("request.site"));
-            Optional.ofNullable(bidRequest.getDooh()).ifPresent(ignored -> channels.add("request.dooh"));
             Optional.ofNullable(bidRequest.getApp()).ifPresent(ignored -> channels.add("request.app"));
+            Optional.ofNullable(bidRequest.getDooh()).ifPresent(ignored -> channels.add("request.dooh"));
+            Optional.ofNullable(bidRequest.getSite()).ifPresent(ignored -> channels.add("request.site"));
 
-            if (channels.size() == 0) {
+            final boolean isApp = bidRequest.getApp() != null;
+            final boolean isDooh = !isApp && bidRequest.getDooh() != null;
+            final boolean isSite = !isApp && !isDooh && bidRequest.getSite() != null;
+
+            if (channels.isEmpty()) {
                 throw new ValidationException(
                         "One of request.site or request.app or request.dooh must be defined");
             } else if (channels.size() > 1) {
-                throw new ValidationException(String.join(" and ", channels) + " are present, "
-                        + "but no more than one of request.site or request.app or request.dooh can be defined");
+                if (enabledStrictAppSiteDoohValidation) {
+                    metrics.updateAlertsMetrics(MetricName.general);
+                    throw new ValidationException(String.join(" and ", channels) + " are present, "
+                            + "but no more than one of request.site or request.app or request.dooh can be defined");
+                }
+                final String logMessage = String.join(" and ", channels) + " are present. "
+                        + "Referer: " + httpRequestContext.getHeaders().get(HttpUtil.REFERER_HEADER);
+                conditionalLogger.warn(logMessage, logSamplingRate);
             }
 
-            if (bidRequest.getSite() != null) {
-                validateSite(bidRequest.getSite());
-            }
-
-            if (bidRequest.getDooh() != null) {
+            if (isDooh) {
                 validateDooh(bidRequest.getDooh());
+            }
+
+            if (isSite) {
+                validateSite(bidRequest.getSite());
             }
 
             validateDevice(bidRequest.getDevice());
@@ -334,40 +361,25 @@ public class RequestValidator {
 
     private void validateEidPermissions(List<ExtRequestPrebidDataEidPermissions> eidPermissions,
                                         Map<String, String> aliases) throws ValidationException {
-        if (eidPermissions != null) {
-            final Set<String> uniqueEidsSources = new HashSet<>();
-            for (ExtRequestPrebidDataEidPermissions eidPermission : eidPermissions) {
-                validateEidPermission(eidPermission, aliases, uniqueEidsSources);
+
+        if (eidPermissions == null) {
+            return;
+        }
+
+        for (ExtRequestPrebidDataEidPermissions eidPermission : eidPermissions) {
+            if (eidPermission == null) {
+                throw new ValidationException("request.ext.prebid.data.eidpermissions[i] can't be null");
             }
-        }
-    }
 
-    private void validateEidPermission(ExtRequestPrebidDataEidPermissions eidPermission,
-                                       Map<String, String> aliases,
-                                       Set<String> uniqueEidsSources)
-            throws ValidationException {
-        if (eidPermission == null) {
-            throw new ValidationException("request.ext.prebid.data.eidpermissions[] can't be null");
+            validateEidPermissionSource(eidPermission.getSource());
+            validateEidPermissionBidders(eidPermission.getBidders(), aliases);
         }
-        final String eidPermissionSource = eidPermission.getSource();
-
-        validateEidPermissionSource(eidPermissionSource);
-        validateDuplicatedSources(uniqueEidsSources, eidPermissionSource);
-        validateEidPermissionBidders(eidPermission.getBidders(), aliases);
     }
 
     private void validateEidPermissionSource(String source) throws ValidationException {
         if (StringUtils.isEmpty(source)) {
             throw new ValidationException("Missing required value request.ext.prebid.data.eidPermissions[].source");
         }
-    }
-
-    private void validateDuplicatedSources(Set<String> uniqueEidsSources, String eidSource) throws ValidationException {
-        if (uniqueEidsSources.contains(eidSource)) {
-            throw new ValidationException("Duplicate source %s in request.ext.prebid.data.eidpermissions[]"
-                    .formatted(eidSource));
-        }
-        uniqueEidsSources.add(eidSource);
     }
 
     private void validateEidPermissionBidders(List<String> bidders,
@@ -405,11 +417,20 @@ public class RequestValidator {
         }
         validateMediaTypePriceGranularity(extRequestTargeting.getMediatypepricegranularity());
 
-        final Boolean includeWinners = extRequestTargeting.getIncludewinners();
-        final Boolean includeBidderKeys = extRequestTargeting.getIncludebidderkeys();
-        if (Objects.equals(includeWinners, false) && Objects.equals(includeBidderKeys, false)) {
-            throw new ValidationException("ext.prebid.targeting: At least one of includewinners or includebidderkeys"
-                    + " must be enabled to enable targeting support");
+        validateTargetingPrefix(extRequestTargeting);
+    }
+
+    private void validateTargetingPrefix(ExtRequestTargeting extRequestTargeting) throws ValidationException {
+        final Integer truncateattrchars = extRequestTargeting.getTruncateattrchars();
+        final int prefixLength = extRequestTargeting.getPrefix() != null
+                ? extRequestTargeting.getPrefix().length()
+                : 0;
+        final boolean prefixLengthInvalid = truncateattrchars != null
+                && prefixLength > 0
+                && prefixLength + 11 > truncateattrchars; // 11 - length of the longest targeting keyword without prefix
+        if (prefixLengthInvalid) {
+            throw new ValidationException("ext.prebid.targeting: decrease prefix length or increase truncateattrchars"
+                    + " by " + (prefixLength + 11 - truncateattrchars) + " characters");
         }
     }
 
@@ -602,12 +623,6 @@ public class RequestValidator {
                                     uidsIndex);
                         }
                     }
-                }
-                final Set<String> uniqueSources = eids.stream()
-                        .map(Eid::getSource)
-                        .collect(Collectors.toSet());
-                if (eids.size() != uniqueSources.size()) {
-                    throw new ValidationException("request.user.eids must contain unique sources");
                 }
             }
         }

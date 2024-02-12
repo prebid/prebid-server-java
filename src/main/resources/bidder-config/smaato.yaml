@@ -12,9 +12,11 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 82
+    # This bidder does not sync when GDPR is in-scope. Please consider removing the usersync
+    # block when deploying to European datacenters
     usersync:
       cookie-family-name: smaato
       redirect:
-        url: https://s.ad.smaato.net/c/?adExInit=p&redir={{redirect_url}}
+        url: https://s.ad.smaato.net/c/?adExInit=p&redir={{redirect_url}}&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
         support-cors: false
         uid-macro: '$UID'

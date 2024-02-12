@@ -75,9 +75,14 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnNonEmptyUidsCookieFromCookiesMap() {
         // given
-        // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
+        // this uids cookie value stands for { "tempUIDs":{ "rubicon":{ "uid": "J5VLCWQP-26-CWFT",
+        // "expires": "2023-12-05T19:00:05.103329-03:00" }, "adnxs":{ "uid": "12345",
+        // "expires": "2023-12-05T19:00:05.103329-03:00" } } }
         final Map<String, String> cookies = singletonMap("uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==");
+                "eyAidGVtcFVJRHMiOnsgInJ1Ymljb24iOnsgInVpZCI6ICJKNVZMQ1dRUC0yNi1DV0ZUIiwg"
+                        + "ImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS4xMDMzMjktMDM6MDAiIH0sICJhZG5"
+                        + "4cyI6eyAidWlkIjogIjEyMzQ1IiwgImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS"
+                        + "4xMDMzMjktMDM6MDAiIH0gfSB9");
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromCookies(cookies);
@@ -91,10 +96,15 @@ public class UidsCookieServiceTest extends VertxTest {
     @Test
     public void shouldReturnNonEmptyUidsCookie() {
         // given
-        // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
+        // this uids cookie value stands for { "tempUIDs":{ "rubicon":{ "uid": "J5VLCWQP-26-CWFT",
+        // "expires": "2023-12-05T19:00:05.103329-03:00" }, "adnxs":{ "uid": "12345",
+        // "expires": "2023-12-05T19:00:05.103329-03:00" } } }
         given(routingContext.cookieMap()).willReturn(singletonMap("uids", Cookie.cookie(
-                "uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")));
+                "tempUIDs",
+                "eyAidGVtcFVJRHMiOnsgInJ1Ymljb24iOnsgInVpZCI6ICJKNVZMQ1dRUC0yNi1DV0ZUIiwg"
+                        + "ImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS4xMDMzMjktMDM6MDAiIH0sICJhZG5"
+                        + "4cyI6eyAidWlkIjogIjEyMzQ1IiwgImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS"
+                        + "4xMDMzMjktMDM6MDAiIH0gfSB9")));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -130,7 +140,7 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnNonNullUidsCookieIfUidsCookieIsNonJson() {
         // given
         // this uids cookie value stands for "abcde"
-        given(routingContext.cookieMap()).willReturn(singletonMap("uids", Cookie.cookie("uids", "bm9uLWpzb24=")));
+        given(routingContext.cookieMap()).willReturn(singletonMap("uids", Cookie.cookie("tempUIDs", "bm9uLWpzb24=")));
 
         // when
         final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
@@ -156,9 +166,15 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnUidsCookieWithOptoutTrueIfUidsCookieIsPresentAndOptoutCookieHasExpectedValue() {
         // given
         final Map<String, Cookie> cookies = new HashMap<>();
-        // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
-        cookies.put("uids", Cookie.cookie("uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
+        // this uids cookie value stands for { "tempUIDs":{ "rubicon":{ "uid": "J5VLCWQP-26-CWFT",
+        // "expires": "2023-12-05T19:00:05.103329-03:00" }, "adnxs":{ "uid": "12345",
+        // "expires": "2023-12-05T19:00:05.103329-03:00" } } }
+        cookies.put("uids",
+                Cookie.cookie("uids", "eyAidGVtcFVJRHMiOnsgInJ1Ymljb24iOnsgInVpZCI6ICJKNVZMQ1dRUC0yNi1DV0"
+                        + "ZUIiwgImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS4xMDMzMjktMDM6MDAiIH0sICJhZG5"
+                        + "4cyI6eyAidWlkIjogIjEyMzQ1IiwgImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS"
+                        + "4xMDMzMjktMDM6MDAiIH0gfSB9"));
+
         cookies.put(OPT_OUT_COOKIE_NAME, Cookie.cookie(OPT_OUT_COOKIE_NAME, OPT_OUT_COOKIE_VALUE));
 
         given(routingContext.cookieMap()).willReturn(cookies);
@@ -224,9 +240,15 @@ public class UidsCookieServiceTest extends VertxTest {
     public void shouldReturnUidsCookieWithOptoutFalseIfOptoutCookieHasNotExpectedValue() {
         // given
         final Map<String, Cookie> cookies = new HashMap<>();
-        // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
-        cookies.put("uids", Cookie.cookie("uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
+        // this uids cookie value stands for { "tempUIDs":{ "rubicon":{ "uid": "J5VLCWQP-26-CWFT",
+        // "expires": "2023-12-05T19:00:05.103329-03:00" }, "adnxs":{ "uid": "12345",
+        // "expires": "2023-12-05T19:00:05.103329-03:00" } } }
+        cookies.put("uids", Cookie.cookie(
+                "tempUIDs",
+                "eyAidGVtcFVJRHMiOnsgInJ1Ymljb24iOnsgInVpZCI6ICJKNVZMQ1dRUC0yNi1DV0ZUIiwg"
+                        + "ImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS4xMDMzMjktMDM6MDAiIH0sICJhZG5"
+                        + "4cyI6eyAidWlkIjogIjEyMzQ1IiwgImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS"
+                        + "4xMDMzMjktMDM6MDAiIH0gfSB9"));
         cookies.put(OPT_OUT_COOKIE_NAME, Cookie.cookie(OPT_OUT_COOKIE_NAME, "dummy"));
 
         given(routingContext.cookieMap()).willReturn(cookies);
@@ -327,9 +349,14 @@ public class UidsCookieServiceTest extends VertxTest {
                 jacksonMapper);
 
         final Map<String, Cookie> cookies = new HashMap<>();
-        // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
-        cookies.put("uids", Cookie.cookie("uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ=="));
+        // this uids cookie value stands for { "tempUIDs":{ "rubicon":{ "uid": "J5VLCWQP-26-CWFT",
+        // "expires": "2023-12-05T19:00:05.103329-03:00" }, "adnxs":{ "uid": "12345",
+        // "expires": "2023-12-05T19:00:05.103329-03:00" } } }
+        cookies.put("uids",
+                Cookie.cookie("uids", "eyAidGVtcFVJRHMiOnsgInJ1Ymljb24iOnsgInVpZCI6ICJKNVZMQ1dRUC0yNi1DV0"
+                        + "ZUIiwgImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS4xMDMzMjktMDM6MDAiIH0sICJhZG5"
+                        + "4cyI6eyAidWlkIjogIjEyMzQ1IiwgImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS"
+                        + "4xMDMzMjktMDM6MDAiIH0gfSB9"));
         cookies.put("khaos", Cookie.cookie("khaos", "abc123"));
 
         given(routingContext.cookieMap()).willReturn(cookies);
@@ -405,24 +432,6 @@ public class UidsCookieServiceTest extends VertxTest {
 
         // then
         assertThat(cookie.getDomain()).isEqualTo(HOST_COOKIE_DOMAIN);
-    }
-
-    @Test
-    public void shouldCreateUidsFromLegacyUidsIfUidsAreMissed() {
-        // given
-        // this uids cookie value stands for
-        // {"uids":{"rubicon":"J5VLCWQP-26-CWFT"},"tempUIDs":{}},"bday":"2017-08-15T19:47:59.523908376Z"}
-        given(routingContext.cookieMap()).willReturn(singletonMap("uids", Cookie.cookie(
-                "uids",
-                "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn0sInRlbXBVSURzIjp7fX0sImJkYXkiOiIyMDE3LTA"
-                        + "4LTE1VDE5OjQ3OjU5LjUyMzkwODM3NloifQ==")));
-
-        // when
-        final UidsCookie uidsCookie = uidsCookieService.parseFromRequest(routingContext);
-
-        // then
-        assertThat(uidsCookie).isNotNull();
-        assertThat(uidsCookie.uidFrom(RUBICON)).isEqualTo("J5VLCWQP-26-CWFT");
     }
 
     @Test

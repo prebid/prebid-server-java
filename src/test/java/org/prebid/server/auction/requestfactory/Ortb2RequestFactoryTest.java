@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -59,13 +60,22 @@ import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountDsaConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.AccountStatus;
+import org.prebid.server.settings.model.AccountTargetingConfig;
+import org.prebid.server.settings.model.DefaultDsa;
+import org.prebid.server.settings.model.DsaTransparency;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -76,6 +86,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
@@ -550,6 +561,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 AuctionContext.builder().bidRequest(bidRequest).build());
 
         // then
+        verify(metrics).updateAccountRequestRejectedByFailedFetch(accountId);
         verify(applicationSettings).getAccountById(eq(accountId), any());
 
         assertThat(result.result()).isEqualTo(Account.empty(accountId));
@@ -840,12 +852,15 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void validateRequestShouldThrowInvalidRequestExceptionIfRequestIsInvalid() {
         // given
-        given(requestValidator.validate(any())).willReturn(ValidationResult.error("error"));
+        given(requestValidator.validate(any(), any())).willReturn(ValidationResult.error("error"));
 
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Future<BidRequest> result = target.validateRequest(bidRequest, new ArrayList<>());
+        final Future<BidRequest> result = target.validateRequest(
+                bidRequest,
+                HttpRequestContext.builder().build(),
+                new ArrayList<>());
 
         // then
         assertThat(result).isFailed();
@@ -853,35 +868,47 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessage("error");
 
-        verify(requestValidator).validate(bidRequest);
+        verify(requestValidator).validate(eq(bidRequest), any());
     }
 
     @Test
     public void validateRequestShouldReturnSameBidRequest() {
         // given
-        given(requestValidator.validate(any())).willReturn(ValidationResult.success());
+        given(requestValidator.validate(any(), any())).willReturn(ValidationResult.success());
 
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final BidRequest result = target.validateRequest(bidRequest, new ArrayList<>()).result();
+        final BidRequest result = target.validateRequest(
+                bidRequest,
+                HttpRequestContext.builder().build(),
+                new ArrayList<>()).result();
 
         // then
-        verify(requestValidator).validate(bidRequest);
+        verify(requestValidator).validate(eq(bidRequest), any());
 
         assertThat(result).isSameAs(bidRequest);
     }
 
     @Test
-    public void enrichBidRequestWithAccountAndPrivacyDataShouldReturnIntegrationFromAccount() {
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldReturnSameBidRequest() {
         // given
         final String accountId = "accId";
         final BidRequest bidRequest = givenBidRequest(builder -> builder
-                .imp(new ArrayList<>())
+                .imp(emptyList())
                 .site(Site.builder()
                         .publisher(Publisher.builder().id(accountId).build())
                         .build())
-                .ext(ExtRequest.of(ExtRequestPrebid.builder().build())));
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .integration("integration")
+                        .targeting(ExtRequestTargeting.builder()
+                                .includewinners(true)
+                                .includebidderkeys(true)
+                                .includeformat(true)
+                                .preferdeals(true)
+                                .alwaysincludedeals(true)
+                                .build())
+                        .build())));
 
         final PrivacyContext privacyContext = PrivacyContext.of(
                 Privacy.builder()
@@ -893,11 +920,17 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 TcfContext.empty(),
                 "ip");
 
-        final String integration = "integration";
         final Account account = Account.builder()
                 .id(accountId)
                 .auction(AccountAuctionConfig.builder()
-                        .defaultIntegration(integration)
+                        .defaultIntegration("accountIntegration")
+                        .targeting(AccountTargetingConfig.builder()
+                                .includeWinners(false)
+                                .includeBidderKeys(false)
+                                .includeFormat(false)
+                                .preferDeals(false)
+                                .alwaysIncludeDeals(false)
+                                .build())
                         .build())
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
@@ -913,8 +946,72 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result)
-                .extracting(auctionBidRequest -> auctionBidRequest.getExt().getPrebid().getIntegration())
-                .isEqualTo(integration);
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .satisfies(extPrebid -> {
+                    assertThat(extPrebid.getIntegration()).isEqualTo("integration");
+                    assertThat(extPrebid.getTargeting()).isSameAs(bidRequest.getExt().getPrebid().getTargeting());
+                });
+    }
+
+    @Test
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldReturnBidRequestWithAccountValues() {
+        // given
+        final String accountId = "accId";
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(emptyList())
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id(accountId).build())
+                        .build()));
+
+        final PrivacyContext privacyContext = PrivacyContext.of(
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
+                TcfContext.empty(),
+                "ip");
+
+        final Account account = Account.builder()
+                .id(accountId)
+                .auction(AccountAuctionConfig.builder()
+                        .defaultIntegration("accountIntegration")
+                        .targeting(AccountTargetingConfig.builder()
+                                .includeWinners(false)
+                                .includeBidderKeys(false)
+                                .includeFormat(false)
+                                .preferDeals(false)
+                                .alwaysIncludeDeals(false)
+                                .build())
+                        .build())
+                .build();
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(account)
+                .privacyContext(privacyContext)
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getExt)
+                .extracting(ExtRequest::getPrebid)
+                .satisfies(extPrebid -> {
+                    assertThat(extPrebid.getIntegration()).isEqualTo("accountIntegration");
+                    assertThat(extPrebid.getTargeting()).satisfies(targeting -> {
+                        assertThat(targeting.getIncludewinners()).isFalse();
+                        assertThat(targeting.getIncludebidderkeys()).isFalse();
+                        assertThat(targeting.getIncludeformat()).isFalse();
+                        assertThat(targeting.getPreferdeals()).isFalse();
+                        assertThat(targeting.getAlwaysincludedeals()).isFalse();
+                    });
+                });
     }
 
     @Test
@@ -1361,6 +1458,300 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getBidRequest()).isEqualTo(givenBidRequest(request -> request.tmax(500L)));
         assertThat(result.getTimeout()).isEqualTo(updatedTimeout);
+    }
+
+    @Test
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldSetDsaFromAccountWhenRequestLacksDsa() {
+        // given
+        final String accountId = "accId";
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(emptyList())
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id(accountId).build())
+                        .build()));
+
+        final PrivacyContext privacyContext = PrivacyContext.of(
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
+                TcfContext.empty(),
+                "");
+
+        final Account account = Account.builder()
+                .id(accountId)
+                .privacy(AccountPrivacyConfig.of(null,
+                        null,
+                        AccountDsaConfig.of(DefaultDsa.of(0,
+                                        1,
+                                        2,
+                                        List.of(DsaTransparency.of("",
+                                                List.of(0)))),
+                                null),
+                        null,
+                        null))
+                .build();
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(account)
+                .privacyContext(privacyContext)
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getRegs)
+                .extracting(Regs::getExt)
+                .extracting(ExtRegs::getDsa)
+                .satisfies(dsa -> {
+                    assertThat(dsa.getDsaRequired()).isEqualTo(0);
+                    assertThat(dsa.getPubRender()).isEqualTo(1);
+                    assertThat(dsa.getDataToPub()).isEqualTo(2);
+                    assertThat(dsa.getTransparency()).satisfies(transparencies ->
+                            assertThat(transparencies).isEqualTo(List.of(ExtRegsDsaTransparency.of("",
+                                    List.of(0)))));
+                });
+    }
+
+    @Test
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldNotSetDsaFromAccountWhenAccountLacksDefaultDsa() {
+        // given
+        final String accountId = "accId";
+        final Regs regs = Regs.builder().build();
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(emptyList())
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id(accountId).build())
+                        .build())
+                .regs(regs));
+
+        final PrivacyContext privacyContext = PrivacyContext.of(
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
+                TcfContext.empty(),
+                "");
+
+        final Account account = Account.builder()
+                .id(accountId)
+                .privacy(AccountPrivacyConfig.of(null,
+                        null,
+                        AccountDsaConfig.of(null,
+                                null),
+                        null,
+                        null))
+                .build();
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(account)
+                .privacyContext(privacyContext)
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getRegs)
+                .extracting(Regs::getExt)
+                .isNull();
+        assertThat(result)
+                .extracting(BidRequest::getRegs)
+                .isSameAs(regs);
+    }
+
+    @Test
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldNotSetDsaFromAccountWhenRequestContainsDsa() {
+        // given
+        final String accountId = "accId";
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(emptyList())
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id(accountId).build())
+                        .build())
+                .regs(Regs.builder().ext(ExtRegs.of(null,
+                                null,
+                                null,
+                                ExtRegsDsa.of(0,
+                                        1,
+                                        2,
+                                        List.of(ExtRegsDsaTransparency.of("", List.of(0))))))
+                        .build())
+        );
+
+        final PrivacyContext privacyContext = PrivacyContext.of(
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
+                TcfContext.empty(),
+                "");
+
+        final Account account = Account.builder()
+                .id(accountId)
+                .privacy(AccountPrivacyConfig.of(null,
+                        null,
+                        AccountDsaConfig.of(DefaultDsa.of(3,
+                                        4,
+                                        5,
+                                        List.of(DsaTransparency.of("domain",
+                                                List.of(1)))),
+                                null),
+                        null,
+                        null))
+                .build();
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(account)
+                .privacyContext(privacyContext)
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getRegs)
+                .extracting(Regs::getExt)
+                .extracting(ExtRegs::getDsa)
+                .satisfies(dsa -> {
+                    assertThat(dsa.getDsaRequired()).isEqualTo(0);
+                    assertThat(dsa.getPubRender()).isEqualTo(1);
+                    assertThat(dsa.getDataToPub()).isEqualTo(2);
+                    assertThat(dsa.getTransparency()).satisfies(transparencies ->
+                            assertThat(transparencies).isEqualTo(List.of(ExtRegsDsaTransparency.of("",
+                                    List.of(0)))));
+                });
+    }
+
+    @Test
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldSetDsaFromAccountWhenGdprScopeMatches() {
+        // given
+        final String accountId = "accId";
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(emptyList())
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id(accountId).build())
+                        .build()));
+
+        final PrivacyContext privacyContext = PrivacyContext.of(
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
+                TcfContext.builder().inGdprScope(true).build(),
+                "");
+
+        final Account account = Account.builder()
+                .id(accountId)
+                .privacy(AccountPrivacyConfig.of(null,
+                        null,
+                        AccountDsaConfig.of(DefaultDsa.of(0,
+                                        1,
+                                        2,
+                                        List.of(DsaTransparency.of("",
+                                                List.of(0)))),
+                                true),
+                        null,
+                        null))
+                .build();
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(account)
+                .privacyContext(privacyContext)
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getRegs)
+                .extracting(Regs::getExt)
+                .extracting(ExtRegs::getDsa)
+                .satisfies(dsa -> {
+                    assertThat(dsa.getDsaRequired()).isEqualTo(0);
+                    assertThat(dsa.getPubRender()).isEqualTo(1);
+                    assertThat(dsa.getDataToPub()).isEqualTo(2);
+                    assertThat(dsa.getTransparency()).satisfies(transparencies ->
+                            assertThat(transparencies).isEqualTo(List.of(ExtRegsDsaTransparency.of("",
+                                    List.of(0)))));
+                });
+    }
+
+    @Test
+    public void enrichBidRequestWithAccountAndPrivacyDataShouldNotSetDsaFromAccountWhenGdprScopeDoesntMatch() {
+        // given
+        final String accountId = "accId";
+        final Regs regs = Regs.builder().build();
+        final BidRequest bidRequest = givenBidRequest(builder -> builder
+                .imp(emptyList())
+                .site(Site.builder()
+                        .publisher(Publisher.builder().id(accountId).build())
+                        .build())
+                .regs(regs));
+
+        final PrivacyContext privacyContext = PrivacyContext.of(
+                Privacy.builder()
+                        .gdpr("")
+                        .consentString("")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
+                TcfContext.builder().inGdprScope(false).build(),
+                "");
+
+        final Account account = Account.builder()
+                .id(accountId)
+                .privacy(AccountPrivacyConfig.of(null,
+                        null,
+                        AccountDsaConfig.of(DefaultDsa.of(0,
+                                        1,
+                                        2,
+                                        List.of(DsaTransparency.of("",
+                                                List.of(0)))),
+                                true),
+                        null,
+                        null))
+                .build();
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .account(account)
+                .privacyContext(privacyContext)
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getRegs)
+                .extracting(Regs::getExt)
+                .isNull();
+        assertThat(result)
+                .extracting(BidRequest::getRegs)
+                .isSameAs(regs);
     }
 
     private static String bidRequestToString(BidRequest bidRequest) {

@@ -187,12 +187,19 @@ public class BidderCatalog {
                 .map(BidderInstanceDeps::getUsersyncer);
     }
 
-    public boolean isAlias(String bidder) {
+    private Optional<String> aliasOf(String bidder) {
         return Optional.ofNullable(bidder)
                 .map(bidderDepsMap::get)
                 .map(BidderInstanceDeps::getBidderInfo)
-                .map(BidderInfo::getAliasOf)
-                .isPresent();
+                .map(BidderInfo::getAliasOf);
+    }
+
+    public boolean isAlias(String bidder) {
+        return aliasOf(bidder).isPresent();
+    }
+
+    public String resolveBaseBidder(String bidder) {
+        return aliasOf(bidder).orElse(bidder);
     }
 
     public Optional<String> cookieFamilyName(String bidder) {

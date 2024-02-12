@@ -6,9 +6,11 @@ import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.ActivityController;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDebug;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContext;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
@@ -35,21 +37,27 @@ public class ActivityInfrastructureCreator {
 
     private final ActivityRuleFactory activityRuleFactory;
     private final Metrics metrics;
+    private final JacksonMapper jacksonMapper;
 
-    public ActivityInfrastructureCreator(ActivityRuleFactory activityRuleFactory, Metrics metrics) {
+    public ActivityInfrastructureCreator(ActivityRuleFactory activityRuleFactory,
+                                         Metrics metrics,
+                                         JacksonMapper jacksonMapper) {
+
         this.activityRuleFactory = Objects.requireNonNull(activityRuleFactory);
         this.metrics = Objects.requireNonNull(metrics);
+        this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
     }
 
     public ActivityInfrastructure create(Account account, GppContext gppContext, TraceLevel traceLevel) {
-        return new ActivityInfrastructure(
-                account.getId(),
-                parse(account, gppContext),
-                traceLevel,
-                metrics);
+        final ActivityInfrastructureDebug debug = debugWheel(account, traceLevel);
+        return new ActivityInfrastructure(parse(account, gppContext, debug), debug);
     }
 
-    Map<Activity, ActivityController> parse(Account account, GppContext gppContext) {
+    private ActivityInfrastructureDebug debugWheel(Account account, TraceLevel traceLevel) {
+        return new ActivityInfrastructureDebug(account.getId(), traceLevel, metrics, jacksonMapper);
+    }
+
+    Map<Activity, ActivityController> parse(Account account, GppContext gppContext, ActivityInfrastructureDebug debug) {
         final Optional<AccountPrivacyConfig> accountPrivacyConfig = Optional.ofNullable(account.getPrivacy());
 
         final Map<Activity, AccountActivityConfiguration> activitiesConfiguration = accountPrivacyConfig
@@ -64,12 +72,16 @@ public class ActivityInfrastructureCreator {
                         UnaryOperator.identity(),
                         takeFirstAndLogDuplicates(account.getId())));
 
-        return Arrays.stream(Activity.values())
-                .collect(Collectors.toMap(
-                        UnaryOperator.identity(),
-                        activity -> from(activity, activitiesConfiguration.get(activity), modulesConfigs, gppContext),
-                        (oldValue, newValue) -> newValue,
-                        enumMapFactory()));
+        return Arrays.stream(Activity.values()).collect(Collectors.toMap(
+                UnaryOperator.identity(),
+                activity -> from(
+                        activity,
+                        activitiesConfiguration.get(activity),
+                        modulesConfigs,
+                        gppContext,
+                        debug),
+                (oldValue, newValue) -> oldValue,
+                enumMapFactory()));
     }
 
     private BinaryOperator<AccountPrivacyModuleConfig> takeFirstAndLogDuplicates(String accountId) {
@@ -85,10 +97,14 @@ public class ActivityInfrastructureCreator {
     private ActivityController from(Activity activity,
                                     AccountActivityConfiguration activityConfiguration,
                                     Map<PrivacyModuleQualifier, AccountPrivacyModuleConfig> modulesConfigs,
-                                    GppContext gppContext) {
+                                    GppContext gppContext,
+                                    ActivityInfrastructureDebug debug) {
 
         if (activityConfiguration == null) {
-            return ActivityController.of(ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT, Collections.emptyList());
+            return ActivityController.of(
+                    ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT,
+                    Collections.emptyList(),
+                    debug);
         }
 
         final ActivityControllerCreationContext creationContext = ActivityControllerCreationContext.of(
@@ -102,7 +118,7 @@ public class ActivityInfrastructureCreator {
                 .map(ruleConfiguration -> activityRuleFactory.from(ruleConfiguration, creationContext))
                 .toList();
 
-        return ActivityController.of(allow, rules);
+        return ActivityController.of(allow, rules, debug);
     }
 
     private static boolean allowFromConfig(Boolean configValue) {

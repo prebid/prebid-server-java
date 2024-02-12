@@ -6,6 +6,7 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
@@ -13,6 +14,7 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -49,15 +51,24 @@ import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.model.UpdateResult;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountDsaConfig;
+import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.AccountStatus;
+import org.prebid.server.settings.model.AccountTargetingConfig;
+import org.prebid.server.settings.model.DefaultDsa;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.validation.RequestValidator;
@@ -70,6 +81,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.TreeMap;
+import java.util.function.Function;
 
 public class Ortb2RequestFactory {
 
@@ -184,11 +196,14 @@ public class Ortb2RequestFactory {
         return Future.succeededFuture(activityInfrastructureCreator.create(
                 auctionContext.getAccount(),
                 auctionContext.getGppContext(),
-                ObjectUtils.defaultIfNull(auctionContext.getDebugContext().getTraceLevel(), TraceLevel.basic)));
+                auctionContext.getDebugContext().getTraceLevel()));
     }
 
-    public Future<BidRequest> validateRequest(BidRequest bidRequest, List<String> warnings) {
-        final ValidationResult validationResult = requestValidator.validate(bidRequest);
+    public Future<BidRequest> validateRequest(BidRequest bidRequest,
+                                              HttpRequestContext httpRequestContext,
+                                              List<String> warnings) {
+
+        final ValidationResult validationResult = requestValidator.validate(bidRequest, httpRequestContext);
 
         if (validationResult.hasWarnings()) {
             warnings.addAll(validationResult.getWarnings());
@@ -210,14 +225,67 @@ public class Ortb2RequestFactory {
         final Device device = bidRequest.getDevice();
         final Device enrichedDevice = enrichDevice(device, privacyContext);
 
-        if (enrichedRequestExt != null || enrichedDevice != null) {
+        final Regs regs = bidRequest.getRegs();
+        final Regs enrichedRegs = enrichRegs(regs, privacyContext, account);
+
+        if (enrichedRequestExt != null || enrichedDevice != null || enrichedRegs != null) {
             return bidRequest.toBuilder()
                     .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
                     .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
+                    .regs(ObjectUtils.defaultIfNull(enrichedRegs, regs))
                     .build();
         }
 
         return bidRequest;
+    }
+
+    private static Regs enrichRegs(Regs regs, PrivacyContext privacyContext, Account account) {
+        final ExtRegs regsExt = regs != null ? regs.getExt() : null;
+        final ExtRegsDsa regsExtDsa = regsExt != null ? regsExt.getDsa() : null;
+        if (regsExtDsa != null) {
+            return null;
+        }
+
+        final AccountDsaConfig accountDsaConfig = Optional.ofNullable(account)
+                .map(Account::getPrivacy)
+                .map(AccountPrivacyConfig::getDsa)
+                .orElse(null);
+        final DefaultDsa defaultDsa = accountDsaConfig != null ? accountDsaConfig.getDefaultDsa() : null;
+        if (defaultDsa == null) {
+            return null;
+        }
+
+        final boolean isGdprOnly = BooleanUtils.isTrue(accountDsaConfig.getGdprOnly());
+        if (isGdprOnly && !privacyContext.getTcfContext().isInGdprScope()) {
+            return null;
+        }
+
+        return Optional.ofNullable(regs)
+                .map(Regs::toBuilder)
+                .orElseGet(Regs::builder)
+                .ext(mapRegsExtDsa(defaultDsa, regsExt))
+                .build();
+    }
+
+    private static ExtRegs mapRegsExtDsa(DefaultDsa defaultDsa, ExtRegs regsExt) {
+        final List<ExtRegsDsaTransparency> enrichedDsaTransparencies = defaultDsa.getTransparency()
+                .stream()
+                .map(dsaTransparency -> ExtRegsDsaTransparency.of(
+                        dsaTransparency.getDomain(), dsaTransparency.getDsaParams()))
+                .toList();
+
+        final ExtRegsDsa enrichedRegsExtDsa = ExtRegsDsa.of(
+                defaultDsa.getDsaRequired(),
+                defaultDsa.getPubRender(),
+                defaultDsa.getDataToPub(),
+                enrichedDsaTransparencies);
+
+        final boolean isRegsExtPresent = regsExt != null;
+        return ExtRegs.of(
+                isRegsExtPresent ? regsExt.getGdpr() : null,
+                isRegsExtPresent ? regsExt.getUsPrivacy() : null,
+                isRegsExtPresent ? regsExt.getGpc() : null,
+                enrichedRegsExtDsa);
     }
 
     public Future<HttpRequestContext> executeEntrypointHooks(RoutingContext routingContext,
@@ -376,7 +444,7 @@ public class Ortb2RequestFactory {
         final Dooh dooh = bidRequest.getDooh();
         final Publisher doohPublisher = dooh != null ? dooh.getPublisher() : null;
 
-        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, sitePublisher, doohPublisher);
+        final Publisher publisher = ObjectUtils.firstNonNull(appPublisher, doohPublisher, sitePublisher);
         final String publisherId = publisher != null ? resolvePublisherId(publisher) : null;
         return ObjectUtils.defaultIfNull(publisherId, StringUtils.EMPTY);
     }
@@ -417,6 +485,7 @@ public class Ortb2RequestFactory {
         if (exception instanceof PreBidException) {
             UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
         } else {
+            metrics.updateAccountRequestRejectedByFailedFetch(accountId);
             logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
             logger.debug("Error occurred while fetching account", exception);
         }
@@ -442,25 +511,85 @@ public class Ortb2RequestFactory {
     }
 
     private ExtRequest enrichExtRequest(ExtRequest ext, Account account) {
-        final ExtRequestPrebid prebidExt = ObjectUtil.getIfNotNull(ext, ExtRequest::getPrebid);
-        final String integration = ObjectUtil.getIfNotNull(prebidExt, ExtRequestPrebid::getIntegration);
-        final String accountDefaultIntegration = accountDefaultIntegration(account);
-
-        if (StringUtils.isBlank(integration) && StringUtils.isNotBlank(accountDefaultIntegration)) {
-            final ExtRequestPrebid.ExtRequestPrebidBuilder prebidExtBuilder =
-                    prebidExt != null ? prebidExt.toBuilder() : ExtRequestPrebid.builder();
-
-            prebidExtBuilder.integration(accountDefaultIntegration);
-
-            final ExtRequest updatedExt = ExtRequest.of(prebidExtBuilder.build());
-            if (ext != null) {
-                updatedExt.addProperties(ext.getProperties());
-            }
-
-            return updatedExt;
+        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
+        if (accountAuctionConfig == null) {
+            return null;
         }
 
-        return null;
+        final ExtRequestPrebid extPrebid = ext != null ? ext.getPrebid() : null;
+        final UpdateResult<String> integration = resolveIntegration(extPrebid, accountAuctionConfig);
+        final UpdateResult<ExtRequestTargeting> targeting = resolveExtPrebidTargeting(extPrebid, accountAuctionConfig);
+
+        if (!integration.isUpdated() && !targeting.isUpdated()) {
+            return null;
+        }
+
+        final ExtRequestPrebid updatedExtPrebid = Optional.ofNullable(extPrebid)
+                .map(ExtRequestPrebid::toBuilder)
+                .orElseGet(ExtRequestPrebid::builder)
+                .integration(integration.getValue())
+                .targeting(targeting.getValue())
+                .build();
+
+        final ExtRequest updatedExt = ExtRequest.of(updatedExtPrebid);
+        Optional.ofNullable(ext)
+                .map(FlexibleExtension::getProperties)
+                .ifPresent(updatedExt::addProperties);
+
+        return updatedExt;
+    }
+
+    private static UpdateResult<String> resolveIntegration(ExtRequestPrebid extPrebid,
+                                                           AccountAuctionConfig accountAuctionConfig) {
+
+        final String integration = extPrebid != null ? extPrebid.getIntegration() : null;
+        if (StringUtils.isNotBlank(integration)) {
+            return UpdateResult.unaltered(integration);
+        }
+
+        final String accountIntegration = accountAuctionConfig.getDefaultIntegration();
+        return StringUtils.isNotBlank(accountIntegration)
+                ? UpdateResult.updated(accountIntegration)
+                : UpdateResult.unaltered(integration);
+    }
+
+    private static UpdateResult<ExtRequestTargeting> resolveExtPrebidTargeting(
+            ExtRequestPrebid extPrebid,
+            AccountAuctionConfig accountAuctionConfig) {
+
+        final ExtRequestTargeting targeting = extPrebid != null ? extPrebid.getTargeting() : null;
+
+        final AccountTargetingConfig accountTargeting = accountAuctionConfig.getTargeting();
+        if (accountTargeting == null) {
+            return UpdateResult.unaltered(targeting);
+        }
+
+        final TargetingValueResolver targetingValueResolver = new TargetingValueResolver(targeting, accountTargeting);
+
+        final UpdateResult<Boolean> includeWinners = targetingValueResolver.resolveIncludeWinners();
+        final UpdateResult<Boolean> includeBidderKeys = targetingValueResolver.resolveIncludeBidderKeys();
+        final UpdateResult<Boolean> includeFormat = targetingValueResolver.resolveIncludeFormat();
+        final UpdateResult<Boolean> preferDeals = targetingValueResolver.resolvePreferDeals();
+        final UpdateResult<Boolean> alwaysIncludeDeals = targetingValueResolver.resolveAlwaysIncludeDeals();
+
+        return includeWinners.isUpdated()
+                || includeBidderKeys.isUpdated()
+                || includeFormat.isUpdated()
+                || preferDeals.isUpdated()
+                || alwaysIncludeDeals.isUpdated()
+
+                ? UpdateResult.updated(
+                Optional.ofNullable(targeting)
+                        .map(ExtRequestTargeting::toBuilder)
+                        .orElseGet(ExtRequestTargeting::builder)
+                        .includewinners(includeWinners.getValue())
+                        .includebidderkeys(includeBidderKeys.getValue())
+                        .includeformat(includeFormat.getValue())
+                        .preferdeals(preferDeals.getValue())
+                        .alwaysincludedeals(alwaysIncludeDeals.getValue())
+                        .build())
+
+                : UpdateResult.unaltered(targeting);
     }
 
     private Device enrichDevice(Device device, PrivacyContext privacyContext) {
@@ -531,14 +660,8 @@ public class Ortb2RequestFactory {
         return upperCasedRegion != null && !upperCasedRegion.equals(upperCasedRegionInRequest)
                 ? UpdateResult.updated(upperCasedRegion)
                 : Objects.equals(regionInRequest, upperCasedRegionInRequest)
-                    ? UpdateResult.unaltered(regionInRequest)
-                    : UpdateResult.updated(upperCasedRegionInRequest);
-    }
-
-    private static String accountDefaultIntegration(Account account) {
-        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
-
-        return accountAuctionConfig != null ? accountAuctionConfig.getDefaultIntegration() : null;
+                ? UpdateResult.unaltered(regionInRequest)
+                : UpdateResult.updated(upperCasedRegionInRequest);
     }
 
     private static CaseInsensitiveMultiMap toCaseInsensitiveMultiMap(MultiMap originalMap) {
@@ -571,6 +694,52 @@ public class Ortb2RequestFactory {
 
         public AuctionContext getAuctionContext() {
             return auctionContext;
+        }
+    }
+
+    private record TargetingValueResolver(ExtRequestTargeting targeting,
+                                          AccountTargetingConfig accountTargetingConfig) {
+
+        public UpdateResult<Boolean> resolveIncludeWinners() {
+            return resolveValue(
+                    ExtRequestTargeting::getIncludewinners,
+                    AccountTargetingConfig::getIncludeWinners);
+        }
+
+        public UpdateResult<Boolean> resolveIncludeBidderKeys() {
+            return resolveValue(
+                    ExtRequestTargeting::getIncludebidderkeys,
+                    AccountTargetingConfig::getIncludeBidderKeys);
+        }
+
+        public UpdateResult<Boolean> resolveIncludeFormat() {
+            return resolveValue(
+                    ExtRequestTargeting::getIncludeformat,
+                    AccountTargetingConfig::getIncludeFormat);
+        }
+
+        public UpdateResult<Boolean> resolvePreferDeals() {
+            return resolveValue(
+                    ExtRequestTargeting::getPreferdeals,
+                    AccountTargetingConfig::getPreferDeals);
+        }
+
+        public UpdateResult<Boolean> resolveAlwaysIncludeDeals() {
+            return resolveValue(
+                    ExtRequestTargeting::getAlwaysincludedeals,
+                    AccountTargetingConfig::getAlwaysIncludeDeals);
+        }
+
+        private <T> UpdateResult<T> resolveValue(Function<ExtRequestTargeting, T> originalExtractor,
+                                                 Function<AccountTargetingConfig, T> accountExtractor) {
+
+            final T originalValue = targeting != null ? originalExtractor.apply(targeting) : null;
+            if (originalValue != null) {
+                return UpdateResult.unaltered(originalValue);
+            }
+
+            final T accountValue = accountExtractor.apply(accountTargetingConfig);
+            return accountValue != null ? UpdateResult.updated(accountValue) : UpdateResult.unaltered(null);
         }
     }
 }

@@ -46,6 +46,7 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
@@ -124,7 +125,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                         .build(),
                 TcfContext.empty());
         defaultActionContext = AuctionContext.builder()
-                .requestTypeMetric(MetricName.openrtb2dooh)
+                .requestTypeMetric(MetricName.openrtb2web)
                 .bidRequest(defaultBidRequest)
                 .account(defaultAccount)
                 .prebidErrors(new ArrayList<>())
@@ -152,7 +153,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.executeRawAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
-        given(ortb2RequestFactory.validateRequest(any(), any()))
+        given(ortb2RequestFactory.validateRequest(any(), any(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture((BidRequest) invocationOnMock.getArgument(0)));
         given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
         given(ortb2RequestFactory.updateTimeout(any(), anyLong())).willAnswer(invocation -> invocation.getArgument(0));
@@ -255,9 +256,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldFillBidRequestWithValuesFromHttpRequest() {
         // given
+        final ExtRegsDsa dsa = ExtRegsDsa.of(1, 2, 3, emptyList());
         final BidRequest receivedBidRequest = BidRequest.builder()
                 .regs(Regs.builder()
-                        .ext(ExtRegs.of(0, "us_privacy", null))
+                        .ext(ExtRegs.of(0, "us_privacy", null, dsa))
                         .build())
                 .build();
 
@@ -274,8 +276,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest capturedRequest = captor.getValue();
         assertThat(capturedRequest.getRegs())
                 .extracting(Regs::getExt)
-                .extracting(ExtRegs::getGdpr, ExtRegs::getUsPrivacy, ExtRegs::getGpc)
-                .containsExactly(0, "us_privacy", "1");
+                .extracting(ExtRegs::getGdpr, ExtRegs::getUsPrivacy, ExtRegs::getGpc, ExtRegs::getDsa)
+                .containsExactly(0, "us_privacy", "1", dsa);
     }
 
     @Test
@@ -573,7 +575,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result).isSucceeded();
-        assertThat(result.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2dooh);
+        assertThat(result.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2web);
     }
 
     @Test
@@ -634,7 +636,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenValidBidRequest();
 
-        given(ortb2RequestFactory.validateRequest(any(), any()))
+        given(ortb2RequestFactory.validateRequest(any(), any(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("errors")));
 
         // when
