@@ -207,10 +207,10 @@ class DsaSpec extends PrivacyBaseSpec {
         def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should return bid"
-        assert response.seatbid[0].bid[0]
+        assert response.seatbid.bid
 
         and: "Returned bid should contain DSA"
-        assert response.seatbid[0].bid[0].ext.dsa
+        assert response.seatbid[0].bid[0].ext.dsa == bidDsa
 
         and: "PBS should not log warning"
         assert !response.ext.warnings
@@ -243,7 +243,7 @@ class DsaSpec extends PrivacyBaseSpec {
         def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "PBS should return bid"
-        assert response.seatbid[0].bid[0]
+        assert response.seatbid.bid
 
         and: "PBS should not log warning"
         assert !response.ext.warnings
