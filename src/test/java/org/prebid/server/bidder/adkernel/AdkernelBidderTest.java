@@ -452,7 +452,6 @@ public class AdkernelBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
-
     @SafeVarargs
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
                                               UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
