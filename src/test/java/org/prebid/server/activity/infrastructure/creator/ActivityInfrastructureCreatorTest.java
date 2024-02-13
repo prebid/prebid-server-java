@@ -77,13 +77,7 @@ public class ActivityInfrastructureCreatorTest {
     @Test
     public void parseShouldReturnExpectedResultIfAccountPrivacyActivitiesNull() {
         // given
-        final Account account = Account.builder().privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
-                        null,
-                        null))
-                .build();
+        final Account account = Account.builder().privacy(AccountPrivacyConfig.builder().build()).build();
 
         // when
         final Map<Activity, ActivityController> controllers = creator.parse(account, null, debug);
@@ -96,15 +90,13 @@ public class ActivityInfrastructureCreatorTest {
     public void parseShouldSkipPrivacyModulesDuplicatesAndEmitWarnings() {
         // given
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
-                        Map.of(Activity.SYNC_USER, AccountActivityConfiguration.of(
-                                null, singletonList(AccountActivityComponentRuleConfig.of(null, null)))),
-                        asList(
+                .privacy(AccountPrivacyConfig.builder()
+                        .activities(Map.of(Activity.SYNC_USER, AccountActivityConfiguration.of(
+                                null, singletonList(AccountActivityComponentRuleConfig.of(null, null)))))
+                        .modules(asList(
                                 AccountUSNatModuleConfig.of(null, null),
-                                AccountUSNatModuleConfig.of(null, null))))
+                                AccountUSNatModuleConfig.of(null, null)))
+                        .build())
                 .build();
 
         // when
@@ -119,17 +111,14 @@ public class ActivityInfrastructureCreatorTest {
     public void parseShouldReturnExpectedResult() {
         // given
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
-                        Map.of(
+                .privacy(AccountPrivacyConfig.builder()
+                        .activities(Map.of(
                                 Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                                 Activity.CALL_BIDDER, AccountActivityConfiguration.of(false, null),
                                 Activity.MODIFY_UFDP, AccountActivityConfiguration.of(true, null),
                                 Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(true, singletonList(
-                                        AccountActivityComponentRuleConfig.of(null, null)))),
-                        null))
+                                        AccountActivityComponentRuleConfig.of(null, null)))))
+                        .build())
                 .build();
         final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
 
@@ -155,11 +144,9 @@ public class ActivityInfrastructureCreatorTest {
     public void parseShouldReturnImitatedTransmitEidsActivity() {
         // given
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        Map.of(Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(false, null)),
-                        null))
+                .privacy(AccountPrivacyConfig.builder()
+                        .activities(Map.of(Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(false, null)))
+                        .build())
                 .build();
         final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
 
@@ -178,15 +165,14 @@ public class ActivityInfrastructureCreatorTest {
     public void parseShouldReturnOriginalTransmitEidsActivity() {
         // given
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(
-                        AccountGdprConfig.builder()
+                .privacy(AccountPrivacyConfig.builder()
+                        .gdpr(AccountGdprConfig.builder()
                                 .purposes(Purposes.builder()
                                         .p4(Purpose.of(null, null, null, PurposeEid.of(false, false, null)))
                                         .build())
-                                .build(),
-                        null,
-                        Map.of(Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(false, null)),
-                        null))
+                                .build())
+                        .activities(Map.of(Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(false, null)))
+                        .build())
                 .build();
         final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
 

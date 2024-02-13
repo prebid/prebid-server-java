@@ -126,13 +126,10 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
 
             final AccountPrivacyConfig accountPrivacyConfig = account.getPrivacy();
             return account.toBuilder()
-                    .privacy(AccountPrivacyConfig.of(
-                            accountPrivacyConfig.getGdpr(),
-                            accountPrivacyConfig.getCcpa(),
-                            accountPrivacyConfig.getDsa(),
-                            AccountActivitiesConfigurationUtils
-                                    .removeInvalidRules(accountPrivacyConfig.getActivities()),
-                            accountPrivacyConfig.getModules()))
+                    .privacy(accountPrivacyConfig.toBuilder()
+                            .activities(AccountActivitiesConfigurationUtils
+                                    .removeInvalidRules(accountPrivacyConfig.getActivities()))
+                            .build())
                     .build();
         }
 

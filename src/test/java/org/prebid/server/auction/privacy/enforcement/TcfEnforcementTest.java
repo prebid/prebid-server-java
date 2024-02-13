@@ -372,8 +372,8 @@ public class TcfEnforcementTest {
                 .bidRequest(BidRequest.builder().device(device).build())
                 .requestTypeMetric(MetricName.openrtb2web)
                 .account(Account.builder()
-                        .privacy(AccountPrivacyConfig.of(
-                                AccountGdprConfig.builder()
+                        .privacy(AccountPrivacyConfig.builder()
+                                .gdpr(AccountGdprConfig.builder()
                                         .purposes(Purposes.builder()
                                                 .p4(Purpose.of(
                                                         null,
@@ -381,10 +381,8 @@ public class TcfEnforcementTest {
                                                         null,
                                                         PurposeEid.of(null, true, singleton("eidException"))))
                                                 .build())
-                                        .build(),
-                                null,
-                                null,
-                                null))
+                                        .build())
+                                .build())
                         .build())
                 .privacyContext(PrivacyContext.of(null, TcfContext.empty(), null))
                 .build();
