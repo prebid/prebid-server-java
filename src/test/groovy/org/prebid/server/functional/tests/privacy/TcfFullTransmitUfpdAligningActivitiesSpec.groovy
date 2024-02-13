@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.Purpose
-import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse
 import org.prebid.server.functional.model.privacy.EnforcementRequirments
 import org.prebid.server.functional.model.request.auction.Activity
@@ -16,16 +15,21 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.TcfUtils
 import org.testcontainers.images.builder.Transferable
-import spock.lang.PendingFeature
 import spock.lang.Shared
 
 import static com.iabtcf.v2.RestrictionType.REQUIRE_CONSENT
 import static com.iabtcf.v2.RestrictionType.REQUIRE_LEGITIMATE_INTEREST
 import static com.iabtcf.v2.RestrictionType.UNDEFINED
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.Purpose.P1
 import static org.prebid.server.functional.model.config.Purpose.P2
+import static org.prebid.server.functional.model.config.Purpose.P3
 import static org.prebid.server.functional.model.config.Purpose.P4
+import static org.prebid.server.functional.model.config.Purpose.P5
+import static org.prebid.server.functional.model.config.Purpose.P6
+import static org.prebid.server.functional.model.config.Purpose.P7
+import static org.prebid.server.functional.model.config.Purpose.P8
+import static org.prebid.server.functional.model.config.Purpose.P9
+import static org.prebid.server.functional.model.config.Purpose.P10
 import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.getDefaultVendorListResponse
@@ -48,7 +52,13 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
     private static PrebidServerContainer privacyPbsContainerWithMultipleGvl
 
     @Shared
+    private static PrebidServerContainer privacyPbsContainerWithMultipleGvlWithElderOrtb
+
+    @Shared
     private static PrebidServerService privacyPbsServiceWithMultipleGvl
+
+    @Shared
+    private static PrebidServerService privacyPbsServiceWithMultipleGvlWithElderOrtb
 
     def setupSpec() {
         privacyPbsContainerWithMultipleGvl = new PrebidServerContainer(PBS_CONFIG)
@@ -62,26 +72,31 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         privacyPbsContainerWithMultipleGvl.withCopyToContainer(Transferable.of(prepareEncodeResponseBodyWithPurposesAndFlexiblePurposes), getVendorListPath(PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION))
         privacyPbsContainerWithMultipleGvl.start()
         privacyPbsServiceWithMultipleGvl = new PrebidServerService(privacyPbsContainerWithMultipleGvl)
+
+        privacyPbsContainerWithMultipleGvlWithElderOrtb = new PrebidServerContainer(PBS_CONFIG + ["adapters.generic.ortb-version": "2.5"])
+        privacyPbsContainerWithMultipleGvlWithElderOrtb.withCopyToContainer(Transferable.of(prepareEncodeResponseBodyWithPurposesOnly), getVendorListPath(PURPOSES_ONLY_GVL_VERSION))
+        privacyPbsContainerWithMultipleGvlWithElderOrtb.withCopyToContainer(Transferable.of(prepareEncodeResponseBodyWithLegIntPurposes), getVendorListPath(LEG_INT_PURPOSES_ONLY_GVL_VERSION))
+        privacyPbsContainerWithMultipleGvlWithElderOrtb.withCopyToContainer(Transferable.of(prepareEncodeResponseBodyWithLegIntAndFlexiblePurposes), getVendorListPath(LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION))
+        privacyPbsContainerWithMultipleGvlWithElderOrtb.withCopyToContainer(Transferable.of(prepareEncodeResponseBodyWithPurposesAndFlexiblePurposes), getVendorListPath(PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION))
+        privacyPbsContainerWithMultipleGvlWithElderOrtb.start()
+        privacyPbsServiceWithMultipleGvlWithElderOrtb = new PrebidServerService(privacyPbsContainerWithMultipleGvlWithElderOrtb)
     }
 
     def cleanupSpec() {
         privacyPbsContainerWithMultipleGvl.stop()
+        privacyPbsContainerWithMultipleGvlWithElderOrtb.stop()
     }
 
     def "PBS should leave the original request with eids data when requireConsent is enabled and #enforcementRequirments.purpose have full consent"() {
-        given: "Default Generic BidRequests with EID fields"
+        given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
-        def userExtEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
         def bidRequest = getGdprBidRequest(tcfConsent).tap {
             it.user.eids = userEids
-            it.user.ext.eids = userExtEids
         }
 
         and: "Save account config with requireConsent into DB"
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, true)
-        // Basic Ads required for bidder call, should be ignored for testing other exceptions
-        purposes[P2] = new PurposeConfig(vendorExceptions: [GENERIC.value])
         def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
@@ -92,23 +107,50 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         privacyPbsServiceWithMultipleGvl.sendAuctionRequest(bidRequest)
 
-        then: "Generic bidder request should have data in Eid fields"
+        then: "Generic bidder request should have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         assert bidderRequest.user.eids == userEids
 
         where:
-        enforcementRequirments << getFullEnforcementRequirments(P4)
+        enforcementRequirments << getLegalEnforcementRequirments(P4) + getCompanyEnforcementRequirments(P4)
+    }
+
+    def "PBS should leave the original request with ext.eids data for elder ortb when requireConsent is enabled and #enforcementRequirments.purpose have full consent"() {
+        given: "Default Generic BidRequests with Eid field"
+        def userEids = [Eid.defaultEid]
+        def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
+        def bidRequest = getGdprBidRequest(tcfConsent).tap {
+            it.user.eids = userEids
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, true)
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
+            config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+        }
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        privacyPbsServiceWithMultipleGvlWithElderOrtb.sendAuctionRequest(bidRequest)
+
+        then: "Generic bidder request should have data in Eid field"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        assert bidderRequest.user.ext.eids == userEids
+
+        where:
+        enforcementRequirments << getLegalEnforcementRequirments(P4) + getCompanyEnforcementRequirments(P4)
     }
 
     def "PBS should remove the original request with eids data when requireConsent is enabled and #enforcementRequirments.purpose have full consent"() {
-        given: "Default Generic BidRequests with EID fields"
+        given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
-        def userExtEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
         def bidRequest = getGdprBidRequest(tcfConsent).tap {
             it.user.eids = userEids
-            it.user.ext.eids = userExtEids
         }
 
         and: "Save account config with requireConsent into DB"
@@ -123,24 +165,86 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         privacyPbsServiceWithMultipleGvl.sendAuctionRequest(bidRequest)
 
-        then: "Generic bidder request shouldn't have data in Eid fields"
+        then: "Generic bidder request shouldn't have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         assert !bidderRequest.user.eids
         assert !bidderRequest.user?.ext?.eids
 
         where:
-        enforcementRequirments << getFullEnforcementRequirments(P2)
+        enforcementRequirments << getLegalEnforcementRequirments(P1) +
+                getCompanyEnforcementRequirments(P1) +
+                getLegalEnforcementRequirments(P2) +
+                getCompanyEnforcementRequirments(P2) +
+                getLegalEnforcementRequirments(P3) +
+                getCompanyEnforcementRequirments(P3) +
+                getLegalEnforcementRequirments(P5) +
+                getCompanyEnforcementRequirments(P5) +
+                getLegalEnforcementRequirments(P6) +
+                getCompanyEnforcementRequirments(P6) +
+                getLegalEnforcementRequirments(P7) +
+                getCompanyEnforcementRequirments(P7) +
+                getLegalEnforcementRequirments(P8) +
+                getCompanyEnforcementRequirments(P8) +
+                getLegalEnforcementRequirments(P9) +
+                getCompanyEnforcementRequirments(P9) +
+                getLegalEnforcementRequirments(P10) +
+                getCompanyEnforcementRequirments(P10)
+    }
+
+    def "PBS should remove the original request with ext.eids data for elder ortb when requireConsent is enabled and #enforcementRequirments.purpose have full consent"() {
+        given: "Default Generic BidRequests with Eid field"
+        def userEids = [Eid.defaultEid]
+        def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
+        def bidRequest = getGdprBidRequest(tcfConsent).tap {
+            it.user.eids = userEids
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, true)
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
+            config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+        }
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        privacyPbsServiceWithMultipleGvlWithElderOrtb.sendAuctionRequest(bidRequest)
+
+        then: "Generic bidder request shouldn't have data in Eid field"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        assert !bidderRequest.user.eids
+        assert !bidderRequest.user?.ext?.eids
+
+        where:
+        enforcementRequirments << getLegalEnforcementRequirments(P1) +
+                getCompanyEnforcementRequirments(P1) +
+                getLegalEnforcementRequirments(P2) +
+                getCompanyEnforcementRequirments(P2) +
+                getLegalEnforcementRequirments(P3) +
+                getCompanyEnforcementRequirments(P3) +
+                getLegalEnforcementRequirments(P5) +
+                getCompanyEnforcementRequirments(P5) +
+                getLegalEnforcementRequirments(P6) +
+                getCompanyEnforcementRequirments(P6) +
+                getLegalEnforcementRequirments(P7) +
+                getCompanyEnforcementRequirments(P7) +
+                getLegalEnforcementRequirments(P8) +
+                getCompanyEnforcementRequirments(P8) +
+                getLegalEnforcementRequirments(P9) +
+                getCompanyEnforcementRequirments(P9) +
+                getLegalEnforcementRequirments(P10) +
+                getCompanyEnforcementRequirments(P10)
     }
 
     def "PBS should leave the original request with eids data when requireConsent is enabled but bidder is excepted and #enforcementRequirments.purpose have full consent"() {
-        given: "Default Generic BidRequests with EID fields"
+        given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
-        def userExtEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
         def bidRequest = getGdprBidRequest(tcfConsent).tap {
             it.user.eids = userEids
-            it.user.ext.eids = userExtEids
         }
 
         and: "Save account config with requireConsent into DB"
@@ -155,24 +259,29 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         privacyPbsServiceWithMultipleGvl.sendAuctionRequest(bidRequest)
 
-        then: "Generic bidder request should have data in Eid fields"
+        then: "Generic bidder request should have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         assert bidderRequest.user.eids == userEids
 
         where:
-        enforcementRequirments << getFullEnforcementRequirments(P2)
+        enforcementRequirments << getLegalEnforcementRequirments(P2) +
+                getLegalEnforcementRequirments(P3) +
+                getLegalEnforcementRequirments(P4) +
+                getLegalEnforcementRequirments(P5) +
+                getLegalEnforcementRequirments(P6) +
+                getLegalEnforcementRequirments(P7) +
+                getLegalEnforcementRequirments(P8) +
+                getLegalEnforcementRequirments(P9) +
+                getLegalEnforcementRequirments(P10)
     }
 
-    @PendingFeature(reason = "can't separate purposes from basic ads")
     def "PBS should remove the original request with eids data when requireConsent is enabled, bidder is excepted and #enforcementRequirments.purpose have unsupported full consent"() {
-        given: "Default Generic BidRequests with EID fields"
+        given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
-        def userExtEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
         def bidRequest = getGdprBidRequest(tcfConsent).tap {
             it.user.eids = userEids
-            it.user.ext.eids = userExtEids
         }
 
         and: "Save account config with requireConsent into DB"
@@ -187,25 +296,33 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         privacyPbsServiceWithMultipleGvl.sendAuctionRequest(bidRequest)
 
-        then: "Generic bidder request shouldn't have data in Eid fields"
+        then: "Generic bidder request shouldn't have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         assert !bidderRequest.user.eids
         assert !bidderRequest.user?.ext?.eids
 
         where:
-        enforcementRequirments << getFullEnforcementRequirments(P1)
+        enforcementRequirments << getLegalEnforcementRequirments(P1) +
+                getCompanyEnforcementRequirments(P1) +
+                getCompanyEnforcementRequirments(P2) +
+                getCompanyEnforcementRequirments(P3) +
+                getCompanyEnforcementRequirments(P4) +
+                getCompanyEnforcementRequirments(P5) +
+                getCompanyEnforcementRequirments(P6) +
+                getCompanyEnforcementRequirments(P7) +
+                getCompanyEnforcementRequirments(P8) +
+                getCompanyEnforcementRequirments(P9) +
+                getCompanyEnforcementRequirments(P10)
     }
 
     def "PBS should leave the original request with eids data when requireConsent is disabled and #enforcementRequirments.purpose have full consent"() {
-        given: "Default Generic BidRequests with EID fields"
+        given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
-        def userExtEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
         def bidRequest = getGdprBidRequest(tcfConsent).tap {
-                it.user.eids = userEids
-                it.user.ext.eids = userExtEids
-            }
+            it.user.eids = userEids
+        }
 
         and: "Save account config with requireConsent into DB"
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, false)
@@ -219,24 +336,66 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         privacyPbsServiceWithMultipleGvl.sendAuctionRequest(bidRequest)
 
-        then: "Generic bidder request should have data in Eid fields"
+        then: "Generic bidder request should have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         assert bidderRequest.user.eids == userEids
 
         where:
-        enforcementRequirments << getFullEnforcementRequirments(P2)
+        enforcementRequirments << getLegalEnforcementRequirments(P2) +
+                getLegalEnforcementRequirments(P3) +
+                getLegalEnforcementRequirments(P4) +
+                getLegalEnforcementRequirments(P5) +
+                getLegalEnforcementRequirments(P6) +
+                getLegalEnforcementRequirments(P7) +
+                getLegalEnforcementRequirments(P8) +
+                getLegalEnforcementRequirments(P9) +
+                getLegalEnforcementRequirments(P10)
     }
 
-    @PendingFeature(reason = "can't separate purposes from basic ads")
-    def "PBS should remove the original request with eids data when requireConsent is disabled and #enforcementRequirments.purpose have unsupported full consent"() {
-        given: "Default Generic BidRequests with EID fields"
+    def "PBS should leave the original request with ext.eids data for elder ortb when requireConsent is disabled and #enforcementRequirments.purpose have full consent"() {
+        given: "Default Generic BidRequests with Eid field"
         def userEids = [Eid.defaultEid]
-        def userExtEids = [Eid.defaultEid]
         def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
         def bidRequest = getGdprBidRequest(tcfConsent).tap {
             it.user.eids = userEids
-            it.user.ext.eids = userExtEids
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirments, false)
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
+            config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
+        }
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        privacyPbsServiceWithMultipleGvlWithElderOrtb.sendAuctionRequest(bidRequest)
+
+        then: "Generic bidder request should have data in Eid field"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+
+        assert bidderRequest.user.ext.eids == userEids
+
+        where:
+        enforcementRequirments << getLegalEnforcementRequirments(P2) +
+                getLegalEnforcementRequirments(P3) +
+                getLegalEnforcementRequirments(P4) +
+                getLegalEnforcementRequirments(P5) +
+                getLegalEnforcementRequirments(P6) +
+                getLegalEnforcementRequirments(P7) +
+                getLegalEnforcementRequirments(P8) +
+                getLegalEnforcementRequirments(P9) +
+                getLegalEnforcementRequirments(P10)
+    }
+
+    def "PBS should remove the original request with eids data when requireConsent is disabled and #enforcementRequirments.purpose have unsupported full consent"() {
+        given: "Default Generic BidRequests with Eid field"
+        def userEids = [Eid.defaultEid]
+        def tcfConsent = TcfUtils.getConsentString(enforcementRequirments)
+        def bidRequest = getGdprBidRequest(tcfConsent).tap {
+            it.user.eids = userEids
         }
 
         and: "Save account config with requireConsent into DB"
@@ -251,17 +410,128 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         privacyPbsServiceWithMultipleGvl.sendAuctionRequest(bidRequest)
 
-        then: "Generic bidder request shouldn't have data in Eid fields"
+        then: "Generic bidder request shouldn't have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
 
-        assert !bidderRequest.user.eids
+        assert !bidderRequest.user?.eids
         assert !bidderRequest.user?.ext?.eids
 
         where:
-        enforcementRequirments << getFullEnforcementRequirments(P1)
+        enforcementRequirments << getLegalEnforcementRequirments(P1) +
+                getCompanyEnforcementRequirments(P1) +
+                getCompanyEnforcementRequirments(P2) +
+                getCompanyEnforcementRequirments(P3) +
+                getCompanyEnforcementRequirments(P5) +
+                getCompanyEnforcementRequirments(P6) +
+                getCompanyEnforcementRequirments(P7) +
+                getCompanyEnforcementRequirments(P8) +
+                getCompanyEnforcementRequirments(P9) +
+                getCompanyEnforcementRequirments(P10)
     }
 
-    private static List<EnforcementRequirments> getFullEnforcementRequirments(Purpose purpose) {
+    private static List<EnforcementRequirments> getLegalEnforcementRequirments(Purpose purpose) {
+        [new EnforcementRequirments(purpose: purpose,
+                restrictionType: [REQUIRE_CONSENT, UNDEFINED],
+                vendorIdGvl: GENERIC_VENDOR_ID,
+                enforcePurpose: FULL,
+                purposeConsent: purpose,
+                vendorConsentBitField: GENERIC_VENDOR_ID,
+                vendorListVersion: PURPOSES_ONLY_GVL_VERSION),
+
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST, UNDEFINED],
+                 purposesLITransparency: purpose,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_PURPOSES_ONLY_GVL_VERSION),
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST, UNDEFINED],
+                 purposesLITransparency: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: LEG_INT_PURPOSES_ONLY_GVL_VERSION),
+
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposeConsent: purpose,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposesLITransparency: purpose,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposesLITransparency: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
+                 purposesLITransparency: purpose,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
+                 purposesLITransparency: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_CONSENT],
+                 purposeConsent: purpose,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposesLITransparency: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposeConsent: purpose,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposesLITransparency: purpose,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_CONSENT],
+                 purposeConsent: purpose,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
+                 purposesLITransparency: purpose,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+         new EnforcementRequirments(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
+                 purposesLITransparency: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION)
+        ]
+    }
+
+    private static List<EnforcementRequirments> getCompanyEnforcementRequirments(Purpose purpose) {
         [new EnforcementRequirments(purpose: purpose,
                 restrictionType: [REQUIRE_CONSENT, UNDEFINED],
                 vendorIdGvl: GENERIC_VENDOR_ID,
@@ -281,13 +551,6 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
                  enforcePurpose: NO,
                  vendorConsentBitField: GENERIC_VENDOR_ID,
                  vendorListVersion: PURPOSES_ONLY_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 restrictionType: [REQUIRE_CONSENT, UNDEFINED],
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 enforcePurpose: FULL,
-                 purposeConsent: purpose,
-                 vendorConsentBitField: GENERIC_VENDOR_ID,
-                 vendorListVersion: PURPOSES_ONLY_GVL_VERSION),
 
          new EnforcementRequirments(purpose: purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,
@@ -298,19 +561,7 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
          new EnforcementRequirments(purpose: purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,
                  restrictionType: [REQUIRE_LEGITIMATE_INTEREST, UNDEFINED],
-                 purposesLITransparency: purpose,
-                 enforceVendor: false,
-                 vendorListVersion: LEG_INT_PURPOSES_ONLY_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST, UNDEFINED],
                  enforcePurpose: NO,
-                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
-                 vendorListVersion: LEG_INT_PURPOSES_ONLY_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST, UNDEFINED],
-                 purposesLITransparency: purpose,
                  vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
                  vendorListVersion: LEG_INT_PURPOSES_ONLY_GVL_VERSION),
 
@@ -335,31 +586,13 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
          new EnforcementRequirments(purpose: purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,
                  restrictionType: [UNDEFINED],
-                 purposeConsent: purpose,
-                 vendorConsentBitField: GENERIC_VENDOR_ID,
-                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [UNDEFINED],
                  enforcePurpose: NO,
                  enforceVendor: false,
                  vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
          new EnforcementRequirments(purpose: purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,
                  restrictionType: [UNDEFINED],
-                 purposesLITransparency: purpose,
-                 enforceVendor: false,
-                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [UNDEFINED],
                  enforcePurpose: NO,
-                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
-                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [UNDEFINED],
-                 purposesLITransparency: purpose,
                  vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
                  vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
 
@@ -372,19 +605,7 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
          new EnforcementRequirments(purpose: purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,
                  restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
-                 purposesLITransparency: purpose,
-                 enforceVendor: false,
-                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
                  enforcePurpose: NO,
-                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
-                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
-                 purposesLITransparency: purpose,
                  vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
                  vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
 
@@ -404,12 +625,6 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
                  vendorIdGvl: GENERIC_VENDOR_ID,
                  restrictionType: [REQUIRE_CONSENT],
                  enforcePurpose: NO,
-                 vendorConsentBitField: GENERIC_VENDOR_ID,
-                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [REQUIRE_CONSENT],
-                 purposeConsent: purpose,
                  vendorConsentBitField: GENERIC_VENDOR_ID,
                  vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
 
@@ -434,31 +649,14 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
          new EnforcementRequirments(purpose: purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,
                  restrictionType: [UNDEFINED],
-                 purposeConsent: purpose,
-                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 enforcePurpose: NO,
+                 enforceVendor: false,
                  vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+
          new EnforcementRequirments(purpose: purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,
                  restrictionType: [UNDEFINED],
                  enforcePurpose: NO,
-                 enforceVendor: false,
-                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [UNDEFINED],
-                 purposesLITransparency: purpose,
-                 enforceVendor: false,
-                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [UNDEFINED],
-                 enforcePurpose: NO,
-                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
-                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [UNDEFINED],
-                 purposesLITransparency: purpose,
                  vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
                  vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
 
@@ -480,12 +678,6 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
                  enforcePurpose: NO,
                  vendorConsentBitField: GENERIC_VENDOR_ID,
                  vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [REQUIRE_CONSENT],
-                 purposeConsent: purpose,
-                 vendorConsentBitField: GENERIC_VENDOR_ID,
-                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
 
          new EnforcementRequirments(purpose: purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,
@@ -493,22 +685,11 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
                  enforcePurpose: NO,
                  enforceVendor: false,
                  vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
-                 purposesLITransparency: purpose,
-                 enforceVendor: false,
-                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+
          new EnforcementRequirments(purpose: purpose,
                  vendorIdGvl: GENERIC_VENDOR_ID,
                  restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
                  enforcePurpose: NO,
-                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
-                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
-         new EnforcementRequirments(purpose: purpose,
-                 vendorIdGvl: GENERIC_VENDOR_ID,
-                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
-                 purposesLITransparency: purpose,
                  vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
                  vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
 

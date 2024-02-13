@@ -7,6 +7,7 @@ import org.prebid.server.functional.model.config.PurposeEid
 import org.prebid.server.functional.model.config.PurposeEnforcement
 import org.prebid.server.functional.model.privacy.EnforcementRequirments
 
+import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.util.privacy.TcfConsent.Builder
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
@@ -15,12 +16,12 @@ class TcfUtils {
 
     static Map<Purpose, PurposeConfig> getPurposeConfigsForPersonalizedAds(EnforcementRequirments enforcementRequirments, boolean requireConsent = false, List<String> eidsExceptions = []) {
         def purpose = enforcementRequirments.purposeConsent ?: enforcementRequirments.purpose
+        // Basic Ads required for any bidder call, should be present at least as company consent
+        Map<Purpose, PurposeConfig> purposes = [(Purpose.P2): new PurposeConfig(enforcePurpose: NO, enforceVendors: false)]
         def purposeConfig = new PurposeConfig(enforcePurpose: enforcementRequirments.enforcePurpose,
                 enforceVendors: enforcementRequirments?.enforceVendor,
-                softVendorExceptions: enforcementRequirments?.softVendorExceptions?.value,
                 vendorExceptions: enforcementRequirments?.vendorExceptions?.value)
         def purposeEid = new PurposeEid(requireConsent: requireConsent, exceptions: eidsExceptions)
-        Map<Purpose, PurposeConfig> purposes = [:]
         if (purpose == Purpose.P4) {
             purposeConfig.eid = purposeEid
             purposes[Purpose.P4] = purposeConfig
