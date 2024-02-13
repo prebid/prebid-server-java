@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.privacy
 
+import org.mockserver.model.Delay
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
@@ -368,5 +369,87 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         assert response.ext?.warnings[PREBID]*.code == [999]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["Parsing consent string: ${tcfConsent} failed. TCF policy version ${invalidTcfPolicyVersion} is not supported" as String]
+    }
+
+    def "PBS amp should try to fetch vendor list by exponential backoff and emit error when vendor list response is absent"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Create new container"
+        def delayMillis = 5000
+        def maxDelayMillis = 10000
+        def factor = 1.3
+        def serverContainer = new PrebidServerContainer(GDPR_VENDOR_LIST_CONFIG +
+                ["adapters.generic.meta-info.vendor-id"                                : GENERIC_VENDOR_ID as String,
+                 "gdpr.vendorlist.v2.retry-policy.exponential-backoff.delay-millis"    : delayMillis as String,
+                 "gdpr.vendorlist.v2.retry-policy.exponential-backoff.max-delay-millis": maxDelayMillis as String,
+                 "gdpr.vendorlist.v2.retry-policy.exponential-backoff.factor"          : factor as String,
+                 "gdpr.vendorlist.v3.retry-policy.exponential-backoff.delay-millis"    : delayMillis as String,
+                 "gdpr.vendorlist.v3.retry-policy.exponential-backoff.max-delay-millis": maxDelayMillis as String,
+                 "gdpr.vendorlist.v3.retry-policy.exponential-backoff.factor"          : factor as String])
+        serverContainer.start()
+        def serverService = new PrebidServerService(serverContainer)
+
+        and: "Prepare tcf consent string"
+        def tcfConsent = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .setTcfPolicyVersion(tcfPolicyVersion.value)
+                .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "AMP request"
+        def ampRequest = getGdprAmpRequest(tcfConsent)
+
+        and: "Default stored request"
+        def ampStoredRequest = BidRequest.defaultBidRequest
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Reset valid vendor list response"
+        vendorListResponse.reset(tcfPolicyVersion)
+
+        and: "Set vendor list response"
+        vendorListResponse.setResponseWithDelay(Delay.seconds(60), tcfPolicyVersion)
+
+        when: "PBS processes amp request"
+        serverService.sendAmpRequest(ampRequest)
+
+        then: "PBS shouldn't fetch vendor list"
+        def vendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/${tcfPolicyVersion.vendorListVersion}.json"
+        def properVendorListPath = vendorListPath
+        assert !serverService.isFileExist(properVendorListPath)
+
+        and: "Logs should contain proper vendor list version"
+        def logs = serverService.getLogsByTime(startTime)
+        def tcfError = "TCF 2 vendor list for version v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion} not found, started downloading."
+        assert getLogsByText(logs, tcfError)
+
+        and: "Sleep for second fetch with multiply"
+        sleep((delayMillis.multiply(factor)).toLong())
+
+        and: "Second start for fetch second round of logs"
+        def secondStartTime = Instant.now()
+
+        when: "PBS processes amp request"
+        serverService.sendAmpRequest(ampRequest)
+
+        then: "PBS shouldn't fetch vendor list"
+        assert !serverService.isFileExist(vendorListPath)
+
+        and: "Logs should contain proper vendor list version"
+        def logsSecond = serverService.getLogsByTime(secondStartTime)
+        assert getLogsByText(logsSecond, tcfError)
+
+        and: "Set vendor list response"
+        vendorListResponse.reset(tcfPolicyVersion)
+
+        cleanup: "Stop container with default request"
+        serverContainer.stop()
+
+        where:
+        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
     }
 }
