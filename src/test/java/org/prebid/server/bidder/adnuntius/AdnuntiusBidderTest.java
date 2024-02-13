@@ -292,7 +292,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfGdprAndConsentAreAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request
-                        .regs(Regs.builder().ext(ExtRegs.of(null, null, null)).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null, null, null)).build())
                         .user(User.builder().ext(ExtUser.builder().consent(null).build()).build()),
                 givenImp(identity()), givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()));
 
@@ -311,7 +311,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfGdprIsAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request
-                        .regs(Regs.builder().ext(ExtRegs.of(null, null, null)).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null, null, null)).build())
                         .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build()),
                 givenImp(identity()), givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()));
 
@@ -330,7 +330,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnRequestsWithCorrectUriIfConsentIsAbsent() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request
-                        .regs(Regs.builder().ext(ExtRegs.of(1, null, null)).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(1, null, null, null)).build())
                         .user(User.builder().ext(ExtUser.builder().consent(null).build()).build()),
                 givenImp(identity()), givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()));
 
@@ -351,7 +351,7 @@ public class AdnuntiusBidderTest extends VertxTest {
         final Integer gdpr = 1;
         final String consent = "con sent";
         final BidRequest bidRequest = givenBidRequest(request -> request
-                        .regs(Regs.builder().ext(ExtRegs.of(gdpr, null, null)).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(gdpr, null, null, null)).build())
                         .user(User.builder().ext(ExtUser.builder().consent(consent).build()).build()),
                 givenImp(identity()), givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()));
 

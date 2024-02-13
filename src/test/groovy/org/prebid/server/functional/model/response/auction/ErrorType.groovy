@@ -11,7 +11,8 @@ enum ErrorType {
     APPNEXUS("appnexus"),
     PREBID("prebid"),
     CACHE("cache"),
-    ALIAS("alias")
+    ALIAS("alias"),
+    TARGETING("targeting")
 
     @JsonValue
     final String value

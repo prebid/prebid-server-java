@@ -16,6 +16,8 @@ public class AccountPrivacyConfig {
 
     AccountCcpaConfig ccpa;
 
+    AccountDsaConfig dsa;
+
     @JsonProperty("allowactivities")
     Map<Activity, AccountActivityConfiguration> activities;
 

@@ -1,0 +1,23 @@
+{
+  "data": {
+    "requestId": "22e26bd9a702bc1",
+    "domain": "https://bidder.adquery.io",
+    "urlAdq": "https://adquery.io",
+    "creationId": 7211,
+    "currency": "PLN",
+    "adDomains": [
+      "unknownDomains"
+    ],
+    "tag": "Tag_Example",
+    "adqLib": "AdqLib_Example",
+    "mediaType": {
+      "width": "320",
+      "height": "50",
+      "name": "banner"
+    },
+    "cpm": "4.14",
+    "qid": "fc08aacb07eac44421ed",
+    "width": "320",
+    "height": "50"
+  }
+}

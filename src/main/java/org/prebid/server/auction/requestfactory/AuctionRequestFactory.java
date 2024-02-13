@@ -201,7 +201,8 @@ public class AuctionRequestFactory {
                 .ext(ExtRegs.of(
                         extRegs != null ? extRegs.getGdpr() : null,
                         extRegs != null ? extRegs.getUsPrivacy() : null,
-                        gpc))
+                        gpc,
+                        extRegs != null ? extRegs.getDsa() : null))
                 .build();
     }
 

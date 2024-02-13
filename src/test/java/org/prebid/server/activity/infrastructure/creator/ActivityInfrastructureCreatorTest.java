@@ -77,7 +77,13 @@ public class ActivityInfrastructureCreatorTest {
     @Test
     public void parseShouldReturnExpectedResultIfAccountPrivacyActivitiesNull() {
         // given
-        final Account account = Account.builder().privacy(AccountPrivacyConfig.of(null, null, null, null)).build();
+        final Account account = Account.builder().privacy(AccountPrivacyConfig.of(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null))
+                .build();
 
         // when
         final Map<Activity, ActivityController> controllers = creator.parse(account, null, debug);
@@ -91,6 +97,7 @@ public class ActivityInfrastructureCreatorTest {
         // given
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.of(
+                        null,
                         null,
                         null,
                         Map.of(Activity.SYNC_USER, AccountActivityConfiguration.of(
@@ -113,6 +120,7 @@ public class ActivityInfrastructureCreatorTest {
         // given
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.of(
+                        null,
                         null,
                         null,
                         Map.of(

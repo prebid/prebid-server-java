@@ -46,6 +46,7 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
@@ -255,9 +256,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldFillBidRequestWithValuesFromHttpRequest() {
         // given
+        final ExtRegsDsa dsa = ExtRegsDsa.of(1, 2, 3, emptyList());
         final BidRequest receivedBidRequest = BidRequest.builder()
                 .regs(Regs.builder()
-                        .ext(ExtRegs.of(0, "us_privacy", null))
+                        .ext(ExtRegs.of(0, "us_privacy", null, dsa))
                         .build())
                 .build();
 
@@ -274,8 +276,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest capturedRequest = captor.getValue();
         assertThat(capturedRequest.getRegs())
                 .extracting(Regs::getExt)
-                .extracting(ExtRegs::getGdpr, ExtRegs::getUsPrivacy, ExtRegs::getGpc)
-                .containsExactly(0, "us_privacy", "1");
+                .extracting(ExtRegs::getGdpr, ExtRegs::getUsPrivacy, ExtRegs::getGpc, ExtRegs::getDsa)
+                .containsExactly(0, "us_privacy", "1", dsa);
     }
 
     @Test
