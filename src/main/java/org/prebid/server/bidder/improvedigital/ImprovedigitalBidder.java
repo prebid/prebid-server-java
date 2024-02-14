@@ -98,8 +98,9 @@ public class ImprovedigitalBidder implements Bidder<BidRequest> {
             return extUser;
         }
 
-        final String consentedProvidersPart = StringUtils.substringAfter(consentedProviders, "~");
-        if (StringUtils.isEmpty(consentedProvidersPart)) {
+        final String[] consentedProvidersParts = StringUtils.split(consentedProviders, "~");
+        final String consentedProvidersPart = consentedProvidersParts.length > 1 ? consentedProvidersParts[1] : null;
+        if (StringUtils.isBlank(consentedProvidersPart)) {
             return extUser;
         }
 
