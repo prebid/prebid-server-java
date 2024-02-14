@@ -27,7 +27,7 @@ public class RandomAnyWeightedEntrySupplier<E> implements RandomWeightedEntrySup
                 ? summaryStatistics.getCount()
                 : summaryStatistics.getSum();
 
-        long randomLong = ThreadLocalRandom.current().nextLong(totalWeight);
+        final long randomLong = ThreadLocalRandom.current().nextLong(totalWeight);
         return allZeros
                 ? IterableUtils.get(entries, (int) randomLong)
                 : getEntry(entries, randomLong);
