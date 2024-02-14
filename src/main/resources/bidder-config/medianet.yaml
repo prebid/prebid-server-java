@@ -1,6 +1,7 @@
 adapters:
   medianet:
     endpoint: https://prebid-adapter.media.net/rtb/pb/prebids2s?src={{PREBID_SERVER_ENDPOINT}}
+    ortb-version: "2.6"
     meta-info:
       maintainer-email: prebid@media.net
       app-media-types:
