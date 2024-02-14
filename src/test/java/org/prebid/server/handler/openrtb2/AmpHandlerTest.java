@@ -15,6 +15,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -28,6 +29,7 @@ import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.Bidder;
@@ -184,7 +186,11 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        assertThat(captureAuctionContext().getTimeout().remaining()).isEqualTo(2000L);
+        assertThat(captureAuctionContext())
+                .extracting(AuctionContext::getTimeoutContext)
+                .extracting(TimeoutContext::getTimeout)
+                .extracting(Timeout::remaining)
+                .isEqualTo(2000L);
     }
 
     @Test
@@ -222,7 +228,12 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        assertThat(captureAuctionContext().getTimeout().remaining()).isLessThanOrEqualTo(1950L);
+        assertThat(captureAuctionContext())
+                .extracting(AuctionContext::getTimeoutContext)
+                .extracting(TimeoutContext::getTimeout)
+                .extracting(Timeout::remaining)
+                .asInstanceOf(InstanceOfAssertFactories.LONG)
+                .isLessThanOrEqualTo(1950L);
     }
 
     @Test
@@ -884,7 +895,7 @@ public class AmpHandlerTest extends VertxTest {
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.amp)
-                .timeout(timeout)
+                .timeoutContext(TimeoutContext.of(0, timeout, 0))
                 .debugContext(DebugContext.empty())
                 .build();
     }

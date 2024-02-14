@@ -48,6 +48,7 @@ import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.Bidder;
@@ -173,7 +174,6 @@ public class ExchangeService {
     private static final Set<Integer> DSA_REQUIRED = Set.of(2, 3);
 
     private final double logSamplingRate;
-    private final int timeoutAdjustmentFactor;
     private final BidderCatalog bidderCatalog;
     private final StoredResponseProcessor storedResponseProcessor;
     private final DealsService dealsService;
@@ -204,7 +204,6 @@ public class ExchangeService {
     private final boolean enabledStrictAppSiteDoohValidation;
 
     public ExchangeService(double logSamplingRate,
-                           int timeoutAdjustmentFactor,
                            BidderCatalog bidderCatalog,
                            StoredResponseProcessor storedResponseProcessor,
                            DealsService dealsService,
@@ -234,11 +233,7 @@ public class ExchangeService {
                            CriteriaLogManager criteriaLogManager,
                            boolean enabledStrictAppSiteDoohValidation) {
 
-        if (timeoutAdjustmentFactor < 0 || timeoutAdjustmentFactor > 100) {
-            throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 100].");
-        }
         this.logSamplingRate = logSamplingRate;
-        this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
         this.dealsService = dealsService;
@@ -293,7 +288,7 @@ public class ExchangeService {
     private Future<AuctionContext> runAuction(AuctionContext receivedContext) {
         final UidsCookie uidsCookie = receivedContext.getUidsCookie();
         final BidRequest bidRequest = receivedContext.getBidRequest();
-        final Timeout timeout = receivedContext.getTimeout();
+        final Timeout timeout = receivedContext.getTimeoutContext().getTimeout();
         final Account account = receivedContext.getAccount();
         final List<String> debugWarnings = receivedContext.getDebugWarnings();
         final MetricName requestTypeMetric = receivedContext.getRequestTypeMetric();
@@ -1389,11 +1384,13 @@ public class ExchangeService {
         final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
         final BidRejectionTracker bidRejectionTracker = auctionContext.getBidRejectionTrackers().get(bidderName);
 
-        final long auctionStartTime = auctionContext.getStartTime();
+        final TimeoutContext timeoutContext = auctionContext.getTimeoutContext();
+        final long auctionStartTime = timeoutContext.getStartTime();
+        final int adjustmentFactor = timeoutContext.getAdjustmentFactor();
         final long bidderRequestStartTime = clock.millis();
 
         return Future.succeededFuture(bidderRequest.getBidRequest())
-                .map(bidRequest -> adjustTmax(bidRequest, auctionStartTime, bidderRequestStartTime))
+                .map(bidRequest -> adjustTmax(bidRequest, auctionStartTime, adjustmentFactor, bidderRequestStartTime))
                 .map(bidRequest -> ortbVersionConversionManager.convertFromAuctionSupportedVersion(
                         bidRequest, bidderRequest.getOrtbVersion()))
                 .map(bidderRequest::with)
@@ -1408,10 +1405,9 @@ public class ExchangeService {
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(bidderRequestStartTime)));
     }
 
-    private BidRequest adjustTmax(BidRequest bidRequest, long startTime, long currentTime) {
+    private BidRequest adjustTmax(BidRequest bidRequest, long startTime, int adjustmentFactor, long currentTime) {
         final long tmax = timeoutResolver.limitToMax(bidRequest.getTmax());
-        final long adjustedTmax = timeoutResolver.adjustForBidder(
-                tmax, timeoutAdjustmentFactor, currentTime - startTime);
+        final long adjustedTmax = timeoutResolver.adjustForBidder(tmax, adjustmentFactor, currentTime - startTime);
         return tmax != adjustedTmax
                 ? bidRequest.toBuilder().tmax(adjustedTmax).build()
                 : bidRequest;

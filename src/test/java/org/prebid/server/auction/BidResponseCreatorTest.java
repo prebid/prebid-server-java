@@ -47,6 +47,7 @@ import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.CategoryMappingResult;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.TargetingInfo;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
@@ -3867,8 +3868,8 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final String expectedErrorMsg = "Key prefix value is dropped to default. "
                 + "Decrease custom prefix length or increase truncateattrchars by 30";
-        assertThat(bidResponse.getExt().getWarnings()).containsOnly(entry("targeting", Arrays.asList(
-                                ExtBidderError.of(BidderError.Type.bad_input.getCode(), expectedErrorMsg))));
+        assertThat(bidResponse.getExt().getWarnings()).containsOnly(entry("targeting", singletonList(
+                ExtBidderError.of(BidderError.Type.bad_input.getCode(), expectedErrorMsg))));
 
         verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
@@ -3880,7 +3881,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .account(Account.empty("accountId"))
                 .bidRequest(bidRequest)
                 .txnLog(TxnLog.create())
-                .timeout(timeout)
+                .timeoutContext(TimeoutContext.of(0, timeout, 0))
                 .debugContext(DebugContext.empty())
                 .deepDebugLog(DeepDebugLog.create(false, clock))
                 .debugHttpCalls(new HashMap<>())

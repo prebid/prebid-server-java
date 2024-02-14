@@ -109,7 +109,7 @@ public class PrivacyEnforcementService {
         final List<String> errors = auctionContext.getPrebidErrors();
         final Account account = auctionContext.getAccount();
         final MetricName requestType = auctionContext.getRequestTypeMetric();
-        final Timeout timeout = auctionContext.getTimeout();
+        final Timeout timeout = auctionContext.getTimeoutContext().getTimeout();
 
         final Privacy privacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);
 

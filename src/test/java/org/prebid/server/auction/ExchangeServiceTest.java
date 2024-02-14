@@ -56,6 +56,7 @@ import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.bidder.Bidder;
@@ -186,7 +187,6 @@ import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
 import static org.apache.commons.lang3.exception.ExceptionUtils.rethrow;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.entry;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -429,7 +429,6 @@ public class ExchangeServiceTest extends VertxTest {
 
         target = new ExchangeService(
                 0,
-                90,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsService,
@@ -458,43 +457,6 @@ public class ExchangeServiceTest extends VertxTest {
                 jacksonMapper,
                 criteriaLogManager,
                 false);
-    }
-
-    @Test
-    public void creationShouldFailOnNegativeTimeoutAdjustmentFactor() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new ExchangeService(
-                        0,
-                        -1,
-                        bidderCatalog,
-                        storedResponseProcessor,
-                        dealsService,
-                        privacyEnforcementService,
-                        fpdResolver,
-                        supplyChainResolver,
-                        debugResolver,
-                        mediaTypeProcessor,
-                        uidUpdater,
-                        timeoutResolver,
-                        timeoutFactory,
-                        ortbVersionConversionManager,
-                        httpBidderRequester,
-                        responseBidValidator,
-                        currencyService,
-                        bidResponseCreator,
-                        bidResponsePostProcessor,
-                        hookStageExecutor,
-                        applicationEventService,
-                        httpInteractionLogger,
-                        priceFloorAdjuster,
-                        priceFloorEnforcer,
-                        bidAdjustmentFactorResolver,
-                        metrics,
-                        clock,
-                        jacksonMapper,
-                        criteriaLogManager,
-                        false))
-                .withMessage("Expected timeout adjustment factor should be in [0, 100].");
     }
 
     @Test
@@ -1055,8 +1017,8 @@ public class ExchangeServiceTest extends VertxTest {
                 singletonList(imp),
                 builder -> builder
                         .source(Source.builder().tid("sourceTidValue").schain(SupplyChain.of(1,
-                                List.of(SupplyChainNode.of("freestar.com", "66", null, null,
-                                        null, 1, null)), "1.0", null))
+                                        List.of(SupplyChainNode.of("freestar.com", "66", null, null,
+                                                null, 1, null)), "1.0", null))
                                 .build())
                         .ext(ExtRequest.of(
                                 ExtRequestPrebid.builder()
@@ -3176,7 +3138,6 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         target = new ExchangeService(
                 0,
-                90,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsService,
@@ -3226,7 +3187,6 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         target = new ExchangeService(
                 0,
-                90,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsService,
@@ -4860,7 +4820,6 @@ public class ExchangeServiceTest extends VertxTest {
 
         target = new ExchangeService(
                 0,
-                90,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsService,
@@ -4977,8 +4936,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .debugWarnings(new ArrayList<>())
                 .account(account)
                 .requestTypeMetric(MetricName.openrtb2web)
-                .startTime(clock.millis())
-                .timeout(timeout)
+                .timeoutContext(TimeoutContext.of(clock.millis(), timeout, 90))
                 .hookExecutionContext(HookExecutionContext.of(Endpoint.openrtb2_auction))
                 .debugContext(DebugContext.empty())
                 .txnLog(TxnLog.create())
