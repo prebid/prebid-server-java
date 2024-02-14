@@ -28,15 +28,9 @@ public class RandomAnyWeightedEntrySupplier<E> implements RandomWeightedEntrySup
                 : summaryStatistics.getSum();
 
         long randomLong = ThreadLocalRandom.current().nextLong(totalWeight);
-        for (E entry : entries) {
-            randomLong -= allZeros ? 1 : weight(entry);
-
-            if (randomLong < 0) {
-                return entry;
-            }
-        }
-
-        throw new AssertionError();
+        return allZeros
+                ? IterableUtils.get(entries, (int) randomLong)
+                : getEntry(entries, randomLong);
     }
 
     private IntSummaryStatistics evaluateStatistic(Iterable<E> entries) {
@@ -49,6 +43,19 @@ public class RandomAnyWeightedEntrySupplier<E> implements RandomWeightedEntrySup
 
     protected int weight(E entry) {
         return Math.max(weightExtractor.apply(entry), 0);
+    }
+
+    private E getEntry(Iterable<E> entries, long entryNumber) {
+        long reducedEntryNumber = entryNumber;
+        for (E entry : entries) {
+            reducedEntryNumber -= weight(entry);
+
+            if (reducedEntryNumber < 0) {
+                return entry;
+            }
+        }
+
+        throw new AssertionError();
     }
 }
 
