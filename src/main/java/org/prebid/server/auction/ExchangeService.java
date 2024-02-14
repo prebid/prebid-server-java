@@ -1137,7 +1137,7 @@ public class ExchangeService {
 
         final SupplyChain bidderSchain = supplyChainResolver.resolveForBidder(bidder, bidRequest);
 
-        if (bidderSchain == null && transmitTid) {
+        if (bidderSchain == null && (transmitTid || receivedSource == null)) {
             return receivedSource;
         }
 
@@ -1145,7 +1145,8 @@ public class ExchangeService {
                 ? Source.builder().schain(bidderSchain).build()
                 : receivedSource.toBuilder()
                 .schain(bidderSchain != null ? bidderSchain : receivedSource.getSchain())
-                .tid(transmitTid ? receivedSource.getTid() : null).build();
+                .tid(transmitTid ? receivedSource.getTid() : null)
+                .build();
     }
 
     /**

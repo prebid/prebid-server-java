@@ -427,36 +427,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
-        target = new ExchangeService(
-                0,
-                bidderCatalog,
-                storedResponseProcessor,
-                dealsService,
-                privacyEnforcementService,
-                fpdResolver,
-                supplyChainResolver,
-                debugResolver,
-                mediaTypeProcessor,
-                uidUpdater,
-                timeoutResolver,
-                timeoutFactory,
-                ortbVersionConversionManager,
-                httpBidderRequester,
-                responseBidValidator,
-                currencyService,
-                bidResponseCreator,
-                bidResponsePostProcessor,
-                hookStageExecutor,
-                applicationEventService,
-                httpInteractionLogger,
-                priceFloorAdjuster,
-                priceFloorEnforcer,
-                bidAdjustmentFactorResolver,
-                metrics,
-                clock,
-                jacksonMapper,
-                criteriaLogManager,
-                false);
+        givenTarget(false);
     }
 
     @Test
@@ -1013,17 +984,19 @@ public class ExchangeServiceTest extends VertxTest {
 
         final Imp imp = givenImp(Map.of(bidderName, 1), identity());
         imp.getExt().put("tid", "bidderTidValue");
+
         final BidRequest bidRequest = givenBidRequest(
                 singletonList(imp),
                 builder -> builder
-                        .source(Source.builder().tid("sourceTidValue").schain(SupplyChain.of(1,
-                                        List.of(SupplyChainNode.of("freestar.com", "66", null, null,
-                                                null, 1, null)), "1.0", null))
+                        .source(Source.builder()
+                                .tid("sourceTidValue")
+                                .schain(SupplyChain.of(
+                                        1,
+                                        List.of(SupplyChainNode.of("freestar.com", "66", null, null, null, 1, null)),
+                                        "1.0",
+                                        null))
                                 .build())
-                        .ext(ExtRequest.of(
-                                ExtRequestPrebid.builder()
-                                        .createTids(false)
-                                        .build())));
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().createTids(false).build())));
 
         // when
         target.holdAuction(givenRequestContext(bidRequest));
@@ -1036,12 +1009,10 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
         assertThat(capturedBidRequest)
                 .extracting(BidRequest::getSource)
-                .extracting(Source::getTid)
-                .isNull();
-        assertThat(capturedBidRequest)
-                .extracting(BidRequest::getSource)
-                .extracting(Source::getSchain)
-                .isNotNull();
+                .satisfies(source -> {
+                    assertThat(source.getTid()).isNull();
+                    assertThat(source.getSchain()).isNotNull();
+                });
         assertThat(capturedBidRequest.getImp())
                 .extracting(Imp::getExt)
                 .extracting(ext -> ext.get("tid"))
@@ -3136,36 +3107,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void holdAuctionShouldFailWhenFpdProvidesSiteButDoohIsAlreadyInBidRequestAndStrictValidationEnabled() {
         // given
-        target = new ExchangeService(
-                0,
-                bidderCatalog,
-                storedResponseProcessor,
-                dealsService,
-                privacyEnforcementService,
-                fpdResolver,
-                supplyChainResolver,
-                debugResolver,
-                mediaTypeProcessor,
-                uidUpdater,
-                timeoutResolver,
-                timeoutFactory,
-                ortbVersionConversionManager,
-                httpBidderRequester,
-                responseBidValidator,
-                currencyService,
-                bidResponseCreator,
-                bidResponsePostProcessor,
-                hookStageExecutor,
-                applicationEventService,
-                httpInteractionLogger,
-                priceFloorAdjuster,
-                priceFloorEnforcer,
-                bidAdjustmentFactorResolver,
-                metrics,
-                clock,
-                jacksonMapper,
-                criteriaLogManager,
-                true);
+        givenTarget(true);
         givenBidder(givenEmptySeatBid());
         final BidRequest bidRequest = givenBidRequest(
                 givenSingleImp(singletonMap("someBidder", 1)),
@@ -3185,36 +3127,7 @@ public class ExchangeServiceTest extends VertxTest {
     @Test
     public void holdAuctionShouldFailWhenSiteAppAndDoohArePresentInBidRequestAndStrictValidationEnabled() {
         // given
-        target = new ExchangeService(
-                0,
-                bidderCatalog,
-                storedResponseProcessor,
-                dealsService,
-                privacyEnforcementService,
-                fpdResolver,
-                supplyChainResolver,
-                debugResolver,
-                mediaTypeProcessor,
-                uidUpdater,
-                timeoutResolver,
-                timeoutFactory,
-                ortbVersionConversionManager,
-                httpBidderRequester,
-                responseBidValidator,
-                currencyService,
-                bidResponseCreator,
-                bidResponsePostProcessor,
-                hookStageExecutor,
-                applicationEventService,
-                httpInteractionLogger,
-                priceFloorAdjuster,
-                priceFloorEnforcer,
-                bidAdjustmentFactorResolver,
-                metrics,
-                clock,
-                jacksonMapper,
-                criteriaLogManager,
-                true);
+        givenTarget(true);
         givenBidder(givenEmptySeatBid());
         final BidRequest bidRequest = givenBidRequest(
                 givenSingleImp(singletonMap("someBidder", 1)),
@@ -4818,37 +4731,6 @@ public class ExchangeServiceTest extends VertxTest {
                 any()))
                 .willReturn(Future.succeededFuture(BidResponse.builder().id("uniqId").build()));
 
-        target = new ExchangeService(
-                0,
-                bidderCatalog,
-                storedResponseProcessor,
-                dealsService,
-                privacyEnforcementService,
-                fpdResolver,
-                supplyChainResolver,
-                debugResolver,
-                mediaTypeProcessor,
-                uidUpdater,
-                timeoutResolver,
-                timeoutFactory,
-                ortbVersionConversionManager,
-                httpBidderRequester,
-                responseBidValidator,
-                currencyService,
-                bidResponseCreator,
-                bidResponsePostProcessor,
-                hookStageExecutor,
-                applicationEventService,
-                httpInteractionLogger,
-                priceFloorAdjuster,
-                priceFloorEnforcer,
-                bidAdjustmentFactorResolver,
-                metrics,
-                clock,
-                jacksonMapper,
-                criteriaLogManager,
-                false);
-
         // when
         final Future<AuctionContext> result = target.holdAuction(auctionContext);
 
@@ -4915,6 +4797,39 @@ public class ExchangeServiceTest extends VertxTest {
         verify(timeoutFactory).create(anyLong(), timeoutCaptor.capture());
         assertThat(bidderRequestCaptor.getValue().getBidRequest().getTmax()).isEqualTo(400L);
         assertThat(timeoutCaptor.getAllValues()).containsExactly(450L);
+    }
+
+    private void givenTarget(boolean enabledStrictAppSiteDoohValidation) {
+        target = new ExchangeService(
+                0,
+                bidderCatalog,
+                storedResponseProcessor,
+                dealsService,
+                privacyEnforcementService,
+                fpdResolver,
+                supplyChainResolver,
+                debugResolver,
+                mediaTypeProcessor,
+                uidUpdater,
+                timeoutResolver,
+                timeoutFactory,
+                ortbVersionConversionManager,
+                httpBidderRequester,
+                responseBidValidator,
+                currencyService,
+                bidResponseCreator,
+                bidResponsePostProcessor,
+                hookStageExecutor,
+                applicationEventService,
+                httpInteractionLogger,
+                priceFloorAdjuster,
+                priceFloorEnforcer,
+                bidAdjustmentFactorResolver,
+                metrics,
+                clock,
+                jacksonMapper,
+                criteriaLogManager,
+                enabledStrictAppSiteDoohValidation);
     }
 
     private AuctionContext givenRequestContext(BidRequest bidRequest) {

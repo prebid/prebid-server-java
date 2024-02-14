@@ -182,74 +182,20 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         given(userAdditionalInfoService.populate(any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
 
-        target = new Ortb2RequestFactory(
-                false,
-                90,
-                0.01,
-                BLACKLISTED_ACCOUNTS,
-                uidsCookieService,
-                activityInfrastructureCreator,
-                requestValidator,
-                timeoutResolver,
-                timeoutFactory,
-                storedRequestProcessor,
-                applicationSettings,
-                ipAddressHelper,
-                hookStageExecutor,
-                userAdditionalInfoService,
-                priceFloorProcessor,
-                countryCodeMapper,
-                metrics,
-                clock);
+        givenTarget(false, 90);
     }
 
     @Test
     public void creationShouldFailOnNegativeTimeoutAdjustmentFactor() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> new Ortb2RequestFactory(
-                        false,
-                        -1,
-                        0.01,
-                        BLACKLISTED_ACCOUNTS,
-                        uidsCookieService,
-                        activityInfrastructureCreator,
-                        requestValidator,
-                        timeoutResolver,
-                        timeoutFactory,
-                        storedRequestProcessor,
-                        applicationSettings,
-                        ipAddressHelper,
-                        hookStageExecutor,
-                        userAdditionalInfoService,
-                        priceFloorProcessor,
-                        countryCodeMapper,
-                        metrics,
-                        clock))
+                .isThrownBy(() -> givenTarget(false, -1))
                 .withMessage("Expected timeout adjustment factor should be in [0, 100].");
     }
 
     @Test
     public void shouldIncrementRejectedByInvalidAccountMetricsIfUnknownUser() {
         // given
-        target = new Ortb2RequestFactory(
-                true,
-                90,
-                0.01,
-                BLACKLISTED_ACCOUNTS,
-                uidsCookieService,
-                activityInfrastructureCreator,
-                requestValidator,
-                timeoutResolver,
-                timeoutFactory,
-                storedRequestProcessor,
-                applicationSettings,
-                ipAddressHelper,
-                hookStageExecutor,
-                userAdditionalInfoService,
-                priceFloorProcessor,
-                countryCodeMapper,
-                metrics,
-                clock);
+        givenTarget(true, 90);
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));
@@ -275,25 +221,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void fetchAccountShouldReturnFailedFutureIfAccountIsEnforcedAndIdIsNotProvided() {
         // given
-        target = new Ortb2RequestFactory(
-                true,
-                90,
-                0.01,
-                BLACKLISTED_ACCOUNTS,
-                uidsCookieService,
-                activityInfrastructureCreator,
-                requestValidator,
-                timeoutResolver,
-                timeoutFactory,
-                storedRequestProcessor,
-                applicationSettings,
-                ipAddressHelper,
-                hookStageExecutor,
-                userAdditionalInfoService,
-                priceFloorProcessor,
-                countryCodeMapper,
-                metrics,
-                clock);
+        givenTarget(true, 90);
 
         given(storedRequestProcessor.processAuctionRequest(any(), any()))
                 .willReturn(Future.succeededFuture(AuctionStoredResult.of(false, givenBidRequest(identity()))));
@@ -318,25 +246,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void fetchAccountShouldReturnFailedFutureIfAccountIsEnforcedAndFailedGetAccountById() {
         // given
-        target = new Ortb2RequestFactory(
-                true,
-                90,
-                0.01,
-                BLACKLISTED_ACCOUNTS,
-                uidsCookieService,
-                activityInfrastructureCreator,
-                requestValidator,
-                timeoutResolver,
-                timeoutFactory,
-                storedRequestProcessor,
-                applicationSettings,
-                ipAddressHelper,
-                hookStageExecutor,
-                userAdditionalInfoService,
-                priceFloorProcessor,
-                countryCodeMapper,
-                metrics,
-                clock);
+        givenTarget(true, 90);
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));
@@ -721,25 +631,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Test
     public void shouldFetchAccountFromStoredAndReturnFailedFutureIfValidIsEnforcedAndStoredLookupIsFailed() {
         // given
-        target = new Ortb2RequestFactory(
-                true,
-                90,
-                0.01,
-                BLACKLISTED_ACCOUNTS,
-                uidsCookieService,
-                activityInfrastructureCreator,
-                requestValidator,
-                timeoutResolver,
-                timeoutFactory,
-                storedRequestProcessor,
-                applicationSettings,
-                ipAddressHelper,
-                hookStageExecutor,
-                userAdditionalInfoService,
-                priceFloorProcessor,
-                countryCodeMapper,
-                metrics,
-                clock);
+        givenTarget(true, 90);
 
         final BidRequest receivedBidRequest = givenBidRequest(identity());
         given(storedRequestProcessor.processAuctionRequest(any(), any()))
@@ -1823,6 +1715,28 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         assertThat(result)
                 .extracting(BidRequest::getRegs)
                 .isSameAs(regs);
+    }
+
+    private void givenTarget(boolean enforceValidAccount, int timeoutAdjustmentFactor) {
+        target = new Ortb2RequestFactory(
+                enforceValidAccount,
+                timeoutAdjustmentFactor,
+                0.01,
+                BLACKLISTED_ACCOUNTS,
+                uidsCookieService,
+                activityInfrastructureCreator,
+                requestValidator,
+                timeoutResolver,
+                timeoutFactory,
+                storedRequestProcessor,
+                applicationSettings,
+                ipAddressHelper,
+                hookStageExecutor,
+                userAdditionalInfoService,
+                priceFloorProcessor,
+                countryCodeMapper,
+                metrics,
+                clock);
     }
 
     private static String bidRequestToString(BidRequest bidRequest) {
