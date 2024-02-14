@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.stroeercore.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 
@@ -26,5 +27,7 @@ public class StroeerCoreBid {
 
     @JsonProperty("crid")
     String creativeId;
+
+    ObjectNode dsa;
 }
 
