@@ -4,6 +4,7 @@ import com.iabtcf.decoder.TCString;
 import io.vertx.core.Future;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
@@ -114,6 +115,7 @@ public class Tcf2Service {
                                 wrapWithGVL(vendorPermissionsByType, Collections.emptyMap()),
                                 mergedPurposes,
                                 mergePurposeOneTreatmentInterpretation(accountGdprConfig)))
+                .map(ignored -> enforcePurpose4IfRequired(mergedPurposes, vendorPermissionsByType))
                 .map(ignored -> processSupportedSpecialFeatureStrategies(
                         tcfConsent,
                         vendorPermissions,
@@ -197,8 +199,6 @@ public class Tcf2Service {
                     true);
         }
 
-        enforcePurpose4IfRequired(purposes, permissions);
-
         return Future.succeededFuture();
     }
 
@@ -231,8 +231,6 @@ public class Tcf2Service {
                     purposeOneTreatmentInterpretation,
                     true);
         }
-
-        enforcePurpose4IfRequired(purposes, permissions);
 
         return Future.succeededFuture();
     }
@@ -297,26 +295,44 @@ public class Tcf2Service {
     }
 
     // TODO: remove after transition period
-    private static void enforcePurpose4IfRequired(Purposes purposes,
-                                                  VendorPermissionsByType<VendorPermissionWithGvl> permissions) {
+    private static Future<Void> enforcePurpose4IfRequired(Purposes purposes,
+                                                          VendorPermissionsByType<VendorPermission> permissions) {
 
-        if (isConsentRequiredForPurpose4(purposes)) {
-            requireConsentForPurpose4(permissions.getStandardPermissions());
-            requireConsentForPurpose4(permissions.getWeakPermissions());
+        final PurposeEid purpose4Eid = purposes.getP4().getEid();
+        if (purpose4Eid != null && purpose4Eid.isRequireConsent()) {
+            final Set<String> exceptions = SetUtils.emptyIfNull(purpose4Eid.getExceptions());
+
+            requireConsentForPurpose4(permissions.getStandardPermissions(), exceptions);
+            requireConsentForPurpose4(permissions.getWeakPermissions(), exceptions);
+        }
+
+        return Future.succeededFuture();
+    }
+
+    private static void requireConsentForPurpose4(Collection<VendorPermission> permissions,
+                                                  Set<String> eidExceptions) {
+
+        for (VendorPermission vendorPermission : permissions) {
+            if (hasConsentForPurpose4(vendorPermission)) {
+                continue;
+            }
+
+            final PrivacyEnforcementAction privacyEnforcementAction = vendorPermission.getPrivacyEnforcementAction();
+            privacyEnforcementAction.setRemoveUserIds(true);
+            if (hasNaturalConsentForAnyPurposeExcept1(vendorPermission)) {
+                privacyEnforcementAction.setEidExceptions(eidExceptions);
+            }
         }
     }
 
-    private static boolean isConsentRequiredForPurpose4(Purposes purposes) {
-        final PurposeEid purposeEid = findPurposeByTcfPurpose(PurposeCode.FOUR, purposes).getEid();
-        return purposeEid != null && purposeEid.isRequireConsent();
+    private static boolean hasConsentForPurpose4(VendorPermission vendorPermission) {
+        return vendorPermission.getConsentedPurposes().contains(PurposeCode.FOUR)
+                || vendorPermission.getNaturallyConsentedPurposes().contains(PurposeCode.FOUR);
     }
 
-    private static void requireConsentForPurpose4(Collection<VendorPermissionWithGvl> permissions) {
-        permissions.stream()
-                .map(VendorPermissionWithGvl::getVendorPermission)
-                .filter(vendorPermission -> !vendorPermission.consentedWith(PurposeCode.FOUR))
-                .map(VendorPermission::getPrivacyEnforcementAction)
-                .forEach(privacyEnforcementAction -> privacyEnforcementAction.setRemoveUserIds(true));
+    private static boolean hasNaturalConsentForAnyPurposeExcept1(VendorPermission vendorPermission) {
+        final Set<PurposeCode> purposes = vendorPermission.getNaturallyConsentedPurposes();
+        return purposes.size() > 1 || (purposes.size() == 1 && !purposes.contains(PurposeCode.ONE));
     }
 
     private Collection<VendorPermission> processSupportedSpecialFeatureStrategies(

@@ -25,11 +25,7 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountGdprConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
-import org.prebid.server.settings.model.Purpose;
-import org.prebid.server.settings.model.PurposeEid;
-import org.prebid.server.settings.model.Purposes;
 
 import java.util.Collections;
 import java.util.List;
@@ -372,17 +368,7 @@ public class TcfEnforcementTest {
                 .bidRequest(BidRequest.builder().device(device).build())
                 .requestTypeMetric(MetricName.openrtb2web)
                 .account(Account.builder()
-                        .privacy(AccountPrivacyConfig.builder()
-                                .gdpr(AccountGdprConfig.builder()
-                                        .purposes(Purposes.builder()
-                                                .p4(Purpose.of(
-                                                        null,
-                                                        null,
-                                                        null,
-                                                        PurposeEid.of(null, true, singleton("eidException"))))
-                                                .build())
-                                        .build())
-                                .build())
+                        .privacy(AccountPrivacyConfig.builder().build())
                         .build())
                 .privacyContext(PrivacyContext.of(null, TcfContext.empty(), null))
                 .build();
@@ -421,6 +407,7 @@ public class TcfEnforcementTest {
         for (BiConsumer<PrivacyEnforcementAction, Boolean> restriction : restrictions) {
             restriction.accept(action, true);
         }
+        action.setEidExceptions(singleton("eidException"));
 
         return action;
     }

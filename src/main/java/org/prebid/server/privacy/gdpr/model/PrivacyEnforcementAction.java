@@ -3,6 +3,9 @@ package org.prebid.server.privacy.gdpr.model;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.Collections;
+import java.util.Set;
+
 @Builder(toBuilder = true)
 @Data
 public class PrivacyEnforcementAction {
@@ -23,6 +26,8 @@ public class PrivacyEnforcementAction {
 
     boolean blockPixelSync;
 
+    Set<String> eidExceptions;
+
     public static PrivacyEnforcementAction restrictAll() {
         return PrivacyEnforcementAction.builder()
                 .removeUserFpd(true)
@@ -33,10 +38,11 @@ public class PrivacyEnforcementAction {
                 .blockAnalyticsReport(true)
                 .blockBidderRequest(true)
                 .blockPixelSync(true)
+                .eidExceptions(Collections.emptySet())
                 .build();
     }
 
     public static PrivacyEnforcementAction allowAll() {
-        return PrivacyEnforcementAction.builder().build();
+        return PrivacyEnforcementAction.builder().eidExceptions(Collections.emptySet()).build();
     }
 }

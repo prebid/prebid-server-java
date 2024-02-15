@@ -6,11 +6,12 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeStrategy;
@@ -29,6 +30,8 @@ import org.prebid.server.settings.model.SpecialFeatures;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.TreeSet;
+import java.util.function.Consumer;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
@@ -43,6 +46,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -376,7 +380,7 @@ public class Tcf2ServiceTest extends VertxTest {
         final List<VendorPermissionWithGvl> permissions = singletonList(withGvl(expectedVendorPermission, 1));
         verify(purposeStrategyOne, never())
                 .processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
-        verify(purposeStrategyOne).allow(Mockito.<VendorPermission>any());
+        verify(purposeStrategyOne).allow(any());
         verify(purposeStrategyTwo).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false));
         verify(purposeStrategySeven).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false));
         verify(purposeStrategyFour).processTypePurposeStrategy(any(), any(), eq(permissions), eq(false));
@@ -403,7 +407,7 @@ public class Tcf2ServiceTest extends VertxTest {
         assertThat(result).succeededWith(singletonList(expectedVendorPermission));
 
         final List<VendorPermissionWithGvl> standardPermissions = singletonList(withGvl(expectedVendorPermission, 1));
-        verify(purposeStrategyOne, never()).allow(Mockito.<VendorPermission>any());
+        verify(purposeStrategyOne, never()).allow(any());
         verifyEachPurposeStrategyReceive(standardPermissions);
         verifyEachPurposeStrategyReceiveWeak(emptyList());
         verifyEachSpecialFeatureStrategyReceive(singletonList(expectedVendorPermission));
@@ -412,51 +416,166 @@ public class Tcf2ServiceTest extends VertxTest {
     }
 
     @Test
-    public void permissionsForShouldRequirePurpose4ConsentIfConfigured() {
+    public void permissionsForShouldRequirePurpose4ConsentIfConfiguredAndPassEidExceptionsWhereAllowed() {
         // given
         given(vendorIdResolver.resolve(eq("b1"))).willReturn(1);
         given(vendorIdResolver.resolve(eq("b2"))).willReturn(2);
+        given(vendorIdResolver.resolve(eq("b3"))).willReturn(3);
+        given(vendorIdResolver.resolve(eq("b4"))).willReturn(4);
+
+        doAnswer(answer(
+                vendorPermission -> vendorPermission.consentNaturallyWith(ONE),
+                doNothing(),
+                vendorPermission -> vendorPermission.consentNaturallyWith(ONE),
+                doNothing()))
+                .when(purposeStrategyOne)
+                .processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+
+        doAnswer(answer(
+                doNothing(),
+                vendorPermission -> {
+                    vendorPermission.consentWith(TWO);
+                    vendorPermission.getPrivacyEnforcementAction().setRemoveUserIds(false);
+                },
+                vendorPermission -> {
+                    vendorPermission.consentNaturallyWith(TWO);
+                    vendorPermission.getPrivacyEnforcementAction().setRemoveUserIds(false);
+                },
+                doNothing()))
+                .when(purposeStrategyTwo)
+                .processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+
+        doAnswer(answer(
+                doNothing(),
+                doNothing(),
+                doNothing(),
+                vendorPermission -> {
+                    vendorPermission.consentWith(FOUR);
+                    vendorPermission.getPrivacyEnforcementAction().setRemoveUserIds(false);
+                }))
+                .when(purposeStrategyFour)
+                .processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
 
         final Purpose purposeFour = Purpose.of(
                 purpose4.getEnforcePurpose(),
                 purpose4.getEnforceVendors(),
                 purpose4.getVendorExceptions(),
-                PurposeEid.of(null, true, null));
+                PurposeEid.of(null, true, singleton("eidException")));
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
-                .basicEnforcementVendors(singletonList("b2"))
                 .purposes(Purposes.builder().p4(purposeFour).build())
                 .build();
 
         // when
         final Future<Collection<VendorPermission>> result = target.permissionsFor(
-                hashSet("b1", "b2"), vendorIdResolver, tcString, accountGdprConfig);
+                new TreeSet<>(asList("b1", "b2", "b3", "b4")), vendorIdResolver, tcString, accountGdprConfig);
 
         // then
-        final VendorPermission expectedVendorPermission1 = VendorPermission.of(1, "b1", restrictAll());
-        final VendorPermission expectedVendorPermission2 = VendorPermission.of(2, "b2", restrictAll());
-        assertThat(result).succeededWith(asList(expectedVendorPermission2, expectedVendorPermission1));
+        final PrivacyEnforcementAction privacyEnforcementAction1 = restrictAll();
+        final VendorPermission expectedVendorPermission1 = VendorPermission.of(1, "b1", privacyEnforcementAction1);
+        expectedVendorPermission1.consentNaturallyWith(ONE);
 
-        final List<VendorPermissionWithGvl> permissions1 = singletonList(withGvl(expectedVendorPermission1, 1));
-        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, purpose1, permissions1, false);
-        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, purpose2, permissions1, false);
-        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, purposeFour, permissions1, false);
-        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, purpose7, permissions1, false);
+        final PrivacyEnforcementAction privacyEnforcementAction2 = restrictAll();
+        final VendorPermission expectedVendorPermission2 = VendorPermission.of(2, "b2", privacyEnforcementAction2);
+        expectedVendorPermission2.consentWith(TWO);
 
-        final Purpose weakPurposeFour = Purpose.of(
-                purposeFour.getEnforcePurpose(),
-                false,
-                purposeFour.getVendorExceptions(),
-                purposeFour.getEid());
-        final List<VendorPermissionWithGvl> permissions2 = singletonList(withGvl(expectedVendorPermission2, 2));
-        verify(purposeStrategyOne).processTypePurposeStrategy(tcString, weakPurpose1, permissions2, true);
-        verify(purposeStrategyTwo).processTypePurposeStrategy(tcString, weakPurpose2, permissions2, true);
-        verify(purposeStrategyFour).processTypePurposeStrategy(tcString, weakPurposeFour, permissions2, true);
-        verify(purposeStrategySeven).processTypePurposeStrategy(tcString, weakPurpose7, permissions2, true);
+        final PrivacyEnforcementAction privacyEnforcementAction3 = restrictAll();
+        privacyEnforcementAction3.setEidExceptions(singleton("eidException"));
+        final VendorPermission expectedVendorPermission3 = VendorPermission.of(3, "b3", privacyEnforcementAction3);
+        expectedVendorPermission3.consentNaturallyWith(ONE);
+        expectedVendorPermission3.consentNaturallyWith(TWO);
 
-        verifyEachSpecialFeatureStrategyReceive(asList(expectedVendorPermission2, expectedVendorPermission1));
+        final PrivacyEnforcementAction privacyEnforcementAction4 = restrictAll();
+        privacyEnforcementAction4.setRemoveUserIds(false);
+        final VendorPermission expectedVendorPermission4 = VendorPermission.of(4, "b4", privacyEnforcementAction4);
+        expectedVendorPermission4.consentWith(FOUR);
 
-        verify(vendorIdResolver, times(2)).resolve(anyString());
-        verify(vendorListService).forConsent(any());
+        assertThat(result).succeededWith(asList(
+                expectedVendorPermission1,
+                expectedVendorPermission2,
+                expectedVendorPermission3,
+                expectedVendorPermission4));
+    }
+
+    @Test
+    public void permissionsForShouldNotRequirePurpose4ConsentIfNotConfigured() {
+        // given
+        given(vendorIdResolver.resolve(eq("b1"))).willReturn(1);
+        given(vendorIdResolver.resolve(eq("b2"))).willReturn(2);
+        given(vendorIdResolver.resolve(eq("b3"))).willReturn(3);
+        given(vendorIdResolver.resolve(eq("b4"))).willReturn(4);
+
+        doAnswer(answer(
+                vendorPermission -> vendorPermission.consentNaturallyWith(ONE),
+                doNothing(),
+                vendorPermission -> vendorPermission.consentNaturallyWith(ONE),
+                doNothing()))
+                .when(purposeStrategyOne)
+                .processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+
+        doAnswer(answer(
+                doNothing(),
+                vendorPermission -> {
+                    vendorPermission.consentWith(TWO);
+                    vendorPermission.getPrivacyEnforcementAction().setRemoveUserIds(false);
+                },
+                vendorPermission -> {
+                    vendorPermission.consentNaturallyWith(TWO);
+                    vendorPermission.getPrivacyEnforcementAction().setRemoveUserIds(false);
+                },
+                doNothing()))
+                .when(purposeStrategyTwo)
+                .processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+
+        doAnswer(answer(
+                doNothing(),
+                doNothing(),
+                doNothing(),
+                vendorPermission -> {
+                    vendorPermission.consentWith(FOUR);
+                    vendorPermission.getPrivacyEnforcementAction().setRemoveUserIds(false);
+                }))
+                .when(purposeStrategyFour)
+                .processTypePurposeStrategy(any(), any(), anyCollection(), anyBoolean());
+
+        final Purpose purposeFour = Purpose.of(
+                purpose4.getEnforcePurpose(),
+                purpose4.getEnforceVendors(),
+                purpose4.getVendorExceptions(),
+                PurposeEid.of(null, false, singleton("eidException")));
+        final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
+                .purposes(Purposes.builder().p4(purposeFour).build())
+                .build();
+
+        // when
+        final Future<Collection<VendorPermission>> result = target.permissionsFor(
+                new TreeSet<>(asList("b1", "b2", "b3", "b4")), vendorIdResolver, tcString, accountGdprConfig);
+
+        // then
+        final PrivacyEnforcementAction privacyEnforcementAction1 = restrictAll();
+        final VendorPermission expectedVendorPermission1 = VendorPermission.of(1, "b1", privacyEnforcementAction1);
+        expectedVendorPermission1.consentNaturallyWith(ONE);
+
+        final PrivacyEnforcementAction privacyEnforcementAction2 = restrictAll();
+        privacyEnforcementAction2.setRemoveUserIds(false);
+        final VendorPermission expectedVendorPermission2 = VendorPermission.of(2, "b2", privacyEnforcementAction2);
+        expectedVendorPermission2.consentWith(TWO);
+
+        final PrivacyEnforcementAction privacyEnforcementAction3 = restrictAll();
+        privacyEnforcementAction3.setRemoveUserIds(false);
+        final VendorPermission expectedVendorPermission3 = VendorPermission.of(3, "b3", privacyEnforcementAction3);
+        expectedVendorPermission3.consentNaturallyWith(ONE);
+        expectedVendorPermission3.consentNaturallyWith(TWO);
+
+        final PrivacyEnforcementAction privacyEnforcementAction4 = restrictAll();
+        privacyEnforcementAction4.setRemoveUserIds(false);
+        final VendorPermission expectedVendorPermission4 = VendorPermission.of(4, "b4", privacyEnforcementAction4);
+        expectedVendorPermission4.consentWith(FOUR);
+
+        assertThat(result).succeededWith(asList(
+                expectedVendorPermission1,
+                expectedVendorPermission2,
+                expectedVendorPermission3,
+                expectedVendorPermission4));
     }
 
     public void verifyEachPurposeStrategyReceive(List<VendorPermissionWithGvl> permissions) {
@@ -479,5 +598,24 @@ public class Tcf2ServiceTest extends VertxTest {
 
     private static VendorPermissionWithGvl withGvl(VendorPermission vendorPermission, Integer vendorId) {
         return VendorPermissionWithGvl.of(vendorPermission, Vendor.empty(vendorId));
+    }
+
+    @SafeVarargs
+    private static Answer<Void> answer(Consumer<VendorPermission>... actionOnVendorPermission) {
+        return invocation -> {
+            final Collection<VendorPermissionWithGvl> vendorPermissions = invocation.getArgument(2);
+            int currentAction = 0;
+
+            for (VendorPermissionWithGvl vendorPermission : vendorPermissions) {
+                actionOnVendorPermission[currentAction++].accept(vendorPermission.getVendorPermission());
+            }
+
+            return null;
+        };
+    }
+
+    private static <T> Consumer<T> doNothing() {
+        return ignore -> {
+        };
     }
 }

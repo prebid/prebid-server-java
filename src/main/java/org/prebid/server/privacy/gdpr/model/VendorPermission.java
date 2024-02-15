@@ -1,7 +1,5 @@
 package org.prebid.server.privacy.gdpr.model;
 
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.Value;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
 
@@ -15,8 +13,9 @@ public class VendorPermission {
 
     String bidderName;
 
-    @Getter(AccessLevel.NONE)
     Set<PurposeCode> consentedPurposes = EnumSet.noneOf(PurposeCode.class);
+
+    Set<PurposeCode> naturallyConsentedPurposes = EnumSet.noneOf(PurposeCode.class);
 
     PrivacyEnforcementAction privacyEnforcementAction;
 
@@ -24,8 +23,8 @@ public class VendorPermission {
         consentedPurposes.add(purposeCode);
     }
 
-    public boolean consentedWith(PurposeCode purposeCode) {
-        return consentedPurposes.contains(purposeCode);
+    public void consentNaturallyWith(PurposeCode purposeCode) {
+        naturallyConsentedPurposes.add(purposeCode);
     }
 }
 
