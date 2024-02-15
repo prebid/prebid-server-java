@@ -45,6 +45,7 @@ import static org.prebid.server.functional.model.response.cookiesync.UserSyncInf
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.IFRAME
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
+import static org.prebid.server.functional.util.HttpUtil.SET_COOKIE_HEADER
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
@@ -90,8 +91,6 @@ class CookieSyncSpec extends BaseSpec {
     private static final Map<String, String> AAX_CONFIG = ["adapters.${AAX.value}.enabled": "true"]
     private static final Map<String, String> ACUITYADS_CONFIG = ["adapters.${ACUITYADS.value}.enabled": "true"]
     private static final Map<String, String> ADKERNEL_CONFIG = ["adapters.${ADKERNEL.value}.enabled": "true"]
-
-    private static final def SET_COOKIE_HEADER = 'Set-Cookie'
 
     private static final Map<String, String> PBS_CONFIG = APPNEXUS_CONFIG + RUBICON_CONFIG + OPENX_CONFIG +
             GENERIC_CONFIG + ACEEX_CONFIG + AAX_CONFIG + ACUITYADS_CONFIG + ADKERNEL_CONFIG +
@@ -2185,12 +2184,10 @@ class CookieSyncSpec extends BaseSpec {
         def uidsCookie = UidsCookie.defaultUidsCookie
 
         and: "Save account with cookie and privacySandbox configs"
-        def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: 1)
         def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: privacySandbox)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig, auction: accountAuctionConfig)
+        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, auction: accountAuctionConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
-
 
         when: "PBS processes cookie sync request"
         def response = prebidServerService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie)
@@ -2217,13 +2214,11 @@ class CookieSyncSpec extends BaseSpec {
         def uidsCookie = UidsCookie.defaultUidsCookie
 
         and: "Save account with cookie and privacySandbox configs"
-        def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: 1)
         def privacySandbox = PrivacySandbox.defaultPrivacySandbox
         def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: privacySandbox)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig, auction: accountAuctionConfig)
+        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, auction: accountAuctionConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
-
 
         when: "PBS processes cookie sync request"
         def setCookieDefaultHeader =  ['receive-cookie-deprecation': '1']
@@ -2258,7 +2253,7 @@ class CookieSyncSpec extends BaseSpec {
         assert response.headers[SET_COOKIE_HEADER] == getCookieDeprecationHeader(privacySandbox.cookieDeprecation.ttlSeconds)
     }
 
-    def "PBS should set cookie deprecation header from the default account when the accountId from the request is not matched"() {
+    def "PBS should set cookie deprecation header from the default account when default account contain privacy sandbox and request account is empty"() {
         given: "Pbs with PF configuration with privacySandbox"
         def privacySandbox = PrivacySandbox.defaultPrivacySandbox
         def defaultAccountConfigSettings = AccountConfig.defaultAccountConfig.tap {

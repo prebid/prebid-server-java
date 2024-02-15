@@ -36,6 +36,7 @@ import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
+import static org.prebid.server.functional.util.HttpUtil.COOKIE_DEPRECATION_HEADER
 import static org.prebid.server.functional.util.SystemProperties.PBS_VERSION
 
 class AuctionSpec extends BaseSpec {
@@ -51,8 +52,6 @@ class AuctionSpec extends BaseSpec {
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.support-cors": CORS_SUPPORT.toString()]
     @Shared
     PrebidServerService prebidServerService = pbsServiceFactory.getService(PBS_CONFIG)
-
-    private static final String COOKIE_DEPRECATION_HEADER = 'Sec-Cookie-Deprecation'
 
     def "PBS should return version in response header for auction request for #description"() {
         when: "PBS processes auction request"
@@ -473,11 +472,8 @@ class AuctionSpec extends BaseSpec {
         def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
-        and: "Sec-Cookie-Deprecation header"
-        def secCookieDeprecation = [(COOKIE_DEPRECATION_HEADER): PBSUtils.randomString]
-
         when: "PBS processes auction request with header"
-        defaultPbsService.sendAuctionRequest(bidRequest, secCookieDeprecation)
+        defaultPbsService.sendAuctionRequest(bidRequest, deprecationHeader)
 
         then: "BidResponse shouldn't have device.ext.cdep"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
