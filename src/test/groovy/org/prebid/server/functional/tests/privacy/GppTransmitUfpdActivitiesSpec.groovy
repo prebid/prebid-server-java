@@ -162,12 +162,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -204,13 +204,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
     }
 
@@ -317,13 +317,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
     }
 
@@ -404,7 +404,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity)
 
-
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
@@ -426,12 +425,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -547,12 +546,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macsha1
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
-            !bidderRequest.user?.id
-            !bidderRequest.user?.buyeruid
-            !bidderRequest.user?.yob
-            !bidderRequest.user?.gender
-            !bidderRequest.user?.eids
-            !bidderRequest.user?.data
+            !bidderRequest.user.id
+            !bidderRequest.user.buyeruid
+            !bidderRequest.user.yob
+            !bidderRequest.user.gender
+            !bidderRequest.user.eids
+            !bidderRequest.user.data
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -665,12 +664,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macsha1
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
-            !bidderRequest.user?.id
-            !bidderRequest.user?.buyeruid
-            !bidderRequest.user?.yob
-            !bidderRequest.user?.gender
-            !bidderRequest.user?.eids
-            !bidderRequest.user?.data
+            !bidderRequest.user.id
+            !bidderRequest.user.buyeruid
+            !bidderRequest.user.yob
+            !bidderRequest.user.gender
+            !bidderRequest.user.eids
+            !bidderRequest.user.data
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -777,12 +776,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.device.macsha1
             !bidderRequest.device.macmd5
             !bidderRequest.device.dpidmd5
-            !bidderRequest.user?.id
-            !bidderRequest.user?.buyeruid
-            !bidderRequest.user?.yob
-            !bidderRequest.user?.gender
-            !bidderRequest.user?.eids
-            !bidderRequest.user?.data
+            !bidderRequest.user.id
+            !bidderRequest.user.buyeruid
+            !bidderRequest.user.yob
+            !bidderRequest.user.gender
+            !bidderRequest.user.eids
+            !bidderRequest.user.data
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -827,13 +826,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
 
         where:
@@ -875,13 +874,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
 
         where:
@@ -995,13 +994,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
 
         where:
@@ -1292,13 +1291,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
 
         where:
@@ -1398,13 +1397,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
 
         where:
@@ -1569,13 +1568,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -1620,13 +1619,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
     }
 
@@ -1760,13 +1759,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
     }
 
@@ -1815,13 +1814,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
 
         and: "Metrics for disallowed activities should be updated"
@@ -1932,13 +1931,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
 
         where:
@@ -1989,13 +1988,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
 
         where:
@@ -2118,13 +2117,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
 
         where:
@@ -2467,13 +2466,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
 
         where:
@@ -2593,13 +2592,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !genericBidderRequest.device.macsha1
             !genericBidderRequest.device.macmd5
             !genericBidderRequest.device.dpidmd5
-            !genericBidderRequest.user?.id
-            !genericBidderRequest.user?.buyeruid
-            !genericBidderRequest.user?.yob
-            !genericBidderRequest.user?.gender
-            !genericBidderRequest.user?.eids
-            !genericBidderRequest.user?.data
-            !genericBidderRequest.user?.ext
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
         }
 
         where:

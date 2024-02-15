@@ -320,7 +320,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)
 
-
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 

@@ -87,7 +87,6 @@ class TcfConsent implements ConsentString {
             this
         }
 
-
         Builder setPurposesLITransparency(PurposeId purposesLITransparency) {
             tcStringEncoder.addPurposesLITransparency(purposesLITransparency.value)
             this

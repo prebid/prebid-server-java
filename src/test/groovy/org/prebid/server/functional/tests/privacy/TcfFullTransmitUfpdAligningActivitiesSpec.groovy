@@ -109,7 +109,6 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-
         assert bidderRequest.user.eids == userEids
 
         where:
@@ -138,7 +137,6 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-
         assert bidderRequest.user.ext.eids == userEids
 
         where:
@@ -167,7 +165,6 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request shouldn't have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-
         assert !bidderRequest.user.eids
         assert !bidderRequest.user?.ext?.eids
 
@@ -261,7 +258,6 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-
         assert bidderRequest.user.eids == userEids
 
         where:
@@ -338,7 +334,6 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-
         assert bidderRequest.user.eids == userEids
 
         where:
@@ -375,7 +370,6 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-
         assert bidderRequest.user.ext.eids == userEids
 
         where:
@@ -412,7 +406,6 @@ class TcfFullTransmitUfpdAligningActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request shouldn't have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-
         assert !bidderRequest.user?.eids
         assert !bidderRequest.user?.ext?.eids
 
