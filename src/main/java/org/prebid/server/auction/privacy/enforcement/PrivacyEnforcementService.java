@@ -2,10 +2,10 @@ package org.prebid.server.auction.privacy.enforcement;
 
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
+import org.prebid.server.util.ListUtil;
 
 import java.util.HashSet;
 import java.util.List;
@@ -47,7 +47,7 @@ public class PrivacyEnforcementService {
                                 bidderToUser,
                                 biddersToApplyTcf(bidderToUser.keySet(), ccpaResult),
                                 aliases)
-                        .map(tcfResult -> ListUtils.union(ccpaResult, tcfResult)))
+                        .map(tcfResult -> ListUtil.union(ccpaResult, tcfResult)))
                 .compose(bidderPrivacyResults -> activityEnforcement.enforce(bidderPrivacyResults, auctionContext));
     }
 
