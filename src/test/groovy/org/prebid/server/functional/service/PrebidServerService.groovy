@@ -142,16 +142,6 @@ class PrebidServerService implements ObjectMapperWrapper {
         response.as(CookieSyncResponse)
     }
 
-    @Step("[POST RAW] /cookie_sync with uids cookies")
-    RawCookieSyncResponse sendCookieSyncRequestRaw(CookieSyncRequest request, UidsCookie uidsCookie) {
-        def response = postCookieSync(request, uidsCookie)
-
-        new RawCookieSyncResponse().tap {
-            it.headers = getHeaders(response)
-            it.responseBody = response.body.asString()
-        }
-    }
-
     @Step("[POST] /cookie_sync with uids and additional cookies")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request,
                                              UidsCookie uidsCookie,
@@ -160,6 +150,16 @@ class PrebidServerService implements ObjectMapperWrapper {
 
         checkResponseStatusCode(response)
         response.as(CookieSyncResponse)
+    }
+
+    @Step("[POST RAW] /cookie_sync with uids cookies")
+    RawCookieSyncResponse sendCookieSyncRequestRaw(CookieSyncRequest request, UidsCookie uidsCookie) {
+        def response = postCookieSync(request, uidsCookie)
+
+        new RawCookieSyncResponse().tap {
+            it.headers = getHeaders(response)
+            it.responseBody = response.body.asString()
+        }
     }
 
     @Step("[POST RAW] /cookie_sync with uids and additional cookies")

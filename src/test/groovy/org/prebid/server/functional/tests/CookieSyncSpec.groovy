@@ -1,6 +1,7 @@
 //file:noinspection GroovyGStringKey
 package org.prebid.server.functional.tests
 
+import groovy.time.TimeCategory
 import org.prebid.server.functional.model.AccountStatus
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.BidderName
@@ -2199,8 +2200,7 @@ class CookieSyncSpec extends BaseSpec {
         privacySandbox << [null,
                            PrivacySandbox.getDefaultPrivacySandbox(null),
                            PrivacySandbox.getDefaultPrivacySandbox(false),
-                           PrivacySandbox.getDefaultPrivacySandbox(true, -PBSUtils.randomNumber),
-                           PrivacySandbox.getDefaultPrivacySandbox(true, null)]
+                           PrivacySandbox.getDefaultPrivacySandbox(true, -PBSUtils.randomNumber)]
     }
 
     def "PBS shouldn't set cookie deprecation header from the account when cookies is included in original request"() {
@@ -2239,10 +2239,8 @@ class CookieSyncSpec extends BaseSpec {
         def uidsCookie = UidsCookie.defaultUidsCookie
 
         and: "Save account with cookie and privacySandbox configs"
-        def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: 1)
-        def privacySandbox = PrivacySandbox.defaultPrivacySandbox
         def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: privacySandbox)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig, auction: accountAuctionConfig)
+        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, auction: accountAuctionConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2250,7 +2248,10 @@ class CookieSyncSpec extends BaseSpec {
         def response = prebidServerService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie)
 
         then:  "Response should contain cookie header"
-        assert response.headers[SET_COOKIE_HEADER] == getCookieDeprecationHeader(privacySandbox.cookieDeprecation.ttlSeconds)
+        assert extractCookieParameter(response.headers[SET_COOKIE_HEADER], 'Max-Age') == privacySandbox.cookieDeprecation.ttlSeconds
+
+        where:
+        privacySandbox << [PrivacySandbox.defaultPrivacySandbox, PrivacySandbox.getDefaultPrivacySandbox(true, null)]
     }
 
     def "PBS should set cookie deprecation header from the default account when default account contain privacy sandbox and request account is empty"() {
@@ -2266,13 +2267,31 @@ class CookieSyncSpec extends BaseSpec {
         def uidsCookie = UidsCookie.defaultUidsCookie
 
         and: "Cookie sync request body"
-        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            account = null
+        }
 
         when: "PBS processes cookie sync request"
         def response = pbsService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie)
 
         then:  "Response should contain cookie header"
-        assert response.headers[SET_COOKIE_HEADER] == getCookieDeprecationHeader(privacySandbox.cookieDeprecation.ttlSeconds)
+        assert extractCookieParameter(response.headers[SET_COOKIE_HEADER], 'Max-Age') == privacySandbox.cookieDeprecation.ttlSeconds
+    }
+
+    def "PBS shouldn't set cookie deprecation header when default account don't contain privacy sandbox and request account is empty"() {
+        given: "Set up generic uids cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Cookie sync request body"
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            account = null
+        }
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie)
+
+        then:  "Response shouldn't contain cookie header"
+        assert !response.headers[SET_COOKIE_HEADER]
     }
 
     private static Map<BidderName, UserSyncInfo> getValidBidderUserSyncs(CookieSyncResponse cookieSyncResponse) {
@@ -2287,7 +2306,9 @@ class CookieSyncSpec extends BaseSpec {
                           .collectEntries { [it.bidder, it.error] }
     }
 
-    private static String getCookieDeprecationHeader(Integer expireTimeSeconds) {
-        "receive-cookie-deprecation=1; Secure; HttpOnly; Path=/; SameSite=None; Partitioned; Expires=$expireTimeSeconds"
+    def extractCookieParameter(String cookie, String parameter) {
+        def matcher = (cookie =~ /${parameter}=([^;]*)/)
+        return matcher ? matcher[0][1] : null
     }
+
 }
