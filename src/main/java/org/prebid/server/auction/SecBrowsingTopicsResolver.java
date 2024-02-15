@@ -26,6 +26,8 @@ public class SecBrowsingTopicsResolver {
             Pattern.compile("\\((\\s*\\d+[\\d\\s]*)\\);v=chrome\\.[^:\\s]+:([1-9]|10):([^:\\s]+)$");
     private static final int FIELDS_LIMIT = 10;
 
+    private static final String SEGMENTS_SEPARATOR = " ";
+
     private final String topicsDomain;
 
     public SecBrowsingTopicsResolver(String topicsDomain) {
@@ -93,7 +95,7 @@ public class SecBrowsingTopicsResolver {
     }
 
     private static Set<String> parseSegments(String segments) {
-        return Arrays.stream(segments.split(" "))
+        return Arrays.stream(StringUtils.trim(segments).split(SEGMENTS_SEPARATOR))
                 .map(StringUtils::trim)
                 .filter(StringUtils::isNotEmpty)
                 .map(SecBrowsingTopicsResolver::parseInt)

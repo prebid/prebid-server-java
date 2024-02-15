@@ -395,11 +395,7 @@ public class AmpRequestFactory {
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))
                 .map(this::fillExplicitParameters)
                 .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidErrors()))
-                .map(bidRequest -> paramsResolver.resolve(
-                        bidRequest,
-                        auctionContext,
-                        ENDPOINT,
-                        true))
+                .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, true))
                 .compose(resolvedBidRequest -> ortb2RequestFactory.validateRequest(
                         resolvedBidRequest,
                         auctionContext.getHttpRequest(),

@@ -257,7 +257,9 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    SecBrowsingTopicsResolver secBrowsingTopicsResolver(@Value("${auction.topics-domain}") String topicsDomain) {
+    SecBrowsingTopicsResolver secBrowsingTopicsResolver(
+            @Value("${auction.privacysandbox.topicsdomain}") String topicsDomain) {
+
         return new SecBrowsingTopicsResolver(topicsDomain);
     }
 

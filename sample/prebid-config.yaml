@@ -1,6 +1,7 @@
 status-response: "ok"
 auction:
-  topics-domain: rubiconproject.com
+  privacysandbox:
+    topicsdomain: rubiconproject.com
 adapters:
   appnexus:
     enabled: true
