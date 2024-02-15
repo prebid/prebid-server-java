@@ -39,6 +39,7 @@ import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -70,6 +71,8 @@ public class VendorListServiceTest extends VertxTest {
     private Metrics metrics;
     @Mock
     private BidderCatalog bidderCatalog;
+    @Mock
+    private VendorListFetchThrottler fetchThrottler;
 
     private VendorListService target;
 
@@ -82,7 +85,10 @@ public class VendorListServiceTest extends VertxTest {
         given(fileSystem.readFileBlocking(eq(FALLBACK_VENDOR_LIST_PATH)))
                 .willReturn(Buffer.buffer(mapper.writeValueAsString(givenVendorList())));
 
+        given(fetchThrottler.registerFetchAttempt(anyInt())).willReturn(true);
+
         target = new VendorListService(
+                0,
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
                 0,
@@ -94,7 +100,8 @@ public class VendorListServiceTest extends VertxTest {
                 httpClient,
                 metrics,
                 GENERATION_VERSION,
-                jacksonMapper);
+                jacksonMapper,
+                fetchThrottler);
     }
 
     // Creation related tests
@@ -107,6 +114,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListService(
+                        0,
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
@@ -118,7 +126,8 @@ public class VendorListServiceTest extends VertxTest {
                         httpClient,
                         metrics,
                         GENERATION_VERSION,
-                        jacksonMapper))
+                        jacksonMapper,
+                        fetchThrottler))
                 .hasMessage("dir creation error");
     }
 
@@ -126,6 +135,7 @@ public class VendorListServiceTest extends VertxTest {
     public void shouldStartUsingFallbackVersionIfDeprecatedIsTrue() {
         // given
         target = new VendorListService(
+                0,
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
                 0,
@@ -137,7 +147,8 @@ public class VendorListServiceTest extends VertxTest {
                 httpClient,
                 metrics,
                 GENERATION_VERSION,
-                jacksonMapper);
+                jacksonMapper,
+                fetchThrottler);
 
         // when
         final Future<Map<Integer, Vendor>> future = target.forVersion(1);
@@ -160,6 +171,7 @@ public class VendorListServiceTest extends VertxTest {
     public void shouldThrowExceptionIfVersionIsDeprecatedAndNoFallbackPresent() {
         // then
         assertThatThrownBy(() -> new VendorListService(
+                0,
                 CACHE_DIR,
                 "http://vendorlist/{VERSION}",
                 0,
@@ -171,7 +183,8 @@ public class VendorListServiceTest extends VertxTest {
                 httpClient,
                 metrics,
                 GENERATION_VERSION,
-                jacksonMapper))
+                jacksonMapper,
+                fetchThrottler))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("No fallback vendorList for deprecated version present");
     }
@@ -184,6 +197,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListService(
+                        0,
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
@@ -195,7 +209,8 @@ public class VendorListServiceTest extends VertxTest {
                         httpClient,
                         metrics,
                         GENERATION_VERSION,
-                        jacksonMapper))
+                        jacksonMapper,
+                        fetchThrottler))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
@@ -209,6 +224,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListService(
+                        0,
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
@@ -220,7 +236,8 @@ public class VendorListServiceTest extends VertxTest {
                         httpClient,
                         metrics,
                         GENERATION_VERSION,
-                        jacksonMapper))
+                        jacksonMapper,
+                        fetchThrottler))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("read error");
     }
@@ -234,6 +251,7 @@ public class VendorListServiceTest extends VertxTest {
         // then
         assertThatThrownBy(
                 () -> new VendorListService(
+                        0,
                         CACHE_DIR,
                         "http://vendorlist/%s",
                         0,
@@ -245,7 +263,8 @@ public class VendorListServiceTest extends VertxTest {
                         httpClient,
                         metrics,
                         GENERATION_VERSION,
-                        jacksonMapper))
+                        jacksonMapper,
+                        fetchThrottler))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Cannot parse vendor list from: invalid");
     }
@@ -253,15 +272,30 @@ public class VendorListServiceTest extends VertxTest {
     // Http related tests
 
     @Test
-    public void shouldPerformHttpRequestWithExpectedQueryIfVendorListNotFound() {
+    public void shouldPerformHttpRequestWithExpectedQueryIfVendorListNotFoundAndFetchAllowed() {
         // given
         givenHttpClientReturnsResponse(200, null);
+        given(fetchThrottler.registerFetchAttempt(1)).willReturn(true);
 
         // when
         target.forVersion(1);
 
         // then
         verify(httpClient).get(eq("http://vendorlist/1"), anyLong());
+    }
+
+    @Test
+    public void shouldNotPerformHttpRequestIfVendorListNotFoundAndFetchNotAllowed() {
+        // given
+        givenHttpClientReturnsResponse(200, null);
+        given(fetchThrottler.registerFetchAttempt(1)).willReturn(false);
+
+        // when
+        target.forVersion(1);
+
+        // then
+        verify(httpClient, never()).get(anyString(), anyLong());
+        verify(fileSystem, never()).writeFile(any(), any(), any());
     }
 
     @Test

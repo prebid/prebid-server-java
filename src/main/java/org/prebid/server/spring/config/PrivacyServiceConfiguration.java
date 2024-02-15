@@ -2,6 +2,7 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
+import lombok.Data;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.geolocation.GeoLocationService;
@@ -27,6 +28,7 @@ import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnf
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.PurposeTwoBasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesOneStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListFetchThrottler;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.VersionedVendorListService;
 import org.prebid.server.settings.model.GdprConfig;
@@ -34,13 +36,19 @@ import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.SpecialFeature;
 import org.prebid.server.settings.model.SpecialFeatures;
+import org.prebid.server.spring.config.retry.RetryPolicyConfigurationProperties;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.validation.annotation.Validated;
 
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotNull;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -51,60 +59,72 @@ public class PrivacyServiceConfiguration {
 
     @Bean
     VendorListService vendorListServiceV2(
-            @Value("${gdpr.vendorlist.v2.cache-dir}") String cacheDir,
-            @Value("${gdpr.vendorlist.v2.http-endpoint-template}") String endpointTemplate,
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${gdpr.vendorlist.v2.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
-            @Value("${gdpr.vendorlist.v2.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
-            @Value("${gdpr.vendorlist.v2.deprecated}") boolean deprecated,
+            VendorListServiceConfigurationProperties vendorListServiceV2Properties,
             Vertx vertx,
+            Clock clock,
             FileSystem fileSystem,
             HttpClient httpClient,
             Metrics metrics,
             JacksonMapper mapper) {
 
         return new VendorListService(
-                cacheDir,
-                endpointTemplate,
+                logSamplingRate,
+                vendorListServiceV2Properties.getCacheDir(),
+                vendorListServiceV2Properties.getHttpEndpointTemplate(),
                 defaultTimeoutMs,
-                refreshMissingListPeriodMs,
-                deprecated,
-                fallbackVendorListPath,
+                vendorListServiceV2Properties.getRefreshMissingListPeriodMs(),
+                vendorListServiceV2Properties.getDeprecated(),
+                vendorListServiceV2Properties.getFallbackVendorListPath(),
                 vertx,
                 fileSystem,
                 httpClient,
                 metrics,
                 "v2",
-                mapper);
+                mapper,
+                new VendorListFetchThrottler(vendorListServiceV2Properties.getRetryPolicy().toPolicy(), clock));
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.vendorlist.v2")
+    VendorListServiceConfigurationProperties vendorListServiceV2Properties() {
+        return new VendorListServiceConfigurationProperties();
     }
 
     @Bean
     VendorListService vendorListServiceV3(
-            @Value("${gdpr.vendorlist.v3.cache-dir}") String cacheDir,
-            @Value("${gdpr.vendorlist.v3.http-endpoint-template}") String endpointTemplate,
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${gdpr.vendorlist.v3.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
-            @Value("${gdpr.vendorlist.v3.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
-            @Value("${gdpr.vendorlist.v3.deprecated}") boolean deprecated,
+            VendorListServiceConfigurationProperties vendorListServiceV3Properties,
             Vertx vertx,
+            Clock clock,
             FileSystem fileSystem,
             HttpClient httpClient,
             Metrics metrics,
             JacksonMapper mapper) {
 
         return new VendorListService(
-                cacheDir,
-                endpointTemplate,
+                logSamplingRate,
+                vendorListServiceV3Properties.getCacheDir(),
+                vendorListServiceV3Properties.getHttpEndpointTemplate(),
                 defaultTimeoutMs,
-                refreshMissingListPeriodMs,
-                deprecated,
-                fallbackVendorListPath,
+                vendorListServiceV3Properties.getRefreshMissingListPeriodMs(),
+                vendorListServiceV3Properties.getDeprecated(),
+                vendorListServiceV3Properties.getFallbackVendorListPath(),
                 vertx,
                 fileSystem,
                 httpClient,
                 metrics,
                 "v3",
-                mapper);
+                mapper,
+                new VendorListFetchThrottler(vendorListServiceV3Properties.getRetryPolicy().toPolicy(), clock));
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.vendorlist.v3")
+    VendorListServiceConfigurationProperties vendorListServiceV3Properties() {
+        return new VendorListServiceConfigurationProperties();
     }
 
     @Bean
@@ -290,5 +310,26 @@ public class PrivacyServiceConfiguration {
     @Bean
     SpecialFeature specialFeature() {
         return new SpecialFeature();
+    }
+
+    @Data
+    @Validated
+    public static class VendorListServiceConfigurationProperties {
+
+        @NotEmpty
+        String cacheDir;
+
+        @NotEmpty
+        String httpEndpointTemplate;
+
+        @Min(1)
+        int refreshMissingListPeriodMs;
+
+        String fallbackVendorListPath;
+
+        @NotNull
+        Boolean deprecated;
+
+        RetryPolicyConfigurationProperties retryPolicy;
     }
 }

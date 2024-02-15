@@ -50,7 +50,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.request.Targeting;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
 
@@ -290,7 +289,7 @@ public class AmpRequestFactory {
                 .usPrivacy(usPrivacy)
                 .gppSid(gppSid)
                 .gpp(gpp)
-                .ext(gpc != null ? ExtRegs.of(null, null, gpc) : null)
+                .ext(gpc != null ? ExtRegs.of(null, null, gpc, null) : null)
                 .build()
                 : null;
     }
@@ -496,19 +495,16 @@ public class AmpRequestFactory {
     private BidRequest overrideParameters(BidRequest bidRequest, HttpRequestContext httpRequest, List<String> errors) {
         final String requestTargeting = httpRequest.getQueryParams().get(TARGETING_REQUEST_PARAM);
         final ObjectNode targetingNode = readTargeting(requestTargeting);
-        ortbTypesResolver.normalizeTargeting(
-                targetingNode, errors, implicitParametersExtractor.refererFrom(httpRequest));
-        final Targeting targeting = parseTargeting(targetingNode);
+        final String referer = implicitParametersExtractor.refererFrom(httpRequest);
+        ortbTypesResolver.normalizeTargeting(targetingNode, errors, referer);
 
         final Site updatedSite = overrideSite(bidRequest.getSite());
         final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), httpRequest, targetingNode);
-        final ExtRequest updatedExtBidRequest = overrideExtBidRequest(bidRequest.getExt(), targeting);
 
-        if (ObjectUtils.anyNotNull(updatedSite, updatedImp, updatedExtBidRequest)) {
+        if (ObjectUtils.anyNotNull(updatedSite, updatedImp)) {
             return bidRequest.toBuilder()
                     .site(updatedSite != null ? updatedSite : bidRequest.getSite())
                     .imp(updatedImp != null ? Collections.singletonList(updatedImp) : bidRequest.getImp())
-                    .ext(updatedExtBidRequest != null ? updatedExtBidRequest : bidRequest.getExt())
                     .build();
         }
 
@@ -533,16 +529,6 @@ public class AmpRequestFactory {
         } else {
             throw new InvalidRequestException("Error decoding targeting, expected type is `object` but was "
                     + jsonNodeTargeting.getNodeType().name());
-        }
-    }
-
-    private Targeting parseTargeting(ObjectNode targetingNode) {
-        try {
-            return targetingNode == null
-                    ? Targeting.empty()
-                    : mapper.mapper().treeToValue(targetingNode, Targeting.class);
-        } catch (JsonProcessingException e) {
-            throw new InvalidRequestException("Error decoding targeting from url: " + e.getMessage());
         }
     }
 
@@ -660,13 +646,6 @@ public class AmpRequestFactory {
         return banner != null && CollectionUtils.isNotEmpty(formats)
                 ? banner.toBuilder().format(formats).build()
                 : banner;
-    }
-
-    /**
-     * Overrides {@link ExtRequest} with first party data.
-     */
-    private ExtRequest overrideExtBidRequest(ExtRequest extRequest, Targeting targeting) {
-        return fpdResolver.resolveBidRequestExt(extRequest, targeting);
     }
 
     private static List<Format> parseMultiSizeParam(String ms) {

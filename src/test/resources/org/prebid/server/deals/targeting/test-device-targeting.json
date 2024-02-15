@@ -1,7 +1,7 @@
 {
   "$and": [
     {
-      "device.ext.deviceatlas.browser": {
+      "device.ext.deviceinfoprovider.browser": {
         "$in": [
           "Chrome",
           "Firefox"
@@ -9,7 +9,7 @@
       }
     },
     {
-      "device.geo.ext.netacuity.country": {
+      "device.geo.ext.geoprovider.country": {
         "$in": [
           "us",
           "jp"

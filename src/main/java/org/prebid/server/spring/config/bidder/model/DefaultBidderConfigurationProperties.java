@@ -28,6 +28,9 @@ public class DefaultBidderConfigurationProperties {
     @NotNull
     private Debug debug;
 
+    @NotNull
+    private Ortb ortb;
+
     private final Map<String, Object> aliases = Collections.emptyMap();
 
     private final List<String> deprecatedNames = Collections.emptyList();

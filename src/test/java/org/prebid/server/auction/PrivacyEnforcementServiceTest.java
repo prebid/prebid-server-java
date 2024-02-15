@@ -55,6 +55,7 @@ import org.prebid.server.settings.model.AccountCcpaConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
+import org.prebid.server.spring.config.bidder.model.Ortb;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -531,6 +532,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                                                 EnabledForRequestType.of(false, false, true, false, false))
                                         .build(),
                                 null,
+                                null,
                                 null))
                         .build())
                 .requestTypeMetric(MetricName.openrtb2app)
@@ -584,6 +586,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                                 null,
                                 AccountCcpaConfig.builder().enabled(true).build(),
                                 null,
+                                null,
                                 null))
                         .build())
                 .requestTypeMetric(MetricName.openrtb2app)
@@ -636,6 +639,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .privacy(AccountPrivacyConfig.of(
                                 null,
                                 AccountCcpaConfig.builder().enabled(true).build(),
+                                null,
                                 null,
                                 null))
                         .build())
@@ -1517,7 +1521,12 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(null, AccountCcpaConfig.builder().enabled(false).build(), null, null))
+                .privacy(AccountPrivacyConfig.of(
+                        null,
+                        AccountCcpaConfig.builder().enabled(false).build(),
+                        null,
+                        null,
+                        null))
                 .build();
 
         // when and then
@@ -1550,6 +1559,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .privacy(AccountPrivacyConfig.of(
                         null,
                         AccountCcpaConfig.builder().enabled(true).build(),
+                        null,
                         null,
                         null))
                 .build();
@@ -1943,6 +1953,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 gdprVendorId,
                 enforceCcpa,
                 false,
-                CompressionType.NONE);
+                CompressionType.NONE,
+                Ortb.of(false));
     }
 }

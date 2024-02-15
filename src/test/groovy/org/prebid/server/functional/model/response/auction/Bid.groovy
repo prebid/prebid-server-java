@@ -1,7 +1,5 @@
 package org.prebid.server.functional.model.response.auction
 
-import com.fasterxml.jackson.annotation.JsonGetter
-import com.fasterxml.jackson.annotation.JsonSetter
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.Imp
@@ -17,7 +15,7 @@ class Bid implements ObjectMapperWrapper {
     String nurl
     String burl
     String lurl
-    Adm adm
+    String adm
     String adid
     List<String> adomain
     String bundle
@@ -63,13 +61,13 @@ class Bid implements ObjectMapperWrapper {
         }
     }
 
-    @JsonGetter("adm")
-    String getAdm() {
-        adm != null ? encode(adm) : null
-    }
-
-    @JsonSetter("adm")
-    void getAdm(String adm) {
-        this.adm = decode(adm, Adm)
+    void setAdm(Object adm) {
+        if (adm instanceof Adm) {
+            this.adm = encode(adm)
+        } else if (adm instanceof String) {
+            this.adm = adm
+        } else {
+            this.adm = null
+        }
     }
 }

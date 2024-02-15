@@ -1,6 +1,6 @@
 adapters:
   taboola:
-    endpoint: "https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction/{{Host}}/{{PublisherID}}"
+    endpoint: "https://{{MediaType}}.bidder.taboola.com/OpenRTB/PS/auction?exchange={{GvlID}}&publisher={{PublisherID}}"
     meta-info:
       maintainer-email: ps-team@taboola.com
       app-media-types:

@@ -16,7 +16,8 @@
               "type": "video"
             },
             "origbidcpm": 1.25
-          }
+          },
+          "mtype": 2
         }
       ],
       "seat": "boldwin",

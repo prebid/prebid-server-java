@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.config.AccountCcpaConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountCookieSyncConfig
 import org.prebid.server.functional.model.config.AccountCoopSyncConfig
+import org.prebid.server.functional.model.config.AccountDsaConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
@@ -143,7 +144,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         def isVendorListCachedClosure = {
             def validConsentString = new TcfConsent.Builder()
                     .setPurposesLITransparency(BASIC_ADS)
-                    .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                    .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                     .build()
             def bidRequest = getGdprBidRequest(validConsentString)
 
@@ -160,6 +161,10 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
     protected static Account getAccountWithCcpa(String accountId, AccountCcpaConfig ccpaConfig) {
         getAccountWithPrivacy(accountId, new AccountPrivacyConfig(ccpa: ccpaConfig))
+    }
+
+    protected static Account getAccountWithDsa(String accountId, AccountDsaConfig dsaConfig) {
+        getAccountWithPrivacy(accountId, new AccountPrivacyConfig(dsa: dsaConfig))
     }
 
     private static Account getAccountWithPrivacy(String accountId, AccountPrivacyConfig privacy) {

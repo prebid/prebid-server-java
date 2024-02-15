@@ -26,6 +26,14 @@ class CurrencySpec extends BaseSpec {
     }
     private static final PrebidServerService pbsService = pbsServiceFactory.getService(externalCurrencyConverterConfig)
 
+    def "PBS should return currency rates"() {
+        when: "PBS processes bidders params request"
+        def response = pbsService.withWarmup().sendCurrencyRatesRequest()
+
+        then: "Response should contain bidders params"
+        assert response.rates?.size() > 0
+    }
+
     def "PBS should use default server currency if not specified in the request"() {
         given: "Default BidRequest without currency"
         def bidRequest = BidRequest.defaultBidRequest.tap { cur = null }

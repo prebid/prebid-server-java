@@ -16,10 +16,11 @@ class Targeting {
     Boolean preferDeals
     Boolean alwaysIncludeDeals
     Boolean includeFormat
+    String prefix
 
     static Targeting createWithAllValuesSetTo(Boolean value) {
         new Targeting().tap {
-            // At least one of includewinners or includebidderkeys must be enabled
+            // Leave true for populating targeting
             includeWinners = true
             includeBidderKeys = value
             preferDeals = value
@@ -31,7 +32,7 @@ class Targeting {
     static Targeting createWithRandomValues() {
         new Random().with {
             new Targeting().tap {
-                // At least one of includewinners or includebidderkeys must be enabled
+                // Leave true for populating targeting
                 includeWinners = true
                 includeBidderKeys = nextBoolean()
                 preferDeals = nextBoolean()

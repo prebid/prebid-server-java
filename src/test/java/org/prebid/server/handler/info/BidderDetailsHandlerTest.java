@@ -15,6 +15,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.spring.config.bidder.model.MediaType;
+import org.prebid.server.spring.config.bidder.model.Ortb;
 
 import java.util.HashSet;
 
@@ -198,7 +199,8 @@ public class BidderDetailsHandlerTest extends VertxTest {
                 0,
                 true,
                 false,
-                CompressionType.NONE);
+                CompressionType.NONE,
+                Ortb.of(false));
     }
 
     private static BidderInfo givenBidderInfo() {

@@ -48,7 +48,6 @@ import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessingResult;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
-import org.prebid.server.auction.mediatypeprocessor.NoOpMediaTypeProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionParticipation;
 import org.prebid.server.auction.model.BidRequestCacheInfo;
@@ -115,6 +114,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpAuctionEnvironment;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
@@ -154,6 +155,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
+import org.prebid.server.spring.config.bidder.model.Ortb;
 import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
@@ -330,7 +332,8 @@ public class ExchangeServiceTest extends VertxTest {
                 0,
                 false,
                 false,
-                CompressionType.NONE));
+                CompressionType.NONE,
+                Ortb.of(false)));
 
         given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any(), any()))
                 .willAnswer(inv ->
@@ -367,7 +370,11 @@ public class ExchangeServiceTest extends VertxTest {
                         false,
                         AuctionResponsePayloadImpl.of(invocation.getArgument(0)))));
 
-        given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
+        given(mediaTypeProcessor.process(any(), anyString(), any(), any()))
+                .willAnswer(invocation -> MediaTypeProcessingResult.succeeded(invocation.getArgument(0), emptyList()));
+
+        given(responseBidValidator.validate(any(), any(), any(), any(), eq(false)))
+                .willReturn(ValidationResult.success());
 
         given(currencyService.convertCurrency(any(), any(), any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -430,7 +437,7 @@ public class ExchangeServiceTest extends VertxTest {
                 fpdResolver,
                 supplyChainResolver,
                 debugResolver,
-                new NoOpMediaTypeProcessor(),
+                mediaTypeProcessor,
                 uidUpdater,
                 timeoutResolver,
                 timeoutFactory,
@@ -449,7 +456,8 @@ public class ExchangeServiceTest extends VertxTest {
                 metrics,
                 clock,
                 jacksonMapper,
-                criteriaLogManager);
+                criteriaLogManager,
+                false);
     }
 
     @Test
@@ -465,7 +473,7 @@ public class ExchangeServiceTest extends VertxTest {
                         fpdResolver,
                         supplyChainResolver,
                         debugResolver,
-                        new NoOpMediaTypeProcessor(),
+                        mediaTypeProcessor,
                         uidUpdater,
                         timeoutResolver,
                         timeoutFactory,
@@ -484,7 +492,8 @@ public class ExchangeServiceTest extends VertxTest {
                         metrics,
                         clock,
                         jacksonMapper,
-                        criteriaLogManager))
+                        criteriaLogManager,
+                        false))
                 .withMessage("Expected timeout adjustment factor should be in [0, 100].");
     }
 
@@ -1031,6 +1040,50 @@ public class ExchangeServiceTest extends VertxTest {
                 .extracting(Imp::getExt)
                 .extracting(ext -> ext.get("tid"))
                 .containsExactly(TextNode.valueOf("bidderTidValue"));
+    }
+
+    @Test
+    public void shouldRemoveTidsIfCreateTidsFalseAndKeepReceivedSchain() {
+        // given
+        final String bidderName = "bidder";
+        final Bidder<?> bidder = mock(Bidder.class);
+        givenBidder(bidderName, bidder, givenEmptySeatBid());
+
+        final Imp imp = givenImp(Map.of(bidderName, 1), identity());
+        imp.getExt().put("tid", "bidderTidValue");
+        final BidRequest bidRequest = givenBidRequest(
+                singletonList(imp),
+                builder -> builder
+                        .source(Source.builder().tid("sourceTidValue").schain(SupplyChain.of(1,
+                                List.of(SupplyChainNode.of("freestar.com", "66", null, null,
+                                        null, 1, null)), "1.0", null))
+                                .build())
+                        .ext(ExtRequest.of(
+                                ExtRequestPrebid.builder()
+                                        .createTids(false)
+                                        .build())));
+
+        // when
+        target.holdAuction(givenRequestContext(bidRequest));
+
+        // then
+        final ArgumentCaptor<BidderRequest> bidRequestCaptor = ArgumentCaptor.forClass(BidderRequest.class);
+        verify(httpBidderRequester)
+                .requestBids(same(bidder), bidRequestCaptor.capture(), any(), any(), any(), any(), anyBoolean());
+
+        final BidRequest capturedBidRequest = bidRequestCaptor.getValue().getBidRequest();
+        assertThat(capturedBidRequest)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getTid)
+                .isNull();
+        assertThat(capturedBidRequest)
+                .extracting(BidRequest::getSource)
+                .extracting(Source::getSchain)
+                .isNotNull();
+        assertThat(capturedBidRequest.getImp())
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("tid"))
+                .containsOnlyNulls();
     }
 
     @Test
@@ -1740,7 +1793,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .auctiontimestamp(1000L)
                         .build())));
 
-        given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.error(
+        given(responseBidValidator.validate(any(), any(), any(), any(), eq(false))).willReturn(ValidationResult.error(
                 singletonList("bid validation warning"),
                 "bid validation error"));
 
@@ -1778,7 +1831,7 @@ public class ExchangeServiceTest extends VertxTest {
                         .auctiontimestamp(1000L)
                         .build())));
 
-        given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success(
+        given(responseBidValidator.validate(any(), any(), any(), any(), eq(false))).willReturn(ValidationResult.success(
                 singletonList("bid validation warning")));
 
         givenBidResponseCreator(singletonList(Bid.builder().build()));
@@ -1816,11 +1869,46 @@ public class ExchangeServiceTest extends VertxTest {
                         .auctiontimestamp(1000L)
                         .build())));
 
-        given(responseBidValidator.validate(any(), any(), any(), any()))
+        given(responseBidValidator.validate(any(), any(), any(), any(), eq(false)))
                 .willReturn(ValidationResult.error("BidResponse currency is not valid: USDD"));
 
         final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
                 "BidResponse currency is not valid: USDD"));
+        givenBidResponseCreator(singletonMap("bidder1", bidderErrors));
+
+        // when
+        final AuctionContext result = target.holdAuction(givenRequestContext(bidRequest)).result();
+
+        // then
+        final BidResponse bidResponse = result.getBidResponse();
+        final ExtBidResponse ext = bidResponse.getExt();
+        assertThat(ext.getErrors()).hasSize(1)
+                .containsOnly(entry("bidder1", bidderErrors));
+        assertThat(bidResponse.getSeatbid())
+                .extracting(SeatBid::getBid)
+                .isEmpty();
+    }
+
+    @Test
+    public void shouldValidateBidResponsesDsaWhenRegsExtDsaRequiredFieldRequires() {
+        // given
+        givenBidder("bidder1", mock(Bidder.class), givenSeatBid(singletonList(
+                givenBidderBid(Bid.builder().id("bidId1").impid("impId1").price(BigDecimal.valueOf(1.23)).build(),
+                        "USDD"))));
+
+        final ExtRegs extRegs = ExtRegs.of(1, "usPrivacy", "1", ExtRegsDsa.of(2, 2, 3, emptyList()));
+        final BidRequest bidRequest = givenBidRequest(singletonList(
+                        // imp ids are not really used for matching, included them here for clarity
+                        givenImp(singletonMap("bidder1", 1), builder -> builder.id("impId1"))),
+                builder -> builder
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder().auctiontimestamp(1000L).build()))
+                        .regs(Regs.builder().ext(extRegs).build()));
+
+        given(responseBidValidator.validate(any(), any(), any(), any(), eq(true)))
+                .willReturn(ValidationResult.error("Bid \"bidId1\" missing DSA"));
+
+        final List<ExtBidderError> bidderErrors = singletonList(ExtBidderError.of(BidderError.Type.generic.getCode(),
+                "Bid \"bidId1\" missing DSA"));
         givenBidResponseCreator(singletonMap("bidder1", bidderErrors));
 
         // when
@@ -3080,6 +3168,107 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(captureBidRequest.getSite()).isNull();
         assertThat(captureBidRequest.getApp()).isNotNull();
 
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+    }
+
+    @Test
+    public void holdAuctionShouldFailWhenFpdProvidesSiteButDoohIsAlreadyInBidRequestAndStrictValidationEnabled() {
+        // given
+        target = new ExchangeService(
+                0,
+                90,
+                bidderCatalog,
+                storedResponseProcessor,
+                dealsService,
+                privacyEnforcementService,
+                fpdResolver,
+                supplyChainResolver,
+                debugResolver,
+                mediaTypeProcessor,
+                uidUpdater,
+                timeoutResolver,
+                timeoutFactory,
+                ortbVersionConversionManager,
+                httpBidderRequester,
+                responseBidValidator,
+                currencyService,
+                bidResponseCreator,
+                bidResponsePostProcessor,
+                hookStageExecutor,
+                applicationEventService,
+                httpInteractionLogger,
+                priceFloorAdjuster,
+                priceFloorEnforcer,
+                bidAdjustmentFactorResolver,
+                metrics,
+                clock,
+                jacksonMapper,
+                criteriaLogManager,
+                true);
+        givenBidder(givenEmptySeatBid());
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder.dooh(Dooh.builder().build()));
+
+        given(fpdResolver.resolveSite(any(), any())).willReturn(Site.builder().build());
+
+        // when
+        final Throwable cause = target.holdAuction(givenRequestContext(bidRequest)).cause();
+
+        assertThat(cause.getMessage()).isEqualTo(
+                "dooh and site are present, but no more than one of site or app or dooh can be defined");
+
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+    }
+
+    @Test
+    public void holdAuctionShouldFailWhenSiteAppAndDoohArePresentInBidRequestAndStrictValidationEnabled() {
+        // given
+        target = new ExchangeService(
+                0,
+                90,
+                bidderCatalog,
+                storedResponseProcessor,
+                dealsService,
+                privacyEnforcementService,
+                fpdResolver,
+                supplyChainResolver,
+                debugResolver,
+                mediaTypeProcessor,
+                uidUpdater,
+                timeoutResolver,
+                timeoutFactory,
+                ortbVersionConversionManager,
+                httpBidderRequester,
+                responseBidValidator,
+                currencyService,
+                bidResponseCreator,
+                bidResponsePostProcessor,
+                hookStageExecutor,
+                applicationEventService,
+                httpInteractionLogger,
+                priceFloorAdjuster,
+                priceFloorEnforcer,
+                bidAdjustmentFactorResolver,
+                metrics,
+                clock,
+                jacksonMapper,
+                criteriaLogManager,
+                true);
+        givenBidder(givenEmptySeatBid());
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap("someBidder", 1)),
+                bidRequestBuilder -> bidRequestBuilder
+                        .site(Site.builder().build())
+                        .app(App.builder().build())
+                        .dooh(Dooh.builder().build()));
+
+        // when
+        final Throwable cause = target.holdAuction(givenRequestContext(bidRequest)).cause();
+
+        //then
+        assertThat(cause.getMessage()).isEqualTo(
+                "app and dooh and site are present, but no more than one of site or app or dooh can be defined");
         verify(metrics).updateAlertsMetrics(MetricName.general);
     }
 
@@ -4429,9 +4618,9 @@ public class ExchangeServiceTest extends VertxTest {
                 givenBidderBid(Bid.builder().impid("impId").dealid("dealId2").price(BigDecimal.ONE).build()))));
 
         willReturn(ValidationResult.success()).given(responseBidValidator)
-                .validate(argThat(bid -> bid.getBid().getDealid().equals("dealId1")), any(), any(), any());
+                .validate(argThat(bid -> bid.getBid().getDealid().equals("dealId1")), any(), any(), any(), eq(false));
         willReturn(ValidationResult.error("validation error")).given(responseBidValidator)
-                .validate(argThat(bid -> bid.getBid().getDealid().equals("dealId2")), any(), any(), any());
+                .validate(argThat(bid -> bid.getBid().getDealid().equals("dealId2")), any(), any(), any(), eq(false));
 
         final List<Deal> deals = asList(
                 Deal.builder()
@@ -4597,7 +4786,8 @@ public class ExchangeServiceTest extends VertxTest {
 
         givenBidder(givenSingleSeatBid(bidderBid));
 
-        given(responseBidValidator.validate(any(), any(), any(), any())).willReturn(ValidationResult.success());
+        given(responseBidValidator.validate(any(), any(), any(), any(), eq(false)))
+                .willReturn(ValidationResult.success());
 
         // when
         target.holdAuction(auctionContext);
@@ -4651,7 +4841,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder().build();
 
-        given(mediaTypeProcessor.process(any(), anyString()))
+        given(mediaTypeProcessor.process(any(), anyString(), any(), any()))
                 .willReturn(MediaTypeProcessingResult.rejected(Collections.singletonList(
                         BidderError.badInput("MediaTypeProcessor error."))));
         given(bidResponseCreator.create(
@@ -4697,7 +4887,8 @@ public class ExchangeServiceTest extends VertxTest {
                 metrics,
                 clock,
                 jacksonMapper,
-                criteriaLogManager);
+                criteriaLogManager,
+                false);
 
         // when
         final Future<AuctionContext> result = target.holdAuction(auctionContext);

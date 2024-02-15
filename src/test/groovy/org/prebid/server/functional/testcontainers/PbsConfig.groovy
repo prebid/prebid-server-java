@@ -110,7 +110,9 @@ LIMIT 1
          "adapters.generic.aliases.blue.meta-info.app-media-types"           : "",
          "adapters.generic.aliases.blue.meta-info.site-media-types"          : "",
          "adapters.generic.aliases.adsinteractive.meta-info.app-media-types" : "",
-         "adapters.generic.aliases.adsinteractive.meta-info.site-media-types": ""]
+         "adapters.generic.aliases.adsinteractive.meta-info.site-media-types": "",
+         "adapters.generic.aliases.nativo.meta-info.app-media-types" : "",
+         "adapters.generic.aliases.nativo.meta-info.site-media-types": ""]
     }
 
     private PbsConfig() {}

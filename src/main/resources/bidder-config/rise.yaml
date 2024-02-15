@@ -1,7 +1,7 @@
 adapters:
   rise:
     endpoint: https://pbs.yellowblue.io/pbs
-    modifying-vast-xml-allowed: false
+    modifying-vast-xml-allowed: true
     meta-info:
       maintainer-email: rise-prog-dev@risecodes.com
       app-media-types:
