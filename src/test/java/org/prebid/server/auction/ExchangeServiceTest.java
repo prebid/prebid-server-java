@@ -3691,7 +3691,7 @@ public class ExchangeServiceTest extends VertxTest {
         target.holdAuction(givenRequestContext(bidRequest, account));
 
         // then
-        verify(metrics).updateAccountRequestMetrics(eq(Account.empty("")), eq(MetricName.openrtb2web));
+        verify(metrics).updateAccountRequestMetrics(eq(account), eq(MetricName.openrtb2web));
     }
 
     @Test
