@@ -12,7 +12,7 @@ class Producer {
     List<String> cat
     String domain
 
-    static Producer getDefaultProducer(){
+    static Producer getDefaultProducer() {
         new Producer().tap {
             id = PBSUtils.randomString
         }

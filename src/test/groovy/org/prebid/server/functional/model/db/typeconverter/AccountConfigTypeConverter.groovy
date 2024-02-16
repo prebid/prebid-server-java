@@ -1,8 +1,9 @@
 package org.prebid.server.functional.model.db.typeconverter
 
-import javax.persistence.AttributeConverter
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.util.ObjectMapperWrapper
+
+import javax.persistence.AttributeConverter
 
 class AccountConfigTypeConverter implements AttributeConverter<AccountConfig, String>, ObjectMapperWrapper {
 

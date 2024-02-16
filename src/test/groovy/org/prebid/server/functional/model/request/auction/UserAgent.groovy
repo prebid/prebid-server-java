@@ -4,7 +4,7 @@ import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 class UserAgent {
-    
+
     List<BrandVersion> browsers
     BrandVersion platform
     Integer mobile

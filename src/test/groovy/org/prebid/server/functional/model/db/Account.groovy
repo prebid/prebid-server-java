@@ -1,17 +1,17 @@
 package org.prebid.server.functional.model.db
 
 import groovy.transform.ToString
+import org.prebid.server.functional.model.AccountStatus
+import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.db.typeconverter.AccountConfigTypeConverter
+import org.prebid.server.functional.model.db.typeconverter.AccountStatusTypeConverter
+
 import javax.persistence.Column
 import javax.persistence.Convert
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.Id
 import javax.persistence.Table
-import org.prebid.server.functional.model.AccountStatus
-import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.db.typeconverter.AccountConfigTypeConverter
-import org.prebid.server.functional.model.db.typeconverter.AccountStatusTypeConverter
-
 import java.sql.Timestamp
 
 import static javax.persistence.GenerationType.IDENTITY

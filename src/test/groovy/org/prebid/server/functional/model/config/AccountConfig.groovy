@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.AccountStatus
+import org.prebid.server.functional.model.config.auction.AccountAuctionConfig
+import org.prebid.server.functional.model.config.hook.AccountHooksConfiguration
+import org.prebid.server.functional.model.config.privacy.AccountPrivacyConfig
 
 @EqualsAndHashCode
 @ToString(includeNames = true, ignoreNulls = true)

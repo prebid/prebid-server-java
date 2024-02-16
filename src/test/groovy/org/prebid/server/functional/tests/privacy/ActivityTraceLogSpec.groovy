@@ -1,6 +1,6 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.prebid.server.functional.model.config.AccountGppConfig
+import org.prebid.server.functional.model.config.privacy.AccountGppConfig
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.ActivityType
@@ -404,4 +404,3 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         activityInfrastructures[new IntRange(true, firstIndex, lastIndex)]
     }
 }
-

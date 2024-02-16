@@ -7,6 +7,6 @@ import groovy.transform.ToString
 @EqualsAndHashCode
 class GeoCode {
 
-   String country
-   String region
+    String country
+    String region
 }

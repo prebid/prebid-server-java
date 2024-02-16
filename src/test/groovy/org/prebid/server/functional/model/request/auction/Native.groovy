@@ -13,7 +13,7 @@ class Native implements ObjectMapperWrapper {
     List<Integer> api
     List<Integer> battr
 
-    static Native getDefaultNative(){
+    static Native getDefaultNative() {
         new Native(request: NativeRequest.nativeRequest)
     }
 

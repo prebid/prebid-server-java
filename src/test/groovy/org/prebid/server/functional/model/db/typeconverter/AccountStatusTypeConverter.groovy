@@ -1,7 +1,8 @@
 package org.prebid.server.functional.model.db.typeconverter
 
-import javax.persistence.AttributeConverter
 import org.prebid.server.functional.model.AccountStatus
+
+import javax.persistence.AttributeConverter
 
 class AccountStatusTypeConverter implements AttributeConverter<AccountStatus, String> {
 

@@ -1,19 +1,20 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.prebid.server.functional.model.config.AccountGppConfig
-import org.prebid.server.functional.model.config.ActivityConfig
-import org.prebid.server.functional.model.config.EqualityValueRule
-import org.prebid.server.functional.model.config.InequalityValueRule
-import org.prebid.server.functional.model.config.LogicalRestrictedRule
-import org.prebid.server.functional.model.config.GppModuleConfig
+
+import org.prebid.server.functional.model.config.privacy.AccountGppConfig
+import org.prebid.server.functional.model.config.privacy.ActivityConfig
+import org.prebid.server.functional.model.config.privacy.EqualityValueRule
+import org.prebid.server.functional.model.config.privacy.GppModuleConfig
+import org.prebid.server.functional.model.config.privacy.InequalityValueRule
+import org.prebid.server.functional.model.config.privacy.LogicalRestrictedRule
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Condition
-import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.service.PrebidServerException
@@ -31,31 +32,31 @@ import java.time.Instant
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
-import static org.prebid.server.functional.model.config.DataActivity.CONSENT
-import static org.prebid.server.functional.model.config.DataActivity.NOTICE_NOT_PROVIDED
-import static org.prebid.server.functional.model.config.DataActivity.NOTICE_PROVIDED
-import static org.prebid.server.functional.model.config.DataActivity.NOT_APPLICABLE
-import static org.prebid.server.functional.model.config.DataActivity.NO_CONSENT
-import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.AND
-import static org.prebid.server.functional.model.config.LogicalRestrictedRule.LogicalOperation.OR
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_BELOW_13
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_FROM_13_TO_16
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.GPC
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_ACCOUNT_INFO
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_BIOMETRIC_ID
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_CITIZENSHIP_STATUS
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_COMMUNICATION_CONTENTS
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_GENETIC_ID
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_GEOLOCATION
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_HEALTH_INFO
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_ID_NUMBERS
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_ORIENTATION
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_RELIGIOUS_BELIEFS
-import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.pricefloors.Country.USA
+import static org.prebid.server.functional.model.config.privacy.DataActivity.CONSENT
+import static org.prebid.server.functional.model.config.privacy.DataActivity.NOTICE_NOT_PROVIDED
+import static org.prebid.server.functional.model.config.privacy.DataActivity.NOTICE_PROVIDED
+import static org.prebid.server.functional.model.config.privacy.DataActivity.NOT_APPLICABLE
+import static org.prebid.server.functional.model.config.privacy.DataActivity.NO_CONSENT
+import static org.prebid.server.functional.model.config.privacy.LogicalOperation.AND
+import static org.prebid.server.functional.model.config.privacy.LogicalOperation.OR
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.CHILD_CONSENTS_BELOW_13
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.CHILD_CONSENTS_FROM_13_TO_16
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.GPC
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.SENSITIVE_DATA_ACCOUNT_INFO
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.SENSITIVE_DATA_BIOMETRIC_ID
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.SENSITIVE_DATA_CITIZENSHIP_STATUS
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.SENSITIVE_DATA_COMMUNICATION_CONTENTS
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.SENSITIVE_DATA_GENETIC_ID
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.SENSITIVE_DATA_GEOLOCATION
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.SENSITIVE_DATA_HEALTH_INFO
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.SENSITIVE_DATA_ID_NUMBERS
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.SENSITIVE_DATA_ORIENTATION
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.SENSITIVE_DATA_RELIGIOUS_BELIEFS
+import static org.prebid.server.functional.model.config.privacy.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
+import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CO_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CT_V1
@@ -71,8 +72,8 @@ import static org.prebid.server.functional.model.request.auction.PrivacyModule.I
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
-import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
+import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 
 class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 

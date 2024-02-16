@@ -1,14 +1,13 @@
 package org.prebid.server.functional.model.response.auction
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies
-import com.fasterxml.jackson.databind.annotation.JsonNaming
+import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
-@JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
 @EqualsAndHashCode
 class ModuleValue {
 
-   String richmediaFormat
+    @JsonProperty("richmedia-format")
+    String richMediaFormat
 }

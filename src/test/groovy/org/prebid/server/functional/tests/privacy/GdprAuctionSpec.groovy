@@ -1,7 +1,7 @@
 package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.ChannelType
-import org.prebid.server.functional.model.config.AccountGdprConfig
+import org.prebid.server.functional.model.config.privacy.AccountGdprConfig
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService

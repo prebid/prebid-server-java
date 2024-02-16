@@ -8,5 +8,5 @@ import groovy.transform.ToString
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
 class Trace {
 
-    List<ActivityInfrastructure>  activityInfrastructure
+    List<ActivityInfrastructure> activityInfrastructure
 }

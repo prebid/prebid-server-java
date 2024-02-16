@@ -28,8 +28,8 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.deals.lineitem.targeting.MatchingFunction.IN
 import static org.prebid.server.functional.model.deals.lineitem.targeting.MatchingFunction.INTERSECTS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.MatchingFunction.MATCHES

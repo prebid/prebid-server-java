@@ -8,7 +8,7 @@ import org.prebid.server.functional.util.PBSUtils
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 class Dooh {
-    
+
     String id
     String name
     List<String> venueType

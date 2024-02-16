@@ -4,9 +4,9 @@ import io.qameta.allure.Allure
 import io.qameta.allure.AllureLifecycle
 import io.qameta.allure.Description
 import io.qameta.allure.Flaky
+import io.qameta.allure.Link
 import io.qameta.allure.Muted
 import io.qameta.allure.model.Label
-import io.qameta.allure.model.Link
 import io.qameta.allure.model.Parameter
 import io.qameta.allure.model.Status
 import io.qameta.allure.model.StatusDetails
@@ -26,7 +26,6 @@ import java.lang.annotation.Repeatable
 import java.lang.reflect.Method
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.util.stream.Collectors
 import java.util.stream.Stream
 
 import static io.qameta.allure.util.ResultsUtils.createFrameworkLabel

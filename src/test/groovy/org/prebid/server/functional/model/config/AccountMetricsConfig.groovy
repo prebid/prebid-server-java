@@ -6,5 +6,5 @@ import com.fasterxml.jackson.annotation.JsonProperty
 class AccountMetricsConfig {
 
     @JsonProperty("verbosity-level")
-    AccountMetricsVerbosityLevel verbosityLevel;
+    AccountMetricsVerbosityLevel verbosityLevel
 }

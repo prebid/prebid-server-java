@@ -2,11 +2,11 @@ package org.prebid.server.functional.model.mock.services.httpsettings
 
 import groovy.transform.ToString
 import org.prebid.server.functional.model.ResponseModel
-import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountEventsConfig
-import org.prebid.server.functional.model.config.AccountGdprConfig
-import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.config.auction.AccountAuctionConfig
+import org.prebid.server.functional.model.config.auction.AccountEventsConfig
+import org.prebid.server.functional.model.config.privacy.AccountGdprConfig
+import org.prebid.server.functional.model.config.privacy.AccountPrivacyConfig
 
 @ToString(includeNames = true, ignoreNulls = true)
 class HttpAccountsResponse implements ResponseModel {

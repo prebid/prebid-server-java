@@ -13,7 +13,7 @@ class Source {
     SupplyChain schain
     SourceExt ext
 
-    static Source getDefaultSource(){
+    static Source getDefaultSource() {
         new Source().tap {
             schain = SupplyChain.defaultSupplyChain
         }

@@ -12,7 +12,7 @@ class SupplyChain {
     List<SupplyChainNode> nodes
     String ver
 
-    static SupplyChain getDefaultSupplyChain(){
+    static SupplyChain getDefaultSupplyChain() {
         new SupplyChain().tap {
             complete = PBSUtils.randomNumber
             nodes = [SupplyChainNode.defaultSupplyChainNode]

@@ -32,6 +32,7 @@ import java.time.ZonedDateTime
 import static java.time.ZoneOffset.UTC
 import static java.time.temporal.WeekFields.SUNDAY_START
 import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
+import static org.prebid.server.functional.model.deals.lineitem.targeting.BooleanOperator.INVALID
 import static org.prebid.server.functional.model.deals.lineitem.targeting.BooleanOperator.NOT
 import static org.prebid.server.functional.model.deals.lineitem.targeting.BooleanOperator.OR
 import static org.prebid.server.functional.model.deals.lineitem.targeting.BooleanOperator.UPPERCASE_AND
@@ -48,7 +49,6 @@ import static org.prebid.server.functional.model.deals.lineitem.targeting.Target
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.DEVICE_REGION
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.DOW
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.HOUR
-import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.INVALID
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.PAGE_POSITION
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.REFERRER
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SITE_DOMAIN
