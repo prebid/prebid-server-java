@@ -124,6 +124,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                                 .build(),
                         null,
                         null,
+                        null,
                         null))
                 .build()));
 
@@ -142,6 +143,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                                 .enabled(true)
                                 .enabledForRequestType(EnabledForRequestType.of(true, null, null, null, null))
                                 .build(),
+                        null,
                         null,
                         null,
                         null))
@@ -232,6 +234,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 .privacy(AccountPrivacyConfig.of(
                         null,
                         null,
+                        null,
                         Map.of(
                                 Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                                 Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
@@ -257,6 +260,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // then
         assertThat(accountFuture).succeededWith(Account.builder()
                 .privacy(AccountPrivacyConfig.of(
+                        null,
                         null,
                         null,
                         Map.of(

@@ -11,5 +11,7 @@ public class RubiconVideoExt {
 
     Integer skipdelay;
 
+    RubiconVideoExtRp rp;
+
     String videotype;
 }

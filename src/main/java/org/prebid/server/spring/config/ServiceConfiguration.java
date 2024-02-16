@@ -62,6 +62,7 @@ import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
+import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.CoopSyncProvider;
 import org.prebid.server.cookie.PrioritizedCoopSyncProvider;
@@ -383,6 +384,7 @@ public class ServiceConfiguration {
             StoredRequestProcessor storedRequestProcessor,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             AuctionGppService auctionGppService,
+            CookieDeprecationService cookieDeprecationService,
             ImplicitParametersExtractor implicitParametersExtractor,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             OrtbTypesResolver ortbTypesResolver,
@@ -396,6 +398,7 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 bidRequestOrtbVersionConversionManager,
                 auctionGppService,
+                cookieDeprecationService,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
                 new InterstitialProcessor(),
@@ -669,6 +672,14 @@ public class ServiceConfiguration {
                 uidsCookieService,
                 coopSyncProvider,
                 metrics);
+    }
+
+    @Bean
+    CookieDeprecationService deprecationCookieResolver(
+            @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
+            JacksonMapper mapper) {
+
+        return new CookieDeprecationService(defaultAccountConfig, mapper);
     }
 
     @Bean

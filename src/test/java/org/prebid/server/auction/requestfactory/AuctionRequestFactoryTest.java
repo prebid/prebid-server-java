@@ -36,6 +36,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
+import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -46,6 +47,7 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
@@ -85,6 +87,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock
     private AuctionGppService auctionGppService;
+    @Mock
+    private CookieDeprecationService cookieDeprecationService;
     @Mock
     private ImplicitParametersExtractor paramsExtractor;
     @Mock
@@ -177,6 +181,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
         given(ortb2RequestFactory.activityInfrastructureFrom(any()))
                 .willReturn(Future.succeededFuture());
+        given(cookieDeprecationService.updateBidRequestDevice(any(), any()))
+                .will(invocationOnMock -> invocationOnMock.getArgument(0));
 
         target = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
@@ -184,6 +190,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 storedRequestProcessor,
                 ortbVersionConversionManager,
                 auctionGppService,
+                cookieDeprecationService,
                 paramsExtractor,
                 paramsResolver,
                 interstitialProcessor,
@@ -217,6 +224,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 storedRequestProcessor,
                 ortbVersionConversionManager,
                 auctionGppService,
+                cookieDeprecationService,
                 paramsExtractor,
                 paramsResolver,
                 interstitialProcessor,
@@ -255,9 +263,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Test
     public void shouldFillBidRequestWithValuesFromHttpRequest() {
         // given
+        final ExtRegsDsa dsa = ExtRegsDsa.of(1, 2, 3, emptyList());
         final BidRequest receivedBidRequest = BidRequest.builder()
                 .regs(Regs.builder()
-                        .ext(ExtRegs.of(0, "us_privacy", null))
+                        .ext(ExtRegs.of(0, "us_privacy", null, dsa))
                         .build())
                 .build();
 
@@ -274,8 +283,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final BidRequest capturedRequest = captor.getValue();
         assertThat(capturedRequest.getRegs())
                 .extracting(Regs::getExt)
-                .extracting(ExtRegs::getGdpr, ExtRegs::getUsPrivacy, ExtRegs::getGpc)
-                .containsExactly(0, "us_privacy", "1");
+                .extracting(ExtRegs::getGdpr, ExtRegs::getUsPrivacy, ExtRegs::getGpc, ExtRegs::getDsa)
+                .containsExactly(0, "us_privacy", "1", dsa);
     }
 
     @Test

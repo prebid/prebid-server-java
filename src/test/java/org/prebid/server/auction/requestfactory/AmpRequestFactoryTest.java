@@ -1491,7 +1491,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs()).isEqualTo(Regs.builder()
-                .ext(ExtRegs.of(null, null, "1"))
+                .ext(ExtRegs.of(null, null, "1", null))
                 .build());
     }
 
