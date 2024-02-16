@@ -31,7 +31,7 @@ public class SecBrowsingTopicsResolver {
     private final String topicsDomain;
 
     public SecBrowsingTopicsResolver(String topicsDomain) {
-        this.topicsDomain = Objects.requireNonNull(topicsDomain);
+        this.topicsDomain = topicsDomain;
     }
 
     public List<SecBrowsingTopic> resolve(CaseInsensitiveMultiMap headers,
