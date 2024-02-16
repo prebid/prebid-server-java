@@ -1,7 +1,6 @@
 //file:noinspection GroovyGStringKey
 package org.prebid.server.functional.tests
 
-import groovy.time.TimeCategory
 import org.prebid.server.functional.model.AccountStatus
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.BidderName
@@ -26,6 +25,7 @@ import org.prebid.server.functional.util.privacy.CcpaConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
 
 import java.time.Instant
+import java.util.concurrent.TimeUnit
 
 import static org.prebid.server.functional.model.bidder.BidderName.ACEEX
 import static org.prebid.server.functional.model.bidder.BidderName.ACUITYADS
@@ -2199,8 +2199,7 @@ class CookieSyncSpec extends BaseSpec {
         where:
         privacySandbox << [null,
                            PrivacySandbox.getDefaultPrivacySandbox(null),
-                           PrivacySandbox.getDefaultPrivacySandbox(false),
-                           PrivacySandbox.getDefaultPrivacySandbox(true, -PBSUtils.randomNumber)]
+                           PrivacySandbox.getDefaultPrivacySandbox(false)]
     }
 
     def "PBS shouldn't set cookie deprecation header from the account when cookies is included in original request"() {
@@ -2251,7 +2250,30 @@ class CookieSyncSpec extends BaseSpec {
         assert extractCookieParameter(response.headers[SET_COOKIE_HEADER], 'Max-Age') == privacySandbox.cookieDeprecation.ttlSeconds
 
         where:
-        privacySandbox << [PrivacySandbox.defaultPrivacySandbox, PrivacySandbox.getDefaultPrivacySandbox(true, null)]
+        privacySandbox << [PrivacySandbox.defaultPrivacySandbox, PrivacySandbox.getDefaultPrivacySandbox(true, -PBSUtils.randomNumber)]
+    }
+
+    def "PBS should set cookie deprecation header on default value of week when ttlSec is not specified in privacy sandbox settings"() {
+        given: "Default cookie sync request with account"
+        def accountId = PBSUtils.randomNumber
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            account = accountId
+        }
+
+        and: "Set up generic uids cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Save account with cookie and privacySandbox configs"
+        def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: PrivacySandbox.getDefaultPrivacySandbox(true, null))
+        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, auction: accountAuctionConfig)
+        def account = new Account(uuid: accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = prebidServerService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie)
+
+        then:  "Response should contain cookie header"
+        assert extractCookieParameter(response.headers[SET_COOKIE_HEADER], 'Max-Age') == TimeUnit.DAYS.toSeconds(7) as Integer
     }
 
     def "PBS should set cookie deprecation header from the default account when default account contain privacy sandbox and request account is empty"() {
@@ -2306,9 +2328,8 @@ class CookieSyncSpec extends BaseSpec {
                           .collectEntries { [it.bidder, it.error] }
     }
 
-    def extractCookieParameter(String cookie, String parameter) {
+    private static Integer extractCookieParameter(String cookie, String parameter) {
         def matcher = (cookie =~ /${parameter}=([^;]*)/)
-        return matcher ? matcher[0][1] : null
+        return matcher ? Integer.valueOf(matcher[0][1].toString()) : null
     }
-
 }

@@ -551,7 +551,7 @@ class AuctionSpec extends BaseSpec {
         assert bidderRequest.device.ext.cdep == secCookieDeprecation[COOKIE_DEPRECATION_HEADER]
     }
 
-    def "PBS should set device.ext.cdep from header when default account contain privacy sandbox and request account is empty"() {
+    def "PBS should set device.ext.cdep from header when default account don't contain privacy sandbox and request account is empty"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest
 
@@ -587,7 +587,7 @@ class AuctionSpec extends BaseSpec {
         def auctionWarnings = response.ext?.warnings?.get(PREBID)
         assert auctionWarnings.size() == 1
         assert auctionWarnings[0].code == 999
-        assert auctionWarnings[0].message == 'request.device.ext.cdep must be less than 100 characters'
+        assert auctionWarnings[0].message == 'Sec-Cookie-Deprecation header has invalid value'
 
         and: "BidResponse shouldn't have device.ext.cdep"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
