@@ -46,7 +46,7 @@ public class RandomPositiveWeightedEntrySupplierTest {
         // when and then
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> entrySupplier.get(singleton(1)))
-                .withMessage("Non-positive weight.");
+                .withMessage("Entry weight must be greater than 0.");
     }
 
     @Test
@@ -58,6 +58,6 @@ public class RandomPositiveWeightedEntrySupplierTest {
         // when and then
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> entrySupplier.get(singleton(1)))
-                .withMessage("Non-positive weight.");
+                .withMessage("Entry weight must be greater than 0.");
     }
 }

@@ -14,7 +14,7 @@ public class RandomPositiveWeightedEntrySupplier<E> extends RandomAnyWeightedEnt
             return weight;
         }
 
-        throw new IllegalArgumentException("Non-positive weight.");
+        throw new IllegalArgumentException("Entry weight must be greater than 0.");
     }
 }
 
