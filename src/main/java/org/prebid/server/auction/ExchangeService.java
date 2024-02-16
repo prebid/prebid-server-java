@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
@@ -96,8 +95,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -170,7 +167,6 @@ public class ExchangeService {
     private static final Integer DEFAULT_MULTIBID_LIMIT_MAX = 9;
     private static final String EID_ALLOWED_FOR_ALL_BIDDERS = "*";
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
-    private static final Set<Integer> DSA_REQUIRED = Set.of(2, 3);
 
     private final double logSamplingRate;
     private final int timeoutAdjustmentFactor;
@@ -196,6 +192,7 @@ public class ExchangeService {
     private final HttpInteractionLogger httpInteractionLogger;
     private final PriceFloorAdjuster priceFloorAdjuster;
     private final PriceFloorEnforcer priceFloorEnforcer;
+    private final DsaEnforcer dsaEnforcer;
     private final BidAdjustmentFactorResolver bidAdjustmentFactorResolver;
     private final Metrics metrics;
     private final Clock clock;
@@ -227,6 +224,7 @@ public class ExchangeService {
                            HttpInteractionLogger httpInteractionLogger,
                            PriceFloorAdjuster priceFloorAdjuster,
                            PriceFloorEnforcer priceFloorEnforcer,
+                           DsaEnforcer dsaEnforcer,
                            BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
                            Metrics metrics,
                            Clock clock,
@@ -261,6 +259,7 @@ public class ExchangeService {
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.priceFloorAdjuster = Objects.requireNonNull(priceFloorAdjuster);
         this.priceFloorEnforcer = Objects.requireNonNull(priceFloorEnforcer);
+        this.dsaEnforcer = Objects.requireNonNull(dsaEnforcer);
         this.bidAdjustmentFactorResolver = Objects.requireNonNull(bidAdjustmentFactorResolver);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -1482,6 +1481,10 @@ public class ExchangeService {
                         auctionParticipation,
                         auctionContext.getAccount(),
                         auctionContext.getBidRejectionTrackers().get(auctionParticipation.getBidder())))
+                .map(auctionParticipation -> dsaEnforcer.enforce(
+                        auctionContext.getBidRequest(),
+                        auctionParticipation,
+                        auctionContext.getBidRejectionTrackers().get(auctionParticipation.getBidder())))
                 .toList();
     }
 
@@ -1525,8 +1528,7 @@ public class ExchangeService {
                     bid,
                     bidderResponse.getBidder(),
                     auctionContext,
-                    aliases,
-                    isDsaValidationRequired(bidRequest));
+                    aliases);
 
             if (validationResult.hasWarnings() || validationResult.hasErrors()) {
                 errors.add(makeValidationBidderError(bid.getBid(), validationResult));
@@ -1551,15 +1553,6 @@ public class ExchangeService {
                         .warnings(warnings)
                         .build());
         return auctionParticipation.with(resultBidderResponse);
-    }
-
-    private static boolean isDsaValidationRequired(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest.getRegs())
-                .map(Regs::getExt)
-                .map(ExtRegs::getDsa)
-                .map(ExtRegsDsa::getDsaRequired)
-                .map(DSA_REQUIRED::contains)
-                .orElse(false);
     }
 
     private BidderError makeValidationBidderError(Bid bid, ValidationResult validationResult) {
