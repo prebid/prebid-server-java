@@ -6,17 +6,15 @@ import org.prebid.server.functional.util.PBSUtils
 @ToString(includeNames = true, ignoreNulls = true)
 class SecBrowsingTopic {
 
-    String domain
     List<String> segments
     Integer taxonomyVersion
-    Integer modelVersion
+    String modelVersion
 
     static final SecBrowsingTopic defaultSetBrowsingTopic(Integer taxonomyVersion = PBSUtils.getRandomNumber(1, 10),
-                                                          List<String> segments = [PBSUtils.randomNumber.toString(),
-                                                                                   PBSUtils.randomNumber.toString()],
-                                                          Integer modelVersion = PBSUtils.randomNumber) {
+                                                          List<String> segments = [PBSUtils.randomNumber as String,
+                                                                                   PBSUtils.randomNumber as String],
+                                                          String modelVersion = PBSUtils.randomString) {
         new SecBrowsingTopic().tap {
-            it.domain = PBSUtils.randomString
             it.segments = segments
             it.taxonomyVersion = taxonomyVersion
             it.modelVersion = modelVersion
