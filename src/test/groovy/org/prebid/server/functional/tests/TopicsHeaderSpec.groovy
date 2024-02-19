@@ -214,9 +214,9 @@ class TopicsHeaderSpec extends BaseSpec {
         }
 
         and: "Prepare browsing topics header headers"
-        def oneSecBrowsingTopic = SecBrowsingTopic.defaultSetBrowsingTopic(1, [PBSUtils.randomNumber as String], randomSegClass)
+        def firstSecBrowsingTopic = SecBrowsingTopic.defaultSetBrowsingTopic(1, [PBSUtils.randomNumber as String], randomSegClass)
         def secondSecBrowsingTopic = SecBrowsingTopic.defaultSetBrowsingTopic(1, [PBSUtils.randomNumber as String], randomSegClass)
-        def headers = [(HttpUtil.SEC_BROWSING_TOPICS_HEADER): oneSecBrowsingTopic.getValidAsHeader() +
+        def headers = [(HttpUtil.SEC_BROWSING_TOPICS_HEADER): firstSecBrowsingTopic.getValidAsHeader() +
                 secondSecBrowsingTopic.getValidAsHeader()]
 
         when: "PBS processes auction request"
@@ -226,7 +226,7 @@ class TopicsHeaderSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.user.data.size() == 1
         assert bidderRequest.user.data[0].segment.id ==
-                [randomSegment as String, oneSecBrowsingTopic.segments[0], secondSecBrowsingTopic.segments[0]]
+                [randomSegment as String, firstSecBrowsingTopic.segments[0], secondSecBrowsingTopic.segments[0]]
 
         and: "Response should contain Observe-Browsing-Topics header"
         assert response.headers["Observe-Browsing-Topics"] == "?1"
@@ -239,10 +239,10 @@ class TopicsHeaderSpec extends BaseSpec {
         }
 
         and: "Prepare valid Sec-Browsing-Topic value header"
-        def oneSecBrowsingTopic = SecBrowsingTopic.defaultSetBrowsingTopic(1)
-        def twoSecBrowsingTopic = SecBrowsingTopic.defaultSetBrowsingTopic(2)
-        def headers = [(HttpUtil.SEC_BROWSING_TOPICS_HEADER): oneSecBrowsingTopic.getValidAsHeader() +
-                twoSecBrowsingTopic.getValidAsHeader()]
+        def firstSecBrowsingTopic = SecBrowsingTopic.defaultSetBrowsingTopic(1)
+        def secondSecBrowsingTopic = SecBrowsingTopic.defaultSetBrowsingTopic(2)
+        def headers = [(HttpUtil.SEC_BROWSING_TOPICS_HEADER): firstSecBrowsingTopic.getValidAsHeader() +
+                secondSecBrowsingTopic.getValidAsHeader()]
 
         when: "PBS processes auction request"
         def response = prebidServerServiceWithTopicsDomain.sendAuctionRequestRaw(bidRequest, headers)
@@ -252,7 +252,7 @@ class TopicsHeaderSpec extends BaseSpec {
         assert bidderRequest.user.data.size() == 2
         assert bidderRequest.user.data.name == [PRIVACY_SENDBOX_DOMAIN, PRIVACY_SENDBOX_DOMAIN]
         assert bidderRequest.user.data.segment.collectMany { it -> it.id }
-                .containsAll([oneSecBrowsingTopic.segments[0], twoSecBrowsingTopic.segments[0]])
+                .containsAll([firstSecBrowsingTopic.segments[0], secondSecBrowsingTopic.segments[0]])
 
         and: "Response should contain Observe-Browsing-Topics header"
         assert response.headers["Observe-Browsing-Topics"] == "?1"
