@@ -2247,7 +2247,8 @@ class CookieSyncSpec extends BaseSpec {
         def response = prebidServerService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie)
 
         then:  "Response should contain cookie header"
-        assert extractCookieParameter(response.headers[SET_COOKIE_HEADER], 'Max-Age') == privacySandbox.cookieDeprecation.ttlSeconds
+        assert removeExpiresValue(response.headers[SET_COOKIE_HEADER]) ==
+        "receive-cookie-deprecation=1; Max-Age=${privacySandbox.cookieDeprecation.ttlSeconds}; Expires=*; Path=/; Secure; HTTPOnly; SameSite=None; Partitioned"
 
         where:
         privacySandbox << [PrivacySandbox.defaultPrivacySandbox, PrivacySandbox.getDefaultPrivacySandbox(true, -PBSUtils.randomNumber)]
@@ -2273,7 +2274,8 @@ class CookieSyncSpec extends BaseSpec {
         def response = prebidServerService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie)
 
         then:  "Response should contain cookie header"
-        assert extractCookieParameter(response.headers[SET_COOKIE_HEADER], 'Max-Age') == TimeUnit.DAYS.toSeconds(7) as Integer
+        assert removeExpiresValue(response.headers[SET_COOKIE_HEADER]) ==
+                "receive-cookie-deprecation=1; Max-Age=${TimeUnit.DAYS.toSeconds(7)}; Expires=*; Path=/; Secure; HTTPOnly; SameSite=None; Partitioned"
     }
 
     def "PBS should set cookie deprecation header from the default account when default account contain privacy sandbox and request account is empty"() {
@@ -2297,10 +2299,11 @@ class CookieSyncSpec extends BaseSpec {
         def response = pbsService.sendCookieSyncRequestRaw(cookieSyncRequest, uidsCookie)
 
         then:  "Response should contain cookie header"
-        assert extractCookieParameter(response.headers[SET_COOKIE_HEADER], 'Max-Age') == privacySandbox.cookieDeprecation.ttlSeconds
+        assert removeExpiresValue(response.headers[SET_COOKIE_HEADER]) ==
+                "receive-cookie-deprecation=1; Max-Age=${privacySandbox.cookieDeprecation.ttlSeconds}; Expires=*; Path=/; Secure; HTTPOnly; SameSite=None; Partitioned"
     }
 
-    def "PBS shouldn't set cookie deprecation header when default account don't contain privacy sandbox and request account is empty"() {
+    def "PBS shouldn't set cookie deprecation header when cookie sync request doesn't contain account"() {
         given: "Set up generic uids cookie"
         def uidsCookie = UidsCookie.defaultUidsCookie
 
@@ -2328,8 +2331,7 @@ class CookieSyncSpec extends BaseSpec {
                           .collectEntries { [it.bidder, it.error] }
     }
 
-    private static Integer extractCookieParameter(String cookie, String parameter) {
-        def matcher = (cookie =~ /${parameter}=([^;]*)/)
-        return matcher ? Integer.valueOf(matcher[0][1].toString()) : null
+    private static String removeExpiresValue(String cookie) {
+        cookie.replaceFirst(/Expires=[^;]+;/, "Expires=*;")
     }
 }
