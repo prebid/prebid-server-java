@@ -142,6 +142,35 @@ public class ImprovedigitalBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldProperProcessConsentedProvidersSettingWithMultipleTilda() {
+        // given
+        final ExtUser extUser = ExtUser.builder()
+                .consentedProvidersSettings(ConsentedProvidersSettings.of("1~10.20.90~anything"))
+                .build();
+
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                .id("123")
+                .user(User.builder().ext(extUser).build())
+                .id("request_id"), identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        final ExtUser expectedExtUser = jacksonMapper.fillExtension(extUser,
+                mapper.createObjectNode().set("consented_providers_settings",
+                        mapper.createObjectNode()
+                                .set("consented_providers", mapper.createArrayNode().add(10).add(20).add(90))));
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getUser)
+                .extracting(User::getExt)
+                .containsExactly(expectedExtUser);
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnUserExtIfConsentedProvidersIsNotProvided() {
         // given
         final ExtUser extUser = ExtUser.builder()
