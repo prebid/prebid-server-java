@@ -51,11 +51,10 @@ public class DsaEnforcer {
             }
         }
 
-        if (bidderBids.size() == updatedBidderBids.size() && seatBid.getWarnings().size() == warnings.size()) {
+        if (bidderBids.size() == updatedBidderBids.size()) {
             return auctionParticipation;
         }
 
-        rejectionTracker.restoreFromRejection(updatedBidderBids);
         final BidderSeatBid bidderSeatBid = seatBid.toBuilder()
                 .bids(updatedBidderBids)
                 .warnings(warnings)
