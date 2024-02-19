@@ -27,9 +27,9 @@ class TopicsHeaderSpec extends BaseSpec {
         and: "Prepare valid Sec-Browsing-Topic value header"
         def taxonomyVersion = PBSUtils.getRandomNumber(1, 10)
         def modelVersion = PBSUtils.randomString
-        def oneSecBrowsingTopic = SecBrowsingTopic.defaultSetBrowsingTopic(taxonomyVersion, [PBSUtils.randomNumber as String], modelVersion)
+        def firstSecBrowsingTopic = SecBrowsingTopic.defaultSetBrowsingTopic(taxonomyVersion, [PBSUtils.randomNumber as String], modelVersion)
         def secondSecBrowsingTopic = SecBrowsingTopic.defaultSetBrowsingTopic(taxonomyVersion, [PBSUtils.randomNumber as String], modelVersion)
-        def headers = [(HttpUtil.SEC_BROWSING_TOPICS_HEADER): "${oneSecBrowsingTopic.getValidAsHeader()} ${secondSecBrowsingTopic.getValidAsHeader()}".toString()]
+        def headers = [(HttpUtil.SEC_BROWSING_TOPICS_HEADER): "${firstSecBrowsingTopic.getValidAsHeader()} ${secondSecBrowsingTopic.getValidAsHeader()}".toString()]
 
         when: "PBS processes auction request"
         def response = prebidServerServiceWithTopicsDomain.sendAuctionRequestRaw(bidRequest, headers)
@@ -38,9 +38,9 @@ class TopicsHeaderSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.user.data.size() == 1
         assert bidderRequest.user.data[0].name == PRIVACY_SENDBOX_DOMAIN
-        assert bidderRequest.user.data[0].ext.segtax == DEFAULT_SEGTAX_VALUE + oneSecBrowsingTopic.taxonomyVersion
-        assert bidderRequest.user.data[0].ext.segclass == oneSecBrowsingTopic.modelVersion
-        assert bidderRequest.user.data[0].segment.id.sort().containsAll(oneSecBrowsingTopic.segments)
+        assert bidderRequest.user.data[0].ext.segtax == DEFAULT_SEGTAX_VALUE + firstSecBrowsingTopic.taxonomyVersion
+        assert bidderRequest.user.data[0].ext.segclass == firstSecBrowsingTopic.modelVersion
+        assert bidderRequest.user.data[0].segment.id.sort().containsAll(firstSecBrowsingTopic.segments)
 
         and: "Response should contain Observe-Browsing-Topics header"
         assert response.headers["Observe-Browsing-Topics"] == "?1"
@@ -72,7 +72,8 @@ class TopicsHeaderSpec extends BaseSpec {
         where:
         invalidSecBrowsingTopic << [SecBrowsingTopic.defaultSetBrowsingTopic(PBSUtils.getRandomNumber(11)),
                                     SecBrowsingTopic.defaultSetBrowsingTopic(PBSUtils.getRandomNumber(1, 10), ["-10", "-11"]),
-                                    SecBrowsingTopic.defaultSetBrowsingTopic(null, ["-10", "-11"]),
+                                    SecBrowsingTopic.defaultSetBrowsingTopic(null),
+                                    SecBrowsingTopic.defaultSetBrowsingTopic(PBSUtils.getRandomNumber(1, 10), [Long.MAX_VALUE as String]),
                                     SecBrowsingTopic.defaultSetBrowsingTopic(PBSUtils.getRandomNumber(1, 10), [null, null])]
     }
 
@@ -260,7 +261,7 @@ class TopicsHeaderSpec extends BaseSpec {
     def "PBS should populate user.data with empty name when privacy sand box present with empty name"() {
         given: "PBS with empty auction privacy sand box"
         def prebidServerServiceWithTopicsDomain
-                = pbsServiceFactory.getService(["auction.privacysandbox.topicsdomain": ""])
+                = pbsServiceFactory.getService(["auction.privacysandbox.topicsdomain": topicsdomain])
 
         and: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -277,11 +278,13 @@ class TopicsHeaderSpec extends BaseSpec {
         then: "Bidder request should contain user.data from header and name with empty string"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest.user.data.size() == 1
-        assert bidderRequest.user.data[0].name == ""
-        assert bidderRequest.user.data.segment.collectMany { it -> it.id }
-                .containsAll([secBrowsingTopic.segments[0]].sort())
+        assert bidderRequest.user.data[0].name == topicsdomain
+        assert bidderRequest.user.data[0].segment.id.sort() == secBrowsingTopic.segments.sort()
 
         and: "Response should contain Observe-Browsing-Topics header"
         assert response.headers["Observe-Browsing-Topics"] == "?1"
+
+        where:
+        topicsdomain << [null, ""]
     }
 }
