@@ -14,4 +14,7 @@ public class ExtImpBizzclick {
 
     @JsonProperty("placementId")
     String placementId;
+
+    @JsonProperty("sourceId")
+    String sourceId;
 }

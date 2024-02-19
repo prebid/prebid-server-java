@@ -42,6 +42,8 @@ public class BizzclickBidderTest extends VertxTest {
     private static final String DEFAULT_ACCOUNT_ID = "accountId";
     private static final String DEFAULT_SOURCE_ID = "sourceId";
 
+    private static final String DEFAULT_PLACEMENT_ID = "placementId";
+
     private final BizzclickBidder target = new BizzclickBidder(ENDPOINT, jacksonMapper);
 
     @Test
@@ -87,8 +89,8 @@ public class BizzclickBidderTest extends VertxTest {
     public void makeHttpRequestsShouldRemoveExtFromEachImp() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenImp("host", "accountId1", "placementId1"),
-                givenImp("host", "accountId2", "placementId2"));
+                givenImp("host", "accountId1", "placementId1", "sourceId1"),
+                givenImp("host", "accountId2", "placementId2", "sourceId2"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -427,13 +429,15 @@ public class BizzclickBidderTest extends VertxTest {
 
     private Imp givenImp() {
         final ExtPrebid<?, ?> ext = ExtPrebid.of(null, ExtImpBizzclick.of(
-                DEFAULT_HOST, DEFAULT_ACCOUNT_ID, DEFAULT_SOURCE_ID
+                DEFAULT_HOST, DEFAULT_ACCOUNT_ID, DEFAULT_PLACEMENT_ID, DEFAULT_SOURCE_ID
         ));
         return givenImp(imp -> imp.ext(mapper.valueToTree(ext)));
     }
 
-    private Imp givenImp(String host, String accountId, String placementId) {
-        final ExtPrebid<?, ?> ext = ExtPrebid.of(null, ExtImpBizzclick.of(host, accountId, placementId));
+    private Imp givenImp(String host, String accountId, String placementId, String sourceId) {
+        final ExtPrebid<?, ?> ext = ExtPrebid.of(
+                null, ExtImpBizzclick.of(host, accountId, placementId, sourceId)
+        );
         return givenImp(imp -> imp.ext(mapper.valueToTree(ext)));
     }
 
