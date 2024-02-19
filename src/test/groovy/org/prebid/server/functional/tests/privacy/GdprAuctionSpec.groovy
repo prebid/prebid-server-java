@@ -320,9 +320,9 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def startTime = Instant.now()
 
         and: "Create new container"
-        def delayMillis = 5000
-        def maxDelayMillis = 10000
-        def factor = 1.3
+        def delayMillis = 1
+        def maxDelayMillis = 1
+        def factor = Long.MAX_VALUE
         def serverContainer = new PrebidServerContainer(GDPR_VENDOR_LIST_CONFIG +
                 ["adapters.generic.meta-info.vendor-id"                                : GENERIC_VENDOR_ID as String,
                  "gdpr.vendorlist.v2.retry-policy.exponential-backoff.delay-millis"    : delayMillis as String,
@@ -348,8 +348,8 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         and: "Reset valid vendor list response"
         vendorListResponse.reset(tcfPolicyVersion)
 
-        and: "Set vendor list response"
-        vendorListResponse.setResponseWithDelay(Delay.seconds(60), tcfPolicyVersion)
+        and: "Set vendor list response with delay"
+        vendorListResponse.setResponseWithDelay(Delay.seconds(3), tcfPolicyVersion)
 
         when: "PBS processes auction request"
         privacyPbsService.sendAuctionRequest(bidRequest)
@@ -362,9 +362,6 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def logs = privacyPbsService.getLogsByTime(startTime)
         def tcfError = "TCF 2 vendor list for version v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion} not found, started downloading."
         assert getLogsByText(logs, tcfError)
-
-        and: "Sleep for second fetch with multiply"
-        sleep((delayMillis.multiply(factor)).toLong())
 
         and: "Second start for fetch second round of logs"
         def secondStartTime = Instant.now()
