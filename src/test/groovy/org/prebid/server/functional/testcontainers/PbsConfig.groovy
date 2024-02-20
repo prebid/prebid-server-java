@@ -29,7 +29,6 @@ LIMIT 1
     static final Map<String, String> DEFAULT_ENV = [
             "logging.sampling-rate"                      : "1.0",
             "auction.ad-server-currency"                 : "USD",
-            "auction.topics-domain"                      : "my_domain",
             "auction.stored-requests-timeout-ms"         : "1000",
             "metrics.prefix"                             : "prebid",
             "status-response"                            : "ok",
@@ -111,8 +110,8 @@ LIMIT 1
          "adapters.generic.aliases.blue.meta-info.site-media-types"          : "",
          "adapters.generic.aliases.adsinteractive.meta-info.app-media-types" : "",
          "adapters.generic.aliases.adsinteractive.meta-info.site-media-types": "",
-         "adapters.generic.aliases.nativo.meta-info.app-media-types" : "",
-         "adapters.generic.aliases.nativo.meta-info.site-media-types": ""]
+         "adapters.generic.aliases.nativo.meta-info.app-media-types"         : "",
+         "adapters.generic.aliases.nativo.meta-info.site-media-types"        : ""]
     }
 
     private PbsConfig() {}
