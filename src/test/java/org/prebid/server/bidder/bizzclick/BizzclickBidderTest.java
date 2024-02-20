@@ -36,12 +36,10 @@ import static org.assertj.core.groups.Tuple.tuple;
 
 public class BizzclickBidderTest extends VertxTest {
 
-    private static final String ENDPOINT = "https://{{.Host}}.test/uri?source={{.SourceId}}&account={{.AccountID}}";
-
+    private static final String ENDPOINT = "https://{{.Host}}/uri?source={{.SourceId}}&account={{.AccountID}}";
     private static final String DEFAULT_HOST = "host";
     private static final String DEFAULT_ACCOUNT_ID = "accountId";
     private static final String DEFAULT_SOURCE_ID = "sourceId";
-
     private static final String DEFAULT_PLACEMENT_ID = "placementId";
 
     private final BizzclickBidder target = new BizzclickBidder(ENDPOINT, jacksonMapper);
@@ -209,9 +207,31 @@ public class BizzclickBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
                 .containsExactly(
-                        String.format("https://%s.test/uri?source=%s&account=%s",
+                        String.format("https://%s/uri?source=%s&account=%s",
                                 DEFAULT_HOST,
                                 DEFAULT_SOURCE_ID,
+                                DEFAULT_ACCOUNT_ID));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateSingleRequestWithExpectedAlternativeUri() {
+        // given
+        final String expectedDefaultHost = "us-e-node1";
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(expectedDefaultHost, DEFAULT_ACCOUNT_ID, DEFAULT_PLACEMENT_ID, null)
+        );
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly(
+                        String.format("https://%s/uri?source=%s&account=%s",
+                                expectedDefaultHost,
+                                DEFAULT_PLACEMENT_ID,
                                 DEFAULT_ACCOUNT_ID));
         assertThat(result.getErrors()).isEmpty();
     }
