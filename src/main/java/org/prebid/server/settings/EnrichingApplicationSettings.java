@@ -2,12 +2,9 @@ package org.prebid.server.settings;
 
 import io.vertx.core.Future;
 import io.vertx.core.logging.LoggerFactory;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.floors.PriceFloorsConfigResolver;
-import org.prebid.server.json.DecodeException;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.settings.model.Account;
@@ -34,35 +31,17 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
 
     public EnrichingApplicationSettings(boolean enforceValidAccount,
                                         double logSamplingRate,
-                                        String defaultAccountConfig,
+                                        Account defaultAccount,
                                         ApplicationSettings delegate,
                                         PriceFloorsConfigResolver priceFloorsConfigResolver,
-                                        JsonMerger jsonMerger,
-                                        JacksonMapper mapper) {
+                                        JsonMerger jsonMerger) {
 
         this.enforceValidAccount = enforceValidAccount;
         this.logSamplingRate = logSamplingRate;
         this.delegate = Objects.requireNonNull(delegate);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
         this.priceFloorsConfigResolver = Objects.requireNonNull(priceFloorsConfigResolver);
-
-        defaultAccount = parseAccount(defaultAccountConfig, mapper);
-    }
-
-    private static Account parseAccount(String accountConfig, JacksonMapper mapper) {
-        try {
-            final Account account = StringUtils.isNotBlank(accountConfig)
-                    ? mapper.decodeValue(accountConfig, Account.class)
-                    : null;
-
-            return isNotEmpty(account) ? account : null;
-        } catch (DecodeException e) {
-            throw new IllegalArgumentException("Could not parse default account configuration", e);
-        }
-    }
-
-    private static boolean isNotEmpty(Account account) {
-        return account != null && !account.equals(Account.builder().build());
+        this.defaultAccount = defaultAccount;
     }
 
     @Override

@@ -38,19 +38,6 @@ import static org.mockito.BDDMockito.given;
 
 public class CookieDeprecationServiceTest extends VertxTest {
 
-    private static final String DEFAULT_ACCOUNT_CONFIG = """
-            {
-              "auction": {
-                "privacysandbox": {
-                  "cookiedeprecation": {
-                    "enabled": true,
-                    "ttlsec": 200
-                  }
-                }
-              }
-            }
-            """;
-
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
     @Mock
@@ -60,7 +47,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
 
     @Before
     public void before() {
-        target = new CookieDeprecationService(DEFAULT_ACCOUNT_CONFIG, jacksonMapper);
+        target = new CookieDeprecationService(givenAccount(true, 200L));
         given(routingContext.cookieMap()).willReturn(Map.of());
     }
 
@@ -110,7 +97,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
 
         // given
         final Account givenDefaultAccount = givenAccount(null, null);
-        target = new CookieDeprecationService(mapper.writeValueAsString(givenDefaultAccount), jacksonMapper);
+        target = new CookieDeprecationService(givenDefaultAccount);
 
         // when
         final PartitionedCookie actualCookie = target.makeCookie(Account.empty("accountId"), routingContext);
@@ -132,12 +119,11 @@ public class CookieDeprecationServiceTest extends VertxTest {
     }
 
     @Test
-    public void makeCookieShouldReturnNullWhenCookieDeprecationIsNotEnabledInDefaultAccountAndAccountIsEmpty()
-            throws JsonProcessingException {
+    public void makeCookieShouldReturnNullWhenCookieDeprecationIsNotEnabledInDefaultAccountAndAccountIsEmpty() {
 
         // given
         final Account givenDefaultAccount = givenAccount(false, 100L);
-        target = new CookieDeprecationService(mapper.writeValueAsString(givenDefaultAccount), jacksonMapper);
+        target = new CookieDeprecationService(givenDefaultAccount);
 
         // when
         final PartitionedCookie actualCookie = target.makeCookie(Account.empty("accountId"), routingContext);
@@ -167,12 +153,11 @@ public class CookieDeprecationServiceTest extends VertxTest {
     }
 
     @Test
-    public void makeCookieShouldReturnCookieWithDefaultAgeWhenCookieEnabledAndTtlIsNotSetInDefaultAccAndAccountIsEmpty()
-            throws JsonProcessingException {
+    public void makeCookieShouldReturnCookieWithDefaultAgeWhenCookieEnabledAndTtlIsNotSetInDefaultAccAndAccIsEmpty() {
 
         // given
         final Account givenDefaultAccount = givenAccount(true, null);
-        target = new CookieDeprecationService(mapper.writeValueAsString(givenDefaultAccount), jacksonMapper);
+        target = new CookieDeprecationService(givenDefaultAccount);
 
         // when
         final PartitionedCookie actualCookie = target.makeCookie(Account.empty("accountId"), routingContext);
@@ -283,11 +268,9 @@ public class CookieDeprecationServiceTest extends VertxTest {
     }
 
     @Test
-    public void updateBidRequestDeviceShouldNotChangeRequestWhenAccountAndDefaultAccountAreEmpty()
-            throws JsonProcessingException {
-
+    public void updateBidRequestDeviceShouldNotChangeRequestWhenAccountAndDefaultAccountAreEmpty() {
         // given
-        target = new CookieDeprecationService(mapper.writeValueAsString(Account.empty("accountId1")), jacksonMapper);
+        target = new CookieDeprecationService(Account.empty("accountId1"));
         final Map<String, String> headers = Map.of(
                 "header", "value",
                 "sec-cookie-deprecation", RandomStringUtils.random(100));
@@ -324,11 +307,9 @@ public class CookieDeprecationServiceTest extends VertxTest {
     }
 
     @Test
-    public void updateBidRequestDeviceShouldNotChangeRequestWhenCookieDeprecationIsNotSetInDefaultAccAndAccIsEmpty()
-            throws JsonProcessingException {
-
+    public void updateBidRequestDeviceShouldNotChangeRequestWhenCookieDeprecationIsNotSetInDefaultAccAndAccIsEmpty() {
         // given
-        target = new CookieDeprecationService(mapper.writeValueAsString(givenAccount(null, null)), jacksonMapper);
+        target = new CookieDeprecationService(givenAccount(null, null));
         final Map<String, String> headers = Map.of(
                 "header", "value",
                 "sec-cookie-deprecation", RandomStringUtils.random(100));
@@ -365,11 +346,9 @@ public class CookieDeprecationServiceTest extends VertxTest {
     }
 
     @Test
-    public void updateBidRequestDeviceShouldNotChangeRequestWhenCookieDeprecationIsDisabledInDefaultAccAndAccIsEmpty()
-            throws JsonProcessingException {
-
+    public void updateBidRequestDeviceShouldNotChangeRequestWhenCookieDeprecationIsDisabledInDefaultAccAndAccIsEmpty() {
         // given
-        target = new CookieDeprecationService(mapper.writeValueAsString(givenAccount(false, 100L)), jacksonMapper);
+        target = new CookieDeprecationService(givenAccount(false, 100L));
         final Map<String, String> headers = Map.of(
                 "header", "value",
                 "sec-cookie-deprecation", RandomStringUtils.random(100));

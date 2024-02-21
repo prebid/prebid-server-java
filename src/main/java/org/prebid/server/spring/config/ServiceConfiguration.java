@@ -82,6 +82,7 @@ import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.CriteriaLogManager;
@@ -94,6 +95,7 @@ import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
@@ -675,11 +677,9 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    CookieDeprecationService deprecationCookieResolver(
-            @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
-            JacksonMapper mapper) {
+    CookieDeprecationService deprecationCookieResolver(Account defaultAccount) {
 
-        return new CookieDeprecationService(defaultAccountConfig, mapper);
+        return new CookieDeprecationService(defaultAccount);
     }
 
     @Bean
@@ -951,12 +951,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PriceFloorsConfigResolver accountValidator(
-            @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
-            Metrics metrics,
-            JacksonMapper jacksonMapper) {
-
-        return new PriceFloorsConfigResolver(defaultAccountConfig, metrics, jacksonMapper);
+    PriceFloorsConfigResolver accountValidator(Account defaultAccount, Metrics metrics) {
+        return new PriceFloorsConfigResolver(defaultAccount, metrics);
     }
 
     @Bean
@@ -1075,6 +1071,20 @@ public class ServiceConfiguration {
     @Bean
     LoggerControlKnob loggerControlKnob(Vertx vertx) {
         return new LoggerControlKnob(vertx);
+    }
+
+    @Bean
+    Account defaultAccount(@Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
+                           JacksonMapper mapper) {
+        try {
+            final Account account = StringUtils.isNotBlank(defaultAccountConfig)
+                    ? mapper.decodeValue(defaultAccountConfig, Account.class)
+                    : null;
+
+            return account != null && !account.equals(Account.builder().build()) ? account : null;
+        } catch (DecodeException e) {
+            throw new IllegalArgumentException("Could not parse default account configuration", e);
+        }
     }
 
     private static List<String> splitToList(String listAsString) {

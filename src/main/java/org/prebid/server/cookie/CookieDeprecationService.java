@@ -8,12 +8,8 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.ObjectUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.cookie.model.PartitionedCookie;
-import org.prebid.server.json.DecodeException;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -31,20 +27,8 @@ public class CookieDeprecationService {
 
     private final Account defaultAccount;
 
-    public CookieDeprecationService(String defaultAccountConfig, JacksonMapper mapper) {
-        this.defaultAccount = parseAccount(defaultAccountConfig, mapper);
-    }
-
-    private static Account parseAccount(String accountConfig, JacksonMapper mapper) {
-        try {
-            final Account account = StringUtils.isNotBlank(accountConfig)
-                    ? mapper.decodeValue(accountConfig, Account.class)
-                    : null;
-
-            return ObjectUtils.isNotEmpty(account) ? account : null;
-        } catch (DecodeException e) {
-            throw new IllegalArgumentException("Could not parse default account configuration", e);
-        }
+    public CookieDeprecationService(Account defaultAccount) {
+        this.defaultAccount = defaultAccount;
     }
 
     public PartitionedCookie makeCookie(Account account, RoutingContext routingContext) {
