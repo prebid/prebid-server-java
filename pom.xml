@@ -41,7 +41,7 @@
         <json-schema-validator.version>1.0.76</json-schema-validator.version>
         <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.28</mysql.version>
-        <postgresql.version>42.4.3</postgresql.version>
+        <postgresql.version>42.7.2</postgresql.version>
         <psl.version>2.2.0</psl.version>
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
