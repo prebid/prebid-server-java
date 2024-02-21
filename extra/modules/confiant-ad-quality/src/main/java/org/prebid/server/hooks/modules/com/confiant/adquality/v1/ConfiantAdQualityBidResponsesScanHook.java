@@ -60,7 +60,8 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
         final BidRequest bidRequest = getBidRequest(auctionInvocationContext);
         final List<BidderResponse> responses = allProcessedBidResponsesPayload.bidResponses();
         final Map<Boolean, List<BidderResponse>> needScanMap = responses.stream()
-                .collect(Collectors.groupingBy(bidderResponse -> !biddersToExcludeFromScan.contains(bidderResponse.getBidder())));
+                .collect(Collectors.groupingBy(bidderResponse -> !biddersToExcludeFromScan.contains(bidderResponse.getBidder())
+                        && !bidderResponse.getSeatBid().getBids().isEmpty()));
 
         final List<BidderResponse> toScan = needScanMap.getOrDefault(true, Collections.emptyList());
         final List<BidderResponse> avoidScan = needScanMap.getOrDefault(false, Collections.emptyList());

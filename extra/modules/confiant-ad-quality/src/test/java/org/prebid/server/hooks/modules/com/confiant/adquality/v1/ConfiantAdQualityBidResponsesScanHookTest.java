@@ -219,6 +219,60 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     }
 
     @Test
+    public void shouldSubmitToScanOnlyBidsWithData() {
+        // given
+        final String secureBidderName = "securebidder";
+        final String notSecureBadBidderName = "notsecurebadbidder";
+        final String emptyBidderName = "emptybidder";
+        final BidderResponse secureBidderResponse = AdQualityModuleTestUtils.getBidderResponse(secureBidderName, "imp_a", "bid_id_a");
+        final BidderResponse notSecureBadBidderResponse = AdQualityModuleTestUtils.getBidderResponse(notSecureBadBidderName, "imp_b", "bid_id_b");
+        final BidderResponse emptyBidderResponse = AdQualityModuleTestUtils.getEmptyBidderResponse(emptyBidderName);
+
+        final ConfiantAdQualityBidResponsesScanHook hookWithExcludeConfig = new ConfiantAdQualityBidResponsesScanHook(
+                bidsScanner, List.of(secureBidderName), privacyEnforcementService);
+        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
+                "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .activityInfrastructure(activityInfrastructure)
+                .bidRequest(BidRequest.builder().cur(List.of("USD")).build())
+                .build();
+
+        doReturn(List.of(secureBidderResponse, notSecureBadBidderResponse, emptyBidderResponse)).when(allProcessedBidResponsesPayload).bidResponses();
+        doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
+        doReturn(auctionContext).when(auctionInvocationContext).auctionContext();
+
+        // when
+        final Future<InvocationResult<AllProcessedBidResponsesPayload>> invocationResult = hookWithExcludeConfig
+                .call(allProcessedBidResponsesPayload, auctionInvocationContext);
+
+        // then
+        verify(bidsScanner).submitBids(
+                BidsMapper.toRedisBidsFromBidResponses(auctionContext.getBidRequest(), List.of(notSecureBadBidderResponse))
+        );
+
+        final PayloadUpdate<AllProcessedBidResponsesPayload> payloadUpdate = invocationResult.result().payloadUpdate();
+        final AllProcessedBidResponsesPayloadImpl initPayloadToUpdate = AllProcessedBidResponsesPayloadImpl.of(
+                asList(secureBidderResponse, notSecureBadBidderResponse, emptyBidderResponse));
+        final AllProcessedBidResponsesPayloadImpl resultPayloadAfterUpdate = AllProcessedBidResponsesPayloadImpl.of(
+                asList(secureBidderResponse, emptyBidderResponse));
+
+        assertThat(payloadUpdate.apply(initPayloadToUpdate)).isEqualTo(resultPayloadAfterUpdate);
+        assertThat(invocationResult.result().analyticsTags().activities()).isEqualTo(singletonList(ActivityImpl.of(
+                "ad-scan", "success", List.of(
+                        ResultImpl.of("skipped", null, AppliedToImpl.builder()
+                                .bidders(List.of(secureBidderName, emptyBidderName))
+                                .impIds(List.of("imp_a"))
+                                .bidIds(List.of("bid_id_a"))
+                                .build()),
+                        ResultImpl.of("inspected-has-issue", null, AppliedToImpl.builder()
+                                .bidders(List.of(notSecureBadBidderName))
+                                .impIds(List.of("imp_b"))
+                                .bidIds(List.of("bid_id_b"))
+                                .build()))
+        )));
+    }
+
+    @Test
     public void shouldSubmitBidsWithoutMaskedGeoInfoWhenTransmitGeoIsAllowed() {
         // given
         final Boolean transmitGeoIsAllowed = true;
