@@ -235,8 +235,7 @@ public class AuctionRequestFactory {
         return Future.succeededFuture(auctionStoredResult.bidRequest())
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
                 .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
-                .map(bidRequest -> paramsResolver.resolve(
-                        bidRequest, auctionContext.getHttpRequest(), ENDPOINT, hasStoredBidRequest))
+                .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, hasStoredBidRequest))
                 .map(bidRequest -> cookieDeprecationService.updateBidRequestDevice(bidRequest, auctionContext));
     }
 

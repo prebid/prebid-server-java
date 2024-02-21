@@ -280,7 +280,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         ampEventBuilder.origin(origin);
 
         final HttpServerResponse response = routingContext.response();
-        enrichWithCommonHeaders(response, origin);
+        enrichResponseWithCommonHeaders(routingContext, origin);
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
@@ -393,15 +393,19 @@ public class AmpHandler implements Handler<RoutingContext> {
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 
-    private void enrichWithCommonHeaders(HttpServerResponse response, String origin) {
-        final MultiMap headers = response.headers();
+    private void enrichResponseWithCommonHeaders(RoutingContext routingContext, String origin) {
+        final MultiMap responseHeaders = routingContext.response().headers();
+        HttpUtil.addHeaderIfValueIsNotEmpty(
+                responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+
+        final MultiMap requestHeaders = routingContext.request().headers();
+        if (requestHeaders.contains(HttpUtil.SEC_BROWSING_TOPICS_HEADER)) {
+            responseHeaders.add(HttpUtil.OBSERVE_BROWSING_TOPICS_HEADER, "?1");
+        }
 
         // Add AMP headers
-        headers.add("AMP-Access-Control-Allow-Source-Origin", origin)
+        responseHeaders.add("AMP-Access-Control-Allow-Source-Origin", origin)
                 .add("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin");
-
-        HttpUtil.addHeaderIfValueIsNotEmpty(
-                headers, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
     }
 
     private void enrichWithSuccessfulHeaders(HttpServerResponse response) {

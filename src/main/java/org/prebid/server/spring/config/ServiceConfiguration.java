@@ -23,6 +23,7 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.SecBrowsingTopicsResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.SupplyChainResolver;
@@ -261,6 +262,13 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    SecBrowsingTopicsResolver secBrowsingTopicsResolver(
+            @Value("${auction.privacysandbox.topicsdomain:#{null}}") String topicsDomain) {
+
+        return new SecBrowsingTopicsResolver(topicsDomain);
+    }
+
+    @Bean
     Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
             @Value("${auction.cache.only-winning-bids}") boolean cacheOnlyWinningBids,
             @Value("${settings.generate-storedrequest-bidrequest-id}") boolean generateBidRequestId,
@@ -273,6 +281,7 @@ public class ServiceConfiguration {
             TimeoutResolver timeoutResolver,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
+            SecBrowsingTopicsResolver topicsResolver,
             JsonMerger jsonMerger,
             JacksonMapper mapper) {
 
@@ -288,6 +297,7 @@ public class ServiceConfiguration {
                 timeoutResolver,
                 ipAddressHelper,
                 sourceIdGenerator,
+                topicsResolver,
                 jsonMerger,
                 mapper);
     }
