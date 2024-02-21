@@ -80,7 +80,7 @@ public class GeoRuleCreatorTest {
     private static BidRequest givenBidRequest(String country, String region, String gpc) {
         return BidRequest.builder()
                 .device(Device.builder().geo(Geo.builder().country(country).region(region).build()).build())
-                .regs(Regs.builder().ext(ExtRegs.of(null, null, gpc)).build())
+                .regs(Regs.builder().ext(ExtRegs.of(null, null, gpc, null)).build())
                 .build();
     }
 

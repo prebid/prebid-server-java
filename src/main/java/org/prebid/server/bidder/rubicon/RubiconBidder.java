@@ -92,6 +92,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
@@ -1026,8 +1027,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static boolean isFullyPopulatedVideo(Video video) {
         // These are just recommended video fields for XAPI
-        return video.getMimes() != null && video.getProtocols() != null && video.getMaxduration() != null
-                && video.getLinearity() != null && video.getApi() != null;
+        return video.getMimes() != null
+                && video.getProtocols() != null
+                && video.getMaxduration() != null
+                && video.getLinearity() != null;
     }
 
     private static String referer(Site site) {
@@ -1514,7 +1517,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final ExtRegs originalExtRegs = regs.getExt();
         final String gpc = originalExtRegs != null ? originalExtRegs.getGpc() : null;
-        final ExtRegs extRegs = copyProperties(originalExtRegs, ExtRegs.of(gdpr, usPrivacy, gpc));
+        final ExtRegsDsa dsa = originalExtRegs != null ? originalExtRegs.getDsa() : null;
+        final ExtRegs extRegs = copyProperties(originalExtRegs, ExtRegs.of(gdpr, usPrivacy, gpc, dsa));
 
         return regs.toBuilder()
                 .gdpr(null)
