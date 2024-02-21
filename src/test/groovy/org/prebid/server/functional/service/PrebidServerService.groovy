@@ -25,6 +25,7 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.RawAuctionResponse
 import org.prebid.server.functional.model.response.biddersparams.BiddersParamsResponse
 import org.prebid.server.functional.model.response.cookiesync.CookieSyncResponse
+import org.prebid.server.functional.model.response.cookiesync.RawCookieSyncResponse
 import org.prebid.server.functional.model.response.currencyrates.CurrencyRatesResponse
 import org.prebid.server.functional.model.response.getuids.GetuidResponse
 import org.prebid.server.functional.model.response.infobidders.BidderInfoResponse
@@ -149,6 +150,28 @@ class PrebidServerService implements ObjectMapperWrapper {
 
         checkResponseStatusCode(response)
         response.as(CookieSyncResponse)
+    }
+
+    @Step("[POST RAW] /cookie_sync with uids cookies")
+    RawCookieSyncResponse sendCookieSyncRequestRaw(CookieSyncRequest request, UidsCookie uidsCookie) {
+        def response = postCookieSync(request, uidsCookie)
+
+        new RawCookieSyncResponse().tap {
+            it.headers = getHeaders(response)
+            it.responseBody = response.body.asString()
+        }
+    }
+
+    @Step("[POST RAW] /cookie_sync with uids and additional cookies")
+    RawCookieSyncResponse sendCookieSyncRequestRaw(CookieSyncRequest request,
+                                                   UidsCookie uidsCookie,
+                                                   Map<String, String> additionalCookies) {
+        def response = postCookieSync(request, uidsCookie, additionalCookies)
+
+        new RawCookieSyncResponse().tap {
+            it.headers = getHeaders(response)
+            it.responseBody = response.body.asString()
+        }
     }
 
     @Step("[GET] /setuid")

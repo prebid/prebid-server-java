@@ -59,6 +59,9 @@ public final class HttpUtil {
     public static final CharSequence REFERER_HEADER = HttpHeaders.createOptimized("Referer");
     public static final CharSequence USER_AGENT_HEADER = HttpHeaders.createOptimized("User-Agent");
     public static final CharSequence COOKIE_HEADER = HttpHeaders.createOptimized("Cookie");
+    public static final CharSequence SEC_COOKIE_DEPRECATION =
+            HttpHeaders.createOptimized("Sec-Cookie-Deprecation");
+
     public static final CharSequence ACCEPT_LANGUAGE_HEADER = HttpHeaders.createOptimized("Accept-Language");
     public static final CharSequence SET_COOKIE_HEADER = HttpHeaders.createOptimized("Set-Cookie");
     public static final CharSequence AUTHORIZATION_HEADER = HttpHeaders.createOptimized("Authorization");
