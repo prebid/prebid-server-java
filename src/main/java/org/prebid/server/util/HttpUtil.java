@@ -51,6 +51,9 @@ public final class HttpUtil {
     public static final CharSequence ORIGIN_HEADER = HttpHeaders.createOptimized("Origin");
     public static final CharSequence ACCEPT_HEADER = HttpHeaders.createOptimized("Accept");
     public static final CharSequence SEC_GPC_HEADER = HttpHeaders.createOptimized("Sec-GPC");
+    public static final CharSequence SEC_BROWSING_TOPICS_HEADER = HttpHeaders.createOptimized("Sec-Browsing-Topics");
+    public static final CharSequence OBSERVE_BROWSING_TOPICS_HEADER =
+            HttpHeaders.createOptimized("Observe-Browsing-Topics");
     public static final CharSequence CONTENT_TYPE_HEADER = HttpHeaders.createOptimized("Content-Type");
     public static final CharSequence X_REQUESTED_WITH_HEADER = HttpHeaders.createOptimized("X-Requested-With");
     public static final CharSequence REFERER_HEADER = HttpHeaders.createOptimized("Referer");
