@@ -32,7 +32,7 @@
         <vertx.version>3.9.10</vertx.version>
         <commons.version>3.12.0</commons.version>
         <commons.collections.version>4.4</commons.collections.version>
-        <commons.compress.version>1.21</commons.compress.version>
+        <commons.compress.version>1.26.0</commons.compress.version>
         <commons-math3.version>3.6.1</commons-math3.version>
         <httpclient.version>4.5.14</httpclient.version>
         <ipaddress.version>5.3.1</ipaddress.version>
