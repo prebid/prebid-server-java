@@ -59,7 +59,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
 
         // when
         final PartitionedCookie actualCookie = target.makeCookie(
-                Account.builder().empty(false).build(),
+                Account.builder().id("accountId").auction(AccountAuctionConfig.builder().build()).build(),
                 routingContext);
 
         // then
@@ -73,7 +73,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
                 .willReturn(Map.of("receive-cookie-deprecation", Cookie.cookie("receive-cookie-deprecation", "1")));
 
         // when
-        final PartitionedCookie actualCookie = target.makeCookie(Account.builder().empty(true).build(), routingContext);
+        final PartitionedCookie actualCookie = target.makeCookie(Account.builder().build(), routingContext);
 
         // then
         assertThat(actualCookie).isNull();

@@ -26,13 +26,12 @@ public class Account {
 
     AccountHooksConfiguration hooks;
 
-    @JsonIgnore
-    boolean empty;
-
     public static Account empty(String id) {
-        return Account.builder()
-                .id(id)
-                .empty(true)
-                .build();
+        return Account.builder().id(id).build();
+    }
+
+    @JsonIgnore
+    public boolean isEmpty() {
+        return this.equals(empty(id));
     }
 }
