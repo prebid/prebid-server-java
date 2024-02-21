@@ -40,7 +40,7 @@ public class PriceFloorsConfigResolver {
     private final AccountPriceFloorsConfig defaultFloorsConfig;
 
     public PriceFloorsConfigResolver(Account defaultAccount, Metrics metrics) {
-        this.defaultAccount = defaultAccount;
+        this.defaultAccount = Objects.requireNonNull(defaultAccount);
         this.defaultFloorsConfig = getFloorsConfig(defaultAccount);
         this.metrics = Objects.requireNonNull(metrics);
     }
@@ -149,9 +149,8 @@ public class PriceFloorsConfigResolver {
 
     private Account fallbackToDefaultConfig(Account account) {
         final AccountAuctionConfig auctionConfig = account.getAuction();
-        final AccountAuctionConfig defaultAuctionConfig = ObjectUtil.getIfNotNull(defaultAccount, Account::getAuction);
         final AccountPriceFloorsConfig defaultPriceFloorsConfig =
-                ObjectUtil.getIfNotNull(defaultAuctionConfig, AccountAuctionConfig::getPriceFloors);
+                ObjectUtil.getIfNotNull(defaultAccount.getAuction(), AccountAuctionConfig::getPriceFloors);
 
         return account.toBuilder()
                 .auction(auctionConfig.toBuilder().priceFloors(defaultPriceFloorsConfig).build())

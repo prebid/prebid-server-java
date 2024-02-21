@@ -41,7 +41,7 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
         this.delegate = Objects.requireNonNull(delegate);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
         this.priceFloorsConfigResolver = Objects.requireNonNull(priceFloorsConfigResolver);
-        this.defaultAccount = defaultAccount;
+        this.defaultAccount = Objects.requireNonNull(defaultAccount);
     }
 
     @Override
@@ -91,9 +91,7 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
     }
 
     private Account mergeAccounts(Account account) {
-        return defaultAccount != null
-                ? jsonMerger.merge(account, defaultAccount, Account.class)
-                : account;
+        return jsonMerger.merge(account, defaultAccount, Account.class);
     }
 
     private Account validateAndModifyAccount(Account account) {

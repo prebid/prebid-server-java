@@ -17,6 +17,7 @@ import org.prebid.server.settings.model.AccountPrivacySandboxConfig;
 import org.prebid.server.settings.model.AccountPrivacySandboxCookieDeprecationConfig;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.Objects;
 import java.util.Optional;
 
 public class CookieDeprecationService {
@@ -28,7 +29,7 @@ public class CookieDeprecationService {
     private final Account defaultAccount;
 
     public CookieDeprecationService(Account defaultAccount) {
-        this.defaultAccount = defaultAccount;
+        this.defaultAccount = Objects.requireNonNull(defaultAccount);
     }
 
     public PartitionedCookie makeCookie(Account account, RoutingContext routingContext) {

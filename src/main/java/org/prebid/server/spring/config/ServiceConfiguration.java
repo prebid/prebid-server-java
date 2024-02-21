@@ -1095,13 +1095,12 @@ public class ServiceConfiguration {
     Account defaultAccount(@Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
                            JacksonMapper mapper) {
         try {
-            final Account account = StringUtils.isNotBlank(defaultAccountConfig)
+            return StringUtils.isNotBlank(defaultAccountConfig)
                     ? mapper.decodeValue(defaultAccountConfig, Account.class)
-                    : null;
-
-            return account != null && !account.equals(Account.builder().build()) ? account : null;
+                    : Account.builder().build();
         } catch (DecodeException e) {
-            throw new IllegalArgumentException("Could not parse default account configuration", e);
+            logger.warn("Could not parse default account configuration", e);
+            return Account.builder().build();
         }
     }
 
