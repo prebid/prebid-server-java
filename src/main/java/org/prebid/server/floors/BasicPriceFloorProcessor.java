@@ -30,10 +30,11 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.util.algorithms.random.RandomPositiveWeightedEntrySupplier;
+import org.prebid.server.util.algorithms.random.RandomWeightedEntrySupplier;
 
 import java.math.BigDecimal;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
@@ -52,6 +53,8 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
     private final PriceFloorResolver floorResolver;
     private final JacksonMapper mapper;
 
+    private final RandomWeightedEntrySupplier<PriceFloorModelGroup> modelPicker;
+
     public BasicPriceFloorProcessor(PriceFloorFetcher floorFetcher,
                                     PriceFloorResolver floorResolver,
                                     JacksonMapper mapper) {
@@ -59,6 +62,12 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         this.floorFetcher = Objects.requireNonNull(floorFetcher);
         this.floorResolver = Objects.requireNonNull(floorResolver);
         this.mapper = Objects.requireNonNull(mapper);
+
+        modelPicker = new RandomPositiveWeightedEntrySupplier<>(BasicPriceFloorProcessor::resolveModelGroupWeight);
+    }
+
+    private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {
+        return ObjectUtils.defaultIfNull(modelGroup.getModelWeight(), 1);
     }
 
     @Override
@@ -178,9 +187,9 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         return Price.of(null, requestFloorMin);
     }
 
-    private static PriceFloorRules createFloorsFrom(PriceFloorRules floors,
-                                                    FetchStatus fetchStatus,
-                                                    PriceFloorLocation location) {
+    private PriceFloorRules createFloorsFrom(PriceFloorRules floors,
+                                             FetchStatus fetchStatus,
+                                             PriceFloorLocation location) {
 
         final PriceFloorData floorData = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
         final PriceFloorData updatedFloorData = floorData != null ? updateFloorData(floorData) : null;
@@ -193,7 +202,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 .build();
     }
 
-    private static PriceFloorData updateFloorData(PriceFloorData floorData) {
+    private PriceFloorData updateFloorData(PriceFloorData floorData) {
         final List<PriceFloorModelGroup> modelGroups = floorData.getModelGroups();
 
         final PriceFloorModelGroup modelGroup = CollectionUtils.isNotEmpty(modelGroups)
@@ -205,29 +214,11 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
                 : floorData;
     }
 
-    private static PriceFloorModelGroup selectFloorModelGroup(List<PriceFloorModelGroup> modelGroups) {
-        final int overallModelWeight = modelGroups.stream()
-                .filter(BasicPriceFloorProcessor::isValidModelGroup)
-                .mapToInt(BasicPriceFloorProcessor::resolveModelGroupWeight)
-                .sum();
-
-        Collections.shuffle(modelGroups);
-
-        final List<PriceFloorModelGroup> groupsByWeight = modelGroups.stream()
-                .filter(BasicPriceFloorProcessor::isValidModelGroup)
-                .sorted(Comparator.comparing(BasicPriceFloorProcessor::resolveModelGroupWeight))
-                .toList();
-
-        int winWeight = ThreadLocalRandom.current().nextInt(overallModelWeight);
-        for (PriceFloorModelGroup modelGroup : groupsByWeight) {
-            winWeight -= resolveModelGroupWeight(modelGroup);
-
-            if (winWeight <= 0) {
-                return modelGroup;
-            }
-        }
-
-        return groupsByWeight.get(groupsByWeight.size() - 1);
+    private PriceFloorModelGroup selectFloorModelGroup(List<PriceFloorModelGroup> modelGroups) {
+        return modelPicker.get(
+                modelGroups.stream()
+                        .filter(BasicPriceFloorProcessor::isValidModelGroup)
+                        .toList());
     }
 
     private static boolean isValidModelGroup(PriceFloorModelGroup modelGroup) {
@@ -239,10 +230,6 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final Integer modelWeight = modelGroup.getModelWeight();
         return modelWeight == null
                 || (modelWeight >= MODEL_WEIGHT_MIN_VALUE && modelWeight <= MODEL_WEIGHT_MAX_VALUE);
-    }
-
-    private static int resolveModelGroupWeight(PriceFloorModelGroup modelGroup) {
-        return ObjectUtils.defaultIfNull(modelGroup.getModelWeight(), 1);
     }
 
     private static String resolveFloorProvider(PriceFloorRules rules) {

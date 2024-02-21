@@ -13,6 +13,7 @@ import org.prebid.server.functional.model.response.auction.Dsa as BidDsa
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.TcfConsent
 
+import static org.prebid.server.functional.model.response.auction.BidRejectionReason.GENERAL
 import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
@@ -159,8 +160,8 @@ class DsaSpec extends PrivacyBaseSpec {
 
         and: "Response should contain an error"
         def bidId = bidResponse.seatbid[0].bid[0].id
-        assert response.ext?.errors[GENERIC]*.code == [5]
-        assert response.ext?.errors[GENERIC]*.message == ["BidId `$bidId` validation messages: Error: Bid \"$bidId\" missing DSA"]
+        assert response.ext?.warnings[GENERIC]*.code == [5]
+        assert response.ext?.warnings[GENERIC]*.message == ["Bid \"$bidId\" missing DSA"]
 
         where:
         dsaRequired << [DsaRequired.REQUIRED,
@@ -276,8 +277,47 @@ class DsaSpec extends PrivacyBaseSpec {
 
         and: "Response should contain an error"
         def bidId = bidResponse.seatbid[0].bid[0].id
-        assert response.ext?.errors[GENERIC]*.code == [5]
-        assert response.ext?.errors[GENERIC]*.message == ["BidId `$bidId` validation messages: Error: Bid \"$bidId\" missing DSA"]
+        assert response.ext?.warnings[GENERIC]*.code == [5]
+        assert response.ext?.warnings[GENERIC]*.message == ["Bid \"$bidId\" missing DSA"]
+
+        where:
+        dsaRequired << [DsaRequired.REQUIRED,
+                        DsaRequired.REQUIRED_PUBLISHER_IS_ONLINE_PLATFORM]
+    }
+
+    def "Auction request should reject bids without DSA and populate seatNonBid when dsarequired is #dsaRequired"() {
+        given: "Default bid request with DSA"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            ext.prebid.returnAllBidStatus = true
+            regs.ext.dsa = RequestDsa.getDefaultDsa(dsaRequired)
+        }
+
+        and: "Default bidder response without DSA"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].ext = new BidExt(dsa: null)
+        }
+
+        and: "Set bidder response"
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should reject bid"
+        assert !response.seatbid
+
+        and: "PBS response should contain seatNonBid for rejected bids"
+        assert response.ext.seatnonbid.size() == 1
+
+        def seatNonBid = response.ext.seatnonbid[0]
+        assert seatNonBid.seat == GENERIC.value
+        assert seatNonBid.nonBid[0].impId == bidRequest.imp[0].id
+        assert seatNonBid.nonBid[0].statusCode == GENERAL
+
+        and: "Response should contain an error"
+        def bidId = bidResponse.seatbid[0].bid[0].id
+        assert response.ext?.warnings[GENERIC]*.code == [5]
+        assert response.ext?.warnings[GENERIC]*.message == ["Bid \"$bidId\" missing DSA"]
 
         where:
         dsaRequired << [DsaRequired.REQUIRED,

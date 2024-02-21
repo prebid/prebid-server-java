@@ -2,7 +2,6 @@ package org.prebid.server.validation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Deal;
@@ -61,8 +60,6 @@ public class ResponseBidValidator {
 
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
-    private static final String DSA_EXT = "dsa";
-
     private static final String DEALS_ONLY = "dealsonly";
 
     private final BidValidationEnforcement bannerMaxSizeEnforcement;
@@ -92,8 +89,7 @@ public class ResponseBidValidator {
     public ValidationResult validate(BidderBid bidderBid,
                                      String bidder,
                                      AuctionContext auctionContext,
-                                     BidderAliases aliases,
-                                     boolean isDsaValidationEnabled) {
+                                     BidderAliases aliases) {
 
         final Bid bid = bidderBid.getBid();
         final BidRequest bidRequest = auctionContext.getBidRequest();
@@ -104,10 +100,6 @@ public class ResponseBidValidator {
             validateCommonFields(bid);
             validateTypeSpecific(bidderBid, bidder);
             validateCurrency(bidderBid.getBidCurrency());
-
-            if (isDsaValidationEnabled) {
-                validateDsaFor(bid);
-            }
 
             final Imp correspondingImp = findCorrespondingImp(bid, bidRequest);
             if (bidderBid.getType() == BidType.banner) {
@@ -161,13 +153,6 @@ public class ResponseBidValidator {
             }
         } catch (IllegalArgumentException e) {
             throw new ValidationException("BidResponse currency \"%s\" is not valid", currency);
-        }
-    }
-
-    private void validateDsaFor(Bid bid) throws ValidationException {
-        final ObjectNode bidExt = bid.getExt();
-        if (bidExt == null || !bidExt.hasNonNull(DSA_EXT) || bidExt.get(DSA_EXT).isEmpty()) {
-            throw new ValidationException("Bid \"%s\" missing DSA", bid.getId());
         }
     }
 
