@@ -1,15 +1,16 @@
 package org.prebid.server.functional.model.db
 
 import groovy.transform.ToString
+import org.prebid.server.functional.model.db.typeconverter.StoredRequestConfigTypeConverter
+import org.prebid.server.functional.model.request.amp.AmpRequest
+import org.prebid.server.functional.model.request.auction.BidRequest
+
 import javax.persistence.Column
 import javax.persistence.Convert
 import javax.persistence.Entity
 import javax.persistence.GeneratedValue
 import javax.persistence.Id
 import javax.persistence.Table
-import org.prebid.server.functional.model.db.typeconverter.StoredRequestConfigTypeConverter
-import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.auction.BidRequest
 
 import static javax.persistence.GenerationType.IDENTITY
 

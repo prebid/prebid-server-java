@@ -1,8 +1,8 @@
 package org.prebid.server.functional.tests
 
 import org.apache.commons.lang3.StringUtils
-import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.auction.AccountAuctionConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.db.StoredResponse

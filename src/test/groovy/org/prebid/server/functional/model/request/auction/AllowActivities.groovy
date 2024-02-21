@@ -2,13 +2,13 @@ package org.prebid.server.functional.model.request.auction
 
 import groovy.transform.ToString
 
+import static org.prebid.server.functional.model.request.auction.ActivityType.ENRICH_UFPD
+import static org.prebid.server.functional.model.request.auction.ActivityType.FETCH_BIDS
+import static org.prebid.server.functional.model.request.auction.ActivityType.REPORT_ANALYTICS
+import static org.prebid.server.functional.model.request.auction.ActivityType.SYNC_USER
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_TID
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
-import static org.prebid.server.functional.model.request.auction.ActivityType.REPORT_ANALYTICS
-import static org.prebid.server.functional.model.request.auction.ActivityType.ENRICH_UFPD
-import static org.prebid.server.functional.model.request.auction.ActivityType.FETCH_BIDS
-import static org.prebid.server.functional.model.request.auction.ActivityType.SYNC_USER
 
 @ToString(includeNames = true, ignoreNulls = true)
 class AllowActivities {

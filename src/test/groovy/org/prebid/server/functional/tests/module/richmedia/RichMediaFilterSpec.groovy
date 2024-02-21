@@ -1,8 +1,8 @@
 package org.prebid.server.functional.tests.module.richmedia
 
 import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountHooksConfiguration
-import org.prebid.server.functional.model.config.PbsModulesConfig
+import org.prebid.server.functional.model.config.hook.AccountHooksConfiguration
+import org.prebid.server.functional.model.config.hook.PbsModulesConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.BidRequest

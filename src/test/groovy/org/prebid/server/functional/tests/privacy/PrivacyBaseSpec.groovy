@@ -1,13 +1,13 @@
 package org.prebid.server.functional.tests.privacy
 
-import org.prebid.server.functional.model.config.AccountCcpaConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountCookieSyncConfig
 import org.prebid.server.functional.model.config.AccountCoopSyncConfig
-import org.prebid.server.functional.model.config.AccountDsaConfig
-import org.prebid.server.functional.model.config.AccountGdprConfig
-import org.prebid.server.functional.model.config.AccountGppConfig
-import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.config.privacy.AccountCcpaConfig
+import org.prebid.server.functional.model.config.privacy.AccountDsaConfig
+import org.prebid.server.functional.model.config.privacy.AccountGdprConfig
+import org.prebid.server.functional.model.config.privacy.AccountGppConfig
+import org.prebid.server.functional.model.config.privacy.AccountPrivacyConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.amp.ConsentType

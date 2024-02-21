@@ -1,12 +1,12 @@
 package org.prebid.server.functional.tests.module
 
-import org.prebid.server.functional.model.config.Endpoint
-import org.prebid.server.functional.model.config.ExecutionPlan
+import org.prebid.server.functional.model.config.hook.Endpoint
+import org.prebid.server.functional.model.config.hook.ExecutionPlan
 import org.prebid.server.functional.tests.BaseSpec
 
-import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
-import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
-import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
+import static org.prebid.server.functional.model.config.hook.Endpoint.OPENRTB2_AUCTION
+import static org.prebid.server.functional.model.config.hook.ModuleName.PB_RICHMEDIA_FILTER
+import static org.prebid.server.functional.model.config.hook.Stage.ALL_PROCESSED_BID_RESPONSES
 
 class ModuleBaseSpec extends BaseSpec {
 

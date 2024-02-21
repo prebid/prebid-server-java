@@ -6,11 +6,11 @@ import org.prebid.server.functional.model.request.auction.AssetImage
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Native
 import org.prebid.server.functional.model.request.auction.NativeRequest
+import org.prebid.server.functional.model.request.auction.Prebid
 import org.prebid.server.functional.model.request.auction.StoredAuctionResponse
 import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidExt
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.model.response.auction.Prebid
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
 

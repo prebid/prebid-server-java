@@ -8,7 +8,6 @@ import org.prebid.server.functional.model.mock.services.prebidcache.response.Cac
 import org.prebid.server.functional.model.mock.services.prebidcache.response.PrebidCacheResponse
 import org.testcontainers.containers.MockServerContainer
 
-import java.util.stream.Collectors
 import java.util.stream.Stream
 
 import static org.mockserver.model.HttpRequest.request

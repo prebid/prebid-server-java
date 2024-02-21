@@ -1,10 +1,10 @@
 package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.Currency
-import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
-import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
-import org.prebid.server.functional.model.config.PriceFloorsFetch
+import org.prebid.server.functional.model.config.auction.AccountAuctionConfig
+import org.prebid.server.functional.model.config.auction.AccountPriceFloorsConfig
+import org.prebid.server.functional.model.config.auction.PriceFloorsFetch
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType

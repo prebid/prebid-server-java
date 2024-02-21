@@ -1,6 +1,6 @@
 package org.prebid.server.functional.tests.pricefloors
 
-import org.prebid.server.functional.model.config.PriceFloorsFetch
+import org.prebid.server.functional.model.config.auction.PriceFloorsFetch
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.pricefloors.ModelGroup
 import org.prebid.server.functional.model.pricefloors.PriceFloorData

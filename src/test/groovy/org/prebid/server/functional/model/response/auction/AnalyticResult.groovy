@@ -20,7 +20,7 @@ class AnalyticResult {
 
     static AnalyticResult buildFromImp(Imp imp) {
         def appliedTo = new AppliedTo(impIds: [imp.id], bidders: [imp.ext.prebid.bidder.configuredBidders.first()])
-        def impResult = new ImpResult(status: 'success-block', values: new ModuleValue(richmediaFormat: 'mraid'), appliedTo: appliedTo)
+        def impResult = new ImpResult(status: 'success-block', values: new ModuleValue(richMediaFormat: 'mraid'), appliedTo: appliedTo)
         new AnalyticResult(name: 'reject-richmedia', status: SUCCESS, results: [impResult])
     }
 }

@@ -8,8 +8,8 @@ import org.prebid.server.functional.util.PBSUtils
 @EqualsAndHashCode
 class DoohExtData {
 
-   String data
-   String language
+    String data
+    String language
 
     static DoohExtData getDefaultDoohExtData() {
         new DoohExtData().tap {

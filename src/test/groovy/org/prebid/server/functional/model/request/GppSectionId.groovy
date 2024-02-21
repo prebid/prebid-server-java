@@ -36,7 +36,7 @@ enum GppSectionId {
         value as String
     }
 
-    Integer getIntValue(){
+    Integer getIntValue() {
         value.toInteger()
     }
 }
