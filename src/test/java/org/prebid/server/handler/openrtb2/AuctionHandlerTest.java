@@ -187,6 +187,28 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldAddObserveBrowsingTopicsResponseHeader() {
+        // given
+        httpRequest.headers().add(HttpUtil.SEC_BROWSING_TOPICS_HEADER, "");
+
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        given(exchangeService.holdAuction(any()))
+                .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
+                        .bidResponse(BidResponse.builder().build())
+                        .build()));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        assertThat(httpResponse.headers())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple("Observe-Browsing-Topics", "?1"));
+    }
+
+    @Test
     public void shouldComputeTimeoutBasedOnRequestProcessingStartTime() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
