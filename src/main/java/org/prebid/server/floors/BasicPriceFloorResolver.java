@@ -512,7 +512,8 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
         final BigDecimal requestFloorMin = floorRules.map(PriceFloorRules::getFloorMin).orElse(null);
         final String requestFloorMinCur = floorRules.map(PriceFloorRules::getFloorMinCur).orElse(null);
 
-        if (impFloorMinCur != null && !impFloorMinCur.equals(requestFloorMinCur)) {
+        if (ObjectUtils.allNotNull(impFloorMinCur, requestFloorMinCur)
+                && !impFloorMinCur.equals(requestFloorMinCur)) {
             warnings.add("imp[].ext.prebid.floors.floorMinCur and ext.prebid.floors.floorMinCur has different values");
         }
 
