@@ -151,6 +151,9 @@ public class SetuidHandlerTest extends VertxTest {
         given(activityInfrastructure.isAllowed(any(), any()))
                 .willReturn(true);
 
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().build()));
+
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         setuidHandler = new SetuidHandler(

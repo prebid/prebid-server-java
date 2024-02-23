@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.floors.PriceFloorsConfigResolver;
+import org.prebid.server.floors.PriceFloorsConfigValidator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.MetricName;
@@ -20,7 +20,6 @@ import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
-import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
 import org.prebid.server.spring.config.database.DatabaseConfiguration;
@@ -244,18 +243,20 @@ public class SettingsConfiguration {
         EnrichingApplicationSettings enrichingApplicationSettings(
                 @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
                 @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
-                Account defaultAccount,
+                @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
+                JacksonMapper mapper,
                 CompositeApplicationSettings compositeApplicationSettings,
-                PriceFloorsConfigResolver priceFloorsConfigResolver,
+                PriceFloorsConfigValidator priceFloorsConfigValidator,
                 JsonMerger jsonMerger) {
 
             return new EnrichingApplicationSettings(
                     enforceValidAccount,
                     logSamplingRate,
-                    defaultAccount,
+                    defaultAccountConfig,
                     compositeApplicationSettings,
-                    priceFloorsConfigResolver,
-                    jsonMerger);
+                    priceFloorsConfigValidator,
+                    jsonMerger,
+                    mapper);
         }
     }
 

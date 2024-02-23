@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
+import org.apache.commons.lang3.StringUtils;
 
 @Builder(toBuilder = true)
 @Value
@@ -32,6 +33,6 @@ public class Account {
 
     @JsonIgnore
     public boolean isEmpty() {
-        return this.equals(empty(id));
+        return StringUtils.isBlank(id) || this.equals(empty(id));
     }
 }

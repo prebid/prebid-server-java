@@ -47,11 +47,11 @@ public class CachingApplicationSettingsTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private ApplicationSettings applicationSettings;
+    private ApplicationSettings delegateSettings;
     @Mock
     private Metrics metrics;
 
-    private CachingApplicationSettings cachingApplicationSettings;
+    private CachingApplicationSettings target;
 
     private Timeout timeout;
 
@@ -59,14 +59,31 @@ public class CachingApplicationSettingsTest {
     public void setUp() {
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500L);
 
-        cachingApplicationSettings = new CachingApplicationSettings(
-                applicationSettings,
+        target = new CachingApplicationSettings(
+                delegateSettings,
                 new SettingsCache(360, 100),
                 new SettingsCache(360, 100),
                 new SettingsCache(360, 100),
                 metrics,
                 360,
                 100);
+    }
+
+    @Test
+    public void getAccountByIdShouldReturnResultWithoutCachingWhenAccountIdIsBlank() {
+        // given
+        final Account givenAccount = Account.empty("");
+        given(delegateSettings.getAccountById(eq(""), same(timeout)))
+                .willReturn(Future.succeededFuture(givenAccount));
+
+        // when
+        final Future<Account> future = target.getAccountById("", timeout);
+        target.getAccountById("", timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isSameAs(givenAccount);
+        verify(delegateSettings, times(2)).getAccountById(eq(""), same(timeout));
     }
 
     @Test
@@ -78,29 +95,29 @@ public class CachingApplicationSettingsTest {
                         .priceGranularity("med")
                         .build())
                 .build();
-        given(applicationSettings.getAccountById(eq("accountId"), same(timeout)))
+        given(delegateSettings.getAccountById(eq("accountId"), same(timeout)))
                 .willReturn(Future.succeededFuture(account));
 
         // when
-        final Future<Account> future = cachingApplicationSettings.getAccountById("accountId", timeout);
-        cachingApplicationSettings.getAccountById("accountId", timeout);
+        final Future<Account> future = target.getAccountById("accountId", timeout);
+        target.getAccountById("accountId", timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isSameAs(account);
-        verify(applicationSettings).getAccountById(eq("accountId"), same(timeout));
-        verifyNoMoreInteractions(applicationSettings);
+        verify(delegateSettings).getAccountById(eq("accountId"), same(timeout));
+        verifyNoMoreInteractions(delegateSettings);
     }
 
     @Test
     public void getAccountByIdShouldPropagateFailure() {
         // given
-        given(applicationSettings.getAccountById(anyString(), any()))
+        given(delegateSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("error")));
 
         // when
         final Future<Account> future =
-                cachingApplicationSettings.getAccountById("accountId", timeout);
+                target.getAccountById("accountId", timeout);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -112,18 +129,18 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldCachePreBidException() {
         // given
-        given(applicationSettings.getAccountById(anyString(), any()))
+        given(delegateSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("error")));
 
         // when
-        cachingApplicationSettings.getAccountById("accountId", timeout);
-        cachingApplicationSettings.getAccountById("accountId", timeout);
-        cachingApplicationSettings.getAccountById("accountId", timeout);
-        final Future<Account> lastFuture = cachingApplicationSettings
+        target.getAccountById("accountId", timeout);
+        target.getAccountById("accountId", timeout);
+        target.getAccountById("accountId", timeout);
+        final Future<Account> lastFuture = target
                 .getAccountById("accountId", timeout);
 
         // then
-        verify(applicationSettings).getAccountById(anyString(), any());
+        verify(delegateSettings).getAccountById(anyString(), any());
         assertThat(lastFuture.failed()).isTrue();
         assertThat(lastFuture.cause())
                 .isInstanceOf(PreBidException.class)
@@ -133,17 +150,17 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getAccountByIdShouldNotCacheNotPreBidException() {
         // given
-        given(applicationSettings.getAccountById(anyString(), any()))
+        given(delegateSettings.getAccountById(anyString(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("error")));
 
         // when
-        cachingApplicationSettings.getAccountById("accountId", timeout);
-        cachingApplicationSettings.getAccountById("accountId", timeout);
-        final Future<Account> lastFuture = cachingApplicationSettings
+        target.getAccountById("accountId", timeout);
+        target.getAccountById("accountId", timeout);
+        final Future<Account> lastFuture = target
                 .getAccountById("accountId", timeout);
 
         // then
-        verify(applicationSettings, times(3)).getAccountById(anyString(), any());
+        verify(delegateSettings, times(3)).getAccountById(anyString(), any());
         assertThat(lastFuture.failed()).isTrue();
         assertThat(lastFuture.cause())
                 .isInstanceOf(InvalidRequestException.class)
@@ -159,12 +176,12 @@ public class CachingApplicationSettingsTest {
                         .priceGranularity("med")
                         .build())
                 .build();
-        given(applicationSettings.getAccountById(eq("accountId"), same(timeout)))
+        given(delegateSettings.getAccountById(eq("accountId"), same(timeout)))
                 .willReturn(Future.succeededFuture(account));
 
         // when
-        cachingApplicationSettings.getAccountById("accountId", timeout);
-        cachingApplicationSettings.getAccountById("accountId", timeout);
+        target.getAccountById("accountId", timeout);
+        target.getAccountById("accountId", timeout);
 
         // then
         verify(metrics).updateSettingsCacheEventMetric(eq(MetricName.account), eq(MetricName.miss));
@@ -174,30 +191,30 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getCategoriesShouldReturnResultFromCacheOnSuccessiveCalls() {
         // given
-        given(applicationSettings.getCategories(eq("adServer"), eq("publisher"), same(timeout)))
+        given(delegateSettings.getCategories(eq("adServer"), eq("publisher"), same(timeout)))
                 .willReturn(Future.succeededFuture(singletonMap("iab", "id")));
 
         // when
         final Future<Map<String, String>> future
-                = cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
-        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+                = target.getCategories("adServer", "publisher", timeout);
+        target.getCategories("adServer", "publisher", timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo(singletonMap("iab", "id"));
-        verify(applicationSettings).getCategories(eq("adServer"), eq("publisher"), same(timeout));
-        verifyNoMoreInteractions(applicationSettings);
+        verify(delegateSettings).getCategories(eq("adServer"), eq("publisher"), same(timeout));
+        verifyNoMoreInteractions(delegateSettings);
     }
 
     @Test
     public void getCategoriesShouldPropagateFailure() {
         // given
-        given(applicationSettings.getCategories(anyString(), anyString(), any()))
+        given(delegateSettings.getCategories(anyString(), anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("error")));
 
         // when
         final Future<Map<String, String>> future =
-                cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+                target.getCategories("adServer", "publisher", timeout);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -209,18 +226,18 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getCategoriesShouldCachePreBidException() {
         // given
-        given(applicationSettings.getCategories(anyString(), anyString(), any()))
+        given(delegateSettings.getCategories(anyString(), anyString(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("error")));
 
         // when
-        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
-        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
-        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        target.getCategories("adServer", "publisher", timeout);
+        target.getCategories("adServer", "publisher", timeout);
+        target.getCategories("adServer", "publisher", timeout);
         final Future<Map<String, String>> lastFuture =
-                cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+                target.getCategories("adServer", "publisher", timeout);
 
         // then
-        verify(applicationSettings).getCategories(anyString(), anyString(), any());
+        verify(delegateSettings).getCategories(anyString(), anyString(), any());
         assertThat(lastFuture.failed()).isTrue();
         assertThat(lastFuture.cause())
                 .isInstanceOf(PreBidException.class)
@@ -230,18 +247,18 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getCategoriesShouldNotCacheNotPreBidException() {
         // given
-        given(applicationSettings.getCategories(anyString(), anyString(), any()))
+        given(delegateSettings.getCategories(anyString(), anyString(), any()))
                 .willReturn(Future.failedFuture(new TimeoutException("timeout")));
 
         // when
 
-        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
-        cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+        target.getCategories("adServer", "publisher", timeout);
+        target.getCategories("adServer", "publisher", timeout);
         final Future<Map<String, String>> lastFuture =
-                cachingApplicationSettings.getCategories("adServer", "publisher", timeout);
+                target.getCategories("adServer", "publisher", timeout);
 
         // then
-        verify(applicationSettings, times(3)).getCategories(anyString(), anyString(), any());
+        verify(delegateSettings, times(3)).getCategories(anyString(), anyString(), any());
         assertThat(lastFuture.failed()).isTrue();
         assertThat(lastFuture.cause())
                 .isInstanceOf(TimeoutException.class)
@@ -251,34 +268,34 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnResultOnSuccessiveCalls() {
         // given
-        given(applicationSettings.getStoredData(any(), eq(singleton("reqid")), eq(singleton("impid")), same(timeout)))
+        given(delegateSettings.getStoredData(any(), eq(singleton("reqid")), eq(singleton("impid")), same(timeout)))
                 .willReturn(Future.succeededFuture(StoredDataResult.of(
                         singletonMap("reqid", "json"), singletonMap("impid", "json2"), emptyList())));
 
         // when
         final Future<StoredDataResult> future =
-                cachingApplicationSettings.getStoredData("1001", singleton("reqid"), singleton("impid"), timeout);
+                target.getStoredData("1001", singleton("reqid"), singleton("impid"), timeout);
         // second call
-        cachingApplicationSettings.getStoredData("1001", singleton("reqid"), singleton("impid"), timeout);
+        target.getStoredData("1001", singleton("reqid"), singleton("impid"), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result()).isEqualTo(StoredDataResult.of(
                 singletonMap("reqid", "json"), singletonMap("impid", "json2"), emptyList()));
-        verify(applicationSettings)
+        verify(delegateSettings)
                 .getStoredData(eq("1001"), eq(singleton("reqid")), eq(singleton("impid")), same(timeout));
-        verifyNoMoreInteractions(applicationSettings);
+        verifyNoMoreInteractions(delegateSettings);
     }
 
     @Test
     public void getStoredDataShouldPropagateFailure() {
         // given
-        given(applicationSettings.getStoredData(any(), anySet(), anySet(), any()))
+        given(delegateSettings.getStoredData(any(), anySet(), anySet(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("error")));
 
         // when
         final Future<StoredDataResult> future =
-                cachingApplicationSettings.getStoredData(null, singleton("id"), emptySet(), timeout);
+                target.getStoredData(null, singleton("id"), emptySet(), timeout);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -290,13 +307,13 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnResultWithErrorsOnNotSuccessiveCallToCacheAndErrorInDelegateCall() {
         // given
-        given(applicationSettings.getStoredData(any(), eq(singleton("id")), eq(emptySet()), any()))
+        given(delegateSettings.getStoredData(any(), eq(singleton("id")), eq(emptySet()), any()))
                 .willReturn(Future.succeededFuture(StoredDataResult.of(
                         emptyMap(), emptyMap(), singletonList("error"))));
 
         // when
         final Future<StoredDataResult> future =
-                cachingApplicationSettings.getStoredData(null, singleton("id"), emptySet(), timeout);
+                target.getStoredData(null, singleton("id"), emptySet(), timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -307,35 +324,35 @@ public class CachingApplicationSettingsTest {
     @Test
     public void getStoredDataShouldReturnResultWithErrorIfAccountDiffers() {
         // given
-        given(applicationSettings.getStoredData(any(), any(), any(), any()))
+        given(delegateSettings.getStoredData(any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(
                         StoredDataResult.of(singletonMap("reqid", "json"), emptyMap(), emptyList())))
                 .willReturn(Future.failedFuture("error"));
 
         // when
-        cachingApplicationSettings.getStoredData("1001", singleton("reqid"), emptySet(), timeout);
+        target.getStoredData("1001", singleton("reqid"), emptySet(), timeout);
         // second call
         final Future<StoredDataResult> future =
-                cachingApplicationSettings.getStoredData("1002", singleton("reqid"), emptySet(), timeout);
+                target.getStoredData("1002", singleton("reqid"), emptySet(), timeout);
 
         // then
         assertThat(future.failed()).isTrue();
         assertThat(future.cause()).hasMessage("error");
-        verify(applicationSettings)
+        verify(delegateSettings)
                 .getStoredData(eq("1001"), eq(singleton("reqid")), eq(emptySet()), same(timeout));
-        verify(applicationSettings)
+        verify(delegateSettings)
                 .getStoredData(eq("1002"), eq(singleton("reqid")), eq(emptySet()), same(timeout));
-        verifyNoMoreInteractions(applicationSettings);
+        verifyNoMoreInteractions(delegateSettings);
     }
 
     @Test
     public void getStoredResponseShouldPropagateFailure() {
         // given
-        given(applicationSettings.getStoredResponses(anySet(), any()))
+        given(delegateSettings.getStoredResponses(anySet(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("error")));
 
         // when
-        final Future<StoredResponseDataResult> future = cachingApplicationSettings
+        final Future<StoredResponseDataResult> future = target
                 .getStoredResponses(singleton("id"), timeout);
 
         // then

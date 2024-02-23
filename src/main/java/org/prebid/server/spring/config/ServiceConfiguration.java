@@ -78,13 +78,12 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.floors.PriceFloorProcessor;
-import org.prebid.server.floors.PriceFloorsConfigResolver;
+import org.prebid.server.floors.PriceFloorsConfigValidator;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
-import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.CriteriaLogManager;
@@ -97,7 +96,6 @@ import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
-import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
@@ -351,7 +349,6 @@ public class ServiceConfiguration {
 
     @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
-            @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
             ActivityInfrastructureCreator activityInfrastructureCreator,
@@ -371,7 +368,6 @@ public class ServiceConfiguration {
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
         return new Ortb2RequestFactory(
-                enforceValidAccount,
                 logSamplingRate,
                 blacklistedAccounts,
                 uidsCookieService,
@@ -688,9 +684,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    CookieDeprecationService deprecationCookieResolver(Account defaultAccount) {
-
-        return new CookieDeprecationService(defaultAccount);
+    CookieDeprecationService cookieDeprecationService() {
+        return new CookieDeprecationService();
     }
 
     @Bean
@@ -964,8 +959,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PriceFloorsConfigResolver accountValidator(Account defaultAccount, Metrics metrics) {
-        return new PriceFloorsConfigResolver(defaultAccount, metrics);
+    PriceFloorsConfigValidator accountValidator(Metrics metrics) {
+        return new PriceFloorsConfigValidator(metrics);
     }
 
     @Bean
@@ -1089,20 +1084,6 @@ public class ServiceConfiguration {
     @Bean
     DsaEnforcer dsaEnforcer() {
         return new DsaEnforcer();
-    }
-
-    @Bean
-    Account defaultAccount(@Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
-                           JacksonMapper mapper) {
-        try {
-            final Account account = StringUtils.isNotBlank(defaultAccountConfig)
-                    ? mapper.decodeValue(defaultAccountConfig, Account.class)
-                    : null;
-            return account != null ? account : Account.builder().build();
-        } catch (DecodeException e) {
-            logger.warn("Could not parse default account configuration", e);
-            return Account.builder().build();
-        }
     }
 
     private static List<String> splitToList(String listAsString) {
