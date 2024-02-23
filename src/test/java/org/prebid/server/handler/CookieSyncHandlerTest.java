@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.util.AsciiString;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.Cookie;
+import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
@@ -20,6 +22,7 @@ import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
+import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -27,6 +30,7 @@ import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.model.CookieSyncContext;
 import org.prebid.server.cookie.model.CookieSyncStatus;
+import org.prebid.server.cookie.model.PartitionedCookie;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.execution.TimeoutFactory;
@@ -59,6 +63,7 @@ import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
@@ -77,6 +82,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     private UidsCookieService uidsCookieService;
     @Mock
     private CookieSyncGppService cookieSyncGppProcessor;
+    @Mock
+    private CookieDeprecationService cookieDeprecationService;
     @Mock
     private ActivityInfrastructureCreator activityInfrastructureCreator;
     @Mock
@@ -122,6 +129,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 500,
                 0.05,
                 uidsCookieService,
+                cookieDeprecationService,
                 cookieSyncGppProcessor,
                 activityInfrastructureCreator,
                 cookieSyncService,
@@ -306,6 +314,34 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(httpResponse)
                 .putHeader(new AsciiString("Content-Type"), new AsciiString("application/json"));
+    }
+
+    @Test
+    public void shouldRespondWithDeprecationCookieHeaderWhenCookieIsResolved() {
+        // given
+        given(routingContext.getBody()).willReturn(
+                givenRequestBody(CookieSyncRequest.builder().bidders(emptySet()).build()));
+        final PartitionedCookie givenDeprecationCookie = PartitionedCookie.of(
+                Cookie.cookie("receive-cookie-deprecation", "1")
+                        .setPath("/")
+                        .setSameSite(CookieSameSite.NONE)
+                        .setSecure(true)
+                        .setHttpOnly(true)
+                        .setMaxAge(100L));
+        given(cookieDeprecationService.makeCookie(any(Account.class), eq(routingContext)))
+                .willReturn(givenDeprecationCookie);
+
+        givenDefaultCookieSyncServicePipelineResult();
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        verify(httpResponse).putHeader(new AsciiString("Content-Type"), new AsciiString("application/json"));
+        verify(httpResponse).putHeader(
+                eq(new AsciiString("Set-Cookie")),
+                matches("receive-cookie-deprecation=1; Max-Age=100; Expires=(.*); "
+                        + "Path=/; Secure; HTTPOnly; SameSite=None; Partitioned"));
     }
 
     @Test

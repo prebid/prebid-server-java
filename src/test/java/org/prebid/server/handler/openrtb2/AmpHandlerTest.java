@@ -214,6 +214,28 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldAddObserveBrowsingTopicsResponseHeader() {
+        // given
+        httpRequest.headers().add(HttpUtil.SEC_BROWSING_TOPICS_HEADER, "");
+
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        given(exchangeService.holdAuction(any()))
+                .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
+                        .bidResponse(BidResponse.builder().build())
+                        .build()));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        assertThat(httpResponse.headers())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple("Observe-Browsing-Topics", "?1"));
+    }
+
+    @Test
     public void shouldComputeTimeoutBasedOnRequestProcessingStartTime() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))

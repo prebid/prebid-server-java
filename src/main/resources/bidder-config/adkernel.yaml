@@ -6,9 +6,14 @@ adapters:
       maintainer-email: prebid-dev@adkernel.com
       app-media-types:
         - banner
+        - video
+        - audio
+        - native
       site-media-types:
         - banner
         - video
+        - audio
+        - native
       supported-vendors:
       vendor-id: 14
     usersync:
