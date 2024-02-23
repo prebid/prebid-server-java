@@ -419,7 +419,8 @@ public class Ortb2RequestFactory {
         return applicationSettings.getAccountById(accountId, timeout)
                 .compose(this::ensureAccountActive)
                 .onSuccess(account -> logIfEmptyAccount(account, httpRequest))
-                .recover(exception -> accountFallback(exception, accountId, httpRequest));
+                .recover(exception -> accountFallback(exception, accountId, httpRequest))
+                .onFailure(ignored -> metrics.updateAccountRequestRejectedByInvalidAccountMetrics(accountId));
     }
 
     private Future<Account> ensureAccountActive(Account account) {
@@ -472,17 +473,15 @@ public class Ortb2RequestFactory {
     }
 
     private Future<Account> accountFallback(Throwable exception, String accountId, HttpRequestContext httpRequest) {
-        if (exception instanceof PreBidException) {
-            UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
-        } else if (exception instanceof UnauthorizedAccountException) {
+        if (exception instanceof UnauthorizedAccountException) {
             return Future.failedFuture(exception);
+        } else if (exception instanceof PreBidException) {
+            UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
         } else {
             metrics.updateAccountRequestRejectedByFailedFetch(accountId);
             logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
             logger.debug("Error occurred while fetching account", exception);
         }
-
-        metrics.updateAccountRequestRejectedByInvalidAccountMetrics(accountId);
 
         return Future.failedFuture(
                 new UnauthorizedAccountException("Unauthorized account id: " + accountId, accountId));
