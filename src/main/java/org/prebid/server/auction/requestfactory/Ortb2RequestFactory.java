@@ -416,10 +416,13 @@ public class Ortb2RequestFactory {
     }
 
     private Future<Account> loadAccount(Timeout timeout, HttpRequestContext httpRequest, String accountId) {
+        if (StringUtils.isBlank(accountId)) {
+            EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
+        }
+
         return applicationSettings.getAccountById(accountId, timeout)
                 .compose(this::ensureAccountActive)
-                .onSuccess(account -> logIfEmptyAccount(account, httpRequest))
-                .recover(exception -> accountFallback(exception, accountId, httpRequest))
+                .recover(exception -> wrapFailure(exception, accountId, httpRequest))
                 .onFailure(ignored -> metrics.updateAccountRequestRejectedByInvalidAccountMetrics(accountId));
     }
 
@@ -466,13 +469,7 @@ public class Ortb2RequestFactory {
         return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
     }
 
-    private void logIfEmptyAccount(Account account, HttpRequestContext httpRequest) {
-        if (account.isEmpty()) {
-            EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
-        }
-    }
-
-    private Future<Account> accountFallback(Throwable exception, String accountId, HttpRequestContext httpRequest) {
+    private Future<Account> wrapFailure(Throwable exception, String accountId, HttpRequestContext httpRequest) {
         if (exception instanceof UnauthorizedAccountException) {
             return Future.failedFuture(exception);
         } else if (exception instanceof PreBidException) {

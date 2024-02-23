@@ -65,8 +65,8 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         if (StringUtils.isNotBlank(accountId)) {
             return delegate.getAccountById(accountId, timeout)
-                    .map(this::mergeAccounts)
                     .map(priceFloorsConfigValidator::validate)
+                    .map(this::mergeAccounts)
                     .map(this::validateAndModifyAccount)
                     .recover(throwable -> recoverIfNeeded(throwable, accountId));
         }

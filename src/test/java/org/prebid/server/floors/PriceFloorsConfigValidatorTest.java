@@ -64,7 +64,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
         final Account actualAccount = target.validate(givenAccount);
 
         // then
-        assertThat(actualAccount).isEqualTo(givenAccount);
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
@@ -83,7 +83,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
         final Account actualAccount = target.validate(givenAccount);
 
         // then
-        assertThat(actualAccount).isEqualTo(givenAccount);
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
@@ -96,7 +96,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
         final Account actualAccount = target.validate(givenAccount);
 
         // then
-        assertThat(actualAccount).isEqualTo(givenAccount);
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
@@ -109,7 +109,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
         final Account actualAccount = target.validate(givenAccount);
 
         // then
-        assertThat(actualAccount).isEqualTo(givenAccount);
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
@@ -122,7 +122,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
         final Account actualAccount = target.validate(givenAccount);
 
         // then
-        assertThat(actualAccount).isEqualTo(givenAccount);
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
@@ -135,7 +135,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
         final Account actualAccount = target.validate(givenAccount);
 
         // then
-        assertThat(actualAccount).isEqualTo(givenAccount);
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
@@ -148,7 +148,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
         final Account actualAccount = target.validate(givenAccount);
 
         // then
-        assertThat(actualAccount).isEqualTo(givenAccount);
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
@@ -161,7 +161,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
         final Account actualAccount = target.validate(givenAccount);
 
         // then
-        assertThat(actualAccount).isEqualTo(givenAccount);
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
@@ -174,7 +174,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
         final Account actualAccount = target.validate(givenAccount);
 
         // then
-        assertThat(actualAccount).isEqualTo(givenAccount);
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
@@ -187,7 +187,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
         final Account actualAccount = target.validate(givenAccount);
 
         // then
-        assertThat(actualAccount).isEqualTo(givenAccount);
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
@@ -200,7 +200,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
         final Account actualAccount = target.validate(givenAccount);
 
         // then
-        assertThat(actualAccount).isEqualTo(givenAccount);
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
@@ -213,7 +213,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
         final Account actualAccount = target.validate(givenAccount);
 
         // then
-        assertThat(actualAccount).isEqualTo(givenAccount);
+        assertThat(actualAccount).isEqualTo(fallbackAccount());
         verify(metrics).updateAlertsConfigFailed("some-id", MetricName.price_floors);
     }
 
@@ -230,10 +230,17 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
                                                 .periodSec(600L)
                                                 .timeout(100L)
                                                 .maxRules(100L)
-                                                .maxFileSize(100L)
-                                ).build())
+                                                .maxFileSize(100L))
+                                        .build())
                                 .build())
                         .build())
+                .build();
+    }
+
+    private static Account fallbackAccount() {
+        return Account.builder()
+                .id("some-id")
+                .auction(AccountAuctionConfig.builder().priceFloors(null).build())
                 .build();
     }
 }

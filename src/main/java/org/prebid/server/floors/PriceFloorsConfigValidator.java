@@ -50,6 +50,7 @@ public class PriceFloorsConfigValidator {
     public Account validate(Account account) {
         try {
             validatePriceFloorConfig(account);
+            return account;
         } catch (PreBidException e) {
             final String message = "Account with id '%s' has invalid config: %s"
                     .formatted(account.getId(), e.getMessage());
@@ -60,7 +61,7 @@ public class PriceFloorsConfigValidator {
             conditionalLogger.error(message, 0.01d);
         }
 
-        return account;
+        return fallbackToDefaultConfig(account);
     }
 
     private static void validatePriceFloorConfig(Account account) {
@@ -117,5 +118,11 @@ public class PriceFloorsConfigValidator {
 
     private static String invalidPriceFloorsPropertyMessage(String property, Object value) {
         return "Invalid price-floors property '%s', value passed: %s".formatted(property, value);
+    }
+
+    private static Account fallbackToDefaultConfig(Account account) {
+        return account.toBuilder()
+                .auction(account.getAuction().toBuilder().priceFloors(null).build())
+                .build();
     }
 }
