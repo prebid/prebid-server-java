@@ -4827,6 +4827,7 @@ public class ExchangeServiceTest extends VertxTest {
                 httpInteractionLogger,
                 priceFloorAdjuster,
                 priceFloorEnforcer,
+                dsaEnforcer,
                 bidAdjustmentFactorResolver,
                 metrics,
                 clock,
