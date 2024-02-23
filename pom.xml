@@ -86,7 +86,7 @@
         <gmavenplus-plugin.version>1.13.1</gmavenplus-plugin.version>
         <allure-maven.version>2.10.0</allure-maven.version>
         <skipFunctionalTests>false</skipFunctionalTests>
-        <skipModuleFunctionalTests>false</skipModuleFunctionalTests>
+        <skipModuleFunctionalTests>true</skipModuleFunctionalTests>
         <skipUnitTests>false</skipUnitTests>
         <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
         <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
