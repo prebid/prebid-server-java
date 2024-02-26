@@ -375,21 +375,6 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         given: "Test start time"
         def startTime = Instant.now()
 
-        and: "Create new container"
-        def delayMillis = 1
-        def maxDelayMillis = 1
-        def factor = Long.MAX_VALUE
-        def serverContainer = new PrebidServerContainer(GDPR_VENDOR_LIST_CONFIG +
-                ["adapters.generic.meta-info.vendor-id"                                : GENERIC_VENDOR_ID as String,
-                 "gdpr.vendorlist.v2.retry-policy.exponential-backoff.delay-millis"    : delayMillis as String,
-                 "gdpr.vendorlist.v2.retry-policy.exponential-backoff.max-delay-millis": maxDelayMillis as String,
-                 "gdpr.vendorlist.v2.retry-policy.exponential-backoff.factor"          : factor as String,
-                 "gdpr.vendorlist.v3.retry-policy.exponential-backoff.delay-millis"    : delayMillis as String,
-                 "gdpr.vendorlist.v3.retry-policy.exponential-backoff.max-delay-millis": maxDelayMillis as String,
-                 "gdpr.vendorlist.v3.retry-policy.exponential-backoff.factor"          : factor as String])
-        serverContainer.start()
-        def serverService = new PrebidServerService(serverContainer)
-
         and: "Prepare tcf consent string"
         def tcfConsent = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
@@ -409,21 +394,20 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         and: "Reset valid vendor list response"
-        vendorListResponse.reset(tcfPolicyVersion)
+        vendorListResponse.reset()
 
         and: "Set vendor list response with delay"
-        vendorListResponse.setResponseWithDelay(Delay.seconds(3), tcfPolicyVersion)
+        vendorListResponse.setResponse(Delay.seconds(3), tcfPolicyVersion)
 
         when: "PBS processes amp request"
-        serverService.sendAmpRequest(ampRequest)
+        privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "PBS shouldn't fetch vendor list"
         def vendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/${tcfPolicyVersion.vendorListVersion}.json"
-        def properVendorListPath = vendorListPath
-        assert !serverService.isFileExist(properVendorListPath)
+        assert !privacyPbsService.isFileExist(vendorListPath)
 
         and: "Logs should contain proper vendor list version"
-        def logs = serverService.getLogsByTime(startTime)
+        def logs = privacyPbsService.getLogsByTime(startTime)
         def tcfError = "TCF 2 vendor list for version v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion} not found, started downloading."
         assert getLogsByText(logs, tcfError)
 
@@ -431,20 +415,17 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         def secondStartTime = Instant.now()
 
         when: "PBS processes amp request"
-        serverService.sendAmpRequest(ampRequest)
+        privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "PBS shouldn't fetch vendor list"
-        assert !serverService.isFileExist(vendorListPath)
+        assert !privacyPbsService.isFileExist(vendorListPath)
 
         and: "Logs should contain proper vendor list version"
-        def logsSecond = serverService.getLogsByTime(secondStartTime)
+        def logsSecond = privacyPbsService.getLogsByTime(secondStartTime)
         assert getLogsByText(logsSecond, tcfError)
 
-        and: "Set vendor list response"
-        vendorListResponse.reset(tcfPolicyVersion)
-
-        cleanup: "Stop container with default request"
-        serverContainer.stop()
+        and: "Reset vendor list response"
+        vendorListResponse.reset()
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]

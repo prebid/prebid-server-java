@@ -21,7 +21,7 @@ class VendorList extends NetworkScaffolding {
     private static final String VENDOR_LIST_ENDPOINT = "/v{TCF_POLICY}/vendor-list.json"
 
     VendorList(MockServerContainer mockServerContainer) {
-        super(mockServerContainer, VENDOR_LIST_ENDPOINT.replace("{TCF_POLICY}", TCF_POLICY_V2.vendorListVersion.toString()))
+        super(mockServerContainer, VENDOR_LIST_ENDPOINT)
     }
 
     @Override
@@ -34,30 +34,15 @@ class VendorList extends NetworkScaffolding {
         request().withPath(VENDOR_LIST_ENDPOINT)
     }
 
-    void reset(TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2) {
-        super.reset(VENDOR_LIST_ENDPOINT.replace("{TCF_POLICY}", tcfPolicyVersion.vendorListVersion.toString()))
+    void reset() {
+        TcfPolicyVersion.values().each { version -> super.reset("/v${version}/vendor-list.json") }
     }
 
-    void setResponse(TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2,
-                     Map<Integer, Vendor> vendors = [(GENERIC_VENDOR_ID): Vendor.getDefaultVendor(GENERIC_VENDOR_ID)]) {
+    void setResponse(
+            Delay delay = null,
+            TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2,
+            Map<Integer, Vendor> vendors = [(GENERIC_VENDOR_ID): Vendor.getDefaultVendor(GENERIC_VENDOR_ID)]) {
         def prepareEndpoint = VENDOR_LIST_ENDPOINT.replace("{TCF_POLICY}", tcfPolicyVersion.vendorListVersion.toString())
-        def prepareEncodeResponseBody = encode(defaultVendorListResponse.tap {
-            it.tcfPolicyVersion = tcfPolicyVersion.vendorListVersion
-            it.vendors = vendors
-        })
-
-        mockServerClient.when(request().withPath(prepareEndpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
-                .respond { request ->
-                    request.withPath(endpoint)
-                            ? response().withStatusCode(OK_200.code()).withBody(prepareEncodeResponseBody)
-                            : HttpResponse.notFoundResponse()
-                }
-    }
-
-    void setResponseWithDelay(Delay delay,
-                              TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2,
-                              Map<Integer, Vendor> vendors = [(GENERIC_VENDOR_ID): Vendor.getDefaultVendor(GENERIC_VENDOR_ID)]) {
-        def prepareEndpoint = endpoint.replace("{TCF_POLICY}", tcfPolicyVersion.vendorListVersion.toString())
         def prepareEncodeResponseBody = encode(defaultVendorListResponse.tap {
             it.tcfPolicyVersion = tcfPolicyVersion.vendorListVersion
             it.vendors = vendors

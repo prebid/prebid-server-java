@@ -319,21 +319,6 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Test start time"
         def startTime = Instant.now()
 
-        and: "Create new container"
-        def delayMillis = 1
-        def maxDelayMillis = 1
-        def factor = Long.MAX_VALUE
-        def serverContainer = new PrebidServerContainer(GDPR_VENDOR_LIST_CONFIG +
-                ["adapters.generic.meta-info.vendor-id"                                : GENERIC_VENDOR_ID as String,
-                 "gdpr.vendorlist.v2.retry-policy.exponential-backoff.delay-millis"    : delayMillis as String,
-                 "gdpr.vendorlist.v2.retry-policy.exponential-backoff.max-delay-millis": maxDelayMillis as String,
-                 "gdpr.vendorlist.v2.retry-policy.exponential-backoff.factor"          : factor as String,
-                 "gdpr.vendorlist.v3.retry-policy.exponential-backoff.delay-millis"    : delayMillis as String,
-                 "gdpr.vendorlist.v3.retry-policy.exponential-backoff.max-delay-millis": maxDelayMillis as String,
-                 "gdpr.vendorlist.v3.retry-policy.exponential-backoff.factor"          : factor as String])
-        serverContainer.start()
-        def privacyPbsService = new PrebidServerService(serverContainer)
-
         and: "Tcf consent setup"
         def tcfConsent = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
@@ -346,10 +331,10 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidRequest = getGdprBidRequest(tcfConsent)
 
         and: "Reset valid vendor list response"
-        vendorListResponse.reset(tcfPolicyVersion)
+        vendorListResponse.reset()
 
         and: "Set vendor list response with delay"
-        vendorListResponse.setResponseWithDelay(Delay.seconds(3), tcfPolicyVersion)
+        vendorListResponse.setResponse(Delay.seconds(3), tcfPolicyVersion)
 
         when: "PBS processes auction request"
         privacyPbsService.sendAuctionRequest(bidRequest)
@@ -377,10 +362,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         assert getLogsByText(logsSecond, tcfError)
 
         and: "Reset vendor list response"
-        vendorListResponse.reset(tcfPolicyVersion)
-
-        cleanup: "Stop container with default request"
-        serverContainer.stop()
+        vendorListResponse.reset()
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
