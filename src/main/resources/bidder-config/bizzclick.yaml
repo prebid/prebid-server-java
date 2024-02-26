@@ -1,6 +1,6 @@
 adapters:
   bizzclick:
-    endpoint: http://{{.Host}}.bizzclick.com/bid?rtb_seat_id={{.SourceId}}&secret_key={{.AccountID}}
+    endpoint: http://{{Host}}.bizzclick.com/bid?rtb_seat_id={{SourceId}}&secret_key={{AccountID}}
     meta-info:
       maintainer-email: support@bizzclick.com
       app-media-types:

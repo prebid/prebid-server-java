@@ -35,9 +35,9 @@ public class BizzclickBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final String DEFAULT_HOST = "us-e-node1";
-    private static final String URL_HOST_MACRO = "{{.Host}}";
-    private static final String URL_SOURCE_ID_MACRO = "{{.SourceId}}";
-    private static final String URL_ACCOUNT_ID_MACRO = "{{.AccountID}}";
+    private static final String URL_HOST_MACRO = "{{Host}}";
+    private static final String URL_SOURCE_ID_MACRO = "{{SourceId}}";
+    private static final String URL_ACCOUNT_ID_MACRO = "{{AccountID}}";
     private static final String DEFAULT_CURRENCY = "USD";
 
     private final String endpointUrl;
@@ -103,8 +103,8 @@ public class BizzclickBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpointUrl(ExtImpBizzclick ext) {
-        final String host = StringUtils.isEmpty(ext.getHost()) ? DEFAULT_HOST : ext.getHost();
-        final String sourceId = StringUtils.isEmpty(ext.getSourceId()) ? ext.getPlacementId() : ext.getSourceId();
+        final String host = StringUtils.isBlank(ext.getHost()) ? DEFAULT_HOST : ext.getHost();
+        final String sourceId = StringUtils.isBlank(ext.getSourceId()) ? ext.getPlacementId() : ext.getSourceId();
         return endpointUrl
                 .replace(URL_HOST_MACRO, HttpUtil.encodeUrl(host))
                 .replace(URL_SOURCE_ID_MACRO, HttpUtil.encodeUrl(sourceId))
