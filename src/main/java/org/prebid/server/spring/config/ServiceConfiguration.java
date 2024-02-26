@@ -10,6 +10,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.ActivitiesConfigResolver;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
@@ -78,7 +79,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.floors.PriceFloorProcessor;
-import org.prebid.server.floors.PriceFloorsConfigValidator;
+import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
@@ -959,8 +960,13 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PriceFloorsConfigValidator accountValidator(Metrics metrics) {
-        return new PriceFloorsConfigValidator(metrics);
+    PriceFloorsConfigResolver priceFloorsConfigResolver(Metrics metrics) {
+        return new PriceFloorsConfigResolver(metrics);
+    }
+
+    @Bean
+    ActivitiesConfigResolver activitiesConfigResolver(@Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
+        return new ActivitiesConfigResolver(logSamplingRate);
     }
 
     @Bean

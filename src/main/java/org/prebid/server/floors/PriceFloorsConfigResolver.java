@@ -17,7 +17,7 @@ import org.prebid.server.util.ObjectUtil;
 
 import java.util.Objects;
 
-public class PriceFloorsConfigValidator {
+public class PriceFloorsConfigResolver {
 
     private static final Logger logger = LoggerFactory.getLogger(EnrichingApplicationSettings.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
@@ -37,7 +37,7 @@ public class PriceFloorsConfigValidator {
 
     private final Metrics metrics;
 
-    public PriceFloorsConfigValidator(Metrics metrics) {
+    public PriceFloorsConfigResolver(Metrics metrics) {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
@@ -47,7 +47,7 @@ public class PriceFloorsConfigValidator {
         return ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getPriceFloors);
     }
 
-    public Account validate(Account account) {
+    public Account resolve(Account account, AccountPriceFloorsConfig fallbackPriceFloorConfig) {
         try {
             validatePriceFloorConfig(account);
             return account;
@@ -61,7 +61,9 @@ public class PriceFloorsConfigValidator {
             conditionalLogger.error(message, 0.01d);
         }
 
-        return fallbackToDefaultConfig(account);
+        return account.toBuilder()
+                .auction(account.getAuction().toBuilder().priceFloors(fallbackPriceFloorConfig).build())
+                .build();
     }
 
     private static void validatePriceFloorConfig(Account account) {
@@ -118,11 +120,5 @@ public class PriceFloorsConfigValidator {
 
     private static String invalidPriceFloorsPropertyMessage(String property, Object value) {
         return "Invalid price-floors property '%s', value passed: %s".formatted(property, value);
-    }
-
-    private static Account fallbackToDefaultConfig(Account account) {
-        return account.toBuilder()
-                .auction(account.getAuction().toBuilder().priceFloors(null).build())
-                .build();
     }
 }

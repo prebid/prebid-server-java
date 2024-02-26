@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-public class PriceFloorsConfigValidatorTest extends VertxTest {
+public class PriceFloorsConfigResolverTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -29,20 +29,20 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     @Mock
     private Metrics metrics;
 
-    private PriceFloorsConfigValidator target;
+    private PriceFloorsConfigResolver target;
 
     @Before
     public void setUp() {
-        target = new PriceFloorsConfigValidator(metrics);
+        target = new PriceFloorsConfigResolver(metrics);
     }
 
     @Test
-    public void validateShouldNotChangeAccountIfConfigIsValid() {
+    public void resolveShouldNotChangeAccountIfConfigIsValid() {
         // given
         final Account givenAccount = accountWithFloorsFetchConfig(identity());
 
         // when
-        final Account actualAccount = target.validate(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
         assertThat(actualAccount).isSameAs(givenAccount);
@@ -50,7 +50,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnGivenAccountIfEnforceFloorsRateLessThanMinimumValue() {
+    public void resolveShouldReturnGivenAccountIfEnforceFloorsRateLessThanMinimumValue() {
         // given
         final Account givenAccount = Account.builder()
                 .id("some-id")
@@ -61,7 +61,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final Account actualAccount = target.validate(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
         assertThat(actualAccount).isEqualTo(fallbackAccount());
@@ -69,7 +69,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnGivenAccountIfEnforceFloorsRateMoreThanMaximumValue() {
+    public void resolveShouldReturnGivenAccountIfEnforceFloorsRateMoreThanMaximumValue() {
         // given
         final Account givenAccount = Account.builder()
                 .id("some-id")
@@ -80,7 +80,7 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
                 .build();
 
         // when
-        final Account actualAccount = target.validate(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
         assertThat(actualAccount).isEqualTo(fallbackAccount());
@@ -88,12 +88,12 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnGivenAccountIfPeriodicSecLessThanMinimumValue() {
+    public void resolveShouldReturnGivenAccountIfPeriodicSecLessThanMinimumValue() {
         // given
         final Account givenAccount = accountWithFloorsFetchConfig(config -> config.periodSec(200L));
 
         // when
-        final Account actualAccount = target.validate(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
         assertThat(actualAccount).isEqualTo(fallbackAccount());
@@ -101,12 +101,12 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnGivenAccountIfPeriodicSecMoreThanMaxAgeSec() {
+    public void resolveShouldReturnGivenAccountIfPeriodicSecMoreThanMaxAgeSec() {
         // given
         final Account givenAccount = accountWithFloorsFetchConfig(config -> config.periodSec(900L).maxAgeSec(800L));
 
         // when
-        final Account actualAccount = target.validate(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
         assertThat(actualAccount).isEqualTo(fallbackAccount());
@@ -114,12 +114,12 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnGivenAccountIfMaxAgeSecLessThanMinimumValue() {
+    public void resolveShouldReturnGivenAccountIfMaxAgeSecLessThanMinimumValue() {
         // given
         final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxAgeSec(500L));
 
         // when
-        final Account actualAccount = target.validate(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
         assertThat(actualAccount).isEqualTo(fallbackAccount());
@@ -127,12 +127,12 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnGivenAccountIfMaxAgeSecMoreThanMaximumValue() {
+    public void resolveShouldReturnGivenAccountIfMaxAgeSecMoreThanMaximumValue() {
         // given
         final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxAgeSec(Integer.MAX_VALUE + 1L));
 
         // when
-        final Account actualAccount = target.validate(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
         assertThat(actualAccount).isEqualTo(fallbackAccount());
@@ -140,12 +140,12 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnGivenAccountIfTimeoutLessThanMinimumValue() {
+    public void resolveShouldReturnGivenAccountIfTimeoutLessThanMinimumValue() {
         // given
         final Account givenAccount = accountWithFloorsFetchConfig(config -> config.timeout(9L));
 
         // when
-        final Account actualAccount = target.validate(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
         assertThat(actualAccount).isEqualTo(fallbackAccount());
@@ -153,12 +153,12 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnGivenAccountIfTimeoutMoreThanMaximumValue() {
+    public void resolveShouldReturnGivenAccountIfTimeoutMoreThanMaximumValue() {
         // given
         final Account givenAccount = accountWithFloorsFetchConfig(config -> config.timeout(12000L));
 
         // when
-        final Account actualAccount = target.validate(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
         assertThat(actualAccount).isEqualTo(fallbackAccount());
@@ -166,12 +166,12 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnGivenAccountIfMaxRulesLessThanMinimumValue() {
+    public void resolveShouldReturnGivenAccountIfMaxRulesLessThanMinimumValue() {
         // given
         final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxRules(-1L));
 
         // when
-        final Account actualAccount = target.validate(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
         assertThat(actualAccount).isEqualTo(fallbackAccount());
@@ -179,12 +179,12 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnGivenAccountIfMaxRulesMoreThanMaximumValue() {
+    public void resolveShouldReturnGivenAccountIfMaxRulesMoreThanMaximumValue() {
         // given
         final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxRules(Integer.MAX_VALUE + 1L));
 
         // when
-        final Account actualAccount = target.validate(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
         assertThat(actualAccount).isEqualTo(fallbackAccount());
@@ -192,12 +192,12 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnGivenAccountIfMaxFileSizeLessThanMinimumValue() {
+    public void resolveShouldReturnGivenAccountIfMaxFileSizeLessThanMinimumValue() {
         // given
         final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxFileSize(-1L));
 
         // when
-        final Account actualAccount = target.validate(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
         assertThat(actualAccount).isEqualTo(fallbackAccount());
@@ -205,12 +205,12 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnGivenAccountIfMaxFileSizeMoreThanMaximumValue() {
+    public void resolveShouldReturnGivenAccountIfMaxFileSizeMoreThanMaximumValue() {
         // given
         final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxFileSize(Integer.MAX_VALUE + 1L));
 
         // when
-        final Account actualAccount = target.validate(givenAccount);
+        final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
 
         // then
         assertThat(actualAccount).isEqualTo(fallbackAccount());
@@ -240,7 +240,15 @@ public class PriceFloorsConfigValidatorTest extends VertxTest {
     private static Account fallbackAccount() {
         return Account.builder()
                 .id("some-id")
-                .auction(AccountAuctionConfig.builder().priceFloors(null).build())
+                .auction(AccountAuctionConfig.builder().priceFloors(defaultPriceConfig()).build())
+                .build();
+    }
+
+    private static AccountPriceFloorsConfig defaultPriceConfig() {
+        return AccountPriceFloorsConfig.builder()
+                .enabled(true)
+                .enforceFloorsRate(3)
+                .adjustForBidAdjustment(false)
                 .build();
     }
 }

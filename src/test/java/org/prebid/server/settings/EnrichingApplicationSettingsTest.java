@@ -8,30 +8,23 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.activity.Activity;
-import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.ActivitiesConfigResolver;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.floors.PriceFloorsConfigValidator;
+import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountGdprConfig;
+import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
-import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
-import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
 
-import java.util.Map;
-
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
-import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
@@ -43,7 +36,10 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     @Mock
     private ApplicationSettings delegate;
     @Mock
-    private PriceFloorsConfigValidator priceFloorsConfigValidator;
+    private PriceFloorsConfigResolver priceFloorsConfigResolver;
+    @Mock
+    private ActivitiesConfigResolver activitiesConfigResolver;
+
     private final JsonMerger jsonMerger = new JsonMerger(jacksonMapper);
 
     private EnrichingApplicationSettings target;
@@ -53,14 +49,21 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(priceFloorsConfigValidator.validate(any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(priceFloorsConfigResolver.resolve(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(activitiesConfigResolver.resolve(any())).willAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
     public void getAccountByIdShouldSuccessfullyMergeWhenDefaultAccountIsNull() {
         // given
         target = new EnrichingApplicationSettings(
-                true, 0, null, delegate, priceFloorsConfigValidator, jsonMerger, jacksonMapper);
+                true,
+                null,
+                delegate,
+                priceFloorsConfigResolver,
+                activitiesConfigResolver,
+                jsonMerger,
+                jacksonMapper);
 
         final Account returnedAccount = Account.builder().build();
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(returnedAccount));
@@ -69,8 +72,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         final Future<Account> accountFuture = target.getAccountById("123", timeout);
 
         // then
-        assertThat(accountFuture).isSucceeded();
-        assertThat(accountFuture.result()).isEqualTo(returnedAccount);
+        assertThat(accountFuture).succeededWith(returnedAccount);
 
         verify(delegate).getAccountById(eq("123"), eq(timeout));
     }
@@ -80,11 +82,10 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // given
         target = new EnrichingApplicationSettings(
                 true,
-                0,
                 "{}",
                 delegate,
-                priceFloorsConfigValidator,
-                jsonMerger,
+                priceFloorsConfigResolver,
+                activitiesConfigResolver, jsonMerger,
                 jacksonMapper);
 
         final Account returnedAccount = Account.builder().build();
@@ -94,8 +95,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         final Future<Account> accountFuture = target.getAccountById("123", timeout);
 
         // then
-        assertThat(accountFuture).isSucceeded();
-        assertThat(accountFuture.result()).isEqualTo(returnedAccount);
+        assertThat(accountFuture).succeededWith(returnedAccount);
 
         verify(delegate).getAccountById(eq("123"), eq(timeout));
     }
@@ -105,15 +105,16 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // given
         target = new EnrichingApplicationSettings(
                 true,
-                0,
-                "{\"auction\": {\"banner-cache-ttl\": 100},"
+                "{\"auction\": {\"banner-cache-ttl\": 100, "
+                        + "\"price-floors\": {\"enabled\": true, \"enforce-floors-rate\": 3}},"
                         + "\"privacy\": {\"gdpr\": {\"enabled\": true, \"channel-enabled\": {\"web\": false}}}}",
                 delegate,
-                priceFloorsConfigValidator,
+                priceFloorsConfigResolver,
+                activitiesConfigResolver,
                 jsonMerger,
                 jacksonMapper);
 
-        given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(Account.builder()
+        given(delegate.getAccountById(eq("123"), any())).willReturn(Future.succeededFuture(Account.builder()
                 .id("123")
                 .auction(AccountAuctionConfig.builder()
                         .videoCacheTtl(200)
@@ -132,11 +133,12 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         final Future<Account> accountFuture = target.getAccountById("123", timeout);
 
         // then
-        assertThat(accountFuture).succeededWith(Account.builder()
+        final Account expectedAccount = Account.builder()
                 .id("123")
                 .auction(AccountAuctionConfig.builder()
                         .bannerCacheTtl(100)
                         .videoCacheTtl(200)
+                        .priceFloors(AccountPriceFloorsConfig.builder().enabled(true).enforceFloorsRate(3).build())
                         .build())
                 .privacy(AccountPrivacyConfig.of(
                         AccountGdprConfig.builder()
@@ -147,7 +149,13 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                         null,
                         null,
                         null))
-                .build());
+                .build();
+        assertThat(accountFuture).succeededWith(expectedAccount);
+
+        verify(activitiesConfigResolver).resolve(eq(expectedAccount));
+        verify(priceFloorsConfigResolver).resolve(
+                eq(expectedAccount),
+                eq(AccountPriceFloorsConfig.builder().enabled(true).enforceFloorsRate(3).build()));
     }
 
     @Test
@@ -155,10 +163,10 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // given
         target = new EnrichingApplicationSettings(
                 false,
-                0,
                 "{\"auction\": {\"banner-cache-ttl\": 100}}",
                 delegate,
-                priceFloorsConfigValidator,
+                priceFloorsConfigResolver,
+                activitiesConfigResolver,
                 jsonMerger,
                 jacksonMapper);
 
@@ -174,6 +182,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                         .bannerCacheTtl(100)
                         .build())
                 .build());
+        verifyNoInteractions(priceFloorsConfigResolver, activitiesConfigResolver);
     }
 
     @Test
@@ -181,10 +190,10 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // given
         target = new EnrichingApplicationSettings(
                 true,
-                0,
                 "{\"auction\": {\"banner-cache-ttl\": 100}}",
                 delegate,
-                priceFloorsConfigValidator,
+                priceFloorsConfigResolver,
+                activitiesConfigResolver,
                 jsonMerger,
                 jacksonMapper);
 
@@ -195,6 +204,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
 
         // then
         assertThat(accountFuture).isFailed();
+        verifyNoInteractions(priceFloorsConfigResolver, activitiesConfigResolver);
     }
 
     @Test
@@ -202,10 +212,10 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // given
         target = new EnrichingApplicationSettings(
                 true,
-                0,
                 "{\"auction\": {\"banner-cache-ttl\": 100}}",
                 delegate,
-                priceFloorsConfigValidator,
+                priceFloorsConfigResolver,
+                activitiesConfigResolver,
                 jsonMerger,
                 jacksonMapper);
 
@@ -222,10 +232,10 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // given
         target = new EnrichingApplicationSettings(
                 false,
-                0,
                 "{\"auction\": {\"banner-cache-ttl\": 100}}",
                 delegate,
-                priceFloorsConfigValidator,
+                priceFloorsConfigResolver,
+                activitiesConfigResolver,
                 jsonMerger,
                 jacksonMapper);
 
@@ -240,6 +250,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                         .build())
                 .build());
         verifyNoMoreInteractions(delegate);
+        verifyNoInteractions(priceFloorsConfigResolver, activitiesConfigResolver);
     }
 
     @Test
@@ -247,10 +258,10 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
         // given
         target = new EnrichingApplicationSettings(
                 true,
-                0,
                 "{}",
                 delegate,
-                priceFloorsConfigValidator,
+                priceFloorsConfigResolver,
+                activitiesConfigResolver,
                 jsonMerger,
                 jacksonMapper);
 
@@ -261,65 +272,6 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
 
         // then
         assertThat(accountFuture).isFailed();
-    }
-
-    @Test
-    public void getAccountByIdShouldRemoveInvalidRulesFromAccountActivitiesConfiguration() {
-        // given
-        target = new EnrichingApplicationSettings(
-                true,
-                0,
-                "{}",
-                delegate,
-                priceFloorsConfigValidator,
-                jsonMerger,
-                jacksonMapper);
-
-        given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(Account.builder()
-                .privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
-                        Map.of(
-                                Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
-                                Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
-                                        AccountActivityComponentRuleConfig.of(null, null),
-                                        AccountActivityComponentRuleConfig.of(
-                                                AccountActivityComponentRuleConfig.Condition.of(null, null),
-                                                null),
-                                        AccountActivityComponentRuleConfig.of(
-                                                AccountActivityComponentRuleConfig.Condition.of(
-                                                        emptyList(),
-                                                        emptyList()),
-                                                null),
-                                        AccountActivityComponentRuleConfig.of(
-                                                AccountActivityComponentRuleConfig.Condition.of(
-                                                        singletonList(ComponentType.BIDDER), singletonList("bidder")),
-                                                null)))),
-                        null))
-                .build()));
-
-        // when
-        final Future<Account> accountFuture = target.getAccountById("123", timeout);
-
-        // then
-        assertThat(accountFuture).succeededWith(Account.builder()
-                .privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
-                        Map.of(
-                                Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
-                                Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
-                                        AccountActivityComponentRuleConfig.of(null, null),
-                                        AccountActivityComponentRuleConfig.of(
-                                                AccountActivityComponentRuleConfig.Condition.of(null, null),
-                                                null),
-                                        AccountActivityComponentRuleConfig.of(
-                                                AccountActivityComponentRuleConfig.Condition.of(
-                                                        singletonList(ComponentType.BIDDER), singletonList("bidder")),
-                                                null)))),
-                        null))
-                .build());
+        verifyNoInteractions(priceFloorsConfigResolver, activitiesConfigResolver);
     }
 }

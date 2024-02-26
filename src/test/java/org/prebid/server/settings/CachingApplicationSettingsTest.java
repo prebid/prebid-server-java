@@ -70,20 +70,21 @@ public class CachingApplicationSettingsTest {
     }
 
     @Test
-    public void getAccountByIdShouldReturnResultWithoutCachingWhenAccountIdIsBlank() {
+    public void getAccountByIdShouldReturnResultFromCacheOnSuccessiveCallsWhenAccountIdIsNull() {
         // given
-        final Account givenAccount = Account.empty("");
+        final Account account = Account.empty("");
         given(delegateSettings.getAccountById(eq(""), same(timeout)))
-                .willReturn(Future.succeededFuture(givenAccount));
+                .willReturn(Future.succeededFuture(account));
 
         // when
-        final Future<Account> future = target.getAccountById("", timeout);
+        final Future<Account> future = target.getAccountById(null, timeout);
         target.getAccountById("", timeout);
 
         // then
         assertThat(future.succeeded()).isTrue();
-        assertThat(future.result()).isSameAs(givenAccount);
-        verify(delegateSettings, times(2)).getAccountById(eq(""), same(timeout));
+        assertThat(future.result()).isSameAs(account);
+        verify(delegateSettings).getAccountById(eq(""), same(timeout));
+        verifyNoMoreInteractions(delegateSettings);
     }
 
     @Test

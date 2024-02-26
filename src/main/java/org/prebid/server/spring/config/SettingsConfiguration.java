@@ -6,8 +6,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.ObjectUtils;
+import org.prebid.server.activity.ActivitiesConfigResolver;
 import org.prebid.server.execution.TimeoutFactory;
-import org.prebid.server.floors.PriceFloorsConfigValidator;
+import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.metric.MetricName;
@@ -242,19 +243,19 @@ public class SettingsConfiguration {
         @Bean
         EnrichingApplicationSettings enrichingApplicationSettings(
                 @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
-                @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
                 @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
                 JacksonMapper mapper,
                 CompositeApplicationSettings compositeApplicationSettings,
-                PriceFloorsConfigValidator priceFloorsConfigValidator,
+                PriceFloorsConfigResolver priceFloorsConfigResolver,
+                ActivitiesConfigResolver activitiesConfigResolver,
                 JsonMerger jsonMerger) {
 
             return new EnrichingApplicationSettings(
                     enforceValidAccount,
-                    logSamplingRate,
                     defaultAccountConfig,
                     compositeApplicationSettings,
-                    priceFloorsConfigValidator,
+                    priceFloorsConfigResolver,
+                    activitiesConfigResolver,
                     jsonMerger,
                     mapper);
         }
