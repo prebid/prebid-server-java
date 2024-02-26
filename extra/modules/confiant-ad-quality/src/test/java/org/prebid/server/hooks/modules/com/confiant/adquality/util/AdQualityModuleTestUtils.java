@@ -26,10 +26,4 @@ public class AdQualityModuleTestUtils {
                         .build()))
                 .build(), 11);
     }
-
-    public static BidderResponse getEmptyBidderResponse(String bidderName) {
-        return BidderResponse.of(bidderName, BidderSeatBid.builder()
-                .bids(Collections.emptyList())
-                .build(), 5);
-    }
 }
