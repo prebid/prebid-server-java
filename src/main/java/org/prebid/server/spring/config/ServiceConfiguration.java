@@ -350,6 +350,7 @@ public class ServiceConfiguration {
 
     @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
+            @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
             ActivityInfrastructureCreator activityInfrastructureCreator,
@@ -369,6 +370,7 @@ public class ServiceConfiguration {
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
         return new Ortb2RequestFactory(
+                timeoutAdjustmentFactor,
                 logSamplingRate,
                 blacklistedAccounts,
                 uidsCookieService,
@@ -793,7 +795,6 @@ public class ServiceConfiguration {
     @Bean
     ExchangeService exchangeService(
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
-            @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
             @Autowired(required = false) DealsService dealsService,
@@ -826,7 +827,6 @@ public class ServiceConfiguration {
 
         return new ExchangeService(
                 logSamplingRate,
-                timeoutAdjustmentFactor,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsService,
