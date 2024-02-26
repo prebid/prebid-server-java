@@ -79,7 +79,7 @@ public class UserAdditionalInfoService {
         }
 
         final Device device = context.getBidRequest().getDevice();
-        final Timeout timeout = context.getTimeout();
+        final Timeout timeout = context.getTimeoutContext().getTimeout();
         final GeoInfo geoInfo = context.getGeoInfo();
 
         final CompositeFuture compositeFuture = CompositeFuture.join(

@@ -10,6 +10,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,6 +23,7 @@ import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -161,7 +163,11 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        assertThat(captureAuctionContext().getTimeout().remaining()).isEqualTo(2000L);
+        assertThat(captureAuctionContext())
+                .extracting(AuctionContext::getTimeoutContext)
+                .extracting(TimeoutContext::getTimeout)
+                .extracting(Timeout::remaining)
+                .isEqualTo(2000L);
     }
 
     @Test
@@ -223,7 +229,12 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        assertThat(captureAuctionContext().getTimeout().remaining()).isLessThanOrEqualTo(1950L);
+        assertThat(captureAuctionContext())
+                .extracting(AuctionContext::getTimeoutContext)
+                .extracting(TimeoutContext::getTimeout)
+                .extracting(Timeout::remaining)
+                .asInstanceOf(InstanceOfAssertFactories.LONG)
+                .isLessThanOrEqualTo(1950L);
     }
 
     @Test
@@ -773,7 +784,7 @@ public class AuctionHandlerTest extends VertxTest {
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2web)
-                .timeout(this.timeout);
+                .timeoutContext(TimeoutContext.of(0, timeout, 0));
 
         return auctionContextCustomizer.apply(auctionContextBuilder)
                 .build();
