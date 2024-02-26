@@ -41,12 +41,6 @@ public class PriceFloorsConfigResolver {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    private static AccountPriceFloorsConfig getFloorsConfig(Account account) {
-        final AccountAuctionConfig auctionConfig = ObjectUtil.getIfNotNull(account, Account::getAuction);
-
-        return ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getPriceFloors);
-    }
-
     public Account resolve(Account account, AccountPriceFloorsConfig fallbackPriceFloorConfig) {
         try {
             validatePriceFloorConfig(account);
@@ -81,6 +75,12 @@ public class PriceFloorsConfigResolver {
                 ObjectUtil.getIfNotNull(floorsConfig, AccountPriceFloorsConfig::getFetch);
 
         validatePriceFloorsFetchConfig(fetchConfig);
+    }
+
+    private static AccountPriceFloorsConfig getFloorsConfig(Account account) {
+        final AccountAuctionConfig auctionConfig = ObjectUtil.getIfNotNull(account, Account::getAuction);
+
+        return ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getPriceFloors);
     }
 
     private static void validatePriceFloorsFetchConfig(AccountPriceFloorsFetchConfig fetchConfig) {

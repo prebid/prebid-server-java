@@ -6,6 +6,7 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityGeoRuleConfig;
 
 import java.util.Map;
 
@@ -17,6 +18,45 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ActivitiesConfigResolverTest extends VertxTest {
 
     private final ActivitiesConfigResolver target = new ActivitiesConfigResolver(0);
+
+    @Test
+    public void resolveShouldReturnNullWhenAccountNull() {
+        // when
+        final Account result = target.resolve(null);
+
+        // then
+        assertThat(result).isEqualTo(null);
+    }
+
+    @Test
+    public void resolveShouldReturnAccountAsIsWhenAccountPrivacyNull() {
+        // given
+        final Account givenAccount = Account.builder().build();
+
+        // when
+        final Account result = target.resolve(givenAccount);
+
+        // then
+        assertThat(result).isEqualTo(givenAccount);
+    }
+
+    @Test
+    public void resolveShouldReturnAccountAsIsWhenAccountPrivacyActivitiesNull() {
+        // given
+        final Account givenAccount = Account.builder().privacy(AccountPrivacyConfig.of(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null))
+                .build();
+
+        // when
+        final Account result = target.resolve(givenAccount);
+
+        // then
+        assertThat(result).isEqualTo(givenAccount);
+    }
 
     @Test
     public void resolveShouldRemoveInvalidRulesFromAccountActivitiesConfiguration() {
@@ -41,6 +81,23 @@ public class ActivitiesConfigResolverTest extends VertxTest {
                                         AccountActivityComponentRuleConfig.of(
                                                 AccountActivityComponentRuleConfig.Condition.of(
                                                         singletonList(ComponentType.BIDDER), singletonList("bidder")),
+                                                null))),
+                                Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
+                                        AccountActivityGeoRuleConfig.of(null, null),
+                                        AccountActivityGeoRuleConfig.of(
+                                                AccountActivityGeoRuleConfig.Condition.of(null, null, null, null, null),
+                                                null),
+                                        AccountActivityGeoRuleConfig.of(
+                                                AccountActivityGeoRuleConfig.Condition.of(
+                                                        emptyList(), emptyList(), null, null, null),
+                                                null),
+                                        AccountActivityGeoRuleConfig.of(
+                                                AccountActivityGeoRuleConfig.Condition.of(
+                                                        singletonList(ComponentType.BIDDER),
+                                                        singletonList("bidder"),
+                                                        null,
+                                                        null,
+                                                        null),
                                                 null)))),
                         null))
                 .build();
@@ -64,6 +121,19 @@ public class ActivitiesConfigResolverTest extends VertxTest {
                                         AccountActivityComponentRuleConfig.of(
                                                 AccountActivityComponentRuleConfig.Condition.of(
                                                         singletonList(ComponentType.BIDDER), singletonList("bidder")),
+                                                null))),
+                                Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
+                                        AccountActivityGeoRuleConfig.of(null, null),
+                                        AccountActivityGeoRuleConfig.of(
+                                                AccountActivityGeoRuleConfig.Condition.of(null, null, null, null, null),
+                                                null),
+                                        AccountActivityGeoRuleConfig.of(
+                                                AccountActivityGeoRuleConfig.Condition.of(
+                                                        singletonList(ComponentType.BIDDER),
+                                                        singletonList("bidder"),
+                                                        null,
+                                                        null,
+                                                        null),
                                                 null)))),
                         null))
                 .build());
