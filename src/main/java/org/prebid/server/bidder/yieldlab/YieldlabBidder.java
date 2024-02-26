@@ -49,6 +49,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class YieldlabBidder implements Bidder<Void> {
@@ -273,10 +274,18 @@ public class YieldlabBidder implements Bidder<Void> {
             && request.getRegs().getExt().getDsa() != null;
     }
 
-    private static String encodeTransparenciesAsString(List<ExtRegsDsaTransparency> transparency) {
-        return transparency.stream()
+    private static String encodeTransparenciesAsString(List<ExtRegsDsaTransparency> transparencies) {
+        return transparencies.stream()
+            .filter(transparencyIsValid())
             .map(YieldlabBidder::encodeTransparency)
             .collect(Collectors.joining("~~"));
+    }
+
+    private static Predicate<ExtRegsDsaTransparency> transparencyIsValid() {
+        return transparency ->
+            !Objects.isNull(transparency.getDomain())
+                && !Objects.isNull(transparency.getDsaParams())
+                && !transparency.getDsaParams().isEmpty();
     }
 
     private static String encodeTransparency(ExtRegsDsaTransparency transparency) {
@@ -471,7 +480,12 @@ public class YieldlabBidder implements Bidder<Void> {
             return null;
         }
         final var ext = mapper.mapper().createObjectNode();
-        final var dsaNode = mapper.mapper().convertValue(dsa, JsonNode.class);
+        final JsonNode dsaNode;
+        try {
+            dsaNode = mapper.mapper().convertValue(dsa, JsonNode.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Failed to serialize DSA object", e);
+        }
         ext.set("dsa", dsaNode);
         return ext;
     }

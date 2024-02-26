@@ -11,8 +11,8 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -33,7 +33,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.yieldlab.ExtImpYieldlab;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
-import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
@@ -60,7 +59,7 @@ public class YieldlabBidderTest extends VertxTest {
 
     private YieldlabBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         clock = Clock.fixed(Instant.parse("2019-07-26T10:00:00Z"), ZoneId.systemDefault());
         target = new YieldlabBidder(ENDPOINT_URL, clock, jacksonMapper);
@@ -318,11 +317,11 @@ public class YieldlabBidderTest extends VertxTest {
                 ExtRegsDsa.of(
                     1, 2, 3, List.of(ExtRegsDsaTransparency.of("testDomain", List.of(1, 2, 3)))
                 ),
-                Map.of(
-                    "dsarequired", "1",
-                    "dsapubrender", "2",
-                    "dsadatatopub", "3",
-                    "dsatransparency", "testDomain~1_2_3"
+                List.of(
+                    "&dsarequired=1",
+                    "&dsapubrender=2",
+                    "&dsadatatopub=3",
+                    "&dsatransparency=testDomain%7E1_2_3"
                 )
             ),
             arguments(
@@ -333,11 +332,11 @@ public class YieldlabBidderTest extends VertxTest {
                         ExtRegsDsaTransparency.of("testDomain2", List.of(4, 5, 6))
                     )
                 ),
-                Map.of(
-                    "dsarequired", "1",
-                    "dsapubrender", "2",
-                    "dsadatatopub", "3",
-                    "dsatransparency", "testDomain~1_2_3~~testDomain2~4_5_6"
+                List.of(
+                    "&dsarequired=1",
+                    "&dsapubrender=2",
+                    "&dsadatatopub=3",
+                    "&dsatransparency=testDomain%7E1_2_3%7E%7EtestDomain2%7E4_5_6"
                 )
 
             ),
@@ -346,9 +345,19 @@ public class YieldlabBidderTest extends VertxTest {
                 ExtRegsDsa.of(
                     2, null, 3, null
                 ),
-                Map.of(
-                    "dsarequired", "2",
-                    "dsadatatopub", "3"
+                List.of(
+                    "dsarequired=2",
+                    "dsadatatopub=3"
+                )
+            ),
+            arguments(
+                "Incomplete transparency object is ignored",
+                ExtRegsDsa.of(
+                    2, null, 3, List.of(ExtRegsDsaTransparency.of("domain", null))
+                ),
+                List.of(
+                    "dsarequired=2",
+                    "dsadatatopub=3"
                 )
             )
         );
@@ -356,37 +365,8 @@ public class YieldlabBidderTest extends VertxTest {
 
     @ParameterizedTest(name = "{index} - {0}")
     @MethodSource("dsaRequestCases")
-    public void dsaIsForwarded(String testName, ExtRegsDsa dsa, Map<String, String> expectations)
-        throws NoSuchMethodException, InvocationTargetException, IllegalAccessException {
+    public void dsaParamsAreSentInRequest(String testName, ExtRegsDsa dsa, List<String> expectations) {
         //given
-        final var regs = Regs.builder()
-                .ext(ExtRegs.of(null, null, null, dsa))
-                .build();
-
-        final var bidRequest = BidRequest.builder()
-                .regs(regs)
-                .build();
-
-        final var getDsaRequestParams =
-                YieldlabBidder.class.getDeclaredMethod("extractDsaRequestParams", BidRequest.class);
-        getDsaRequestParams.setAccessible(true);
-
-        //when
-        final var dsaRequestParams = (HashMap<String, String>) getDsaRequestParams.invoke(null, bidRequest);
-
-        //then
-        assertThat(dsaRequestParams).containsExactlyInAnyOrderEntriesOf(expectations);
-    }
-
-    @Test
-    public void dsaParamsAreSentInRequest() {
-        //given
-        final var transparencies = List.of(
-                ExtRegsDsaTransparency.of("testDomain", List.of(1, 2, 3)),
-                ExtRegsDsaTransparency.of("testDomain2", List.of(4, 5, 6))
-        );
-        final var dsa = ExtRegsDsa.of(
-                1, 2, 3, transparencies);
         final var regs = Regs.builder()
                 .ext(ExtRegs.of(null, null, null, dsa))
                 .build();
@@ -404,13 +384,9 @@ public class YieldlabBidderTest extends VertxTest {
         final var result = target.makeHttpRequests(bidRequest);
 
         //then
+        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue().get(0).getUri())
-                .contains(
-                    "&dsarequired=1",
-                    "&dsapubrender=2",
-                    "&dsadatatopub=3",
-                    "&dsatransparency=testDomain%7E1_2_3%7E%7EtestDomain2%7E4_5_6"
-                );
+                .contains(expectations);
     }
 
     @Test
