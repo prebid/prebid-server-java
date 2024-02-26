@@ -14,8 +14,6 @@ import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.IgnoreRest
-import spock.lang.RepeatUntilFailure
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
