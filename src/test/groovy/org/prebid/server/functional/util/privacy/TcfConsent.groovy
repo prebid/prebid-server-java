@@ -97,7 +97,7 @@ class TcfConsent implements ConsentString {
                 def publisherRestrictionEntry = PublisherRestrictionEntry
                         .newBuilder()
                         .purposeId(purposeId.value)
-                        .restrictionType(restrictionType)
+                        .restrictionType(com.iabtcf.v2.RestrictionType.from(restrictionType.value))
                         .addVendor(vendorId)
                         .build()
                 tcStringEncoder.addPublisherRestrictionEntry(publisherRestrictionEntry)
@@ -152,6 +152,19 @@ class TcfConsent implements ConsentString {
 
         int getReversedListVersion() {
             (this == TCF_POLICY_V3) ? 2 : 3
+        }
+    }
+
+    enum RestrictionType {
+        NOT_ALLOWED(0),
+        REQUIRE_CONSENT(1),
+        REQUIRE_LEGITIMATE_INTEREST(2),
+        UNDEFINED(3)
+
+        final int value
+
+        RestrictionType(int value) {
+            this.value = value
         }
     }
 }

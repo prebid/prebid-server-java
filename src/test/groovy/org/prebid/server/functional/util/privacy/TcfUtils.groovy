@@ -1,11 +1,9 @@
 package org.prebid.server.functional.util.privacy
 
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.config.PurposeEid
-import org.prebid.server.functional.model.config.PurposeEnforcement
-import org.prebid.server.functional.model.privacy.EnforcementRequirments
+import org.prebid.server.functional.model.privacy.EnforcementRequirements
 
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.util.privacy.TcfConsent.Builder
@@ -14,7 +12,7 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVers
 
 class TcfUtils {
 
-    static Map<Purpose, PurposeConfig> getPurposeConfigsForPersonalizedAds(EnforcementRequirments enforcementRequirments, boolean requireConsent = false, List<String> eidsExceptions = []) {
+    static Map<Purpose, PurposeConfig> getPurposeConfigsForPersonalizedAds(EnforcementRequirements enforcementRequirments, boolean requireConsent = false, List<String> eidsExceptions = []) {
         def purpose = enforcementRequirments.purposeConsent ?: enforcementRequirments.purpose
         // Basic Ads required for any bidder call, should be present at least as company consent
         Map<Purpose, PurposeConfig> purposes = [(Purpose.P2): new PurposeConfig(enforcePurpose: NO, enforceVendors: false)]
@@ -32,7 +30,7 @@ class TcfUtils {
         purposes
     }
 
-    static ConsentString getConsentString(EnforcementRequirments enforcementRequirments) {
+    static ConsentString getConsentString(EnforcementRequirements enforcementRequirments) {
         def purposeConsent = enforcementRequirments.purposeConsent
         def purpose = enforcementRequirments.purposeConsent ?: enforcementRequirments.purpose
         def vendorConsentBitField = enforcementRequirments.getVendorConsentBitField()

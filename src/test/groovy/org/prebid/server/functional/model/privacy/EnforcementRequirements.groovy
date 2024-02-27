@@ -1,12 +1,13 @@
 package org.prebid.server.functional.model.privacy
 
-import com.iabtcf.v2.PublisherRestriction
-import com.iabtcf.v2.RestrictionType
+import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.config.PurposeEnforcement
+import org.prebid.server.functional.util.privacy.TcfConsent
 
-class EnforcementRequirments {
+@ToString(includeNames = true, ignoreNulls = true)
+class EnforcementRequirements {
 
     Purpose purpose
     PurposeEnforcement enforcePurpose
@@ -15,9 +16,8 @@ class EnforcementRequirments {
     Integer vendorConsentBitField
     Integer vendorLegitimateInterestBitField
     List<BidderName> vendorExceptions
-    List<BidderName> softVendorExceptions
     Purpose purposesLITransparency
-    List<RestrictionType> restrictionType
+    List<TcfConsent.RestrictionType> restrictionType
     Integer vendorIdGvl
     Integer vendorListVersion
 }
