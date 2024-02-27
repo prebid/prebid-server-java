@@ -19,16 +19,18 @@ server:
   http:
     enabled: true
     port: 8080
-    server-instances: 10
+    server-instances: 1
+  cpu-load-monitoring:
+    enabled: false
+    measurement-interval-ms: 60000
+  idle-timeout: 10
 admin:
   port: 8060
 admin-endpoints:
-  credentials:
-    admin: admin
   version:
-    enabled: true
+    enabled: false
     path: /version
-    on-application-port: true
+    on-application-port: false
     protected: true
   currency-rates:
     enabled: false
@@ -112,6 +114,8 @@ profile: profile
 adapter-defaults:
   enabled: false
   ortb-version: "2.5"
+  ortb:
+    multiformat-supported: true
   pbs-enforces-ccpa: true
   modifying-vast-xml-allowed: true
   debug:
@@ -132,7 +136,6 @@ auction:
     log-failure-only: false
     log-sampling-rate: 0.0
   max-request-size: 262144
-  generate-source-tid: true
   generate-bid-id: false
   cache:
     expected-request-time-ms: 10
@@ -142,6 +145,7 @@ auction:
     secure-markup: skip
   host-schain-node:
   category-mapping-enabled: false
+  strict-app-site-dooh: false
 video:
   stored-request-required: false
   stored-requests-timeout-ms: 90
@@ -211,14 +215,26 @@ gdpr:
   eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
   vendorlist:
     default-timeout-ms: 2000
-    v1:
-      http-endpoint-template: https://vendor-list.consensu.org/v-{VERSION}/vendorlist.json
-      refresh-missing-list-period-ms: 3600000
-      deprecated: false
     v2:
       http-endpoint-template: https://vendor-list.consensu.org/v2/archives/vendor-list-v{VERSION}.json
       refresh-missing-list-period-ms: 3600000
       deprecated: false
+      retry-policy:
+        exponential-backoff:
+          delay-millis: 60000
+          max-delay-millis: 120000
+          factor: 1.1
+          jitter: 0.2
+    v3:
+      http-endpoint-template: https://vendor-list.consensu.org/v3/archives/vendor-list-v{VERSION}.json
+      refresh-missing-list-period-ms: 3600000
+      deprecated: false
+      retry-policy:
+        exponential-backoff:
+          delay-millis: 60000
+          max-delay-millis: 120000
+          factor: 1.1
+          jitter: 0.2
   purposes:
     p1:
       enforce-purpose: full

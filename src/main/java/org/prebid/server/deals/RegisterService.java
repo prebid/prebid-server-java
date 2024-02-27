@@ -174,7 +174,7 @@ public class RegisterService implements Initializable, Suspendable {
         try {
             return mapper.decodeValue(responseBody, AdminCentralResponse.class);
         } catch (DecodeException e) {
-            String errorMessage = "Cannot parse register response: " + responseBody;
+            final String errorMessage = "Cannot parse register response: " + responseBody;
             alert(errorMessage, logger::warn);
             throw new PreBidException(errorMessage, e);
         }

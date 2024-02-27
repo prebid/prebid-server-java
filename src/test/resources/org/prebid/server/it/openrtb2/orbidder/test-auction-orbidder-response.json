@@ -16,7 +16,8 @@
           },
           "id": "bid_id",
           "impid": "imp_id",
-          "price": 0.01
+          "price": 0.01,
+          "mtype": 1
         }
       ],
       "group": 0,

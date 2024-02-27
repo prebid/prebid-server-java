@@ -1,6 +1,6 @@
 adapters:
   adyoulike:
-    endpoint: https://broker.omnitagjs.com/broker/bid?partnerId=19340f4f097d16f41f34fc0274981ca4
+    endpoint: https://hb-ss.omnitagjs.com/broker/bid?partnerId=19340f4f097d16f41f34fc0274981ca4
     meta-info:
       maintainer-email: core@adyoulike.com
       app-media-types:

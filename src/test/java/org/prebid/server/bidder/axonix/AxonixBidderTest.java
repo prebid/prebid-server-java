@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -21,8 +20,8 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.axonix.ExtImpAxonix;
-import org.prebid.server.proto.openrtb.ext.request.between.ExtImpBetween;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.function.Function;
 
@@ -30,6 +29,7 @@ import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -38,12 +38,7 @@ public class AxonixBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://randomurl.com/{{SupplyId}}";
 
-    private AxonixBidder axonixBidder;
-
-    @Before
-    public void setUp() {
-        axonixBidder = new AxonixBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AxonixBidder target = new AxonixBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -59,7 +54,7 @@ public class AxonixBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAxonix.of("someSupplyId")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = axonixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -76,7 +71,7 @@ public class AxonixBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = axonixBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -89,7 +84,7 @@ public class AxonixBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = axonixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -106,7 +101,7 @@ public class AxonixBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = axonixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -120,7 +115,7 @@ public class AxonixBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = axonixBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -138,7 +133,7 @@ public class AxonixBidderTest extends VertxTest {
                 givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = axonixBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -157,7 +152,7 @@ public class AxonixBidderTest extends VertxTest {
                 givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = axonixBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -176,7 +171,7 @@ public class AxonixBidderTest extends VertxTest {
                 givenBidResponse(bidBuilder -> bidBuilder.impid("33"))));
 
         // when
-        final Result<List<BidderBid>> result = axonixBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -195,12 +190,39 @@ public class AxonixBidderTest extends VertxTest {
                 givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = axonixBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, null));
+    }
+
+    @Test
+    public void makeBidsShouldReturnBidWithResolvedMacros() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder().id("123").build()))
+                .build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
+                givenBidResponse(bidBuilder -> bidBuilder
+                        .impid("123")
+                        .nurl("https://mynurl.example.com/win/232332?price=${AUCTION_PRICE}")
+                        .adm("<html><head></head><body><p><img"
+                                + " src=\"https://myurl.example.com/imp?apr=${AUCTION_PRICE}\"/></p></body></head>")
+                        .price(BigDecimal.valueOf(13.45)))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getBid)
+                .extracting(Bid::getNurl, Bid::getAdm)
+                .containsExactly(tuple("https://mynurl.example.com/win/232332?price=13.45",
+                        "<html><head></head><body><p><img src=\"https://myurl.example.com/imp?apr=13.45\"/></p></body></head>"));
     }
 
     private static BidRequest givenBidRequest(
@@ -220,7 +242,7 @@ public class AxonixBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().w(23).h(25).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAxonix.of("supplyId")))))
                 .build();
     }
 

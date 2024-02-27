@@ -7,61 +7,60 @@ import org.prebid.server.auction.gpp.model.privacy.TcfEuV2Privacy;
 import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 
 import java.util.List;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class GppContextCreatorTest {
 
     @Test
-    public void fromShouldReturnExpectedDefaultGppContext() {
+    public void fromShouldReturnExpectedDefaultGppContextWrapper() {
         // when
-        final GppContext gppContext = GppContextCreator.from(null, null).build();
+        final GppContextWrapper gppContextWrapper = GppContextCreator.from(null, null).build();
 
         // then
-        assertThat(gppContext.scope()).isEqualTo(GppContext.Scope.of(null, null));
-        assertThat(gppContext.regions()).isEqualTo(GppContext.Regions.builder()
-                .tcfEuV2Privacy(TcfEuV2Privacy.of(null, null))
-                .uspV1Privacy(UspV1Privacy.of(null))
-                .build());
-        assertThat(gppContext.errors()).isEmpty();
+        assertThat(gppContextWrapper.getGppContext()).satisfies(gppContext -> {
+            assertThat(gppContext.scope()).isEqualTo(GppContext.Scope.of(null, null));
+            assertThat(gppContext.regions()).isEqualTo(GppContext.Regions.builder().build());
+        });
+
+        assertThat(gppContextWrapper.getErrors()).isEmpty();
     }
 
     @Test
-    public void fromShouldReturnGppContextWithErrorOnInvalidGpp() {
+    public void fromShouldReturnGppContextWrapperWithErrorOnInvalidGpp() {
         // when
-        final GppContext gppContext = GppContextCreator.from("invalid", null).build();
+        final GppContextWrapper gppContextWrapper = GppContextCreator.from("invalid", null).build();
 
         // then
-        assertThat(gppContext.scope()).isEqualTo(GppContext.Scope.of(null, null));
-        assertThat(gppContext.regions()).isEqualTo(GppContext.Regions.builder()
-                .tcfEuV2Privacy(TcfEuV2Privacy.of(null, null))
-                .uspV1Privacy(UspV1Privacy.of(null))
-                .build());
-        assertThat(gppContext.errors())
+        assertThat(gppContextWrapper.getGppContext()).satisfies(gppContext -> {
+            assertThat(gppContext.scope()).isEqualTo(GppContext.Scope.of(null, null));
+            assertThat(gppContext.regions()).isEqualTo(GppContext.Regions.builder().build());
+        });
+        assertThat(gppContextWrapper.getErrors())
                 .containsExactly("GPP string invalid: Undecodable FibonacciIntegerRange '101111011'");
     }
 
     @Test
-    public void fromShouldReturnExpectedGppContext() {
+    public void fromShouldReturnExpectedGppContextWrapper() {
         // when
-        final GppContext gppContext = GppContextCreator.from(givenValidGppString(), List.of(1, 2))
+        final GppContextWrapper gppContextWrapper = GppContextCreator.from(givenValidGppString(), List.of(1, 2))
                 .with(TcfEuV2Privacy.of(1, "consent"))
                 .with(UspV1Privacy.of("usPrivacy"))
                 .build();
 
         // then
-        assertThat(gppContext.scope()).satisfies(scope -> {
-            assertThat(scope.getGppModel()).isNotNull();
-            assertThat(scope.getSectionsIds())
-                    .isInstanceOf(Set.class)
-                    .containsExactlyInAnyOrder(1, 2);
+        assertThat(gppContextWrapper.getGppContext()).satisfies(gppContext -> {
+            assertThat(gppContext.scope()).satisfies(scope -> {
+                assertThat(scope.getGppModel()).isNotNull();
+                assertThat(scope.getSectionsIds())
+                        .containsExactlyInAnyOrder(1, 2);
+            });
+            assertThat(gppContext.regions()).isEqualTo(GppContext.Regions.builder()
+                    .tcfEuV2Privacy(TcfEuV2Privacy.of(1, "consent"))
+                    .uspV1Privacy(UspV1Privacy.of("usPrivacy"))
+                    .build());
         });
-        assertThat(gppContext.regions()).isEqualTo(GppContext.Regions.builder()
-                .tcfEuV2Privacy(TcfEuV2Privacy.of(1, "consent"))
-                .uspV1Privacy(UspV1Privacy.of("usPrivacy"))
-                .build());
-        assertThat(gppContext.errors()).isEmpty();
+        assertThat(gppContextWrapper.getErrors()).isEmpty();
     }
 
     private static String givenValidGppString() {

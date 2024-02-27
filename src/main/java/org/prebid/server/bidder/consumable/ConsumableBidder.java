@@ -66,6 +66,17 @@ public class ConsumableBidder implements Bidder<ConsumableBidRequest> {
         }
 
         final Regs regs = request.getRegs();
+
+        final String gpp = regs != null ? regs.getGpp() : null;
+        if (gpp != null) {
+            requestBuilder.gpp(gpp);
+        }
+
+        final List<Integer> gppSid = regs != null ? regs.getGppSid() : null;
+        if (CollectionUtils.isNotEmpty(gppSid)) {
+            requestBuilder.gppSid(gppSid);
+        }
+
         final ExtRegs extRegs = regs != null ? regs.getExt() : null;
         final String usPrivacy = extRegs != null ? extRegs.getUsPrivacy() : null;
         if (usPrivacy != null) {

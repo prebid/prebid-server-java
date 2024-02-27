@@ -41,7 +41,6 @@ public class VerticleDeployer {
             latch.countDown();
         });
 
-
         try {
             if (!latch.await(TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)) {
                 throw new RuntimeException(
@@ -56,8 +55,7 @@ public class VerticleDeployer {
                     throw new RuntimeException("Action failed");
                 }
             }
-        } catch (
-                InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Interrupted while waiting for action to complete", e);
         }

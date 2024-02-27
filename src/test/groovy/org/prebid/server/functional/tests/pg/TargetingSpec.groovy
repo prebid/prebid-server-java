@@ -12,7 +12,7 @@ import org.prebid.server.functional.model.request.auction.Bidder
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.GeoExt
-import org.prebid.server.functional.model.request.auction.GeoExtNetAcuity
+import org.prebid.server.functional.model.request.auction.GeoExtGeoProvider
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExt
 import org.prebid.server.functional.model.request.auction.ImpExtContext
@@ -53,6 +53,7 @@ import static org.prebid.server.functional.model.deals.lineitem.targeting.Target
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.REFERRER
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.SITE_DOMAIN
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_UID
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
 import static org.prebid.server.functional.model.response.auction.MediaType.BANNER
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
@@ -159,7 +160,7 @@ class TargetingSpec extends BasePgSpec {
 
     def "PBS should support line item targeting by string '#targetingType' targeting type"() {
         given: "Planner response"
-        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.getAccountId()).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
                                               .addTargeting(targetingType, MATCHES, stringTargetingValue)
                                               .build()
@@ -182,9 +183,10 @@ class TargetingSpec extends BasePgSpec {
             site.page = stringTargetingValue
         }
 
-        APP_BUNDLE     | BidRequest.defaultBidRequest.tap {
-            app = new App(id: PBSUtils.randomString,
-                    bundle: stringTargetingValue)
+        APP_BUNDLE     | BidRequest.getDefaultBidRequest(APP).tap {
+            app = App.defaultApp.tap {
+                bundle = stringTargetingValue
+            }
         }
 
         UFPD_BUYER_UID | BidRequest.defaultBidRequest.tap {
@@ -430,7 +432,7 @@ class TargetingSpec extends BasePgSpec {
     def "PBS should support line item targeting by device geo region, metro when request region, metro as int or str value are given"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            device = new Device(geo: new Geo(ext: new GeoExt(netAcuity: new GeoExtNetAcuity(region: requestValue,
+            device = new Device(geo: new Geo(ext: new GeoExt(geoProvider: new GeoExtGeoProvider(region: requestValue,
                     metro: requestValue))))
         }
 

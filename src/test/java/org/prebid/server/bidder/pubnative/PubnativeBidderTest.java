@@ -54,14 +54,14 @@ public class PubnativeBidderTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    private PubnativeBidder pubnativeBidder;
-
     @Mock
     private CurrencyConversionService currencyConversionService;
 
+    private PubnativeBidder target;
+
     @Before
     public void setUp() {
-        pubnativeBidder = new PubnativeBidder(ENDPOINT_URL, jacksonMapper, currencyConversionService);
+        target = new PubnativeBidder(ENDPOINT_URL, jacksonMapper, currencyConversionService);
     }
 
     @Test
@@ -76,7 +76,7 @@ public class PubnativeBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -92,7 +92,7 @@ public class PubnativeBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -106,7 +106,7 @@ public class PubnativeBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(null));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -121,7 +121,7 @@ public class PubnativeBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -135,7 +135,7 @@ public class PubnativeBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -154,7 +154,7 @@ public class PubnativeBidderTest extends VertxTest {
                                 givenImp(impBuilder -> impBuilder.banner(null)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -179,7 +179,7 @@ public class PubnativeBidderTest extends VertxTest {
                                         .bidfloor(BigDecimal.ONE)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -197,7 +197,7 @@ public class PubnativeBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.imp(singletonList(givenImp(identity()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -218,7 +218,7 @@ public class PubnativeBidderTest extends VertxTest {
                         .cur(singletonList("EUR")));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         verify(currencyConversionService).convertCurrency(eq(BigDecimal.ONE), any(), eq("EUR"), eq("USD"));
@@ -248,7 +248,7 @@ public class PubnativeBidderTest extends VertxTest {
                                         .build())))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -278,7 +278,7 @@ public class PubnativeBidderTest extends VertxTest {
                                         .build())))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = pubnativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -296,7 +296,7 @@ public class PubnativeBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -312,7 +312,7 @@ public class PubnativeBidderTest extends VertxTest {
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -326,7 +326,7 @@ public class PubnativeBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -344,7 +344,7 @@ public class PubnativeBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -365,7 +365,7 @@ public class PubnativeBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -386,7 +386,7 @@ public class PubnativeBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -407,7 +407,7 @@ public class PubnativeBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue())
@@ -429,7 +429,7 @@ public class PubnativeBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue())
@@ -451,7 +451,7 @@ public class PubnativeBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue())
@@ -473,7 +473,7 @@ public class PubnativeBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue())
@@ -495,7 +495,7 @@ public class PubnativeBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue())
@@ -518,7 +518,7 @@ public class PubnativeBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = pubnativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue())

@@ -5,7 +5,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.logan.request.LoganRequestImpExt;
@@ -20,6 +19,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.logan.ExtImpLogan;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collection;
@@ -75,13 +75,7 @@ public class LoganBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> createSingleRequest(Imp imp, BidRequest request) {
         final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
 
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .payload(outgoingRequest)
-                .build();
+        return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
     }
 
     @Override

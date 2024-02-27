@@ -89,15 +89,15 @@ public class PrematureReturnTest extends VertxTest {
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/planner-register"))
                 .withBasicAuth("username", "password")
                 .withHeader("pg-trx-id", new AnythingPattern())
-                .withRequestBody(equalToJson(IntegrationTest.jsonFrom("deals/test-planner-register-request-1.json"),
+                .withRequestBody(equalToJson(IntegrationTest.jsonFrom("deals/test-planner-register-request.json"),
                         false, true))
                 .willReturn(aResponse()));
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/user-data-details"))
                 .withRequestBody(equalToJson(IntegrationTest
-                        .jsonFrom("deals/test-user-data-details-request-1.json"), false, true))
+                        .jsonFrom("deals/test-user-data-details-request.json"), false, true))
                 .willReturn(aResponse().withBody(IntegrationTest
-                        .jsonFrom("deals/test-user-data-details-response-1.json"))));
+                        .jsonFrom("deals/test-user-data-details-rubicon-response.json"))));
     }
 
     @Test
@@ -373,8 +373,10 @@ public class PrematureReturnTest extends VertxTest {
                 .header("Referer", "http://www.example.com")
                 .header("User-Agent", "userAgent")
                 .header("X-Forwarded-For", "185.199.110.153")
-                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIn19")
+                // this uids cookie value stands for { "tempUIDs":{ "rubicon":{ "uid":"J5VLCWQP-26-CWFT",
+                // "expires":"2023-12-05T19:00:05.103329-03:00" } } }
+                .cookie("uids", "eyAidGVtcFVJRHMiOnsgInJ1Ymljb24iOnsgInVpZCI6Iko1VkxDV1FQ"
+                        + "LTI2LUNXRlQiLCAiZXhwaXJlcyI6IjIwMjMtMTItMDVUMTk6MDA6MDUuMTAzMzI5LTAzOjAwIiB9IH0gfQ==")
                 .body(IntegrationTest.jsonFrom("deals/premature/test-auction-request.json"))
                 .post("/openrtb2/auction");
     }

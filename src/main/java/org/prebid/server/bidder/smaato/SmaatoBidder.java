@@ -8,6 +8,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
@@ -16,7 +17,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -75,6 +75,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private static final String SMT_AD_TYPE_IMG = "Img";
     private static final String SMT_ADTYPE_RICHMEDIA = "Richmedia";
     private static final String SMT_ADTYPE_VIDEO = "Video";
+    private static final String IMP_EXT_SKADN_FIELD = "skadn";
 
     private static final int DEFAULT_TTL = 300;
 
@@ -197,13 +198,14 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
     private BidRequest preparePodRequest(BidRequest bidRequest, List<Imp> imps, List<BidderError> errors) {
         try {
-            final ExtImpSmaato extImpSmaato = mapper.mapper().convertValue(imps.get(0).getExt(),
-                    SMAATO_EXT_TYPE_REFERENCE).getBidder();
-
+            final ObjectNode impExt = imps.get(0).getExt();
+            final ExtImpSmaato extImpSmaato =
+                    mapper.mapper().convertValue(impExt, SMAATO_EXT_TYPE_REFERENCE).getBidder();
             final String publisherId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getPublisherId, "publisherId");
             final String adBreakId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getAdbreakId, "adbreakId");
 
-            return modifyBidRequest(bidRequest, publisherId, () -> modifyImpsForAdBreak(imps, adBreakId));
+            return modifyBidRequest(bidRequest, publisherId, () ->
+                    modifyImpsForAdBreak(imps, adBreakId, resolveImpExtSkadn(impExt)));
         } catch (PreBidException | IllegalArgumentException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
@@ -227,13 +229,14 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return bidRequestBuilder.imp(impSupplier.get()).build();
     }
 
-    private List<Imp> modifyImpsForAdBreak(List<Imp> imps, String adBreakId) {
+    private List<Imp> modifyImpsForAdBreak(List<Imp> imps, String adBreakId, ObjectNode impExtSkadn) {
         return IntStream.range(0, imps.size())
-                .mapToObj(idx -> modifyImpForAdBreak(imps.get(idx), idx + 1, adBreakId))
+                .mapToObj(idx ->
+                        modifyImpForAdBreak(imps.get(idx), idx + 1, adBreakId, idx == 0 ? impExtSkadn : null))
                 .toList();
     }
 
-    private Imp modifyImpForAdBreak(Imp imp, Integer sequence, String adBreakId) {
+    private Imp modifyImpForAdBreak(Imp imp, Integer sequence, String adBreakId, ObjectNode impExtSkadn) {
         final Video modifiedVideo = imp.getVideo().toBuilder()
                 .sequence(sequence)
                 .ext(mapper.mapper().createObjectNode().set("context", TextNode.valueOf("adpod")))
@@ -241,7 +244,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         return imp.toBuilder()
                 .tagid(adBreakId)
                 .video(modifiedVideo)
-                .ext(null)
+                .ext(impExtSkadn)
                 .build();
     }
 
@@ -259,16 +262,20 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         for (Imp imp : imps) {
             final Banner banner = imp.getBanner();
             final Video video = imp.getVideo();
-            if (video == null && banner == null) {
-                errors.add(BidderError.badInput("Invalid MediaType. Smaato only supports Banner and Video."));
+            final Native xNative = imp.getXNative();
+            if (ObjectUtils.allNull(video, banner, xNative)) {
+                errors.add(BidderError.badInput("Invalid MediaType. Smaato only supports Banner, Video and Native."));
                 continue;
             }
 
             if (video != null) {
-                splitImps.add(imp.toBuilder().banner(null).build());
+                splitImps.add(imp.toBuilder().banner(null).xNative(null).build());
             }
             if (banner != null) {
-                splitImps.add(imp.toBuilder().video(null).build());
+                splitImps.add(imp.toBuilder().video(null).xNative(null).build());
+            }
+            if (xNative != null) {
+                splitImps.add(imp.toBuilder().banner(null).video(null).build());
             }
         }
 
@@ -277,23 +284,35 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
     private BidRequest prepareIndividualRequest(BidRequest bidRequest, Imp imp, List<BidderError> errors) {
         try {
-            final ExtImpSmaato extImpSmaato = mapper.mapper().convertValue(imp.getExt(),
-                    SMAATO_EXT_TYPE_REFERENCE).getBidder();
+            final ObjectNode impExt = imp.getExt();
+            final ExtImpSmaato extImpSmaato =
+                    mapper.mapper().convertValue(impExt, SMAATO_EXT_TYPE_REFERENCE).getBidder();
             final String publisherId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getPublisherId, "publisherId");
             final String adSpaceId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getAdspaceId, "adspaceId");
 
-            return modifyBidRequest(bidRequest, publisherId, () -> modifyImpForAdSpace(imp, adSpaceId));
+            return modifyBidRequest(bidRequest, publisherId, () ->
+                    modifyImpForAdSpace(imp, adSpaceId, resolveImpExtSkadn(impExt)));
         } catch (PreBidException | IllegalArgumentException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
         }
     }
 
-    private List<Imp> modifyImpForAdSpace(Imp imp, String adSpaceId) {
+    private ObjectNode resolveImpExtSkadn(ObjectNode impExt) {
+        if (!impExt.has(IMP_EXT_SKADN_FIELD)) {
+            return null;
+        } else if (impExt.get(IMP_EXT_SKADN_FIELD).isEmpty() || !impExt.get(IMP_EXT_SKADN_FIELD).isObject()) {
+            throw new PreBidException("Invalid imp.ext.skadn");
+        } else {
+            return mapper.mapper().createObjectNode().set(IMP_EXT_SKADN_FIELD, impExt.get(IMP_EXT_SKADN_FIELD));
+        }
+    }
+
+    private List<Imp> modifyImpForAdSpace(Imp imp, String adSpaceId, ObjectNode impExtSkadn) {
         final Imp modifiedImp = imp.toBuilder()
                 .tagid(adSpaceId)
                 .banner(getIfNotNull(imp.getBanner(), SmaatoBidder::modifyBanner))
-                .ext(null)
+                .ext(impExtSkadn)
                 .build();
 
         return Collections.singletonList(modifiedImp);
@@ -312,13 +331,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest) {
-        return HttpRequest.<BidRequest>builder()
-                .uri(endpointUrl)
-                .method(HttpMethod.POST)
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(bidRequest))
-                .payload(bidRequest)
-                .build();
+        return BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper);
     }
 
     @Override

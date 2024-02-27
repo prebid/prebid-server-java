@@ -9,14 +9,14 @@
       },
       "ext": {
         "adtrgtme": {
+          "site_id": 123
         }
       }
     }
   ],
   "site": {
     "domain": "www.example.com",
-    "page": "http://www.example.com",
-    "id": "site_id"
+    "page": "http://www.example.com"
   },
   "tmax": 5000,
   "regs": {

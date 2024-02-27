@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -17,6 +16,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collection;
@@ -40,13 +40,7 @@ public class InteractiveOffersBidder implements Bidder<BidRequest> {
         final String resolvedPartnerId = StringUtils.defaultString(resolvePartnerId(impExt));
         final String resolvedEndpointUrl = endpointUrl.replace("{{PartnerId}}", resolvedPartnerId);
 
-        return Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(resolvedEndpointUrl)
-                .headers(HttpUtil.headers())
-                .payload(request)
-                .body(mapper.encodeToBytes(request))
-                .build());
+        return Result.withValue(BidderUtil.defaultRequest(request, resolvedEndpointUrl, mapper));
     }
 
     private static String resolvePartnerId(ObjectNode impExt) {

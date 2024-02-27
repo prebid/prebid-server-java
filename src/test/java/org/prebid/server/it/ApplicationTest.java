@@ -43,6 +43,7 @@ import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -251,8 +252,13 @@ public class ApplicationTest extends IntegrationTest {
         // when
         final Response response = given(SPEC)
                 .header("Content-Type", "application/x-www-form-urlencoded")
-                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"}}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0NSJ9fQ==")
+                // this uids cookie value stands for { "tempUIDs":{ "rubicon":{ "uid": "J5VLCWQP-26-CWFT",
+                // "expires": "2023-12-05T19:00:05.103329-03:00" }, "adnxs":{ "uid": "12345",
+                // "expires": "2023-12-05T19:00:05.103329-03:00" } } }
+                .cookie("uids", "eyAidGVtcFVJRHMiOnsgInJ1Ymljb24iOnsgInVpZCI6ICJKNVZMQ1dRUC0yNi1DV0ZUIiwg"
+                        + "ImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS4xMDMzMjktMDM6MDAiIH0sICJhZG5"
+                        + "4cyI6eyAidWlkIjogIjEyMzQ1IiwgImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS"
+                        + "4xMDMzMjktMDM6MDAiIH0gfSB9")
                 .body("g-recaptcha-response=recaptcha1&optout=1")
                 .post("/optout");
 
@@ -266,7 +272,6 @@ public class ApplicationTest extends IntegrationTest {
         // this uids cookie value stands for {"uids":{},"optout":true}
         final Uids uids = decodeUids(cookie.getValue());
         assertThat(uids.getUids()).isEmpty();
-        assertThat(uids.getUidsLegacy()).isEmpty();
         assertThat(uids.getOptout()).isTrue();
     }
 
@@ -344,10 +349,10 @@ public class ApplicationTest extends IntegrationTest {
     public void setuidShouldUpdateRubiconUidInUidCookie() throws IOException {
         // when
         final Cookie uidsCookie = given(SPEC)
-                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"},
-                // "bday":"2017-08-15T19:47:59.523908376Z"}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0"
-                        + "NSJ9LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=")
+                // this uids cookie value stands for { "tempUIDs":{ "rubicon":{ "uid":"J5VLCWQP-26-CWFT",
+                // "expires":"2023-12-05T19:00:05.103329-03:00" } } }
+                .cookie("uids", "eyAidGVtcFVJRHMiOnsgInJ1Ymljb24iOnsgInVpZCI6Iko1VkxDV1FQ"
+                        + "LTI2LUNXRlQiLCAiZXhwaXJlcyI6IjIwMjMtMTItMDVUMTk6MDA6MDUuMTAzMzI5LTAzOjAwIiB9IH0gfQ==")
                 // this constant is ok to use as long as it coincides with family name
                 .queryParam("bidder", RUBICON)
                 .queryParam("uid", "updatedUid")
@@ -366,8 +371,6 @@ public class ApplicationTest extends IntegrationTest {
                 .isCloseTo(Instant.now().plus(90, ChronoUnit.DAYS), within(10, ChronoUnit.SECONDS));
 
         final Uids uids = decodeUids(uidsCookie.getValue());
-        assertThat(uids.getBday()).isEqualTo("2017-08-15T19:47:59.523908376Z"); // should be unchanged
-        assertThat(uids.getUidsLegacy()).isEmpty();
         assertThat(uids.getUids())
                 .extracting(Map::keySet)
                 .extracting(ArrayList::new)
@@ -382,10 +385,13 @@ public class ApplicationTest extends IntegrationTest {
     public void getuidsShouldReturnJsonWithUids() throws JSONException, IOException {
         // given and when
         final Response response = given(SPEC)
-                // this uids cookie value stands for {"uids":{"rubicon":"J5VLCWQP-26-CWFT","adnxs":"12345"},
-                // "bday":"2017-08-15T19:47:59.523908376Z"}
-                .cookie("uids", "eyJ1aWRzIjp7InJ1Ymljb24iOiJKNVZMQ1dRUC0yNi1DV0ZUIiwiYWRueHMiOiIxMjM0"
-                        + "NSJ9LCJiZGF5IjoiMjAxNy0wOC0xNVQxOTo0Nzo1OS41MjM5MDgzNzZaIn0=")
+                // this uids cookie value stands for { "tempUIDs":{ "rubicon":{ "uid": "J5VLCWQP-26-CWFT",
+                // "expires": "2023-12-05T19:00:05.103329-03:00" }, "adnxs":{ "uid": "12345",
+                // "expires": "2023-12-05T19:00:05.103329-03:00" } } }
+                .cookie("uids", "eyAidGVtcFVJRHMiOnsgInJ1Ymljb24iOnsgInVpZCI6ICJKNVZMQ1dRUC0yNi1DV0ZUIiwg"
+                        + "ImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS4xMDMzMjktMDM6MDAiIH0sICJhZG5"
+                        + "4cyI6eyAidWlkIjogIjEyMzQ1IiwgImV4cGlyZXMiOiAiMjAyMy0xMi0wNVQxOTowMDowNS"
+                        + "4xMDMzMjktMDM6MDAiIH0gfSB9")
                 .when()
                 .get("/getuids");
 
@@ -441,6 +447,10 @@ public class ApplicationTest extends IntegrationTest {
 
         final List<String> bidders = getBidderNamesFromParamFiles();
         final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
+        //todo: necessary since the config file is not a source of truth in terms of defining aliases for the bidders
+        // the suggestion is eventually resolving static json file name from the bidder config file
+        // and not from the name hard-coded in the Configuration class
+        aliases.put("cadent_aperture_mx", "emx_digital");
         final Map<String, JsonNode> expectedMap = CollectionUtils.union(bidders, aliases.keySet()).stream()
                 .collect(Collectors.toMap(
                         Function.identity(),
@@ -468,6 +478,26 @@ public class ApplicationTest extends IntegrationTest {
         final List<String> bidders = getBidderNamesFromParamFiles();
         final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
         final Collection<String> expectedBidders = CollectionUtils.union(bidders, aliases.keySet());
+
+        assertThat(responseAsList).hasSameElementsAs(expectedBidders);
+    }
+
+    @Test
+    public void infoBiddersShouldReturnBaseAdaptersBidderNames() throws IOException {
+        // when
+        final Response response = given(SPEC)
+                .when()
+                .queryParam("baseadaptersonly", "true")
+                .get("/info/bidders");
+
+        // then
+        final List<String> responseAsList = jacksonMapper.decodeValue(response.asString(),
+                new TypeReference<>() {
+                });
+
+        final Set<String> expectedBidders = new HashSet<>(getBidderNamesFromParamFiles());
+        final Map<String, String> aliases = getBidderAliasesFromConfigFiles();
+        expectedBidders.removeAll(aliases.keySet());
 
         assertThat(responseAsList).hasSameElementsAs(expectedBidders);
     }
@@ -656,7 +686,7 @@ public class ApplicationTest extends IntegrationTest {
                 final JsonNode aliasesNode = bidderEntry.getValue().get("aliases");
 
                 if (aliasesNode != null && aliasesNode.isObject()) {
-                    Iterator<String> iterator = aliasesNode.fieldNames();
+                    final Iterator<String> iterator = aliasesNode.fieldNames();
                     while (iterator.hasNext()) {
                         aliases.put(iterator.next().trim(), bidderName);
                     }
@@ -673,7 +703,7 @@ public class ApplicationTest extends IntegrationTest {
             return mapper.readTree(ResourceUtil.readFromClasspath(path));
         } catch (IOException e) {
             throw new IllegalArgumentException(
-                    "Exception occurred during %s bidder schema processing: %s" .formatted(bidderName, e.getMessage()));
+                    "Exception occurred during %s bidder schema processing: %s".formatted(bidderName, e.getMessage()));
         }
     }
 }

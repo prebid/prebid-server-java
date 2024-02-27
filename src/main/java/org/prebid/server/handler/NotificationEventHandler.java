@@ -12,9 +12,12 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.AllArgsConstructor;
 import lombok.Value;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
+import org.prebid.server.auction.gpp.model.GppContextCreator;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.UserService;
 import org.prebid.server.deals.events.ApplicationEventService;
@@ -52,6 +55,7 @@ public class NotificationEventHandler implements ApplicationResource {
     private final UidsCookieService uidsCookieService;
     private final ApplicationEventService applicationEventService;
     private final UserService userService;
+    private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
@@ -62,6 +66,7 @@ public class NotificationEventHandler implements ApplicationResource {
     public NotificationEventHandler(UidsCookieService uidsCookieService,
                                     ApplicationEventService applicationEventService,
                                     UserService userService,
+                                    ActivityInfrastructureCreator activityInfrastructureCreator,
                                     AnalyticsReporterDelegator analyticsDelegator,
                                     TimeoutFactory timeoutFactory,
                                     ApplicationSettings applicationSettings,
@@ -71,6 +76,7 @@ public class NotificationEventHandler implements ApplicationResource {
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.applicationEventService = applicationEventService;
         this.userService = userService;
+        this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
@@ -158,8 +164,8 @@ public class NotificationEventHandler implements ApplicationResource {
                 userService.processWinEvent(lineItemId, bidId, uidsCookieService.parseFromRequest(routingContext));
             }
 
-            boolean eventsEnabledForAccount = Objects.equals(accountEventsEnabled(account), true);
-            boolean eventsEnabledForRequest = eventRequest.getAnalytics() == EventRequest.Analytics.enabled;
+            final boolean eventsEnabledForAccount = Objects.equals(accountEventsEnabled(account), true);
+            final boolean eventsEnabledForRequest = eventRequest.getAnalytics() == EventRequest.Analytics.enabled;
 
             if (!eventsEnabledForAccount && eventsEnabledForRequest) {
                 respondWithUnauthorized(routingContext,
@@ -179,10 +185,10 @@ public class NotificationEventHandler implements ApplicationResource {
                         .integration(eventRequest.getIntegration())
                         .httpContext(HttpRequestContext.from(routingContext))
                         .lineItemId(lineItemId)
+                        .activityInfrastructure(activityInfrastructure(account))
                         .build();
 
                 analyticsDelegator.processEvent(notificationEvent);
-
             }
             respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.image);
         }
@@ -194,6 +200,13 @@ public class NotificationEventHandler implements ApplicationResource {
                 accountAuctionConfig != null ? accountAuctionConfig.getEvents() : null;
 
         return accountEventsConfig != null ? accountEventsConfig.getEnabled() : null;
+    }
+
+    private ActivityInfrastructure activityInfrastructure(Account account) {
+        return activityInfrastructureCreator.create(
+                account,
+                GppContextCreator.from(null, null).build().getGppContext(),
+                null);
     }
 
     private void respondWithOk(RoutingContext routingContext, boolean respondWithPixel) {

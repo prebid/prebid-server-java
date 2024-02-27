@@ -44,6 +44,7 @@ import static org.prebid.server.functional.model.pricefloors.PriceFloorField.PUB
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SITE_DOMAIN
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.SIZE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 import static org.prebid.server.functional.model.request.auction.FetchStatus.ERROR
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
@@ -420,6 +421,16 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
                 app.publisher.domain = publisherDomain
                 app.publisher.id = publisherAccountId
         }   }
+        DOOH                 | { String publisherDomain, String publisherAccountId ->
+            BidRequest.getDefaultBidRequest(distributionChannel).tap {
+                dooh.domain = publisherDomain
+                dooh.publisher.id = publisherAccountId
+            }   }
+        DOOH                 | { String publisherDomain, String publisherAccountId ->
+            BidRequest.getDefaultBidRequest(distributionChannel).tap {
+                dooh.publisher.domain = publisherDomain
+                dooh.publisher.id = publisherAccountId
+            }   }
     }
 
     def "PBS should choose correct rule when siteDomain is defined in rules for #distributionChannel channel"() {
@@ -465,6 +476,12 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
                 app.publisher.id = publisherAccountId
             }
         }
+        DOOH                 | { String publisherDomain, String publisherAccountId ->
+            BidRequest.getDefaultBidRequest(distributionChannel).tap {
+                dooh.domain = publisherDomain
+                dooh.publisher.id = publisherAccountId
+            }
+        }
     }
 
     def "PBS should choose correct rule when pubDomain is defined in rules for #distributionChannel channel"() {
@@ -508,6 +525,12 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 app.publisher.domain = publisherDomain
                 app.publisher.id = publisherAccountId
+            }
+        }
+        DOOH                 | { String publisherDomain, String publisherAccountId ->
+            BidRequest.getDefaultBidRequest(distributionChannel).tap {
+                dooh.publisher.domain = publisherDomain
+                dooh.publisher.id = publisherAccountId
             }
         }
     }
@@ -880,7 +903,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
     def "PBS should populate seatNonBid when bid rejected due to floor"() {
         given: "PBS config with floors config"
-        def pbsService = pbsServiceFactory.getService(floorsConfig)
+        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG)
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -927,7 +950,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
     def "PBS shouldn't populate seatNonBid when rejected due to floor and returnAllBidStatus is false"() {
         given: "PBS config with floors config"
-        def pbsService = pbsServiceFactory.getService(floorsConfig)
+        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG)
 
         and: "Default BidRequest"
         def bidRequest = BidRequest.defaultBidRequest.tap {

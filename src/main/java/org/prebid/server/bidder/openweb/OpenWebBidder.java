@@ -7,7 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -107,13 +106,7 @@ public class OpenWebBidder implements Bidder<BidRequest> {
 
     private HttpRequest<BidRequest> makeGroupRequest(BidRequest request, List<Imp> imps, Integer sourceId) {
         final BidRequest modifiedRequest = request.toBuilder().imp(imps).build();
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(resolveEndpoint(sourceId))
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(modifiedRequest))
-                .payload(modifiedRequest)
-                .build();
+        return BidderUtil.defaultRequest(modifiedRequest, resolveEndpoint(sourceId), mapper);
     }
 
     private String resolveEndpoint(Integer sourceId) {

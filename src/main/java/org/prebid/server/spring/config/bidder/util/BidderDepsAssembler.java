@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.fge.jsonpatch.JsonPatchException;
 import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -28,10 +29,13 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -91,6 +95,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
     }
 
     private BidderInstanceDeps coreDeps() {
+        validateCoreCapabilities(bidderName, configProperties);
         return deps(
                 bidderName,
                 usersyncer(configProperties, CookieFamilySource.ROOT),
@@ -110,7 +115,8 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         final CFG aliasConfigProperties = configurationAsPropertiesObject(
                 entry.getValue(), configProperties.getSelfClass());
 
-        final CFG aliasMergedProperties = mergeConfigurations(aliasConfigProperties, configProperties);
+        final CFG aliasMergedProperties = updateAliasProperties(
+                mergeConfigurations(aliasConfigProperties, configProperties));
 
         validateCapabilities(alias, aliasMergedProperties, bidderName, configProperties);
 
@@ -153,26 +159,58 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
                 : new DisabledBidder(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED.formatted(bidderName));
     }
 
+    private CFG updateAliasProperties(CFG aliasProperties) {
+        final UsersyncConfigurationProperties usersync = aliasProperties.getUsersync();
+        if (usersync != null && usersync.getEnabled() == null) {
+            usersync.setEnabled(true);
+        }
+
+        return aliasProperties;
+    }
+
+    private void validateCoreCapabilities(String bidderName, CFG coreConfiguration) {
+        final MetaInfo coreMetaInfo = coreConfiguration.getMetaInfo();
+        final List<MediaType> coreAppMediaTypes = coreMetaInfo.getAppMediaTypes();
+        final List<MediaType> coreSiteMediaTypes = coreMetaInfo.getSiteMediaTypes();
+
+        if (CollectionUtils.isEmpty(coreAppMediaTypes) && CollectionUtils.isEmpty(coreSiteMediaTypes)) {
+            throw new IllegalArgumentException("Bidder %s has no any capabilities".formatted(bidderName));
+        }
+    }
+
     private void validateCapabilities(String alias, CFG aliasConfiguration, String coreBidder, CFG coreConfiguration) {
         final MetaInfo coreMetaInfo = coreConfiguration.getMetaInfo();
         final MetaInfo aliasMetaInfo = aliasConfiguration.getMetaInfo();
-        final List<MediaType> coreAppMediaTypes = coreMetaInfo.getAppMediaTypes();
-        final List<MediaType> coreSiteMediaTypes = coreMetaInfo.getSiteMediaTypes();
-        final List<MediaType> aliasAppMediaTypes = aliasMetaInfo.getAppMediaTypes();
-        final List<MediaType> aliasSiteMediaTypes = aliasMetaInfo.getSiteMediaTypes();
+
+        final Set<MediaType> coreAppMediaTypes = new HashSet<>(coreMetaInfo.getAppMediaTypes());
+        final Set<MediaType> coreSiteMediaTypes = new HashSet<>(coreMetaInfo.getSiteMediaTypes());
+        //it's a workaround in order not to update all the bidder config files at once
+        final Set<MediaType> coreDoohMediaTypes = Optional.ofNullable(coreMetaInfo.getDoohMediaTypes())
+                .<Set<MediaType>>map(HashSet::new)
+                .orElseGet(Collections::emptySet);
+
+        final Set<MediaType> aliasAppMediaTypes = new HashSet<>(aliasMetaInfo.getAppMediaTypes());
+        final Set<MediaType> aliasSiteMediaTypes = new HashSet<>(aliasMetaInfo.getSiteMediaTypes());
+        final Set<MediaType> aliasDoohMediaTypes = Optional.ofNullable(aliasMetaInfo.getDoohMediaTypes())
+                .<Set<MediaType>>map(HashSet::new)
+                .orElseGet(Collections::emptySet);
 
         if (!coreAppMediaTypes.containsAll(aliasAppMediaTypes)
-                || !coreSiteMediaTypes.containsAll(aliasSiteMediaTypes)) {
+                || !coreSiteMediaTypes.containsAll(aliasSiteMediaTypes)
+                || !coreDoohMediaTypes.containsAll(aliasDoohMediaTypes)) {
 
             throw new IllegalArgumentException("""
-                    Alias %s supports more capabilities (app: %s, site: %s) \
-                    than the core bidder %s (app: %s, site: %s)""".formatted(
-                    alias,
-                    aliasAppMediaTypes,
-                    aliasSiteMediaTypes,
-                    coreBidder,
-                    coreAppMediaTypes,
-                    coreSiteMediaTypes));
+                    Alias %s supports more capabilities (app: %s, site: %s, dooh: %s) \
+                    than the core bidder %s (app: %s, site: %s, dooh: %s)"""
+                    .formatted(
+                            alias,
+                            aliasAppMediaTypes,
+                            aliasSiteMediaTypes,
+                            aliasDoohMediaTypes,
+                            coreBidder,
+                            coreAppMediaTypes,
+                            coreSiteMediaTypes,
+                            coreDoohMediaTypes));
         }
     }
 
@@ -184,7 +222,7 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
                 new InputStreamResource(new ByteArrayInputStream(configAsYamlString.getBytes())));
         final Binder configurationBinder = new Binder(new MapConfigurationPropertySource(configAsProperties));
 
-        return (CFG) configurationBinder.bind(StringUtils.EMPTY, (Class) targetClass).get();
+        return (CFG) configurationBinder.bindOrCreate(StringUtils.EMPTY, (Class) targetClass);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

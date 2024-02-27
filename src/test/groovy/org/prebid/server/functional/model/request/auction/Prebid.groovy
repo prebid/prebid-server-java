@@ -17,8 +17,10 @@ class Prebid {
     BidAdjustmentFactors bidAdjustmentFactors
     PrebidCurrency currency
     Targeting targeting
+    TraceLevel trace
     PrebidStoredRequest storedRequest
     PrebidCache cache
+    ExtRequestPrebidData data
     List<ExtPrebidBidderConfig> bidderConfig
     List<PrebidSchain> schains
     Amp amp
@@ -30,6 +32,11 @@ class Prebid {
     ExtPrebidFloors floors
     Map passThrough
     Events events
+    Boolean createTids
+    Sdk sdk
+    List<AdServerTargeting> adServerTargeting
+    BidderControls bidderControls
+    PrebidModulesConfig modules
 
     static class Channel {
 

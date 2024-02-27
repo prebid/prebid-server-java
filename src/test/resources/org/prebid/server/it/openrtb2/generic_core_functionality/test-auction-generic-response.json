@@ -14,6 +14,18 @@
           "w": 300,
           "h": 250,
           "ext": {
+            "dsa": {
+              "behalf": "Advertiser",
+              "paid": "Advertiser",
+              "transparency": {
+                "domain": "dsp1domain.com",
+                "dsaparams": [
+                  1,
+                  2
+                ]
+              },
+              "adrender": 1
+            },
             "prebid": {
               "type": "video",
               "targeting": {
@@ -35,6 +47,14 @@
                   "url": "{{ cache.resource_url }}f0ab9105-cb21-4e59-b433-70f5ad6671cb",
                   "cacheId": "f0ab9105-cb21-4e59-b433-70f5ad6671cb"
                 }
+              },
+              "meta": {
+                "rendererName": "SamplePluginRenderer",
+                "rendererVersion": "1.0.0",
+                "rendererData": {
+                  "data": "some data"
+                },
+                "rendererUrl": "rendererUrl"
               }
             },
             "origbidcpm": 3.33

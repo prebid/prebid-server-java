@@ -1,0 +1,34 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "banner": {
+        "w": 300,
+        "h": 600
+      },
+      "ext": {
+        "conversant": {
+          "site_id": "site_id"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "ext": {
+    "prebid": {
+      "conversant": {
+        "site_id": "site_id"
+      },
+      "auctiontimestamp": 0
+    }
+  },
+  "aliases": {
+    "conversant": "epsilon"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

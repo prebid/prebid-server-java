@@ -10,6 +10,7 @@ import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -23,6 +24,7 @@ import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.model.BiddersContext;
 import org.prebid.server.cookie.model.CookieSyncContext;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.json.DecodeException;
@@ -31,6 +33,7 @@ import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
+import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.request.CookieSyncRequest;
 import org.prebid.server.proto.response.CookieSyncResponse;
 import org.prebid.server.settings.ApplicationSettings;
@@ -52,7 +55,8 @@ public class CookieSyncHandler implements ApplicationResource {
     private final long defaultTimeout;
     private final double logSamplingRate;
     private final UidsCookieService uidsCookieService;
-    private final CookieSyncGppService gppProcessor;
+    private final CookieSyncGppService gppService;
+    private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final CookieSyncService cookieSyncService;
     private final ApplicationSettings applicationSettings;
     private final PrivacyEnforcementService privacyEnforcementService;
@@ -64,7 +68,8 @@ public class CookieSyncHandler implements ApplicationResource {
     public CookieSyncHandler(long defaultTimeout,
                              double logSamplingRate,
                              UidsCookieService uidsCookieService,
-                             CookieSyncGppService gppProcessor,
+                             CookieSyncGppService gppService,
+                             ActivityInfrastructureCreator activityInfrastructureCreator,
                              CookieSyncService cookieSyncService,
                              ApplicationSettings applicationSettings,
                              PrivacyEnforcementService privacyEnforcementService,
@@ -76,7 +81,8 @@ public class CookieSyncHandler implements ApplicationResource {
         this.defaultTimeout = defaultTimeout;
         this.logSamplingRate = logSamplingRate;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-        this.gppProcessor = Objects.requireNonNull(gppProcessor);
+        this.gppService = Objects.requireNonNull(gppService);
+        this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.cookieSyncService = Objects.requireNonNull(cookieSyncService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
@@ -97,6 +103,8 @@ public class CookieSyncHandler implements ApplicationResource {
 
         cookieSyncContext(routingContext)
                 .compose(this::fillWithAccount)
+                .map(this::fillWithGppContext)
+                .map(this::fillWithActivityInfrastructure)
                 .map(this::processGpp)
                 .compose(this::fillWithPrivacyContext)
                 .compose(cookieSyncService::processContext)
@@ -159,9 +167,24 @@ public class CookieSyncHandler implements ApplicationResource {
                 .otherwise(Account.empty(accountId));
     }
 
+    private CookieSyncContext fillWithGppContext(CookieSyncContext cookieSyncContext) {
+        return cookieSyncContext.toBuilder()
+                .gppContext(gppService.contextFrom(cookieSyncContext))
+                .build();
+    }
+
+    private CookieSyncContext fillWithActivityInfrastructure(CookieSyncContext cookieSyncContext) {
+        return cookieSyncContext.toBuilder()
+                .activityInfrastructure(activityInfrastructureCreator.create(
+                        cookieSyncContext.getAccount(),
+                        cookieSyncContext.getGppContext(),
+                        cookieSyncContext.isDebug() ? TraceLevel.verbose : null))
+                .build();
+    }
+
     private CookieSyncContext processGpp(CookieSyncContext cookieSyncContext) {
         return cookieSyncContext.with(
-                gppProcessor.apply(cookieSyncContext.getCookieSyncRequest(), cookieSyncContext));
+                gppService.updateCookieSyncRequest(cookieSyncContext.getCookieSyncRequest(), cookieSyncContext));
     }
 
     private Future<CookieSyncContext> fillWithPrivacyContext(CookieSyncContext cookieSyncContext) {
@@ -210,6 +233,11 @@ public class CookieSyncHandler implements ApplicationResource {
             body = "Unauthorized: " + message;
 
             metrics.updateUserSyncOptoutMetric();
+        } else if (error instanceof InvalidAccountConfigException) {
+            status = HttpResponseStatus.BAD_REQUEST;
+            body = "Invalid account configuration: " + message;
+
+            BAD_REQUEST_LOGGER.info(message, logSamplingRate);
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
             body = "Unexpected setuid processing error: " + message;

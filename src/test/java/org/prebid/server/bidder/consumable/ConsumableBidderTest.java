@@ -12,7 +12,6 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.consumable.model.ConsumableBidGdpr;
@@ -40,10 +39,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
-import static java.util.function.Function.identity;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
@@ -52,12 +52,7 @@ public class ConsumableBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private ConsumableBidder consumableBidder;
-
-    @Before
-    public void setUp() {
-        consumableBidder = new ConsumableBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final ConsumableBidder target = new ConsumableBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -71,7 +66,7 @@ public class ConsumableBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -85,7 +80,7 @@ public class ConsumableBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -110,7 +105,7 @@ public class ConsumableBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -133,7 +128,7 @@ public class ConsumableBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -153,7 +148,7 @@ public class ConsumableBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -172,7 +167,7 @@ public class ConsumableBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -193,7 +188,7 @@ public class ConsumableBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequestWithTwoImpsAndTwoFormats();
 
         // when
-        final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -210,7 +205,7 @@ public class ConsumableBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequestWithTwoImpsAndTwoFormats();
 
         // when
-        final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -230,7 +225,7 @@ public class ConsumableBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<ConsumableBidRequest>>> result = consumableBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -240,13 +235,54 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldSetGppAndGppSidWhenGppAndGppSidPresentInRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                        bidRequestBuilder.regs(Regs.builder().gpp("ANY_GPP_STRING").gppSid(List.of(1, 2)).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .allSatisfy(consumableBidRequest -> {
+                    assertThat(consumableBidRequest.getGpp()).isEqualTo(bidRequest.getRegs().getGpp());
+                    assertThat(consumableBidRequest.getGppSid())
+                            .containsExactlyElementsOf(bidRequest.getRegs().getGppSid());
+                });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSetGppAndGppSidWhenGppAndGppSidAbsentInRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                        bidRequestBuilder.regs(Regs.builder().gpp(null).gppSid(null).build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<ConsumableBidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .allSatisfy(consumableBidRequest -> {
+                    assertThat(consumableBidRequest.getGpp()).isNullOrEmpty();
+                    assertThat(consumableBidRequest.getGppSid()).isNullOrEmpty();
+                });
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<ConsumableBidRequest> httpCall = BidderCall.succeededHttp(null,
                 HttpResponse.of(200, null, "invalid"), null);
 
         // when
-        final Result<List<BidderBid>> result = consumableBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -262,7 +298,7 @@ public class ConsumableBidderTest extends VertxTest {
                 decision -> decision.pricing(null));
 
         // when
-        final Result<List<BidderBid>> result = consumableBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -276,7 +312,7 @@ public class ConsumableBidderTest extends VertxTest {
                 decision -> decision.pricing(ConsumablePricing.of(null)));
 
         // when
-        final Result<List<BidderBid>> result = consumableBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -292,7 +328,7 @@ public class ConsumableBidderTest extends VertxTest {
                         .contents(singletonList(ConsumableContents.of("contents_body"))));
 
         // when
-        final Result<List<BidderBid>> result = consumableBidder.makeBids(httpCall,
+        final Result<List<BidderBid>> result = target.makeBids(httpCall,
                 givenBidRequestWithTwoImpsAndTwoFormats());
 
         // then
@@ -324,24 +360,23 @@ public class ConsumableBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+                                              UnaryOperator<Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .imp(singletonList(givenImp(impCustomizer)))
-                        .regs(Regs.builder().ext(ExtRegs.of(1, null)).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(1, null, null, null)).build())
                         .user(User.builder()
                                 .ext(ExtUser.builder().consent("consent").build())
                                 .build()))
                 .build();
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return givenBidRequest(identity(), impCustomizer);
     }
 
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("firstImp")
                         .banner(Banner.builder()

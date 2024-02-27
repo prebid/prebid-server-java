@@ -6,9 +6,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -21,6 +19,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.datablocks.ExtImpDatablocks;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -77,29 +76,19 @@ public class DatablocksBidder implements Bidder<BidRequest> {
             throw new PreBidException("Invalid/Missing SourceId");
         }
 
-        if (StringUtils.isBlank(extImpDatablocks.getHost())) {
-            throw new PreBidException("Invalid/Missing Host");
-        }
-
         return extImpDatablocks;
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(Map.Entry<ExtImpDatablocks, List<Imp>> extToImps,
                                                     BidRequest bidRequest) {
+
         final ExtImpDatablocks extImpDatablocks = extToImps.getKey();
         final String uri = endpointTemplate
-                .replace("{{Host}}", extImpDatablocks.getHost())
                 .replace("{{SourceId}}", extImpDatablocks.getSourceId().toString());
 
         final BidRequest outgoingRequest = bidRequest.toBuilder().imp(extToImps.getValue()).build();
 
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .headers(HttpUtil.headers())
-                .uri(uri)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .payload(outgoingRequest)
-                .build();
+        return BidderUtil.defaultRequest(outgoingRequest, uri, mapper);
     }
 
     @Override

@@ -5,8 +5,6 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.auction.gpp.model.privacy.Privacy;
-import org.prebid.server.auction.gpp.model.privacy.TcfEuV2Privacy;
-import org.prebid.server.auction.gpp.model.privacy.UspV1Privacy;
 import org.prebid.server.exception.PreBidException;
 
 import java.util.ArrayList;
@@ -33,7 +31,10 @@ public class GppContextCreator {
                 ? Set.copyOf(gppSid)
                 : null;
 
-        return GppContextBuilder.of(GppContext.Scope.of(gppModel, sectionIds), errors);
+        return GppContextBuilder.of(
+                GppContext.Scope.of(gppModel, sectionIds),
+                GppContext.Regions.builder(),
+                errors);
     }
 
     @Value
@@ -42,7 +43,7 @@ public class GppContextCreator {
 
         GppContext.Scope scope;
 
-        GppContext.Regions.RegionsBuilder regionsBuilder = defaultRegions();
+        GppContext.Regions.RegionsBuilder regionsBuilder;
 
         List<String> errors;
 
@@ -51,14 +52,8 @@ public class GppContextCreator {
             return this;
         }
 
-        public GppContext build() {
-            return new GppContext(scope, regionsBuilder.build(), errors);
-        }
-
-        private static GppContext.Regions.RegionsBuilder defaultRegions() {
-            return GppContext.Regions.builder()
-                    .tcfEuV2Privacy(TcfEuV2Privacy.of(null, null))
-                    .uspV1Privacy(UspV1Privacy.of(null));
+        public GppContextWrapper build() {
+            return GppContextWrapper.of(new GppContext(scope, regionsBuilder.build()), errors);
         }
     }
 }

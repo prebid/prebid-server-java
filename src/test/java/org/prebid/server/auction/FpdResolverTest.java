@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Data;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
@@ -17,18 +18,13 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
 import org.prebid.server.proto.openrtb.ext.request.ExtAppPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfig;
-import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidBidderConfig;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
+import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
-import org.prebid.server.proto.request.Targeting;
 
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,11 +33,11 @@ public class FpdResolverTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    private FpdResolver fpdResolver;
+    private FpdResolver target;
 
     @Before
     public void setUp() {
-        fpdResolver = new FpdResolver(jacksonMapper, new JsonMerger(jacksonMapper));
+        target = new FpdResolver(jacksonMapper, new JsonMerger(jacksonMapper));
     }
 
     @Test
@@ -70,7 +66,7 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final User resultUser = fpdResolver.resolveUser(originUser, mapper.valueToTree(fpdUser));
+        final User resultUser = target.resolveUser(originUser, mapper.valueToTree(fpdUser));
 
         // then
         assertThat(resultUser).isEqualTo(User.builder()
@@ -89,13 +85,13 @@ public class FpdResolverTest extends VertxTest {
 
     @Test
     public void resolveUserShouldReturnOriginUserIfFpdUserIsNull() {
-        assertThat(fpdResolver.resolveUser(User.builder().id("origin").build(), null))
+        assertThat(target.resolveUser(User.builder().id("origin").build(), null))
                 .isEqualTo(User.builder().id("origin").build());
     }
 
     @Test
     public void resolveUserShouldReturnFpdUserIfOriginUserIsNull() {
-        assertThat(fpdResolver.resolveUser(null, mapper.valueToTree(User.builder().gender("male").build())))
+        assertThat(target.resolveUser(null, mapper.valueToTree(User.builder().gender("male").build())))
                 .isEqualTo(User.builder().gender("male").build());
     }
 
@@ -110,7 +106,7 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final User resultUser = fpdResolver.resolveUser(originUser, mapper.valueToTree(fpdUser));
+        final User resultUser = target.resolveUser(originUser, mapper.valueToTree(fpdUser));
 
         // then
         assertThat(resultUser).isEqualTo(User.builder()
@@ -127,7 +123,7 @@ public class FpdResolverTest extends VertxTest {
         final App fpdApp = App.builder().id("id").build();
 
         // when
-        final App resultApp = fpdResolver.resolveApp(originApp, mapper.valueToTree(fpdApp));
+        final App resultApp = target.resolveApp(originApp, mapper.valueToTree(fpdApp));
 
         // then
         assertThat(resultApp).isEqualTo(App.builder().ext(ExtApp.of(null, mapper.createObjectNode()
@@ -141,11 +137,25 @@ public class FpdResolverTest extends VertxTest {
         final Site fpdSite = Site.builder().id("id").build();
 
         // when
-        final Site resultSite = fpdResolver.resolveSite(originSite, mapper.valueToTree(fpdSite));
+        final Site resultSite = target.resolveSite(originSite, mapper.valueToTree(fpdSite));
 
         // then
         assertThat(resultSite).isEqualTo(Site.builder().ext(ExtSite.of(null, mapper.createObjectNode()
                 .put("id", "id"))).build());
+    }
+
+    @Test
+    public void resolveDoohShouldAddExtDataAttributesIfOriginDoesNotHaveExtData() {
+        // given
+        final Dooh originDooh = Dooh.builder().build();
+        final Dooh fpdDooh = Dooh.builder().id("id").build();
+
+        // when
+        final Dooh resultDooh = target.resolveDooh(originDooh, mapper.valueToTree(fpdDooh));
+
+        // then
+        assertThat(resultDooh).isEqualTo(
+                Dooh.builder().ext(ExtDooh.of(mapper.createObjectNode().put("id", "id"))).build());
     }
 
     @Test
@@ -161,7 +171,7 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final User resultUser = fpdResolver.resolveUser(originUser, mapper.valueToTree(fpdUser));
+        final User resultUser = target.resolveUser(originUser, mapper.valueToTree(fpdUser));
 
         // then
         assertThat(resultUser).isEqualTo(User.builder()
@@ -186,7 +196,7 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final User resultUser = fpdResolver.resolveUser(originUser, mapper.valueToTree(fpdUser));
+        final User resultUser = target.resolveUser(originUser, mapper.valueToTree(fpdUser));
 
         // then
         assertThat(resultUser.getExt().getData() != originExtUserData).isTrue(); // different by reference
@@ -230,7 +240,7 @@ public class FpdResolverTest extends VertxTest {
                 .keywords("fpdKeywords")
                 .build();
         // when
-        final App resultApp = fpdResolver.resolveApp(originApp, mapper.valueToTree(fpdApp));
+        final App resultApp = target.resolveApp(originApp, mapper.valueToTree(fpdApp));
 
         // then
         final ObjectNode dataResult = mapper.createObjectNode().put("id", "fpdId").put("privacypolicy", 2)
@@ -258,13 +268,13 @@ public class FpdResolverTest extends VertxTest {
 
     @Test
     public void resolveAppShouldReturnOriginAppIfFpdAppIsNull() {
-        assertThat(fpdResolver.resolveApp(App.builder().id("origin").build(), null))
+        assertThat(target.resolveApp(App.builder().id("origin").build(), null))
                 .isEqualTo(App.builder().id("origin").build());
     }
 
     @Test
     public void resolveAppShouldReturnFpdAppIfOriginAppIsNull() {
-        assertThat(fpdResolver.resolveApp(null, mapper.valueToTree(App.builder().name("fpd").build())))
+        assertThat(target.resolveApp(null, mapper.valueToTree(App.builder().name("fpd").build())))
                 .isEqualTo(App.builder().name("fpd").build());
     }
 
@@ -284,7 +294,7 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final App resultApp = fpdResolver.resolveApp(originApp, mapper.valueToTree(fpdApp));
+        final App resultApp = target.resolveApp(originApp, mapper.valueToTree(fpdApp));
 
         // then
         assertThat(resultApp).isEqualTo(App.builder()
@@ -333,7 +343,7 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final Site resultSite = fpdResolver.resolveSite(originSite, mapper.valueToTree(fpdSite));
+        final Site resultSite = target.resolveSite(originSite, mapper.valueToTree(fpdSite));
 
         // then
         final ObjectNode extData = mapper.createObjectNode().put("id", "fpdId").put("privacypolicy", 2).put("mobile", 2)
@@ -361,13 +371,13 @@ public class FpdResolverTest extends VertxTest {
 
     @Test
     public void resolveSiteShouldReturnOriginSiteIfFpdSiteIsNull() {
-        assertThat(fpdResolver.resolveApp(App.builder().id("origin").build(), null))
+        assertThat(target.resolveApp(App.builder().id("origin").build(), null))
                 .isEqualTo(App.builder().id("origin").build());
     }
 
     @Test
     public void resolveSiteShouldReturnFpdSiteIfOriginSiteIsNull() {
-        assertThat(fpdResolver.resolveSite(null, mapper.valueToTree(Site.builder().name("fpd").build())))
+        assertThat(target.resolveSite(null, mapper.valueToTree(Site.builder().name("fpd").build())))
                 .isEqualTo(Site.builder().name("fpd").build());
     }
 
@@ -387,11 +397,98 @@ public class FpdResolverTest extends VertxTest {
                 .build();
 
         // when
-        final Site resultSite = fpdResolver.resolveSite(originSite, mapper.valueToTree(fpdSite));
+        final Site resultSite = target.resolveSite(originSite, mapper.valueToTree(fpdSite));
 
         // then
         assertThat(resultSite).isEqualTo(Site.builder()
                 .ext(ExtSite.of(1, mapper.createObjectNode()
+                        .put("fpdAttr", "fpdValue")
+                        .put("replaceAttr", "fpdValue2")
+                        .put("originAttr", "originValue")))
+                .build());
+    }
+
+    @Test
+    public void resolveDoohShouldOverrideFpdFieldsFromFpdDooh() {
+        // given
+        final Dooh originDooh = Dooh.builder()
+                .id("originId")
+                .name("originName")
+                .domain("originDomain")
+                .venuetype(List.of("originVenuetype"))
+                .venuetypetax(1)
+                .publisher(Publisher.builder().id("originId").build())
+                .content(Content.builder().language("originLan").build())
+                .keywords("originKeywords")
+                .build();
+
+        final Dooh fpdDooh = Dooh.builder()
+                .id("fpdId")
+                .name("fpdName")
+                .domain("fpdDomain")
+                .venuetype(List.of("fpdVenuetype"))
+                .venuetypetax(2)
+                .publisher(Publisher.builder().id("fpdId").build())
+                .content(Content.builder().language("fpdLan").build())
+                .keywords("fpdKeywords")
+                .build();
+
+        // when
+        final Dooh resultDooh = target.resolveDooh(originDooh, mapper.valueToTree(fpdDooh));
+
+        // then
+        final ObjectNode extData = mapper.createObjectNode()
+                .put("id", "fpdId")
+                .setAll(Map.of(
+                        "publisher", mapper.createObjectNode().put("id", "fpdId"),
+                        "content", mapper.createObjectNode().put("language", "fpdLan")));
+        assertThat(resultDooh).isEqualTo(
+                Dooh.builder()
+                        .name("fpdName")
+                        .domain("fpdDomain")
+                        .keywords("fpdKeywords")
+                        .id("originId")
+                        .venuetype(List.of("fpdVenuetype"))
+                        .venuetypetax(2)
+                        .content(Content.builder().language("originLan").build())
+                        .publisher(Publisher.builder().id("originId").build())
+                        .ext(ExtDooh.of(extData))
+                        .build());
+    }
+
+    @Test
+    public void resolveDoohShouldReturnOriginDoohIfFpdDoohIsNull() {
+        assertThat(target.resolveDooh(Dooh.builder().id("origin").build(), null))
+                .isEqualTo(Dooh.builder().id("origin").build());
+    }
+
+    @Test
+    public void resolveDoohShouldReturnFpdDoohIfOriginDoohIsNull() {
+        assertThat(target.resolveDooh(null, mapper.valueToTree(Dooh.builder().name("fpd").build())))
+                .isEqualTo(Dooh.builder().name("fpd").build());
+    }
+
+    @Test
+    public void resolveDoohShouldMergeExtDataAttributesAndReplaceWithFpdPriority() {
+        // given
+        final Dooh originDooh = Dooh.builder()
+                .ext(ExtDooh.of(mapper.createObjectNode()
+                        .put("originAttr", "originValue")
+                        .put("replaceAttr", "originValue2")))
+                .build();
+
+        final Dooh fpdDooh = Dooh.builder()
+                .ext(ExtDooh.of(mapper.createObjectNode()
+                        .put("fpdAttr", "fpdValue")
+                        .put("replaceAttr", "fpdValue2")))
+                .build();
+
+        // when
+        final Dooh resultDooh = target.resolveDooh(originDooh, mapper.valueToTree(fpdDooh));
+
+        // then
+        assertThat(resultDooh).isEqualTo(Dooh.builder()
+                .ext(ExtDooh.of(mapper.createObjectNode()
                         .put("fpdAttr", "fpdValue")
                         .put("replaceAttr", "fpdValue2")
                         .put("originAttr", "originValue")))
@@ -404,7 +501,7 @@ public class FpdResolverTest extends VertxTest {
         final ObjectNode extImp = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(extImp, null);
+        final ObjectNode result = target.resolveImpExt(extImp, null);
 
         // then
         assertThat(result).isSameAs(extImp);
@@ -415,10 +512,14 @@ public class FpdResolverTest extends VertxTest {
         // given
         final ObjectNode extImp = mapper.createObjectNode();
         final ObjectNode targeting = mapper.createObjectNode()
-                .put("site", "site").put("user", "user").put("app", "app").put("bidders", "bidders");
+                .put("site", "site")
+                .put("user", "user")
+                .put("app", "app")
+                .put("dooh", "dooh")
+                .put("bidders", "bidders");
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(extImp, targeting);
+        final ObjectNode result = target.resolveImpExt(extImp, targeting);
 
         // then
         assertThat(result).isSameAs(extImp);
@@ -436,7 +537,7 @@ public class FpdResolverTest extends VertxTest {
                 .put("fpdAttr", "fpdValue2");
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(extImp, targeting);
+        final ObjectNode result = target.resolveImpExt(extImp, targeting);
 
         // then
         assertThat(result).isEqualTo(mapper.createObjectNode()
@@ -451,7 +552,7 @@ public class FpdResolverTest extends VertxTest {
                 .put("site", "site").put("replacedAttr", "fpdValue").put("fpdAttr", "fpdValue2");
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(null, targeting);
+        final ObjectNode result = target.resolveImpExt(null, targeting);
 
         // then
         assertThat(result).isEqualTo(mapper.createObjectNode()
@@ -466,7 +567,7 @@ public class FpdResolverTest extends VertxTest {
                 .put("site", "site").put("replacedAttr", "fpdValue").put("fpdAttr", "fpdValue2");
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(extImp, targeting);
+        final ObjectNode result = target.resolveImpExt(extImp, targeting);
 
         // then
         final ObjectNode expectedResult = mapper.createObjectNode().put("prebid", 1).put("rubicon", 2);
@@ -483,7 +584,7 @@ public class FpdResolverTest extends VertxTest {
                 .put("site", "site").put("replacedAttr", "fpdValue").put("fpdAttr", "fpdValue2");
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(extImp, targeting);
+        final ObjectNode result = target.resolveImpExt(extImp, targeting);
 
         // then
         final ObjectNode expectedResult = mapper.createObjectNode().set("prebid", mapper.createObjectNode());
@@ -498,7 +599,7 @@ public class FpdResolverTest extends VertxTest {
         final ObjectNode impExt = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
+        final ObjectNode result = target.resolveImpExt(impExt, true);
 
         // then
         assertThat(result.get("context")).isNull();
@@ -513,7 +614,7 @@ public class FpdResolverTest extends VertxTest {
                                 .put("attr1", "value1")));
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
+        final ObjectNode result = target.resolveImpExt(impExt, true);
 
         // then
         assertThat(result.get("context")).isEqualTo(mapper.createObjectNode()
@@ -531,7 +632,7 @@ public class FpdResolverTest extends VertxTest {
                                 .put("attr1", "value1")));
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, false);
+        final ObjectNode result = target.resolveImpExt(impExt, false);
 
         // then
         assertThat(result.get("context")).isEqualTo(mapper.createObjectNode()
@@ -545,7 +646,7 @@ public class FpdResolverTest extends VertxTest {
                 .set("context", mapper.createArrayNode().add("value1"));
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, false);
+        final ObjectNode result = target.resolveImpExt(impExt, false);
 
         // then
         assertThat(result.get("context")).isEqualTo(mapper.createArrayNode().add("value1"));
@@ -560,7 +661,7 @@ public class FpdResolverTest extends VertxTest {
                                 .put("attr1", "value1")));
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, false);
+        final ObjectNode result = target.resolveImpExt(impExt, false);
 
         // then
         assertThat(result.get("context")).isNull();
@@ -572,7 +673,7 @@ public class FpdResolverTest extends VertxTest {
         final ObjectNode impExt = mapper.createObjectNode();
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
+        final ObjectNode result = target.resolveImpExt(impExt, true);
 
         // then
         assertThat(result.get("data")).isNull();
@@ -586,7 +687,7 @@ public class FpdResolverTest extends VertxTest {
                         .put("attr1", "value1"));
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, false);
+        final ObjectNode result = target.resolveImpExt(impExt, false);
 
         // then
         assertThat(result.get("data")).isNull();
@@ -601,7 +702,7 @@ public class FpdResolverTest extends VertxTest {
                                 .put("attr1", "value1")));
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
+        final ObjectNode result = target.resolveImpExt(impExt, true);
 
         // then
         assertThat(result.get("data")).isEqualTo(mapper.createObjectNode()
@@ -619,7 +720,7 @@ public class FpdResolverTest extends VertxTest {
                         .put("attr2", "value2"));
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
+        final ObjectNode result = target.resolveImpExt(impExt, true);
 
         // then
         assertThat(result.get("data")).isEqualTo(mapper.createObjectNode()
@@ -636,7 +737,7 @@ public class FpdResolverTest extends VertxTest {
                         .put("attr2", "value2"));
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
+        final ObjectNode result = target.resolveImpExt(impExt, true);
 
         // then
         assertThat(result.get("data")).isEqualTo(mapper.createObjectNode()
@@ -654,7 +755,7 @@ public class FpdResolverTest extends VertxTest {
                         .add("attr2"));
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
+        final ObjectNode result = target.resolveImpExt(impExt, true);
 
         // then
         assertThat(result.get("data")).isEqualTo(mapper.createArrayNode()
@@ -671,7 +772,7 @@ public class FpdResolverTest extends VertxTest {
                         .put("attr2", "value2"));
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
+        final ObjectNode result = target.resolveImpExt(impExt, true);
 
         // then
         assertThat(result.get("data")).isEqualTo(mapper.createObjectNode()
@@ -686,7 +787,7 @@ public class FpdResolverTest extends VertxTest {
                         .put("attr1", "value1"));
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, true);
+        final ObjectNode result = target.resolveImpExt(impExt, true);
 
         // then
         assertThat(result.get("all")).isEqualTo(mapper.createObjectNode()
@@ -701,156 +802,11 @@ public class FpdResolverTest extends VertxTest {
                         .put("attr1", "value1"));
 
         // when
-        final ObjectNode result = fpdResolver.resolveImpExt(impExt, false);
+        final ObjectNode result = target.resolveImpExt(impExt, false);
 
         // then
         assertThat(result.get("all")).isEqualTo(mapper.createObjectNode()
                 .put("attr1", "value1"));
     }
 
-    @Test
-    public void resolveBidRequestExtShouldReturnSameExtIfTargetingIsNull() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(null);
-
-        // when
-        final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest, null);
-
-        // then
-        assertThat(result).isSameAs(givenExtRequest);
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldTolerateMissingBidders() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null)).build());
-
-        // when
-        final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest,
-                Targeting.of(null, null, null)); // no bidders
-
-        // then
-        assertThat(result.getPrebid().getData().getBidders()).contains("rubicon", "appnexus");
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldMergeBidders() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder()
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null)).build());
-
-        // when
-        final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest,
-                Targeting.of(Arrays.asList("rubicon", "between"), null, null));
-
-        // then
-        assertThat(result.getPrebid().getData().getBidders()).contains("rubicon", "appnexus", "between");
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldAddBiddersIfExtIsNull() {
-        // when
-        final ExtRequest result = fpdResolver.resolveBidRequestExt(null,
-                Targeting.of(Arrays.asList("rubicon", "appnexus"), null, null));
-
-        // then
-        assertThat(result.getPrebid().getData().getBidders()).contains("rubicon", "appnexus");
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldAddBiddersIfExtPrebidIsNull() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(null);
-
-        // when
-        final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest,
-                Targeting.of(Arrays.asList("rubicon", "appnexus"), null, null));
-
-        // then
-        assertThat(result.getPrebid().getData().getBidders()).contains("rubicon", "appnexus");
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldAddBiddersIfExtPrebidDataIsNullKeepingOtherValues() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder().debug(1).build());
-
-        // when
-        final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest,
-                Targeting.of(Arrays.asList("rubicon", "appnexus"), null, null));
-
-        // then
-        assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder().debug(1)
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null)).build()));
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldAddBiddersIfExtPrebidDataBiddersIsNull() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(ExtRequestPrebid.builder().debug(1)
-                .data(ExtRequestPrebidData.of(null, null)).build());
-
-        // when
-        final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest,
-                Targeting.of(Arrays.asList("rubicon", "appnexus"), null, null));
-
-        // then
-        assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder().debug(1)
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null)).build()));
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldAddBidderConfig() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(null);
-        final ObjectNode siteNode = mapper.valueToTree(Site.builder().id("id").build());
-        final ObjectNode userNode = mapper.valueToTree(User.builder().id("id").build());
-        final Targeting targeting = Targeting.of(Collections.emptyList(), siteNode, userNode);
-
-        // when
-        final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest, targeting);
-
-        // then
-        final ExtRequestPrebidBidderConfig expectedBidderConfig = ExtRequestPrebidBidderConfig.of(
-                Collections.singletonList("*"),
-                ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(siteNode, null, userNode)));
-
-        assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
-                .bidderconfig(Collections.singletonList(expectedBidderConfig))
-                .build()));
-    }
-
-    @Test
-    public void resolveBidRequestExtShouldNotAddBidderConfigWhenUserAndSiteIsNull() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(null);
-        final Targeting targeting = Targeting.of(Collections.emptyList(), null, null);
-
-        // when
-        final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest, targeting);
-
-        // then
-        assertThat(result).isEqualTo(ExtRequest.of(null));
-    }
-
-    @Test
-    public void resolveBidRequestExtShoulUpdateBidderConfigAndData() {
-        // given
-        final ExtRequest givenExtRequest = ExtRequest.of(null);
-        final Targeting targeting = Targeting.of(Arrays.asList("rubicon", "appnexus"),
-                mapper.valueToTree(Site.builder().id("id").build()),
-                mapper.valueToTree(User.builder().id("id").build()));
-
-        // when
-        final ExtRequest result = fpdResolver.resolveBidRequestExt(givenExtRequest, targeting);
-
-        // then
-        assertThat(result).isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
-                .data(ExtRequestPrebidData.of(Arrays.asList("rubicon", "appnexus"), null))
-                .bidderconfig(Collections.singletonList(ExtRequestPrebidBidderConfig.of(
-                        Collections.singletonList("*"), ExtBidderConfig.of(null, ExtBidderConfigOrtb.of(
-                                mapper.valueToTree(Site.builder().id("id").build()), null,
-                                mapper.valueToTree(User.builder().id("id").build())))))).build()));
-    }
 }

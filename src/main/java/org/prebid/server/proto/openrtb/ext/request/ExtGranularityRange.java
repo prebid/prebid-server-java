@@ -1,6 +1,5 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
 import java.math.BigDecimal;
@@ -8,8 +7,7 @@ import java.math.BigDecimal;
 /**
  * Defines the contract for bidrequest.ext.prebid.targeting.pricegranularity.ranges[i]
  */
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtGranularityRange {
 
     /**

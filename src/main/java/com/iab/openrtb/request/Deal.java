@@ -56,6 +56,24 @@ public class Deal {
     List<String> wadomain;
 
     /**
+     * Indicates that the deal is of type `guaranteed` and the bidder must bid on the deal,
+     * where 0 = not a guaranteed deal, 1 = guaranteed deal.
+     */
+    Integer guar;
+
+    /**
+     * Minimum CPM per second. This is a price floor for video or audio impression opportunities,
+     * relative to the duration of bids an advertiser may submit.
+     */
+    BigDecimal mincpmpersec;
+
+    /**
+     * Container for floor price by duration information,
+     * to be used if a given deal is eligible for video or audio demand.
+     */
+    List<DurFloor> durfloors;
+
+    /**
      * Placeholder for exchange-specific extensions to OpenRTB.
      */
     ObjectNode ext;

@@ -34,6 +34,7 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
+import org.prebid.server.spring.config.bidder.model.Ortb;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -161,10 +162,7 @@ public class Ortb2BlockingBidderRequestHookTest {
         });
 
         final PayloadUpdate<BidderRequestPayload> payloadUpdate = invocationResult.payloadUpdate();
-        final BidderRequestPayloadImpl payloadToUpdate = BidderRequestPayloadImpl.of(BidRequest.builder()
-                .badv(singletonList("overriddendomain1.com"))
-                .bcat(singletonList("overriddencat1"))
-                .build());
+        final BidderRequestPayloadImpl payloadToUpdate = BidderRequestPayloadImpl.of(BidRequest.builder().build());
         assertThat(payloadUpdate.apply(payloadToUpdate)).isEqualTo(BidderRequestPayloadImpl.of(
                 BidRequest.builder()
                         .badv(singletonList("domain1.com"))
@@ -257,10 +255,12 @@ public class Ortb2BlockingBidderRequestHookTest {
                 null,
                 null,
                 null,
+                null,
                 0,
                 false,
                 false,
-                null);
+                null,
+                Ortb.of(false));
     }
 
     private static BidRequest emptyRequest() {

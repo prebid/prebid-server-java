@@ -2,8 +2,12 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.DistributionChannel
+import org.prebid.server.functional.model.request.auction.Dooh
+import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.MultiBid
 import org.prebid.server.functional.model.request.auction.Site
+import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.response.auction.Bid
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
@@ -11,7 +15,11 @@ import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
+import java.time.Instant
+
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
+import static org.prebid.server.functional.util.HttpUtil.REFERER_HEADER
 
 class BidValidationSpec extends BaseSpec {
 
@@ -36,46 +44,104 @@ class BidValidationSpec extends BaseSpec {
                 ["Bid \"${bidResponse.seatbid.first().bid.first().id}\" does not contain a 'price'" as String]
     }
 
-    def "PBS should remove site object and emit warning when both site and app present, debug mode is enabled"() {
-        given: "Default basic BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.site = new Site(id: null, name: PBSUtils.randomString, page: null)
-        bidRequest.ext.prebid.debug = 1
+    def "PBS should throw an exception when bid request includes more than one distribution channel and strict setting enabled for service"() {
+        given: "PBS with string setting enabled"
+        def strictPrebidService = pbsServiceFactory.getService(['auction.strict-app-site-dooh': 'true'])
 
-        and: "Set app"
-        bidRequest.app = App.defaultApp
+        and: "Flush metrics"
+        flushMetrics(strictPrebidService)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        strictPrebidService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request should not contain site"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.site
+        then: "PBS throws an exception"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody.contains("no more than one of request.site or request.app or request.dooh can be defined")
 
-        and: "Response should contain debug warning"
-        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
-                ["BidRequest contains app and site. Removed site object"]
+        and: "Bid validation metric value is incremented"
+        def metrics = strictPrebidService.sendCollectedMetricsRequest()
+        assert metrics["alerts.general"] == 1
+
+        where:
+        bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
+                           it.dooh = Dooh.defaultDooh
+                       },
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                           it.dooh = Dooh.defaultDooh
+                       },
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                           it.app = App.defaultApp
+                       }]
     }
 
-    def "PBS should remove site object and emit warning when both site and app present, debug mode is disabled"() {
-        given: "Default basic BidRequest"
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.site = new Site(id: null, name: PBSUtils.randomString, page: null)
-        bidRequest.ext.prebid.debug = 0
+    def "PBS should contain response and emit warning logs when bidRequest include multiple distribution channel and strict setting disabled for service"() {
+        given: "Start time and random referer"
+        def startTime = Instant.now()
+        def randomReferer = PBSUtils.randomString
 
-        and: "Set app"
-        bidRequest.app = App.defaultApp
+        and: "PBS with string setting disabled"
+        def softPrebidService = pbsServiceFactory.getService(['auction.strict-app-site-dooh': 'false'])
+
+        and: "Request distribution channels"
+        def requestDistributionChannels = bidRequest.getRequestDistributionChannels()
+
+        and: "Flush metrics"
+        flushMetrics(softPrebidService)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = softPrebidService.sendAuctionRequest(bidRequest, [(REFERER_HEADER): randomReferer])
 
-        then: "Bidder request should not contain site"
-        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.site
+        then: "BidResponse contain single seatbid"
+        assert response.seatbid.size() == 1
 
-        and: "Response should contain debug warning"
+        then: "Response should contain warning"
+        def warningChannelsValues = requestDistributionChannels.collect { "${it.value.toLowerCase()}" }.join(" and ")
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message ==
-                ["BidRequest contains app and site. Removed site object"]
+                ["BidRequest contains $warningChannelsValues. Only the first one is applicable, the others are ignored" as String]
+
+        and: "Bid validation metric value is incremented"
+        def metrics = softPrebidService.sendCollectedMetricsRequest()
+        assert metrics["alerts.general"] == 1
+
+        and: "PBS log should contain message"
+        def logs = softPrebidService.getLogsByTime(startTime)
+        def validatorLogChannelsValues = requestDistributionChannels.collect { "request.${it.value.toLowerCase()}" }.join(" and ")
+        assert getLogsByText(logs, "$validatorLogChannelsValues are present. Referer: $randomReferer")
+        assert getLogsByText(logs, "$warningChannelsValues are present. Referer: $randomReferer. Account: ${bidRequest.getAccountId()}")
+
+        where:
+        bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
+                           it.dooh = Dooh.defaultDooh
+                       },
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                           it.dooh = Dooh.defaultDooh
+                       },
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                           it.app = App.defaultApp
+                       },
+                       BidRequest.getDefaultBidRequest(DistributionChannel.SITE).tap {
+                           it.app = App.defaultApp
+                           it.dooh = Dooh.defaultDooh
+                       }]
+    }
+
+    def "PBS should validate dooh when it is present"() {
+        given: "Default basic BidRequest"
+        def bidDoohRequest = BidRequest.getDefaultBidRequest(DOOH).tap {
+            dooh.id = null
+            dooh.venueType = null
+        }
+        bidDoohRequest.ext.prebid.debug = 1
+
+        when: "PBS processes auction request"
+        defaultPbsService.sendAuctionRequest(bidDoohRequest)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.responseBody.contains("request.dooh should include at least one of request.dooh.id " +
+                "or request.dooh.venuetype.")
     }
 
     def "PBS should validate site when it is present"() {
@@ -192,7 +258,7 @@ class BidValidationSpec extends BaseSpec {
 
     def "PBS should update 'adapter.generic.requests.bid_validation' metric when bid validation error appears"() {
         given: "Initial 'adapter.generic.requests.bid_validation' metric value"
-        def initialMetricValue = getCurrentMetricValue("adapter.generic.requests.bid_validation")
+        def initialMetricValue = getCurrentMetricValue(defaultPbsService, "adapter.generic.requests.bid_validation")
 
         and: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -211,39 +277,52 @@ class BidValidationSpec extends BaseSpec {
         assert metrics["adapter.generic.requests.bid_validation"] == initialMetricValue + 1
     }
 
-    def "PBS should return an error when GVL Id alias refers to unknown bidder alias"() {
-        given: "Default basic BidRequest with aliasgvlids and aliases"
-        def bidderName = PBSUtils.randomString
-        def validId = 1
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.aliasgvlids = [(bidderName): validId]
-        bidRequest.ext.prebid.aliases = [(PBSUtils.randomString): GENERIC]
+    def "PBS shouldn't throw error when two separate eids with same eids.source"() {
+        given: "Default bid request with user.eids"
+        def source = PBSUtils.randomString
+        def defaultEids = [Eid.getDefaultEid(source), Eid.getDefaultEid(source)]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = User.defaultUser.tap {
+                eids = defaultEids
+            }
+        }
 
-        when: "Sending auction request to PBS"
+        when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.responseBody.contains("Invalid request format: request.ext.prebid.aliasgvlids. " +
-                "vendorId ${validId} refers to unknown bidder alias: ${bidderName}")
+        then: "PBS should contain same eids as in request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.user.eids[0].source == defaultEids[0].source
+        assert bidderRequest.user.eids[0].uids[0].id == defaultEids[0].uids[0].id
+        assert bidderRequest.user.eids[0].uids[0].atype == defaultEids[0].uids[0].atype
+
+        assert bidderRequest.user.eids[1].source == defaultEids[1].source
+        assert bidderRequest.user.eids[1].uids[0].id == defaultEids[1].uids[0].id
+        assert bidderRequest.user.eids[1].uids[0].atype == defaultEids[1].uids[0].atype
     }
 
-    def "PBS should return an error when GVL ID alias value is lower that one"() {
-        given: "Default basic BidRequest with aliasgvlids and aliases"
-        def bidderName = PBSUtils.randomString
-        def bidRequest = BidRequest.defaultBidRequest
-        bidRequest.ext.prebid.aliasgvlids = [(bidderName): invalidId]
-        bidRequest.ext.prebid.aliases = [(bidderName): GENERIC]
+    def "PBS shouldn't throw error when two separate eids with different eids.source"() {
+        given: "Default bid request with user.eids"
+        def defaultEids = [
+                Eid.getDefaultEid(PBSUtils.randomString),
+                Eid.getDefaultEid(PBSUtils.randomString)]
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            user = User.defaultUser.tap {
+                eids = defaultEids
+            }
+        }
 
-        when: "Sending auction request to PBS"
+        when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Request should fail with error"
-        def exception = thrown(PrebidServerException)
-        assert exception.responseBody.contains("Invalid request format: request.ext.prebid.aliasgvlids. " +
-                "Invalid vendorId ${invalidId} for alias: ${bidderName}. Choose a different vendorId, or remove this entry.")
+        then: "PBS should contain same eids as in request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.user.eids[0].source == defaultEids[0].source
+        assert bidderRequest.user.eids[0].uids[0].id == defaultEids[0].uids[0].id
+        assert bidderRequest.user.eids[0].uids[0].atype == defaultEids[0].uids[0].atype
 
-        where:
-        invalidId << [PBSUtils.randomNegativeNumber, 0]
+        assert bidderRequest.user.eids[1].source == defaultEids[1].source
+        assert bidderRequest.user.eids[1].uids[0].id == defaultEids[1].uids[0].id
+        assert bidderRequest.user.eids[1].uids[0].atype == defaultEids[1].uids[0].atype
     }
 }

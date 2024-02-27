@@ -2,7 +2,6 @@ package org.prebid.server.functional.tests.pg
 
 import org.prebid.server.functional.model.deals.lineitem.targeting.Targeting
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
-import org.prebid.server.functional.model.request.auction.App
 import org.prebid.server.functional.model.request.auction.AppExt
 import org.prebid.server.functional.model.request.auction.AppExtData
 import org.prebid.server.functional.model.request.auction.Banner
@@ -10,6 +9,8 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.BidRequestExt
 import org.prebid.server.functional.model.request.auction.BidderConfig
 import org.prebid.server.functional.model.request.auction.BidderConfigOrtb
+import org.prebid.server.functional.model.request.auction.DoohExt
+import org.prebid.server.functional.model.request.auction.DoohExtData
 import org.prebid.server.functional.model.request.auction.ExtPrebidBidderConfig
 import org.prebid.server.functional.model.request.auction.Imp
 import org.prebid.server.functional.model.request.auction.ImpExtContext
@@ -27,6 +28,7 @@ import org.prebid.server.functional.util.PBSUtils
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.deals.lineitem.targeting.MatchingFunction.IN
 import static org.prebid.server.functional.model.deals.lineitem.targeting.MatchingFunction.INTERSECTS
@@ -39,6 +41,9 @@ import static org.prebid.server.functional.model.deals.lineitem.targeting.Target
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_BUYER_UIDS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_KEYWORDS
 import static org.prebid.server.functional.model.deals.lineitem.targeting.TargetingType.UFPD_YOB
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
 class TargetingFirstPartyDataSpec extends BasePgSpec {
 
@@ -115,7 +120,7 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
 
     def "PBS should support taking Site First Party Data from #place source"() {
         given: "Planner response"
-        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.getAccountId()).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
                                               .addTargeting(SFPD_LANGUAGE, INTERSECTS, [stringTargetingValue])
                                               .build()
@@ -141,11 +146,6 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         "site"              | BidRequest.defaultBidRequest.tap {
             site = Site.defaultSite.tap {
                 ext = new SiteExt(data: new SiteExtData(language: stringTargetingValue))
-            }
-        }
-        "app"               | BidRequest.defaultBidRequest.tap {
-            app = new App(id: PBSUtils.randomString).tap {
-                ext = new AppExt(data: new AppExtData(language: stringTargetingValue))
             }
         }
         "imp[].ext.data"    | BidRequest.defaultBidRequest.tap {
@@ -304,10 +304,10 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
 
     def "PBS should be able to match site FPD targeting taken from different sources by INTERSECTS matching function"() {
         given: "Bid request with set site FPD in different request places"
-        def bidRequest = getSiteFpdBidRequest(siteLanguage, appLanguage, impLanguage)
+        def bidRequest = getSiteFpdBidRequest(siteLanguage, appLanguage, doohLanguage, impLanguage)
 
         and: "Planner response with INTERSECTS 1 of site FPD values"
-        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.getAccountId()).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
                                               .addTargeting(SFPD_LANGUAGE, INTERSECTS, [stringTargetingValue, PBSUtils.randomString])
                                               .build()
@@ -324,18 +324,18 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
 
         where:
-        siteLanguage         | appLanguage          | impLanguage
-        stringTargetingValue | null                 | PBSUtils.randomString
-        null                 | stringTargetingValue | PBSUtils.randomString
-        null                 | null                 | stringTargetingValue
+        siteLanguage         | appLanguage          | doohLanguage         | impLanguage
+        stringTargetingValue | null                 | null                 | PBSUtils.randomString
+        null                 | stringTargetingValue | null                 | PBSUtils.randomString
+        null                 | null                 | stringTargetingValue | stringTargetingValue
     }
 
     def "PBS should be able to match site FPD targeting taken from different sources by MATCHES matching function"() {
         given: "Bid request with set site FPD in different request places"
-        def bidRequest = getSiteFpdBidRequest(siteLanguage, appLanguage, impLanguage)
+        def bidRequest = getSiteFpdBidRequest(siteLanguage, appLanguage, doohLanguage, impLanguage)
 
         and: "Planner response with MATCHES 1 of site FPD values"
-        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.getAccountId()).tap {
             lineItems[0].targeting = Targeting.defaultTargetingBuilder
                                               .addTargeting(SFPD_LANGUAGE, MATCHES, stringTargetingValue)
                                               .build()
@@ -352,18 +352,19 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
 
         where:
-        siteLanguage         | appLanguage          | impLanguage
-        stringTargetingValue | null                 | PBSUtils.randomString
-        null                 | stringTargetingValue | PBSUtils.randomString
-        null                 | null                 | stringTargetingValue
+        siteLanguage         | appLanguage          | doohLanguage         | impLanguage
+        stringTargetingValue | null                 | null                 | PBSUtils.randomString
+        null                 | stringTargetingValue | null                 | PBSUtils.randomString
+        null                 | null                 | stringTargetingValue | stringTargetingValue
     }
 
     def "PBS should be able to match site FPD targeting taken from different sources by IN matching function"() {
         given: "Bid request with set site FPD in different request places"
         def siteLanguage = PBSUtils.randomString
         def appLanguage = PBSUtils.randomString
+        def doohLanguage = PBSUtils.randomString
         def impLanguage = PBSUtils.randomString
-        def bidRequest = getSiteFpdBidRequest(siteLanguage, appLanguage, impLanguage)
+        def bidRequest = getSiteFpdBidRequest(siteLanguage, appLanguage, doohLanguage, impLanguage)
 
         and: "Planner response with IN all of site FPD values"
         def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
@@ -642,21 +643,57 @@ class TargetingFirstPartyDataSpec extends BasePgSpec {
         MATCHES          | stringTargetingValue
     }
 
-    private BidRequest getSiteFpdBidRequest(String siteLanguage, String appLanguage, String impLanguage) {
-        BidRequest.defaultBidRequest.tap {
-            site = Site.defaultSite.tap {
-                ext = new SiteExt(data: new SiteExtData(language: siteLanguage))
+    def "PBS shouldn't rely on bidder name case strategy when bidder name in another case stately"() {
+        given: "Bid request with 1 not matched User specific bidder config and 1 matched"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            def bidderConfigUser = new User().tap {
+                ext = new UserExt(data: new UserExtData(buyeruid: stringTargetingValue))
             }
-            app = appLanguage != null
-                    ? new App(id: PBSUtils.randomString).tap {
-                        ext = new AppExt(data: new AppExtData(language: appLanguage))
-                    }
-                    : null
-            imp = [Imp.defaultImpression.tap {
-                banner = Banner.defaultBanner
-                ext.context = new ImpExtContext(data: new ImpExtContextData(language: impLanguage))
-            }]
+            def bidderConfig = new ExtPrebidBidderConfig(bidders: [bidders],
+                    config: new BidderConfig(ortb2: new BidderConfigOrtb(user: bidderConfigUser)))
+            ext = new BidRequestExt(prebid: new Prebid(debug: 1, bidderConfig: [bidderConfig]))
         }
+
+        and: "Planner response"
+        def plansResponse = PlansResponse.getDefaultPlansResponse(bidRequest.site.publisher.id).tap {
+            lineItems[0].targeting = Targeting.defaultTargetingBuilder
+                    .addTargeting(UFPD_BUYER_UID, MATCHES, stringTargetingValue)
+                    .build()
+        }
+        generalPlanner.initPlansResponse(plansResponse)
+
+        and: "Line items are fetched by PBS"
+        updateLineItemsAndWait()
+
+        when: "Auction is happened"
+        def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS had PG auction"
+        assert auctionResponse.ext?.debug?.pgmetrics?.matchedWholeTargeting?.size() == plansResponse.lineItems.size()
+
+        where:
+        bidders << [GENERIC, GENERIC_CAMEL_CASE]
+    }
+
+    private BidRequest getSiteFpdBidRequest(String siteLanguage, String appLanguage, String doohLanguage, String impLanguage) {
+        def bidRequest
+        if (siteLanguage != null) {
+            bidRequest = BidRequest.getDefaultBidRequest(SITE).tap {
+                site.ext = new SiteExt(data: new SiteExtData(language: siteLanguage))
+            }
+        } else if (appLanguage != null) {
+            bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
+                app.ext = new AppExt(data: new AppExtData(language: appLanguage))
+            }
+        } else {
+            bidRequest = BidRequest.getDefaultBidRequest(DOOH).tap {
+                dooh.ext = new DoohExt(data: new DoohExtData(language: doohLanguage))
+            }
+        }
+        bidRequest.imp[0].tap {
+            ext.context = new ImpExtContext(data: new ImpExtContextData(language: impLanguage))
+        }
+        bidRequest
     }
 
     private BidRequest getUserFpdBidRequest(String userBuyerUid, String userExtDataBuyerUid) {

@@ -14,11 +14,14 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.handler.info.filters.BaseOnlyBidderInfoFilterStrategy;
+import org.prebid.server.handler.info.filters.EnabledOnlyBidderInfoFilterStrategy;
 
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 
 import static java.util.Arrays.asList;
-import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -39,30 +42,47 @@ public class BiddersHandlerTest extends VertxTest {
     @Mock
     private HttpServerResponse httpResponse;
 
-    private BiddersHandler handler;
+    private BiddersHandler target;
 
     @Before
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.response()).willReturn(httpResponse);
-        given(routingContext.queryParams())
-                .willReturn(MultiMap.caseInsensitiveMultiMap().add("enabledonly", "false"));
         given(httpResponse.putHeader(any(CharSequence.class), any(CharSequence.class))).willReturn(httpResponse);
         given(httpResponse.setStatusCode(any(Integer.class))).willReturn(httpResponse);
-        given(bidderCatalog.names()).willReturn(emptySet());
 
-        handler = new BiddersHandler(bidderCatalog, jacksonMapper);
+        target = new BiddersHandler(
+                bidderCatalog,
+                List.of(
+                        new EnabledOnlyBidderInfoFilterStrategy(bidderCatalog),
+                        new BaseOnlyBidderInfoFilterStrategy(bidderCatalog)),
+                jacksonMapper);
     }
 
     @Test
-    public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new BiddersHandler(null, jacksonMapper));
+    public void creationShouldFailOnNullBidderCatalog() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> new BiddersHandler(null, Collections.emptyList(), jacksonMapper));
+    }
+
+    @Test
+    public void creationShouldFailOnNullStrategiesList() {
+        assertThatNullPointerException().isThrownBy(() -> new BiddersHandler(bidderCatalog, null, jacksonMapper));
+    }
+
+    @Test
+    public void creationShouldFailOnNullMapper() {
+        assertThatNullPointerException()
+                .isThrownBy(() -> new BiddersHandler(bidderCatalog, Collections.emptyList(), null));
     }
 
     @Test
     public void shouldRespondWithExpectedHeaders() {
+        // given
+        given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
+
         // when
-        handler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse)
@@ -78,7 +98,23 @@ public class BiddersHandlerTest extends VertxTest {
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
 
         // when
-        handler.handle(routingContext);
+        target.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
+        verify(httpResponse).end("[\"bidder1\",\"bidder2\",\"bidder3\"]");
+    }
+
+    @Test
+    public void shouldReturnAllBiddersIfBaseOnlyFlagIsNotPresent() {
+        // given
+        given(bidderCatalog.isAlias("bidder3")).willReturn(true);
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "bidder3", "bidder1")));
+
+        given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
+
+        // when
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
@@ -92,11 +128,25 @@ public class BiddersHandlerTest extends VertxTest {
                 .willReturn(MultiMap.caseInsensitiveMultiMap().add("enabledonly", "yes"));
 
         // when
-        handler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(HttpResponseStatus.BAD_REQUEST.code());
         verify(httpResponse).end(eq("Invalid value for 'enabledonly' query param, must be of boolean type"));
+    }
+
+    @Test
+    public void shouldRespondWithExpectedMessageAndStatusBadRequestWhenBaseOnlyFlagHasInvalidValue() {
+        // given
+        given(routingContext.queryParams())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("baseadaptersonly", "yes"));
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(HttpResponseStatus.BAD_REQUEST.code());
+        verify(httpResponse).end(eq("Invalid value for 'baseadaptersonly' query param, must be of boolean type"));
     }
 
     @Test
@@ -106,7 +156,20 @@ public class BiddersHandlerTest extends VertxTest {
                 .willReturn(MultiMap.caseInsensitiveMultiMap().add("enabledonly", "tRuE"));
 
         // when
-        handler.handle(routingContext);
+        target.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
+    }
+
+    @Test
+    public void shouldTolerateWithBaseOnlyFlagInCaseInsensitiveMode() {
+        // given
+        given(routingContext.queryParams())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("baseadaptersonly", "fAlSE"));
+
+        // when
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
@@ -115,11 +178,26 @@ public class BiddersHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithExpectedBodyAndStatusOkForEnabledOnlyFalseFlag() {
         // given
+        given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap().add("enabledonly", "false"));
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "bidder3", "bidder1")));
-        handler = new BiddersHandler(bidderCatalog, jacksonMapper);
 
         // when
-        handler.handle(routingContext);
+        target.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
+        verify(httpResponse).end(eq("[\"bidder1\",\"bidder2\",\"bidder3\"]"));
+    }
+
+    @Test
+    public void shouldRespondWithExpectedBodyAndStatusOkForBaseOnlyFalseFlag() {
+        // given
+        given(routingContext.queryParams())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("baseadaptersonly", "false"));
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "bidder3", "bidder1")));
+
+        // when
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
@@ -129,17 +207,62 @@ public class BiddersHandlerTest extends VertxTest {
     @Test
     public void shouldRespondWithExpectedBodyAndStatusOkForEnabledOnlyTrueFlag() {
         // given
-        given(routingContext.queryParams())
-                .willReturn(MultiMap.caseInsensitiveMultiMap().add("enabledonly", "true"));
+        given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap().add("enabledonly", "true"));
+        given(bidderCatalog.isActive("bidder1")).willReturn(false);
+        given(bidderCatalog.isActive("bidder2")).willReturn(false);
         given(bidderCatalog.isActive("bidder3")).willReturn(true);
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "bidder3", "bidder1")));
-        handler = new BiddersHandler(bidderCatalog, jacksonMapper);
 
         // when
-        handler.handle(routingContext);
+        target.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
         verify(httpResponse).end(eq("[\"bidder3\"]"));
+    }
+
+    @Test
+    public void shouldRespondWithExpectedBodyAndStatusOkForBaseOnlyTrueFlag() {
+        // given
+        given(routingContext.queryParams())
+                .willReturn(MultiMap.caseInsensitiveMultiMap().add("baseadaptersonly", "true"));
+        given(bidderCatalog.isAlias("bidder1")).willReturn(false);
+        given(bidderCatalog.isAlias("bidder2")).willReturn(false);
+        given(bidderCatalog.isAlias("bidder3")).willReturn(true);
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "bidder3", "bidder1")));
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
+        verify(httpResponse).end(eq("[\"bidder1\",\"bidder2\"]"));
+    }
+
+    @Test
+    public void shouldRespondWithExpectedBodyAndStatusOkForBaseOnlyTrueFlagAndEnabledOnlyTrueFlag() {
+        // given
+        given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap()
+                .add("enabledonly", "true")
+                .add("baseadaptersonly", "true"));
+
+        given(bidderCatalog.isAlias("bidder1")).willReturn(false);
+        given(bidderCatalog.isAlias("bidder2")).willReturn(false);
+        given(bidderCatalog.isAlias("bidder3")).willReturn(true);
+        given(bidderCatalog.isAlias("bidder4")).willReturn(true);
+
+        given(bidderCatalog.isActive("bidder1")).willReturn(true);
+        given(bidderCatalog.isActive("bidder2")).willReturn(false);
+        given(bidderCatalog.isActive("bidder3")).willReturn(true);
+        given(bidderCatalog.isActive("bidder4")).willReturn(false);
+
+        given(bidderCatalog.names()).willReturn(new HashSet<>(asList("bidder2", "bidder3", "bidder1", "bidder4")));
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(HttpResponseStatus.OK.code());
+        verify(httpResponse).end(eq("[\"bidder1\"]"));
     }
 }

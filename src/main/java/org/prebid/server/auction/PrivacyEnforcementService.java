@@ -3,6 +3,7 @@ package org.prebid.server.auction;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
@@ -12,6 +13,12 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.PrivacyEnforcementServiceActivityInvocationPayload;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.IpAddress;
@@ -30,6 +37,7 @@ import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -49,6 +57,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -236,7 +245,8 @@ public class PrivacyEnforcementService {
                         bidderToEnforcement, aliases, requestType, bidderToUser, device))
                 .map(bidderToEnforcement -> getBidderToPrivacyResult(
                         bidderToEnforcement, biddersToApplyTcf, bidderToUser, device))
-                .map(gdprResult -> merge(ccpaResult, gdprResult));
+                .map(gdprResult -> merge(ccpaResult, gdprResult))
+                .map(bidderPrivacyResults -> applyActivityRestrictions(bidderPrivacyResults, auctionContext));
     }
 
     public Future<Map<Integer, PrivacyEnforcementAction>> resultForVendorIds(Set<Integer> vendorIds,
@@ -670,6 +680,92 @@ public class PrivacyEnforcementService {
 
     private static boolean isLmtEnabled(Device device) {
         return device != null && Objects.equals(device.getLmt(), 1);
+    }
+
+    private List<BidderPrivacyResult> applyActivityRestrictions(List<BidderPrivacyResult> bidderPrivacyResults,
+                                                                AuctionContext auctionContext) {
+
+        return bidderPrivacyResults.stream()
+                .map(bidderPrivacyResult -> applyActivityRestrictions(bidderPrivacyResult, auctionContext))
+                .toList();
+    }
+
+    private BidderPrivacyResult applyActivityRestrictions(BidderPrivacyResult bidderPrivacyResult,
+                                                          AuctionContext auctionContext) {
+
+        final ActivityInfrastructure activityInfrastructure = auctionContext.getActivityInfrastructure();
+
+        final String bidder = bidderPrivacyResult.getRequestBidder();
+        final User user = bidderPrivacyResult.getUser();
+        final Device device = bidderPrivacyResult.getDevice();
+
+        final Geo geo = device != null ? device.getGeo() : null;
+        final ActivityInvocationPayload activityInvocationPayload =
+                PrivacyEnforcementServiceActivityInvocationPayload.of(
+                        ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, bidder),
+                        geo != null ? geo.getCountry() : null,
+                        geo != null ? geo.getRegion() : null,
+                        Optional.ofNullable(auctionContext.getBidRequest().getRegs())
+                                .map(Regs::getExt)
+                                .map(ExtRegs::getGpc)
+                                .orElse(null));
+
+        final boolean disallowTransmitUfpd = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_UFPD, activityInvocationPayload);
+        final boolean disallowTransmitGeo = !activityInfrastructure.isAllowed(
+                Activity.TRANSMIT_GEO, activityInvocationPayload);
+
+        final User resolvedUser = disallowTransmitUfpd || disallowTransmitGeo
+                ? maskUserConsideringActivityRestrictions(user, disallowTransmitUfpd, disallowTransmitGeo)
+                : user;
+        final Device resolvedDevice = disallowTransmitUfpd || disallowTransmitGeo
+                ? maskDeviceConsideringActivityRestrictions(device, disallowTransmitUfpd, disallowTransmitGeo)
+                : device;
+
+        return bidderPrivacyResult.toBuilder()
+                .user(resolvedUser)
+                .device(resolvedDevice)
+                .build();
+    }
+
+    public User maskUserConsideringActivityRestrictions(User user,
+                                                        boolean disallowTransmitUfpd,
+                                                        boolean disallowTransmitGeo) {
+
+        if (!(disallowTransmitGeo || disallowTransmitUfpd) || user == null) {
+            return user;
+        }
+
+        final User.UserBuilder userBuilder = user.toBuilder();
+
+        if (disallowTransmitUfpd) {
+            final ExtUser extUser = user.getExt();
+            userBuilder
+                    .id(null)
+                    .buyeruid(null)
+                    .yob(null)
+                    .gender(null)
+                    .data(null)
+                    .eids(null)
+                    .ext(extUser != null ? nullIfEmpty(extUser.toBuilder().data(null).build()) : null);
+        }
+
+        if (disallowTransmitGeo) {
+            userBuilder.geo(maskGeoDefault(user.getGeo()));
+        }
+
+        return userBuilder.build();
+    }
+
+    public Device maskDeviceConsideringActivityRestrictions(Device device,
+                                                            boolean disallowTransmitUfpd,
+                                                            boolean disallowTransmitGeo) {
+
+        if (!(disallowTransmitGeo || disallowTransmitUfpd)) {
+            return device;
+        }
+
+        return maskTcfDevice(device, disallowTransmitGeo, disallowTransmitGeo, disallowTransmitUfpd);
     }
 
     private static List<BidderPrivacyResult> merge(

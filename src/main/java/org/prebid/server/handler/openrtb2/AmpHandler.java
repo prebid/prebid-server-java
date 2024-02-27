@@ -32,6 +32,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -87,6 +88,7 @@ public class AmpHandler implements ApplicationResource {
     private final HttpInteractionLogger httpInteractionLogger;
     private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
+    private final double logSamplingRate;
 
     public AmpHandler(AmpRequestFactory ampRequestFactory,
                       ExchangeService exchangeService,
@@ -98,7 +100,8 @@ public class AmpHandler implements ApplicationResource {
                       AmpResponsePostProcessor ampResponsePostProcessor,
                       HttpInteractionLogger httpInteractionLogger,
                       PrebidVersionProvider prebidVersionProvider,
-                      JacksonMapper mapper) {
+                      JacksonMapper mapper,
+                      double logSamplingRate) {
 
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
@@ -111,12 +114,13 @@ public class AmpHandler implements ApplicationResource {
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
+        this.logSamplingRate = logSamplingRate;
     }
 
     @Override
     public List<HttpEndpoint> endpoints() {
         return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, "/openrtb2/amp"));
-}
+    }
 
     @Override
     public void handle(RoutingContext routingContext) {
@@ -189,7 +193,7 @@ public class AmpHandler implements ApplicationResource {
         // go in the AMP response
         final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
         if (targeting != null && targeting.keySet().stream()
-                .anyMatch(key -> key != null && key.startsWith("hb_cache_id"))) {
+                .anyMatch(key -> key != null && key.contains("_cache_id"))) {
 
             return enrichWithCustomTargeting(targeting, bidExt, bidder);
         }
@@ -223,7 +227,9 @@ public class AmpHandler implements ApplicationResource {
         // Fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
 
-        Map<String, JsonNode> targeting = new HashMap<>(seatBids == null ? Collections.emptyMap() : seatBids.stream()
+        final Map<String, JsonNode> targeting = new HashMap<>(seatBids == null
+                ? Collections.emptyMap()
+                : seatBids.stream()
                 .filter(Objects::nonNull)
                 .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
@@ -326,6 +332,14 @@ public class AmpHandler implements ApplicationResource {
                 errorMessages = Collections.singletonList(message);
                 status = HttpResponseStatus.FORBIDDEN;
                 body = message;
+            } else if (exception instanceof InvalidAccountConfigException) {
+                metricRequestStatus = MetricName.bad_requests;
+                final String message = exception.getMessage();
+                conditionalLogger.error(message, logSamplingRate);
+
+                errorMessages = Collections.singletonList(message);
+                status = HttpResponseStatus.BAD_REQUEST;
+                body = "Invalid account configuration: " + message;
             } else {
                 final String message = exception.getMessage();
 

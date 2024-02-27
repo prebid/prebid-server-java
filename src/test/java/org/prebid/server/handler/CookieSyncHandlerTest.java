@@ -15,6 +15,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
@@ -22,12 +23,12 @@ import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.cookie.exception.CookieSyncException;
 import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.model.CookieSyncContext;
 import org.prebid.server.cookie.model.CookieSyncStatus;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.ccpa.Ccpa;
@@ -77,6 +78,8 @@ public class CookieSyncHandlerTest extends VertxTest {
     @Mock
     private CookieSyncGppService cookieSyncGppProcessor;
     @Mock
+    private ActivityInfrastructureCreator activityInfrastructureCreator;
+    @Mock
     private CookieSyncService cookieSyncService;
     @Mock
     private ApplicationSettings applicationSettings;
@@ -98,7 +101,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
-        given(cookieSyncGppProcessor.apply(any(), any()))
+        given(cookieSyncGppProcessor.updateCookieSyncRequest(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.response()).willReturn(httpResponse);
@@ -120,6 +123,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 0.05,
                 uidsCookieService,
                 cookieSyncGppProcessor,
+                activityInfrastructureCreator,
                 cookieSyncService,
                 applicationSettings,
                 privacyEnforcementService,
@@ -177,7 +181,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).optout(true).build(), jacksonMapper));
         given(cookieSyncService.processContext(any()))
-                .willAnswer(answerWithCookieSyncException(
+                .willAnswer(answerWithException(
                         tcfContext -> new UnauthorizedUidsException("Sync is not allowed for this uids", tcfContext)));
 
         // when
@@ -199,7 +203,7 @@ public class CookieSyncHandlerTest extends VertxTest {
         // given
         given(routingContext.getBody())
                 .willReturn(givenRequestBody(CookieSyncRequest.builder().bidders(emptySet()).gdpr(1).build()));
-        given(cookieSyncService.processContext(any())).willAnswer(answerWithCookieSyncException(
+        given(cookieSyncService.processContext(any())).willAnswer(answerWithException(
                 tcfContext -> new InvalidCookieSyncRequestException(
                         "gdpr_consent is required if gdpr is 1", tcfContext)));
 
@@ -232,7 +236,7 @@ public class CookieSyncHandlerTest extends VertxTest {
                 .willReturn(Future.succeededFuture(PrivacyContext.of(null,
                         TcfContext.builder().inGdprScope(true).consentValid(false).build())));
 
-        given(cookieSyncService.processContext(any())).willAnswer(answerWithCookieSyncException(
+        given(cookieSyncService.processContext(any())).willAnswer(answerWithException(
                 tcfContext -> new InvalidCookieSyncRequestException("Consent string is invalid", tcfContext)));
 
         // when
@@ -241,6 +245,31 @@ public class CookieSyncHandlerTest extends VertxTest {
         // then
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: Consent string is invalid"));
+    }
+
+    @Test
+    public void shouldRespondWithBadRequestStatusOnInvalidAccountConfigException() {
+        // given
+        given(routingContext.getBody())
+                .willReturn(givenRequestBody(CookieSyncRequest.builder()
+                        .bidders(singleton("rubicon"))
+                        .gdpr(1)
+                        .gdprConsent("valid")
+                        .build()));
+
+        given(privacyEnforcementService.contextFromCookieSyncRequest(any(), any(), any(), any()))
+                .willReturn(Future.succeededFuture(PrivacyContext.of(null,
+                        TcfContext.builder().inGdprScope(true).consentValid(true).build())));
+
+        given(cookieSyncService.processContext(any())).willAnswer(answerWithException(
+                tcfContext -> new InvalidAccountConfigException("Message")));
+
+        // when
+        target.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).end(eq("Invalid account configuration: Message"));
     }
 
     @Test
@@ -286,9 +315,9 @@ public class CookieSyncHandlerTest extends VertxTest {
                 givenRequestBody(CookieSyncRequest.builder().bidders(emptySet()).account("account").build()));
 
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
-                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true)).build();
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true)).build();
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null))
+                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null, null, null, null))
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
@@ -373,8 +402,8 @@ public class CookieSyncHandlerTest extends VertxTest {
         }
     }
 
-    private static Answer<Future<? extends Throwable>> answerWithCookieSyncException(
-            Function<TcfContext, CookieSyncException> exceptionProvider) {
+    private static Answer<Future<? extends Throwable>> answerWithException(
+            Function<TcfContext, ? extends Throwable> exceptionProvider) {
 
         return invocation -> {
             final TcfContext tcfContext = ((CookieSyncContext) invocation.getArgument(0))

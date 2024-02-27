@@ -13,7 +13,7 @@ public class StroeerCoreBid {
     String id;
 
     @JsonProperty("bidId")
-    String bidId;
+    String impId;
 
     BigDecimal cpm;
 

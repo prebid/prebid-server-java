@@ -4,8 +4,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Defines the contract for bidrequest.imp[i].ext.rubicon
@@ -23,6 +25,7 @@ public class ExtImpRubicon {
     @JsonProperty("zoneId")
     Integer zoneId;
 
+    @JsonProperty("bidonmultiformat")
     Boolean bidOnMultiFormat;
 
     List<Integer> sizes;
@@ -36,6 +39,8 @@ public class ExtImpRubicon {
     String pchain;
 
     List<String> keywords;
+
+    Set<ImpMediaType> formats;
 
     ExtImpRubiconDebug debug;
 }

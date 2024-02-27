@@ -8,7 +8,6 @@ import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.MapUtils;
 import org.prebid.server.bidder.openx.proto.OpenxBidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -151,13 +150,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
     private List<HttpRequest<BidRequest>> createHttpRequests(List<BidRequest> bidRequests) {
         return bidRequests.stream()
                 .filter(Objects::nonNull)
-                .map(singleBidRequest -> HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(mapper.encodeToBytes(singleBidRequest))
-                        .headers(HttpUtil.headers())
-                        .payload(singleBidRequest)
-                        .build())
+                .map(singleBidRequest -> BidderUtil.defaultRequest(singleBidRequest, endpointUrl, mapper))
                 .toList();
     }
 

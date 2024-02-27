@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -35,12 +34,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private InteractiveOffersBidder interactiveOffersBidder;
-
-    @Before
-    public void setup() {
-        interactiveOffersBidder = new InteractiveOffersBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final InteractiveOffersBidder target = new InteractiveOffersBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -54,7 +48,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = interactiveOffersBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -74,7 +68,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
                         givenImp(identity()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = interactiveOffersBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -95,7 +89,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = interactiveOffersBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -112,7 +106,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = interactiveOffersBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -126,7 +120,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = interactiveOffersBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -139,7 +133,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = interactiveOffersBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -160,7 +154,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = interactiveOffersBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -179,7 +173,7 @@ public class InteractiveOffersBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = interactiveOffersBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

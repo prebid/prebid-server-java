@@ -10,7 +10,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -34,12 +33,7 @@ public class SspbcBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://randomurl.com";
 
-    private SspbcBidder sspbcBidder;
-
-    @Before
-    public void setUp() {
-        sspbcBidder = new SspbcBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final SspbcBidder target = new SspbcBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -52,7 +46,7 @@ public class SspbcBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sspbcBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -67,7 +61,7 @@ public class SspbcBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder.site(null), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sspbcBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -85,7 +79,7 @@ public class SspbcBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sspbcBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -102,7 +96,7 @@ public class SspbcBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sspbcBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -125,7 +119,7 @@ public class SspbcBidderTest extends VertxTest {
                         .of("extSiteId", null, 0)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sspbcBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -149,7 +143,7 @@ public class SspbcBidderTest extends VertxTest {
                         .of(null, "ExtImpId", 0)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sspbcBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -169,7 +163,7 @@ public class SspbcBidderTest extends VertxTest {
                         .of(expectedSiteId, "ExtImpId", 0)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sspbcBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -189,7 +183,7 @@ public class SspbcBidderTest extends VertxTest {
                         ExtPrebid.of(null, ExtImpSspbc.of("SiteId", expectedId, 1)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sspbcBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -211,7 +205,7 @@ public class SspbcBidderTest extends VertxTest {
                         .of(null, ExtImpSspbc.of("siteId", null, 123)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sspbcBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -230,7 +224,7 @@ public class SspbcBidderTest extends VertxTest {
                 .tagid(expectedPbSlot));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sspbcBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -258,7 +252,7 @@ public class SspbcBidderTest extends VertxTest {
                 .tagid(expectedPbSlot));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sspbcBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -279,7 +273,7 @@ public class SspbcBidderTest extends VertxTest {
                 .site(Site.builder().page("invalid_url////[' and ']").build()), identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = sspbcBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -293,7 +287,7 @@ public class SspbcBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = sspbcBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -310,7 +304,7 @@ public class SspbcBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = sspbcBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -324,7 +318,7 @@ public class SspbcBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.adm("Any adm"))));
 
         // when
-        final Result<List<BidderBid>> result = sspbcBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -348,7 +342,7 @@ public class SspbcBidderTest extends VertxTest {
                                         .put("slotid", "anySlotId")))));
 
         // when
-        final Result<List<BidderBid>> result = sspbcBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -377,7 +371,7 @@ public class SspbcBidderTest extends VertxTest {
                                         .put("slotid", "anySlotId")))));
 
         // when
-        final Result<List<BidderBid>> result = sspbcBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -409,7 +403,7 @@ public class SspbcBidderTest extends VertxTest {
                                         .put("slotid", "anySlotId")))));
 
         // when
-        final Result<List<BidderBid>> result = sspbcBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

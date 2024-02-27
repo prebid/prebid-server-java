@@ -29,6 +29,7 @@
     "publisher": {
       "domain": "example.com"
     },
+    "keywords" : "tagId=some_tag_id",
     "ext": {
       "amp": 0
     }

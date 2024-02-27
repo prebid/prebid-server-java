@@ -17,7 +17,7 @@
             "prebid": {
               "type": "banner",
               "meta": {
-                "demandsource": "trustx"
+                "demandSource": "trustx"
               }
             },
             "origbidcpm": 3.33

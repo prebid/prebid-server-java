@@ -116,6 +116,12 @@ public class Video {
     Integer placement;
 
     /**
+     * Video placement type for the impression. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--plcmt-subtypes---video-">
+     * List: Placement Subtypes - Video</a> in AdCOM 1.0.
+     */
+    Integer plcmt;
+
+    /**
      * Indicates if the impression must be linear, nonlinear, etc. If none
      * specified, assume all are allowed. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/master/AdCOM%20v1.0%20FINAL.md#list--linearity-modes-">
      * List: Linearity Modes</a> in AdCOM 1.0. Note that this field describes
@@ -247,6 +253,12 @@ public class Video {
      * with the particular banner (Section 3.2.6).
      */
     List<Integer> companiontype;
+
+    /**
+     * An array of objects (Section 3.2.35)
+     * indicating the floor prices for video creatives of various durations that the buyer may bid with.
+     */
+    List<DurFloor> durfloors;
 
     /**
      * Placeholder for exchange-specific extensions to OpenRTB.
