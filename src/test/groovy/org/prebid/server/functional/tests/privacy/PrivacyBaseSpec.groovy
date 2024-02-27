@@ -40,6 +40,7 @@ import static org.prebid.server.functional.model.response.cookiesync.UserSyncInf
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 
 abstract class PrivacyBaseSpec extends BaseSpec {
 
@@ -182,5 +183,9 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: false))
         def accountConfig = new AccountConfig(cookieSync: cookieSyncConfig, privacy: privacy)
         new Account(uuid: accountId, config: accountConfig)
+    }
+
+    protected static String getVendorListPath(Integer gvlVersion) {
+        "/app/prebid-server/data/vendorlist-v${TCF_POLICY_V2.vendorListVersion}/${gvlVersion}.json"
     }
 }

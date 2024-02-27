@@ -3,7 +3,7 @@ package org.prebid.server.functional.util.privacy
 import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.config.PurposeEid
-import org.prebid.server.functional.model.privacy.EnforcementRequirements
+import org.prebid.server.functional.model.privacy.EnforcementRequirement
 
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.util.privacy.TcfConsent.Builder
@@ -12,13 +12,13 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVers
 
 class TcfUtils {
 
-    static Map<Purpose, PurposeConfig> getPurposeConfigsForPersonalizedAds(EnforcementRequirements enforcementRequirments, boolean requireConsent = false, List<String> eidsExceptions = []) {
-        def purpose = enforcementRequirments.purposeConsent ?: enforcementRequirments.purpose
+    static Map<Purpose, PurposeConfig> getPurposeConfigsForPersonalizedAds(EnforcementRequirement enforcementRequirements, boolean requireConsent = false, List<String> eidsExceptions = []) {
+        def purpose = enforcementRequirements.purposeConsent ?: enforcementRequirements.purpose
         // Basic Ads required for any bidder call, should be present at least as company consent
-        Map<Purpose, PurposeConfig> purposes = [(Purpose.P2): new PurposeConfig(enforcePurpose: NO, enforceVendors: false)]
-        def purposeConfig = new PurposeConfig(enforcePurpose: enforcementRequirments.enforcePurpose,
-                enforceVendors: enforcementRequirments?.enforceVendor,
-                vendorExceptions: enforcementRequirments?.vendorExceptions?.value)
+        def purposes = [(Purpose.P2): new PurposeConfig(enforcePurpose: NO, enforceVendors: false)]
+        def purposeConfig = new PurposeConfig(enforcePurpose: enforcementRequirements.enforcePurpose,
+                enforceVendors: enforcementRequirements?.enforceVendor,
+                vendorExceptions: enforcementRequirements?.vendorExceptions?.value)
         def purposeEid = new PurposeEid(requireConsent: requireConsent, exceptions: eidsExceptions)
         if (purpose == Purpose.P4) {
             purposeConfig.eid = purposeEid
@@ -30,13 +30,13 @@ class TcfUtils {
         purposes
     }
 
-    static ConsentString getConsentString(EnforcementRequirements enforcementRequirments) {
-        def purposeConsent = enforcementRequirments.purposeConsent
-        def purpose = enforcementRequirments.purposeConsent ?: enforcementRequirments.purpose
-        def vendorConsentBitField = enforcementRequirments.getVendorConsentBitField()
-        def purposesLITransparency = enforcementRequirments.getPurposesLITransparency()
-        def restrictionType = enforcementRequirments.restrictionType
-        def vendorIdGvl = enforcementRequirments.vendorIdGvl
+    static ConsentString getConsentString(EnforcementRequirement enforcementRequirements) {
+        def purposeConsent = enforcementRequirements.purposeConsent
+        def purpose = enforcementRequirements.purposeConsent ?: enforcementRequirements.purpose
+        def vendorConsentBitField = enforcementRequirements.getVendorConsentBitField()
+        def purposesLITransparency = enforcementRequirements.getPurposesLITransparency()
+        def restrictionType = enforcementRequirements.restrictionType
+        def vendorIdGvl = enforcementRequirements.vendorIdGvl
         def builder = new Builder()
         if (purposeConsent != null) {
             builder.setPurposesConsent(PurposeId.convertPurposeToPurposeId(purposeConsent))
@@ -53,7 +53,7 @@ class TcfUtils {
         if (vendorIdGvl != null) {
             builder.setVendorLegitimateInterest(vendorIdGvl)
         }
-        builder.setVendorListVersion(enforcementRequirments.vendorListVersion ?: TCF_POLICY_V2.vendorListVersion)
+        builder.setVendorListVersion(enforcementRequirements.vendorListVersion ?: TCF_POLICY_V2.vendorListVersion)
         return builder.build()
     }
 }

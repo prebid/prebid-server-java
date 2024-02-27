@@ -7,7 +7,7 @@ import org.prebid.server.functional.model.config.PurposeEnforcement
 import org.prebid.server.functional.util.privacy.TcfConsent
 
 @ToString(includeNames = true, ignoreNulls = true)
-class EnforcementRequirements {
+class EnforcementRequirement {
 
     Purpose purpose
     PurposeEnforcement enforcePurpose
