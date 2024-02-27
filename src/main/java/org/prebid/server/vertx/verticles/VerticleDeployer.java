@@ -30,9 +30,9 @@ public class VerticleDeployer {
 
         final CountDownLatch latch = new CountDownLatch(1);
         final List<InitializableVerticle> verticles = toVerticles(definition);
-        final CompositeFuture initializationMarker = toInitializationMarker(verticles);
+        final CompositeFuture verticlesInitialization = toVerticlesInitialization(verticles)
+                .onComplete(result -> latch.countDown());
         verticles.forEach(vertx::deployVerticle);
-        initializationMarker.onComplete(result -> latch.countDown());
 
         try {
             if (!latch.await(timeoutMillis, TimeUnit.MILLISECONDS)) {
@@ -40,8 +40,8 @@ public class VerticleDeployer {
                         "Action has not completed within defined timeout %d ms".formatted(timeoutMillis));
             }
 
-            if (initializationMarker.failed()) {
-                final Throwable cause = initializationMarker.cause();
+            if (verticlesInitialization.failed()) {
+                final Throwable cause = verticlesInitialization.cause();
                 if (cause != null) {
                     throw new RuntimeException(cause);
                 } else {
@@ -60,11 +60,11 @@ public class VerticleDeployer {
                 .toList();
     }
 
-    private static CompositeFuture toInitializationMarker(List<InitializableVerticle> verticles) {
-        final List<Future> initializationFutures = verticles.stream()
-                .map(InitializableVerticle::getInitializationMarker)
+    private static CompositeFuture toVerticlesInitialization(List<InitializableVerticle> verticles) {
+        final List<Future> verticlesInitializations = verticles.stream()
+                .map(InitializableVerticle::getVerticleInitialization)
                 .collect(Collectors.toCollection(ArrayList::new));
 
-        return CompositeFuture.all(initializationFutures);
+        return CompositeFuture.all(verticlesInitializations);
     }
 }

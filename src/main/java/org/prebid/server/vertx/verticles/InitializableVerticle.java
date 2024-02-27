@@ -13,10 +13,10 @@ import io.vertx.core.Vertx;
  */
 public abstract class InitializableVerticle extends AbstractVerticle {
 
-    private final Promise<Void> initializationPromise = Promise.promise();
+    private final Promise<Void> verticleInitialization = Promise.promise();
 
-    public Future<Void> getInitializationMarker() {
-        return initializationPromise.future();
+    public Future<Void> getVerticleInitialization() {
+        return verticleInitialization.future();
     }
 
     public abstract Future<Void> initialize(Vertx vertx, Context context);
@@ -24,7 +24,7 @@ public abstract class InitializableVerticle extends AbstractVerticle {
     @Override
     public void init(Vertx vertx, Context context) {
         initialize(vertx, context)
-                .onSuccess(initializationPromise::tryComplete)
-                .onFailure(initializationPromise::tryFail);
+                .onSuccess(verticleInitialization::tryComplete)
+                .onFailure(verticleInitialization::tryFail);
     }
 }
