@@ -39,8 +39,8 @@ class VendorList extends NetworkScaffolding {
     }
 
     void setResponse(
-            Delay delay = null,
             TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2,
+            Delay delay = null,
             Map<Integer, Vendor> vendors = [(GENERIC_VENDOR_ID): Vendor.getDefaultVendor(GENERIC_VENDOR_ID)]) {
         def prepareEndpoint = VENDOR_LIST_ENDPOINT.replace("{TCF_POLICY}", tcfPolicyVersion.vendorListVersion.toString())
         def prepareEncodeResponseBody = encode(defaultVendorListResponse.tap {
