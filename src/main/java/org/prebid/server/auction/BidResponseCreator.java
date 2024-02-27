@@ -488,7 +488,7 @@ public class BidResponseCreator {
         return categoryMappingService.createCategoryMapping(
                         bidderResponses,
                         auctionContext.getBidRequest(),
-                        auctionContext.getTimeout())
+                        auctionContext.getTimeoutContext().getTimeout())
 
                 .map(categoryMappingResult -> addCategoryMappingErrors(categoryMappingResult, auctionContext));
     }
@@ -1253,7 +1253,7 @@ public class BidResponseCreator {
     private Future<VideoStoredDataResult> videoStoredDataResult(AuctionContext auctionContext) {
         final List<Imp> imps = auctionContext.getBidRequest().getImp();
         final String accountId = auctionContext.getAccount().getId();
-        final Timeout timeout = auctionContext.getTimeout();
+        final Timeout timeout = auctionContext.getTimeoutContext().getTimeout();
 
         final List<String> errors = new ArrayList<>();
         final List<Imp> storedVideoInjectableImps = new ArrayList<>();

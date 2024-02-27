@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.stroeercore;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -144,7 +145,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, StroeerCoreBidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidRequest bidRequest, StroeerCoreBidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getBids())) {
             return Collections.emptyList();
         }
@@ -155,7 +156,11 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private static BidderBid toBidderBid(BidRequest bidRequest, StroeerCoreBid stroeercoreBid) {
+    private BidderBid toBidderBid(BidRequest bidRequest, StroeerCoreBid stroeercoreBid) {
+        final ObjectNode bidExt = stroeercoreBid.getDsa() != null
+                ? mapper.mapper().createObjectNode().set("dsa", stroeercoreBid.getDsa())
+                : null;
+
         return BidderBid.of(
                 Bid.builder()
                         .id(stroeercoreBid.getId())
@@ -165,6 +170,7 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
                         .price(stroeercoreBid.getCpm())
                         .adm(stroeercoreBid.getAdMarkup())
                         .crid(stroeercoreBid.getCreativeId())
+                        .ext(bidExt)
                         .build(),
                 getBidType(stroeercoreBid.getImpId(), bidRequest.getImp()),
                 BIDDER_CURRENCY);

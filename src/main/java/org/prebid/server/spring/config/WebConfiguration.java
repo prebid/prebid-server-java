@@ -24,6 +24,7 @@ import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.CacheService;
+import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.UserService;
@@ -277,6 +278,7 @@ public class WebConfiguration {
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             CookieSyncGppService cookieSyncGppProcessor,
+            CookieDeprecationService cookieDeprecationService,
             ActivityInfrastructureCreator activityInfrastructureCreator,
             ApplicationSettings applicationSettings,
             CookieSyncService cookieSyncService,
@@ -290,6 +292,7 @@ public class WebConfiguration {
                 defaultTimeoutMs,
                 logSamplingRate,
                 uidsCookieService,
+                cookieDeprecationService,
                 cookieSyncGppProcessor,
                 activityInfrastructureCreator,
                 cookieSyncService,

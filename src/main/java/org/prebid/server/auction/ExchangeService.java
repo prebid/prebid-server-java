@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
@@ -49,6 +48,7 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcementService;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.Bidder;
@@ -97,8 +97,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -171,10 +169,8 @@ public class ExchangeService {
     private static final Integer DEFAULT_MULTIBID_LIMIT_MAX = 9;
     private static final String EID_ALLOWED_FOR_ALL_BIDDERS = "*";
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
-    private static final Set<Integer> DSA_REQUIRED = Set.of(2, 3);
 
     private final double logSamplingRate;
-    private final int timeoutAdjustmentFactor;
     private final BidderCatalog bidderCatalog;
     private final StoredResponseProcessor storedResponseProcessor;
     private final DealsService dealsService;
@@ -197,6 +193,7 @@ public class ExchangeService {
     private final HttpInteractionLogger httpInteractionLogger;
     private final PriceFloorAdjuster priceFloorAdjuster;
     private final PriceFloorEnforcer priceFloorEnforcer;
+    private final DsaEnforcer dsaEnforcer;
     private final BidAdjustmentFactorResolver bidAdjustmentFactorResolver;
     private final Metrics metrics;
     private final Clock clock;
@@ -205,7 +202,6 @@ public class ExchangeService {
     private final boolean enabledStrictAppSiteDoohValidation;
 
     public ExchangeService(double logSamplingRate,
-                           int timeoutAdjustmentFactor,
                            BidderCatalog bidderCatalog,
                            StoredResponseProcessor storedResponseProcessor,
                            DealsService dealsService,
@@ -228,6 +224,7 @@ public class ExchangeService {
                            HttpInteractionLogger httpInteractionLogger,
                            PriceFloorAdjuster priceFloorAdjuster,
                            PriceFloorEnforcer priceFloorEnforcer,
+                           DsaEnforcer dsaEnforcer,
                            BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
                            Metrics metrics,
                            Clock clock,
@@ -235,11 +232,7 @@ public class ExchangeService {
                            CriteriaLogManager criteriaLogManager,
                            boolean enabledStrictAppSiteDoohValidation) {
 
-        if (timeoutAdjustmentFactor < 0 || timeoutAdjustmentFactor > 100) {
-            throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 100].");
-        }
         this.logSamplingRate = logSamplingRate;
-        this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
         this.dealsService = dealsService;
@@ -262,6 +255,7 @@ public class ExchangeService {
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.priceFloorAdjuster = Objects.requireNonNull(priceFloorAdjuster);
         this.priceFloorEnforcer = Objects.requireNonNull(priceFloorEnforcer);
+        this.dsaEnforcer = Objects.requireNonNull(dsaEnforcer);
         this.bidAdjustmentFactorResolver = Objects.requireNonNull(bidAdjustmentFactorResolver);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -294,7 +288,7 @@ public class ExchangeService {
     private Future<AuctionContext> runAuction(AuctionContext receivedContext) {
         final UidsCookie uidsCookie = receivedContext.getUidsCookie();
         final BidRequest bidRequest = receivedContext.getBidRequest();
-        final Timeout timeout = receivedContext.getTimeout();
+        final Timeout timeout = receivedContext.getTimeoutContext().getTimeout();
         final Account account = receivedContext.getAccount();
         final List<String> debugWarnings = receivedContext.getDebugWarnings();
         final MetricName requestTypeMetric = receivedContext.getRequestTypeMetric();
@@ -1142,7 +1136,7 @@ public class ExchangeService {
 
         final SupplyChain bidderSchain = supplyChainResolver.resolveForBidder(bidder, bidRequest);
 
-        if (bidderSchain == null && transmitTid) {
+        if (bidderSchain == null && (transmitTid || receivedSource == null)) {
             return receivedSource;
         }
 
@@ -1150,7 +1144,8 @@ public class ExchangeService {
                 ? Source.builder().schain(bidderSchain).build()
                 : receivedSource.toBuilder()
                 .schain(bidderSchain != null ? bidderSchain : receivedSource.getSchain())
-                .tid(transmitTid ? receivedSource.getTid() : null).build();
+                .tid(transmitTid ? receivedSource.getTid() : null)
+                .build();
     }
 
     /**
@@ -1389,11 +1384,13 @@ public class ExchangeService {
         final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
         final BidRejectionTracker bidRejectionTracker = auctionContext.getBidRejectionTrackers().get(bidderName);
 
-        final long auctionStartTime = auctionContext.getStartTime();
+        final TimeoutContext timeoutContext = auctionContext.getTimeoutContext();
+        final long auctionStartTime = timeoutContext.getStartTime();
+        final int adjustmentFactor = timeoutContext.getAdjustmentFactor();
         final long bidderRequestStartTime = clock.millis();
 
         return Future.succeededFuture(bidderRequest.getBidRequest())
-                .map(bidRequest -> adjustTmax(bidRequest, auctionStartTime, bidderRequestStartTime))
+                .map(bidRequest -> adjustTmax(bidRequest, auctionStartTime, adjustmentFactor, bidderRequestStartTime))
                 .map(bidRequest -> ortbVersionConversionManager.convertFromAuctionSupportedVersion(
                         bidRequest, bidderRequest.getOrtbVersion()))
                 .map(bidderRequest::with)
@@ -1408,10 +1405,9 @@ public class ExchangeService {
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(bidderRequestStartTime)));
     }
 
-    private BidRequest adjustTmax(BidRequest bidRequest, long startTime, long currentTime) {
+    private BidRequest adjustTmax(BidRequest bidRequest, long startTime, int adjustmentFactor, long currentTime) {
         final long tmax = timeoutResolver.limitToMax(bidRequest.getTmax());
-        final long adjustedTmax = timeoutResolver.adjustForBidder(
-                tmax, timeoutAdjustmentFactor, currentTime - startTime);
+        final long adjustedTmax = timeoutResolver.adjustForBidder(tmax, adjustmentFactor, currentTime - startTime);
         return tmax != adjustedTmax
                 ? bidRequest.toBuilder().tmax(adjustedTmax).build()
                 : bidRequest;
@@ -1482,6 +1478,10 @@ public class ExchangeService {
                         auctionParticipation,
                         auctionContext.getAccount(),
                         auctionContext.getBidRejectionTrackers().get(auctionParticipation.getBidder())))
+                .map(auctionParticipation -> dsaEnforcer.enforce(
+                        auctionContext.getBidRequest(),
+                        auctionParticipation,
+                        auctionContext.getBidRejectionTrackers().get(auctionParticipation.getBidder())))
                 .toList();
     }
 
@@ -1525,8 +1525,7 @@ public class ExchangeService {
                     bid,
                     bidderResponse.getBidder(),
                     auctionContext,
-                    aliases,
-                    isDsaValidationRequired(bidRequest));
+                    aliases);
 
             if (validationResult.hasWarnings() || validationResult.hasErrors()) {
                 errors.add(makeValidationBidderError(bid.getBid(), validationResult));
@@ -1551,15 +1550,6 @@ public class ExchangeService {
                         .warnings(warnings)
                         .build());
         return auctionParticipation.with(resultBidderResponse);
-    }
-
-    private static boolean isDsaValidationRequired(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest.getRegs())
-                .map(Regs::getExt)
-                .map(ExtRegs::getDsa)
-                .map(ExtRegsDsa::getDsaRequired)
-                .map(DSA_REQUIRED::contains)
-                .orElse(false);
     }
 
     private BidderError makeValidationBidderError(Bid bid, ValidationResult validationResult) {
