@@ -361,7 +361,7 @@ public class CacheService {
             cachedCreatives.add(makeDebugCacheCreative(cachedDebugLog, hbCacheId, videoCacheTtl));
         }
 
-        final long remainingTimeout = auctionContext.getTimeout().remaining();
+        final long remainingTimeout = auctionContext.getTimeoutContext().getTimeout().remaining();
         if (remainingTimeout <= 0) {
             return Future.succeededFuture(CacheServiceResult.of(null, new TimeoutException("Timeout has been exceeded"),
                     Collections.emptyMap()));

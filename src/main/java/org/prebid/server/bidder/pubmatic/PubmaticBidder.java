@@ -13,6 +13,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.compress.utils.Lists;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -23,7 +24,6 @@ import org.prebid.server.bidder.model.CompositeBidderResponse;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticBidderImpExt;
-import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtData;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticExtDataAdServer;
 import org.prebid.server.bidder.pubmatic.model.request.PubmaticWrapper;
 import org.prebid.server.bidder.pubmatic.model.response.PubmaticBidExt;
@@ -48,7 +48,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -65,6 +67,10 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private static final String WRAPPER_EXT_REQUEST = "wrapper";
     private static final String BIDDER_NAME = "pubmatic";
     private static final String AE = "ae";
+    private static final String IMP_EXT_PBADSLOT = "pbadslot";
+    private static final String IMP_EXT_ADSERVER = "adserver";
+    private static final List<String> IMP_EXT_DATA_RESERVED_FIELD = List.of(IMP_EXT_PBADSLOT, IMP_EXT_ADSERVER);
+    private static final String DCTR_VALUE_FORMAT = "%s=%s";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -276,11 +282,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     private ObjectNode makeKeywords(PubmaticBidderImpExt impExt) {
         final ObjectNode keywordsNode = mapper.mapper().createObjectNode();
         putExtBidderKeywords(keywordsNode, impExt.getBidder());
-
-        final PubmaticExtData pubmaticExtData = impExt.getData();
-        if (pubmaticExtData != null) {
-            putExtDataKeywords(keywordsNode, pubmaticExtData);
-        }
+        putExtDataKeywords(keywordsNode, impExt.getData(), impExt.getBidder());
 
         return keywordsNode;
     }
@@ -299,22 +301,66 @@ public class PubmaticBidder implements Bidder<BidRequest> {
         } else if (pmZoneIdKeyWords != null) {
             keywords.set(PM_ZONE_ID_KEY_NAME, pmZoneIdKeyWords);
         }
+    }
+
+    private void putExtDataKeywords(ObjectNode keywords, ObjectNode extData, ExtImpPubmatic extBidder) {
+        final List<String> dctrValues = new ArrayList<>();
 
         final String dctr = extBidder.getDctr();
         if (StringUtils.isNotEmpty(dctr)) {
-            keywords.put(DCTR_KEY_NAME, dctr);
+            dctrValues.add(dctr);
+        }
+
+        if (extData != null) {
+            final String pbaAdSlot = Optional.ofNullable(extData.get(IMP_EXT_PBADSLOT))
+                    .map(JsonNode::asText)
+                    .orElse(null);
+            final PubmaticExtDataAdServer extAdServer = extractAdServer(extData);
+            final String adServerName = extAdServer != null ? extAdServer.getName() : null;
+            final String adServerAdSlot = extAdServer != null ? extAdServer.getAdSlot() : null;
+            if (AD_SERVER_GAM.equals(adServerName) && StringUtils.isNotEmpty(adServerAdSlot)) {
+                keywords.put(IMP_EXT_AD_UNIT_KEY, adServerAdSlot);
+            } else if (StringUtils.isNotEmpty(pbaAdSlot)) {
+                keywords.put(IMP_EXT_AD_UNIT_KEY, pbaAdSlot);
+            }
+
+            dctrValues.addAll(extractDctrValues(extData));
+        }
+
+        if (!dctrValues.isEmpty()) {
+            keywords.put(DCTR_KEY_NAME, String.join("|", dctrValues));
         }
     }
 
-    private static void putExtDataKeywords(ObjectNode keywords, PubmaticExtData extData) {
-        final String pbaAdSlot = extData.getPbAdSlot();
-        final PubmaticExtDataAdServer extAdServer = extData.getAdServer();
-        final String adSeverName = extAdServer != null ? extAdServer.getName() : null;
-        final String adSeverAdSlot = extAdServer != null ? extAdServer.getAdSlot() : null;
-        if (AD_SERVER_GAM.equals(adSeverName) && StringUtils.isNotEmpty(adSeverAdSlot)) {
-            keywords.put(IMP_EXT_AD_UNIT_KEY, adSeverAdSlot);
-        } else if (StringUtils.isNotEmpty(pbaAdSlot)) {
-            keywords.put(IMP_EXT_AD_UNIT_KEY, pbaAdSlot);
+    private static List<String> extractDctrValues(ObjectNode extData) {
+        final List<String> dctrValues = new ArrayList<>();
+        final Iterator<Map.Entry<String, JsonNode>> extDataIterator = extData.fields();
+        while (extDataIterator.hasNext()) {
+            final Map.Entry<String, JsonNode> entry = extDataIterator.next();
+            final String key = entry.getKey();
+            if (IMP_EXT_DATA_RESERVED_FIELD.contains(key)) {
+                continue;
+            }
+
+            final JsonNode value = entry.getValue();
+            if (value.isValueNode()) {
+                dctrValues.add(DCTR_VALUE_FORMAT.formatted(key, StringUtils.trim(value.asText())));
+            } else if (value.isArray()) {
+                final String arrayNodeValue = Lists.newArrayList(value.elements()).stream()
+                        .map(JsonNode::asText)
+                        .collect(Collectors.joining(","));
+                dctrValues.add(DCTR_VALUE_FORMAT.formatted(key, arrayNodeValue));
+            }
+        }
+
+        return dctrValues;
+    }
+
+    private PubmaticExtDataAdServer extractAdServer(ObjectNode extData) {
+        try {
+            return mapper.mapper().treeToValue(extData.get(IMP_EXT_ADSERVER), PubmaticExtDataAdServer.class);
+        } catch (JsonProcessingException e) {
+            return null;
         }
     }
 
@@ -347,7 +393,9 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             extNode.set(ACAT_EXT_REQUEST, mapper.mapper().valueToTree(acat));
         }
 
-        return extNode.isEmpty() ? extRequest : mapper.fillExtension(ExtRequest.empty(), extNode);
+        return extNode.isEmpty()
+                ? extRequest
+                : mapper.fillExtension(extRequest == null ? ExtRequest.empty() : extRequest, extNode);
     }
 
     private static Site modifySite(Site site, String publisherId) {
