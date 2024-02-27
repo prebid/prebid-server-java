@@ -35,7 +35,7 @@ class VendorList extends NetworkScaffolding {
     }
 
     void reset() {
-        TcfPolicyVersion.values().each { version -> super.reset("/v${version}/vendor-list.json") }
+        TcfPolicyVersion.values().each { version -> super.reset("/v${version.getVendorListVersion()}/vendor-list.json") }
     }
 
     void setResponse(
