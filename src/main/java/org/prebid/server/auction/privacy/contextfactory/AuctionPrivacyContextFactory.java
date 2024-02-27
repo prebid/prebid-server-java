@@ -57,7 +57,7 @@ public class AuctionPrivacyContextFactory {
                         accountGdprConfig(account),
                         requestType,
                         requestLogInfo(requestType, bidRequest, account.getId()),
-                        auctionContext.getTimeout())
+                        auctionContext.getTimeoutContext().getTimeout())
                 .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
                 .map(tcfContext -> PrivacyContext.of(privacy, tcfContext, tcfContext.getIpAddress()));
     }

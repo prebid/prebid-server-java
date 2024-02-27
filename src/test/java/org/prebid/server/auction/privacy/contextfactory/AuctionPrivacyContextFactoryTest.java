@@ -14,6 +14,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -208,7 +209,8 @@ public class AuctionPrivacyContextFactoryTest extends VertxTest {
                         .debugWarnings(new ArrayList<>())
                         .account(Account.builder().build())
                         .prebidErrors(new ArrayList<>())
-                        .bidRequest(givenBidRequest(identity()));
+                        .bidRequest(givenBidRequest(identity()))
+                        .timeoutContext(TimeoutContext.of(0L, null, 0));
 
         return auctionContextCustomizer.apply(defaultAuctionContextBuilder).build();
     }

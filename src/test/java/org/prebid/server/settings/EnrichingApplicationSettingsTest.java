@@ -116,7 +116,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 0,
                 Account.builder()
                         .auction(AccountAuctionConfig.builder().bannerCacheTtl(100).build())
-                        .privacy(AccountPrivacyConfig.of(gdprConfig, null, null, null, null))
+                        .privacy(AccountPrivacyConfig.builder().gdpr(gdprConfig).build())
                         .build(),
                 delegate,
                 priceFloorsConfigResolver,

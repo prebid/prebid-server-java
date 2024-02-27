@@ -61,7 +61,7 @@ public class AmpPrivacyContextFactory {
                         accountGdprConfig(account),
                         requestType,
                         requestLogInfo(requestType, bidRequest, account.getId()),
-                        auctionContext.getTimeout())
+                        auctionContext.getTimeoutContext().getTimeout())
                 .map(tcfContext -> logWarnings(auctionContext.getDebugWarnings(), tcfContext))
                 .map(tcfContext -> PrivacyContext.of(strippedPrivacy, tcfContext, tcfContext.getIpAddress()));
     }

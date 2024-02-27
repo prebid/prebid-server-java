@@ -6,6 +6,9 @@ import java.util.List;
 
 public class ListUtil {
 
+    private ListUtil() {
+    }
+
     public static <T> List<T> union(List<? extends T> first, List<? extends T> second) {
         return new ListsUnionView<>(first, second);
     }
