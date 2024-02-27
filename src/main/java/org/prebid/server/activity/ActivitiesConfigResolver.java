@@ -112,5 +112,4 @@ public class ActivitiesConfigResolver {
                         .filter(Objects::nonNull)
                         .toList());
     }
-
 }

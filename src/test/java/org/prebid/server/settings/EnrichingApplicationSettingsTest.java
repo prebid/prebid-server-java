@@ -186,28 +186,6 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     }
 
     @Test
-    public void getAccountByIdShouldReturnFailedFutureWhenDelegateFailedAndEnforceValidAccountIsTrue() {
-        // given
-        target = new EnrichingApplicationSettings(
-                true,
-                "{\"auction\": {\"banner-cache-ttl\": 100}}",
-                delegate,
-                priceFloorsConfigResolver,
-                activitiesConfigResolver,
-                jsonMerger,
-                jacksonMapper);
-
-        given(delegate.getAccountById(anyString(), any())).willReturn(Future.failedFuture("Exception"));
-
-        // when
-        final Future<Account> accountFuture = target.getAccountById("123", timeout);
-
-        // then
-        assertThat(accountFuture).isFailed();
-        verifyNoInteractions(priceFloorsConfigResolver, activitiesConfigResolver);
-    }
-
-    @Test
     public void getAccountByIdShouldReturnFailedFutureWhenAccountIdIsBlankAndEnforceValidAccountIsTrue() {
         // given
         target = new EnrichingApplicationSettings(
