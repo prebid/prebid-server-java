@@ -8,6 +8,7 @@ import groovy.transform.ToString
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy)
 class PurposeEid {
 
-   Boolean requireConsent
-   List<String> exceptions
+    Boolean requireConsent
+    List<String> exceptions
+    Boolean activityTransition
 }
