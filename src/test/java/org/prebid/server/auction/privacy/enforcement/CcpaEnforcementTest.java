@@ -118,11 +118,9 @@ public class CcpaEnforcementTest {
         // given
         final AuctionContext auctionContext = givenAuctionContext(context -> context
                 .account(Account.builder()
-                        .privacy(AccountPrivacyConfig.of(
-                                null,
-                                AccountCcpaConfig.builder().enabled(false).build(),
-                                null,
-                                null))
+                        .privacy(AccountPrivacyConfig.builder()
+                                .ccpa(AccountCcpaConfig.builder().enabled(false).build())
+                                .build())
                         .build()));
 
         // when
@@ -241,9 +239,8 @@ public class CcpaEnforcementTest {
                         .build())
                 .requestTypeMetric(MetricName.openrtb2web)
                 .account(Account.builder()
-                        .privacy(AccountPrivacyConfig.of(
-                                null,
-                                AccountCcpaConfig.builder()
+                        .privacy(AccountPrivacyConfig.builder()
+                                .ccpa(AccountCcpaConfig.builder()
                                         .enabled(true)
                                         .enabledForRequestType(EnabledForRequestType.of(
                                                 true,
@@ -251,9 +248,8 @@ public class CcpaEnforcementTest {
                                                 false,
                                                 false,
                                                 false))
-                                        .build(),
-                                null,
-                                null))
+                                        .build())
+                                .build())
                         .build())
                 .privacyContext(PrivacyContext.of(Privacy.builder().ccpa(Ccpa.of("1YY-")).build(), null, null));
 

@@ -157,8 +157,8 @@ public class FileApplicationSettingsTest extends VertxTest {
                         .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .privacy(AccountPrivacyConfig.of(
-                        AccountGdprConfig.builder()
+                .privacy(AccountPrivacyConfig.builder()
+                        .gdpr(AccountGdprConfig.builder()
                                 .enabled(true)
                                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                                 .purposes(Purposes.builder()
@@ -174,10 +174,8 @@ public class FileApplicationSettingsTest extends VertxTest {
                                         .sf2(SpecialFeature.of(false, singletonList("openx")))
                                         .build())
                                 .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
-                                .build(),
-                        null,
-                        null,
-                        null))
+                                .build())
+                        .build())
                 .analytics(AccountAnalyticsConfig.of(
                         expectedEventsConfig,
                         singletonMap(

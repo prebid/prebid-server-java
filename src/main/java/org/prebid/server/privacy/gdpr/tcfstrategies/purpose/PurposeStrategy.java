@@ -52,7 +52,7 @@ public abstract class PurposeStrategy {
     protected abstract void allowNaturally(PrivacyEnforcementAction privacyEnforcementAction);
 
     public void allowNaturally(VendorPermission vendorPermission) {
-        vendorPermission.consentWith(getPurpose());
+        vendorPermission.consentNaturallyWith(getPurpose());
         allowNaturally(vendorPermission.getPrivacyEnforcementAction());
     }
 

@@ -69,7 +69,7 @@ public class Purpose02StrategyTest {
         target.allow(vendorPermission);
 
         // then
-        assertThat(vendorPermission).isEqualTo(vendorPermissionResult(1, "b1", allowPurpose()));
+        assertThat(vendorPermission).isEqualTo(vendorPermissionResult(1, "b1"));
     }
 
     @Test
@@ -81,7 +81,7 @@ public class Purpose02StrategyTest {
         target.allowNaturally(vendorPermission);
 
         // then
-        assertThat(vendorPermission).isEqualTo(vendorPermissionResult(1, "b1", allowNatural()));
+        assertThat(vendorPermission).isEqualTo(naturalVendorPermissionResult(1, "b1"));
     }
 
     @Test
@@ -113,8 +113,8 @@ public class Purpose02StrategyTest {
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, false);
 
         // then
-        assertThat(vendorPermission1).isEqualTo(vendorPermissionResult(1, null, allowPurpose()));
-        assertThat(vendorPermission2).isEqualTo(vendorPermissionResult(2, "b1", allowPurpose()));
+        assertThat(vendorPermission1).isEqualTo(vendorPermissionResult(1, null));
+        assertThat(vendorPermission2).isEqualTo(vendorPermissionResult(2, "b1"));
         assertThat(vendorPermission3).isEqualTo(VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll()));
 
         verify(noEnforcePurposeStrategy)
@@ -149,8 +149,8 @@ public class Purpose02StrategyTest {
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, false);
 
         // then
-        assertThat(vendorPermission1).isEqualTo(vendorPermissionResult(1, null, allowPurpose()));
-        assertThat(vendorPermission2).isEqualTo(vendorPermissionResult(2, "b1", allowPurpose()));
+        assertThat(vendorPermission1).isEqualTo(vendorPermissionResult(1, null));
+        assertThat(vendorPermission2).isEqualTo(vendorPermissionResult(2, "b1"));
         assertThat(vendorPermission3).isEqualTo(VendorPermission.of(3, null, PrivacyEnforcementAction.restrictAll()));
 
         verify(basicEnforcePurposeStrategy)
@@ -184,9 +184,9 @@ public class Purpose02StrategyTest {
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, false);
 
         // then
-        assertThat(vendorPermission1).isEqualTo(vendorPermissionResult(1, "b1", allowPurpose()));
-        assertThat(vendorPermission2).isEqualTo(vendorPermissionResult(2, "b2", allowPurpose()));
-        assertThat(vendorPermission3).isEqualTo(vendorPermissionResult(3, "b3", allowPurpose()));
+        assertThat(vendorPermission1).isEqualTo(vendorPermissionResult(1, "b1"));
+        assertThat(vendorPermission2).isEqualTo(vendorPermissionResult(2, "b2"));
+        assertThat(vendorPermission3).isEqualTo(vendorPermissionResult(3, "b3"));
 
         verify(basicEnforcePurposeStrategy)
                 .allowedByTypeStrategy(PURPOSE_CODE, tcString, emptyList(), vendorPermissionsWithGvl, true);
@@ -214,9 +214,9 @@ public class Purpose02StrategyTest {
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, false);
 
         // then
-        assertThat(vendorPermission1).isEqualTo(vendorPermissionResult(1, "b1", allowPurposeAndNaturally()));
-        assertThat(vendorPermission2).isEqualTo(vendorPermissionResult(2, "b2", allowPurposeAndNaturally()));
-        assertThat(vendorPermission3).isEqualTo(vendorPermissionResult(3, "b3", allowPurposeAndNaturally()));
+        assertThat(vendorPermission1).isEqualTo(allVendorPermissionResult(1, "b1"));
+        assertThat(vendorPermission2).isEqualTo(allVendorPermissionResult(2, "b2"));
+        assertThat(vendorPermission3).isEqualTo(allVendorPermissionResult(3, "b3"));
 
         verify(fullEnforcePurposeStrategy, times(2))
                 .allowedByTypeStrategy(PURPOSE_CODE, tcString, emptyList(), vendorPermissionsWithGvl, true);
@@ -245,9 +245,9 @@ public class Purpose02StrategyTest {
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, false);
 
         // then
-        assertThat(vendorPermission1).isEqualTo(vendorPermissionResult(1, "b1", allowPurposeAndNaturally()));
-        assertThat(vendorPermission2).isEqualTo(vendorPermissionResult(2, "b2", allowPurposeAndNaturally()));
-        assertThat(vendorPermission3).isEqualTo(vendorPermissionResult(3, "b3", allowPurpose()));
+        assertThat(vendorPermission1).isEqualTo(allVendorPermissionResult(1, "b1"));
+        assertThat(vendorPermission2).isEqualTo(allVendorPermissionResult(2, "b2"));
+        assertThat(vendorPermission3).isEqualTo(vendorPermissionResult(3, "b3"));
 
         verify(fullEnforcePurposeStrategy, times(2))
                 .allowedByTypeStrategy(
@@ -281,9 +281,9 @@ public class Purpose02StrategyTest {
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, false);
 
         // then
-        assertThat(vendorPermission1).isEqualTo(vendorPermissionResult(1, "b1", allowNatural()));
-        assertThat(vendorPermission2).isEqualTo(vendorPermissionResult(2, "b2", allowNatural()));
-        assertThat(vendorPermission3).isEqualTo(vendorPermissionResult(3, "b3", allowPurpose()));
+        assertThat(vendorPermission1).isEqualTo(naturalVendorPermissionResult(1, "b1"));
+        assertThat(vendorPermission2).isEqualTo(naturalVendorPermissionResult(2, "b2"));
+        assertThat(vendorPermission3).isEqualTo(vendorPermissionResult(3, "b3"));
 
         verify(fullEnforcePurposeStrategy, times(2))
                 .allowedByTypeStrategy(
@@ -318,9 +318,9 @@ public class Purpose02StrategyTest {
         target.processTypePurposeStrategy(tcString, purpose, vendorPermissionsWithGvl, true);
 
         // then
-        assertThat(vendorPermission1).isEqualTo(vendorPermissionResult(1, "b1", allowPurposeAndNaturally()));
-        assertThat(vendorPermission2).isEqualTo(vendorPermissionResult(2, "b2", allowPurposeAndNaturally()));
-        assertThat(vendorPermission3).isEqualTo(vendorPermissionResult(3, "b3", allowPurpose()));
+        assertThat(vendorPermission1).isEqualTo(allVendorPermissionResult(1, "b1"));
+        assertThat(vendorPermission2).isEqualTo(allVendorPermissionResult(2, "b2"));
+        assertThat(vendorPermission3).isEqualTo(vendorPermissionResult(3, "b3"));
 
         verify(noEnforcePurposeStrategy)
                 .allowedByTypeStrategy(
@@ -342,12 +342,22 @@ public class Purpose02StrategyTest {
         return VendorPermissionWithGvl.of(vendorPermission, vendor);
     }
 
-    private static VendorPermission vendorPermissionResult(Integer vendorId,
-                                                           String bidderName,
-                                                           PrivacyEnforcementAction privacyEnforcementAction) {
-
-        final VendorPermission vendorPermission = VendorPermission.of(vendorId, bidderName, privacyEnforcementAction);
+    private static VendorPermission vendorPermissionResult(Integer vendorId, String bidderName) {
+        final VendorPermission vendorPermission = VendorPermission.of(vendorId, bidderName, allowPurpose());
         vendorPermission.consentWith(PURPOSE_CODE);
+        return vendorPermission;
+    }
+
+    private static VendorPermission naturalVendorPermissionResult(Integer vendorId, String bidderName) {
+        final VendorPermission vendorPermission = VendorPermission.of(vendorId, bidderName, allowNatural());
+        vendorPermission.consentNaturallyWith(PURPOSE_CODE);
+        return vendorPermission;
+    }
+
+    private static VendorPermission allVendorPermissionResult(Integer vendorId, String bidderName) {
+        final VendorPermission vendorPermission = VendorPermission.of(vendorId, bidderName, allowPurposeAndNaturally());
+        vendorPermission.consentWith(PURPOSE_CODE);
+        vendorPermission.consentNaturallyWith(PURPOSE_CODE);
         return vendorPermission;
     }
 

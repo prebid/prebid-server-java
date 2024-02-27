@@ -33,4 +33,10 @@ public class ExtRegs extends FlexibleExtension {
      * should be set to 1 and where it is not present this property should not be present.
      */
     String gpc;
+
+    /**
+     * Allows for publishers to indicate that a transaction is subject to Digital Services Act (DSA)
+     * and whether they will render the required transparency information themselves
+     */
+    ExtRegsDsa dsa;
 }

@@ -289,7 +289,7 @@ public class AmpRequestFactory {
                 .usPrivacy(usPrivacy)
                 .gppSid(gppSid)
                 .gpp(gpp)
-                .ext(gpc != null ? ExtRegs.of(null, null, gpc) : null)
+                .ext(gpc != null ? ExtRegs.of(null, null, gpc, null) : null)
                 .build()
                 : null;
     }
