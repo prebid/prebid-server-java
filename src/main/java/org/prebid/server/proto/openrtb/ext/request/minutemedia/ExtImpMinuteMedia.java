@@ -1,4 +1,4 @@
-package org.prebid.server.bidder.minutemedia.model;
+package org.prebid.server.proto.openrtb.ext.request.minutemedia;
 
 import lombok.Value;
 

@@ -10,6 +10,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -23,6 +24,7 @@ public class MinuteMediaTest extends IntegrationTest {
         // given
 
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/minutemedia-exchange"))
+                .withQueryParam("publisherId", equalTo("123"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/minutemedia/test-minutemedia-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/minutemedia/test-minutemedia-bid-response.json"))));
 
