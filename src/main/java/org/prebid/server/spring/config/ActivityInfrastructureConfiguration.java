@@ -1,5 +1,6 @@
 package org.prebid.server.spring.config;
 
+import io.github.jamsesso.jsonlogic.ast.JsonLogicNode;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.activity.infrastructure.creator.ActivityRuleFactory;
 import org.prebid.server.activity.infrastructure.creator.privacy.PrivacyModuleCreator;
@@ -13,11 +14,13 @@ import org.prebid.server.activity.infrastructure.creator.rule.PrivacyModulesRule
 import org.prebid.server.activity.infrastructure.creator.rule.RuleCreator;
 import org.prebid.server.json.JsonLogic;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.settings.SettingsCache;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
+import java.util.Map;
 
 @Configuration
 public class ActivityInfrastructureConfiguration {
@@ -48,16 +51,25 @@ public class ActivityInfrastructureConfiguration {
             }
 
             @Bean
+            Map<String, JsonLogicNode> jsonLogicNodesCache(
+                    @Value("${settings.in-memory-cache.ttl-seconds:#{null}}") Integer ttlSeconds,
+                    @Value("${settings.in-memory-cache.cache-size:#{null}}") Integer cacheSize,
+                    @Value("${settings.in-memory-cache.cache-size:0}") int jitter) {
+
+                return ttlSeconds != null && cacheSize != null
+                        ? SettingsCache.createCache(ttlSeconds, cacheSize, jitter)
+                        : null;
+            }
+
+            @Bean
             USCustomLogicModuleCreator usCustomLogicModuleCreator(
                     USCustomLogicGppReaderFactory gppReaderFactory,
                     JsonLogic jsonLogic,
-                    @Value("${settings.in-memory-cache.ttl-seconds:#{null}}") Integer ttlSeconds,
-                    @Value("${settings.in-memory-cache.cache-size:#{null}}") Integer cacheSize,
-                    @Value("${settings.in-memory-cache.cache-size:0}") int jitter,
+                    Map<String, JsonLogicNode> jsonLogicNodesCache,
                     Metrics metrics) {
 
                 return new USCustomLogicModuleCreator(
-                        gppReaderFactory, jsonLogic, ttlSeconds, cacheSize, jitter, metrics);
+                        gppReaderFactory, jsonLogic, jsonLogicNodesCache, metrics);
             }
         }
     }
