@@ -27,10 +27,8 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
-import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class MinuteMediaBidderTest extends VertxTest {
 
@@ -157,22 +155,6 @@ public class MinuteMediaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfMtypeIsNotSupported() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(identity()),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(5))));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badServerResponse("Unsupported bid mediaType: 5 for impression: 123"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
     public void makeBidsShouldReturnBannerBidIfMtypeIs1() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
@@ -205,23 +187,23 @@ public class MinuteMediaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnNativeBidIfMtypeIs3() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfMtypeIs3() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
-                mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.mtype(3))));
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(3))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(bidBuilder -> bidBuilder.mtype(3)), audio, null));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Unsupported bid mediaType: 3 for impression: 123"));
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldReturnAudioBidIfMtypeIs4() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorIfMtypeIs4() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
@@ -231,9 +213,9 @@ public class MinuteMediaBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(givenBid(bidBuilder -> bidBuilder.mtype(4)), xNative, null));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Unsupported bid mediaType: 4 for impression: 123"));
+        assertThat(result.getValue()).isEmpty();
     }
 
     @SafeVarargs
