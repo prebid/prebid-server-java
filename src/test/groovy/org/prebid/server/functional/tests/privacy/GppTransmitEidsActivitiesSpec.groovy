@@ -350,7 +350,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
             it.regs.gppSid = [USP_V1.intValue]
-            it.ext.prebid.trace = VERBOSE
             it.device = new Device(geo: deviceGeo)
         }
 
@@ -398,7 +397,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
             it.setAccountId(accountId)
-            it.ext.prebid.trace = VERBOSE
             it.device = new Device(geo: deviceGeo)
         }
 
@@ -449,7 +447,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
-            it.ext.prebid.trace = VERBOSE
             it.regs.ext.gpc = PBSUtils.randomNumber as String
         }
 
@@ -490,7 +487,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def gpc = PBSUtils.randomNumber as String
         def bidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
             it.setAccountId(accountId)
-            it.ext.prebid.trace = VERBOSE
             it.regs.ext.gpc = gpc
         }
 
@@ -534,7 +530,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
-            it.ext.prebid.trace = VERBOSE
             it.regs.ext.gpc = PBSUtils.randomNumber as String
         }
 
@@ -575,7 +570,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
             it.setAccountId(accountId)
-            it.ext.prebid.trace = VERBOSE
             it.regs.ext.gpc = null
         }
 

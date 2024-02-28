@@ -12,11 +12,9 @@ import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.privacy.TcfUtils
-import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.RUBICON
 import static org.prebid.server.functional.model.config.Purpose.P1
 import static org.prebid.server.functional.model.config.Purpose.P2
 import static org.prebid.server.functional.model.config.Purpose.P3
