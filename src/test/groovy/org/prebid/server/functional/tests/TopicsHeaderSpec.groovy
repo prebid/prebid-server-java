@@ -60,7 +60,7 @@ class TopicsHeaderSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain user.data from header"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.user
+        assert !bidderRequest.user.data
 
         and: "Response should contain Observe-Browsing-Topics header"
         assert response.headers["Observe-Browsing-Topics"] == "?1"
@@ -91,7 +91,7 @@ class TopicsHeaderSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain user.data from header"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.user
+        assert !bidderRequest.user.data
 
         and: "Response should contain Observe-Browsing-Topics header"
         assert response.headers["Observe-Browsing-Topics"] == "?1"
@@ -149,7 +149,7 @@ class TopicsHeaderSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain user.data"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.user
+        assert !bidderRequest.user.data
 
         and: "Bid response should contain warning"
         assert response.responseBody.contains("Invalid field in Sec-Browsing-Topics header: ${header.replace(", ", "")} discarded due to limit reached.")
