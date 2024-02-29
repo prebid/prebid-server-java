@@ -12,8 +12,8 @@ adapters:
       supported-vendors:
       vendor-id: 644
     usersync:
-      url: https://rtb.gamoshi.io/user_sync_prebid?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&rurl=
-      redirect-url: /setuid?bidder=gamoshi&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=[gusr]
       cookie-family-name: gamoshi
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://rtb.gamoshi.io/user_sync_prebid?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&rurl={{redirect_url}}
+        support-cors: false
+        uid-macro: '[gusr]'

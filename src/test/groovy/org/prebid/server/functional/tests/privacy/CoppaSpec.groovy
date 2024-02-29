@@ -2,12 +2,10 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.testcontainers.PBSTest
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 
-@PBSTest
 class CoppaSpec extends PrivacyBaseSpec {
 
     @PendingFeature
@@ -80,7 +78,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         def ampStoredRequest = bidRequestWithGeo.tap {
             regs.coppa = 0
         }
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -121,7 +119,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         def ampStoredRequest = bidRequestWithGeo.tap {
             regs.coppa = 1
         }
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"

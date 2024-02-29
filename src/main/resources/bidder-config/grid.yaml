@@ -12,8 +12,8 @@ adapters:
       supported-vendors:
       vendor-id: 686
     usersync:
-      url: https://x.bidswitch.net/check_uuid/
-      redirect-url: /setuid?bidder=grid&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${BSW_UUID}?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}
       cookie-family-name: grid
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://x.bidswitch.net/check_uuid/{{redirect_url}}
+        support-cors: false
+        uid-macro: '${BSW_UUID}'

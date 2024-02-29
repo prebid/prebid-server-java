@@ -11,12 +11,11 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -44,12 +43,7 @@ public class AdmixerBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private AdmixerBidder admixerBidder;
-
-    @Before
-    public void setUp() {
-        admixerBidder = new AdmixerBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdmixerBidder target = new AdmixerBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -66,7 +60,7 @@ public class AdmixerBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -87,7 +81,7 @@ public class AdmixerBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -105,7 +99,7 @@ public class AdmixerBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -115,10 +109,10 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("false");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("false");
 
         // when
-        final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).allMatch(error -> error.getType() == BidderError.Type.bad_server_response
@@ -129,11 +123,11 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResponseWhenResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall =
+        final BidderCall<BidRequest> httpCall =
                 givenHttpCall(mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -143,11 +137,11 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorsWhenSeatBidIsEmptyList() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall =
+        final BidderCall<BidRequest> httpCall =
                 givenHttpCall(mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
 
         // when
-        final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -158,14 +152,14 @@ public class AdmixerBidderTest extends VertxTest {
     public void makeBidsShouldReturnErrorsWhenBidsEmptyList()
             throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall =
+        final BidderCall<BidRequest> httpCall =
                 givenHttpCall(mapper.writeValueAsString(
                         BidResponse.builder()
                                 .seatbid(singletonList(SeatBid.builder().bid(emptyList()).build()))
                                 .build()));
 
         // when
-        final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall, BidRequest.builder().build());
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, BidRequest.builder().build());
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -175,12 +169,12 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
+        final Result<List<BidderBid>> result = target.makeBids(httpCall,
                 BidRequest.builder()
                         .imp(singletonList(givenImp(UnaryOperator.identity())))
                         .build());
@@ -194,12 +188,12 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
+        final Result<List<BidderBid>> result = target.makeBids(httpCall,
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build());
@@ -213,12 +207,12 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
+        final Result<List<BidderBid>> result = target.makeBids(httpCall,
                 BidRequest.builder()
                         .imp(singletonList(givenImp(builder -> builder.video(Video.builder().build()))))
                         .build());
@@ -232,12 +226,12 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
+        final Result<List<BidderBid>> result = target.makeBids(httpCall,
                 BidRequest.builder()
                         .imp(singletonList(givenImp(builder -> builder.xNative(Native.builder().build()))))
                         .build());
@@ -251,12 +245,12 @@ public class AdmixerBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfAudioIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = admixerBidder.makeBids(httpCall,
+        final Result<List<BidderBid>> result = target.makeBids(httpCall,
                 BidRequest.builder()
                         .imp(singletonList(givenImp(builder -> builder.audio(Audio.builder().build()))))
                         .build());
@@ -275,7 +269,7 @@ public class AdmixerBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -293,7 +287,7 @@ public class AdmixerBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -315,7 +309,7 @@ public class AdmixerBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -337,7 +331,7 @@ public class AdmixerBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = admixerBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -355,8 +349,8 @@ public class AdmixerBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);

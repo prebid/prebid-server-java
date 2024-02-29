@@ -2,7 +2,7 @@ adapters:
   adoppler:
     endpoint: http://{{AccountID}}.trustedmarketplace.io/ads/processHeaderBid/{{AdUnit}}
     meta-info:
-      maintainer-email: "info@adoppler.com"
+      maintainer-email: info@adoppler.com
       app-media-types:
         - banner
         - video
@@ -11,9 +11,3 @@ adapters:
         - video
       supported-vendors:
       vendor-id: 0
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: adoppler
-      type: redirect
-      support-cors: false

@@ -18,15 +18,19 @@ public class BidderInfoCreator {
         final MetaInfo metaInfo = configurationProperties.getMetaInfo();
         return BidderInfo.create(
                 configurationProperties.getEnabled(),
+                configurationProperties.getOrtbVersion(),
                 configurationProperties.getDebug().getAllow(),
                 configurationProperties.getEndpoint(),
                 aliasOf,
                 metaInfo.getMaintainerEmail(),
                 metaInfo.getAppMediaTypes(),
                 metaInfo.getSiteMediaTypes(),
+                metaInfo.getDoohMediaTypes(),
                 metaInfo.getSupportedVendors(),
                 metaInfo.getVendorId(),
                 configurationProperties.getPbsEnforcesCcpa(),
-                configurationProperties.getModifyingVastXmlAllowed());
+                configurationProperties.getModifyingVastXmlAllowed(),
+                configurationProperties.getEndpointCompression(),
+                configurationProperties.getOrtb());
     }
 }

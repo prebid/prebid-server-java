@@ -6,6 +6,7 @@ import org.prebid.server.functional.model.deals.lineitem.FrequencyCap
 import org.prebid.server.functional.model.deals.lineitem.LineItem
 import org.prebid.server.functional.model.deals.lineitem.LineItemSize
 import org.prebid.server.functional.model.deals.lineitem.Price
+import org.prebid.server.functional.model.deals.lineitem.RelativePriority
 import org.prebid.server.functional.model.deals.lineitem.targeting.Targeting
 import org.prebid.server.functional.model.deals.userdata.UserDetailsResponse
 import org.prebid.server.functional.model.mock.services.generalplanner.PlansResponse
@@ -18,7 +19,6 @@ import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRe
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Unroll
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -76,7 +76,7 @@ class PgAuctionSpec extends BasePgSpec {
         and: "Seat bid corresponds to the request seat bid"
         assert auctionResponse.seatbid?.size() == bidRequest.imp.size()
         def seatBid = auctionResponse.seatbid[0]
-        assert seatBid.seat == GENERIC.value
+        assert seatBid.seat == GENERIC
 
         assert seatBid.bid?.size() == 1
 
@@ -90,7 +90,6 @@ class PgAuctionSpec extends BasePgSpec {
         }
     }
 
-    @Unroll
     def "PBS shouldn't process line item with #reason"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -189,7 +188,6 @@ class PgAuctionSpec extends BasePgSpec {
         assert !auctionResponse.ext?.debug?.pgmetrics
     }
 
-    @Unroll
     def "PBS shouldn't allow line item with #reason delivery plan take part in auction"() {
         given: "Bid request"
         def bidRequest = BidRequest.defaultBidRequest
@@ -290,7 +288,7 @@ class PgAuctionSpec extends BasePgSpec {
         given: "Bid request with set bidder alias"
         def lineItemSource = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            def prebid = new Prebid(aliases: [(lineItemSource): GENERIC.value], debug: 1)
+            def prebid = new Prebid(aliases: [(lineItemSource): GENERIC], debug: 1)
             ext = new BidRequestExt(prebid: prebid)
         }
 
@@ -336,7 +334,7 @@ class PgAuctionSpec extends BasePgSpec {
 
         and: "Cookies header"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)
@@ -368,7 +366,7 @@ class PgAuctionSpec extends BasePgSpec {
 
         and: "Cookies header"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         def auctionResponse = pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)
@@ -490,33 +488,15 @@ class PgAuctionSpec extends BasePgSpec {
         def accountId = bidRequest.site.publisher.id
 
         and: "Planner Mock line items with different priorities and CPMs"
-        def currency = Price.defaultPrice.currency
-        def lowPriorityHighPriceLineItems =
-                [LineItem.getDefaultLineItem(accountId).tap {
-                    relativePriority = VERY_LOW
-                    price = new Price(cpm: 5, currency: currency)
-                },
-                 LineItem.getDefaultLineItem(accountId).tap {
-                     relativePriority = LOW
-                     price = new Price(cpm: 5, currency: currency)
-                 }]
-        def highPriorityLowPriceLineItems =
-                [LineItem.getDefaultLineItem(accountId).tap {
-                    relativePriority = MEDIUM
-                    price = new Price(cpm: 1, currency: currency)
-                },
-                 LineItem.getDefaultLineItem(accountId).tap {
-                     relativePriority = HIGH
-                     price = new Price(cpm: 1, currency: currency)
-                 },
-                 LineItem.getDefaultLineItem(accountId).tap {
-                     relativePriority = VERY_HIGH
-                     price = new Price(cpm: 1, currency: currency)
-                 }]
-        def lineItems = lowPriorityHighPriceLineItems + highPriorityLowPriceLineItems
+        def lineItems = RelativePriority.values().collect { relativePriority ->
+            LineItem.getDefaultLineItem(accountId).tap {
+                it.relativePriority = relativePriority
+                it.price = Price.defaultPrice
+            }
+        }
+
         def plansResponse = new PlansResponse(lineItems: lineItems)
         generalPlanner.initPlansResponse(plansResponse)
-        def higherPriorityLineItemIds = highPriorityLowPriceLineItems.collect { it.lineItemId }
 
         and: "Line items are fetched by PBS"
         updateLineItemsAndWait()
@@ -529,9 +509,12 @@ class PgAuctionSpec extends BasePgSpec {
 
         and: "#maxDealsPerBidder[3] line items were send to bidder"
         def sentToBidder = auctionResponse.ext?.debug?.pgmetrics?.sentToBidder?.get(GENERIC.value)
-        assert sentToBidder?.size() == pgConfig.maxDealsPerBidder
+        def dealsPerBidder = pgConfig.maxDealsPerBidder
+        assert sentToBidder?.size() == dealsPerBidder
 
         and: "Those line items with the highest priority were sent"
-        assert sentToBidder.sort() == higherPriorityLineItemIds.sort()
+        def prioritizedLineItems = lineItems.sort { it.relativePriority.value }
+                                            .take(dealsPerBidder)
+        assert sentToBidder.sort() == prioritizedLineItems.collect { it.lineItemId }.sort()
     }
 }

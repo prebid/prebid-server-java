@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -17,14 +18,14 @@ import java.util.List;
 public class Deal {
 
     /**
-     * A unique identifier for the direct deal. (required)
+     * A unique identifier for the direct deal. <p/> (required)
      */
     String id;
 
     /**
      * Minimum bid for this impression expressed in CPM.
      */
-    float bidfloor;
+    BigDecimal bidfloor;
 
     /**
      * Currency specified using ISO-4217 alpha codes. This may be different from
@@ -43,7 +44,7 @@ public class Deal {
     /**
      * Whitelist of buyer seats (e.g., advertisers, agencies) allowed to bid on
      * this deal. IDs of seats and the buyer’s customers to which they refer
-     * must be coordinated between bidders and the exchange a priori.
+     * must be coordinated between bidders and the exchange <em>a priori</em>.
      * Omission implies no seat restrictions.
      */
     List<String> wseat;
@@ -53,6 +54,24 @@ public class Deal {
      * deal. Omission implies no advertiser restrictions.
      */
     List<String> wadomain;
+
+    /**
+     * Indicates that the deal is of type `guaranteed` and the bidder must bid on the deal,
+     * where 0 = not a guaranteed deal, 1 = guaranteed deal.
+     */
+    Integer guar;
+
+    /**
+     * Minimum CPM per second. This is a price floor for video or audio impression opportunities,
+     * relative to the duration of bids an advertiser may submit.
+     */
+    BigDecimal mincpmpersec;
+
+    /**
+     * Container for floor price by duration information,
+     * to be used if a given deal is eligible for video or audio demand.
+     */
+    List<DurFloor> durfloors;
 
     /**
      * Placeholder for exchange-specific extensions to OpenRTB.

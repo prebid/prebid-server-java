@@ -11,14 +11,13 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -28,6 +27,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.outbrains.ExtImpOutbrain;
 import org.prebid.server.proto.openrtb.ext.request.outbrains.ExtImpOutbrainPublisher;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -35,7 +35,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class OutbrainBidder implements Bidder<BidRequest> {
 
@@ -77,20 +76,14 @@ public class OutbrainBidder implements Bidder<BidRequest> {
         final BidRequest updatedRequest = updateBidRequest(request, modifiedImps, extImpOutbrain);
 
         return Result.of(Collections.singletonList(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .body(mapper.encodeToBytes(updatedRequest))
-                        .headers(HttpUtil.headers())
-                        .payload(updatedRequest)
-                        .build()), errors);
+                BidderUtil.defaultRequest(updatedRequest, endpointUrl, mapper)), errors);
     }
 
     private ExtImpOutbrain parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), OUTBRAIN_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Impression id=%s, has invalid Ext", imp.getId()));
+            throw new PreBidException("Impression id=%s, has invalid Ext".formatted(imp.getId()));
         }
     }
 
@@ -142,7 +135,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
 
         try {
@@ -167,7 +160,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .map(bid -> createBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid createBidderBid(Bid bid, List<Imp> requestImps, String cur, List<BidderError> errors) {
@@ -210,7 +203,7 @@ public class OutbrainBidder implements Bidder<BidRequest> {
             if (Objects.equals(currentMethod, IMAGE_TRACKER_METHOD)) {
                 imptrackers.add(eventTracker.getUrl());
             } else if (Objects.equals(currentMethod, JS_TRACKER_METHOD)) {
-                jstracker = String.format("<script src=\"%s\"></script>", eventTracker.getUrl());
+                jstracker = "<script src=\"%s\"></script>".formatted(eventTracker.getUrl());
             }
         }
 
@@ -231,6 +224,6 @@ public class OutbrainBidder implements Bidder<BidRequest> {
                 }
             }
         }
-        throw new PreBidException(String.format("Failed to find native/banner impression \"%s\"", impId));
+        throw new PreBidException("Failed to find native/banner impression \"%s\"".formatted(impId));
     }
 }

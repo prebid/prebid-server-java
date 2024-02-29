@@ -4,9 +4,12 @@ import org.mockserver.matchers.TimeToLive
 import org.mockserver.matchers.Times
 import org.mockserver.model.HttpRequest
 import org.mockserver.model.HttpResponse
+import org.prebid.server.functional.model.mock.services.prebidcache.response.CacheObject
 import org.prebid.server.functional.model.mock.services.prebidcache.response.PrebidCacheResponse
-import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.testcontainers.containers.MockServerContainer
+
+import java.util.stream.Collectors
+import java.util.stream.Stream
 
 import static org.mockserver.model.HttpRequest.request
 import static org.mockserver.model.HttpResponse.response
@@ -17,8 +20,8 @@ class PrebidCache extends NetworkScaffolding {
 
     private static final String CACHE_ENDPOINT = "/cache"
 
-    PrebidCache(MockServerContainer mockServerContainer, ObjectMapperWrapper mapper) {
-        super(mockServerContainer, CACHE_ENDPOINT, mapper)
+    PrebidCache(MockServerContainer mockServerContainer) {
+        super(mockServerContainer, CACHE_ENDPOINT)
     }
 
     void setXmlCacheResponse(String payload, PrebidCacheResponse prebidCacheResponse) {
@@ -52,10 +55,9 @@ class PrebidCache extends NetworkScaffolding {
 
     @Override
     void setResponse() {
-        def json = mapper.encode(PrebidCacheResponse.defaultCacheResponse)
         mockServerClient.when(request().withPath(endpoint), Times.unlimited(), TimeToLive.unlimited(), -10)
                         .respond{request -> request.withPath(endpoint)
-                                ? response().withStatusCode(OK_200.code()).withBody(json)
+                                ? response().withStatusCode(OK_200.code()).withBody(getBodyByRequest(request))
                                 : HttpResponse.notFoundResponse()}
     }
 
@@ -63,5 +65,15 @@ class PrebidCache extends NetworkScaffolding {
         request().withMethod("POST")
                  .withPath(CACHE_ENDPOINT)
                  .withBody(jsonPath("\$.puts[?(@.value =~/^.*$payload.*\$/)]"))
+    }
+
+    private String getBodyByRequest(HttpRequest request) {
+        def requestString = request.bodyAsString
+        def jsonNode = toJsonNode(requestString)
+        def putsSize = jsonNode.get("puts").size()
+        def cacheObjects = Stream.generate(CacheObject::getDefaultCacheObject)
+                .limit(putsSize)
+                .toList()
+        encode(new PrebidCacheResponse(responses: cacheObjects))
     }
 }

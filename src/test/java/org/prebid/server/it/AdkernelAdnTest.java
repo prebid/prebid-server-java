@@ -21,7 +21,7 @@ public class AdkernelAdnTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAdkerneladn() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adkernelAdn.tag.adkernel.com"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/adkerneladn-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/adkerneladn/test-adkerneladn-bid-request.json")))
                 .willReturn(aResponse().withBody(
                         jsonFrom("openrtb2/adkerneladn/test-adkerneladn-bid-response.json"))));

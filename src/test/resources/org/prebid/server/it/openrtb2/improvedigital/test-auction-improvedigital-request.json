@@ -18,6 +18,13 @@
       }
     }
   ],
+  "user": {
+    "ext": {
+      "ConsentedProvidersSettings": {
+        "consented_providers": "1~10.20.90"
+      }
+    }
+  },
   "tmax": 5000,
   "regs": {
     "ext": {

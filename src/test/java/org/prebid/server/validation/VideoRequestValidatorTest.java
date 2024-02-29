@@ -254,13 +254,13 @@ public class VideoRequestValidatorTest {
             UnaryOperator<Podconfig.PodconfigBuilder> podconfigCustomizer) {
 
         return requestCustomizer.apply(BidRequestVideo.builder()
-                .storedrequestid("storedrequestid")
-                .podconfig(podconfigCustomizer.apply(Podconfig.builder()
-                        .pods(singletonList(Pod.of(123, 100, "1")))
-                        .durationRangeSec(asList(200, 100)))
-                        .build())
-                .site(Site.builder().id("siteId").build())
-                .video(Video.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
+                        .storedrequestid("storedrequestid")
+                        .podconfig(podconfigCustomizer.apply(Podconfig.builder()
+                                        .pods(singletonList(Pod.of(123, 100, "1")))
+                                        .durationRangeSec(asList(200, 100)))
+                                .build())
+                        .site(Site.builder().id("siteId").build())
+                        .video(Video.builder().mimes(singletonList("mime")).protocols(singletonList(123)).build()))
                 .build();
     }
 }

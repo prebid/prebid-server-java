@@ -176,15 +176,10 @@ public class AdminCentralService implements AdminEventProcessor {
         }
 
         switch (cmd) {
-            case INVALIDATE:
-                invalidateStoredRequests(settingsCache, serviceName, body);
-                break;
-            case SAVE:
-                saveStoredRequests(settingsCache, serviceName, body);
-                break;
-            default:
-                logger.warn("Command for {0} should has value 'save' or 'invalidate' but was {1}.",
-                        serviceName, cmd);
+            case INVALIDATE -> invalidateStoredRequests(settingsCache, serviceName, body);
+            case SAVE -> saveStoredRequests(settingsCache, serviceName, body);
+            default -> logger.warn("Command for {0} should has value 'save' or 'invalidate' but was {1}.",
+                    serviceName, cmd);
         }
     }
 
@@ -228,14 +223,9 @@ public class AdminCentralService implements AdminEventProcessor {
         }
 
         switch (command) {
-            case START:
-                criteriaManager.addCriteria(logTracer.getFilters(), logTracer.getDurationInSeconds());
-                break;
-            case STOP:
-                criteriaManager.stop();
-                break;
-            default:
-                logger.warn("Command for trace logger should has value 'start' or 'stop' but was {0}.", command);
+            case START -> criteriaManager.addCriteria(logTracer.getFilters(), logTracer.getDurationInSeconds());
+            case STOP -> criteriaManager.stop();
+            default -> logger.warn("Command for trace logger should has value 'start' or 'stop' but was {0}.", command);
         }
     }
 

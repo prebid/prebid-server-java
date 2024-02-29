@@ -9,12 +9,11 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -41,12 +40,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class BidscubeBidderTest extends VertxTest {
 
-    private BidscubeBidder bidscubeBidder;
-
-    @Before
-    public void setUp() {
-        bidscubeBidder = new BidscubeBidder(jacksonMapper, "https://randomurl.com");
-    }
+    private final BidscubeBidder target = new BidscubeBidder(jacksonMapper, "https://randomurl.com");
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -66,7 +60,7 @@ public class BidscubeBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidscubeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -85,7 +79,7 @@ public class BidscubeBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidscubeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -103,7 +97,7 @@ public class BidscubeBidderTest extends VertxTest {
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidscubeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -114,10 +108,10 @@ public class BidscubeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = bidscubeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -131,10 +125,10 @@ public class BidscubeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = bidscubeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -144,11 +138,11 @@ public class BidscubeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = bidscubeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -158,7 +152,7 @@ public class BidscubeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnValidBidderBids() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidResponse.builder()
                         .seatbid(givenSeatBid(
                                 givenBid("123", banner),
@@ -168,7 +162,7 @@ public class BidscubeBidderTest extends VertxTest {
                         .build());
 
         // when
-        final Result<List<BidderBid>> result = bidscubeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -186,14 +180,14 @@ public class BidscubeBidderTest extends VertxTest {
         final ObjectNode givenExtPrebid = mapper.createObjectNode().put("type", "unknownType");
         final ObjectNode givenExt = mapper.createObjectNode().set("prebid", givenExtPrebid);
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidResponse.builder()
                         .seatbid(givenSeatBid(
                                 givenBid("123", null, bidBuilder -> bidBuilder.ext(givenExt)))
                         ).build());
 
         // when
-        final Result<List<BidderBid>> result = bidscubeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue())
@@ -205,18 +199,18 @@ public class BidscubeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorOnEmptyBidExt() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidResponse.builder()
                         .seatbid(givenSeatBid(
-                                givenBid("123", banner, bidBuilder -> bidBuilder.ext(null)),
-                                givenBid("456", banner, bidBuilder -> bidBuilder.ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, null)))),
-                                givenBid("213", null)
+                                        givenBid("123", banner, bidBuilder -> bidBuilder.ext(null)),
+                                        givenBid("456", banner, bidBuilder -> bidBuilder.ext(mapper.valueToTree(
+                                                ExtPrebid.of(null, null)))),
+                                        givenBid("213", null)
                                 )
                         ).build());
 
         // when
-        final Result<List<BidderBid>> result = bidscubeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -229,12 +223,12 @@ public class BidscubeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorOnInvalidBidExt() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidResponse.builder()
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidResponse.builder()
                 .seatbid(givenSeatBid(givenBid("123", banner, bidBuilder ->
                         bidBuilder.ext(mapper.valueToTree(ExtPrebid.of("invalid", null)))))).build());
 
         // when
-        final Result<List<BidderBid>> result = bidscubeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -247,7 +241,7 @@ public class BidscubeBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -257,21 +251,21 @@ public class BidscubeBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidscube.of("someId")))))
+                        .id("123")
+                        .banner(Banner.builder().w(23).h(25).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBidscube.of("someId")))))
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidResponse bidResponse) throws JsonProcessingException {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidResponse bidResponse) throws JsonProcessingException {
+        return BidderCall.succeededHttp(
                 null,
                 HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)),
                 null

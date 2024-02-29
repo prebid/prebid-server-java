@@ -5,6 +5,9 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.auction.gpp.model.GppContext;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.deals.model.DeepDebugLog;
@@ -38,6 +41,9 @@ public class AuctionContext {
     List<AuctionParticipation> auctionParticipations;
 
     @JsonIgnore
+    long startTime;
+
+    @JsonIgnore
     Timeout timeout;
 
     Account account;
@@ -50,7 +56,13 @@ public class AuctionContext {
 
     Map<String, List<DebugHttpCall>> debugHttpCalls;
 
+    Map<String, BidRejectionTracker> bidRejectionTrackers;
+
+    GppContext gppContext;
+
     PrivacyContext privacyContext;
+
+    ActivityInfrastructure activityInfrastructure;
 
     GeoInfo geoInfo;
 
@@ -84,6 +96,18 @@ public class AuctionContext {
         return this.toBuilder().auctionParticipations(auctionParticipations).build();
     }
 
+    public AuctionContext with(MetricName requestTypeMetric) {
+        return this.toBuilder()
+                .requestTypeMetric(requestTypeMetric)
+                .build();
+    }
+
+    public AuctionContext with(GppContext gppContext) {
+        return this.toBuilder()
+                .gppContext(gppContext)
+                .build();
+    }
+
     public AuctionContext with(PrivacyContext privacyContext) {
         return this.toBuilder()
                 .privacyContext(privacyContext)
@@ -91,9 +115,9 @@ public class AuctionContext {
                 .build();
     }
 
-    public AuctionContext with(MetricName requestTypeMetric) {
+    public AuctionContext with(ActivityInfrastructure activityInfrastructure) {
         return this.toBuilder()
-                .requestTypeMetric(requestTypeMetric)
+                .activityInfrastructure(activityInfrastructure)
                 .build();
     }
 

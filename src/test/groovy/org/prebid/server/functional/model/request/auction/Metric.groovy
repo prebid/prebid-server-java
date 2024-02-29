@@ -6,6 +6,6 @@ import groovy.transform.ToString
 class Metric {
 
     String type
-    Float value
+    BigDecimal value
     String vendor
 }

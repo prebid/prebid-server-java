@@ -122,7 +122,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
         final String compoundKey = StringUtils.isNotBlank(publisher)
-                ? String.format("%s_%s", primaryAdServer, publisher)
+                ? "%s_%s".formatted(primaryAdServer, publisher)
                 : primaryAdServer;
 
         return getFromCacheOrDelegate(categoryConfigCache, adServerPublisherToErrorCache, compoundKey, timeout,

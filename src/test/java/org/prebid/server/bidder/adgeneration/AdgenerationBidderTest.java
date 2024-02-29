@@ -10,13 +10,12 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adgeneration.model.AdgenerationResponse;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -41,12 +40,7 @@ public class AdgenerationBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private AdgenerationBidder adgenerationBidder;
-
-    @Before
-    public void setUp() {
-        adgenerationBidder = new AdgenerationBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdgenerationBidder target = new AdgenerationBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -63,7 +57,7 @@ public class AdgenerationBidderTest extends VertxTest {
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -78,7 +72,7 @@ public class AdgenerationBidderTest extends VertxTest {
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdgeneration.of(null)))));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -94,7 +88,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -118,7 +112,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -136,7 +130,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -154,7 +148,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -172,7 +166,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -190,7 +184,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -208,7 +202,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -226,7 +220,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -244,7 +238,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -262,7 +256,7 @@ public class AdgenerationBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -284,7 +278,7 @@ public class AdgenerationBidderTest extends VertxTest {
                                 .build()));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adgenerationBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -296,10 +290,10 @@ public class AdgenerationBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall("invalid");
+        final BidderCall<Void> httpCall = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -318,14 +312,22 @@ public class AdgenerationBidderTest extends VertxTest {
                 "baconurl", BigDecimal.valueOf(10), "creativeid", 100, 200, 50, "vastxml", "landingUrl",
                 "scheduleid", Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
-        final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
-        final String adm = "<div id=\"apvad-123\"></div><script type=\"text/javascript\" id=\"apv\" src=\"https://cdn.apvdr.com/js/VideoAd.min.js\"></script><script type=\"text/javascript\"> (function(){ new APV.VideoAd({s:\"123\"}).load('vastxml'); })(); </script>beacon</body>";
+        final String adm = """
+                <div id="apvad-123"></div>
+                <script type="text/javascript" id="apv" src="https://cdn.apvdr.com/js/VideoAd.min.js"></script>
+                <script type="text/javascript">
+                (function() {
+                    new APV.VideoAd({s:"123"}).load('vastxml');
+                })();
+                </script>
+                beacon</body>""";
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
                         .id("123")
@@ -355,11 +357,11 @@ public class AdgenerationBidderTest extends VertxTest {
                 "baconurl", BigDecimal.valueOf(10), "creativeid", 100, 200, 50, "", "landingUrl",
                 "scheduleid", Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
-        final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         final String adm = "ad";
@@ -377,11 +379,11 @@ public class AdgenerationBidderTest extends VertxTest {
                 "creativeid", 100, 200, 50, "", "landingUrl",
                 "scheduleid", Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
-        final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         final String adm = "adscriptbeacon</body>";
@@ -399,11 +401,11 @@ public class AdgenerationBidderTest extends VertxTest {
                 100, 200, 50, "", "landingUrl", "scheduleid",
                 Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
-        final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         final String adm = "adscript</body>";
@@ -423,11 +425,11 @@ public class AdgenerationBidderTest extends VertxTest {
                 100, 200, 50, "", "landingUrl", "scheduleid",
                 Collections.singletonList(mapper.createObjectNode()));
 
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsString(adgenerationResponse));
 
         // when
-        final Result<List<BidderBid>> result = adgenerationBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         // then
@@ -456,8 +458,8 @@ public class AdgenerationBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<Void> givenHttpCall(String body) {
-        return HttpCall.success(
+    private static BidderCall<Void> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<Void>builder().build(),
                 HttpResponse.of(200, null, body),
                 null);

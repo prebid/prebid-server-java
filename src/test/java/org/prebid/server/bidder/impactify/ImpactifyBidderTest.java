@@ -22,8 +22,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -52,15 +52,14 @@ public class ImpactifyBidderTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    private ImpactifyBidder impactifyBidder;
-
     @Mock
     private CurrencyConversionService currencyConversionService;
 
+    private ImpactifyBidder target;
+
     @Before
     public void setUp() {
-        impactifyBidder =
-                new ImpactifyBidder("https://test.endpoint.com", jacksonMapper, currencyConversionService);
+        target = new ImpactifyBidder("https://test.endpoint.com", jacksonMapper, currencyConversionService);
     }
 
     @Test
@@ -79,7 +78,7 @@ public class ImpactifyBidderTest extends VertxTest {
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
         // when
-        Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -100,7 +99,7 @@ public class ImpactifyBidderTest extends VertxTest {
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
         // when
-        Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -122,7 +121,7 @@ public class ImpactifyBidderTest extends VertxTest {
                         .bidfloor(BigDecimal.ONE));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -153,7 +152,7 @@ public class ImpactifyBidderTest extends VertxTest {
                         .bidfloor(BigDecimal.ONE));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final ObjectNode expectedExtNode = mapper.createObjectNode()
@@ -179,7 +178,7 @@ public class ImpactifyBidderTest extends VertxTest {
                         .bidfloor(BigDecimal.ONE));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -205,7 +204,7 @@ public class ImpactifyBidderTest extends VertxTest {
                 impCustomizer -> impCustomizer.bidfloor(BigDecimal.ONE).bidfloorcur("USD"));
 
         // when
-        Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -223,7 +222,7 @@ public class ImpactifyBidderTest extends VertxTest {
                 .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        Result<List<HttpRequest<BidRequest>>> result = impactifyBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -236,13 +235,13 @@ public class ImpactifyBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer.banner(Banner.builder().build()));
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(
                         givenBidResponse(identity())));
 
         // when
-        final Result<List<BidderBid>> result = impactifyBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -260,10 +259,10 @@ public class ImpactifyBidderTest extends VertxTest {
     @Test
     public void makeBidsWithInvalidBodyShouldResultInError() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = impactifyBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -275,12 +274,12 @@ public class ImpactifyBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = impactifyBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -292,13 +291,13 @@ public class ImpactifyBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer.video(Video.builder().build()));
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(
                         givenBidResponse(identity())));
 
         // when
-        final Result<List<BidderBid>> result = impactifyBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -318,13 +317,13 @@ public class ImpactifyBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("321"))));
 
         // when
-        final Result<List<BidderBid>> result = impactifyBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -366,8 +365,8 @@ public class ImpactifyBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

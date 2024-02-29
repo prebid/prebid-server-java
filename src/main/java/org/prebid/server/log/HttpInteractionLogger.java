@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 public class HttpInteractionLogger {
 
@@ -62,7 +61,7 @@ public class HttpInteractionLogger {
         try {
             return mapper.encodeToString(mapper.mapper().readTree(value));
         } catch (JsonProcessingException e) {
-            return String.format("Not parseable JSON passed: %s", value.replaceAll("[\r\n]+", " "));
+            return "Not parseable JSON passed: " + value.replaceAll("[\r\n]+", " ");
         }
     }
 
@@ -143,7 +142,9 @@ public class HttpInteractionLogger {
             if (requestTypeMetric == MetricName.amp) {
                 return HttpLogSpec.Endpoint.amp;
             }
-            if (requestTypeMetric == MetricName.openrtb2app || requestTypeMetric == MetricName.openrtb2web) {
+            if (requestTypeMetric == MetricName.openrtb2app
+                    || requestTypeMetric == MetricName.openrtb2web
+                    || requestTypeMetric == MetricName.openrtb2dooh) {
                 return HttpLogSpec.Endpoint.auction;
             }
         }
@@ -166,7 +167,7 @@ public class HttpInteractionLogger {
 
         final List<Imp> updatedImps = imps.stream()
                 .map(imp -> makeImpExtBidderName(bidder, imp))
-                .collect(Collectors.toList());
+                .toList();
 
         return bidRequest.toBuilder().imp(updatedImps).build();
     }

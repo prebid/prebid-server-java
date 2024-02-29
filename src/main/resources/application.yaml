@@ -5,14 +5,25 @@ vertx:
   worker-pool-size: 20
   uploads-dir: file-uploads
   init-timeout-ms: 5000
-  http-server-instances: 1
   enable-per-client-endpoint-metrics: false
-http:
-  port: 8080
+server:
+  max-initial-line-length: 8092
   max-headers-size: 16384
   ssl: false
   jks-path:
   jks-password:
+  unix-socket:
+    enabled: false
+    path:
+    server-instances: 1
+  http:
+    enabled: true
+    port: 8080
+    server-instances: 1
+  cpu-load-monitoring:
+    enabled: false
+    measurement-interval-ms: 60000
+  idle-timeout: 10
 admin:
   port: 8060
 admin-endpoints:
@@ -102,6 +113,9 @@ data-center: dataCenter
 profile: profile
 adapter-defaults:
   enabled: false
+  ortb-version: "2.5"
+  ortb:
+    multiformat-supported: true
   pbs-enforces-ccpa: true
   modifying-vast-xml-allowed: true
   debug:
@@ -110,9 +124,11 @@ auction:
   ad-server-currency: USD
   blacklisted-accounts:
   blacklisted-apps:
-  default-timeout-ms: 900
-  max-timeout-ms: 5000
-  timeout-adjustment-ms: 30
+  biddertmax:
+    min: 50
+    max: 5000
+    percent: 100
+  tmax-upstream-response-time: 30
   stored-requests-timeout-ms: 50
   timeout-notification:
     timeout-ms: 200
@@ -120,7 +136,6 @@ auction:
     log-failure-only: false
     log-sampling-rate: 0.0
   max-request-size: 262144
-  generate-source-tid: true
   generate-bid-id: false
   cache:
     expected-request-time-ms: 10
@@ -130,6 +145,7 @@ auction:
     secure-markup: skip
   host-schain-node:
   category-mapping-enabled: false
+  strict-app-site-dooh: false
 video:
   stored-request-required: false
   stored-requests-timeout-ms: 90
@@ -142,11 +158,12 @@ vtrack:
   allow-unknown-bidder: true
   modify-vast-for-unknown-bidder: true
 cookie-sync:
+  default-limit: 8
   coop-sync:
     default: true
-    default-limit: 8
   default-timeout-ms: 2000
 logging:
+  sampling-rate: 0.01
   http-interaction:
     max-limit: 10000
   change-level:
@@ -158,18 +175,34 @@ currency-converter:
     default-timeout-ms: 4000
     refresh-period-ms: 900000
     stale-after-ms: 259200000
-metrics:
-  metricType: flushingCounter
-  accounts:
-    default-verbosity: none
 settings:
   generate-storedrequest-bidrequest-id: false
   enforce-valid-account: false
   database:
     pool-size: 20
+    provider-class: c3p0
   targeting:
     truncate-attr-chars: 20
-  default-account-config:
+  default-account-config: >
+    {
+      "auction": {
+        "price-floors": {
+          "enabled": true,
+          "fetch": {
+            "enabled": false,
+            "timeout-ms": 5000,
+            "max-rules": 0,
+            "max-file-size-kb": 200,
+            "max-age-sec": 86400,
+            "period-sec": 3600
+          },
+          "enforce-floors-rate": 100,
+          "adjust-for-bid-adjustment": true,
+          "enforce-deal-floors": true,
+          "use-dynamic-data": true
+        }
+      }
+    }
 recaptcha-url: https://www.google.com/recaptcha/api/siteverify
 recaptcha-secret: secret_value
 host-cookie:
@@ -182,14 +215,26 @@ gdpr:
   eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
   vendorlist:
     default-timeout-ms: 2000
-    v1:
-      http-endpoint-template: https://vendor-list.consensu.org/v-{VERSION}/vendorlist.json
-      refresh-missing-list-period-ms: 3600000
-      deprecated: false
     v2:
       http-endpoint-template: https://vendor-list.consensu.org/v2/archives/vendor-list-v{VERSION}.json
       refresh-missing-list-period-ms: 3600000
       deprecated: false
+      retry-policy:
+        exponential-backoff:
+          delay-millis: 60000
+          max-delay-millis: 120000
+          factor: 1.1
+          jitter: 0.2
+    v3:
+      http-endpoint-template: https://vendor-list.consensu.org/v3/archives/vendor-list-v{VERSION}.json
+      refresh-missing-list-period-ms: 3600000
+      deprecated: false
+      retry-policy:
+        exponential-backoff:
+          delay-millis: 60000
+          max-delay-millis: 120000
+          factor: 1.1
+          jitter: 0.2
   purposes:
     p1:
       enforce-purpose: full
@@ -303,3 +348,5 @@ deals:
       pbs-planner-empty-response-error: 15
       pbs-register-client-error: 15
       pbs-delivery-stats-client-error: 15
+price-floors:
+  enabled: false

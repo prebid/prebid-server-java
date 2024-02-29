@@ -68,8 +68,7 @@ public class PriceGranularity {
         if (isValidStringPriceGranularityType(stringPriceGranularity)) {
             return STRING_TO_CUSTOM_PRICE_GRANULARITY.get(PriceGranularityType.valueOf(stringPriceGranularity));
         } else {
-            throw new PreBidException(String.format(
-                    "Invalid string price granularity with value: %s", stringPriceGranularity));
+            throw new PreBidException("Invalid string price granularity with value: " + stringPriceGranularity);
         }
     }
 
@@ -98,8 +97,10 @@ public class PriceGranularity {
      * Creates {@link PriceGranularity} for string representation and puts it to
      * {@link EnumMap<PriceGranularityType, PriceGranularity>}.
      */
-    private static void putStringPriceGranularity(PriceGranularityType type, Integer precision,
+    private static void putStringPriceGranularity(PriceGranularityType type,
+                                                  Integer precision,
                                                   ExtGranularityRange... ranges) {
+
         STRING_TO_CUSTOM_PRICE_GRANULARITY.put(type,
                 PriceGranularity.createFromRanges(precision, Arrays.asList(ranges)));
     }

@@ -64,8 +64,7 @@ public class Ccpa {
                 NOT_ENFORCED_SIGNAL, ENFORCED_SIGNAL, NOT_DEFINED_SIGNAL);
 
         if (!isAppropriateValue) {
-            throw new PreBidException(
-                    String.format("us_privacy must specify 'N' or 'n', 'Y' or 'y', '-' for the %s", agreementType));
+            throw new PreBidException("us_privacy must specify 'N' or 'n', 'Y' or 'y', '-' for the " + agreementType);
         }
     }
 }

@@ -16,6 +16,8 @@ public class BlockedAttributes {
 
     List<String> bapp;
 
+    Integer cattaxComplement;
+
     Map<String, List<Integer>> btype;
 
     Map<String, List<Integer>> battr;

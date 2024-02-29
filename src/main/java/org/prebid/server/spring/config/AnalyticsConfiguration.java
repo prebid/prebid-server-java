@@ -3,6 +3,7 @@ package org.prebid.server.spring.config;
 import io.vertx.core.Vertx;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.reporter.log.LogAnalyticsReporter;
@@ -13,6 +14,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.http.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -20,7 +22,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotNull;
-import java.util.Collections;
 import java.util.List;
 
 @Configuration
@@ -31,10 +32,12 @@ public class AnalyticsConfiguration {
             @Autowired(required = false) List<AnalyticsReporter> delegates,
             Vertx vertx,
             PrivacyEnforcementService privacyEnforcementService,
-            Metrics metrics) {
+            Metrics metrics,
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         return new AnalyticsReporterDelegator(
-                delegates != null ? delegates : Collections.emptyList(),
+                logSamplingRate,
+                ListUtils.emptyIfNull(delegates),
                 vertx,
                 privacyEnforcementService,
                 metrics);

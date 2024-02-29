@@ -25,7 +25,7 @@ public class BidResponse {
 
     /**
      * ID of the bid request to which this is a response.
-     * (required)
+     * <p/> (required)
      */
     String id;
 
@@ -52,7 +52,8 @@ public class BidResponse {
     String customdata;
 
     /**
-     * Reason for not bidding. Refer to List 5.24.
+     * Reason for not bidding. Refer to <a href="https://github.com/InteractiveAdvertisingBureau/openrtb/blob/master/OpenRTB%20v3.0%20FINAL.md#list--no-bid-reason-codes-">
+     * List: No-Bid Reason Codes</a> in OpenRTB 3.0.
      */
     Integer nbr;
 

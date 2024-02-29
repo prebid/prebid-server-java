@@ -1,138 +1,63 @@
 package org.prebid.server.functional.testcontainers.container
 
 import org.prebid.server.functional.testcontainers.Dependencies
+import org.prebid.server.functional.testcontainers.PbsConfig
+import org.prebid.server.functional.util.SystemProperties
 import org.testcontainers.containers.GenericContainer
-import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.wait.strategy.Wait
+
+import static org.prebid.server.functional.testcontainers.PbsConfig.DEFAULT_ENV
 
 class PrebidServerContainer extends GenericContainer<PrebidServerContainer> {
 
-    public static final int PORT = 8080
-    public static final int DEBUG_PORT = 8000
-    public static final int ADMIN_PORT = 8060
-    public static final String ADMIN_ENDPOINT_USERNAME = "admin"
-    public static final String ADMIN_ENDPOINT_PASSWORD = "admin"
-    public static final String APP_WORKDIR = "/app/prebid-server/"
+    private static final int PROMETHEUS_PORT = 8070
+    private static final int DEFAULT_PORT = 8080
+    private static final int DEFAULT_ADMIN_PORT = 8060
+    private static final int DEFAULT_DEBUG_PORT = 8000
+    private static final String ADMIN_ENDPOINT_USERNAME = "admin"
+    private static final String ADMIN_ENDPOINT_PASSWORD = "admin"
+    private static final String APP_WORKDIR = "/app/prebid-server/"
+    private static final int PORT = SystemProperties.getPropertyOrDefault("port", DEFAULT_PORT)
+    private static final int ADMIN_PORT = SystemProperties.getPropertyOrDefault("admin.port", DEFAULT_ADMIN_PORT)
+    private static final int DEBUG_PORT = SystemProperties.getPropertyOrDefault("debug.port", DEFAULT_DEBUG_PORT)
 
-    private static final String DB_ACCOUNT_QUERY = """
-SELECT JSON_MERGE_PATCH(JSON_OBJECT('id', uuid,
-                                    'status', status,
-                                    'auction', JSON_OBJECT('price-granularity', price_granularity,
-                                                           'banner-cache-ttl', banner_cache_ttl,
-                                                           'video-cache-ttl', video_cache_ttl,
-                                                           'truncate-target-attr', truncate_target_attr,
-                                                           'default-integration', default_integration,
-                                                           'bid-validations', bid_validations,
-                                                           'events', JSON_OBJECT('enabled', NOT NOT (events_enabled))),
-                                    'privacy', JSON_OBJECT('gdpr', tcf_config),
-                                    'analytics', analytics_config),
-                        COALESCE(config, '{}')) as consolidated_config
-FROM accounts_account
-WHERE uuid = %ACCOUNT_ID%
-LIMIT 1
-"""
+    private static final String PBS_DOCKER_IMAGE_NAME = "prebid/prebid-server:latest"
 
-    private static final Map<String, String> DEFAULT_ENV = [
-            "auction.ad-server-currency"                 : "USD",
-            "auction.stored-requests-timeout-ms"         : "1000",
-            "metrics.prefix"                             : "prebid",
-            "status-response"                            : "ok",
-            "gdpr.default-value"                         : "0",
-            "settings.database.account-query"            : DB_ACCOUNT_QUERY,
-            "settings.database.stored-requests-query"    : "SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%) UNION ALL SELECT accountId, reqid, requestData, 'imp' as dataType FROM stored_requests WHERE reqid IN (%IMP_ID_LIST%)",
-            "settings.database.amp-stored-requests-query": "SELECT accountId, reqid, requestData, 'request' as dataType FROM stored_requests WHERE reqid IN (%REQUEST_ID_LIST%)",
-            "settings.database.stored-responses-query"   : "SELECT resid, responseData FROM stored_responses WHERE resid IN (%RESPONSE_ID_LIST%)"
-    ]
-
-    PrebidServerContainer(Map<String, String> config) {
-        this("prebid/prebid-server:latest", config)
-    }
-
-    PrebidServerContainer(String dockerImage, Map<String, String> config) {
-        super(dockerImage)
-        withExposedPorts(PORT, DEBUG_PORT, ADMIN_PORT)
+    PrebidServerContainer(Map<String, String> customConfig) {
+        super(PBS_DOCKER_IMAGE_NAME)
+        withExposedPorts(PORT, DEBUG_PORT, ADMIN_PORT, PROMETHEUS_PORT)
+        withFixedPorts()
+        withStartupAttempts(3)
         waitingFor(Wait.forHttp("/status")
                        .forPort(PORT)
                        .forStatusCode(200))
-        withConfig(DEFAULT_ENV)
-        withAdminEndpoints()
         withDebug()
-        withMysql(Dependencies.mysqlContainer)
-        withBidder(Dependencies.networkServiceContainer)
-        withDefaultBiddersConfig()
-        withPrebidCache(Dependencies.networkServiceContainer)
-        withMetricsEndpoint()
         withNetwork(Dependencies.network)
-        withConfig(config)
+        def commonConfig = [:] << DEFAULT_ENV
+                << PbsConfig.defaultBiddersConfig
+                << PbsConfig.metricConfig
+                << PbsConfig.adminEndpointConfig
+                << PbsConfig.bidderConfig
+                << PbsConfig.bidderAliasConfig
+                << PbsConfig.prebidCacheConfig
+                << PbsConfig.mySqlConfig
+        withConfig(commonConfig)
+        withConfig(customConfig)
     }
 
-    PrebidServerContainer withMysql(MySQLContainer mysql) {
-        withMysql(mysql.getNetworkAliases().get(0),
-                mysql.exposedPorts.get(0),
-                mysql.databaseName,
-                mysql.username,
-                mysql.password)
-        return self()
+    private void withFixedPorts() {
+        if (SystemProperties.USE_FIXED_CONTAINER_PORTS) {
+            addFixedExposedPort(PORT, PORT)
+            addFixedExposedPort(ADMIN_PORT, ADMIN_PORT)
+            addFixedExposedPort(DEBUG_PORT, DEBUG_PORT)
+        }
     }
 
-    PrebidServerContainer withDebug() {
+    void withDebug() {
         withEnv("JAVA_TOOL_OPTIONS", "-agentlib:jdwp=transport=dt_socket,address=*:$DEBUG_PORT,server=y,suspend=n")
     }
 
-    void withMysql(String host, int port, String dbname, String user, String password) {
-        withConfig(["settings.database.type"     : "mysql",
-                    "settings.database.host"     : host,
-                    "settings.database.port"     : port as String,
-                    "settings.database.dbname"   : dbname,
-                    "settings.database.user"     : user,
-                    "settings.database.password" : password,
-                    "settings.database.pool-size": "2" // setting 2 here to leave some slack for the PBS
-        ])
-    }
-
-    PrebidServerContainer withAdminEndpoints() {
-        withConfig(["admin-endpoints.currency-rates.enabled"                           : "true",
-                    "currency-converter.external-rates.enabled"                        : "true",
-                    ("admin-endpoints.credentials.$ADMIN_ENDPOINT_USERNAME".toString()): ADMIN_ENDPOINT_PASSWORD,
-                    "admin-endpoints.logging-httpinteraction.enabled"                  : "true"
-        ])
-        return self()
-    }
-
-    PrebidServerContainer withBidder(NetworkServiceContainer networkServiceContainer) {
-        withBidder("$networkServiceContainer.rootUri")
-        return self()
-    }
-
-    PrebidServerContainer withPrebidCache(NetworkServiceContainer networkServiceContainer) {
-        withConfig(["cache.scheme": "http",
-                    "cache.host"  : "$networkServiceContainer.hostAndPort".toString(),
-                    "cache.path"  : "/cache",
-                    "cache.query" : "uuid="
-        ])
-        return self()
-    }
-
-    void withBidder(String host) {
-        withConfig(["adapters.generic.enabled"      : "true",
-                    "adapters.generic.endpoint"     : "$host/auction" as String,
-                    "adapters.generic.usersync.url" : "$host/generic-usersync" as String,
-                    "adapters.generic.usersync.type": "redirect"
-        ])
-    }
-
-    void withDefaultBiddersConfig() {
-        withConfig(["adapter-defaults.enabled"                   : "false",
-                    "adapter-defaults.modifying-vast-xml-allowed": "true",
-                    "adapter-defaults.pbs-enforces-ccpa"         : "true"
-        ])
-    }
-
-    void withMetricsEndpoint() {
-        withConfig(["admin-endpoints.collected-metrics.enabled": "true"])
-    }
-
-    PrebidServerContainer withConfig(Map<String, String> config) {
+    void withConfig(Map<String, String> config) {
         withEnv(normalizeProperties(config))
     }
 
@@ -144,12 +69,20 @@ LIMIT 1
         getMappedPort(ADMIN_PORT)
     }
 
+    int getPrometheusPort() {
+        getMappedPort(PROMETHEUS_PORT)
+    }
+
     String getRootUri() {
         return "http://$host:$port"
     }
 
     String getAdminRootUri() {
         return "http://$host:$adminPort"
+    }
+
+    String getPrometheusRootUri() {
+        return "http://$host:$prometheusPort"
     }
 
     private static Map<String, String> normalizeProperties(Map<String, String> properties) {
@@ -161,6 +94,14 @@ LIMIT 1
                 .replace("-", "")
                 .replace("[", "_")
                 .replace("]", "_")
+    }
+
+    // This is a workaround for cases when container is killed mid-test due to OOM
+    void refresh() {
+        if (!running) {
+            stop()
+            start()
+        }
     }
 
     @Override

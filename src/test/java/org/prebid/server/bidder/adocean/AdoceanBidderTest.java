@@ -11,17 +11,15 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adocean.model.AdoceanResponseAdUnit;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.bidder.smartrtb.SmartrtbBidder;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adocean.ExtImpAdocean;
@@ -46,18 +44,11 @@ public class AdoceanBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://{{Host}}";
 
-    private AdoceanBidder adoceanBidder;
-
-    @Before
-    public void setUp() {
-        adoceanBidder = new AdoceanBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdoceanBidder target = new AdoceanBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException()
-                .isThrownBy(() -> new SmartrtbBidder("invalid_url", jacksonMapper))
-                .withMessage("URL supplied is not valid: invalid_url");
+        assertThatIllegalArgumentException().isThrownBy(() -> new AdoceanBidder("invalid_url", jacksonMapper));
     }
 
     @Test
@@ -68,7 +59,7 @@ public class AdoceanBidderTest extends VertxTest {
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -93,7 +84,7 @@ public class AdoceanBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -101,6 +92,54 @@ public class AdoceanBidderTest extends VertxTest {
                     assertThat(error.getMessage()).startsWith("Invalid url: https://invalid domain/");
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
                 });
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfExtImpEmitterPrefixIsEmpty() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .ext(ExtUser.builder()
+                                .consent("consent").build())
+                        .build())
+                .imp(singletonList(Imp.builder()
+                        .id("ao-test")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdocean.of("", "masterId", "adoceanmyaozpniqismex")))).build()))
+                .test(1)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("No emitterPrefix param"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnErrorIfExtImpEmitterPrefixIsNotSupplied() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .user(User.builder()
+                        .ext(ExtUser.builder()
+                                .consent("consent").build())
+                        .build())
+                .imp(singletonList(Imp.builder()
+                        .id("ao-test")
+                        .banner(Banner.builder().build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdocean.of(null, "masterId", "adoceanmyaozpniqismex")))).build()))
+                .test(1)
+                .build();
+
+        // when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("No emitterPrefix param"));
     }
 
     @Test
@@ -132,7 +171,7 @@ public class AdoceanBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -140,10 +179,10 @@ public class AdoceanBidderTest extends VertxTest {
                         + "in imp with id : notValidImp"));
         assertThat(result.getValue()).hasSize(2)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0&id=masterId&nc=1"
+                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0&id=masterId&nc=1"
                         + "&nosecure=1&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent&gdpr=1"
                         + "&hcuserid=testBuyerUid&aosspsizes=myaozpniqismex"
-                        + "%7E300x250_600x320", "https://em.dom/_10000000/ad.json?pbsrv_v=1.2.0&id="
+                        + "%7E300x250_600x320", "https://em.dom/_10000000/ad.json?pbsrv_v=1.3.0&id="
                         + "masterId2&nc=1&nosecure=1&aid=slaveId%3Ai2-test&gdpr_consent=consent&gdpr=1"
                         + "&hcuserid=testBuyerUid&aosspsizes=slaveId%7E577x333");
     }
@@ -174,7 +213,7 @@ public class AdoceanBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(2);
@@ -198,13 +237,13 @@ public class AdoceanBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0&id=masterId&nc=1&nosecure=1"
+                .containsExactly("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0&id=masterId&nc=1&nosecure=1"
                         + "&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent&gdpr=1");
     }
 
@@ -234,12 +273,12 @@ public class AdoceanBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0&id=masterId&nc=1"
+                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0&id=masterId&nc=1"
                         + "&nosecure=1&aid=slaveId%3Aao-test&gdpr_consent=consent&gdpr=1&hcuserid=testBuyerUid"
                         + "&aosspsizes=slaveId%7E300x250_600x320&aid=slaveId2%3Ai2-test&aosspsizes=slaveId2%7E577x333");
     }
@@ -267,7 +306,7 @@ public class AdoceanBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
@@ -298,7 +337,7 @@ public class AdoceanBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue().get(0).getHeaders()).isNotNull()
@@ -312,10 +351,10 @@ public class AdoceanBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() throws JsonProcessingException {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(null, "");
+        final BidderCall<Void> httpCall = givenHttpCall(null, "");
 
         // when
-        final Result<List<BidderBid>> result = adoceanBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -338,18 +377,19 @@ public class AdoceanBidderTest extends VertxTest {
         final List<AdoceanResponseAdUnit> adoceanResponseAdUnit = asList(adoceanResponseCreator(identity()),
                 adoceanResponseCreator(response -> response.id("adoceanmyaozpniqis")));
 
-        final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
+        final BidderCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
 
         // when
-        final Result<List<BidderBid>> result = adoceanBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
-        final String adm = " <script> +function() { "
-                + "var wu = \"https://win-url.com\"; "
-                + "var su = \"https://stats-url.com\".replace(/\\[TIMESTAMP\\]/, Date.now()); "
-                + "if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu } "
-                + "if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }(); "
-                + "</script>  <!-- code 1 --> ";
+        final String adm = """
+                 <script> +function() {
+                var wu = "%s";
+                var su = "%s".replace(/\\[TIMESTAMP\\]/, Date.now());
+                if (wu && !(navigator.sendBeacon && navigator.sendBeacon(wu))) { (new Image(1,1)).src = wu }
+                if (su && !(navigator.sendBeacon && navigator.sendBeacon(su))) { (new Image(1,1)).src = su } }();
+                </script> <!-- code 1 -->\s""".formatted("https://win-url.com", "https://stats-url.com");
 
         final BidderBid expected = BidderBid.of(
                 Bid.builder()
@@ -379,10 +419,10 @@ public class AdoceanBidderTest extends VertxTest {
                 adoceanResponseCreator(response -> response.error("true")),
                 adoceanResponseCreator(response -> response.id("adoceanmyaozpniqis")));
 
-        final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
+        final BidderCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(adoceanResponseAdUnit));
 
         // when
-        final Result<List<BidderBid>> result = adoceanBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -408,12 +448,12 @@ public class AdoceanBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0"
+                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0"
                         + "&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7&nc=1&nosecure=1"
                         + "&aid=adoceanmyaozpniqismex%3Aao-test&gdpr_consent=consent"
                         + "&gdpr=1&app=1&appname=name&appbundle=bundle&appdomain=domain");
@@ -438,12 +478,12 @@ public class AdoceanBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0"
+                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0"
                         + "&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7"
                         + "&nc=1&nosecure=1&aid=adoceanmyaozpniqismex%3Aao-test"
                         + "&gdpr_consent=consent&gdpr=1&ifa=ifa&devos=os&devosv=osv&devmodel=model&devmake=make");
@@ -468,12 +508,12 @@ public class AdoceanBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = adoceanBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.2.0"
+                .containsExactlyInAnyOrder("https://myao.adocean.pl/_10000000/ad.json?pbsrv_v=1.3.0"
                         + "&id=tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7"
                         + "&nc=1&nosecure=1&aid=adoceanmyaozpniqismex%3Aao-test"
                         + "&gdpr_consent=consent&gdpr=1&dpidmd5=dpidmd5&devos=os&devosv=osv"
@@ -484,16 +524,16 @@ public class AdoceanBidderTest extends VertxTest {
             Function<AdoceanResponseAdUnit.AdoceanResponseAdUnitBuilder,
                     AdoceanResponseAdUnit.AdoceanResponseAdUnitBuilder> adoceanCustomizer) {
         return adoceanCustomizer.apply(AdoceanResponseAdUnit.builder()
-                .id("ad")
-                .price("1")
-                .winUrl("https://win-url.com")
-                .statsUrl("https://stats-url.com")
-                .code(" <!-- code 1 --> ")
-                .currency("EUR")
-                .width("300")
-                .height("250")
-                .crid("0af345b42983cc4bc0")
-                .error("false"))
+                        .id("ad")
+                        .price("1")
+                        .winUrl("https://win-url.com")
+                        .statsUrl("https://stats-url.com")
+                        .code(" <!-- code 1 --> ")
+                        .currency("EUR")
+                        .width("300")
+                        .height("250")
+                        .crid("0af345b42983cc4bc0")
+                        .error("false"))
                 .build();
     }
 
@@ -502,7 +542,7 @@ public class AdoceanBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -512,16 +552,16 @@ public class AdoceanBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
-                                "adoceanmyaozpniqismex")))))
+                        .id("123")
+                        .banner(Banner.builder().id("banner_id").build()).ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpAdocean.of("myao.adocean.pl", "tmYF.DMl7ZBq.Nqt2Bq4FutQTJfTpxCOmtNPZoQUDcL.G7",
+                                        "adoceanmyaozpniqismex")))))
                 .build();
     }
 
-    private static HttpCall<Void> givenHttpCall(String requestBody, String responseBody)
+    private static BidderCall<Void> givenHttpCall(String requestBody, String responseBody)
             throws JsonProcessingException {
-        return HttpCall.success(
+        return BidderCall.succeededHttp(
                 HttpRequest.<Void>builder()
                         .body(mapper.writeValueAsBytes(requestBody))
                         .uri("https://myao.adocean.pl/_10000000/ad.json?aid=ad%3Aao-test&gdpr=1&gdpr_consent=consent"

@@ -3,16 +3,12 @@ adapters:
     endpoint: https://one.elitebidder.com/api/pbs
     modifying-vast-xml-allowed: false
     meta-info:
-      maintainer-email: dev@brightmountainmedia.com
+      maintainer-email: product@brightmountainmedia.com
       app-media-types:
+        - banner
+        - video
       site-media-types:
         - banner
         - video
       supported-vendors:
       vendor-id: 0
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: bmtm
-      type: redirect
-      support-cors: false

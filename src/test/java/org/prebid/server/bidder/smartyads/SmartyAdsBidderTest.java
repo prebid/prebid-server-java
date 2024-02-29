@@ -11,12 +11,11 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -44,12 +43,7 @@ public class SmartyAdsBidderTest extends VertxTest {
     private static final String ENDPOINT_URL =
             "http://{{Host}}.test.com/bid?param1={{SourceId}}&param2={{AccountID}}";
 
-    private SmartyAdsBidder smartyAdsBidder;
-
-    @Before
-    public void setUp() {
-        smartyAdsBidder = new SmartyAdsBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final SmartyAdsBidder target = new SmartyAdsBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -63,7 +57,7 @@ public class SmartyAdsBidderTest extends VertxTest {
                 impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -74,11 +68,11 @@ public class SmartyAdsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfExtBidderAccountIdParamIsMissed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtPrebid.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpSmartyAds.of("", "testSourceId", "testHost")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -89,11 +83,11 @@ public class SmartyAdsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfExtBidderSourceIdParamIsMissed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtPrebid.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpSmartyAds.of("testAccountId", "", "testHost")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("sourceId is a required ext.bidder param"));
@@ -103,11 +97,11 @@ public class SmartyAdsBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfExtBidderHostParamIsMissed() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder .ext(mapper.valueToTree(ExtPrebid.of(null,
+                impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null,
                         ExtImpSmartyAds.of("testAccountId", "testSourceId", "")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("host is a required ext.bidder param"));
@@ -119,7 +113,7 @@ public class SmartyAdsBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder);
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -137,7 +131,7 @@ public class SmartyAdsBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder().imp(Arrays.asList(firstImp, secondImp)).build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -154,10 +148,10 @@ public class SmartyAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = smartyAdsBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Bad Server Response"));
@@ -167,11 +161,11 @@ public class SmartyAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = smartyAdsBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Bad Server Response"));
@@ -181,11 +175,11 @@ public class SmartyAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = smartyAdsBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Empty SeatBid array"));
@@ -195,7 +189,7 @@ public class SmartyAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
@@ -203,7 +197,7 @@ public class SmartyAdsBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = smartyAdsBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -214,7 +208,7 @@ public class SmartyAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyValueIfBidsAreNotPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
@@ -225,7 +219,7 @@ public class SmartyAdsBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = smartyAdsBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -248,14 +242,14 @@ public class SmartyAdsBidderTest extends VertxTest {
                 .seatbid(Arrays.asList(firstSeat, secondSeat))
                 .build();
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(bidResponse));
 
         // when
-        final Result<List<BidderBid>> result = smartyAdsBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -277,7 +271,7 @@ public class SmartyAdsBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = smartyAdsBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -298,14 +292,14 @@ public class SmartyAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = smartyAdsBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -316,7 +310,7 @@ public class SmartyAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnNativeBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
                         .build(),
@@ -324,7 +318,7 @@ public class SmartyAdsBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = smartyAdsBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -337,7 +331,7 @@ public class SmartyAdsBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -347,10 +341,10 @@ public class SmartyAdsBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().id("banner_id").build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpSmartyAds.of("testAccountId", "testSourceId", "testHost")))))
+                        .id("123")
+                        .banner(Banner.builder().id("banner_id").build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpSmartyAds.of("testAccountId", "testSourceId", "testHost")))))
                 .build();
     }
 
@@ -363,8 +357,8 @@ public class SmartyAdsBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

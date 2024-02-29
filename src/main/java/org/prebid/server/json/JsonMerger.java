@@ -29,8 +29,7 @@ public class JsonMerger {
         try {
             storedRequestJsonNode = mapper.mapper().readTree(storedData);
         } catch (IOException e) {
-            throw new InvalidRequestException(
-                    String.format("Can't parse Json for stored request with id %s", id));
+            throw new InvalidRequestException("Can't parse Json for stored request with id " + id);
         }
         try {
             // Http request fields have higher priority and will override fields from stored requests
@@ -38,11 +37,11 @@ public class JsonMerger {
             return mapper.mapper().treeToValue(JsonMergePatch.fromJson(originJsonNode).apply(storedRequestJsonNode),
                     classToCast);
         } catch (JsonPatchException e) {
-            throw new InvalidRequestException(String.format(
-                    "Couldn't create merge patch from origin object node for id %s: %s", id, e.getMessage()));
+            throw new InvalidRequestException(
+                    "Couldn't create merge patch from origin object node for id %s: %s".formatted(id, e.getMessage()));
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException(
-                    String.format("Can't convert merging result for id %s: %s", id, e.getMessage()));
+                    "Can't convert merging result for id %s: %s".formatted(id, e.getMessage()));
         }
     }
 
@@ -57,11 +56,10 @@ public class JsonMerger {
             final JsonNode mergedNode = JsonMergePatch.fromJson(originJsonNode).apply(mergingObjectJsonNode);
             return mapper.mapper().treeToValue(mergedNode, classToCast);
         } catch (JsonPatchException e) {
-            throw new InvalidRequestException(String.format(
-                    "Couldn't create merge patch for objects with class %s", classToCast.getName()));
-        } catch (JsonProcessingException e) {
             throw new InvalidRequestException(
-                    String.format("Can't convert merging result class %s", classToCast.getName()));
+                    "Couldn't create merge patch for objects with class " + classToCast.getName());
+        } catch (JsonProcessingException e) {
+            throw new InvalidRequestException("Can't convert merging result class " + classToCast.getName());
         }
     }
 

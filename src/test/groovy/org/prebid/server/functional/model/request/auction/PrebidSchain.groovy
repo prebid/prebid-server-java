@@ -6,5 +6,5 @@ import groovy.transform.ToString
 class PrebidSchain {
 
     List<String> bidders
-    Schain schain
+    SupplyChain schain
 }

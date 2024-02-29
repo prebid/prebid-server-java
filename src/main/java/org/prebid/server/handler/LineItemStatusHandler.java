@@ -41,7 +41,7 @@ public class LineItemStatusHandler implements Handler<RoutingContext> {
             HttpUtil.executeSafely(routingContext, endpoint,
                     response -> response
                             .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                            .end(String.format("%s parameter is required", ID_PARAM)));
+                            .end(ID_PARAM + " parameter is required"));
             return;
         }
 

@@ -12,12 +12,11 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -44,12 +43,7 @@ public class GumgumBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/providers/prbds2s/bid";
 
-    private GumgumBidder gumgumBidder;
-
-    @Before
-    public void setUp() {
-        gumgumBidder = new GumgumBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final GumgumBidder target = new GumgumBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -63,7 +57,7 @@ public class GumgumBidderTest extends VertxTest {
                 impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2)
@@ -87,7 +81,7 @@ public class GumgumBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2)
@@ -102,12 +96,12 @@ public class GumgumBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .video(Video.builder().w(0).build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null))))
+                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null, null))))
                         .build()))
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
@@ -130,12 +124,12 @@ public class GumgumBidderTest extends VertxTest {
                                 .linearity(233)
                                 .build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null))))
+                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", null, null))))
                         .build()))
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final ObjectNode expectedVideoExt = mapper.valueToTree(ExtImpGumgumVideo.of("irisId"));
@@ -158,7 +152,7 @@ public class GumgumBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -179,7 +173,7 @@ public class GumgumBidderTest extends VertxTest {
                 impBuilder -> impBuilder.banner(Banner.builder().w(600).h(900).build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final Publisher expectedPublisher = sitePublisher.toBuilder().id("10").build();
@@ -200,7 +194,7 @@ public class GumgumBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -218,7 +212,7 @@ public class GumgumBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -237,12 +231,12 @@ public class GumgumBidderTest extends VertxTest {
                         givenImp(impBuilder -> impBuilder
                                 .banner(Banner.builder().build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                        ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId", null))))),
+                                        ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId", null, null))))),
                         givenImp(identity())))
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -265,19 +259,19 @@ public class GumgumBidderTest extends VertxTest {
                                         .format(singletonList(Format.builder().w(1).h(1).build()))
                                         .build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("ignored zone",
-                                        BigInteger.TEN, "irisId", 0L))))),
+                                        BigInteger.TEN, "irisId", 0L, null))))),
                         givenImp(impBuilder -> impBuilder
                                 .id("345")
                                 .banner(Banner.builder()
                                         .format(singletonList(Format.builder().w(1).h(1).build()))
                                         .build())
                                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                        ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId", null))))
+                                        ExtImpGumgum.of("ignored zone", BigInteger.TEN, "irisId", null, null))))
                         )))
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -301,10 +295,10 @@ public class GumgumBidderTest extends VertxTest {
                                 Format.builder().w(100).h(100).build()))
                         .build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpGumgum.of("ignored zone",
-                        BigInteger.TEN, "irisId", 42L)))));
+                        BigInteger.TEN, "irisId", 42L, null)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = gumgumBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -319,10 +313,10 @@ public class GumgumBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = gumgumBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -336,11 +330,11 @@ public class GumgumBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = gumgumBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -350,11 +344,11 @@ public class GumgumBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = gumgumBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -367,14 +361,14 @@ public class GumgumBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().id("123").build()))
                 .build();
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
                 givenBidResponse(bidBuilder -> bidBuilder
                         .impid("123")
                         .adm("<?xml version=\"1.0\" ${AUCTION_PRICE} xml>")
                         .price(BigDecimal.valueOf(10)))));
 
         // when
-        final Result<List<BidderBid>> result = gumgumBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         final Bid expectedBid = Bid.builder()
@@ -393,11 +387,11 @@ public class GumgumBidderTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
                 .build();
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
                 givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = gumgumBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -419,10 +413,10 @@ public class GumgumBidderTest extends VertxTest {
                         .build(), null))
                 .build();
 
-        final HttpCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponse));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(bidResponse));
 
         // when
-        final Result<List<BidderBid>> result = gumgumBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -447,7 +441,7 @@ public class GumgumBidderTest extends VertxTest {
                         .id("123")
                         .banner(Banner.builder().id("banner_id").build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", 1L)))))
+                                ExtImpGumgum.of("zone", BigInteger.TEN, "irisId", 1L, null)))))
                 .build();
     }
 
@@ -460,10 +454,11 @@ public class GumgumBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }
 }
+

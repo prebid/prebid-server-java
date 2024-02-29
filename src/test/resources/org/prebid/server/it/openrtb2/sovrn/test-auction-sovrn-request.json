@@ -3,12 +3,21 @@
   "imp": [
     {
       "id": "imp_id",
-      "banner": {
-        "w": 300,
-        "h": 250
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "maxduration": 30,
+        "protocols": [
+          2,
+          3,
+          5,
+          6
+        ]
       },
       "ext": {
         "sovrn": {
+          "adunitcode": "sovrn_auc",
           "tagid": "tag_id"
         }
       }

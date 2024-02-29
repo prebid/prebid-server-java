@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.rubicon.proto.response;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.response.Bid;
 import lombok.Builder;
 import lombok.Value;
 
@@ -11,7 +10,7 @@ import java.util.List;
 @Value
 public class RubiconSeatBid {
 
-    List<Bid> bid;
+    List<RubiconBid> bid;
 
     String seat;
 

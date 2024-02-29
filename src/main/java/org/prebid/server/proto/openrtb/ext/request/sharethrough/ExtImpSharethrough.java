@@ -1,10 +1,8 @@
 package org.prebid.server.proto.openrtb.ext.request.sharethrough;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -16,12 +14,7 @@ public class ExtImpSharethrough {
 
     String pkey;
 
-    Boolean iframe;
+    List<String> badv;
 
-    @JsonProperty("iframeSize")
-    List<Integer> iframeSize;
-
-    BigDecimal bidfloor;
-
-    ExtData data;
+    List<String> bcat;
 }

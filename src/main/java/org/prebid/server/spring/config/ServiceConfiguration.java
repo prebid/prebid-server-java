@@ -5,7 +5,12 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
+import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
@@ -17,22 +22,38 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
-import org.prebid.server.auction.SchainResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
+import org.prebid.server.auction.SupplyChainResolver;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.UidUpdater;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.WinningBidComparatorFactory;
+import org.prebid.server.auction.adjustment.BidAdjustmentFactorResolver;
 import org.prebid.server.auction.categorymapping.BasicCategoryMappingService;
 import org.prebid.server.auction.categorymapping.CategoryMappingService;
 import org.prebid.server.auction.categorymapping.NoOpCategoryMappingService;
+import org.prebid.server.auction.gpp.AmpGppService;
+import org.prebid.server.auction.gpp.AuctionGppService;
+import org.prebid.server.auction.gpp.CookieSyncGppService;
+import org.prebid.server.auction.gpp.GppService;
+import org.prebid.server.auction.gpp.SetuidGppService;
+import org.prebid.server.auction.gpp.processor.GppContextProcessor;
+import org.prebid.server.auction.gpp.processor.tcfeuv2.TcfEuV2ContextProcessor;
+import org.prebid.server.auction.gpp.processor.uspv1.UspV1ContextProcessor;
+import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.CompositeMediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
+import org.prebid.server.auction.mediatypeprocessor.MultiFormatMediaTypeProcessor;
 import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.auction.requestfactory.Ortb2RequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverterFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderDeps;
 import org.prebid.server.bidder.BidderErrorNotifier;
@@ -41,13 +62,20 @@ import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
+import org.prebid.server.cookie.CookieSyncService;
+import org.prebid.server.cookie.CoopSyncProvider;
+import org.prebid.server.cookie.PrioritizedCoopSyncProvider;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.deals.DealsPopulator;
-import org.prebid.server.deals.DealsProcessor;
+import org.prebid.server.deals.DealsService;
+import org.prebid.server.deals.UserAdditionalInfoService;
 import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.floors.PriceFloorAdjuster;
+import org.prebid.server.floors.PriceFloorEnforcer;
+import org.prebid.server.floors.PriceFloorProcessor;
+import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.geolocation.CountryCodeMapper;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
@@ -61,6 +89,7 @@ import org.prebid.server.log.HttpInteractionLogger;
 import org.prebid.server.log.LoggerControlKnob;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
+import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
@@ -69,6 +98,7 @@ import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.util.VersionInfo;
+import org.prebid.server.util.system.CpuLoadAverageStats;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -91,15 +121,25 @@ import org.springframework.context.annotation.ScopedProxyMode;
 import javax.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Configuration
 public class ServiceConfiguration {
+
+    private static final Logger logger = LoggerFactory.getLogger(ServiceConfiguration.class);
+
+    @Value("${logging.sampling-rate:0.01}")
+    private double logSamplingRate;
 
     @Bean
     CacheService cacheService(
@@ -176,24 +216,38 @@ public class ServiceConfiguration {
 
     @Bean
     OrtbTypesResolver ortbTypesResolver(JacksonMapper jacksonMapper, JsonMerger jsonMerger) {
-        return new OrtbTypesResolver(jacksonMapper, jsonMerger);
+        return new OrtbTypesResolver(logSamplingRate, jacksonMapper, jsonMerger);
     }
 
     @Bean
-    SchainResolver schainResolver(
+    SupplyChainResolver schainResolver(
             @Value("${auction.host-schain-node}") String globalSchainNode,
             JacksonMapper mapper) {
 
-        return SchainResolver.create(globalSchainNode, mapper);
+        return SupplyChainResolver.create(globalSchainNode, mapper);
     }
 
     @Bean
     TimeoutResolver auctionTimeoutResolver(
-            @Value("${auction.default-timeout-ms}") long defaultTimeout,
-            @Value("${auction.max-timeout-ms}") long maxTimeout,
-            @Value("${auction.timeout-adjustment-ms}") long timeoutAdjustment) {
+            @Value("${auction.biddertmax.min}") long minTimeout,
+            @Value("${auction.max-timeout-ms:#{0}}") long maxTimeoutDeprecated,
+            @Value("${auction.biddertmax.max:#{0}}") long maxTimeout,
+            @Value("${auction.tmax-upstream-response-time}") long upstreamResponseTime) {
 
-        return new TimeoutResolver(defaultTimeout, maxTimeout, timeoutAdjustment);
+        return new TimeoutResolver(
+                minTimeout,
+                resolveMaxTimeout(maxTimeoutDeprecated, maxTimeout),
+                upstreamResponseTime);
+    }
+
+    // TODO: Remove after transition period
+    private static long resolveMaxTimeout(long maxTimeoutDeprecated, long maxTimeout) {
+        if (maxTimeout != 0) {
+            return maxTimeout;
+        }
+
+        logger.warn("Usage of deprecated property: auction.max-timeout-ms. Use auction.biddertmax.max instead.");
+        return maxTimeoutDeprecated;
     }
 
     @Bean
@@ -204,22 +258,30 @@ public class ServiceConfiguration {
 
     @Bean
     Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
-            @Value("${auction.cache.only-winning-bids}") boolean shouldCacheOnlyWinningBids,
+            @Value("${auction.cache.only-winning-bids}") boolean cacheOnlyWinningBids,
+            @Value("${settings.generate-storedrequest-bidrequest-id}") boolean generateBidRequestId,
             @Value("${auction.ad-server-currency}") String adServerCurrency,
             @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
+            @Value("${external-url}") String externalUrl,
+            @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
+            @Value("${datacenter-region}") String datacenterRegion,
             ImplicitParametersExtractor implicitParametersExtractor,
+            TimeoutResolver timeoutResolver,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
             JsonMerger jsonMerger,
             JacksonMapper mapper) {
 
-        final List<String> blacklistedApps = splitToList(blacklistedAppsString);
-
         return new Ortb2ImplicitParametersResolver(
-                shouldCacheOnlyWinningBids,
+                cacheOnlyWinningBids,
+                generateBidRequestId,
                 adServerCurrency,
-                blacklistedApps,
+                splitToList(blacklistedAppsString),
+                externalUrl,
+                hostVendorId,
+                datacenterRegion,
                 implicitParametersExtractor,
+                timeoutResolver,
                 ipAddressHelper,
                 sourceIdGenerator,
                 jsonMerger,
@@ -227,10 +289,58 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    BidRequestOrtbVersionConverterFactory bidRequestOrtbVersionConverterFactory(JacksonMapper jacksonMapper) {
+        return new BidRequestOrtbVersionConverterFactory(jacksonMapper);
+    }
+
+    @Bean
+    BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager(
+            BidRequestOrtbVersionConverterFactory bidRequestOrtbVersionConverterFactory) {
+
+        return new BidRequestOrtbVersionConversionManager(bidRequestOrtbVersionConverterFactory);
+    }
+
+    @Bean
+    GppContextProcessor tcfEuV2ContextProcessor() {
+        return new TcfEuV2ContextProcessor();
+    }
+
+    @Bean
+    GppContextProcessor uspV1ContextProcessor() {
+        return new UspV1ContextProcessor();
+    }
+
+    @Bean
+    GppService gppService(List<GppContextProcessor> processors) {
+        return new GppService(processors);
+    }
+
+    @Bean
+    AuctionGppService auctionGppProcessor(GppService gppService) {
+        return new AuctionGppService(gppService);
+    }
+
+    @Bean
+    AmpGppService ampGppProcessor(GppService gppService) {
+        return new AmpGppService(gppService);
+    }
+
+    @Bean
+    CookieSyncGppService cookieSyncGppProcessor(GppService gppService) {
+        return new CookieSyncGppService(gppService);
+    }
+
+    @Bean
+    SetuidGppService setuidGppService(GppService gppService) {
+        return new SetuidGppService(gppService);
+    }
+
+    @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
+            ActivityInfrastructureCreator activityInfrastructureCreator,
             RequestValidator requestValidator,
             TimeoutResolver auctionTimeoutResolver,
             TimeoutFactory timeoutFactory,
@@ -238,16 +348,20 @@ public class ServiceConfiguration {
             ApplicationSettings applicationSettings,
             IpAddressHelper ipAddressHelper,
             HookStageExecutor hookStageExecutor,
-            @Autowired(required = false) DealsPopulator dealsPopulator,
+            @Autowired(required = false) UserAdditionalInfoService userAdditionalInfoService,
             CountryCodeMapper countryCodeMapper,
+            PriceFloorProcessor priceFloorProcessor,
+            Metrics metrics,
             Clock clock) {
 
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
         return new Ortb2RequestFactory(
                 enforceValidAccount,
+                logSamplingRate,
                 blacklistedAccounts,
                 uidsCookieService,
+                activityInfrastructureCreator,
                 requestValidator,
                 auctionTimeoutResolver,
                 timeoutFactory,
@@ -255,8 +369,10 @@ public class ServiceConfiguration {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                dealsPopulator,
+                userAdditionalInfoService,
+                priceFloorProcessor,
                 countryCodeMapper,
+                metrics,
                 clock);
     }
 
@@ -265,11 +381,12 @@ public class ServiceConfiguration {
             @Value("${auction.max-request-size}") @Min(0) int maxRequestSize,
             Ortb2RequestFactory ortb2RequestFactory,
             StoredRequestProcessor storedRequestProcessor,
+            BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
+            AuctionGppService auctionGppService,
             ImplicitParametersExtractor implicitParametersExtractor,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             OrtbTypesResolver ortbTypesResolver,
             PrivacyEnforcementService privacyEnforcementService,
-            TimeoutResolver auctionTimeoutResolver,
             DebugResolver debugResolver,
             JacksonMapper mapper) {
 
@@ -277,14 +394,20 @@ public class ServiceConfiguration {
                 maxRequestSize,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                bidRequestOrtbVersionConversionManager,
+                auctionGppService,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
                 new InterstitialProcessor(),
                 ortbTypesResolver,
                 privacyEnforcementService,
-                auctionTimeoutResolver,
                 debugResolver,
                 mapper);
+    }
+
+    @Bean
+    BidAdjustmentFactorResolver bidAdjustmentFactorResolver() {
+        return new BidAdjustmentFactorResolver();
     }
 
     @Bean
@@ -295,33 +418,33 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    IdGenerator sourceIdGenerator(@Value("${auction.generate-source-tid}") boolean generateSourceTid) {
-        return generateSourceTid
-                ? new UUIDIdGenerator()
-                : new NoneIdGenerator();
+    IdGenerator sourceIdGenerator() {
+        return new UUIDIdGenerator();
     }
 
     @Bean
-    AmpRequestFactory ampRequestFactory(StoredRequestProcessor storedRequestProcessor,
-                                        Ortb2RequestFactory ortb2RequestFactory,
+    AmpRequestFactory ampRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
+                                        StoredRequestProcessor storedRequestProcessor,
+                                        BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
+                                        AmpGppService ampGppService,
                                         OrtbTypesResolver ortbTypesResolver,
                                         ImplicitParametersExtractor implicitParametersExtractor,
                                         Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
                                         FpdResolver fpdResolver,
                                         AmpPrivacyContextFactory ampPrivacyContextFactory,
-                                        TimeoutResolver auctionTimeoutResolver,
                                         DebugResolver debugResolver,
                                         JacksonMapper mapper) {
 
         return new AmpRequestFactory(
-                storedRequestProcessor,
                 ortb2RequestFactory,
+                storedRequestProcessor,
+                bidRequestOrtbVersionConversionManager,
+                ampGppService,
                 ortbTypesResolver,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
                 fpdResolver,
                 ampPrivacyContextFactory,
-                auctionTimeoutResolver,
                 debugResolver,
                 mapper);
     }
@@ -331,11 +454,11 @@ public class ServiceConfiguration {
             @Value("${auction.max-request-size}") int maxRequestSize,
             @Value("${video.stored-request-required}") boolean enforceStoredRequest,
             @Value("${auction.video.escape-log-cache-regex:#{null}}") String escapeLogCacheRegex,
-            VideoStoredRequestProcessor storedRequestProcessor,
             Ortb2RequestFactory ortb2RequestFactory,
+            VideoStoredRequestProcessor storedRequestProcessor,
+            BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             PrivacyEnforcementService privacyEnforcementService,
-            TimeoutResolver auctionTimeoutResolver,
             DebugResolver debugResolver,
             JacksonMapper mapper) {
 
@@ -344,10 +467,10 @@ public class ServiceConfiguration {
                 enforceStoredRequest,
                 escapeLogCacheRegex,
                 ortb2RequestFactory,
-                ortb2ImplicitParametersResolver,
                 storedRequestProcessor,
+                bidRequestOrtbVersionConversionManager,
+                ortb2ImplicitParametersResolver,
                 privacyEnforcementService,
-                auctionTimeoutResolver,
                 debugResolver,
                 mapper);
     }
@@ -369,7 +492,6 @@ public class ServiceConfiguration {
             VideoRequestValidator videoRequestValidator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
-            TimeoutResolver auctionTimeoutResolver,
             JacksonMapper mapper,
             JsonMerger jsonMerger) {
 
@@ -384,7 +506,6 @@ public class ServiceConfiguration {
                 videoRequestValidator,
                 metrics,
                 timeoutFactory,
-                auctionTimeoutResolver,
                 mapper,
                 jsonMerger);
     }
@@ -433,7 +554,7 @@ public class ServiceConfiguration {
             Metrics metrics,
             HttpClientProperties httpClientProperties,
             @Qualifier("httpClientCircuitBreakerProperties")
-                    HttpClientCircuitBreakerProperties circuitBreakerProperties,
+            HttpClientCircuitBreakerProperties circuitBreakerProperties,
             Clock clock) {
 
         final HttpClient httpClient = createBasicHttpClient(vertx, httpClientProperties);
@@ -475,6 +596,14 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    PrioritizedCoopSyncProvider prioritizedCoopSyncProvider(
+            @Value("${cookie-sync.pri:#{null}}") String prioritizedBidders,
+            BidderCatalog bidderCatalog) {
+
+        return new PrioritizedCoopSyncProvider(splitToSet(prioritizedBidders), bidderCatalog);
+    }
+
+    @Bean
     UidsCookieService uidsCookieService(
             @Value("${host-cookie.optout-cookie.name:#{null}}") String optOutCookieName,
             @Value("${host-cookie.optout-cookie.value:#{null}}") String optOutCookieValue,
@@ -483,6 +612,8 @@ public class ServiceConfiguration {
             @Value("${host-cookie.domain:#{null}}") String hostCookieDomain,
             @Value("${host-cookie.ttl-days}") Integer ttlDays,
             @Value("${host-cookie.max-cookie-size-bytes}") Integer maxCookieSizeBytes,
+            PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
+            Metrics metrics,
             JacksonMapper mapper) {
 
         return new UidsCookieService(
@@ -493,7 +624,51 @@ public class ServiceConfiguration {
                 hostCookieDomain,
                 ttlDays,
                 maxCookieSizeBytes,
+                prioritizedCoopSyncProvider,
+                metrics,
                 mapper);
+    }
+
+    @Bean
+    UidUpdater uidUpdater(
+            @Value("${host-cookie.family:#{null}}") String hostCookieFamily,
+            BidderCatalog bidderCatalog,
+            UidsCookieService uidsCookieService) {
+
+        return new UidUpdater(hostCookieFamily, bidderCatalog, uidsCookieService);
+    }
+
+    @Bean
+    CoopSyncProvider coopSyncProvider(
+            BidderCatalog bidderCatalog,
+            PrioritizedCoopSyncProvider prioritizedCoopSyncProvider,
+            @Value("${cookie-sync.coop-sync.default:false}") boolean defaultCoopSync) {
+
+        return new CoopSyncProvider(bidderCatalog, prioritizedCoopSyncProvider, defaultCoopSync);
+    }
+
+    @Bean
+    CookieSyncService cookieSyncService(
+            @Value("${external-url}") String externalUrl,
+            @Value("${cookie-sync.default-limit:#{2}}") Integer defaultLimit,
+            @Value("${cookie-sync.max-limit:#{null}}") Integer maxLimit,
+            BidderCatalog bidderCatalog,
+            HostVendorTcfDefinerService hostVendorTcfDefinerService,
+            PrivacyEnforcementService privacyEnforcementService,
+            UidsCookieService uidsCookieService,
+            CoopSyncProvider coopSyncProvider,
+            Metrics metrics) {
+
+        return new CookieSyncService(
+                externalUrl,
+                defaultLimit,
+                ObjectUtils.defaultIfNull(maxLimit, Integer.MAX_VALUE),
+                bidderCatalog,
+                hostVendorTcfDefinerService,
+                privacyEnforcementService,
+                uidsCookieService,
+                coopSyncProvider,
+                metrics);
     }
 
     @Bean
@@ -504,6 +679,22 @@ public class ServiceConfiguration {
     @Bean
     BidderCatalog bidderCatalog(List<BidderDeps> bidderDeps) {
         return new BidderCatalog(bidderDeps);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "auction.filter-imp-media-type", name = "enabled", havingValue = "true")
+    MediaTypeProcessor bidderMediaTypeProcessor(BidderCatalog bidderCatalog) {
+        return new BidderMediaTypeProcessor(bidderCatalog);
+    }
+
+    @Bean
+    MediaTypeProcessor multiFormatMediaTypeProcessor(BidderCatalog bidderCatalog) {
+        return new MultiFormatMediaTypeProcessor(bidderCatalog);
+    }
+
+    @Bean
+    CompositeMediaTypeProcessor compositeMediaTypeProcessor(List<MediaTypeProcessor> mediaTypeProcessors) {
+        return new CompositeMediaTypeProcessor(mediaTypeProcessors);
     }
 
     @Bean
@@ -527,8 +718,10 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    HttpBidderRequestEnricher httpBidderRequestEnricher(PrebidVersionProvider prebidVersionProvider) {
-        return new HttpBidderRequestEnricher(prebidVersionProvider);
+    HttpBidderRequestEnricher httpBidderRequestEnricher(PrebidVersionProvider prebidVersionProvider,
+                                                        BidderCatalog bidderCatalog) {
+
+        return new HttpBidderRequestEnricher(prebidVersionProvider, bidderCatalog);
     }
 
     @Bean
@@ -581,14 +774,20 @@ public class ServiceConfiguration {
 
     @Bean
     ExchangeService exchangeService(
-            @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
+            @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
-            DealsProcessor dealsProcessor,
+            @Autowired(required = false) DealsService dealsService,
             PrivacyEnforcementService privacyEnforcementService,
             FpdResolver fpdResolver,
-            SchainResolver schainResolver,
+            SupplyChainResolver supplyChainResolver,
             DebugResolver debugResolver,
+            CompositeMediaTypeProcessor mediaTypeProcessor,
+            UidUpdater uidUpdater,
+            TimeoutResolver timeoutResolver,
+            TimeoutFactory timeoutFactory,
+            BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             HttpBidderRequester httpBidderRequester,
             ResponseBidValidator responseBidValidator,
             CurrencyConversionService currencyConversionService,
@@ -597,20 +796,30 @@ public class ServiceConfiguration {
             HookStageExecutor hookStageExecutor,
             @Autowired(required = false) ApplicationEventService applicationEventService,
             HttpInteractionLogger httpInteractionLogger,
+            PriceFloorAdjuster priceFloorAdjuster,
+            PriceFloorEnforcer priceFloorEnforcer,
+            BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
             Metrics metrics,
             Clock clock,
             JacksonMapper mapper,
-            CriteriaLogManager criteriaLogManager) {
+            CriteriaLogManager criteriaLogManager,
+            @Value("${auction.strict-app-site-dooh:false}") boolean enabledStrictAppSiteDoohValidation) {
 
         return new ExchangeService(
-                expectedCacheTimeMs,
+                logSamplingRate,
+                timeoutAdjustmentFactor,
                 bidderCatalog,
                 storedResponseProcessor,
-                dealsProcessor,
+                dealsService,
                 privacyEnforcementService,
                 fpdResolver,
-                schainResolver,
+                supplyChainResolver,
                 debugResolver,
+                mediaTypeProcessor,
+                uidUpdater,
+                timeoutResolver,
+                timeoutFactory,
+                bidRequestOrtbVersionConversionManager,
                 httpBidderRequester,
                 responseBidValidator,
                 currencyConversionService,
@@ -619,10 +828,13 @@ public class ServiceConfiguration {
                 hookStageExecutor,
                 applicationEventService,
                 httpInteractionLogger,
+                priceFloorAdjuster,
+                priceFloorEnforcer,
+                bidAdjustmentFactorResolver,
                 metrics,
                 clock,
                 mapper,
-                criteriaLogManager);
+                criteriaLogManager, enabledStrictAppSiteDoohValidation);
     }
 
     @Bean
@@ -710,11 +922,30 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    RequestValidator requestValidator(BidderCatalog bidderCatalog,
-                                      BidderParamValidator bidderParamValidator,
-                                      JacksonMapper mapper) {
+    RequestValidator requestValidator(
+            BidderCatalog bidderCatalog,
+            BidderParamValidator bidderParamValidator,
+            Metrics metrics,
+            JacksonMapper mapper,
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
+            @Value("${auction.strict-app-site-dooh:false}") boolean enabledStrictAppSiteDoohValidation) {
 
-        return new RequestValidator(bidderCatalog, bidderParamValidator, mapper);
+        return new RequestValidator(
+                bidderCatalog,
+                bidderParamValidator,
+                metrics,
+                mapper,
+                logSamplingRate,
+                enabledStrictAppSiteDoohValidation);
+    }
+
+    @Bean
+    PriceFloorsConfigResolver accountValidator(
+            @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
+            Metrics metrics,
+            JacksonMapper jacksonMapper) {
+
+        return new PriceFloorsConfigResolver(defaultAccountConfig, metrics, jacksonMapper);
     }
 
     @Bean
@@ -730,8 +961,13 @@ public class ServiceConfiguration {
             JacksonMapper mapper,
             @Value("${deals.enabled}") boolean dealsEnabled) {
 
-        return new ResponseBidValidator(bannerMaxSizeEnforcement, secureMarkupEnforcement, metrics, mapper,
-                dealsEnabled);
+        return new ResponseBidValidator(
+                bannerMaxSizeEnforcement,
+                secureMarkupEnforcement,
+                metrics,
+                mapper,
+                dealsEnabled,
+                logSamplingRate);
     }
 
     @Bean
@@ -775,6 +1011,15 @@ public class ServiceConfiguration {
     @Bean
     AmpResponsePostProcessor ampResponsePostProcessor() {
         return AmpResponsePostProcessor.noOp();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "server.cpu-load-monitoring", name = "enabled", havingValue = "true")
+    CpuLoadAverageStats cpuLoadAverageStats(
+            Vertx vertx,
+            @Value("${server.cpu-load-monitoring.measurement-interval-ms:60000}") long measurementIntervalMillis) {
+
+        return new CpuLoadAverageStats(vertx, measurementIntervalMillis);
     }
 
     @Bean
@@ -822,10 +1067,21 @@ public class ServiceConfiguration {
     }
 
     private static List<String> splitToList(String listAsString) {
+        return splitToCollection(listAsString, ArrayList::new);
+    }
+
+    private static Set<String> splitToSet(String listAsString) {
+        return splitToCollection(listAsString, HashSet::new);
+    }
+
+    private static <T extends Collection<String>> T splitToCollection(String listAsString,
+                                                                      Supplier<T> collectionFactory) {
+
         return listAsString != null
                 ? Stream.of(listAsString.split(","))
                 .map(String::trim)
-                .collect(Collectors.toList())
-                : null;
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toCollection(collectionFactory))
+                : collectionFactory.get();
     }
 }

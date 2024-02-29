@@ -1,6 +1,7 @@
 package org.prebid.server.auction;
 
 import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
 
 import java.util.Map;
@@ -39,6 +40,10 @@ public class BidderAliases {
 
     public String resolveBidder(String aliasOrBidder) {
         return aliasToBidder.getOrDefault(aliasOrBidder, aliasOrBidder);
+    }
+
+    public boolean isSame(String bidder1, String bidder2) {
+        return StringUtils.equalsIgnoreCase(resolveBidder(bidder1), resolveBidder(bidder2));
     }
 
     public Integer resolveAliasVendorId(String alias) {

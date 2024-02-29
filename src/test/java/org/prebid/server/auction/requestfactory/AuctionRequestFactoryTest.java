@@ -7,8 +7,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Source;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
@@ -28,9 +31,11 @@ import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
-import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.AuctionStoredResult;
+import org.prebid.server.auction.model.debug.DebugContext;
+import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
@@ -40,6 +45,8 @@ import org.prebid.server.privacy.ccpa.Ccpa;
 import org.prebid.server.privacy.gdpr.model.TcfContext;
 import org.prebid.server.privacy.model.Privacy;
 import org.prebid.server.privacy.model.PrivacyContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
@@ -54,7 +61,9 @@ import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
@@ -74,6 +83,10 @@ public class AuctionRequestFactoryTest extends VertxTest {
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
     @Mock
+    private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
+    @Mock
+    private AuctionGppService auctionGppService;
+    @Mock
     private ImplicitParametersExtractor paramsExtractor;
     @Mock
     private Ortb2ImplicitParametersResolver paramsResolver;
@@ -83,8 +96,6 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private OrtbTypesResolver ortbTypesResolver;
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
-    @Mock
-    private TimeoutResolver timeoutResolver;
     @Mock
     private DebugResolver debugResolver;
 
@@ -106,7 +117,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
         defaultAccount = Account.empty(ACCOUNT_ID);
 
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
-                Privacy.of("0", EMPTY, Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("0")
+                        .consentString(EMPTY)
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.empty());
         defaultActionContext = AuctionContext.builder()
                 .requestTypeMetric(MetricName.openrtb2web)
@@ -114,18 +130,22 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .account(defaultAccount)
                 .prebidErrors(new ArrayList<>())
                 .privacyContext(defaultPrivacyContext)
-                .debugContext(DebugContext.of(true, null))
+                .debugContext(DebugContext.of(true, true, null))
                 .build();
+
+        given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+
+        given(auctionGppService.contextFrom(any())).willReturn(Future.succeededFuture());
+        given(auctionGppService.updateBidRequest(any(), any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.request()).willReturn(httpRequest);
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
 
-        given(timeoutResolver.resolve(any())).willReturn(2000L);
-        given(timeoutResolver.adjustTimeout(anyLong())).willReturn(1900L);
-
-        given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, null));
+        given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, true, null));
 
         given(ortb2RequestFactory.createAuctionContext(any(), any())).willReturn(defaultActionContext);
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
@@ -133,10 +153,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.executeRawAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
-        given(ortb2RequestFactory.validateRequest(any(), any()))
+        given(ortb2RequestFactory.validateRequest(any(), any(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture((BidRequest) invocationOnMock.getArgument(0)));
+        given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(ortb2RequestFactory.updateTimeout(any(), anyLong())).willAnswer(invocation -> invocation.getArgument(0));
 
-        given(paramsResolver.resolve(any(), any(), any(), any()))
+        given(paramsResolver.resolve(any(), any(), any(), anyBoolean()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
 
         given(interstitialProcessor.process(any()))
@@ -150,21 +172,24 @@ public class AuctionRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.executeProcessedAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
-        given(ortb2RequestFactory.populateDealsInfo(any()))
+        given(ortb2RequestFactory.populateUserAdditionalInfo(any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
+        given(ortb2RequestFactory.activityInfrastructureFrom(any()))
+                .willReturn(Future.succeededFuture());
 
         target = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                ortbVersionConversionManager,
+                auctionGppService,
                 paramsExtractor,
                 paramsResolver,
                 interstitialProcessor,
                 ortbTypesResolver,
                 privacyEnforcementService,
-                timeoutResolver,
                 debugResolver,
                 jacksonMapper);
     }
@@ -191,12 +216,13 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 1,
                 ortb2RequestFactory,
                 storedRequestProcessor,
+                ortbVersionConversionManager,
+                auctionGppService,
                 paramsExtractor,
                 paramsResolver,
                 interstitialProcessor,
                 ortbTypesResolver,
                 privacyEnforcementService,
-                timeoutResolver,
                 debugResolver,
                 jacksonMapper);
 
@@ -225,6 +251,33 @@ public class AuctionRequestFactoryTest extends VertxTest {
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages()).hasSize(1)
                 .element(0).asString().startsWith("Error decoding bidRequest: Unrecognized token 'body'");
+    }
+
+    @Test
+    public void shouldFillBidRequestWithValuesFromHttpRequest() {
+        // given
+        final ExtRegsDsa dsa = ExtRegsDsa.of(1, 2, 3, emptyList());
+        final BidRequest receivedBidRequest = BidRequest.builder()
+                .regs(Regs.builder()
+                        .ext(ExtRegs.of(0, "us_privacy", null, dsa))
+                        .build())
+                .build();
+
+        givenBidRequest(receivedBidRequest);
+        given(paramsExtractor.gpcFrom(any())).willReturn("1");
+
+        // when
+        target.fromRequest(routingContext, 0L);
+
+        // then
+        final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
+        verify(ortb2RequestFactory).enrichAuctionContext(any(), any(), captor.capture(), anyLong());
+
+        final BidRequest capturedRequest = captor.getValue();
+        assertThat(capturedRequest.getRegs())
+                .extracting(Regs::getExt)
+                .extracting(ExtRegs::getGdpr, ExtRegs::getUsPrivacy, ExtRegs::getGpc, ExtRegs::getDsa)
+                .containsExactly(0, "us_privacy", "1", dsa);
     }
 
     @Test
@@ -289,7 +342,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         verify(debugResolver).debugContextFrom(any());
         assertThat(result.result().getDebugContext()).isEqualTo(
-                DebugContext.of(true, null));
+                DebugContext.of(true, true, null));
     }
 
     @Test
@@ -311,7 +364,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         // then
         final ArgumentCaptor<BidRequest> captor = ArgumentCaptor.forClass(BidRequest.class);
-        verify(storedRequestProcessor).processStoredRequests(any(), captor.capture());
+        verify(storedRequestProcessor).processAuctionRequest(any(), captor.capture());
 
         final BidRequest capturedRequest = captor.getValue();
         assertThat(capturedRequest.getSite()).isNull();
@@ -398,7 +451,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
         final JsonNode eidPermissionNode = mapper.convertValue(
                 ExtRequestPrebidDataEidPermissions.of("source", emptyList()), JsonNode.class);
 
-        requestNode.with("ext").with("prebid").with("data").set("eidpermissions", eidPermissionNode);
+        requestNode
+                .putObject("ext")
+                .putObject("prebid")
+                .putObject("data")
+                .set("eidpermissions", eidPermissionNode);
 
         given(routingContext.getBodyAsString()).willReturn(requestNode.toString());
 
@@ -430,9 +487,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
         eidPermissionNode.put("bidders", "notArrayValue");
 
         final ArrayNode arrayNode = requestNode
-                .with("ext")
-                .with("prebid")
-                .with("data")
+                .putObject("ext")
+                .putObject("prebid")
+                .putObject("data")
                 .putArray("eidpermissions");
         arrayNode.add(eidPermissionNode);
 
@@ -496,10 +553,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetWebRequestTypeInAuctionContextWhenSiteIsPresent() {
+    public void fromRequestShouldSetWebRequestTypeMetricWhenSiteIsPresent() {
         // given
-        final BidRequest bidRequest = BidRequest.builder().site(Site.builder().build()).build();
-        givenValidBidRequest(bidRequest);
+        givenValidBidRequest(BidRequest.builder().site(Site.builder().build()).build());
 
         // when
         final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
@@ -510,10 +566,22 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldSetAppRequestTypeInContextWhenAppIsPresent() {
+    public void fromRequestShouldSetWebRequestTypeMetricWhenNoSiteAppOrDoohPresent() {
         // given
-        final BidRequest bidRequest = BidRequest.builder().app(App.builder().build()).build();
-        givenValidBidRequest(bidRequest);
+        givenValidBidRequest(BidRequest.builder().build());
+
+        // when
+        final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(result).isSucceeded();
+        assertThat(result.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2web);
+    }
+
+    @Test
+    public void fromRequestShouldSetAppRequestTypeMetricWhenAppIsPresent() {
+        // given
+        givenValidBidRequest(BidRequest.builder().app(App.builder().build()).build());
 
         // when
         final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
@@ -521,6 +589,19 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2app);
+    }
+
+    @Test
+    public void fromRequestShouldSetDoohRequestTypeMetricWhenDoohIsPresent() {
+        // given
+        givenValidBidRequest(BidRequest.builder().dooh(Dooh.builder().build()).build());
+
+        // when
+        final Future<AuctionContext> result = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(result).isSucceeded();
+        assertThat(result.result().getRequestTypeMetric()).isEqualTo(MetricName.openrtb2dooh);
     }
 
     @Test
@@ -532,14 +613,14 @@ public class AuctionRequestFactoryTest extends VertxTest {
         target.fromRequest(routingContext, 0L);
 
         // then
-        verify(storedRequestProcessor).processStoredRequests(eq(ACCOUNT_ID), any());
+        verify(storedRequestProcessor).processAuctionRequest(eq(ACCOUNT_ID), any());
     }
 
     @Test
     public void shouldReturnFailedFutureIfProcessStoredRequestsFailed() {
         // given
         givenValidBidRequest();
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
                 .willReturn(Future.failedFuture("error"));
 
         // when
@@ -555,7 +636,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // given
         givenValidBidRequest();
 
-        given(ortb2RequestFactory.validateRequest(any(), any()))
+        given(ortb2RequestFactory.validateRequest(any(), any(), any()))
                 .willReturn(Future.failedFuture(new InvalidRequestException("errors")));
 
         // when
@@ -585,7 +666,7 @@ public class AuctionRequestFactoryTest extends VertxTest {
         givenValidBidRequest();
 
         final BidRequest updatedBidRequest = defaultBidRequest.toBuilder().id("updated").build();
-        given(paramsResolver.resolve(any(), any(), any(), any())).willReturn(updatedBidRequest);
+        given(paramsResolver.resolve(any(), any(), any(), anyBoolean())).willReturn(updatedBidRequest);
 
         // when
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
@@ -601,7 +682,12 @@ public class AuctionRequestFactoryTest extends VertxTest {
 
         final GeoInfo geoInfo = GeoInfo.builder().vendor("vendor").city("found").build();
         final PrivacyContext privacyContext = PrivacyContext.of(
-                Privacy.of("1", "consent", Ccpa.EMPTY, 0),
+                Privacy.builder()
+                        .gdpr("1")
+                        .consentString("consent")
+                        .ccpa(Ccpa.EMPTY)
+                        .coppa(0)
+                        .build(),
                 TcfContext.builder().geoInfo(geoInfo).build());
         given(privacyEnforcementService.contextFromBidRequest(any()))
                 .willReturn(Future.succeededFuture(privacyContext));
@@ -612,6 +698,50 @@ public class AuctionRequestFactoryTest extends VertxTest {
         // then
         assertThat(result.getPrivacyContext()).isEqualTo(privacyContext);
         assertThat(result.getGeoInfo()).isEqualTo(geoInfo);
+    }
+
+    @Test
+    public void shouldConvertBidRequestToInternalOpenRTBVersion() {
+        // given
+        givenValidBidRequest();
+
+        given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any())).willAnswer(
+                invocation -> ((BidRequest) invocation.getArgument(0))
+                        .toBuilder()
+                        .source(Source.builder().tid("uniqTid").build())
+                        .build());
+
+        // when
+        target.fromRequest(routingContext, 0L);
+
+        // then
+        verify(paramsResolver).resolve(
+                argThat(bidRequest -> bidRequest.getSource().equals(Source.builder().tid("uniqTid").build())),
+                any(),
+                any(),
+                anyBoolean());
+    }
+
+    @Test
+    public void shouldUpdateTimeout() {
+        // given
+        givenValidBidRequest();
+
+        given(ortb2RequestFactory.updateTimeout(any(), anyLong()))
+                .willAnswer(invocation -> {
+                    final AuctionContext auctionContext = invocation.getArgument(0);
+                    return auctionContext.with(auctionContext.getBidRequest().toBuilder().tmax(10000L).build());
+                });
+
+        // when
+        final Future<AuctionContext> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future).isSucceeded();
+        assertThat(future.result())
+                .extracting(AuctionContext::getBidRequest)
+                .extracting(BidRequest::getTmax)
+                .isEqualTo(10000L);
     }
 
     private void givenBidRequest(BidRequest bidRequest) {
@@ -631,8 +761,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
     }
 
     private void givenProcessStoredRequest(BidRequest bidRequest) {
-        given(storedRequestProcessor.processStoredRequests(any(), any()))
-                .willReturn(Future.succeededFuture(bidRequest));
+        given(storedRequestProcessor.processAuctionRequest(any(), any()))
+                .willReturn(Future.succeededFuture(AuctionStoredResult.of(false, bidRequest)));
     }
 
     private void givenValidBidRequest() {

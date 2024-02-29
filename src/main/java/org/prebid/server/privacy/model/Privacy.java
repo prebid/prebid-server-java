@@ -1,9 +1,13 @@
 package org.prebid.server.privacy.model;
 
+import lombok.Builder;
 import lombok.Value;
 import org.prebid.server.privacy.ccpa.Ccpa;
 
-@Value(staticConstructor = "of")
+import java.util.List;
+
+@Value
+@Builder(toBuilder = true)
 public class Privacy {
 
     String gdpr;
@@ -14,7 +18,11 @@ public class Privacy {
 
     Integer coppa;
 
+    String gpp;
+
+    List<Integer> gppSid;
+
     public Privacy withoutConsent() {
-        return Privacy.of(gdpr, "", ccpa, coppa);
+        return toBuilder().consentString("").build();
     }
 }

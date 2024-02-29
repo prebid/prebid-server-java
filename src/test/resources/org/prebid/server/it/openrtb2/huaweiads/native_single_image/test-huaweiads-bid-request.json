@@ -1,0 +1,81 @@
+{
+  "app": {
+    "lang": "en",
+    "country": "DE",
+    "name": "Huawei Browser",
+    "pkgname": "com.huawei.browser",
+    "version": "9.1.0.301"
+  },
+  "multislot": [
+    {
+      "adtype": 3,
+      "slotid": "u42ohmaufh",
+      "detailedCreativeTypeList": [
+        "901",
+        "904",
+        "905"
+      ],
+      "format": [
+        {
+          "w": 1080,
+          "h": 1920
+        },
+        {
+          "w": 640,
+          "h": 360
+        },
+        {
+          "w": 1080,
+          "h": 607
+        },
+        {
+          "w": 1080,
+          "h": 1620
+        },
+        {
+          "w": 300,
+          "h": 250
+        },
+        {
+          "w": 1280,
+          "h": 720
+        },
+        {
+          "w": 720,
+          "h": 1280
+        }
+      ],
+      "test": 1
+    }
+  ],
+  "device": {
+    "height": 1920,
+    "language": "en",
+    "oaid": "oaid",
+    "os": "android",
+    "type": 4,
+    "ip": "193.168.244.1",
+    "localeCountry": "DE",
+    "pxratio": 23.01,
+    "model": "COL-TEST",
+    "width": 1080,
+    "clientTime": "2018-11-02 16:34:07.981+1300",
+    "gaid": "gaid",
+    "gaidTrackingEnabled": "1",
+    "isTrackingEnabled": "1",
+    "useragent": "useragent",
+    "version": "10.0.0",
+    "maker": "huawei",
+    "belongCountry": "DE"
+  },
+  "geo": {
+  },
+  "network": {
+    "type": 0,
+    "cellInfo": []
+  },
+  "regs": {
+  },
+  "version": "3.4",
+  "clientAdRequestId": "test-req-id"
+}

@@ -11,12 +11,11 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -30,7 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,12 +39,7 @@ public class VideobyteBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://site.st/uri";
 
-    private VideobyteBidder bidder;
-
-    @Before
-    public void setUp() {
-        bidder = new VideobyteBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final VideobyteBidder target = new VideobyteBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -60,7 +53,7 @@ public class VideobyteBidderTest extends VertxTest {
                 givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1);
@@ -75,7 +68,7 @@ public class VideobyteBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp(identity()), givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(2)
@@ -94,7 +87,7 @@ public class VideobyteBidderTest extends VertxTest {
                 givenImp(ext -> ext.publisherId("789").placementId("dce").networkId("A?a=BC"), identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).extracting(HttpRequest::getUri)
@@ -112,7 +105,7 @@ public class VideobyteBidderTest extends VertxTest {
                 givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -134,7 +127,7 @@ public class VideobyteBidderTest extends VertxTest {
                 givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -156,7 +149,7 @@ public class VideobyteBidderTest extends VertxTest {
                 givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -174,10 +167,10 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("Incorrect body", null);
+        final BidderCall<BidRequest> httpCall = givenHttpCall("Incorrect body", null);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -191,10 +184,10 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("null", null);
+        final BidderCall<BidRequest> httpCall = givenHttpCall("null", null);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -204,10 +197,10 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("{}", null);
+        final BidderCall<BidRequest> httpCall = givenHttpCall("{}", null);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -217,13 +210,13 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithCorrectMediaType() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse("id1", "id2"),
                 givenBidRequest(givenImp(imp -> imp.id("id2")),
                         givenImp(imp -> imp.id("id1").banner(Banner.builder().build()))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).extracting(BidderBid::getType)
@@ -234,11 +227,11 @@ public class VideobyteBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithDefaultCurrency() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse("", ""),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse("", ""),
                 givenBidRequest(givenImp(identity()), givenImp(identity())));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).hasSize(2)
@@ -271,10 +264,10 @@ public class VideobyteBidderTest extends VertxTest {
         return givenImp(identity(), impCustomizer);
     }
 
-    private HttpCall<BidRequest> givenHttpCall(String body, BidRequest bidRequest) {
+    private BidderCall<BidRequest> givenHttpCall(String body, BidRequest bidRequest) {
         final HttpRequest<BidRequest> request = HttpRequest.<BidRequest>builder().payload(bidRequest).build();
         final HttpResponse response = HttpResponse.of(200, null, body);
-        return HttpCall.success(request, response, null);
+        return BidderCall.succeededHttp(request, response, null);
     }
 
     private String givenBidResponse(String... impIds) throws JsonProcessingException {
@@ -282,7 +275,7 @@ public class VideobyteBidderTest extends VertxTest {
                 .map(impId -> Bid.builder().impid(impId).build())
                 .map(Collections::singletonList)
                 .map(bids -> SeatBid.builder().bid(bids).build())
-                .collect(Collectors.toList());
+                .toList();
         return mapper.writeValueAsString(BidResponse.builder().seatbid(seatBids).build());
     }
 }

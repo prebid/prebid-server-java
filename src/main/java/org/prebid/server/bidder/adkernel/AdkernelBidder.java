@@ -5,6 +5,7 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -12,8 +13,8 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -31,13 +32,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 public class AdkernelBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpAdkernel>> ADKERNEL_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+
+    private static final String MF_SUFFIX = "__mf";
+    private static final String MF_SUFFIX_BANNER = "b" + MF_SUFFIX;
+    private static final String MF_SUFFIX_VIDEO = "v" + MF_SUFFIX;
+    private static final String MF_SUFFIX_AUDIO = "a" + MF_SUFFIX;
+    private static final String MF_SUFFIX_NATIVE = "n" + MF_SUFFIX;
+
+    private static final int MF_SUFFIX_LENGTH = MF_SUFFIX.length() + 1;
 
     private final String endpointTemplate;
     private final JacksonMapper mapper;
@@ -66,7 +76,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
         final List<HttpRequest<BidRequest>> httpRequests = pubToImps.entrySet().stream()
                 .map(extAndImp -> createHttpRequest(extAndImp, requestBuilder, request.getSite(), request.getApp()))
-                .collect(Collectors.toList());
+                .toList();
 
         return Result.of(httpRequests, errors);
     }
@@ -74,7 +84,8 @@ public class AdkernelBidder implements Bidder<BidRequest> {
     private void processImp(Imp imp, Map<ExtImpAdkernel, List<Imp>> pubToImps) {
         validateImp(imp);
         final ExtImpAdkernel extImpAdkernel = parseAndValidateImpExt(imp);
-        dispatchImpression(imp, extImpAdkernel, pubToImps);
+        final Imp updatedImp = imp.toBuilder().ext(null).build();
+        dispatchImpression(updatedImp, extImpAdkernel, pubToImps);
     }
 
     private static void validateImp(Imp imp) {
@@ -94,8 +105,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
 
         final Integer zoneId = extImpAdkernel.getZoneId();
         if (zoneId == null || zoneId < 1) {
-            throw new PreBidException(String.format("Invalid zoneId value: %d. Ignoring imp id=%s",
-                    zoneId, imp.getId()));
+            throw new PreBidException("Invalid zoneId value: %d. Ignoring imp id=%s".formatted(zoneId, imp.getId()));
         }
 
         return extImpAdkernel;
@@ -103,20 +113,63 @@ public class AdkernelBidder implements Bidder<BidRequest> {
 
     private static void dispatchImpression(Imp imp, ExtImpAdkernel extImpAdkernel,
                                            Map<ExtImpAdkernel, List<Imp>> pubToImp) {
-        pubToImp.putIfAbsent(extImpAdkernel, new ArrayList<>());
-        pubToImp.get(extImpAdkernel).add(compatImpression(imp));
+
+        pubToImp.computeIfAbsent(extImpAdkernel, ignored -> new ArrayList<>())
+                .addAll(splitByMediaType(imp));
     }
 
-    private static Imp compatImpression(Imp imp) {
-        final Imp.ImpBuilder impBuilder = imp.toBuilder().ext(null).audio(null);
+    private static List<Imp> splitByMediaType(Imp imp) {
+        final long mediaTypesCount = Stream.of(imp.getVideo(), imp.getAudio(), imp.getBanner(), imp.getXNative())
+                .filter(Objects::nonNull)
+                .count();
+
+        if (mediaTypesCount == 1) {
+            return Collections.singletonList(imp);
+        }
+
+        final List<Imp> singleFormatImps = new ArrayList<>();
 
         if (imp.getBanner() != null) {
-            return impBuilder.video(null).xNative(null).build();
-        } else if (imp.getVideo() != null) {
-            return impBuilder.xNative(null).build();
-        } else {
-            return impBuilder.build();
+            singleFormatImps.add(
+                    imp.toBuilder()
+                            .id(imp.getId() + MF_SUFFIX_BANNER)
+                            .video(null)
+                            .audio(null)
+                            .xNative(null)
+                            .build());
         }
+
+        if (imp.getVideo() != null) {
+            singleFormatImps.add(
+                    imp.toBuilder()
+                            .id(imp.getId() + MF_SUFFIX_VIDEO)
+                            .banner(null)
+                            .audio(null)
+                            .xNative(null)
+                            .build());
+        }
+
+        if (imp.getAudio() != null) {
+            singleFormatImps.add(
+                    imp.toBuilder()
+                            .id(imp.getId() + MF_SUFFIX_AUDIO)
+                            .banner(null)
+                            .video(null)
+                            .xNative(null)
+                            .build());
+        }
+
+        if (imp.getXNative() != null) {
+            singleFormatImps.add(
+                    imp.toBuilder()
+                            .id(imp.getId() + MF_SUFFIX_NATIVE)
+                            .banner(null)
+                            .video(null)
+                            .audio(null)
+                            .build());
+        }
+
+        return singleFormatImps;
     }
 
     private static boolean hasNoImpressions(Map<ExtImpAdkernel, List<Imp>> pubToImps) {
@@ -125,9 +178,12 @@ public class AdkernelBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createHttpRequest(Map.Entry<ExtImpAdkernel, List<Imp>> extAndImp,
-                                                      BidRequest.BidRequestBuilder requestBuilder, Site site, App app) {
+                                                      BidRequest.BidRequestBuilder requestBuilder,
+                                                      Site site,
+                                                      App app) {
+
         final ExtImpAdkernel impExt = extAndImp.getKey();
-        final String uri = String.format(endpointTemplate, impExt.getZoneId());
+        final String uri = endpointTemplate.formatted(impExt.getZoneId());
 
         final MultiMap headers = HttpUtil.headers()
                 .add(HttpUtil.X_OPENRTB_VERSION_HEADER, "2.5");
@@ -159,7 +215,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
@@ -173,7 +229,7 @@ public class AdkernelBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() != 1) {
-            throw new PreBidException(String.format("Invalid SeatBids count: %d", bidResponse.getSeatbid().size()));
+            throw new PreBidException("Invalid SeatBids count: " + bidResponse.getSeatbid().size());
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }
@@ -182,16 +238,62 @@ public class AdkernelBidder implements Bidder<BidRequest> {
         return bidResponse.getSeatbid().stream()
                 .map(SeatBid::getBid)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), bidResponse.getCur()))
+                .toList();
     }
 
-    private static BidType getType(String impId, List<Imp> imps) {
+    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency) {
+        final Optional<String> mfSuffix = getMfSuffix(bid.getImpid());
+        final Bid updatedBid = mfSuffix.map(suffix -> removeMfSuffixFromImpId(bid, suffix)).orElse(bid);
+
+        final BidType bidType = mfSuffix
+                .flatMap(AdkernelBidder::getTypeFromMsSuffix)
+                .orElseGet(() -> getTypeFromImp(updatedBid.getImpid(), imps));
+
+        return BidderBid.of(updatedBid, bidType, currency);
+    }
+
+    private static Optional<String> getMfSuffix(String impId) {
+        return Optional.of(impId.indexOf(MF_SUFFIX) - 1)
+                .filter(index -> index >= 0)
+                .map(index -> impId.substring(index, index + MF_SUFFIX_LENGTH));
+    }
+
+    private static Bid removeMfSuffixFromImpId(Bid bid, String mfSuffix) {
+        return bid.toBuilder()
+                .impid(bid.getImpid().replace(mfSuffix, ""))
+                .build();
+    }
+
+    private static Optional<BidType> getTypeFromMsSuffix(String msSuffix) {
+        final BidType bidType = switch (msSuffix) {
+            case MF_SUFFIX_BANNER -> BidType.banner;
+            case MF_SUFFIX_VIDEO -> BidType.video;
+            case MF_SUFFIX_AUDIO -> BidType.audio;
+            case MF_SUFFIX_NATIVE -> BidType.xNative;
+            default -> null;
+        };
+
+        return Optional.ofNullable(bidType);
+    }
+
+    private static BidType getTypeFromImp(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
-            if (imp.getId().equals(impId) && imp.getBanner() != null) {
+            if (!imp.getId().equals(impId)) {
+                continue;
+            }
+
+            if (imp.getBanner() != null) {
                 return BidType.banner;
+            } else if (imp.getVideo() != null) {
+                return BidType.video;
+            } else if (imp.getAudio() != null) {
+                return BidType.audio;
+            } else if (imp.getXNative() != null) {
+                return BidType.xNative;
             }
         }
+
         return BidType.video;
     }
 }

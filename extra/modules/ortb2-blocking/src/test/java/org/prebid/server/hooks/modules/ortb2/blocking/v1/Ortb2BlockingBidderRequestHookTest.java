@@ -3,14 +3,21 @@ package org.prebid.server.hooks.modules.ortb2.blocking.v1;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
+import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.config.ArrayOverride;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.config.Attribute;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.config.AttributeActionOverrides;
@@ -27,19 +34,36 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.bidder.BidderRequestPayload;
+import org.prebid.server.spring.config.bidder.model.Ortb;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.SoftAssertions.assertSoftly;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
 
-class Ortb2BlockingBidderRequestHookTest {
+public class Ortb2BlockingBidderRequestHookTest {
 
     private static final ObjectMapper mapper = new ObjectMapper()
             .setPropertyNamingStrategy(PropertyNamingStrategies.KEBAB_CASE)
             .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
-    private final Ortb2BlockingBidderRequestHook hook = new Ortb2BlockingBidderRequestHook();
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Mock
+    private BidderCatalog bidderCatalog;
+
+    private Ortb2BlockingBidderRequestHook hook;
+
+    @Before
+    public void setUp() {
+        given(bidderCatalog.bidderInfoByName(anyString()))
+                .willReturn(bidderInfo(OrtbVersion.ORTB_2_5));
+
+        hook = new Ortb2BlockingBidderRequestHook(bidderCatalog);
+    }
 
     @Test
     public void shouldReturnResultWithNoActionWhenNoBlockingAttributes() {
@@ -53,6 +77,7 @@ class Ortb2BlockingBidderRequestHookTest {
         assertThat(result.result()).isEqualTo(InvocationResultImpl.builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_action)
+                .moduleContext(ModuleContext.create().with("bidder1", OrtbVersion.ORTB_2_5))
                 .build());
     }
 
@@ -72,6 +97,7 @@ class Ortb2BlockingBidderRequestHookTest {
         assertThat(result.result()).isEqualTo(InvocationResultImpl.builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_action)
+                .moduleContext(ModuleContext.create().with("bidder1", OrtbVersion.ORTB_2_5))
                 .errors(singletonList("attributes field in account configuration is not an object"))
                 .build());
     }
@@ -92,6 +118,7 @@ class Ortb2BlockingBidderRequestHookTest {
         assertThat(result.result()).isEqualTo(InvocationResultImpl.builder()
                 .status(InvocationStatus.success)
                 .action(InvocationAction.no_action)
+                .moduleContext(ModuleContext.create().with("bidder1", OrtbVersion.ORTB_2_5))
                 .build());
     }
 
@@ -122,20 +149,20 @@ class Ortb2BlockingBidderRequestHookTest {
                     .isNotNull()
                     .isInstanceOf(ModuleContext.class)
                     .asInstanceOf(InstanceOfAssertFactories.type(ModuleContext.class))
-                    .satisfies(context -> assertThat(context.blockedAttributesFor("bidder1"))
-                            .isEqualTo(BlockedAttributes.builder()
-                                    .badv(singletonList("domain1.com"))
-                                    .bcat(singletonList("cat1"))
-                                    .build()));
+                    .satisfies(context -> {
+                        assertThat(context.ortbVersionOf("bidder1")).isSameAs(OrtbVersion.ORTB_2_5);
+                        assertThat(context.blockedAttributesFor("bidder1"))
+                                .isEqualTo(BlockedAttributes.builder()
+                                        .badv(singletonList("domain1.com"))
+                                        .bcat(singletonList("cat1"))
+                                        .build());
+                    });
             softly.assertThat(invocationResult.warnings()).isNull();
             softly.assertThat(invocationResult.errors()).isNull();
         });
 
         final PayloadUpdate<BidderRequestPayload> payloadUpdate = invocationResult.payloadUpdate();
-        final BidderRequestPayloadImpl payloadToUpdate = BidderRequestPayloadImpl.of(BidRequest.builder()
-                .badv(singletonList("overriddendomain1.com"))
-                .bcat(singletonList("overriddencat1"))
-                .build());
+        final BidderRequestPayloadImpl payloadToUpdate = BidderRequestPayloadImpl.of(BidRequest.builder().build());
         assertThat(payloadUpdate.apply(payloadToUpdate)).isEqualTo(BidderRequestPayloadImpl.of(
                 BidRequest.builder()
                         .badv(singletonList("domain1.com"))
@@ -215,6 +242,25 @@ class Ortb2BlockingBidderRequestHookTest {
             softly.assertThat(invocationResult.warnings()).isNull();
             softly.assertThat(invocationResult.errors()).isNull();
         });
+    }
+
+    private static BidderInfo bidderInfo(OrtbVersion ortbVersion) {
+        return BidderInfo.create(
+                true,
+                ortbVersion,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                0,
+                false,
+                false,
+                null,
+                Ortb.of(false));
     }
 
     private static BidRequest emptyRequest() {

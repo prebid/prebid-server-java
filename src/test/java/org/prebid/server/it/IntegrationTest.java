@@ -6,7 +6,6 @@ import com.github.tomakehurst.wiremock.extension.Parameters;
 import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
 import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
-import com.github.tomakehurst.wiremock.matching.StringValuePattern;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
 import io.restassured.config.RestAssuredConfig;
@@ -17,9 +16,9 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Rule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
@@ -28,9 +27,10 @@ import org.prebid.server.cache.proto.response.CacheObject;
 import org.prebid.server.it.hooks.TestHooksConfiguration;
 import org.prebid.server.it.util.BidCacheRequestPattern;
 import org.prebid.server.model.Endpoint;
+import org.prebid.server.util.IntegrationTestsUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.skyscreamer.jsonassert.ArrayValueMatcher;
 import org.skyscreamer.jsonassert.Customization;
-import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompare;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 import org.skyscreamer.jsonassert.ValueMatcher;
@@ -41,9 +41,9 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -54,11 +54,9 @@ import java.util.regex.Pattern;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-import static com.github.tomakehurst.wiremock.client.WireMock.matching;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
-import static io.restassured.RestAssured.given;
-import static java.lang.String.format;
+import static org.prebid.server.util.IntegrationTestsUtil.replaceBidderRelatedStaticInfo;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @TestPropertySource({"test-application.properties", "test-application-hooks.properties"})
@@ -67,7 +65,6 @@ public abstract class IntegrationTest extends VertxTest {
 
     private static final int APP_PORT = 8080;
     private static final int WIREMOCK_PORT = 8090;
-    private static final String ANY_SYMBOL_REGEX = ".*";
     private static final Pattern UTC_MILLIS_PATTERN =
             Pattern.compile(".*([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z).*");
 
@@ -78,9 +75,6 @@ public abstract class IntegrationTest extends VertxTest {
             .gzipDisabled(true)
             .jettyStopTimeout(5000L)
             .extensions(IntegrationTest.CacheResponseTransformer.class));
-
-    @Rule
-    public WireMockClassRule instanceRule = WIRE_MOCK_RULE;
 
     protected static final RequestSpecification SPEC = spec(APP_PORT);
     private static final String HOST_AND_PORT = "localhost:" + WIREMOCK_PORT;
@@ -97,6 +91,11 @@ public abstract class IntegrationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
     }
 
+    @After
+    public void resetWireMock() {
+        WIRE_MOCK_RULE.resetAll();
+    }
+
     static RequestSpecification spec(int port) {
         return new RequestSpecBuilder()
                 .setBaseUri("http://localhost")
@@ -107,18 +106,18 @@ public abstract class IntegrationTest extends VertxTest {
     }
 
     protected static Response responseFor(String file, Endpoint endpoint) throws IOException {
-        return given(SPEC)
-                .header("Referer", "http://www.example.com")
-                .header("X-Forwarded-For", "193.168.244.1")
-                .header("User-Agent", "userAgent")
-                .header("Origin", "http://www.example.com")
-                .body(jsonFrom(file))
-                .post(endpoint.value());
+        return IntegrationTestsUtil.responseFor(file, endpoint, SPEC);
     }
 
     protected static String jsonFrom(String file) throws IOException {
         // workaround to clear formatting
         return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)));
+    }
+
+    protected static String jsonFrom(String file, PrebidVersionProvider prebidVersionProvider) throws IOException {
+        // workaround to clear formatting
+        return mapper.writeValueAsString(mapper.readTree(IntegrationTest.class.getResourceAsStream(file)))
+                .replace("{{ pbs.java.version }}", prebidVersionProvider.getNameVersionRecord());
     }
 
     protected static String openrtbAuctionResponseFrom(String templatePath, Response response, List<String> bidders)
@@ -159,7 +158,7 @@ public abstract class IntegrationTest extends VertxTest {
         }
         final String userRequest = val.toString();
         final Matcher m = UTC_MILLIS_PATTERN.matcher(userRequest);
-        String userRequestDate;
+        final String userRequestDate;
         if (m.find()) {
             userRequestDate = m.group(1);
             return expectedResponseJson.replaceAll("\\{\\{ userservice_time }}", userRequestDate);
@@ -167,9 +166,12 @@ public abstract class IntegrationTest extends VertxTest {
         return expectedResponseJson;
     }
 
-    private static String setResponseTime(Response response, String expectedResponseJson, String bidder,
+    private static String setResponseTime(Response response,
+                                          String expectedResponseJson,
+                                          String bidder,
                                           String responseTimePath) {
-        final Object val = response.path(format(responseTimePath, bidder));
+
+        final Object val = response.path(responseTimePath.formatted(bidder));
         final Integer responseTime = val instanceof Integer ? (Integer) val : null;
         if (responseTime != null) {
             expectedResponseJson = expectedResponseJson.replaceAll("\"\\{\\{ " + bidder + "\\.response_time_ms }}\"",
@@ -246,23 +248,17 @@ public abstract class IntegrationTest extends VertxTest {
                                            Response response,
                                            List<String> bidders,
                                            Customization... customizations) throws IOException, JSONException {
-        final List<Customization> fullCustomizations = new ArrayList<>(Arrays.asList(customizations));
-        fullCustomizations.add(new Customization("ext.prebid.auctiontimestamp", (o1, o2) -> true));
-        fullCustomizations.add(new Customization("ext.responsetimemillis.cache", (o1, o2) -> true));
-        String expectedRequest = replaceStaticInfo(jsonFrom(file));
-        for (String bidder : bidders) {
-            expectedRequest = replaceBidderRelatedStaticInfo(expectedRequest, bidder);
-            fullCustomizations.add(new Customization(
-                    String.format("ext.responsetimemillis.%s", bidder), (o1, o2) -> true));
-        }
 
-        JSONAssert.assertEquals(expectedRequest, response.asString(),
-                new CustomComparator(JSONCompareMode.NON_EXTENSIBLE,
-                        fullCustomizations.toArray(new Customization[0])));
+        IntegrationTestsUtil.assertJsonEquals(
+                file,
+                response,
+                bidders,
+                (json, bidder) -> replaceBidderRelatedStaticInfo(json, bidder, WIREMOCK_PORT),
+                IntegrationTest::replaceStaticInfo,
+                customizations);
     }
 
     private static String replaceStaticInfo(String json) {
-
         return json.replaceAll("\\{\\{ cache.endpoint }}", CACHE_ENDPOINT)
                 .replaceAll("\\{\\{ cache.resource_url }}", CACHE_ENDPOINT + "?uuid=")
                 .replaceAll("\\{\\{ cache.host }}", HOST_AND_PORT)
@@ -271,18 +267,8 @@ public abstract class IntegrationTest extends VertxTest {
                 .replaceAll("\\{\\{ event.url }}", "http://localhost:8080/event?");
     }
 
-    private static String replaceBidderRelatedStaticInfo(String json, String bidder) {
-
-        return json.replaceAll("\\{\\{ " + bidder + "\\.exchange_uri }}",
-                "http://" + HOST_AND_PORT + "/" + bidder + "-exchange");
-    }
-
     static BidCacheRequestPattern equalToBidCacheRequest(String json) {
         return new BidCacheRequestPattern(json);
-    }
-
-    protected static StringValuePattern notEmpty() {
-        return matching(ANY_SYMBOL_REGEX);
     }
 
     public static class CacheResponseTransformer extends ResponseTransformer {
@@ -340,7 +326,7 @@ public abstract class IntegrationTest extends VertxTest {
             final Map<String, BidRequestExecutionParameters> idToParameters =
                     (Map<String, BidRequestExecutionParameters>) parameters.get(ID_TO_EXECUTION_PARAMETERS);
 
-            String requestDealId;
+            final String requestDealId;
             try {
                 requestDealId = readStringValue(mapper.readTree(request.getBodyAsString()), LINE_ITEM_PATH);
             } catch (IOException e) {
@@ -360,15 +346,14 @@ public abstract class IntegrationTest extends VertxTest {
         private void waitForTurn(Queue<String> dealsResponseOrder, String id, Long delay) {
             lock.lock();
             try {
-                while (!dealsResponseOrder.peek().equals(id)) {
+                while (!Objects.equals(dealsResponseOrder.peek(), id)) {
                     lockCondition.await();
                 }
                 TimeUnit.MILLISECONDS.sleep(delay);
                 dealsResponseOrder.poll();
                 lockCondition.signalAll();
             } catch (InterruptedException e) {
-                throw new RuntimeException(format("Failed on waiting to return bid request for lineItem id = %s",
-                        id));
+                throw new RuntimeException("Failed on waiting to return bid request for lineItem id = " + id);
             } finally {
                 lock.unlock();
             }

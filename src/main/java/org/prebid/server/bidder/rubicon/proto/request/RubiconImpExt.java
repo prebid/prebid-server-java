@@ -1,10 +1,13 @@
 package org.prebid.server.bidder.rubicon.proto.request;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import lombok.Builder;
 import lombok.Value;
 
 import java.util.List;
 
-@Value(staticConstructor = "of")
+@Value
+@Builder(toBuilder = true)
 public class RubiconImpExt {
 
     RubiconImpExtRp rp;
@@ -14,4 +17,8 @@ public class RubiconImpExt {
     Integer maxbids;
 
     String gpid;
+
+    ObjectNode skadn;
+
+    RubiconImpExtPrebid prebid;
 }

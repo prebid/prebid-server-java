@@ -59,7 +59,7 @@
                 "application/json;charset=utf-8"
               ]
             },
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"ext\":{\"rp\":{\"size_id\":15,\"mime\":\"text/html\"}}},\"pmp\":{\"private_auction\":0,\"deals\":[{\"id\":\"dealId1\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem1\",\"extlineitemid\":\"extLineItem1\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId2\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem2\",\"extlineitemid\":\"extLineItem2\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId3\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem3\",\"extlineitemid\":\"extLineItem3\",\"sizes\":[{\"w\":300,\"h\":250}]}}}]},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"page\":[\"http://www.example.com\"],\"line_item\":\"extLineItem1\"},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}},\"maxbids\":1}}],\"site\":{\"domain\":\"www.example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"185.199.110.0\",\"ext\":{\"rp\":{}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"data\":[{\"id\":\"rubicon\",\"segment\":[{\"id\":\"2222\"},{\"id\":\"3333\"}]},{\"id\":\"bluekai\",\"segment\":[{\"id\":\"5555\"},{\"id\":\"6666\"}]}],\"ext\":{\"consent\":\"CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA\",\"fcapids\":[\"fcapId3\"],\"time\":{\"userdow\":{{ userdow }},\"userhour\":{{ userhour }}}}},\"at\":1,\"tmax\":2000}",
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"ext\":{\"rp\":{\"mime\":\"text/html\"}}},\"pmp\":{\"deals\":[{\"id\":\"dealId1\",\"ext\":{\"line\":{\"lineitemid\":\"lineItem1\",\"extlineitemid\":\"extLineItem1\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId2\",\"ext\":{\"line\":{\"lineitemid\":\"lineItem2\",\"extlineitemid\":\"extLineItem2\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId3\",\"ext\":{\"line\":{\"lineitemid\":\"lineItem3\",\"extlineitemid\":\"extLineItem3\",\"sizes\":[{\"w\":300,\"h\":250}]}}}]},\"secure\":1,\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"page\":[\"http://www.example.com\"],\"line_item\":\"extLineItem1\"},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}},\"maxbids\":1}}],\"site\":{\"domain\":\"www.example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"185.199.110.0\",\"ext\":{\"rp\":{}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"consent\":\"CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA\",\"ext\":{\"fcapids\":[\"fcapId3\"],\"time\":{\"userdow\":{{ userdow }},\"userhour\":{{ userhour }}}}},\"at\":1,\"tmax\":5000,\"source\":{\"tid\":\"someTid\"}}",
             "responsebody": "{\"id\":\"bidResponseId1\",\"seatbid\":[{\"seat\":\"seatId\",\"bid\":[{\"id\":\"bidId1\",\"impid\":\"impId1\",\"dealid\":\"dealId1\",\"price\":10.6,\"adm\":\"<Impression><![CDATA[]]></Impression>\",\"crid\":\"crid1\",\"w\":300,\"h\":250}]}]}",
             "status": 200
           },
@@ -79,7 +79,7 @@
                 "application/json;charset=utf-8"
               ]
             },
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"ext\":{\"rp\":{\"size_id\":15,\"mime\":\"text/html\"}}},\"pmp\":{\"private_auction\":0,\"deals\":[{\"id\":\"dealId1\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem1\",\"extlineitemid\":\"extLineItem1\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId2\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem2\",\"extlineitemid\":\"extLineItem2\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId3\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem3\",\"extlineitemid\":\"extLineItem3\",\"sizes\":[{\"w\":300,\"h\":250}]}}}]},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"page\":[\"http://www.example.com\"],\"line_item\":\"extLineItem2\"},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}},\"maxbids\":1}}],\"site\":{\"domain\":\"www.example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"185.199.110.0\",\"ext\":{\"rp\":{}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"data\":[{\"id\":\"rubicon\",\"segment\":[{\"id\":\"2222\"},{\"id\":\"3333\"}]},{\"id\":\"bluekai\",\"segment\":[{\"id\":\"5555\"},{\"id\":\"6666\"}]}],\"ext\":{\"consent\":\"CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA\",\"fcapids\":[\"fcapId3\"],\"time\":{\"userdow\":{{ userdow }},\"userhour\":{{ userhour }}}}},\"at\":1,\"tmax\":2000}"
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"ext\":{\"rp\":{\"mime\":\"text/html\"}}},\"pmp\":{\"deals\":[{\"id\":\"dealId1\",\"ext\":{\"line\":{\"lineitemid\":\"lineItem1\",\"extlineitemid\":\"extLineItem1\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId2\",\"ext\":{\"line\":{\"lineitemid\":\"lineItem2\",\"extlineitemid\":\"extLineItem2\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId3\",\"ext\":{\"line\":{\"lineitemid\":\"lineItem3\",\"extlineitemid\":\"extLineItem3\",\"sizes\":[{\"w\":300,\"h\":250}]}}}]},\"secure\":1,\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"page\":[\"http://www.example.com\"],\"line_item\":\"extLineItem2\"},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}},\"maxbids\":1}}],\"site\":{\"domain\":\"www.example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"185.199.110.0\",\"ext\":{\"rp\":{}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"consent\":\"CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA\",\"ext\":{\"fcapids\":[\"fcapId3\"],\"time\":{\"userdow\":{{ userdow }},\"userhour\":{{ userhour }}}}},\"at\":1,\"tmax\":5000,\"source\":{\"tid\":\"someTid\"}}"
           },
           {
             "uri": "{{ rubicon.exchange_uri }}?tk_xint=rp-pbs",
@@ -97,7 +97,7 @@
                 "application/json;charset=utf-8"
               ]
             },
-            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"ext\":{\"rp\":{\"size_id\":15,\"mime\":\"text/html\"}}},\"pmp\":{\"private_auction\":0,\"deals\":[{\"id\":\"dealId1\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem1\",\"extlineitemid\":\"extLineItem1\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId2\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem2\",\"extlineitemid\":\"extLineItem2\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId3\",\"bidfloor\":0.0,\"ext\":{\"line\":{\"lineitemid\":\"lineItem3\",\"extlineitemid\":\"extLineItem3\",\"sizes\":[{\"w\":300,\"h\":250}]}}}]},\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"page\":[\"http://www.example.com\"],\"line_item\":\"extLineItem3\"},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}},\"maxbids\":1}}],\"site\":{\"domain\":\"www.example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"185.199.110.0\",\"ext\":{\"rp\":{}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"data\":[{\"id\":\"rubicon\",\"segment\":[{\"id\":\"2222\"},{\"id\":\"3333\"}]},{\"id\":\"bluekai\",\"segment\":[{\"id\":\"5555\"},{\"id\":\"6666\"}]}],\"ext\":{\"consent\":\"CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA\",\"fcapids\":[\"fcapId3\"],\"time\":{\"userdow\":{{ userdow }},\"userhour\":{{ userhour }}}}},\"at\":1,\"tmax\":2000}"
+            "requestbody": "{\"id\":\"tid\",\"imp\":[{\"id\":\"impId1\",\"banner\":{\"format\":[{\"w\":300,\"h\":250}],\"ext\":{\"rp\":{\"mime\":\"text/html\"}}},\"pmp\":{\"deals\":[{\"id\":\"dealId1\",\"ext\":{\"line\":{\"lineitemid\":\"lineItem1\",\"extlineitemid\":\"extLineItem1\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId2\",\"ext\":{\"line\":{\"lineitemid\":\"lineItem2\",\"extlineitemid\":\"extLineItem2\",\"sizes\":[{\"w\":300,\"h\":250}]}}},{\"id\":\"dealId3\",\"ext\":{\"line\":{\"lineitemid\":\"lineItem3\",\"extlineitemid\":\"extLineItem3\",\"sizes\":[{\"w\":300,\"h\":250}]}}}]},\"secure\":1,\"ext\":{\"rp\":{\"zone_id\":4001,\"target\":{\"page\":[\"http://www.example.com\"],\"line_item\":\"extLineItem3\"},\"track\":{\"mint\":\"\",\"mint_version\":\"\"}},\"maxbids\":1}}],\"site\":{\"domain\":\"www.example.com\",\"page\":\"http://www.example.com\",\"publisher\":{\"ext\":{\"rp\":{\"account_id\":2001}}},\"ext\":{\"amp\":0,\"rp\":{\"site_id\":3001}}},\"device\":{\"ua\":\"userAgent\",\"ip\":\"185.199.110.0\",\"ext\":{\"rp\":{}}},\"user\":{\"buyeruid\":\"J5VLCWQP-26-CWFT\",\"consent\":\"CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA\",\"ext\":{\"fcapids\":[\"fcapId3\"],\"time\":{\"userdow\":{{ userdow }},\"userhour\":{{ userhour }}}}},\"at\":1,\"tmax\":5000,\"source\":{\"tid\":\"someTid\"}}"
           }
         ],
         "userservice": [
@@ -114,6 +114,7 @@
         "imp": [
           {
             "id": "impId1",
+            "secure": 1,
             "banner": {
               "format": [
                 {
@@ -123,11 +124,9 @@
               ]
             },
             "pmp": {
-              "private_auction": 0,
               "deals": [
                 {
                   "id": "dealId1",
-                  "bidfloor": 0.0,
                   "ext": {
                     "line": {
                       "lineitemid": "lineItem1",
@@ -144,7 +143,6 @@
                 },
                 {
                   "id": "dealId2",
-                  "bidfloor": 0.0,
                   "ext": {
                     "line": {
                       "lineitemid": "lineItem2",
@@ -161,7 +159,6 @@
                 },
                 {
                   "id": "dealId3",
-                  "bidfloor": 0.0,
                   "ext": {
                     "line": {
                       "lineitemid": "lineItem3",
@@ -179,6 +176,7 @@
               ]
             },
             "ext": {
+              "tid": "someTid",
               "prebid": {
                 "bidder": {
                   "rubicon": {
@@ -191,6 +189,9 @@
             }
           }
         ],
+        "source": {
+          "tid": "someTid"
+        },
         "site": {
           "domain": "www.example.com",
           "page": "http://www.example.com",
@@ -231,8 +232,8 @@
               ]
             }
           ],
+          "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
           "ext": {
-            "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
             "fcapids": [
               "fcapId3"
             ],
@@ -243,7 +244,7 @@
           }
         },
         "at": 1,
-        "tmax": 2000,
+        "tmax": 5000,
         "cur": [
           "USD"
         ],
@@ -268,7 +269,10 @@
             "channel": {
               "name": "web"
             },
-            "pbs": {
+            "server": {
+              "externalurl": "http://localhost:8080",
+              "gvlid": 1,
+              "datacenter": "local",
               "endpoint": "/openrtb2/auction"
             }
           }
@@ -353,13 +357,83 @@
               "message": "Matched Line Item lineItem2 for bidder rubicon ready to serve. relPriority 3"
             }
           ]
-        }
+        },
+        "activity_infrastructure": [
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "fetchBids",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "fetchBids",
+            "allowed": true
+          },
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "transmitUfpd",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "transmitUfpd",
+            "allowed": true
+          },
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "transmitPreciseGeo",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "transmitPreciseGeo",
+            "allowed": true
+          },
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "transmitTid",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "transmitTid",
+            "allowed": true
+          }
+        ]
       }
     },
     "responsetimemillis": {
       "rubicon": "{{ rubicon.response_time_ms }}"
     },
-    "tmaxrequest": 2000,
+    "tmaxrequest": 5000,
     "prebid": {
       "auctiontimestamp": 1000
     }

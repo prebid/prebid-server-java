@@ -17,13 +17,13 @@ public class CookieSyncMetrics extends UpdatableMetrics {
 
     CookieSyncMetrics(MetricRegistry metricRegistry, CounterType counterType) {
         super(Objects.requireNonNull(metricRegistry), Objects.requireNonNull(counterType),
-                metricName -> String.format("cookie_sync.%s", metricName.toString()));
+                metricName -> "cookie_sync." + metricName);
         bidderCookieSyncMetricsCreator = bidder -> new BidderCookieSyncMetrics(metricRegistry, counterType, bidder);
         bidderCookieSyncMetrics = new HashMap<>();
     }
 
     CookieSyncMetrics.BidderCookieSyncMetrics forBidder(String bidder) {
-        return bidderCookieSyncMetrics.computeIfAbsent(bidder, bidderCookieSyncMetricsCreator);
+        return bidderCookieSyncMetrics.computeIfAbsent(bidder.toLowerCase(), bidderCookieSyncMetricsCreator);
     }
 
     static class BidderCookieSyncMetrics extends UpdatableMetrics {
@@ -41,11 +41,11 @@ public class CookieSyncMetrics extends UpdatableMetrics {
         }
 
         private static String createCookieSyncPrefix(String bidder) {
-            return String.format("cookie_sync.%s", bidder);
+            return "cookie_sync." + bidder;
         }
 
         private static Function<MetricName, String> nameCreator(String prefix) {
-            return metricName -> String.format("%s.%s", prefix, metricName.toString());
+            return metricName -> "%s.%s".formatted(prefix, metricName);
         }
     }
 }

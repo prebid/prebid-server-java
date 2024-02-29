@@ -24,10 +24,10 @@ import java.util.TreeMap;
 
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.mockito.ArgumentMatchers.any;
 
 public class StatusHandlerTest extends VertxTest {
 

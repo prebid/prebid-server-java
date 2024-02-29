@@ -2,21 +2,22 @@ package org.prebid.server.bidder.unicorn;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -43,12 +44,7 @@ public class UnicornBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://127.0.0.1/test";
 
-    private UnicornBidder unicornBidder;
-
-    @Before
-    public void setUp() {
-        unicornBidder = new UnicornBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final UnicornBidder target = new UnicornBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -63,7 +59,7 @@ public class UnicornBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -83,7 +79,7 @@ public class UnicornBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -99,9 +95,9 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfCoppaIsOne() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.regs(Regs.of(1, null)), identity());
+                bidRequestBuilder -> bidRequestBuilder.regs(Regs.builder().coppa(1).build()), identity());
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("COPPA is not supported"));
@@ -110,10 +106,10 @@ public class UnicornBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfGdprIsOne() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.regs(Regs.of(0, ExtRegs.of(1, null))), identity());
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build()), identity());
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("GDPR is not supported"));
@@ -122,10 +118,10 @@ public class UnicornBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorIfUsPrivacyIsPresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.regs(Regs.of(0, ExtRegs.of(0, "privacy"))), identity());
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(0, "privacy", null, null)).build()), identity());
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("CCPA is not supported"));
@@ -137,7 +133,7 @@ public class UnicornBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -153,7 +149,7 @@ public class UnicornBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -170,10 +166,10 @@ public class UnicornBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
                 impBuilder.ext(mapper.valueToTree(ExtPrebid.of(ExtImpPrebid.builder()
                         .storedrequest(ExtStoredRequest.of("storedRequestId"))
-                        .build(), ExtImpUnicorn.of("", 123, "mediaId", 456)))));
+                        .build(), ExtImpUnicorn.of("", "123", "mediaId", 456)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -193,12 +189,12 @@ public class UnicornBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSetAddAccountIdPropertyToRequestExt() {
+    public void makeHttpRequestsShouldAddAccountIdPropertyToRequestExt() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -217,7 +213,7 @@ public class UnicornBidderTest extends VertxTest {
                 identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         final ExtSource extSource = ExtSource.of(null);
@@ -235,22 +231,51 @@ public class UnicornBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorForNotFoundStoredRequestId() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUnicorn.of("", 123, "mediaId", 456)))));
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUnicorn.of("", "123", "mediaId", 456)))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = unicornBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("stored request id not found in imp: 123"));
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+    public void makeHttpRequestsShouldReturnErrorForEmptyApp() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidRequest bidRequest = givenBidRequest(identity()).toBuilder().app(null).build();
 
         // when
-        final Result<List<BidderBid>> result = unicornBidder.makeBids(httpCall, null);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).containsExactly(BidderError.badInput("request app is required"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldModifyAppWhenPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getApp)
+                .extracting(App::getId, App::getPublisher)
+                .containsExactly(tuple("mediaId", Publisher.builder().id("123").build()));
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -264,10 +289,10 @@ public class UnicornBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = unicornBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -277,11 +302,11 @@ public class UnicornBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = unicornBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -291,13 +316,13 @@ public class UnicornBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidByDefault() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidRequest(identity()),
                 mapper.writeValueAsString(
                         givenBidResponse(identity())));
 
         // when
-        final Result<List<BidderBid>> result = unicornBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -309,9 +334,10 @@ public class UnicornBidderTest extends VertxTest {
             Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
-                .build();
+        return bidRequestCustomizer.apply(
+                BidRequest.builder()
+                        .imp(singletonList(givenImp(impCustomizer)))
+                        .app(App.builder().build())).build();
     }
 
     private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
@@ -320,8 +346,10 @@ public class UnicornBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpUnicorn.of("placementId", 123, "mediaId", 456)))))
+                        .id("123")
+                        .ext(mapper.valueToTree(ExtPrebid.of(
+                                null,
+                                ExtImpUnicorn.of("placementId", "123", "mediaId", 456)))))
                 .build();
     }
 
@@ -332,8 +360,8 @@ public class UnicornBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

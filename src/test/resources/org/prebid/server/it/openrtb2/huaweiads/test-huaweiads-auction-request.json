@@ -1,0 +1,75 @@
+{
+  "id": "test-req-id",
+  "imp": [
+    {
+      "id": "test-imp-id",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ],
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "huaweiads": {
+          "slotid": "m8x9x3rzff",
+          "adtype": "banner",
+          "publisherid": "123",
+          "signkey": "signkey",
+          "keyid": "41",
+          "isTestAuthorization": "true"
+        }
+      }
+    }
+  ],
+  "app": {
+    "bundle": "com.example.pkgname1",
+    "name": "Huawei Browser",
+    "ver": "9.1.0.301",
+    "content": {
+      "language": "zh"
+    }
+  },
+  "device": {
+    "ua": "useragent",
+    "h": 1920,
+    "language": "zh",
+    "model": "COL-TEST",
+    "os": "android",
+    "osv": "10.0.0",
+    "devicetype": 4,
+    "make": "huawei",
+    "w": 1080,
+    "ip": "ip",
+    "ifa": "e4fe9bde-caa0-47b6-908d-ffba3fa184f2",
+    "pxratio": 23.01,
+    "mccmnc": "460",
+    "geo": {
+      "country": "CHN"
+    }
+  },
+  "user": {
+    "ext": {
+      "data": {
+        "gaid": [
+          "gaid"
+        ],
+        "oaid": [
+          "oaid"
+        ],
+        "clientTime": [
+          "2018-11-02 16:34:07.981+1300"
+        ]
+      },
+      "consent": "CPaYLJBPaYLJBIPAAAENCSCgAPAAAAAAAAAAGsQAQGsAAAAA.YAAAAAAAAAA"
+    }
+  },
+  "regs": {
+    "coppa": 1
+  },
+  "ext": {
+  }
+}

@@ -13,7 +13,7 @@
           "h": 250,
           "ext": {
             "prebid": {
-              "type": "banner"
+              "type": "video"
             },
             "origbidcpm": 5.78
           }

@@ -71,8 +71,8 @@ public class CurrencyConversionServiceTest extends VertxTest {
     @Before
     public void setUp() throws JsonProcessingException {
         final Map<String, Map<String, BigDecimal>> currencyRates = new HashMap<>();
-        currencyRates.put(GBP, singletonMap(EUR, BigDecimal.valueOf(1.15)));
-        currencyRates.put(UAH, singletonMap(EUR, BigDecimal.valueOf(1.1565)));
+        currencyRates.put(GBP, singletonMap(EUR, BigDecimal.valueOf(1.3)));
+        currencyRates.put(UAH, singletonMap(EUR, BigDecimal.valueOf(0.2)));
         givenHttpClientReturnsResponse(httpClient, 200,
                 mapper.writeValueAsString(CurrencyConversionRates.of(null, currencyRates)));
 
@@ -132,14 +132,14 @@ public class CurrencyConversionServiceTest extends VertxTest {
     public void convertCurrencyShouldUseUSDByDefaultIfBidCurrencyIsNull() {
         // given
         final Map<String, Map<String, BigDecimal>> requestConversionRates =
-                singletonMap(GBP, singletonMap(USD, BigDecimal.valueOf(1.4306)));
+                singletonMap(EUR, singletonMap(USD, BigDecimal.valueOf(1.2)));
 
         // when
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE,
-                givenBidRequestWithCurrencies(requestConversionRates, false), GBP, null);
+                givenBidRequestWithCurrencies(requestConversionRates, false), EUR, null);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(0.699))).isEqualTo(0);
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(1.200));
     }
 
     @Test
@@ -153,7 +153,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 givenBidRequestWithCurrencies(requestConversionRates, false), GBP, EUR);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(0.865))).isEqualTo(0);
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(1.156));
     }
 
     @Test
@@ -167,7 +167,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 givenBidRequestWithCurrencies(requestConversionRates, false), EUR, GBP);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(1.156))).isEqualTo(0);
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.865));
     }
 
     @Test
@@ -182,7 +182,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 givenBidRequestWithCurrencies(requestConversionRates, false), EUR, GBP);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(1.163))).isEqualTo(0);
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.860));
     }
 
     @Test
@@ -192,11 +192,11 @@ public class CurrencyConversionServiceTest extends VertxTest {
         requestConversionRates.put(EUR, singletonMap(USD, BigDecimal.valueOf(0.5)));
 
         // when
-        final BigDecimal price = currencyService.convertCurrency(new BigDecimal("1.23"),
+        final BigDecimal price = currencyService.convertCurrency(BigDecimal.valueOf(1.23),
                 givenBidRequestWithCurrencies(requestConversionRates, false), EUR, USD);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(2.460))).isEqualTo(0);
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.615));
     }
 
     @Test
@@ -206,21 +206,21 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 BigDecimal.ONE, givenBidRequestWithCurrencies(null, false), EUR, GBP);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(1.149))).isEqualTo(0);
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.770));
     }
 
     @Test
     public void convertCurrencyShouldUseConversionRateFromServerIfusepbsratesIsTrue() {
         // given
         final Map<String, Map<String, BigDecimal>> requestConversionRates = new HashMap<>();
-        requestConversionRates.put(EUR, singletonMap(USD, BigDecimal.valueOf(0.6)));
+        requestConversionRates.put(EUR, singletonMap(USD, BigDecimal.valueOf(0.87)));
 
         // when
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE,
                 givenBidRequestWithCurrencies(requestConversionRates, true), EUR, GBP);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(1.149))).isEqualTo(0);
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.770));
     }
 
     @Test
@@ -234,21 +234,21 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 givenBidRequestWithCurrencies(requestConversionRates, false), EUR, USD);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(1.667))).isEqualTo(0);
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.600));
     }
 
     @Test
     public void convertCurrencyShouldUseLatestRatesIfMultiplierWasNotFoundInRequestRates() {
         // given
         final Map<String, Map<String, BigDecimal>> requestConversionRates = singletonMap(USD,
-                singletonMap(EUR, BigDecimal.valueOf(0.8434)));
+                singletonMap(EUR, BigDecimal.valueOf(0.9)));
 
         // when
         final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE,
                 givenBidRequestWithCurrencies(requestConversionRates, false), EUR, UAH);
 
         // then
-        assertThat(price.compareTo(BigDecimal.valueOf(1.156))).isEqualTo(0);
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(5));
     }
 
     @Test
@@ -258,7 +258,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 givenBidRequestWithCurrencies(emptyMap(), false), USD, null);
 
         // then
-        assertThat(price.compareTo(BigDecimal.ONE)).isEqualTo(0);
+        assertThat(price.compareTo(BigDecimal.ONE)).isZero();
     }
 
     @Test
@@ -270,7 +270,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyConversionService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(null, false), EUR, GBP))
-                .withMessage("Unable to convert from currency GBP to desired ad server currency EUR");
+                .withMessage("Unable to convert from currency EUR to desired ad server currency GBP");
     }
 
     @Test
@@ -279,7 +279,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(null, false), USD, EUR))
-                .withMessage("Unable to convert from currency EUR to desired ad server currency USD");
+                .withMessage("Unable to convert from currency USD to desired ad server currency EUR");
     }
 
     @Test
@@ -297,7 +297,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(requestConversionRates, false), EUR, AUD))
-                .withMessage("Unable to convert from currency AUD to desired ad server currency EUR");
+                .withMessage("Unable to convert from currency EUR to desired ad server currency AUD");
     }
 
     @Test
@@ -312,7 +312,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(null, false), UAH, AUD))
-                .withMessage("Unable to convert from currency AUD to desired ad server currency UAH");
+                .withMessage("Unable to convert from currency UAH to desired ad server currency AUD");
     }
 
     @Test
@@ -327,7 +327,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
         assertThatExceptionOfType(PreBidException.class)
                 .isThrownBy(() -> currencyService.convertCurrency(BigDecimal.ONE,
                         givenBidRequestWithCurrencies(null, false), UAH, AUD))
-                .withMessage("Unable to convert from currency AUD to desired ad server currency UAH");
+                .withMessage("Unable to convert from currency UAH to desired ad server currency AUD");
     }
 
     @SuppressWarnings("unchecked")

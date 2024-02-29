@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
-@Builder
-@Value(staticConstructor = "of")
+@Builder(toBuilder = true)
+@Value
 public class AppnexusReqExtAppnexus {
 
     Boolean includeBrandCategory;
@@ -17,5 +17,6 @@ public class AppnexusReqExtAppnexus {
     @JsonProperty("hb_source")
     Integer headerBiddingSource;
 
-    String adpodId;
+    @JsonProperty("adpod_id")
+    String adPodId;
 }

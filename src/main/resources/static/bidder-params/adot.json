@@ -11,6 +11,10 @@
     "parallax": {
       "type": "boolean",
       "description": "It determines if the wanted advertising format is a parallax."
+    },
+    "publisherPath": {
+      "type": "string",
+      "description": "An optional path used in the bid endpoint"
     }
   },
   "required": []

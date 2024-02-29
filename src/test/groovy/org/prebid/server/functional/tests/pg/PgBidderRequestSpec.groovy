@@ -46,7 +46,7 @@ class PgBidderRequestSpec extends BasePgSpec {
 
         and: "Cookies with user ids"
         def uidsCookie = UidsCookie.defaultUidsCookie
-        def cookieHeader = HttpUtil.getCookieHeader(mapper, uidsCookie)
+        def cookieHeader = HttpUtil.getCookieHeader(uidsCookie)
 
         when: "Sending auction request to PBS"
         pgPbsService.sendAuctionRequest(bidRequest, cookieHeader)
@@ -100,7 +100,7 @@ class PgBidderRequestSpec extends BasePgSpec {
         }
     }
 
-    @Ignore(value = "https://jira.magnite-core.com/browse/HB-13821")
+    @Ignore
     def "PBS shouldn't add already top matched line item by first impression to the second impression deals bidder request section"() {
         given: "Bid request with two impressions"
         def bidRequest = BidRequest.defaultBidRequest.tap {

@@ -32,6 +32,7 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -85,6 +86,7 @@ public class AmpHandler implements Handler<RoutingContext> {
     private final HttpInteractionLogger httpInteractionLogger;
     private final PrebidVersionProvider prebidVersionProvider;
     private final JacksonMapper mapper;
+    private final double logSamplingRate;
 
     public AmpHandler(AmpRequestFactory ampRequestFactory,
                       ExchangeService exchangeService,
@@ -96,7 +98,8 @@ public class AmpHandler implements Handler<RoutingContext> {
                       AmpResponsePostProcessor ampResponsePostProcessor,
                       HttpInteractionLogger httpInteractionLogger,
                       PrebidVersionProvider prebidVersionProvider,
-                      JacksonMapper mapper) {
+                      JacksonMapper mapper,
+                      double logSamplingRate) {
 
         this.ampRequestFactory = Objects.requireNonNull(ampRequestFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
@@ -109,6 +112,7 @@ public class AmpHandler implements Handler<RoutingContext> {
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
         this.mapper = Objects.requireNonNull(mapper);
+        this.logSamplingRate = logSamplingRate;
     }
 
     @Override
@@ -175,14 +179,14 @@ public class AmpHandler implements Handler<RoutingContext> {
             extBidPrebid = mapper.mapper().convertValue(bidExt.get(PREBID_EXT), ExtBidPrebid.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(
-                    String.format("Critical error while unpacking AMP targets: %s", e.getMessage()), e);
+                    "Critical error while unpacking AMP targets: " + e.getMessage(), e);
         }
 
         // Need to extract the targeting parameters from the response, as those are all that
         // go in the AMP response
         final Map<String, String> targeting = extBidPrebid != null ? extBidPrebid.getTargeting() : null;
         if (targeting != null && targeting.keySet().stream()
-                .anyMatch(key -> key != null && key.startsWith("hb_cache_id"))) {
+                .anyMatch(key -> key != null && key.contains("_cache_id"))) {
 
             return enrichWithCustomTargeting(targeting, bidExt, bidder);
         }
@@ -216,16 +220,31 @@ public class AmpHandler implements Handler<RoutingContext> {
         // Fetch targeting information from response bids
         final List<SeatBid> seatBids = bidResponse.getSeatbid();
 
-        final Map<String, JsonNode> targeting = seatBids == null ? Collections.emptyMap() : seatBids.stream()
+        final Map<String, JsonNode> targeting = new HashMap<>(seatBids == null
+                ? Collections.emptyMap()
+                : seatBids.stream()
                 .filter(Objects::nonNull)
                 .filter(seatBid -> seatBid.getBid() != null)
                 .flatMap(seatBid -> seatBid.getBid().stream()
                         .filter(Objects::nonNull)
                         .flatMap(bid -> targetingFrom(bid, seatBid.getSeat()).entrySet().stream()))
                 .map(entry -> Tuple2.of(entry.getKey(), TextNode.valueOf(entry.getValue())))
-                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2));
+                .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight, (value1, value2) -> value2)));
+
+        final Map<String, JsonNode> additionalTargeting = extractAdditionalTargeting(bidResponse);
+        targeting.putAll(additionalTargeting);
 
         return AmpResponse.of(targeting, extResponseFrom(bidResponse));
+    }
+
+    private Map<String, JsonNode> extractAdditionalTargeting(BidResponse bidResponse) {
+        final ExtBidResponse extBidResponse = bidResponse.getExt();
+
+        final ExtBidResponsePrebid prebid = extBidResponse != null ? extBidResponse.getPrebid() : null;
+
+        final Map<String, JsonNode> targeting = prebid != null ? prebid.getTargeting() : null;
+
+        return targeting != null ? targeting : Collections.emptyMap();
     }
 
     private static ExtAmpVideoResponse extResponseFrom(BidResponse bidResponse) {
@@ -272,17 +291,18 @@ public class AmpHandler implements Handler<RoutingContext> {
             body = mapper.encodeToString(responseResult.result().getLeft());
         } else {
             final Throwable exception = responseResult.cause();
-            if (exception instanceof InvalidRequestException) {
+            if (exception instanceof InvalidRequestException invalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
 
-                final InvalidRequestException invalidRequestException = (InvalidRequestException) exception;
                 errorMessages = invalidRequestException.getMessages().stream()
-                        .map(msg -> String.format("Invalid request format: %s", msg))
-                        .collect(Collectors.toList());
+                        .map(msg -> "Invalid request format: " + msg)
+                        .toList();
                 final String message = String.join("\n", errorMessages);
 
-                conditionalLogger.info(String.format("%s, Referer: %s", message,
-                        routingContext.request().headers().get(HttpUtil.REFERER_HEADER)), 100);
+                conditionalLogger.info(
+                        "%s, Referer: %s"
+                                .formatted(message, routingContext.request().headers().get(HttpUtil.REFERER_HEADER)),
+                        100);
 
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = message;
@@ -295,18 +315,24 @@ public class AmpHandler implements Handler<RoutingContext> {
 
                 status = HttpResponseStatus.UNAUTHORIZED;
                 body = message;
-                String accountId = ((UnauthorizedAccountException) exception).getAccountId();
-                metrics.updateAccountRequestRejectedMetrics(accountId);
             } else if (exception instanceof BlacklistedAppException
                     || exception instanceof BlacklistedAccountException) {
                 metricRequestStatus = exception instanceof BlacklistedAccountException
                         ? MetricName.blacklisted_account : MetricName.blacklisted_app;
-                final String message = String.format("Blacklisted: %s", exception.getMessage());
+                final String message = "Blacklisted: " + exception.getMessage();
                 logger.debug(message);
 
                 errorMessages = Collections.singletonList(message);
                 status = HttpResponseStatus.FORBIDDEN;
                 body = message;
+            } else if (exception instanceof InvalidAccountConfigException) {
+                metricRequestStatus = MetricName.bad_requests;
+                final String message = exception.getMessage();
+                conditionalLogger.error(message, logSamplingRate);
+
+                errorMessages = Collections.singletonList(message);
+                status = HttpResponseStatus.BAD_REQUEST;
+                body = "Invalid account configuration: " + message;
             } else {
                 final String message = exception.getMessage();
 
@@ -315,7 +341,7 @@ public class AmpHandler implements Handler<RoutingContext> {
                 logger.error("Critical error while running the auction", exception);
 
                 status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-                body = String.format("Critical error while running the auction: %s", message);
+                body = "Critical error while running the auction: " + message;
             }
         }
 

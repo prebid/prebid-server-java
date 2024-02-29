@@ -1,7 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.Video;
 import lombok.Builder;
 import lombok.Value;
@@ -33,7 +33,11 @@ public class ExtBidPrebid {
 
     ExtBidPrebidVideo video;
 
-    ObjectNode meta;
+    ExtBidPrebidMeta meta;
 
-    Boolean dealtiersatisfied;
+    @JsonProperty("dealtiersatisfied")
+    Boolean dealTierSatisfied;
+
+    @JsonProperty("passthrough")
+    JsonNode passThrough;
 }

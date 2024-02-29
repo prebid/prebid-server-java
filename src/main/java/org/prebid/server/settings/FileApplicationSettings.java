@@ -87,10 +87,10 @@ public class FileApplicationSettings implements ApplicationSettings {
                 existingStoredIdToJson(requestIds, storedIdToRequest),
                 existingStoredIdToJson(impIds, storedIdToImp),
                 Stream.of(
-                        errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request),
-                        errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
+                                errorsForMissedIds(requestIds, storedIdToRequest, StoredDataType.request),
+                                errorsForMissedIds(impIds, storedIdToImp, StoredDataType.imp))
                         .flatMap(Collection::stream)
-                        .collect(Collectors.toList())));
+                        .toList()));
     }
 
     @Override
@@ -108,13 +108,13 @@ public class FileApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Map<String, String>> getCategories(String primaryAdServer, String publisher, Timeout timeout) {
         final String filename = StringUtils.isNotBlank(publisher)
-                ? String.format("%s_%s", primaryAdServer, publisher)
+                ? "%s_%s".formatted(primaryAdServer, publisher)
                 : primaryAdServer;
         final Map<String, Category> categoryToId = fileToCategories.get(filename);
         return categoryToId != null
                 ? Future.succeededFuture(extractCategoriesIds(categoryToId))
                 : Future.failedFuture(new PreBidException(
-                String.format("Categories for filename %s were not found", filename)));
+                "Categories for filename %s were not found".formatted(filename)));
     }
 
     private static Map<String, String> extractCategoriesIds(Map<String, Category> categoryToId) {
@@ -186,7 +186,7 @@ public class FileApplicationSettings implements ApplicationSettings {
         try {
             return jacksonMapper.decodeValue(categoriesBuffer, CATEGORY_FORMAT_REFERENCE);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Failed to decode categories for file %s", fileName));
+            throw new PreBidException("Failed to decode categories for file " + fileName);
         }
     }
 
@@ -194,7 +194,7 @@ public class FileApplicationSettings implements ApplicationSettings {
         final T value = map.get(id);
         return value != null
                 ? Future.succeededFuture(value)
-                : Future.failedFuture(new PreBidException(String.format("%s not found: %s", errorPrefix, id)));
+                : Future.failedFuture(new PreBidException("%s not found: %s".formatted(errorPrefix, id)));
     }
 
     /**
@@ -214,10 +214,10 @@ public class FileApplicationSettings implements ApplicationSettings {
                                                    StoredDataType type) {
         final List<String> missedIds = ids.stream()
                 .filter(id -> !storedIdToJson.containsKey(id))
-                .collect(Collectors.toList());
+                .toList();
 
         return missedIds.isEmpty() ? Collections.emptyList() : missedIds.stream()
-                .map(id -> String.format("No stored %s found for id: %s", type, id))
-                .collect(Collectors.toList());
+                .map(id -> "No stored %s found for id: %s".formatted(type, id))
+                .toList();
     }
 }

@@ -63,46 +63,31 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
     private static DealsAction dealsActionFrom(RoutingContext routingContext) {
         final String actionName = routingContext.request().getParam(ACTION_NAME_PARAM);
         if (StringUtils.isEmpty(actionName)) {
-            throw new InvalidRequestException(String.format(
-                    "Parameter '%s' is required and can't be empty",
-                    ACTION_NAME_PARAM));
+            throw new InvalidRequestException("Parameter '%s' is required and can't be empty"
+                    .formatted(ACTION_NAME_PARAM));
         }
 
         try {
             return DealsAction.valueOf(actionName.toUpperCase());
         } catch (IllegalArgumentException ignored) {
-            throw new InvalidRequestException(String.format(
-                    "Given '%s' parameter value '%s' is not among possible actions",
-                    ACTION_NAME_PARAM,
-                    actionName));
+            throw new InvalidRequestException("Given '%s' parameter value '%s' is not among possible actions"
+                    .formatted(ACTION_NAME_PARAM, actionName));
         }
     }
 
     private void handleDealsAction(DealsAction dealsAction) {
         switch (dealsAction) {
-            case UPDATE_LINE_ITEMS:
-                plannerService.updateLineItemMetaData();
-                break;
-            case SEND_REPORT:
-                deliveryStatsService.sendDeliveryProgressReports();
-                break;
-            case REGISTER_INSTANCE:
-                registerService.performRegistration();
-                break;
-            case RESET_ALERT_COUNT:
+            case UPDATE_LINE_ITEMS -> plannerService.updateLineItemMetaData();
+            case SEND_REPORT -> deliveryStatsService.sendDeliveryProgressReports();
+            case REGISTER_INSTANCE -> registerService.performRegistration();
+            case RESET_ALERT_COUNT -> {
                 alertHttpService.resetAlertCount("pbs-register-client-error");
                 alertHttpService.resetAlertCount("pbs-planner-client-error");
                 alertHttpService.resetAlertCount("pbs-planner-empty-response-error");
                 alertHttpService.resetAlertCount("pbs-delivery-stats-client-error");
-                break;
-            case CREATE_REPORT:
-                deliveryProgressService.createDeliveryProgressReports(ZonedDateTime.now());
-                break;
-            case INVALIDATE_LINE_ITEMS:
-                lineItemService.invalidateLineItems();
-                break;
-            default:
-                throw new IllegalStateException("Unexpected action value");
+            }
+            case CREATE_REPORT -> deliveryProgressService.createDeliveryProgressReports(ZonedDateTime.now());
+            case INVALIDATE_LINE_ITEMS -> lineItemService.invalidateLineItems();
         }
     }
 

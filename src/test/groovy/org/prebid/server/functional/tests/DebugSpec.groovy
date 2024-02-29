@@ -1,19 +1,22 @@
 package org.prebid.server.functional.tests
 
 import org.apache.commons.lang3.StringUtils
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.StoredBidResponse
+import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
-import org.prebid.server.functional.testcontainers.PBSTest
 import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
-@PBSTest
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.response.auction.BidderCallType.STORED_BID_RESPONSE
+
 class DebugSpec extends BaseSpec {
 
     private static final String overrideToken = PBSUtils.randomString
@@ -72,7 +75,7 @@ class DebugSpec extends BaseSpec {
         and: "Response should contain specific code and text in ext.warnings.general"
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999] // [10003]
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
-                ["Debug turned off for bidder: $BidderName.GENERIC.value" as String]
+                ["Debug turned off for bidder: $GENERIC.value" as String]
     }
 
     def "PBS should return debug information when bidder-level setting debug.allowed = true"() {
@@ -87,7 +90,7 @@ class DebugSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain ext.debug"
-        assert response.ext?.debug?.httpcalls[BidderName.GENERIC.value]
+        assert response.ext?.debug?.httpcalls[GENERIC.value]
 
         and: "Response should not contain ext.warnings"
         assert !response.ext?.warnings
@@ -143,7 +146,7 @@ class DebugSpec extends BaseSpec {
         //TODO change to 10003 after updating debug warnings
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
-                ["Debug turned off for bidder: $BidderName.GENERIC.value" as String]
+                ["Debug turned off for bidder: $GENERIC.value" as String]
     }
 
     def "PBS should not return debug information when bidder-level setting debug.allowed = true is overridden by account-level setting debug-allowed = false"() {
@@ -180,7 +183,7 @@ class DebugSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain ext.debug"
-        assert response.ext?.debug?.httpcalls[BidderName.GENERIC.value]
+        assert response.ext?.debug?.httpcalls[GENERIC.value]
 
         and: "Response should not contain ext.warnings"
         assert !response.ext?.warnings
@@ -203,7 +206,7 @@ class DebugSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest, ["x-pbs-debug-override": overrideToken])
 
         then: "Response should contain ext.debug"
-        assert response.ext?.debug?.httpcalls[BidderName.GENERIC.value]
+        assert response.ext?.debug?.httpcalls[GENERIC.value]
 
         and: "Response should not contain ext.warnings"
         assert !response.ext?.warnings
@@ -259,7 +262,7 @@ class DebugSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -288,7 +291,7 @@ class DebugSpec extends BaseSpec {
         }
 
         and: "Save storedRequest into DB"
-        def storedRequest = StoredRequest.getDbStoredRequest(ampRequest, ampStoredRequest)
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
@@ -304,5 +307,40 @@ class DebugSpec extends BaseSpec {
         0            || null
         null         || 0
         null         || null
+    }
+
+    def "PBS shouldn't populate call type when it's default bidder call"() {
+        given: "Default basic generic BidRequest"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response shouldn't contain call type"
+        assert response.ext?.debug?.httpcalls[GENERIC.value].first().callType == null
+
+        and: "Response should not contain ext.warnings"
+        assert !response.ext?.warnings
+    }
+
+    def "PBS should return STORED_BID_RESPONSE call type when call from stored bid response "() {
+        given: "Default basic BidRequest with stored response"
+        def bidRequest = BidRequest.defaultBidRequest
+        def storedResponseId = PBSUtils.randomNumber
+        bidRequest.imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
+
+        and: "Stored bid response in DB"
+        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
+        storedResponseDao.save(storedResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Response should contain call type STORED_BID_RESPONSE"
+        assert response.ext?.debug?.httpcalls[GENERIC.value].first().callType == STORED_BID_RESPONSE
+
+        and: "Response should not contain ext.warnings"
+        assert !response.ext?.warnings
     }
 }

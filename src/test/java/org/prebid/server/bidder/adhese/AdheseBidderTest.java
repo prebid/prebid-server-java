@@ -2,60 +2,43 @@ package org.prebid.server.bidder.adhese;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.github.fge.jsonpatch.JsonPatchException;
-import com.github.fge.jsonpatch.mergepatch.JsonMergePatch;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
-import org.junit.Before;
+import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.http.HttpMethod;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.adhese.model.AdheseBid;
 import org.prebid.server.bidder.adhese.model.AdheseOriginData;
-import org.prebid.server.bidder.adhese.model.AdheseRequestBody;
-import org.prebid.server.bidder.adhese.model.AdheseResponseExt;
-import org.prebid.server.bidder.adhese.model.Cpm;
-import org.prebid.server.bidder.adhese.model.CpmValues;
-import org.prebid.server.bidder.adhese.model.Prebid;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adhese.ExtImpAdhese;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 public class AdheseBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://ads-{{AccountId}}.adhese.com/json";
+    private static final String ENDPOINT_URL = "https://ads-{{AccountId}}.adhese.com/openrtb2";
 
-    private AdheseBidder adheseBidder;
-
-    @Before
-    public void setUp() {
-        adheseBidder = new AdheseBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdheseBidder target = new AdheseBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -70,7 +53,7 @@ public class AdheseBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<AdheseRequestBody>>> result = adheseBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -87,7 +70,7 @@ public class AdheseBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<AdheseRequestBody>>> result = adheseBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -96,430 +79,212 @@ public class AdheseBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldModifyIncomingRequestAndSetExpectedHttpRequestUri()
-            throws JsonProcessingException {
+    public void makeHttpRequestsShouldAdjustExtAndAdjustUri() {
         // given
         final Map<String, List<String>> targets = Map.of(
                 "ci", asList("gent", "brussels"),
                 "ag", singletonList("55"),
                 "tl", singletonList("all"));
         final BidRequest bidRequest = BidRequest.builder()
-                .user(User.builder()
-                        .ext(ExtUser.builder().consent("dummy").build())
-                        .build())
                 .imp(singletonList(Imp.builder()
+                        .id("impId")
                         .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdhese.of(
                                 "demo",
                                 "_adhese_prebid_demo_",
                                 "leaderboard",
                                 mapper.convertValue(targets, JsonNode.class)))))
                         .build()))
-                .device(Device.builder().ifa("dum-my").build())
                 .build();
 
         // when
-        final Result<List<HttpRequest<AdheseRequestBody>>> result = adheseBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
-        // then
         final TreeMap<String, List<String>> expectedParameters = new TreeMap<>();
         expectedParameters.put("ag", singletonList("55"));
         expectedParameters.put("ci", List.of("gent", "brussels"));
         expectedParameters.put("tl", singletonList("all"));
-        expectedParameters.put("xt", singletonList("dummy"));
-        expectedParameters.put("xz", singletonList("dum-my"));
-
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsOnly("https://ads-demo.adhese.com/json");
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getBody)
-                .containsOnly(jacksonMapper.mapper().writeValueAsBytes(
-                        AdheseRequestBody.builder()
-                                .slots(Collections.singletonList(
-                                        AdheseRequestBody.Slot.builder()
-                                                .slotname("_adhese_prebid_demo_-leaderboard")
-                                                .build()))
-                                .parameters(expectedParameters)
-                                .build()));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldModifyIncomingRequestWithIfaParameter() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder().ifa("ifaValue").build())
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdhese.of("demo", "_adhese_prebid_demo_", "leaderboard",
-                                        mapper.convertValue(emptyMap(), JsonNode.class)))))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<AdheseRequestBody>>> result = adheseBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsOnly("https://ads-demo.adhese.com/json");
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getBody)
-                .containsOnly(jacksonMapper.mapper().writeValueAsBytes(
-                        AdheseRequestBody
-                                .builder()
-                                .slots(Collections.singletonList(
-                                        AdheseRequestBody.Slot.builder()
-                                                .slotname("_adhese_prebid_demo_-leaderboard")
-                                                .build()))
-                                .parameters(new TreeMap<>(Collections.singletonMap(
-                                        "xz", singletonList("ifaValue"))))
-                                .build()));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldModifyIncomingRequestWithRefererParameter() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .site(Site.builder().page("pageValue").build())
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdhese.of("demo", "_adhese_prebid_demo_", "leaderboard",
-                                        mapper.convertValue(emptyMap(), JsonNode.class)))))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<AdheseRequestBody>>> result = adheseBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsOnly("https://ads-demo.adhese.com/json");
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getBody)
-                .containsOnly(jacksonMapper.mapper().writeValueAsBytes(
-                        AdheseRequestBody
-                                .builder()
-                                .slots(Collections.singletonList(
-                                        AdheseRequestBody.Slot.builder()
-                                                .slotname("_adhese_prebid_demo_-leaderboard")
-                                                .build()))
-                                .parameters(new TreeMap<>(Collections.singletonMap(
-                                        "xf", singletonList("pageValue"))))
-                                .build()));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldNotModifyIncomingRequestIfTargetsNotPresent() throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .user(User.builder()
-                        .ext(ExtUser.builder().consent("dummy").build())
-                        .build())
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdhese.of(
-                                "demo",
-                                "_adhese_prebid_demo_",
-                                "leaderboard",
-                                mapper.convertValue(null, JsonNode.class)))))
-                        .build()))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<AdheseRequestBody>>> result = adheseBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getUri)
-                .containsOnly("https://ads-demo.adhese.com/json");
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getBody)
-                .containsOnly(jacksonMapper.mapper().writeValueAsBytes(
-                        AdheseRequestBody
-                                .builder()
-                                .slots(Collections.singletonList(
-                                        AdheseRequestBody.Slot.builder()
-                                                .slotname("_adhese_prebid_demo_-leaderboard")
-                                                .build()))
-                                .parameters(new TreeMap<>(Collections.singletonMap(
-                                        "xt", singletonList("dummy"))))
-                                .build()));
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
-        // given
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall("invalid");
-
-        // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfResponseBodyIsUnexpected() {
-        // given
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall("{}");
-
-        // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unexpected response body");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseIsEmptyArray() {
-        // given
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall("[]");
-
-        // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
+        expectedParameters.put("SL", singletonList("_adhese_prebid_demo_-leaderboard"));
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getValue()).satisfiesOnlyOnce(httpRequest -> {
+            assertThat(httpRequest.getMethod()).isEqualTo(HttpMethod.POST);
+            assertThat(httpRequest.getUri()).isEqualTo("https://ads-demo.adhese.com/openrtb2");
+        });
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactly("impId");
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(jsonNode -> jsonNode.get("adhese"))
+                .containsExactly(mapper.valueToTree(expectedParameters));
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyResultWhenResponseIsArrayWithEmptyObject() {
+    public void makeBidsShouldReturnErrorIfBidResponseInvalid() {
         // given
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall("[{}]");
+        final BidderCall<BidRequest> response = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Response resulted in an empty seatBid array");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).satisfiesOnlyOnce(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+            assertThat(error.getMessage()).startsWith("Failed to decode");
+        });
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfSeatbidIsEmpty() throws JsonProcessingException, JsonPatchException {
+    public void makeBidsShouldReturnEmptyResultIfSeatBidNull() throws JsonProcessingException {
         // given
-        final AdheseBid adheseBid = AdheseBid.builder()
-                .body("<div style='background-color:red; height:250px; width:300px'></div>")
-                .extension(Prebid.of(Cpm.of(CpmValues.of("1", "USD"))))
-                .originInstance("")
-                .width("728")
-                .height("90")
-                .origin("Origin")
-                .originData(BidResponse.builder().build())
+        final BidderCall<BidRequest> response = givenHttpCall(BidResponse.builder().build());
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyResultIfSeatBidEmpty() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> response = givenHttpCall(BidResponse.builder().seatbid(emptyList()).build());
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyResultIfBidNull() throws JsonProcessingException {
+        // given
+        final BidResponse bidResponse = BidResponse.builder()
+                .seatbid(List.of(SeatBid.builder().build()))
                 .build();
-
-        final AdheseResponseExt adheseResponseExt = AdheseResponseExt.of("60613369", "888", "https://hosts-demo.adhese."
-                + "com/rtb_gateway/handlers/client/track/?id=a2f39296-6dd0-4b3c-be85-7baa22e7ff4a", "tag", "js");
-        final AdheseOriginData adheseOriginData = AdheseOriginData.of("priority", "orderProperty", "adFormat",
-                "adType", "adspaceId", "libId", "slotID", "viewableImpressionCounter");
-
-        final JsonNode adheseBidNode = mapper.valueToTree(adheseBid);
-        final JsonNode adheseResponseExtNode = mapper.valueToTree(adheseResponseExt);
-        final JsonNode adheseOriginDataNode = mapper.valueToTree(adheseOriginData);
-
-        final JsonNode mergedResponseBid = JsonMergePatch.fromJson(adheseBidNode).apply(adheseResponseExtNode);
-        final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
-
-        final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
+        final BidderCall<BidRequest> response = givenHttpCall(bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Response resulted in an empty seatBid array");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldReturnCorrectBidderBid() throws JsonProcessingException, JsonPatchException {
+    public void makeBidsShouldReturnEmptyResultIfBidEmpty() throws JsonProcessingException {
+        // given
+        final BidResponse bidResponse = BidResponse.builder()
+                .seatbid(List.of(SeatBid.builder().bid(emptyList()).build()))
+                .build();
+        final BidderCall<BidRequest> response = givenHttpCall(bidResponse);
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(response, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfBidTypeNotFound() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("impId")
                         .build()))
                 .build();
-
-        final AdheseBid adheseBid = AdheseBid.builder()
-                .body("<div style='background-color:red; height:250px; width:300px'></div>")
-                .extension(Prebid.of(Cpm.of(CpmValues.of("1", "USD"))))
-                .originInstance("")
-                .width("728")
-                .height("90")
-                .origin("JERLICIA")
-                .build();
-
-        final AdheseResponseExt adheseResponseExt = AdheseResponseExt.of("60613369", "888", "https://hosts-demo.adhese."
-                        + "com/rtb_gateway/handlers/client/track/?id=a2f39296-6dd0-4b3c-be85-7baa22e7ff4a", "tag",
-                "js");
         final AdheseOriginData adheseOriginData = AdheseOriginData.of("priority", "orderProperty", "adFormat",
                 "adType", "adspaceId", "libId", "slotID", "viewableImpressionCounter");
-
-        final JsonNode adheseBidNode = mapper.valueToTree(adheseBid);
-        final JsonNode adheseResponseExtNode = mapper.valueToTree(adheseResponseExt);
-        final JsonNode adheseOriginDataNode = mapper.valueToTree(adheseOriginData);
-
-        final JsonNode mergedResponseBid = JsonMergePatch.fromJson(adheseBidNode).apply(adheseResponseExtNode);
-        final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
-
-        final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
+        final ObjectNode adheseExtNode = mapper.createObjectNode().set("adhese", mapper.valueToTree(adheseOriginData));
+        final Bid bid = Bid.builder()
+                .id("bidId")
+                .impid("impId")
+                .price(BigDecimal.valueOf(1))
+                .crid("60613369")
+                .dealid("888")
+                .w(728)
+                .h(90)
+                .ext(adheseExtNode)
+                .build();
+        final BidResponse bidResponse = BidResponse.builder()
+                .seatbid(List.of(SeatBid.builder().bid(singletonList(bid)).build()))
+                .cur("USD")
+                .build();
+        final BidderCall<BidRequest> response = givenHttpCall(bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(response, bidRequest);
 
         // then
-        final String adm = "<div style='background-color:red; height:250px; width:300px'></div><img src='https://hosts-demo.adhese.com/rtb_gateway/handlers/client/track/?id=a2f39296-6dd0-4b3c-be85-7baa22e7ff4a' style='height:1px; width:1px; margin: -1px -1px; display:none;'/>";
-        final BidderBid expected = BidderBid.of(
-                Bid.builder()
-                        .id("1")
-                        .impid("impId")
-                        .adm(adm)
-                        .price(BigDecimal.valueOf(1))
-                        .crid("60613369")
-                        .dealid("888")
-                        .w(728)
-                        .h(90)
-                        .ext(mapper.valueToTree(AdheseOriginData.of("priority", "orderProperty", "adFormat", "adType",
-                                "adspaceId", "libId", "slotID", "viewableImpressionCounter")))
-                        .build(),
-                BidType.banner, "USD");
-
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).satisfiesOnlyOnce(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+            assertThat(error.getMessage()).startsWith("Failed to obtain BidType");
+        });
     }
 
     @Test
-    public void makeBidsShouldReturnCorrectBidIfAdheseBidContainsVastTag() throws JsonProcessingException,
-            JsonPatchException {
+    public void makeBidsShouldReturnCorrectBid() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
                         .id("impId")
+                        .banner(Banner.builder().build())
                         .build()))
                 .build();
-
-        final AdheseBid adheseBid = AdheseBid.builder()
-                .body("<vast style='background-color:red; height:250px; width:300px'></vast>")
-                .extension(Prebid.of(Cpm.of(CpmValues.of("1", "USD"))))
-                .originInstance("")
-                .width("728")
-                .height("90")
-                .origin("JERLICIA")
-                .build();
-
-        final AdheseResponseExt adheseResponseExt = AdheseResponseExt.of("60613369", "888", "https://hosts-demo."
-                        + "adhese.com/rtb_gateway/handlers/client/track/?id=a2f39296-6dd0-4b3c-be85-7baa22e7ff4a",
-                "tag", "js");
         final AdheseOriginData adheseOriginData = AdheseOriginData.of("priority", "orderProperty", "adFormat",
                 "adType", "adspaceId", "libId", "slotID", "viewableImpressionCounter");
-
-        final JsonNode adheseBidNode = mapper.valueToTree(adheseBid);
-        final JsonNode adheseResponseExtNode = mapper.valueToTree(adheseResponseExt);
         final JsonNode adheseOriginDataNode = mapper.valueToTree(adheseOriginData);
-
-        final JsonNode mergedResponseBid = JsonMergePatch.fromJson(adheseBidNode).apply(adheseResponseExtNode);
-        final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
-
-        final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
+        final ObjectNode adheseExtNode = mapper.createObjectNode().set("adhese", adheseOriginDataNode);
+        final Bid bid = Bid.builder()
+                .id("bidId")
+                .impid("impId")
+                .price(BigDecimal.valueOf(1))
+                .crid("60613369")
+                .dealid("888")
+                .w(728)
+                .h(90)
+                .ext(adheseExtNode)
+                .build();
+        final BidResponse bidResponse = BidResponse.builder()
+                .seatbid(List.of(SeatBid.builder().bid(singletonList(bid)).build()))
+                .cur("USD")
+                .build();
+        final BidderCall<BidRequest> response = givenHttpCall(bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(response, bidRequest);
 
         // then
-        final String adm = "<vast style='background-color:red; height:250px; width:300px'></vast>";
-        final BidderBid expected = BidderBid.of(
-                Bid.builder()
-                        .id("1")
-                        .impid("impId")
-                        .adm(adm)
-                        .price(BigDecimal.valueOf(1))
-                        .crid("60613369")
-                        .dealid("888")
-                        .w(728)
-                        .h(90)
-                        .ext(mapper.valueToTree(AdheseOriginData.of("priority", "orderProperty", "adFormat", "adType",
-                                "adspaceId", "libId", "slotID", "viewableImpressionCounter")))
-                        .build(),
-                BidType.video, "USD");
+        final Bid expectedBid = bid.toBuilder()
+                .ext(mapper.valueToTree(adheseOriginDataNode))
+                .build();
+        final BidderBid expected = BidderBid.of(expectedBid, BidType.banner, "USD");
 
-        assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);
+        assertThat(result.getErrors()).isEmpty();
     }
 
-    @Test
-    public void makeBidsShouldReturnCorrectBidIfAdheseResponseExtIsNotEqualJs() throws JsonProcessingException,
-            JsonPatchException {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .id("impId")
-                        .build()))
-                .build();
-
-        final AdheseBid adheseBid = AdheseBid.builder()
-                .body("<vast style='background-color:red; height:250px; width:300px'></vast>")
-                .extension(Prebid.of(Cpm.of(CpmValues.of("1", "USD"))))
-                .originInstance("")
-                .width("728")
-                .height("90")
-                .origin("JERLICIA")
-                .build();
-
-        final AdheseResponseExt adheseResponseExt = AdheseResponseExt.of("60613369", "888", "https://hosts-demo.adhese."
-                + "com/rtb_gateway/handlers/client/track/?id=a2f39296-6dd0-4b3c-be85-7baa22e7ff4a", "tag", "ext");
-        final AdheseOriginData adheseOriginData = AdheseOriginData.of("priority", "orderProperty", "adFormat",
-                "adType", "adspaceId", "libId", "slotID", "viewableImpressionCounter");
-
-        final JsonNode adheseBidNode = mapper.valueToTree(adheseBid);
-        final JsonNode adheseResponseExtNode = mapper.valueToTree(adheseResponseExt);
-        final JsonNode adheseOriginDataNode = mapper.valueToTree(adheseOriginData);
-
-        final JsonNode mergedResponseBid = JsonMergePatch.fromJson(adheseBidNode).apply(adheseResponseExtNode);
-        final JsonNode mergedResponse = JsonMergePatch.fromJson(adheseOriginDataNode).apply(mergedResponseBid);
-
-        final ArrayNode body = mapper.createArrayNode().add(mergedResponse);
-        final HttpCall<AdheseRequestBody> httpCall = givenHttpCall(mapper.writeValueAsString(body));
-
-        // when
-        final Result<List<BidderBid>> result = adheseBidder.makeBids(httpCall, bidRequest);
-
-        // then
-        final String adm = "tag";
-        final BidderBid expected = BidderBid.of(
-                Bid.builder()
-                        .id("1")
-                        .impid("impId")
-                        .adm(adm)
-                        .price(BigDecimal.valueOf(1))
-                        .crid("60613369")
-                        .dealid("888")
-                        .w(728)
-                        .h(90)
-                        .ext(mapper.valueToTree(AdheseOriginData.of("priority", "orderProperty", "adFormat", "adType",
-                                "adspaceId", "libId", "slotID", "viewableImpressionCounter")))
-                        .build(),
-                BidType.banner, "USD");
-
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).doesNotContainNull().hasSize(1).first().isEqualTo(expected);
-    }
-
-    private static HttpCall<AdheseRequestBody> givenHttpCall(String responseBody) {
-        return HttpCall.success(
-                HttpRequest.<AdheseRequestBody>builder().build(),
+    private static BidderCall<BidRequest> givenHttpCall(String responseBody) {
+        return BidderCall.succeededHttp(
+                HttpRequest.<BidRequest>builder().build(),
                 HttpResponse.of(200, null, responseBody), null);
+    }
+
+    private static BidderCall<BidRequest> givenHttpCall(BidResponse response) throws JsonProcessingException {
+        return givenHttpCall(mapper.writeValueAsString(response));
     }
 }

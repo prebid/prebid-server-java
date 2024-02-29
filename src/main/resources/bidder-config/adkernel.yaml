@@ -1,18 +1,24 @@
 adapters:
   adkernel:
     endpoint: https://pbs.adksrv.com/hb?zone=%s
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid-dev@adkernel.com
       app-media-types:
         - banner
+        - video
+        - audio
+        - native
       site-media-types:
         - banner
         - video
+        - audio
+        - native
       supported-vendors:
       vendor-id: 14
     usersync:
-      url: https://sync.adkernel.com/user-sync?t=image&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
-      redirect-url: /setuid?bidder=adkernel&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={UID}
       cookie-family-name: adkernel
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://sync.adkernel.com/user-sync?t=image&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
+        support-cors: false
+        uid-macro: '{UID}'

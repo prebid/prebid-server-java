@@ -20,6 +20,16 @@ There are two ways to configure application settings: database and file. This do
       the bid and log an operational warning.
 - `auction.events.enabled` - enables events for account if true
 - `auction.debug-allow` - enables debug output in the auction response. Default `true`.
+- `auction.targeting.includewinners` - whether to include targeting for the winning bids in response. Default `false`.
+- `auction.targeting.includebidderkeys` - whether to include targeting for the best bid from each bidder in response. Default `false`.
+- `auction.targeting.includeformat` - whether to include the “hb_format” targeting key. Default `false`.
+- `auction.targeting.preferdeals` - if targeting is returned and this is `true`, PBS will choose the highest value deal before choosing the highest value non-deal. Default `false`.
+- `auction.targeting.alwaysincludedeals` - PBS-Java only. If true, generate `hb_ATTR_BIDDER` values for all bids that have a `dealid`. Default to `false`.
+- `auction.targeting.prefix` - defines prefix for targeting keywords. Default `hb`. 
+Keep in mind following restrictions:
+    - this prefix value may be overridden by correspond property from bid request
+    - prefix length is limited by `auction.truncate-target-attr`
+    - if custom prefix may produce keywords that exceed `auction.truncate-target-attr`, prefix value will drop to default `hb`
 - `privacy.ccpa.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
 - `privacy.ccpa.channel-enabled.web` - overrides `ccpa.enforce` property behaviour for web requests type.
 - `privacy.ccpa.channel-enabled.amp` - overrides `ccpa.enforce` property behaviour for amp requests type.
@@ -47,10 +57,12 @@ There are two ways to configure application settings: database and file. This do
 - `metrics.verbosity-level` - defines verbosity level of metrics for this account, overrides `metrics.accounts` application settings configuration. 
 - `analytics.auction-events.<channel>` - defines which channels are supported by analytics for this account
 - `analytics.modules.<module-name>.*` - space for `module-name` analytics module specific configuration, may be of any shape
+- `cookie-sync.default-timeout-ms` - overrides host level config
 - `cookie-sync.default-limit` - if the "limit" isn't specified in the `/cookie_sync` request, this is what to use
+- `cookie-sync.pri` - a list of prioritized bidder codes 
 - `cookie-sync.max-limit` - if the "limit" is specified in the `/cookie_sync` request, it can't be greater than this
   value
-- `cookie-sync.default-coop-sync` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this
+- `cookie-sync.coop-sync.default` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this
 
 Here are the definitions of the "purposes" that can be defined in the GDPR setting configurations:
 
@@ -104,6 +116,15 @@ Here's an example YAML file containing account-specific settings:
           banner-creative-max-size: enforce
         events:
           enabled: true
+        price-floors:
+          enabled: false
+        targeting:
+            includewinners: false
+            includebidderkeys: false
+            includeformat: false
+            preferdeals: false
+            alwaysincludedeals: false
+            prefix: hb
         debug-allow: true
       metrics:
         verbosity-level: basic
@@ -201,7 +222,8 @@ Here's an example YAML file containing account-specific settings:
       cookie-sync:
         default-limit: 5
         max-limit: 8
-        default-coop-sync: true
+        coop-sync:
+          default: true
 ```
 
 ## Setting Account Configuration in the Database
@@ -265,6 +287,9 @@ example:
     "events": {
       "enabled": true
     },
+    "price-floors": {
+      "enabled": false
+    },
     "debug-allow": true
   },
   "metrics": {
@@ -273,7 +298,7 @@ example:
   "privacy": {
     "ccpa": {
       "enabled": true,
-      "integration-enabled": {
+      "channel-enabled": {
           "web": true,
           "amp": false,
           "app": true,
@@ -282,7 +307,7 @@ example:
     },
     "gdpr": {
       "enabled": true,
-      "integration-enabled": {
+      "channel-enabled": {
         "video": true,
         "web": true,
         "app": true,
@@ -402,7 +427,9 @@ example:
   "cookie-sync": {
     "default-limit": 5,
     "max-limit": 8,
-    "default-coop-sync": true
+    "coop-sync": {
+      "default": true
+    }
   }
 }
 ```

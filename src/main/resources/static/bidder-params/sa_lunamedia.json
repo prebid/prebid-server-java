@@ -10,8 +10,14 @@
     },
     "type": {
       "type": "string",
-      "enum": ["network", "publisher"]
+      "enum": [
+        "network",
+        "publisher"
+      ]
     }
   },
-  "required": ["key"]
+  "required": [
+    "key",
+    "type"
+  ]
 }

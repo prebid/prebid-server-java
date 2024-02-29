@@ -6,13 +6,12 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -21,6 +20,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ucfunnel.ExtImpUcfunnel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -63,16 +63,9 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
             errors.add(BidderError.badInput(e.getMessage()));
         }
 
-        final String requestUrl = String.format("%s/%s/request", endpointUrl, HttpUtil.encodeUrl(partnerId));
+        final String requestUrl = "%s/%s/request".formatted(endpointUrl, HttpUtil.encodeUrl(partnerId));
 
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(requestUrl)
-                                .body(mapper.encodeToBytes(request))
-                                .headers(HttpUtil.headers())
-                                .payload(request)
-                                .build()),
+        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(request, requestUrl, mapper)),
                 errors);
     }
 
@@ -85,7 +78,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         final BidResponse bidResponse;
         try {
             bidResponse = decodeBodyToBidResponse(httpCall);
@@ -106,7 +99,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
         return Result.withValues(bidderBids);
     }
 
-    private BidResponse decodeBodyToBidResponse(HttpCall<BidRequest> httpCall) {
+    private BidResponse decodeBodyToBidResponse(BidderCall<BidRequest> httpCall) {
         try {
             return mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {

@@ -1,6 +1,8 @@
 adapters:
   adview:
     endpoint: https://bid.adview.com/agent/thirdAdxService/{{AccountId}}
+    endpoint-compression: gzip
+    modifying-vast-xml-allowed: true
     meta-info:
       maintainer-email: partner@adview.com
       site-media-types:
@@ -10,9 +12,3 @@ adapters:
         - native
       supported-vendors:
       vendor-id: 1022
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: adview
-      type: redirect
-      support-cors: false

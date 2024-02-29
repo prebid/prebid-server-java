@@ -15,6 +15,8 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.auction.BidderAliases;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
@@ -57,6 +59,10 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
     @Mock
     private HttpClient httpClient;
     @Mock
+    private BidderAliases bidderAliases;
+    @Mock
+    private BidRejectionTracker bidRejectionTracker;
+    @Mock
     private BidderRequestCompletionTrackerFactory bidderRequestCompletionTrackerFactory;
     @Mock
     private BidderErrorNotifier bidderErrorNotifier;
@@ -89,29 +95,39 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                         "USD"), null, null));
 
         final BidRequest bidRequest = BidRequest.builder().imp(asList(
-                Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId1")
-                        .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId1", null,
-                                singletonList(Format.builder().w(100).h(100).build()), null))))
-                        .build())).build()).build(),
-                Imp.builder().id("impId2").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId2")
-                        .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId2", null,
-                                singletonList(Format.builder().w(100).h(100).build()), null))))
-                        .build())).build()).build()))
+                        Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId1")
+                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId1", null,
+                                        singletonList(Format.builder().w(100).h(100).build()), null))))
+                                .build())).build()).build(),
+                        Imp.builder().id("impId2").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId2")
+                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId2", null,
+                                        singletonList(Format.builder().w(100).h(100).build()), null))))
+                                .build())).build()).build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.builder().bidder("bidder").bidRequest(bidRequest).build();
 
         // when
-        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, bidderRequest, null, requestHeaders,
-                false);
+        final Future<BidderSeatBid> result = bidderRequester
+                .requestBids(
+                        null,
+                        bidderRequest,
+                        bidRejectionTracker,
+                        null,
+                        requestHeaders,
+                        bidderAliases,
+                        false);
 
         // then
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(BidderSeatBid.of(singletonList(BidderBid.of(
-                Bid.builder().id("impId1-lineItemId1").impid("impId1").dealid("dealId1").price(BigDecimal.ONE)
-                        .adm("<Impression><![CDATA[]]></Impression>").crid("crid").w(100).h(100)
-                        .build(), BidType.banner, "USD")), Collections.emptyList(), Collections.emptyList()));
+        assertThat(result.result()).isEqualTo(BidderSeatBid.of(singletonList(
+                BidderBid.of(
+                        Bid.builder().id("impId1-lineItemId1").impid("impId1").dealid("dealId1").price(BigDecimal.ONE)
+                                .adm("<Impression><![CDATA[]]></Impression>").crid("crid").w(100).h(100)
+                                .build(),
+                        BidType.banner,
+                        "USD"))));
     }
 
     @Test
@@ -123,25 +139,34 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                 Price.of(BigDecimal.ONE, "USD"), null, null));
 
         final BidRequest bidRequest = BidRequest.builder().imp(asList(
-                Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId1")
-                        .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId1", null,
-                                singletonList(Format.builder().w(100).h(100).build()), null))))
-                        .build())).build()).build(),
-                Imp.builder().id("impId2").build()))
+                        Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId1")
+                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId1", null,
+                                        singletonList(Format.builder().w(100).h(100).build()), null))))
+                                .build())).build()).build(),
+                        Imp.builder().id("impId2").build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.builder().bidder("bidder").bidRequest(bidRequest).build();
 
         // when
-        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, bidderRequest, null, requestHeaders,
+        final Future<BidderSeatBid> result = bidderRequester.requestBids(
+                null,
+                bidderRequest,
+                bidRejectionTracker,
+                null,
+                requestHeaders,
+                bidderAliases,
                 false);
 
         // then
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(BidderSeatBid.of(singletonList(BidderBid.of(
-                Bid.builder().id("impId1-lineItemId1").impid("impId1").dealid("dealId1").price(BigDecimal.ONE)
-                        .adm("<Impression><![CDATA[]]></Impression>").crid("crid").w(100).h(100)
-                        .build(), BidType.banner, "USD")), Collections.emptyList(), Collections.emptyList()));
+        assertThat(result.result()).isEqualTo(BidderSeatBid.of(singletonList(
+                BidderBid.of(
+                        Bid.builder().id("impId1-lineItemId1").impid("impId1").dealid("dealId1").price(BigDecimal.ONE)
+                                .adm("<Impression><![CDATA[]]></Impression>").crid("crid").w(100).h(100)
+                                .build(),
+                        BidType.banner,
+                        "USD"))));
     }
 
     @Test
@@ -155,23 +180,32 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                 Price.of(BigDecimal.ONE, "USD"), null, null));
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(
-                Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId1")
-                        .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId1", null, null, null))))
-                        .build())).build()).build()))
+                        Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId1")
+                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId1", null, null, null))))
+                                .build())).build()).build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.builder().bidder("bidder").bidRequest(bidRequest).build();
 
         // when
-        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, bidderRequest, null, requestHeaders,
+        final Future<BidderSeatBid> result = bidderRequester.requestBids(
+                null,
+                bidderRequest,
+                bidRejectionTracker,
+                null,
+                requestHeaders,
+                bidderAliases,
                 false);
 
         // then
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(BidderSeatBid.of(singletonList(BidderBid.of(
-                Bid.builder().id("impId1-lineItemId1").impid("impId1").dealid("dealId1").price(BigDecimal.ONE)
-                        .adm("<Impression><![CDATA[]]></Impression>").crid("crid").w(0).h(0)
-                        .build(), BidType.banner, "USD")), Collections.emptyList(), Collections.emptyList()));
+        assertThat(result.result()).isEqualTo(BidderSeatBid.of(singletonList(
+                BidderBid.of(
+                        Bid.builder().id("impId1-lineItemId1").impid("impId1").dealid("dealId1").price(BigDecimal.ONE)
+                                .adm("<Impression><![CDATA[]]></Impression>").crid("crid").w(0).h(0)
+                                .build(),
+                        BidType.banner,
+                        "USD"))));
     }
 
     @Test
@@ -185,15 +219,23 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
                 Price.of(BigDecimal.ONE, "USD"), null, null));
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(
-                Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId1")
-                        .ext(mapper.createObjectNode().set("line", new IntNode(5)))
-                        .build())).build()).build()))
+                        Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId1")
+                                .ext(mapper.createObjectNode().set("line", new IntNode(5)))
+                                .build())).build()).build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.builder().bidder("bidder").bidRequest(bidRequest).build();
 
         // when and then
-        assertThatThrownBy(() -> bidderRequester.requestBids(null, bidderRequest, null, requestHeaders, false))
+        assertThatThrownBy(() -> bidderRequester
+                .requestBids(
+                        null,
+                        bidderRequest,
+                        bidRejectionTracker,
+                        null,
+                        requestHeaders,
+                        bidderAliases,
+                        false))
                 .isInstanceOf(PreBidException.class)
                 .hasMessageStartingWith("Error decoding bidRequest.imp.pmp.deal.ext:");
     }
@@ -204,20 +246,28 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         bidderRequester.setBidRates(Collections.singletonMap("lineItemId1", 1.00));
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(
-                Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId1").build())).build()).build()))
+                        Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId1").build())).build()).build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.builder().bidder("bidder").bidRequest(bidRequest).build();
 
         // when
-        final Future<BidderSeatBid> result = bidderRequester.requestBids(null, bidderRequest, null, requestHeaders,
-                false);
+        final Future<BidderSeatBid> result = bidderRequester
+                .requestBids(
+                        null,
+                        bidderRequest,
+                        bidRejectionTracker,
+                        null,
+                        requestHeaders,
+                        bidderAliases,
+                        false);
 
         // then
         assertThat(result.succeeded()).isTrue();
-        assertThat(result.result()).isEqualTo(BidderSeatBid.of(Collections.emptyList(), Collections.emptyList(),
-                singletonList(BidderError.failedToRequestBids(
-                        "Matched or ready to serve line items were not found, but required in simulation mode"))));
+        assertThat(result.result()).isEqualTo(BidderSeatBid.builder()
+                .errors(singletonList(BidderError.failedToRequestBids(
+                        "Matched or ready to serve line items were not found, but required in simulation mode")))
+                .build());
     }
 
     @Test
@@ -226,15 +276,23 @@ public class SimulationAwareHttpBidderRequesterTest extends VertxTest {
         bidderRequester.setBidRates(Collections.singletonMap("lineItemId1", 1.00));
 
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(
-                Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
-                        .id("dealId1")
-                        .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId2", null, null, null))))
-                        .build())).build()).build()))
+                        Imp.builder().id("impId1").pmp(Pmp.builder().deals(singletonList(Deal.builder()
+                                .id("dealId1")
+                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId2", null, null, null))))
+                                .build())).build()).build()))
                 .build();
-        final BidderRequest bidderRequest = BidderRequest.of("bidder", null, bidRequest);
+        final BidderRequest bidderRequest = BidderRequest.builder().bidder("bidder").bidRequest(bidRequest).build();
 
         // when
-        assertThatThrownBy(() -> bidderRequester.requestBids(null, bidderRequest, null, requestHeaders, false))
+        assertThatThrownBy(() -> bidderRequester
+                .requestBids(
+                        null,
+                        bidderRequest,
+                        bidRejectionTracker,
+                        null,
+                        requestHeaders,
+                        bidderAliases,
+                        false))
                 .isInstanceOf(PreBidException.class)
                 .hasMessage("Bid rate for line item with id lineItemId2 was not found");
     }

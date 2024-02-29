@@ -21,14 +21,16 @@ public class Pmp {
      * object, where 0 = all bids are accepted, 1 = bids are restricted to the
      * deals specified and the terms thereof.
      */
-    int privateAuction;
+    Integer privateAuction;
 
     /**
-     * Array of Deal (Section 3.2.12) objects that convey the specific deals
+     * Array of {@link Deal} (Section 3.2.12) objects that convey the specific deals
      * applicable to this impression.
      */
     List<Deal> deals;
 
-    /** Placeholder for exchange-specific extensions to OpenRTB. */
+    /**
+     * Placeholder for exchange-specific extensions to OpenRTB.
+     */
     ObjectNode ext;
 }

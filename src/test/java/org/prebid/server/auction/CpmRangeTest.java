@@ -7,6 +7,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 
 import java.math.BigDecimal;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -35,7 +36,7 @@ public class CpmRangeTest {
     @Test
     public void fromCpmShouldReturnCpmGivenLowGranularity() {
         Assertions.assertThat(
-                CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("low")))
+                        CpmRange.fromCpm(BigDecimal.valueOf(3.87), PriceGranularity.createFromString("low")))
                 .isEqualTo("3.50");
     }
 
@@ -92,18 +93,18 @@ public class CpmRangeTest {
     @Test
     public void fromCpmShouldReturnResultWithDefaultPrecisionTwoIfRangePrecisionInNull() {
         Assertions.assertThat(
-                CpmRange.fromCpm(BigDecimal.valueOf(2.3333), PriceGranularity.createFromExtPriceGranularity(
-                        ExtPriceGranularity.of(null, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3),
-                                BigDecimal.valueOf(0.01)))))))
+                        CpmRange.fromCpm(BigDecimal.valueOf(2.3333), PriceGranularity.createFromExtPriceGranularity(
+                                ExtPriceGranularity.of(null, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3),
+                                        BigDecimal.valueOf(0.01)))))))
                 .isEqualTo("2.33");
     }
 
     @Test
     public void fromCpmShouldReturnResultWithPrecisionZero() {
         Assertions.assertThat(
-                CpmRange.fromCpm(BigDecimal.valueOf(2.3333), PriceGranularity.createFromExtPriceGranularity(
-                        ExtPriceGranularity.of(0, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3),
-                                BigDecimal.valueOf(0.01)))))))
+                        CpmRange.fromCpm(BigDecimal.valueOf(2.3333), PriceGranularity.createFromExtPriceGranularity(
+                                ExtPriceGranularity.of(0, singletonList(ExtGranularityRange.of(BigDecimal.valueOf(3),
+                                        BigDecimal.valueOf(0.01)))))))
                 .isEqualTo("2");
     }
 
@@ -119,6 +120,21 @@ public class CpmRangeTest {
 
         // then
         assertThat(result.compareTo(BigDecimal.valueOf(2.33))).isEqualTo(0);
+    }
+
+    @Test
+    public void fromCpmAsNumberShouldReturnExpectedResultForMultipleRanges() {
+        // given
+        final PriceGranularity priceGranularity = PriceGranularity.createFromExtPriceGranularity(
+                ExtPriceGranularity.of(2, asList(
+                        ExtGranularityRange.of(BigDecimal.valueOf(1.5), BigDecimal.ONE),
+                        ExtGranularityRange.of(BigDecimal.valueOf(2.5), BigDecimal.valueOf(1.2)))));
+
+        // when
+        final BigDecimal result = CpmRange.fromCpmAsNumber(BigDecimal.valueOf(2), priceGranularity);
+
+        // then
+        assertThat(result.compareTo(BigDecimal.valueOf(1.5))).isEqualTo(0);
     }
 
     @Test

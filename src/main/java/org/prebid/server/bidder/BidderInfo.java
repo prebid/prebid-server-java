@@ -3,6 +3,9 @@ package org.prebid.server.bidder;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.versionconverter.OrtbVersion;
+import org.prebid.server.spring.config.bidder.model.CompressionType;
+import org.prebid.server.spring.config.bidder.model.MediaType;
 
 import java.util.List;
 
@@ -10,6 +13,8 @@ import java.util.List;
 public class BidderInfo {
 
     boolean enabled;
+
+    OrtbVersion ortbVersion;
 
     boolean debugAllowed;
 
@@ -29,32 +34,46 @@ public class BidderInfo {
 
     boolean modifyingVastXmlAllowed;
 
+    CompressionType compressionType;
+
+    Ortb ortb;
+
     public static BidderInfo create(boolean enabled,
+                                    OrtbVersion ortbVersion,
                                     boolean debugAllowed,
                                     String endpoint,
                                     String aliasOf,
                                     String maintainerEmail,
-                                    List<String> appMediaTypes,
-                                    List<String> siteMediaTypes,
+                                    List<MediaType> appMediaTypes,
+                                    List<MediaType> siteMediaTypes,
+                                    List<MediaType> doohMediaTypes,
                                     List<String> supportedVendors,
                                     int vendorId,
                                     boolean ccpaEnforced,
-                                    boolean modifyingVastXmlAllowed) {
+                                    boolean modifyingVastXmlAllowed,
+                                    CompressionType compressionType,
+                                    org.prebid.server.spring.config.bidder.model.Ortb ortb) {
 
         return of(
                 enabled,
+                ortbVersion,
                 debugAllowed,
                 StringUtils.startsWith(endpoint, "https://"),
                 aliasOf,
                 new MaintainerInfo(maintainerEmail),
-                new CapabilitiesInfo(platformInfo(appMediaTypes), platformInfo(siteMediaTypes)),
+                new CapabilitiesInfo(
+                        platformInfo(appMediaTypes),
+                        platformInfo(siteMediaTypes),
+                        platformInfo(doohMediaTypes)),
                 supportedVendors,
                 new GdprInfo(vendorId),
                 ccpaEnforced,
-                modifyingVastXmlAllowed);
+                modifyingVastXmlAllowed,
+                compressionType,
+                Ortb.of(ortb.getMultiFormatSupported()));
     }
 
-    private static PlatformInfo platformInfo(List<String> mediaTypes) {
+    private static PlatformInfo platformInfo(List<MediaType> mediaTypes) {
         return mediaTypes != null ? new PlatformInfo(mediaTypes) : null;
     }
 
@@ -70,13 +89,15 @@ public class BidderInfo {
         PlatformInfo app;
 
         PlatformInfo site;
+
+        PlatformInfo dooh;
     }
 
     @Value
-    private static class PlatformInfo {
+    public static class PlatformInfo {
 
         @JsonProperty("mediaTypes")
-        List<String> mediaTypes;
+        List<MediaType> mediaTypes;
     }
 
     @Value
@@ -94,5 +115,12 @@ public class BidderInfo {
          */
         @JsonProperty("vendorId")
         int vendorId;
+    }
+
+    @Value(staticConstructor = "of")
+    public static class Ortb {
+
+        @JsonProperty("multiformat-supported")
+        boolean multiFormatSupported;
     }
 }

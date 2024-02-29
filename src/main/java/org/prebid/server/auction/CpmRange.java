@@ -6,7 +6,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.List;
+import java.text.NumberFormat;
 import java.util.Locale;
 
 /**
@@ -15,6 +15,7 @@ import java.util.Locale;
 public class CpmRange {
 
     private static final Locale LOCALE = Locale.US;
+    private static final int DEFAULT_PRECISION = 2;
 
     private CpmRange() {
     }
@@ -24,17 +25,22 @@ public class CpmRange {
      */
     public static String fromCpm(BigDecimal cpm, PriceGranularity priceGranularity) {
         final BigDecimal value = fromCpmAsNumber(cpm, priceGranularity);
-        return value != null
-                ? format(value, ObjectUtils.defaultIfNull(priceGranularity.getPrecision(), 2))
-                : StringUtils.EMPTY;
+        return value != null ? format(value, priceGranularity.getPrecision()) : StringUtils.EMPTY;
     }
 
     /**
      * Formats {@link BigDecimal} value with a given precision and return it's string representation.
      */
     public static String format(BigDecimal value, Integer precision) {
-        final String format = String.format("%%.%sf", precision);
-        return String.format(LOCALE, format, value);
+        return numberFormat(ObjectUtils.defaultIfNull(precision, DEFAULT_PRECISION)).format(value);
+    }
+
+    private static NumberFormat numberFormat(int precision) {
+        final NumberFormat numberFormat = NumberFormat.getInstance(LOCALE);
+        numberFormat.setRoundingMode(RoundingMode.FLOOR);
+        numberFormat.setMaximumFractionDigits(precision);
+        numberFormat.setMinimumFractionDigits(precision);
+        return numberFormat;
     }
 
     /**
@@ -42,34 +48,35 @@ public class CpmRange {
      * format
      */
     public static BigDecimal fromCpmAsNumber(BigDecimal cpm, PriceGranularity priceGranularity) {
+        if (cpm.compareTo(BigDecimal.ZERO) <= 0) {
+            return null;
+        }
+
         final BigDecimal rangeMax = priceGranularity.getRangesMax();
         if (cpm.compareTo(rangeMax) > 0) {
             return rangeMax;
         }
-        final ExtGranularityRange range = findRangeFor(cpm, priceGranularity.getRanges());
-        final BigDecimal increment = range != null ? range.getIncrement() : null;
 
-        return increment != null ? cpm.divide(increment, 0, RoundingMode.FLOOR).multiply(increment) : null;
-    }
-
-    /**
-     * Returns range cpm fits in.
-     */
-    private static ExtGranularityRange findRangeFor(BigDecimal cpm, List<ExtGranularityRange> ranges) {
         BigDecimal min = BigDecimal.ZERO;
-        for (ExtGranularityRange range : ranges) {
-            if (includes(cpm, min, range.getMax())) {
-                return range;
+        BigDecimal increment = null;
+        for (ExtGranularityRange range : priceGranularity.getRanges()) {
+            final BigDecimal max = range.getMax();
+            if (cpm.compareTo(max) <= 0) {
+                increment = range.getIncrement();
+                break;
             }
-            min = range.getMax();
+
+            min = max;
         }
-        return null;
+
+        return increment != null ? calculate(cpm, min, increment) : null;
     }
 
-    /**
-     * Checks if cpm fits into the borders.
-     */
-    private static boolean includes(BigDecimal cpm, BigDecimal min, BigDecimal max) {
-        return cpm.compareTo(min) >= 0 && cpm.compareTo(max) <= 0;
+    private static BigDecimal calculate(BigDecimal cpm, BigDecimal min, BigDecimal increment) {
+        return cpm
+                .subtract(min)
+                .divide(increment, 0, RoundingMode.FLOOR)
+                .multiply(increment)
+                .add(min);
     }
 }

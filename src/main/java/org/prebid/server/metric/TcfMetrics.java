@@ -28,22 +28,19 @@ class TcfMetrics extends UpdatableMetrics {
     }
 
     TcfVersionMetrics fromVersion(int version) {
-        switch (version) {
-            case TCF_V1_VERSION:
-                return tcfVersion1Metrics;
-            case TCF_V2_VERSION:
-                return tcfVersion2Metrics;
-            default:
-                throw new PreBidException(String.format("Unknown tcf version %s", version));
-        }
+        return switch (version) {
+            case TCF_V1_VERSION -> tcfVersion1Metrics;
+            case TCF_V2_VERSION -> tcfVersion2Metrics;
+            default -> throw new PreBidException("Unknown tcf version " + version);
+        };
     }
 
     private static String createTcfPrefix(String prefix) {
-        return String.format("%s.tcf", prefix);
+        return prefix + ".tcf";
     }
 
     private static Function<MetricName, String> nameCreator(String prefix) {
-        return metricName -> String.format("%s.%s", prefix, metricName.toString());
+        return metricName -> "%s.%s".formatted(prefix, metricName);
     }
 
     static class TcfVersionMetrics extends UpdatableMetrics {
@@ -61,11 +58,11 @@ class TcfMetrics extends UpdatableMetrics {
         }
 
         private static String createVersionPrefix(String prefix, String version) {
-            return String.format("%s.%s", prefix, version);
+            return "%s.%s".formatted(prefix, version);
         }
 
         private static Function<MetricName, String> nameCreator(String prefix) {
-            return metricName -> String.format("%s.%s", prefix, metricName.toString());
+            return metricName -> "%s.%s".formatted(prefix, metricName);
         }
 
         VendorListMetrics vendorList() {
@@ -83,11 +80,11 @@ class TcfMetrics extends UpdatableMetrics {
         }
 
         private static String createVersionPrefix(String prefix) {
-            return String.format("%s.vendorlist", prefix);
+            return prefix + ".vendorlist";
         }
 
         private static Function<MetricName, String> nameCreator(String prefix) {
-            return metricName -> String.format("%s.%s", prefix, metricName.toString());
+            return metricName -> "%s.%s".formatted(prefix, metricName);
         }
     }
 }

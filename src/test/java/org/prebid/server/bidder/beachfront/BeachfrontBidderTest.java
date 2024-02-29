@@ -10,6 +10,8 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Source;
+import com.iab.openrtb.request.SupplyChain;
+import com.iab.openrtb.request.SupplyChainNode;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -28,17 +30,15 @@ import org.prebid.server.bidder.beachfront.model.BeachfrontSize;
 import org.prebid.server.bidder.beachfront.model.BeachfrontSlot;
 import org.prebid.server.bidder.beachfront.model.BeachfrontVideoRequest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchainSchainNode;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
-import org.prebid.server.proto.openrtb.ext.request.ExtSourceSchain;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfront;
 import org.prebid.server.proto.openrtb.ext.request.beachfront.ExtImpBeachfrontAppIds;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -68,15 +68,18 @@ public class BeachfrontBidderTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    private BeachfrontBidder beachfrontBidder;
-
     @Mock
     private CurrencyConversionService currencyConversionService;
 
+    private BeachfrontBidder target;
+
     @Before
     public void setUp() {
-        beachfrontBidder =
-                new BeachfrontBidder(BANNER_ENDPOINT, VIDEO_ENDPOINT, currencyConversionService, jacksonMapper);
+        target = new BeachfrontBidder(
+                BANNER_ENDPOINT,
+                VIDEO_ENDPOINT,
+                currencyConversionService,
+                jacksonMapper);
     }
 
     @Test
@@ -99,7 +102,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -114,7 +117,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -131,7 +134,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         mapper.valueToTree(ExtImpBeachfront.of(null, null, null, null))))));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -165,7 +168,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2)
@@ -194,7 +197,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -223,16 +226,18 @@ public class BeachfrontBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors())
                 .extracting(BidderError::getMessage)
                 .containsExactly(
-                        "The following error was received from the currency converter while attempting to convert the "
-                                + "imp.bidfloor value of 150 from UAH to USD:\nCurrency service was unable to convert "
-                                + "currency.\nThe provided value of imp.ext.beachfront.bidfloor,"
-                                + " 1 USD is being used as a fallback.");
+                        """
+                                The following error was received from the currency converter while \
+                                attempting to convert the imp.bidfloor value of 150 from UAH to USD: \
+                                Currency service was unable to convert currency.
+                                The provided value of imp.ext.beachfront.bidfloor, \
+                                1 USD is being used as a fallback.""");
 
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BeachfrontVideoRequest.class))
@@ -270,7 +275,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(0);
@@ -310,17 +315,19 @@ public class BeachfrontBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors())
                 .extracting(BidderError::getMessage)
                 .containsExactly(
-                        "The following error was received from the currency converter while attempting to convert the "
-                                + "imp.bidfloor value of 150 from UAH to USD:\nCurrency service was unable to convert "
-                                + "currency.\nA value of imp.ext.beachfront.bidfloor was not provided. "
-                                + "The bid is being skipped.");
+                        """
+                                The following error was received from the currency converter while \
+                                attempting to convert the imp.bidfloor value of 150 from UAH to USD: \
+                                Currency service was unable to convert currency.
+                                A value of imp.ext.beachfront.bidfloor was not provided. \
+                                The bid is being skipped.""");
     }
 
     @Test
@@ -335,7 +342,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -354,7 +361,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue().get(0).getHeaders())
@@ -375,7 +382,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 requestBuilder -> requestBuilder.user(User.builder().buyeruid("4125").build()));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue().get(0).getHeaders())
@@ -387,10 +394,9 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnExpectedBannerRequestWithSchain() {
         // given
-        final ExtRequestPrebidSchainSchainNode globalNode = ExtRequestPrebidSchainSchainNode.of(
+        final SupplyChainNode globalNode = SupplyChainNode.of(
                 "pbshostcompany.com", "00001", null, null, null, null, null);
-        final ExtSourceSchain expectedSchain = ExtSourceSchain.of(
-                null, null, singletonList(globalNode), null);
+        final SupplyChain expectedSchain = SupplyChain.of(null, singletonList(globalNode), null, null);
 
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
@@ -403,7 +409,7 @@ public class BeachfrontBidderTest extends VertxTest {
         );
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -428,7 +434,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .device(Device.builder().model("3310").os("nokia").build()));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -462,7 +468,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -511,7 +517,7 @@ public class BeachfrontBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -531,7 +537,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .secure(1));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -556,7 +562,7 @@ public class BeachfrontBidderTest extends VertxTest {
                         .secure(1));
 
         // when
-        final Result<List<HttpRequest<Void>>> result = beachfrontBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -571,10 +577,10 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseBodyHasEmptyArray() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(null, "[]");
+        final BidderCall<Void> httpCall = givenHttpCall(null, "[]");
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -584,10 +590,10 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenResponseBodyIsInvalid() {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<Void> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -609,10 +615,11 @@ public class BeachfrontBidderTest extends VertxTest {
                 .h(450)
                 .build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(null, mapper.writeValueAsString(singletonList(responseSlot)));
+        final BidderCall<Void> httpCall = givenHttpCall(null,
+                mapper.writeValueAsString(singletonList(responseSlot)));
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -632,12 +639,12 @@ public class BeachfrontBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyResultWhenResponseHasEmptySeatBids() throws JsonProcessingException {
         // given
-        final HttpCall<Void> httpCall = givenHttpCall(
+        final BidderCall<Void> httpCall = givenHttpCall(
                 mapper.writeValueAsBytes(BeachfrontVideoRequest.builder().build()),
                 mapper.writeValueAsString(BidResponse.builder().id("some_id").build()));
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -657,14 +664,14 @@ public class BeachfrontBidderTest extends VertxTest {
                         .build())
                 .build();
 
-        final HttpCall<Void> httpCall = HttpCall.success(
+        final BidderCall<Void> httpCall = BidderCall.succeededHttp(
                 HttpRequest.<Void>builder()
                         .body(mapper.writeValueAsBytes(videoRequest))
                         .uri("url&prebidserver").build(),
                 HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)), null);
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -690,14 +697,14 @@ public class BeachfrontBidderTest extends VertxTest {
                         .build())
                 .build();
 
-        final HttpCall<Void> httpCall = HttpCall.success(
+        final BidderCall<Void> httpCall = BidderCall.succeededHttp(
                 HttpRequest.<Void>builder()
                         .body(mapper.writeValueAsBytes(videoRequest))
                         .uri("url").build(),
                 HttpResponse.of(200, null, mapper.writeValueAsString(bidResponse)), null);
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -720,10 +727,10 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -746,10 +753,10 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -772,10 +779,10 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -798,10 +805,10 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -824,10 +831,10 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -850,10 +857,10 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -874,10 +881,10 @@ public class BeachfrontBidderTest extends VertxTest {
         final BeachfrontVideoRequest videoRequest =
                 BeachfrontVideoRequest.builder().request(givenBidRequest(identity())).build();
 
-        final HttpCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
+        final BidderCall<Void> httpCall = givenHttpCall(videoRequest, bidResponse);
 
         // when
-        final Result<List<BidderBid>> result = beachfrontBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -923,13 +930,13 @@ public class BeachfrontBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<Void> givenHttpCall(BeachfrontVideoRequest beachfrontVideoRequest,
-                                                BidResponse bidResponse) throws JsonProcessingException {
+    private static BidderCall<Void> givenHttpCall(BeachfrontVideoRequest beachfrontVideoRequest,
+                                                  BidResponse bidResponse) throws JsonProcessingException {
         return givenHttpCall(mapper.writeValueAsBytes(beachfrontVideoRequest), mapper.writeValueAsString(bidResponse));
     }
 
-    private static HttpCall<Void> givenHttpCall(byte[] requestBody, String responseBody) {
-        return HttpCall.success(
+    private static BidderCall<Void> givenHttpCall(byte[] requestBody, String responseBody) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<Void>builder().body(requestBody).uri("url").build(),
                 HttpResponse.of(200, null, responseBody), null);
     }

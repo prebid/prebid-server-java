@@ -7,12 +7,11 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -32,12 +31,7 @@ public class AdponeBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://test.com/bid-request?src=prebid_server";
 
-    private AdponeBidder adponeBidder;
-
-    @Before
-    public void setUp() {
-        adponeBidder = new AdponeBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final AdponeBidder target = new AdponeBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -50,7 +44,7 @@ public class AdponeBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(mapper.createArrayNode());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adponeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -66,7 +60,7 @@ public class AdponeBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(mapper.createObjectNode());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adponeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -84,7 +78,7 @@ public class AdponeBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(mapper.createObjectNode());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adponeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -101,10 +95,10 @@ public class AdponeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
-        final Result<List<BidderBid>> result = adponeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -117,10 +111,10 @@ public class AdponeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = adponeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -130,10 +124,11 @@ public class AdponeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(BidResponse.builder().build()));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = adponeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -144,7 +139,7 @@ public class AdponeBidderTest extends VertxTest {
     public void makeBidsShouldReturnReturnBannerBid() throws JsonProcessingException {
         // given
         final Bid bid = Bid.builder().id("bidId").build();
-        final HttpCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
                 BidResponse.builder()
                         .cur("USD")
                         .seatbid(singletonList(SeatBid.builder()
@@ -153,7 +148,7 @@ public class AdponeBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = adponeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -169,8 +164,8 @@ public class AdponeBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);

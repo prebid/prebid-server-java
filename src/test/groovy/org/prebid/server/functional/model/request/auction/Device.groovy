@@ -5,10 +5,11 @@ import groovy.transform.ToString
 @ToString(includeNames = true, ignoreNulls = true)
 class Device {
 
-    String ua
     Geo geo
     Integer dnt
     Integer lmt
+    String ua
+    UserAgent sua
     String ip
     String ipv6
     Integer devicetype
@@ -25,6 +26,7 @@ class Device {
     Integer geofetch
     String flashver
     String language
+    String langb
     String carrier
     String mccmnc
     Integer connectiontype
@@ -35,4 +37,5 @@ class Device {
     String dpidmd5
     String macsha1
     String macmd5
+    DeviceExt ext
 }

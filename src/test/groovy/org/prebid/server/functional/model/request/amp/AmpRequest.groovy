@@ -10,21 +10,23 @@ import org.prebid.server.functional.util.PBSUtils
 class AmpRequest {
 
     String tagId
+    String targeting
     String debug
     Integer ow
     Integer oh
     Integer w
     Integer h
-    Long ms
+    String ms
     Long timeout
     String slot
     String curl
-    Integer account
+    String account
     String gdprConsent
     String consentString
     ConsentType consentType
     Boolean gdprApplies
     String addtlConsent
+    String gppSid
 
     static AmpRequest getDefaultAmpRequest() {
         def request = new AmpRequest()

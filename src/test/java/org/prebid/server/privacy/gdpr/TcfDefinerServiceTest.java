@@ -1,6 +1,7 @@
 package org.prebid.server.privacy.gdpr;
 
 import com.iabtcf.decoder.TCString;
+import com.iabtcf.encoder.TCStringEncoder;
 import io.vertx.core.Future;
 import org.junit.Before;
 import org.junit.Rule;
@@ -28,10 +29,8 @@ import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.Purposes;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import static java.util.Arrays.asList;
@@ -110,7 +109,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), null, null, MetricName.setuid, null, null);
+                Privacy.builder().build(), null, null, MetricName.setuid, null, null);
 
         // then
         assertThat(result).succeededWith(TcfContext.empty());
@@ -123,12 +122,12 @@ public class TcfDefinerServiceTest {
     public void resolveTcfContextShouldReturnContextWithGdprZeroWhenGdprIsDisabledByAccountForRequestType() {
         // given
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
-                .enabledForRequestType(EnabledForRequestType.of(null, false, null, null))
+                .enabledForRequestType(EnabledForRequestType.of(null, false, null, null, null))
                 .build();
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), null, null, accountGdprConfig, MetricName.amp, null, null);
+                Privacy.builder().build(), null, null, accountGdprConfig, MetricName.amp, null, null);
 
         // then
         assertThat(result).succeededWith(TcfContext.empty());
@@ -144,7 +143,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), null, accountGdprConfig, MetricName.setuid, null, null);
+                Privacy.builder().build(), null, accountGdprConfig, MetricName.setuid, null, null);
 
         // then
         assertThat(result).succeededWith(TcfContext.empty());
@@ -158,12 +157,12 @@ public class TcfDefinerServiceTest {
         // given
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
                 .enabled(false)
-                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                 .build();
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), null, null, accountGdprConfig, MetricName.setuid, null, null);
+                Privacy.builder().build(), null, null, accountGdprConfig, MetricName.setuid, null, null);
 
         // then
         assertThat(result).succeededWith(TcfContext.empty());
@@ -187,12 +186,12 @@ public class TcfDefinerServiceTest {
                 metrics);
 
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
-                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                 .build();
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), null, null, accountGdprConfig, MetricName.setuid, null, null);
+                Privacy.builder().build(), null, null, accountGdprConfig, MetricName.setuid, null, null);
 
         // then
         assertThat(result).succeededWith(TcfContext.empty());
@@ -208,7 +207,6 @@ public class TcfDefinerServiceTest {
                 .enabled(true)
                 .consentStringMeansInScope(true)
                 .build();
-        final List<String> debugWarnings = new ArrayList<>();
 
         tcfDefinerService = new TcfDefinerService(
                 gdprConfig,
@@ -223,7 +221,7 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, vendorConsent, null, null), "london", null,
+                Privacy.builder().gdpr("1").consentString(vendorConsent).ccpa(null).coppa(null).build(), "london", null,
                 null, MetricName.setuid, null, null);
 
         // then
@@ -232,6 +230,46 @@ public class TcfDefinerServiceTest {
         assertThat(result.result().getWarnings())
                 .containsExactly("Parsing consent string:\"BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA\" failed. "
                         + "TCF version 1 is deprecated and treated as corrupted TCF version 2");
+    }
+
+    @Test
+    public void resolveTcfContextShouldTreatTcfConsentWithTcfPolicyVersionGreaterThanFourAsCorrupted() {
+        // given
+        final GdprConfig gdprConfig = GdprConfig.builder()
+                .enabled(true)
+                .consentStringMeansInScope(true)
+                .build();
+
+        tcfDefinerService = new TcfDefinerService(
+                gdprConfig,
+                singleton(EEA_COUNTRY),
+                tcf2Service,
+                geoLocationService,
+                bidderCatalog,
+                ipAddressHelper,
+                metrics);
+
+        final String vendorConsent = TCStringEncoder.newBuilder()
+                .version(2)
+                .tcfPolicyVersion(5)
+                .encode();
+
+        // when
+        final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
+                Privacy.builder().gdpr("1").consentString(vendorConsent).ccpa(null).coppa(null).build(),
+                "london",
+                null,
+                null,
+                MetricName.setuid,
+                null,
+                null);
+
+        // then
+        final String expectedWarning = "Parsing consent string: %s failed. TCF policy version 5 is not supported"
+                .formatted(vendorConsent);
+        assertThat(result).isSucceeded();
+        assertThat(result.result().getConsent()).isInstanceOf(TCStringEmpty.class);
+        assertThat(result.result().getWarnings()).containsExactly(expectedWarning);
     }
 
     @Test
@@ -255,18 +293,18 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, vendorConsent, null, null), null, null, null, null, null);
+                Privacy.builder().consentString(vendorConsent).build(), null, null, null, null, null);
 
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::getGdpr,
-                TcfContext::getConsentString,
-                TcfContext::getIsConsentValid,
-                TcfContext::getGeoInfo,
-                TcfContext::getInEea,
-                TcfContext::getIpAddress)
-                .containsExactly("1", "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::isConsentValid,
+                        TcfContext::getGeoInfo,
+                        TcfContext::getInEea,
+                        TcfContext::getIpAddress)
+                .containsExactly(true, "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
                         true, null, null, null);
         assertThat(result.result().getConsent()).isNotNull();
 
@@ -277,20 +315,22 @@ public class TcfDefinerServiceTest {
 
     @Test
     public void resolveTcfContextShouldReturnGdprFromCountryWhenGdprFromRequestIsNotValid() {
+        // given
+        final Privacy privacy = Privacy.builder().gdpr(EMPTY).consentString("consent").build();
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(EMPTY, "consent", null, null), EEA_COUNTRY, "ip", null, null, null, null);
+                privacy, EEA_COUNTRY, "ip", null, null, null, null);
 
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::getGdpr,
-                TcfContext::getConsentString,
-                TcfContext::getGeoInfo,
-                TcfContext::getInEea,
-                TcfContext::getIpAddress)
-                .containsExactly("1", "consent", null, true, "ip");
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::getGeoInfo,
+                        TcfContext::getInEea,
+                        TcfContext::getIpAddress)
+                .containsExactly(true, "consent", null, true, "ip");
 
         verifyNoInteractions(geoLocationService);
         verify(metrics).updatePrivacyTcfGeoMetric(2, true);
@@ -306,20 +346,21 @@ public class TcfDefinerServiceTest {
         given(geoLocationService.lookup(eq("ip"), any())).willReturn(Future.succeededFuture(geoInfo));
 
         final String consentString = "COwayg7OwaybYN6AAAENAPCgAIAAAAAAAAAAASkAAAAAAAAAAA";
+        final Privacy privacy = Privacy.builder().gdpr(EMPTY).consentString(consentString).build();
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(EMPTY, consentString, null, null), "ip", null, MetricName.setuid, null, null);
+                privacy, "ip", null, MetricName.setuid, null, null);
 
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::getGdpr,
-                TcfContext::getConsentString,
-                TcfContext::getGeoInfo,
-                TcfContext::getInEea,
-                TcfContext::getIpAddress)
-                .containsExactly("1", consentString, geoInfo, true, "ip-masked");
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::getGeoInfo,
+                        TcfContext::getInEea,
+                        TcfContext::getIpAddress)
+                .containsExactly(true, consentString, geoInfo, true, "ip-masked");
 
         verify(ipAddressHelper).maskIpv4(eq("ip"));
         verify(geoLocationService).lookup(eq("ip-masked"), any());
@@ -347,17 +388,17 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), "ip", null, MetricName.setuid, null, null);
+                Privacy.builder().build(), "ip", null, MetricName.setuid, null, null);
 
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::getGdpr,
-                TcfContext::getConsentString,
-                TcfContext::getGeoInfo,
-                TcfContext::getInEea,
-                TcfContext::getIpAddress)
-                .containsExactly("0", null, null, null, "ip");
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::getGeoInfo,
+                        TcfContext::getInEea,
+                        TcfContext::getIpAddress)
+                .containsExactly(false, null, null, null, "ip");
 
         verify(metrics).updateGeoLocationMetric(false);
     }
@@ -382,58 +423,67 @@ public class TcfDefinerServiceTest {
 
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of(null, null, null, null), null, null, MetricName.setuid, null, null);
+                Privacy.builder().build(), null, null, MetricName.setuid, null, null);
 
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::getGdpr,
-                TcfContext::getConsentString,
-                TcfContext::getGeoInfo,
-                TcfContext::getInEea,
-                TcfContext::getIpAddress)
-                .containsExactly("0", null, null, null, null);
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::getGeoInfo,
+                        TcfContext::getInEea,
+                        TcfContext::getIpAddress)
+                .containsExactly(false, null, null, null, null);
 
         verifyNoInteractions(geoLocationService);
     }
 
     @Test
     public void resolveTcfContextShouldReturnTcfContextWithConsentValidAsTrue() {
+        // given
+        final Privacy privacy = Privacy.builder()
+                .gdpr("1")
+                .consentString("CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA")
+                .build();
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of("1", "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
-                        null, null), null, null, MetricName.setuid, null,
-                null);
+                privacy, null, null, MetricName.setuid, null, null);
 
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::getGdpr,
-                TcfContext::getConsentString,
-                TcfContext::getIsConsentValid)
-                .containsExactly("1", "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA", true);
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::isConsentValid)
+                .containsExactly(true, "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA", true);
     }
 
     @Test
     public void resolveTcfContextShouldReturnTcfContextWithConsentValidAsFalse() {
+        // given
+        final Privacy privacy = Privacy.builder().gdpr("1").consentString("invalid").build();
+
         // when
         final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
-                Privacy.of("1", "invalid", null, null), null, null, MetricName.setuid, null, null);
+                privacy, null, null, MetricName.setuid, null, null);
 
         // then
         assertThat(result).isSucceeded();
         assertThat(result.result()).extracting(
-                TcfContext::getGdpr,
-                TcfContext::getConsentString,
-                TcfContext::getIsConsentValid)
-                .containsExactly("1", "invalid", false);
+                        TcfContext::isInGdprScope,
+                        TcfContext::getConsentString,
+                        TcfContext::isConsentValid)
+                .containsExactly(true, "invalid", false);
     }
 
     @Test
     public void resolveTcfContextShouldIncrementMissingConsentStringMetric() {
+        // given
+        final Privacy privacy = Privacy.builder().gdpr("1").consentString(EMPTY).build();
+
         // when
         tcfDefinerService.resolveTcfContext(
-                Privacy.of("1", EMPTY, null, null), null, null, MetricName.setuid, null, null);
+                privacy, null, null, MetricName.setuid, null, null);
 
         // then
         verify(metrics).updatePrivacyTcfMissingMetric();
@@ -441,9 +491,11 @@ public class TcfDefinerServiceTest {
 
     @Test
     public void resolveTcfContextShouldIncrementInvalidConsentStringMetric() {
+        final Privacy privacy = Privacy.builder().gdpr("1").consentString("abc").build();
+
         // when
         tcfDefinerService.resolveTcfContext(
-                Privacy.of("1", "abc", null, null), null, null, MetricName.setuid, null, null);
+                privacy, null, null, MetricName.setuid, null, null);
 
         // then
         verify(metrics).updatePrivacyTcfInvalidMetric();
@@ -456,7 +508,7 @@ public class TcfDefinerServiceTest {
 
         // when
         tcfDefinerService.resultForVendorIds(singleton(1), TcfContext.builder()
-                .gdpr("1")
+                .inGdprScope(true)
                 .consent(TCStringEmpty.create())
                 .ipAddress("ip")
                 .build());
@@ -470,7 +522,7 @@ public class TcfDefinerServiceTest {
     public void resultForVendorIdsShouldAllowAllWhenGdprIsZero() {
         // when
         final Future<TcfResponse<Integer>> result = tcfDefinerService.resultForVendorIds(
-                singleton(1), TcfContext.builder().gdpr("0").build());
+                singleton(1), TcfContext.builder().inGdprScope(false).build());
 
         // then
         assertThat(result).succeededWith(
@@ -486,7 +538,7 @@ public class TcfDefinerServiceTest {
 
         // when
         tcfDefinerService.resultForVendorIds(singleton(1), TcfContext.builder()
-                .gdpr("1")
+                .inGdprScope(true)
                 .consent(TCStringEmpty.create())
                 .build());
 
@@ -497,8 +549,10 @@ public class TcfDefinerServiceTest {
     @Test
     public void resultForBidderNamesShouldReturnAllowAllWhenGdprIsZero() {
         // when
-        final Future<TcfResponse<String>> result =
-                tcfDefinerService.resultForBidderNames(singleton("b1"), TcfContext.builder().gdpr("0").build(), null);
+        final Future<TcfResponse<String>> result = tcfDefinerService.resultForBidderNames(
+                singleton("b1"),
+                TcfContext.builder().inGdprScope(false).build(),
+                null);
 
         // then
         assertThat(result).succeededWith(
@@ -518,7 +572,7 @@ public class TcfDefinerServiceTest {
         final Future<TcfResponse<Integer>> result = tcfDefinerService.resultForVendorIds(
                 new HashSet<>(asList(1, 2)),
                 TcfContext.builder()
-                        .gdpr("1")
+                        .inGdprScope(true)
                         .consent(TCStringEmpty.create())
                         .build());
 
@@ -542,7 +596,7 @@ public class TcfDefinerServiceTest {
         final Future<TcfResponse<String>> result = tcfDefinerService.resultForBidderNames(
                 bidderNames,
                 TcfContext.builder()
-                        .gdpr("1")
+                        .inGdprScope(true)
                         .consentString(consentString)
                         .consent(TCString.decode(consentString))
                         .build(),

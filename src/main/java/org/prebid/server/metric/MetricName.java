@@ -2,6 +2,8 @@ package org.prebid.server.metric;
 
 public enum MetricName {
 
+    general,
+
     // connection
     connection_accept_errors,
 
@@ -39,6 +41,7 @@ public enum MetricName {
     // request types,
     openrtb2web("openrtb2-web"),
     openrtb2app("openrtb2-app"),
+    openrtb2dooh("openrtb2-dooh"),
     amp,
     video,
     cookiesync,
@@ -64,6 +67,7 @@ public enum MetricName {
     badserverresponse,
     failedtorequestbids,
     timeout,
+    bid_validation,
     unknown_error,
     err,
     networkerr,
@@ -76,9 +80,10 @@ public enum MetricName {
     opt_outs,
     bad_requests,
     sets,
-    gen,
-    matches,
     blocked,
+    filtered,
+    sizeblocked,
+    sizedout,
 
     // tcf
     userid_removed,
@@ -111,7 +116,10 @@ public enum MetricName {
     xml,
 
     // account.*.requests.
-    rejected,
+    rejected_by_invalid_account("rejected.invalid-account"),
+    rejected_by_invalid_stored_impr("rejected.invalid-stored-impr"),
+    rejected_by_invalid_stored_request("rejected.invalid-stored-request"),
+    rejected_by_account_fetch_failed("rejected.account-fetch-failed"),
 
     // currency rates
     stale,
@@ -134,6 +142,9 @@ public enum MetricName {
     failure,
     execution_error("execution-error"),
     duration,
+
+    // price-floors
+    price_floors("price-floors"),
 
     // win notifications
     win_notifications,
@@ -159,8 +170,11 @@ public enum MetricName {
     delivery_requests,
     delivery_request_failed,
     delivery_request_successful,
-    delivery_request_time;
+    delivery_request_time,
 
+    // activity
+    disallowed_count("disallowed.count"),
+    processed_rules_count("processedrules.count");
 
     private final String name;
 

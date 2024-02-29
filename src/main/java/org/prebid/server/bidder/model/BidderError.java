@@ -1,18 +1,25 @@
 package org.prebid.server.bidder.model;
 
-import lombok.AllArgsConstructor;
 import lombok.Value;
+
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * Represents any kind of error produced by bidder.
  */
-@Value
-@AllArgsConstructor(staticName = "of")
+@Value(staticConstructor = "of")
 public class BidderError {
 
     String message;
 
     Type type;
+
+    Set<String> impIds;
+
+    public static BidderError of(String message, Type type) {
+        return of(message, type, Collections.emptySet());
+    }
 
     public static BidderError create(String message, Type type) {
         return BidderError.of(message, type);
@@ -22,12 +29,20 @@ public class BidderError {
         return BidderError.of(message, Type.generic);
     }
 
+    public static BidderError invalidBid(String message) {
+        return BidderError.of(message, Type.invalid_bid);
+    }
+
     public static BidderError badInput(String message) {
         return BidderError.of(message, Type.bad_input);
     }
 
     public static BidderError badServerResponse(String message) {
         return BidderError.of(message, Type.bad_server_response);
+    }
+
+    public static BidderError rejectedIpf(String message, String impId) {
+        return BidderError.of(message, Type.rejected_ipf, Collections.singleton(impId));
     }
 
     public static BidderError failedToRequestBids(String message) {
@@ -68,6 +83,18 @@ public class BidderError {
          * why a bidder is not bidding.
          */
         failed_to_request_bids(4),
+
+        /**
+         * Covers the case where a bid does not pass validation with error or warnings. One instance per invalid bid
+         * created with aggregation for all warnings and errors.
+         */
+        invalid_bid(5),
+
+        /**
+         * Covers the case where a bid was rejected by price-floors feature functionality
+         */
+        rejected_ipf(6),
+        invalid_creative(350),
 
         timeout(1),
         generic(999);

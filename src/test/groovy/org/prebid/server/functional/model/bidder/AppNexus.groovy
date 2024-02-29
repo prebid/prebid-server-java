@@ -12,6 +12,8 @@ class AppNexus implements BidderAdapter {
     Integer placementId
     String invCode
     String trafficSourceCode
+    Boolean isAmp
+    String hbSource
 
     static AppNexus getDefault() {
         new AppNexus().tap {

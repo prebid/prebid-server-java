@@ -1,6 +1,6 @@
 adapters:
   adkerneladn:
-    endpoint: http://{{Host}}/rtbpub?account={{PublisherID}}
+    endpoint: https://pbs2.adksrv.com/rtbpub?account={{PublisherID}}
     meta-info:
       maintainer-email: prebid-dev@adkernel.com
       app-media-types:
@@ -11,8 +11,8 @@ adapters:
       supported-vendors:
       vendor-id: 14
     usersync:
-      url: https://tag.adkernel.com/syncr?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r=
-      redirect-url: /setuid?bidder=adkernelAdn&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=${UID}
       cookie-family-name: adkernelAdn
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://tag.adkernel.com/syncr?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
+        support-cors: false
+        uid-macro: '${UID}'

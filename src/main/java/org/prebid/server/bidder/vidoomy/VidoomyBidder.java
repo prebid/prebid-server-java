@@ -13,8 +13,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class VidoomyBidder implements Bidder<BidRequest> {
 
@@ -85,7 +84,7 @@ public class VidoomyBidder implements Bidder<BidRequest> {
     private static void validateBannerSizes(Integer width, Integer height, List<Format> formats) {
         final boolean sizePresent = width != null && height != null;
         if (sizePresent && (width == 0 || height == 0)) {
-            throw new PreBidException(String.format("invalid sizes provided for Banner %s x %s", width, height));
+            throw new PreBidException("invalid sizes provided for Banner %s x %s".formatted(width, height));
         }
 
         if (!sizePresent && CollectionUtils.isEmpty(formats)) {
@@ -125,7 +124,7 @@ public class VidoomyBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse, bidRequest));
@@ -146,7 +145,7 @@ public class VidoomyBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getBidType(String impId, List<Imp> imps) {
@@ -161,6 +160,6 @@ public class VidoomyBidder implements Bidder<BidRequest> {
             }
         }
 
-        throw new PreBidException(String.format("Unknown ad unit code '%s'", impId));
+        throw new PreBidException("Unknown ad unit code '%s'".formatted(impId));
     }
 }

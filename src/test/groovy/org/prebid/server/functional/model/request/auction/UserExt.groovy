@@ -6,7 +6,13 @@ import groovy.transform.ToString
 class UserExt {
 
     String consent
+    List<Eid> eids
     List<String> fcapids
     UserTime time
     UserExtData data
+    UserExtPrebid prebid
+
+    static UserExt getFPDUserExt() {
+        new UserExt(data: UserExtData.FPDUserExtData)
+    }
 }

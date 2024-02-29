@@ -32,5 +32,5 @@ public class ExtImpPubmatic {
 
     List<ExtImpPubmaticKeyVal> keywords;
 
-
+    String kadfloor;
 }

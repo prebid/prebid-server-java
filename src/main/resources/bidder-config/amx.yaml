@@ -6,14 +6,21 @@ adapters:
       app-media-types:
         - banner
         - video
+        - native
       site-media-types:
         - banner
         - video
+        - native
       supported-vendors:
       vendor-id: 737
+    endpoint-compression: gzip
     usersync:
-      url: https://prebid.a-mo.net/cchain/0?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb=
-      redirect-url: /setuid?bidder=amx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=
       cookie-family-name: amx
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://prebid.a-mo.net/cchain/0?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
+        support-cors: false
+        userMacro: "$UID"
+      iframe:
+        url: https://prebid.a-mo.net/isyn?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&s=pbs&cb={{redirect_url}}
+        userMacro: "$UID"
+        support-cors: false

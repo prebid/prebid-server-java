@@ -11,12 +11,11 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -39,13 +38,10 @@ public class TripleliftNativeBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private TripleliftNativeBidder tripleliftNativeBidder;
-
-    @Before
-    public void setUp() {
-        tripleliftNativeBidder = new TripleliftNativeBidder(
-                ENDPOINT_URL, List.of("foo", "bar", "foobar"), jacksonMapper);
-    }
+    private TripleliftNativeBidder target = new TripleliftNativeBidder(
+            ENDPOINT_URL,
+            List.of("foo", "bar", "foobar"),
+            jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -61,7 +57,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = tripleliftNativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2)
@@ -78,7 +74,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
                 ExtImpTriplelift.of("", new BigDecimal(23)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = tripleliftNativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2)
@@ -90,7 +86,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorsWhenSitePublisherIdIsNotInWhitelist() {
         // given
-        tripleliftNativeBidder = new TripleliftNativeBidder(
+        target = new TripleliftNativeBidder(
                 ENDPOINT_URL, emptyList(), jacksonMapper);
 
         final BidRequest bidRequest = givenBidRequest(
@@ -100,7 +96,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
                 ExtImpTriplelift.of("inventoryCode", new BigDecimal(23)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = tripleliftNativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -111,7 +107,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorsWhenAppPublisherIdIsNotInWhitelist() {
         // given
-        tripleliftNativeBidder = new TripleliftNativeBidder(
+        target = new TripleliftNativeBidder(
                 ENDPOINT_URL, emptyList(), jacksonMapper);
 
         final BidRequest bidRequest = givenBidRequest(
@@ -121,7 +117,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
                 ExtImpTriplelift.of("inventoryCode", new BigDecimal(23)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = tripleliftNativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -132,7 +128,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnErrorsWhenNoPublisherIdIsSpecified() {
         // given
-        tripleliftNativeBidder = new TripleliftNativeBidder(
+        target = new TripleliftNativeBidder(
                 ENDPOINT_URL, emptyList(), jacksonMapper);
 
         final BidRequest bidRequest = givenBidRequest(
@@ -140,7 +136,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
                 ExtImpTriplelift.of("inventoryCode", new BigDecimal(23)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = tripleliftNativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -160,7 +156,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = tripleliftNativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2);
@@ -182,7 +178,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
                 ExtImpTriplelift.of("inventoryCode", new BigDecimal(23)));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = tripleliftNativeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -196,10 +192,10 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = tripleliftNativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -211,10 +207,10 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListWhenBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = tripleliftNativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -224,11 +220,11 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListWhenBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = tripleliftNativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -238,7 +234,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnXnativeBidTypeType() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
@@ -246,7 +242,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = tripleliftNativeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -260,7 +256,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
             ExtImpTriplelift extImpTriplelift) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer, extImpTriplelift))))
+                        .imp(singletonList(givenImp(impCustomizer, extImpTriplelift))))
                 .build();
     }
 
@@ -273,7 +269,7 @@ public class TripleliftNativeBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer, ExtImpTriplelift extImpTriplelift) {
 
         return impCustomizer.apply(Imp.builder()
-                .ext(mapper.valueToTree(ExtPrebid.of(null, extImpTriplelift))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, extImpTriplelift))))
                 .build();
     }
 
@@ -286,8 +282,8 @@ public class TripleliftNativeBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

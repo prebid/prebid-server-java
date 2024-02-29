@@ -2,6 +2,7 @@ package org.prebid.server.deals.targeting.interpret;
 
 import lombok.EqualsAndHashCode;
 import org.prebid.server.deals.targeting.RequestContext;
+import org.prebid.server.deals.targeting.model.LookupResult;
 import org.prebid.server.deals.targeting.syntax.TargetingCategory;
 
 import java.util.List;
@@ -14,7 +15,7 @@ public class InIntegers extends In<Integer> {
     }
 
     @Override
-    public Integer lookupActualValue(RequestContext context) {
+    public LookupResult<Integer> lookupActualValue(RequestContext context) {
         return context.lookupInteger(category);
     }
 }

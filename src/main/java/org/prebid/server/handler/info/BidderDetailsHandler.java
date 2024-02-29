@@ -7,6 +7,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.json.JacksonMapper;
@@ -38,7 +39,7 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     private static void validateAliases(BidderCatalog bidderCatalog) {
         if (bidderCatalog.names().contains(ALL_PARAM_VALUE)) {
             throw new IllegalArgumentException(
-                    String.format("There is '%s' bidder or alias configured which is unacceptable.", ALL_PARAM_VALUE));
+                    "There is '%s' bidder or alias configured which is unacceptable.".formatted(ALL_PARAM_VALUE));
         }
     }
 
@@ -50,7 +51,11 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
 
         return Stream.of(nameToInfo, allToInfos)
                 .flatMap(map -> map.entrySet().stream())
-                .collect(Collectors.toMap(Map.Entry::getKey, map -> mapper.encodeToString(map.getValue())));
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        map -> mapper.encodeToString(map.getValue()),
+                        (first, second) -> second,
+                        CaseInsensitiveMap::new));
     }
 
     private ObjectNode bidderNode(BidderCatalog bidderCatalog, String name) {
@@ -65,13 +70,14 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     @Override
     public void handle(RoutingContext routingContext) {
         final String bidderName = routingContext.request().getParam(BIDDER_NAME_PARAM);
-        final String endpoint = String.format("%s/%s", Endpoint.info_bidders.value(), bidderName);
+        final String endpoint = "%s/%s".formatted(Endpoint.info_bidders.value(), bidderName);
 
-        if (bidderInfos.containsKey(bidderName)) {
+        final String bidderInfo = bidderInfos.get(bidderName);
+        if (bidderInfo != null) {
             HttpUtil.executeSafely(routingContext, endpoint,
                     response -> response
                             .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                            .end(bidderInfos.get(bidderName)));
+                            .end(bidderInfo));
         } else {
             HttpUtil.executeSafely(routingContext, endpoint,
                     response -> response

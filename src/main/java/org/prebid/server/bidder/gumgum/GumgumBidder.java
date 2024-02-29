@@ -12,16 +12,14 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumBanner;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -29,8 +27,10 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgum;
+import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumBanner;
 import org.prebid.server.proto.openrtb.ext.request.gumgum.ExtImpGumgumVideo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
@@ -42,9 +42,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class GumgumBidder implements Bidder<BidRequest> {
+
+    private static final String REQUEST_EXT_PRODUCT = "product";
 
     private static final TypeReference<ExtPrebid<?, ExtImpGumgum>> GUMGUM_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
@@ -70,14 +71,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        return Result.of(Collections.singletonList(
-                        HttpRequest.<BidRequest>builder()
-                                .method(HttpMethod.POST)
-                                .uri(endpointUrl)
-                                .body(mapper.encodeToBytes(outgoingRequest))
-                                .headers(HttpUtil.headers())
-                                .payload(outgoingRequest)
-                                .build()),
+        return Result.of(Collections.singletonList(BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper)),
                 errors);
     }
 
@@ -124,6 +118,13 @@ public class GumgumBidder implements Bidder<BidRequest> {
 
     private Imp modifyImp(Imp imp, ExtImpGumgum extImp) {
         final Imp.ImpBuilder impBuilder = imp.toBuilder();
+
+        final String product = extImp.getProduct();
+        if (StringUtils.isNotEmpty(product)) {
+            final ObjectNode productExt = mapper.mapper().createObjectNode().put(REQUEST_EXT_PRODUCT, product);
+            impBuilder.ext(productExt);
+        }
+
         final Banner banner = imp.getBanner();
         if (banner != null) {
             final Banner resolvedBanner = resolveBanner(banner, extImp);
@@ -141,7 +142,6 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 impBuilder.video(resolvedVideo);
             }
         }
-
         return impBuilder.build();
     }
 
@@ -218,7 +218,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.of(extractBids(bidResponse, bidRequest), Collections.emptyList());
@@ -240,7 +240,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> toBidderBid(bid, bidRequest, bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidderBid toBidderBid(Bid bid, BidRequest bidRequest, String currency) {
@@ -264,3 +264,4 @@ public class GumgumBidder implements Bidder<BidRequest> {
         return StringUtils.isNotBlank(bidAdm) ? bidAdm.replace("${AUCTION_PRICE}", String.valueOf(price)) : bidAdm;
     }
 }
+

@@ -1,6 +1,7 @@
 package org.prebid.server.proto.openrtb.ext.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
 import lombok.Value;
@@ -45,4 +46,14 @@ public class ExtImpPrebid {
      * Defines the contract for bidrequest.imp[i].ext.prebid.BIDDER
      */
     ObjectNode bidder;
+
+    /**
+     * Defines the contract for bidrequest.imp[i].ext.prebid.floors
+     */
+    ExtImpPrebidFloors floors;
+
+    /**
+     * Defines the contract for bidrequest.imp[i].ext.prebid.passthrough
+     */
+    JsonNode passthrough;
 }

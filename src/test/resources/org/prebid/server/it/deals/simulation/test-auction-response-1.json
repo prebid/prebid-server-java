@@ -47,6 +47,7 @@
         "imp": [
           {
             "id": "impId1",
+            "secure": 1,
             "banner": {
               "format": [
                 {
@@ -56,11 +57,9 @@
               ]
             },
             "pmp": {
-              "private_auction": 0,
               "deals": [
                 {
                   "id": "dealId3",
-                  "bidfloor": 0.0,
                   "ext": {
                     "line": {
                       "lineitemid": "lineItem3",
@@ -77,7 +76,6 @@
                 },
                 {
                   "id": "dealId1",
-                  "bidfloor": 0.0,
                   "ext": {
                     "line": {
                       "lineitemid": "lineItem1",
@@ -94,11 +92,16 @@
                 },
                 {
                   "id": "dealId2",
-                  "bidfloor": 0.0,
                   "ext": {
                     "line": {
                       "lineitemid": "lineItem2",
                       "extlineitemid": "extLineItem2",
+                      "sizes": [
+                        {
+                          "w": 300,
+                          "h": 250
+                        }
+                      ],
                       "bidder": "rubicon"
                     }
                   }
@@ -106,6 +109,7 @@
               ]
             },
             "ext": {
+              "tid": "someTid",
               "prebid": {
                 "bidder": {
                   "rubicon": {
@@ -118,6 +122,9 @@
             }
           }
         ],
+        "source": {
+          "tid": "someTid"
+        },
         "site": {
           "domain": "www.example.com",
           "page": "http://www.example.com",
@@ -134,8 +141,8 @@
           "ip": "185.199.110.0"
         },
         "user": {
+          "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
           "ext": {
-            "consent": "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA",
             "fcapids": [],
             "time": {
               "userdow": "{{ userdow }}",
@@ -144,13 +151,19 @@
           }
         },
         "at": 1,
-        "tmax": 2000,
+        "tmax": 5000,
         "cur": [
           "USD"
         ],
         "ext": {
           "prebid": {
             "debug": 1,
+            "server": {
+              "externalurl": "http://localhost:8080",
+              "gvlid": 1,
+              "datacenter": "local",
+              "endpoint": "/openrtb2/auction"
+            },
             "trace": "verbose",
             "targeting": {
               "pricegranularity": {
@@ -168,9 +181,6 @@
             "auctiontimestamp": 1000,
             "channel": {
               "name": "web"
-            },
-            "pbs": {
-              "endpoint": "/openrtb2/auction"
             }
           }
         }
@@ -255,13 +265,83 @@
               "message": "Matched Line Item lineItem2 for bidder rubicon ready to serve. relPriority 3"
             }
           ]
-        }
+        },
+        "activity_infrastructure": [
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "fetchBids",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "fetchBids",
+            "allowed": true
+          },
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "transmitUfpd",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "transmitUfpd",
+            "allowed": true
+          },
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "transmitPreciseGeo",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "transmitPreciseGeo",
+            "allowed": true
+          },
+          {
+            "description": "Invocation of Activity Infrastructure.",
+            "activity": "transmitTid",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "transmitTid",
+            "allowed": true
+          }
+        ]
       }
     },
     "responsetimemillis": {
       "rubicon": "{{ rubicon.response_time_ms }}"
     },
-    "tmaxrequest": 2000,
+    "tmaxrequest": 5000,
     "prebid": {
       "auctiontimestamp": 1000
     }

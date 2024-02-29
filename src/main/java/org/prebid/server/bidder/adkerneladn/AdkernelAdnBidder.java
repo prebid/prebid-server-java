@@ -13,11 +13,10 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -35,7 +34,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class AdkernelAdnBidder implements Bidder<BidRequest> {
 
@@ -43,7 +41,6 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     private static final String DEFAULT_DOMAIN = "tag.adkernel.com";
-    private static final String URL_HOST_MACRO = "{{Host}}";
     private static final String URL_PUBLISHER_ID_MACRO = "{{PublisherID}}";
 
     private final String endpointUrl;
@@ -83,8 +80,8 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
 
     private static void validateImp(Imp imp) {
         if (imp.getBanner() == null && imp.getVideo() == null) {
-            throw new PreBidException(String.format("Invalid imp with id=%s. Expected imp.banner or imp.video",
-                    imp.getId()));
+            throw new PreBidException(
+                    "Invalid imp with id=%s. Expected imp.banner or imp.video".formatted(imp.getId()));
         }
     }
 
@@ -97,7 +94,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
         }
 
         if (adkernelAdnExt.getPubId() == null || adkernelAdnExt.getPubId() < 1) {
-            throw new PreBidException(String.format("Invalid pubId value. Ignoring imp id=%s", imp.getId()));
+            throw new PreBidException("Invalid pubId value. Ignoring imp id=" + imp.getId());
         }
         return adkernelAdnExt;
     }
@@ -201,12 +198,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
     }
 
     private String buildEndpoint(ExtImpAdkernelAdn impExt) {
-        final String impHost = impExt.getHost();
-        final String host = StringUtils.isNotBlank(impHost) ? impHost : DEFAULT_DOMAIN;
-
-        return endpointUrl
-                .replace(URL_HOST_MACRO, host)
-                .replace(URL_PUBLISHER_ID_MACRO, impExt.getPubId().toString());
+        return endpointUrl.replace(URL_PUBLISHER_ID_MACRO, impExt.getPubId().toString());
     }
 
     private static MultiMap headers() {
@@ -215,7 +207,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
@@ -229,7 +221,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
             return Collections.emptyList();
         }
         if (bidResponse.getSeatbid().size() != 1) {
-            throw new PreBidException(String.format("Invalid SeatBids count: %d", bidResponse.getSeatbid().size()));
+            throw new PreBidException("Invalid SeatBids count: " + bidResponse.getSeatbid().size());
         }
         return bidsFromResponse(bidRequest, bidResponse);
     }
@@ -241,7 +233,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private static BidType getType(String impId, List<Imp> imps) {

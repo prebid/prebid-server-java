@@ -3,8 +3,6 @@
 # Prebid Server (Java)
 
 [![GitHub version](https://badge.fury.io/gh/prebid%2fprebid-server-java.svg)](http://badge.fury.io/gh/prebid%2fprebid-server-java)
-[![Language grade: Java](https://img.shields.io/lgtm/grade/java/g/prebid/prebid-server-java.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/prebid/prebid-server-java/context:java)
-[![Total alerts](https://img.shields.io/lgtm/alerts/g/prebid/prebid-server-java.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/prebid/prebid-server-java/alerts/)
 [![GitHub contributors](https://img.shields.io/github/contributors/prebid/prebid-server-java.svg)](https://GitHub.com/prebid/prebid-server-java/contributors/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/prebid/prebid-server-java/blob/master/docs/contributing.md) 
 [![GitHub pull-requests closed](https://img.shields.io/github/issues-pr-closed/prebid/prebid-server-java.svg)](https://GitHub.com/prebid/prebid-server-java/pull/)
@@ -42,7 +40,11 @@ When running, the server responds to several HTTP [endpoints](docs/endpoints).
 
 Follow next steps to create JAR file which can be deployed locally.
 
-- Download or clone a project:
+- Install prerequsites
+  - Java SDK: Oracle's or Corretto. Let us know if there's a distribution PBS-Java doesn't work with.
+  - Maven
+  
+- Clone the project:
 ```bash
 git clone https://github.com/prebid/prebid-server-java.git
 ```
@@ -55,6 +57,8 @@ cd prebid-server-java
 And from this step there are two common use cases, which can be chosen depending on your goals 
 
 1. Create prebid-server JAR only
+
+- First, make sure nothing's running on your local port 8080 or 8090
 - Run below command to build project:
 ```bash
 mvn clean package
@@ -65,14 +69,14 @@ mvn clean package
 ```bash
 mvn clean package --file extra/pom.xml
 ```
-For more information how to configure the server follow [documentation](docs/build.md).
+For more information how to build the server follow [documentation](docs/build.md).
 
 ## Configuration
 
-The source code includes minimal required configuration file `sample/prebid-config.yaml`.
+The source code includes an example configuration file `sample/prebid-config.yaml`.
 Also, check the account settings file `sample/sample-app-settings.yaml`.
 
-For more information how to configure the server follow [documentation](docs/config.md).
+For more information how to configure the server follow [documentation](docs/config.md). There are many settings you'll want to consider such as which bidders you're going to enable, privacy defaults, admin endpoints, etc.
 
 
 ## Running
@@ -81,13 +85,27 @@ Run your local server with the command:
 ```bash
 java -jar target/prebid-server.jar --spring.config.additional-location=sample/prebid-config.yaml
 ```
-
 For more options how to start the server, please follow [documentation](docs/run.md).
+
+## Running prebuilt .jar
+Starting from PBS Java v2.9, you can download prebuilt .jar packages from [Release Notes](https://github.com/prebid/prebid-server-java/releases) page, instead of building them by yourself. 
+This prebuilt packages are delivered with or without extra modules.
 
 ## Verifying
 
 To check the server is started go to [http://localhost:8080/status](http://localhost:8080/status) 
 and verify response status is `200 OK`.
+
+There are a couple of 'hello world' test requests described in sample/requests/README.txt
+
+## Running Docker image
+
+Starting from PBS Java v2.9, you can download prebuilt Docker images from [GitHub Packages](https://github.com/orgs/prebid/packages?repo_name=prebid-server-java) page,
+and use them instead of plain .jar files. This prebuilt images are delivered with or without extra modules.
+
+In order to run such image correctly, you should attach PBS config file. Easiest way is to mount config file into container,
+using [--mount or --volume (-v) Docker CLI arguments](https://docs.docker.com/engine/reference/commandline/run/).
+Keep in mind, that config file should be mounted into specific location: ```/app/prebid-server/``` or ```/app/prebid-server/conf/```.
 
 # Documentation
 
@@ -100,6 +118,7 @@ and verify response status is `200 OK`.
 - [Cookie Syncs](https://docs.prebid.org/prebid-server/developers/pbs-cookie-sync.html)
 - [Stored Requests](docs/developers/stored-requests.md)
 - [Unit Tests](docs/developers/unit-tests.md)
+- [Functional Tests](docs/developers/functional-tests.md)
 - [GDPR](docs/gdpr.md)
 
 ## Maintenance

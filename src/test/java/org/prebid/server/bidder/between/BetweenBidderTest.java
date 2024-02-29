@@ -13,12 +13,11 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -40,14 +39,9 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
 public class BetweenBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{{Host}}/test?param={{PublisherId}}";
+    private static final String ENDPOINT_URL = "https://test.com/test?param={{PublisherId}}";
 
-    private BetweenBidder betweenBidder;
-
-    @Before
-    public void setUp() {
-        betweenBidder = new BetweenBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final BetweenBidder target = new BetweenBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -55,13 +49,14 @@ public class BetweenBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullHostParam() {
+    public void makeHttpRequestsShouldReturnErrorIfBannerNotPresentOrSizesNotExists() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("", "pubId")))));
+                .banner(null)
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId")))));
 
         final Imp secondImp = givenImp(impBuilder -> impBuilder
-                .id("456")
+                .banner(Banner.builder().build())
                 .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId")))));
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -69,34 +64,7 @@ public class BetweenBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = betweenBidder.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).hasSize(2)
-                .containsExactly(
-                        BidderError.badInput("required BetweenSSP parameter host is "
-                                + "missing in impression with id: 123"),
-                        BidderError.badInput("required BetweenSSP parameter host is "
-                                + "missing in impression with id: 456"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldReturnErrorIfBannerNotPresentOrSizesNotExists() {
-        // given
-        final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .banner(null)
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host", "pubId")))));
-
-        final Imp secondImp = givenImp(impBuilder -> impBuilder
-                .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host", "pubId")))));
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(firstImp, secondImp))
-                .build();
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = betweenBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2)
@@ -109,8 +77,7 @@ public class BetweenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCorrectlyAddHeaders() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpBetween.of("host", "pubId")))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId")))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .device(Device.builder().ua("someUa").dnt(5).ip("someIp").language("someLanguage").build())
@@ -119,7 +86,7 @@ public class BetweenBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = betweenBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -139,18 +106,18 @@ public class BetweenBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullPublisherIdParam() {
         // given
         final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host", "")))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "")))));
 
         final Imp secondImp = givenImp(impBuilder -> impBuilder
                 .id("456")
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host", null)))));
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, null)))));
 
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(Arrays.asList(firstImp, secondImp))
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = betweenBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2)
@@ -162,13 +129,38 @@ public class BetweenBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnErrorIfImpExtContainEmptyOrNullHostParamAndEndpointContainsHostMacro() {
+        // given
+        final BetweenBidder target = new BetweenBidder("https://{{Host}}/test?param={{PublisherId}}", jacksonMapper);
+        final Imp firstImp = givenImp(impBuilder -> impBuilder
+                .id("123")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("", "pubId")))));
+
+        final Imp secondImp = givenImp(impBuilder -> impBuilder
+                .id("456")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId")))));
+
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Arrays.asList(firstImp, secondImp))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).containsExactlyInAnyOrder(
+                BidderError.badInput("required BetweenSSP parameter host is missing in impression with id: 123"),
+                BidderError.badInput("required BetweenSSP parameter host is missing in impression with id: 456"));
+    }
+
+    @Test
     public void makeHttpRequestsShouldReturnErrorsOfNotValidImps() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 impBuilder -> impBuilder
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = betweenBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -185,14 +177,33 @@ public class BetweenBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = betweenBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://127.0.0.1/test?param=pubId");
+                .containsExactly("https://test.com/test?param=pubId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReplaceHostMacroInUrlWhenPresentInConfigAndExtImpBetween() {
+        // given
+        final BetweenBidder target = new BetweenBidder("https://{{Host}}/test?param={{PublisherId}}", jacksonMapper);
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("host.com", "pubId")))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://host.com/test?param=pubId");
     }
 
     @Test
@@ -205,7 +216,7 @@ public class BetweenBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = betweenBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -222,10 +233,10 @@ public class BetweenBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(bidRequestBuilder -> bidRequestBuilder
                         .site(Site.builder().page("http://page.com").build()),
                 impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))));
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId")))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = betweenBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -239,10 +250,10 @@ public class BetweenBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = betweenBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -256,10 +267,10 @@ public class BetweenBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = betweenBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -269,11 +280,11 @@ public class BetweenBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = betweenBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -283,7 +294,7 @@ public class BetweenBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().banner(Banner.builder().build()).build()))
                         .build(),
@@ -291,7 +302,7 @@ public class BetweenBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = betweenBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -302,14 +313,14 @@ public class BetweenBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
+        final BidderCall<BidRequest> httpCall = givenHttpCall(BidRequest.builder()
                         .imp(singletonList(Imp.builder().video(Video.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = betweenBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -320,7 +331,7 @@ public class BetweenBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().xNative(Native.builder().build()).build()))
                         .build(),
@@ -328,7 +339,7 @@ public class BetweenBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = betweenBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -341,7 +352,7 @@ public class BetweenBidderTest extends VertxTest {
             Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
-                .imp(singletonList(givenImp(impCustomizer))))
+                        .imp(singletonList(givenImp(impCustomizer))))
                 .build();
     }
 
@@ -351,9 +362,9 @@ public class BetweenBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                .id("123")
-                .banner(Banner.builder().w(23).h(25).build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))))
+                        .id("123")
+                        .banner(Banner.builder().w(23).h(25).build())
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId")))))
                 .build();
     }
 
@@ -364,8 +375,8 @@ public class BetweenBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

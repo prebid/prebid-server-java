@@ -7,7 +7,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;
-import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorV2;
+import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -27,7 +27,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
 
         final List<PublisherRestriction> publisherRestrictions = vendorConsent.getPublisherRestrictions().stream()
                 .filter(publisherRestriction -> publisherRestriction.getPurposeId() == purpose.code())
-                .collect(Collectors.toList());
+                .toList();
 
         final List<VendorPermission> allowedExcluded = allowedExcludedVendorPermission(excludedVendors,
                 publisherRestrictions);
@@ -41,7 +41,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
                                 permissionAndRestriction.getKey(), vendorConsent, permissionAndRestriction.getValue()))
                 .map(Map.Entry::getKey)
                 .map(VendorPermissionWithGvl::getVendorPermission)
-                .collect(Collectors.toList());
+                .toList();
 
         return CollectionUtils.union(allowedExcluded, allowedVendorPermissions);
     }
@@ -55,12 +55,12 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
                         .equals(RestrictionType.NOT_ALLOWED))
                 .map(PublisherRestriction::getVendorIds)
                 .flatMap(vendorIds -> StreamSupport.stream(vendorIds.spliterator(), false))
-                .collect(Collectors.toList());
+                .toList();
 
         return excludedVendors.stream()
                 .map(VendorPermissionWithGvl::getVendorPermission)
                 .filter(vendorPermissionWithGvl -> isNotRestricted(notAllowedVendorIds, vendorPermissionWithGvl))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private boolean isNotRestricted(List<Integer> notAllowedVendorIds, VendorPermission vendorPermission) {
@@ -92,7 +92,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
     }
 
     /**
-     * Purpose is flexible when {@link VendorV2} flexiblePurposes contains it.
+     * Purpose is flexible when {@link Vendor} flexiblePurposes contains it.
      * When it is not flexible:
      * <li>When it is contained in GVL purposes we reject REQUIRE_LEGITIMATE_INTEREST {@link RestrictionType}
      * and check purposeConsent and vendorConsent;</li>
@@ -117,7 +117,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
         }
 
         final Integer vendorId = vendorPermissionWithGvl.getVendorPermission().getVendorId();
-        final VendorV2 vendorGvl = vendorPermissionWithGvl.getVendorV2();
+        final Vendor vendorGvl = vendorPermissionWithGvl.getVendor();
 
         final EnumSet<PurposeCode> flexiblePurposes = vendorGvl.getFlexiblePurposes();
         final boolean isFlexible = CollectionUtils.isNotEmpty(flexiblePurposes) && flexiblePurposes.contains(purpose);
@@ -134,7 +134,7 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
             return isFlexible
                     ? isAllowedByFlexible(purpose, vendorId, isEnforceVendor, tcString, restrictionType)
                     : isAllowedByNotFlexibleLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString,
-                            restrictionType);
+                    restrictionType);
         }
 
         return false;
@@ -168,16 +168,14 @@ public class FullEnforcePurposeStrategy extends EnforcePurposeStrategy {
                                         TCString tcString,
                                         RestrictionType restrictionType) {
 
-        switch (restrictionType) {
-            case REQUIRE_CONSENT:
-                return isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString);
-            case REQUIRE_LEGITIMATE_INTEREST:
-                return isAllowedByLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
-            case UNDEFINED:
-                return isAllowedBySimpleConsentOrLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
-            default:
-                return false;
-        }
+        return switch (restrictionType) {
+            case NOT_ALLOWED -> false;
+            case REQUIRE_CONSENT -> isAllowedBySimpleConsent(purpose, vendorId, isEnforceVendor, tcString);
+            case REQUIRE_LEGITIMATE_INTEREST ->
+                    isAllowedByLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
+            case UNDEFINED ->
+                    isAllowedBySimpleConsentOrLegitimateInterest(purpose, vendorId, isEnforceVendor, tcString);
+        };
     }
 }
 

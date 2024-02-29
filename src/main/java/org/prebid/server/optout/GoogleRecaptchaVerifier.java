@@ -70,7 +70,7 @@ public class GoogleRecaptchaVerifier {
     private Future<RecaptchaResponse> processResponse(HttpClientResponse response) {
         final int statusCode = response.getStatusCode();
         if (statusCode != 200) {
-            throw new PreBidException(String.format("HTTP status code %d", statusCode));
+            throw new PreBidException("HTTP status code " + statusCode);
         }
 
         final String body = response.getBody();
@@ -78,13 +78,13 @@ public class GoogleRecaptchaVerifier {
         try {
             recaptchaResponse = mapper.decodeValue(body, RecaptchaResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", body), e);
+            throw new PreBidException("Cannot parse response: " + body, e);
         }
 
         if (!Objects.equals(recaptchaResponse.getSuccess(), Boolean.TRUE)) {
             final List<String> errorCodes = recaptchaResponse.getErrorCodes();
             final String errors = errorCodes != null ? String.join(", ", errorCodes) : null;
-            throw new PreBidException(String.format("Verification failed: %s", errors));
+            throw new PreBidException("Verification failed: " + errors);
         }
 
         return Future.succeededFuture(recaptchaResponse);

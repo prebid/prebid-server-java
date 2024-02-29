@@ -1,0 +1,43 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id",
+      "secure": 1,
+      "banner": {
+        "w": -1,
+        "h": 50
+      },
+      "tagid": "pub1_place1"
+    }
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
+  "app": {
+    "publisher": {
+      "id": "pub1"
+    }
+  },
+  "user": {
+    "buyeruid": "buyer_id"
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1"
+  },
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "authentication_id": "48b7d18b921be9887a5351f31cc85f1326e3da1d8c402dec2bd338cf10bd6b43",
+    "platformid": "101"
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 1.25,
+          "adm": "adm001",
+          "crid": "crid",
+          "w": 800,
+          "h": 600,
+          "ext": {
+            "prebid": {
+              "type": "video"
+            },
+            "origbidcpm": 1.25
+          }
+        }
+      ],
+      "seat": "videoheroes",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "videoheroes": "{{ videoheroes.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

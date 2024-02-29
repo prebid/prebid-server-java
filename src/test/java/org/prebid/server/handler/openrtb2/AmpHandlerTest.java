@@ -1,5 +1,6 @@
 package org.prebid.server.handler.openrtb2;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
@@ -27,13 +28,14 @@ import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.execution.Timeout;
@@ -61,6 +63,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -149,8 +152,8 @@ public class AmpHandlerTest extends VertxTest {
                 new AmpResponsePostProcessor.NoOpAmpResponsePostProcessor(),
                 httpInteractionLogger,
                 prebidVersionProvider,
-                jacksonMapper
-        );
+                jacksonMapper,
+                0);
     }
 
     @Test
@@ -308,6 +311,28 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldRespondWithBadRequestOnInvalidAccountConfigException() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.failedFuture(new InvalidAccountConfigException("Account is invalid")));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verifyNoInteractions(exchangeService);
+        verify(httpResponse).setStatusCode(eq(400));
+
+        assertThat(httpResponse.headers())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .containsExactlyInAnyOrder(
+                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
+                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
+                        tuple("x-prebid", "pbs-java/1.00"));
+        verify(httpResponse).end(eq("Invalid account configuration: Account is invalid"));
+    }
+
+    @Test
     public void shouldRespondWithInternalServerErrorIfAuctionFails() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
@@ -432,22 +457,76 @@ public class AmpHandlerTest extends VertxTest {
         ampHandler.handle(routingContext);
 
         // then
-        assertThat(httpResponse.headers()).hasSize(4)
-                .extracting(Map.Entry::getKey, Map.Entry::getValue)
-                .containsExactlyInAnyOrder(
-                        tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
-                        tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
-                        tuple("Content-Type", "application/json"),
-                        tuple("x-prebid", "pbs-java/1.00"));
         verify(httpResponse).end(eq("{\"targeting\":{\"key1\":\"value1\",\"rpfl_11078\":\"15_tier0030\","
                 + "\"hb_cache_id_bidder1\":\"value2\"}}"));
+    }
+
+    @Test
+    public void shouldRespondWithAdditionalTargetingIncludedWhenSeatBidExists() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        final Map<String, JsonNode> targeting =
+                Map.of("key", TextNode.valueOf("value"), "test-key", TextNode.valueOf("test-value"));
+
+        final List<Bid> bids = singletonList(Bid.builder()
+                .ext(mapper.valueToTree(
+                        ExtPrebid.of(
+                                ExtBidPrebid.builder().build(),
+                                mapper.createObjectNode())))
+                .build());
+
+        final List<SeatBid> seatBids = singletonList(SeatBid.builder()
+                .seat("bidder1")
+                .bid(bids)
+                .build());
+
+        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.builder()
+                .auctiontimestamp(1000L)
+                .targeting(targeting)
+                .build();
+
+        givenHoldAuction(BidResponse.builder()
+                .ext(ExtBidResponse.builder().prebid(extBidResponsePrebid).build())
+                .seatbid(seatBids)
+                .build());
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).end(eq("{\"targeting\":{\"key\":\"value\",\"test-key\":\"test-value\"}}"));
+    }
+
+    @Test
+    public void shouldRespondWithAdditionalTargetingIncludedWhenNoSeatBidExists() {
+        // given
+        given(ampRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        final Map<String, JsonNode> targeting =
+                Map.of("key", TextNode.valueOf("value"), "test-key", TextNode.valueOf("test-value"));
+
+        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.builder()
+                .auctiontimestamp(1000L)
+                .targeting(targeting)
+                .build();
+
+        givenHoldAuction(givenBidResponseWithExt(ExtBidResponse.builder().prebid(extBidResponsePrebid).build()));
+
+        // when
+        ampHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).end(eq("{\"targeting\":{\"key\":\"value\",\"test-key\":\"test-value\"}}"));
     }
 
     @Test
     public void shouldRespondWithDebugInfoIncludedIfTestFlagIsTrue() {
         // given
         final AuctionContext auctionContext = givenAuctionContext(builder -> builder.id("reqId1")).toBuilder()
-                .debugContext(DebugContext.of(true, null))
+                .debugContext(DebugContext.of(true, true, null))
                 .build();
         given(ampRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContext));
@@ -455,7 +534,7 @@ public class AmpHandlerTest extends VertxTest {
         givenHoldAuction(givenBidResponseWithExt(
                 ExtBidResponse.builder()
                         .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
-                        .prebid(ExtBidResponsePrebid.of(1000L, null))
+                        .prebid(ExtBidResponsePrebid.builder().auctiontimestamp(1000L).targeting(emptyMap()).build())
                         .build()));
 
         // when
@@ -476,14 +555,14 @@ public class AmpHandlerTest extends VertxTest {
 
         givenHoldAuction(givenBidResponseWithExt(
                 ExtBidResponse.builder()
-                        .prebid(ExtBidResponsePrebid.of(
-                                1000L,
-                                ExtModules.of(
-                                        singletonMap(
-                                                "module1", singletonMap("hook1", singletonList("error1"))),
-                                        singletonMap(
-                                                "module1", singletonMap("hook1", singletonList("warning1"))),
-                                        ExtModulesTrace.of(2L, emptyList()))))
+                        .prebid(ExtBidResponsePrebid.builder()
+                                .auctiontimestamp(1000L)
+                                .modules(ExtModules.of(
+                                        singletonMap("module1", singletonMap("hook1", singletonList("error1"))),
+                                        singletonMap("module1", singletonMap("hook1", singletonList("warning1"))),
+                                        ExtModulesTrace.of(2L, emptyList())))
+                                .targeting(emptyMap())
+                                .build())
                         .build()));
 
         // when

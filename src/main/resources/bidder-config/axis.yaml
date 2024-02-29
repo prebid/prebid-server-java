@@ -1,0 +1,21 @@
+adapters:
+  axis:
+    endpoint: http://prebid.axis-marketplace.com/pbserver
+    meta-info:
+      maintainer-email: help@axis-marketplace.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 1197
+    usersync:
+      cookie-family-name: axis
+      redirect:
+        url: https://cs.axis-marketplace.com/pbserver?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&ccpa={{us_privacy}}&redir={{redirect_url}}
+        support-cors: false
+        uid-macro: '[UID]'

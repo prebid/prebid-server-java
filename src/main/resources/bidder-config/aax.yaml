@@ -1,0 +1,22 @@
+adapters:
+  aax:
+    endpoint: https://prebid.aaxads.com/rtb/pb/aax-prebid?src={{PREBID_SERVER_ENDPOINT}}
+    modifyingVastXmlAllowed: true
+    meta-info:
+      maintainer-email: product@aax.media
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 720
+    usersync:
+      cookie-family-name: aax
+      redirect:
+        url: https://c.aaxads.com/aacxc.php?fv=1&wbsh=psa&ryvlg=setstatuscode&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '<vsid>'

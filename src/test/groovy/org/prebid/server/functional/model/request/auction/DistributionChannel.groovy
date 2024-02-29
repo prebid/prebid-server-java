@@ -1,13 +1,14 @@
 package org.prebid.server.functional.model.request.auction
 
-import com.fasterxml.jackson.annotation.JsonValue
-
 enum DistributionChannel {
 
-    SITE, APP
+    SITE, APP, DOOH
 
-    @JsonValue
     String getValue() {
         name().toLowerCase()
+    }
+
+    static DistributionChannel findByValue(String value) {
+        values().find { it.getValue().equalsIgnoreCase(value) }
     }
 }

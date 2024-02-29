@@ -2,7 +2,8 @@
   "id": "request_id",
   "imp": [
     {
-      "id": "imp_id",
+      "id": "test-imp-id",
+      "secure": 1,
       "video": {
         "mimes": [
           "mimes"
@@ -11,13 +12,18 @@
         "h": 600
       },
       "tagid": "slot9",
+      "bidfloor" : 0.12,
       "ext": {
+        "ae": 1,
         "pmZoneId": "Zone1,Zone2",
         "preference": "sports,movies",
         "dfp_ad_unit_code": "thirdPbAdSlot"
       }
     }
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -34,7 +40,7 @@
     "ip": "193.168.244.1"
   },
   "at": 1,
-  "tmax": 5000,
+  "tmax": "${json-unit.any-number}",
   "cur": [
     "USD"
   ],
@@ -44,6 +50,10 @@
     }
   },
   "ext": {
+    "acat": [
+      "testValue1",
+      "testValue2"
+    ],
     "wrapper": {
       "version": 1,
       "profile": 5123

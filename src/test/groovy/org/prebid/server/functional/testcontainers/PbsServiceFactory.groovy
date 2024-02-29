@@ -3,40 +3,43 @@ package org.prebid.server.functional.testcontainers
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.NetworkServiceContainer
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
-import org.prebid.server.functional.util.ObjectMapperWrapper
-import org.prebid.server.functional.util.PBSUtils
+import org.prebid.server.functional.util.SystemProperties
+
+import static org.prebid.server.functional.util.SystemProperties.USE_FIXED_CONTAINER_PORTS
 
 // TODO make container instance into a POGO and add the ability for any given container to live through stopContainers()
 class PbsServiceFactory {
 
     private static final Map<Map<String, String>, PrebidServerContainer> containers = [:]
-    private static final int MAX_CONTAINERS_COUNT = Integer.parseInt(
-            PBSUtils.getPropertyOrDefault("max.containers.count", "2"))
+    private static final int MAX_CONTAINER_COUNT = maxContainerCount
 
-    private final ObjectMapperWrapper mapper
     private final NetworkServiceContainer networkServiceContainer
 
-    PbsServiceFactory(NetworkServiceContainer networkServiceContainer, ObjectMapperWrapper mapper) {
+    PbsServiceFactory(NetworkServiceContainer networkServiceContainer) {
         this.networkServiceContainer = networkServiceContainer
-        this.mapper = mapper
     }
 
-    PrebidServerService getService(Map<String, String> config) {
+    static PrebidServerService getService(Map<String, String> config) {
         if (containers.containsKey(config)) {
-            return new PrebidServerService(containers.get(config), mapper)
+            def container = containers.get(config)
+            container.refresh()
+            return new PrebidServerService(container)
         } else {
-            if (containers.size() >= MAX_CONTAINERS_COUNT) {
+            if (containers.size() == 1 && MAX_CONTAINER_COUNT == 1) {
+                def container = containers.entrySet().first()
+                remove([(container.key): container.value])
+            } else if (containers.size() >= MAX_CONTAINER_COUNT) {
                 def container = containers.find { !it.key.isEmpty() }
                 remove([(container.key): container.value])
             }
             def pbsContainer = new PrebidServerContainer(config)
             pbsContainer.start()
             containers.put(config, pbsContainer)
-            return new PrebidServerService(pbsContainer, mapper)
+            return new PrebidServerService(pbsContainer)
         }
     }
 
-    static PrebidServerContainer getContainer(Map<String, String> config) {
+    private static PrebidServerContainer getContainer(Map<String, String> config) {
         containers.get(config)
     }
 
@@ -45,26 +48,16 @@ class PbsServiceFactory {
         remove(containers)
     }
 
-    Map<String, String> pubstackAnalyticsConfig(String scopeId) {
-        ["analytics.pubstack.enabled"                       : "true",
-         "analytics.pubstack.endpoint"                      : networkServiceContainer.rootUri,
-         "analytics.pubstack.scopeid"                       : scopeId,
-         "analytics.pubstack.configuration-refresh-delay-ms": "1000",
-         "analytics.pubstack.buffers.size-bytes"            : "1",
-         "analytics.pubstack.timeout-ms"                    : "100"]
-    }
-
-    Map<String, String> httpSettings() {
-        ["settings.http.endpoint"         : "$networkServiceContainer.rootUri/stored-requests".toString(),
-         "settings.http.amp-endpoint"     : "$networkServiceContainer.rootUri/amp-stored-requests".toString(),
-         "settings.http.video-endpoint"   : "$networkServiceContainer.rootUri/video-stored-requests".toString(),
-         "settings.http.category-endpoint": "$networkServiceContainer.rootUri/video-categories".toString()]
-    }
-
     private static void remove(Map<Map<String, String>, PrebidServerContainer> map) {
         map.each { key, value ->
             value.stop()
             containers.remove(key)
         }
+    }
+
+    private static int getMaxContainerCount() {
+        USE_FIXED_CONTAINER_PORTS
+                ? 1
+                : SystemProperties.getPropertyOrDefault("tests.max-container-count", 2)
     }
 }

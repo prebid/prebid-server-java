@@ -8,14 +8,13 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
@@ -25,6 +24,7 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.adf.ExtImpAdf;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
@@ -33,7 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class AdfBidder implements Bidder<BidRequest> {
 
@@ -103,17 +102,11 @@ public class AdfBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(bidRequest))
-                .payload(bidRequest)
-                .build();
+        return BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper);
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(HttpCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             final List<BidderError> errors = new ArrayList<>();
@@ -137,7 +130,7 @@ public class AdfBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .map(bid -> makeBidderBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BidderBid makeBidderBid(Bid bid, String bidCurrency, List<BidderError> errors) {
@@ -160,7 +153,6 @@ public class AdfBidder implements Bidder<BidRequest> {
     }
 
     private void addMediaTypeParseError(List<BidderError> errors, String impId) {
-        final String errorMessage = String.format("Failed to parse impression %s mediatype", impId);
-        errors.add(BidderError.badServerResponse(errorMessage));
+        errors.add(BidderError.badServerResponse("Failed to parse impression %s mediatype".formatted(impId)));
     }
 }

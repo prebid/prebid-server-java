@@ -1,0 +1,36 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "imp_id_1",
+      "banner": {
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "stroeerCore": {
+          "sid": "slot_id"
+        }
+      }
+    },
+    {
+      "id": "imp_id_2",
+      "video": {
+        "mimes": ["video/mp4"],
+        "w": 300,
+        "h": 250
+      },
+      "ext": {
+        "stroeerCore": {
+          "sid": "slot_id"
+        }
+      }
+    }
+  ],
+  "tmax": 5000,
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

@@ -10,12 +10,11 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -37,17 +36,9 @@ import static org.assertj.core.groups.Tuple.tuple;
 
 public class BizzclickBidderTest extends VertxTest {
 
-    private static final String URL_SOURCE_ID_MACRO = "{{.SourceId}}";
-    private static final String URL_ACCOUNT_ID_MACRO = "{{.AccountID}}";
-    private static final String URL_TEMPLATE = "https://test.domain.dm/uri?source=%s&account=%s";
+    private static final String ENDPOINT = "https://test.domain.dm/uri?source={{.SourceId}}&account={{.AccountID}}";
 
-    private BizzclickBidder bidder;
-
-    @Before
-    public void setUp() {
-        final String url = String.format(URL_TEMPLATE, URL_SOURCE_ID_MACRO, URL_ACCOUNT_ID_MACRO);
-        bidder = new BizzclickBidder(url, jacksonMapper);
-    }
+    private final BizzclickBidder target = new BizzclickBidder(ENDPOINT, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -61,7 +52,7 @@ public class BizzclickBidderTest extends VertxTest {
                 givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -78,7 +69,7 @@ public class BizzclickBidderTest extends VertxTest {
                 givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode())))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -96,7 +87,7 @@ public class BizzclickBidderTest extends VertxTest {
                 givenImp("accountId2", "placementId2"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -113,7 +104,7 @@ public class BizzclickBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp("accountId", "placementId"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -132,7 +123,7 @@ public class BizzclickBidderTest extends VertxTest {
                 givenImp("accountId", "placementId"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -151,7 +142,7 @@ public class BizzclickBidderTest extends VertxTest {
                 givenImp("accountId", "placementId"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -170,7 +161,7 @@ public class BizzclickBidderTest extends VertxTest {
                 givenImp("accountId", "placementId"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -189,7 +180,7 @@ public class BizzclickBidderTest extends VertxTest {
                 givenImp("accountId", "placementId"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -206,13 +197,12 @@ public class BizzclickBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(givenImp("account id", "placement id"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
                 .extracting(HttpRequest::getUri)
-                .containsExactly(String.format(URL_TEMPLATE,
-                        HttpUtil.encodeUrl("placement id"), HttpUtil.encodeUrl("account id")));
+                .containsExactly("https://test.domain.dm/uri?source=placement+id&account=account+id");
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -224,7 +214,7 @@ public class BizzclickBidderTest extends VertxTest {
                 givenImp(identity()));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = bidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue()).hasSize(1)
@@ -237,10 +227,10 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("Incorrect body", null);
+        final BidderCall<BidRequest> httpCall = givenHttpCall("Incorrect body", null);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -250,10 +240,10 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidResponseIsNull() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall("null", null);
+        final BidderCall<BidRequest> httpCall = givenHttpCall("null", null);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -263,10 +253,10 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(identity()), null);
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse(identity()), null);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -276,11 +266,11 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(emptyList())), null);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -290,14 +280,14 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldRelyOnlyOnFirstSeatBid() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(List.of(
                         SeatBid.builder().bid(singletonList(Bid.builder().id("1").build())).build(),
                         SeatBid.builder().bid(singletonList(Bid.builder().id("2").build())).build()))),
                 givenBidRequest(givenImp(identity())));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue())
@@ -310,11 +300,11 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseFirstSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(singletonList(null))), null);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -324,11 +314,11 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseFirstSeatBidBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(singletonList(SeatBid.builder().build()))), null);
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
@@ -338,13 +328,13 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithBannerMediaTypeByDefault() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(singletonList(
                         SeatBid.builder().bid(singletonList(Bid.builder().impid("1").build())).build()))),
                 givenBidRequest(givenImp(imp -> imp.id("1"))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue())
@@ -356,13 +346,13 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithVideoMediaTypeIfImpVideoPresent() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(singletonList(
                         SeatBid.builder().bid(List.of(Bid.builder().impid("1").build())).build()))),
                 givenBidRequest(givenImp(imp -> imp.id("1").video(Video.builder().build()))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue())
@@ -376,13 +366,13 @@ public class BizzclickBidderTest extends VertxTest {
             throws JsonProcessingException {
 
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(singletonList(
                         SeatBid.builder().bid(List.of(Bid.builder().impid("1").build())).build()))),
                 givenBidRequest(givenImp(imp -> imp.id("1").xNative(Native.builder().build()))));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue())
@@ -394,13 +384,13 @@ public class BizzclickBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBidsWithDefaultCurrency() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 givenBidResponse(response -> response.seatbid(singletonList(
                         SeatBid.builder().bid(singletonList(Bid.builder().build())).build()))),
                 givenBidRequest(givenImp(identity())));
 
         // when
-        final Result<List<BidderBid>> result = bidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue())
@@ -432,10 +422,10 @@ public class BizzclickBidderTest extends VertxTest {
         return givenImp(imp -> imp.ext(mapper.valueToTree(ext)));
     }
 
-    private HttpCall<BidRequest> givenHttpCall(String body, BidRequest bidRequest) {
+    private BidderCall<BidRequest> givenHttpCall(String body, BidRequest bidRequest) {
         final HttpRequest<BidRequest> request = HttpRequest.<BidRequest>builder().payload(bidRequest).build();
         final HttpResponse response = HttpResponse.of(200, null, body);
-        return HttpCall.success(request, response, null);
+        return BidderCall.succeededHttp(request, response, null);
     }
 
     private String givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> responseCustomizer)

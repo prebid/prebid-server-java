@@ -8,6 +8,6 @@ import java.util.List;
 @Value(staticConstructor = "of")
 public class AdnuntiusResponse {
 
-    @JsonProperty("ad_units")
+    @JsonProperty("adUnits")
     List<AdnuntiusAdsUnit> adsUnits;
 }

@@ -8,12 +8,11 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
+import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpCall;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
@@ -36,12 +35,7 @@ public class TripleliftBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
 
-    private TripleliftBidder tripleliftBidder;
-
-    @Before
-    public void setUp() {
-        tripleliftBidder = new TripleliftBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final TripleliftBidder target = new TripleliftBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -57,7 +51,7 @@ public class TripleliftBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = tripleliftBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2);
@@ -77,7 +71,7 @@ public class TripleliftBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = tripleliftBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2);
@@ -101,7 +95,7 @@ public class TripleliftBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = tripleliftBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -109,7 +103,7 @@ public class TripleliftBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
-                .containsOnly(inventoryCode);
+                .containsExactly(inventoryCode);
     }
 
     @Test
@@ -126,7 +120,7 @@ public class TripleliftBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = tripleliftBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -134,16 +128,16 @@ public class TripleliftBidderTest extends VertxTest {
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBidfloor)
-                .containsOnly(floor);
+                .containsExactly(floor);
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = tripleliftBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -155,10 +149,10 @@ public class TripleliftBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = tripleliftBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -168,12 +162,12 @@ public class TripleliftBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = tripleliftBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -183,12 +177,12 @@ public class TripleliftBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenBidExtIsEmpty() throws JsonProcessingException {
         // given
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = tripleliftBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -201,68 +195,102 @@ public class TripleliftBidderTest extends VertxTest {
     public void makeBidsShouldReturnTypeBannerWhenTripleliftResponseExtIsEmpty() throws JsonProcessingException {
         // given
         final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(null));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
-        final Result<List<BidderBid>> result = tripleliftBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnTypeBannerWhenTripleliftInnerExtIsNull() throws JsonProcessingException {
         // given
         final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(TripleliftInnerExt.of(null)));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
-        final Result<List<BidderBid>> result = tripleliftBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnTypeBannerWhenTripleliftInnerExtIsNotEleven() throws JsonProcessingException {
         // given
         final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(TripleliftInnerExt.of(0)));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
-        final Result<List<BidderBid>> result = tripleliftBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().ext(ext).build(), banner, "USD"));
     }
 
     @Test
     public void makeBidsShouldReturnTypeVideoWhenTripleliftInnerExtIsEleven() throws JsonProcessingException {
         // given
         final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(TripleliftInnerExt.of(11)));
-        final HttpCall<BidRequest> httpCall = givenHttpCall(
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 null,
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
 
         // when
-        final Result<List<BidderBid>> result = tripleliftBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsOnly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnTypeVideoWhenTripleliftInnerExtIsTwelve() throws JsonProcessingException {
+        // given
+        final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(TripleliftInnerExt.of(12)));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                null,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnTypeVideoWhenTripleliftInnerExtIsSeventeen() throws JsonProcessingException {
+        // given
+        final ObjectNode ext = mapper.valueToTree(TripleliftResponseExt.of(TripleliftInnerExt.of(17)));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                null,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.ext(ext))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(Bid.builder().ext(ext).build(), video, "USD"));
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
@@ -274,8 +302,8 @@ public class TripleliftBidderTest extends VertxTest {
                 .build();
     }
 
-    private static HttpCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return HttpCall.success(
+    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+        return BidderCall.succeededHttp(
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);

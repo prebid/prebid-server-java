@@ -12,8 +12,8 @@ adapters:
       supported-vendors:
       vendor-id: 628
     usersync:
-      url: https://ssp.api.tappx.com/cs/usersync.php?gdpr_optin={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&type=iframe&ruid=
-      redirect-url: /setuid?bidder=tappx&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid={{TPPXUID}}
       cookie-family-name: tappx
-      type: iframe
-      support-cors: false
+      iframe:
+        url: https://ssp.api.tappx.com/cs/usersync.php?gdpr_optin={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&type=iframe&ruid={{redirect_url}}
+        support-cors: false
+        uid-macro: '{{TPPXUID}}'

@@ -1,18 +1,15 @@
 adapters:
   yeahmobi:
-    endpoint: https://{{Host}}/prebid/bid
+    endpoint: https://{{.Host}}/prebid/bid
     meta-info:
-      maintainer-email: prebid@yeahmobi.com
+      maintainer-email: developer@yeahmobi.com
       app-media-types:
         - banner
         - video
         - native
       site-media-types:
+        - banner
+        - video
+        - native
       supported-vendors:
-      vendor-id: 803
-    usersync:
-      url:
-      redirect-url:
-      cookie-family-name: yeahmobi
-      type: redirect
-      support-cors: false
+      vendor-id: 0

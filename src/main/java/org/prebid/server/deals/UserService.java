@@ -166,20 +166,20 @@ public class UserService {
         try {
             userDetailsResponse = mapper.decodeValue(responseBody, UserDetailsResponse.class);
         } catch (DecodeException e) {
-            throw new PreBidException(String.format("Cannot parse response: %s", responseBody), e);
+            throw new PreBidException("Cannot parse response: " + responseBody, e);
         }
 
         final User user = userDetailsResponse.getUser();
         if (user == null) {
-            throw new PreBidException(String.format("Field 'user' is missing in response: %s", responseBody));
+            throw new PreBidException("Field 'user' is missing in response: " + responseBody);
         }
 
         if (user.getData() == null) {
-            throw new PreBidException(String.format("Field 'user.data' is missing in response: %s", responseBody));
+            throw new PreBidException("Field 'user.data' is missing in response: " + responseBody);
         }
 
         if (user.getExt() == null) {
-            throw new PreBidException(String.format("Field 'user.ext' is missing in response: %s", responseBody));
+            throw new PreBidException("Field 'user.ext' is missing in response: " + responseBody);
         }
         return user;
     }
@@ -189,7 +189,7 @@ public class UserService {
      */
     private static void verifyStatusCode(int statusCode) {
         if (statusCode != 200) {
-            throw new PreBidException(String.format("Bad response status code: %s", statusCode));
+            throw new PreBidException("Bad response status code: " + statusCode);
         }
     }
 

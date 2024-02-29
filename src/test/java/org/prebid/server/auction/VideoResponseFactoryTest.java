@@ -14,7 +14,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
-import org.prebid.server.auction.model.DebugContext;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtAdPod;
@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -60,7 +61,7 @@ public class VideoResponseFactoryTest extends VertxTest {
         final BidResponse bidResponse = BidResponse.builder().seatbid(emptyList()).build();
         final CachedDebugLog cachedDebugLog = new CachedDebugLog(true, 100, null, jacksonMapper);
         final AuctionContext auctionContext = AuctionContext.builder()
-                .debugContext(DebugContext.of(true, null))
+                .debugContext(DebugContext.of(true, true, null))
                 .cachedDebugLog(cachedDebugLog)
                 .bidRequest(BidRequest.builder().build())
                 .build();
@@ -107,17 +108,17 @@ public class VideoResponseFactoryTest extends VertxTest {
                                 mapper.createObjectNode())))
                 .build();
 
-        final ExtBidResponse extResponse = ExtBidResponse.builder()
-                .prebid(ExtBidResponsePrebid.of(
-                        1000L,
+        final ExtBidResponsePrebid extBidResponsePrebid = ExtBidResponsePrebid.builder()
+                .auctiontimestamp(1000L)
+                .modules(
                         ExtModules.of(
-                                singletonMap(
-                                        "module1", singletonMap("hook1", singletonList("error1"))),
-                                singletonMap(
-                                        "module1", singletonMap("hook1", singletonList("warning1"))),
-                                ExtModulesTrace.of(2L, emptyList()))))
+                                singletonMap("module1", singletonMap("hook1", singletonList("error1"))),
+                                singletonMap("module1", singletonMap("hook1", singletonList("warning1"))),
+                                ExtModulesTrace.of(2L, emptyList())))
+                .targeting(emptyMap())
                 .build();
 
+        final ExtBidResponse extResponse = ExtBidResponse.builder().prebid(extBidResponsePrebid).build();
         final BidResponse bidResponse = BidResponse.builder()
                 .seatbid(singletonList(SeatBid.builder()
                         .seat("bidder1")

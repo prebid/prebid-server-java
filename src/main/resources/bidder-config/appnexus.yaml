@@ -2,10 +2,11 @@ adapters:
   appnexus:
     endpoint: http://ib.adnxs.com/openrtb2
     aliases:
-      districtm:
-        enabled: false
+      mediafuse:
+        meta-info:
+          maintainer-email: support@mediafuse.com
     meta-info:
-      maintainer-email: prebid-server@xandr.com
+      maintainer-email: prebid@microsoft.com
       app-media-types:
         - banner
         - video
@@ -13,14 +14,15 @@ adapters:
       site-media-types:
         - banner
         - video
+        - native
       supported-vendors:
       vendor-id: 32
     usersync:
-      url: https://ib.adnxs.com/getuid?
-      redirect-url: /setuid?bidder=adnxs&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&uid=$UID
       cookie-family-name: adnxs
-      type: redirect
-      support-cors: false
+      redirect:
+        url: https://ib.adnxs.com/getuid?{{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'
     platform-id: 5
     iab-categories:
       1: IAB20-3

@@ -10,7 +10,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-@Value(staticConstructor = "of")
+@Value
 @Builder(toBuilder = true)
 public class AccountAuctionEventConfig {
 

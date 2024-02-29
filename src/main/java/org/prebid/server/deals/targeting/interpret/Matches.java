@@ -26,8 +26,8 @@ public class Matches implements TerminalExpression {
 
     @Override
     public boolean matches(RequestContext context) {
-        final String valueToMatch = context.lookupString(category);
-        return valueToMatch != null && method.apply(valueToMatch.toLowerCase(), value);
+        return context.lookupString(category)
+                .anyMatch(valueToMatch -> method.apply(valueToMatch.toLowerCase(), value));
     }
 
     private static BiFunction<String, String, Boolean> resolveMethod(String value) {

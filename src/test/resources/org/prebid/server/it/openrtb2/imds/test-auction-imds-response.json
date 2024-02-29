@@ -1,0 +1,38 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 7.77,
+          "adm": "adm001",
+          "adid": "adid",
+          "cid": "cid",
+          "crid": "crid",
+          "w": 300,
+          "h": 250,
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            },
+            "origbidcpm": 7.77
+          }
+        }
+      ],
+      "seat": "imds",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "imds": "{{ imds.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

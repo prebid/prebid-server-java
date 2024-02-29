@@ -31,86 +31,92 @@ public class TargetingKeywordsCreator {
      * Exists to support the Prebid Universal Creative. If it exists, the only legal value is mobile-app.
      * It will exist only if the incoming bidRequest defiend request.app instead of request.site.
      */
-    private static final String HB_ENV_KEY = "hb_env";
+    private static final String ENV_KEY = "_env";
     /**
-     * Used as a value for HB_ENV_KEY.
+     * Used as a value for ENV_KEY.
      */
-    private static final String HB_ENV_APP_VALUE = "mobile-app";
+    private static final String ENV_APP_VALUE = "mobile-app";
     /**
      * Name of the Bidder. For example, "appnexus" or "rubicon".
      */
-    private static final String HB_BIDDER_KEY = "hb_bidder";
+    private static final String BIDDER_KEY = "_bidder";
     /**
      * Respects rounded CPM value.
      */
-    private static final String HB_PB_KEY = "hb_pb";
+    private static final String PB_KEY = "_pb";
     /**
      * Describes the size in format: [Width]x[Height].
      */
-    private static final String HB_SIZE_KEY = "hb_size";
+    private static final String SIZE_KEY = "_size";
     /**
      * Stores the UUID which can be used to fetch the bid data from prebid cache.
      * Callers should *never* assume that this exists, since the call to the cache may always fail.
      */
-    private static final String HB_CACHE_ID_KEY = "hb_cache_id";
+    private static final String CACHE_ID_KEY = "_cache_id";
     /**
      * Stores the UUID which can be used to fetch the video XML data from prebid cache.
      * Callers should *never* assume that this exists, since the call to the cache may always fail.
      */
-    private static final String HB_VAST_ID_KEY = "hb_uuid";
+    private static final String VAST_ID_KEY = "_uuid";
     /**
      * Stores the deal ID for the given bid.
      */
-    private static final String HB_DEAL_KEY = "hb_deal";
+    private static final String DEAL_KEY = "_deal";
     /**
      * Stores protocol, host and port for cache service endpoint.
      */
-    private static final String HB_CACHE_HOST_KEY = "hb_cache_host";
+    private static final String CACHE_HOST_KEY = "_cache_host";
     /**
      * Stores http path for cache service endpoint.
      */
-    private static final String HB_CACHE_PATH_KEY = "hb_cache_path";
+    private static final String CACHE_PATH_KEY = "_cache_path";
     /**
      * Stores category duration for video bids
      */
-    private static final String HB_CATEGORY_DURATION_KEY = "hb_pb_cat_dur";
+    private static final String CATEGORY_DURATION_KEY = "_pb_cat_dur";
 
     /**
      * Stores bid's format. For example "video" or "banner".
      */
-    private static final String HB_FORMAT_KEY = "hb_format";
+    private static final String FORMAT_KEY = "_format";
 
     private static final String DEFAULT_CPM = "0.0";
 
     private final PriceGranularity priceGranularity;
     private final boolean includeWinners;
     private final boolean includeBidderKeys;
+    private final boolean alwaysIncludeDeals;
     private final boolean includeFormat;
     private final boolean isApp;
     private final int truncateAttrChars;
     private final String cacheHost;
     private final String cachePath;
     private final TargetingKeywordsResolver resolver;
+    private final String keyPrefix;
 
     private TargetingKeywordsCreator(PriceGranularity priceGranularity,
                                      boolean includeWinners,
                                      boolean includeBidderKeys,
+                                     boolean alwaysIncludeDeals,
                                      boolean includeFormat,
                                      boolean isApp,
                                      int truncateAttrChars,
                                      String cacheHost,
                                      String cachePath,
-                                     TargetingKeywordsResolver resolver) {
+                                     TargetingKeywordsResolver resolver,
+                                     String keyPrefix) {
 
         this.priceGranularity = priceGranularity;
         this.includeWinners = includeWinners;
         this.includeBidderKeys = includeBidderKeys;
+        this.alwaysIncludeDeals = alwaysIncludeDeals;
         this.includeFormat = includeFormat;
         this.isApp = isApp;
         this.truncateAttrChars = truncateAttrChars;
         this.cacheHost = cacheHost;
         this.cachePath = cachePath;
         this.resolver = resolver;
+        this.keyPrefix = keyPrefix;
     }
 
     /**
@@ -119,23 +125,26 @@ public class TargetingKeywordsCreator {
     public static TargetingKeywordsCreator create(ExtPriceGranularity extPriceGranularity,
                                                   boolean includeWinners,
                                                   boolean includeBidderKeys,
+                                                  boolean alwaysIncludeDeals,
                                                   boolean includeFormat,
                                                   boolean isApp,
                                                   int truncateAttrChars,
                                                   String cacheHost,
                                                   String cachePath,
-                                                  TargetingKeywordsResolver resolver) {
-
+                                                  TargetingKeywordsResolver resolver,
+                                                  String keyPrefix) {
         return new TargetingKeywordsCreator(
                 PriceGranularity.createFromExtPriceGranularity(extPriceGranularity),
                 includeWinners,
                 includeBidderKeys,
+                alwaysIncludeDeals,
                 includeFormat,
                 isApp,
                 truncateAttrChars,
                 cacheHost,
                 cachePath,
-                resolver);
+                resolver,
+                keyPrefix);
     }
 
     /**
@@ -185,42 +194,47 @@ public class TargetingKeywordsCreator {
                                         String format,
                                         String dealId) {
 
-        final KeywordMap keywordMap = new KeywordMap(bidder, winningBid, includeWinners, includeBidderKeys,
+        final boolean includeDealBid = alwaysIncludeDeals && StringUtils.isNotEmpty(dealId);
+        final KeywordMap keywordMap = new KeywordMap(
+                bidder,
+                winningBid,
+                includeWinners,
+                includeBidderKeys || includeDealBid,
                 Collections.emptySet());
 
         final String roundedCpm = isPriceGranularityValid() ? CpmRange.fromCpm(price, priceGranularity) : DEFAULT_CPM;
-        keywordMap.put(HB_PB_KEY, roundedCpm);
+        keywordMap.put(this.keyPrefix + PB_KEY, roundedCpm);
 
-        keywordMap.put(HB_BIDDER_KEY, bidder);
+        keywordMap.put(this.keyPrefix + BIDDER_KEY, bidder);
 
         final String hbSize = sizeFrom(width, height);
         if (hbSize != null) {
-            keywordMap.put(HB_SIZE_KEY, hbSize);
+            keywordMap.put(this.keyPrefix + SIZE_KEY, hbSize);
         }
         if (StringUtils.isNotBlank(cacheId)) {
-            keywordMap.put(HB_CACHE_ID_KEY, cacheId);
+            keywordMap.put(this.keyPrefix + CACHE_ID_KEY, cacheId);
         }
         if (StringUtils.isNotBlank(vastCacheId)) {
-            keywordMap.put(HB_VAST_ID_KEY, vastCacheId);
+            keywordMap.put(this.keyPrefix + VAST_ID_KEY, vastCacheId);
         }
         if ((StringUtils.isNotBlank(vastCacheId) || StringUtils.isNotBlank(cacheId))
                 && cacheHost != null && cachePath != null) {
-            keywordMap.put(HB_CACHE_HOST_KEY, cacheHost);
-            keywordMap.put(HB_CACHE_PATH_KEY, cachePath);
+            keywordMap.put(this.keyPrefix + CACHE_HOST_KEY, cacheHost);
+            keywordMap.put(this.keyPrefix + CACHE_PATH_KEY, cachePath);
         }
         if (StringUtils.isNotBlank(format) && includeFormat) {
-            keywordMap.put(HB_FORMAT_KEY, format);
+            keywordMap.put(this.keyPrefix + FORMAT_KEY, format);
         }
 
         // get Line Item by dealId
         if (StringUtils.isNotBlank(dealId)) {
-            keywordMap.put(HB_DEAL_KEY, dealId);
+            keywordMap.put(this.keyPrefix + DEAL_KEY, dealId);
         }
         if (isApp) {
-            keywordMap.put(HB_ENV_KEY, HB_ENV_APP_VALUE);
+            keywordMap.put(this.keyPrefix + ENV_KEY, ENV_APP_VALUE);
         }
         if (StringUtils.isNotBlank(categoryDuration)) {
-            keywordMap.put(HB_CATEGORY_DURATION_KEY, categoryDuration);
+            keywordMap.put(this.keyPrefix + CATEGORY_DURATION_KEY, categoryDuration);
         }
 
         return keywordMap.asMap();
@@ -240,7 +254,7 @@ public class TargetingKeywordsCreator {
      */
     private static String sizeFrom(Integer width, Integer height) {
         return width != null && width != 0 && height != null && height != 0
-                ? String.format("%sx%s", width, height)
+                ? "%sx%s".formatted(width, height)
                 : null;
     }
 
@@ -291,7 +305,7 @@ public class TargetingKeywordsCreator {
         private List<String> createKeys(String prefix) {
             final List<String> keys = new ArrayList<>(2);
             if (includeBidderKeys && !excludedBidderKeys.contains(prefix)) {
-                keys.add(String.format("%s_%s", prefix, bidder));
+                keys.add("%s_%s".formatted(prefix, bidder));
             }
             // For the top bid, we want to put additional keys apart from bidder-suffixed
             if (winningBid && includeWinners) {

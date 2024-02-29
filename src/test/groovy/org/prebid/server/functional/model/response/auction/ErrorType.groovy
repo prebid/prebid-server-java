@@ -4,10 +4,25 @@ import com.fasterxml.jackson.annotation.JsonValue
 
 enum ErrorType {
 
-    GENERAL, GENERIC, RUBICON, APPNEXUS, PREBID, CACHE
+    GENERAL("general"),
+    GENERIC("generic"),
+    GENERIC_CAMEL_CASE("GeNerIc"),
+    RUBICON("rubicon"),
+    APPNEXUS("appnexus"),
+    PREBID("prebid"),
+    CACHE("cache"),
+    ALIAS("alias"),
+    TARGETING("targeting")
 
     @JsonValue
-    String getValue() {
-        name().toLowerCase()
+    final String value
+
+    ErrorType(String value) {
+        this.value = value
+    }
+
+    @Override
+    String toString() {
+        value
     }
 }
