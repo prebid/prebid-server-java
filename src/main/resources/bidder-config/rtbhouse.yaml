@@ -13,6 +13,7 @@ adapters:
     # endpoint: http://prebidserver-s2s-sin.creativecdn.com/bidder/prebidserver/bids
     geoscope:
       - global
+    ortb-version: "2.6"
     endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid@rtbhouse.com
