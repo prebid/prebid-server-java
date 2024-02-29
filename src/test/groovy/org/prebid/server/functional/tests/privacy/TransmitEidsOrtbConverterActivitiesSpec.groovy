@@ -26,7 +26,7 @@ import static org.prebid.server.functional.model.config.Purpose.P10
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 
-class PrivacyOrtbConverterSpec extends PrivacyBaseSpec {
+class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
 
     private static final Map<String, String> PBS_CONFIG = SETTING_CONFIG + GENERIC_VENDOR_CONFIG + GENERIC_COOKIE_SYNC_CONFIG + ["gdpr.vendorlist.v2.http-endpoint-template": null,
                                                                                                                                  "gdpr.vendorlist.v3.http-endpoint-template": null]
@@ -77,9 +77,12 @@ class PrivacyOrtbConverterSpec extends PrivacyBaseSpec {
         when: "PBS processes auction requests"
         activityPbsServiceExcludeGvlWithElderOrtb.sendAuctionRequest(bidRequest)
 
-        then: "Generic bidder request should have data in Eid field"
+        then: "Generic bidder request should have data in user.ext.eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest?.user?.ext?.eids == userEids
+
+        and: "should be empty at user.eids"
+        assert !bidderRequest?.user?.eids
 
         where:
         enforcementRequirements << getBasicTcfCompanyBasedEnforcementRequirements(P4) +
@@ -166,6 +169,9 @@ class PrivacyOrtbConverterSpec extends PrivacyBaseSpec {
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest?.user?.ext?.eids == userEids
 
+        and: "should be empty at user.eids"
+        assert !bidderRequest?.user?.eids
+
         where:
         enforcementRequirements << getBasicTcfLegalBasedEnforcementRequirements(P2) +
                 getBasicTcfLegalPurposesLITEnforcementRequirements(P2) +
@@ -202,6 +208,9 @@ class PrivacyOrtbConverterSpec extends PrivacyBaseSpec {
         then: "Generic bidder request should have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest?.user?.ext?.eids == userEids
+
+        and: "should be empty at user.eids"
+        assert !bidderRequest?.user?.eids
 
         where:
         enforcementRequirements << getFullTcfLegalEnforcementRequirements(P4) + getFullTcfCompanyEnforcementRequirements(P4)
@@ -276,6 +285,9 @@ class PrivacyOrtbConverterSpec extends PrivacyBaseSpec {
         then: "Generic bidder request should have data in Eid field"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequest?.user?.ext?.eids == userEids
+
+        and: "should be empty at user.eids"
+        assert !bidderRequest?.user?.eids
 
         where:
         enforcementRequirements << getFullTcfLegalEnforcementRequirements(P2) +
