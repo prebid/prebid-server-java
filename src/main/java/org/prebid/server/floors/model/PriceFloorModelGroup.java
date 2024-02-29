@@ -6,6 +6,7 @@ import lombok.Singular;
 import lombok.Value;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 @Value
@@ -30,4 +31,7 @@ public class PriceFloorModelGroup {
 
     @JsonProperty("default")
     BigDecimal defaultFloor;
+
+    @JsonProperty("noFloorSignalBidders")
+    List<String> noFloorSignalBidders;
 }
