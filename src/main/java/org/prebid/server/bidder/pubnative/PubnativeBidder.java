@@ -10,7 +10,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -158,13 +157,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                 impExt.getAppAuthToken(),
                 impExt.getZoneId());
 
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(requestUri)
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .payload(outgoingRequest)
-                .build();
+        return BidderUtil.defaultRequest(outgoingRequest, requestUri, mapper);
     }
 
     @Override

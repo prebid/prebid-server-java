@@ -155,14 +155,6 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
                 .ifPresent(target::addProperties);
     }
 
-    private static <T extends FlexibleExtension> T nullIfEmpty(T ext) {
-        return nullIfEmpty(ext, MapUtils.isEmpty(ext.getProperties()));
-    }
-
-    private static <T> T nullIfEmpty(T object, boolean isEmpty) {
-        return isEmpty ? null : object;
-    }
-
     private static Regs moveRegsData(Regs regs) {
         if (regs == null) {
             return null;
@@ -199,7 +191,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
             return null;
         }
 
-        final ExtRegs modifiedExtRegs = ExtRegs.of(null, null);
+        final ExtRegs modifiedExtRegs = ExtRegs.of(null, null, extRegs.getGpc(), extRegs.getDsa());
         copyProperties(extRegs, modifiedExtRegs);
 
         return modifiedExtRegs;
@@ -233,7 +225,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
                 ? user.toBuilder()
                 .consent(resolvedConsent != null ? resolvedConsent : consent)
                 .eids(resolvedEids != null ? resolvedEids : eids)
-                .ext(resolvedExtUser != null ? nullIfEmpty(resolvedExtUser, resolvedExtUser.isEmpty()) : extUser)
+                .ext(resolvedExtUser != null ? nullIfEmpty(resolvedExtUser) : extUser)
                 .build()
                 : null;
     }
@@ -254,5 +246,22 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
         copyProperties(extUser, modifiedExtUser);
 
         return modifiedExtUser;
+    }
+
+    private static ExtSource nullIfEmpty(ExtSource extSource) {
+        return extSource.getSchain() == null && MapUtils.isEmpty(extSource.getProperties())
+                ? null
+                : extSource;
+    }
+
+    private static ExtUser nullIfEmpty(ExtUser ext) {
+        return ext.isEmpty() ? null : ext;
+    }
+
+    private static ExtRegs nullIfEmpty(ExtRegs ext) {
+        return allNull(ext.getGdpr(), ext.getUsPrivacy(), ext.getGpc(), ext.getDsa())
+                && MapUtils.isEmpty(ext.getProperties())
+                ? null
+                : ext;
     }
 }

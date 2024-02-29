@@ -7,11 +7,15 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Channel;
 import com.iab.openrtb.request.Content;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Network;
 import com.iab.openrtb.request.Producer;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Qty;
+import com.iab.openrtb.request.RefSettings;
+import com.iab.openrtb.request.Refresh;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
@@ -19,10 +23,10 @@ import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.UserAgent;
 import com.iab.openrtb.request.Video;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
@@ -39,12 +43,7 @@ import static org.prebid.server.hooks.v1.PayloadUpdate.identity;
 
 public class BidRequestOrtb26To25ConverterTest extends VertxTest {
 
-    private BidRequestOrtb26To25Converter converter;
-
-    @Before
-    public void setUp() {
-        converter = new BidRequestOrtb26To25Converter(jacksonMapper);
-    }
+    private final BidRequestOrtb26To25Converter target = new BidRequestOrtb26To25Converter(jacksonMapper);
 
     @Test
     public void convertShouldMoveImpsRwdd() {
@@ -56,7 +55,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                         .ext(mapper.valueToTree(Map.of("prebid", Map.of("someField", "someValue"))))))));
 
         // when
-        final BidRequest result = converter.convert(bidRequest);
+        final BidRequest result = target.convert(bidRequest);
 
         // then
         assertThat(result)
@@ -88,7 +87,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                         .build()));
 
         // when
-        final BidRequest result = converter.convert(bidRequest);
+        final BidRequest result = target.convert(bidRequest);
 
         // then
         assertThat(result)
@@ -109,15 +108,25 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
     @Test
     public void convertShouldMoveRegsData() {
         // given
+        final Map<String, Object> dsaMap = Map.of(
+                "dsarequired", 1,
+                "pubrender", 2,
+                "datatopub", 3,
+                "transparency", emptyList());
         final BidRequest bidRequest = givenBidRequest(request -> request.regs(
                 Regs.builder()
                         .gdpr(1)
                         .usPrivacy("usPrivacy")
-                        .ext(mapper.convertValue(Map.of("someField", "someValue"), ExtRegs.class))
+                        .ext(mapper.convertValue(
+                                Map.of(
+                                        "someField", "someValue",
+                                        "gpc", "1",
+                                        "dsa", dsaMap),
+                                ExtRegs.class))
                         .build()));
 
         // when
-        final BidRequest result = converter.convert(bidRequest);
+        final BidRequest result = target.convert(bidRequest);
 
         // then
         assertThat(result)
@@ -127,7 +136,8 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                             .extracting(Regs::getGdpr, Regs::getUsPrivacy)
                             .containsOnlyNulls();
 
-                    final ExtRegs expectedRegsExt = ExtRegs.of(1, "usPrivacy");
+                    final ExtRegsDsa dsa = ExtRegsDsa.of(1, 2, 3, emptyList());
+                    final ExtRegs expectedRegsExt = ExtRegs.of(1, "usPrivacy", "1", dsa);
                     expectedRegsExt.addProperty("someField", TextNode.valueOf("someValue"));
                     assertThat(regs)
                             .extracting(Regs::getExt)
@@ -145,7 +155,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                         .build()));
 
         // when
-        final BidRequest result = converter.convert(bidRequest);
+        final BidRequest result = target.convert(bidRequest);
 
         // then
         assertThat(result)
@@ -165,7 +175,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                         .build()));
 
         // when
-        final BidRequest result = converter.convert(bidRequest);
+        final BidRequest result = target.convert(bidRequest);
 
         // then
         assertThat(result)
@@ -199,6 +209,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                                 .rqddurs(singletonList(1))
                                 .slotinpod(1)
                                 .mincpmpersec(BigDecimal.ONE)
+                                .plcmt(1)
                                 .build())
                         .audio(Audio.builder()
                                 .poddur(1)
@@ -209,9 +220,15 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                                 .mincpmpersec(BigDecimal.ONE)
                                 .maxseq(1)
                                 .build())
+                        .refresh(Refresh.builder().count(1)
+                                .refsettings(singletonList(RefSettings.builder().minint(1).build()))
+                                .build())
+                        .qty(Qty.builder().multiplier(BigDecimal.ONE).build())
+                        .dt(0.1)
                         .ssai(1))))
                 .site(Site.builder()
                         .cattax(1)
+                        .inventorypartnerdomain("inventorypartnerdomain")
                         .publisher(Publisher.builder().cattax(1).build())
                         .content(Content.builder()
                                 .producer(Producer.builder().cattax(1).build())
@@ -225,6 +242,7 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                         .build())
                 .app(App.builder()
                         .cattax(1)
+                        .inventorypartnerdomain("inventorypartnerdomain")
                         .publisher(Publisher.builder().cattax(1).build())
                         .content(Content.builder()
                                 .producer(Producer.builder().cattax(1).build())
@@ -236,13 +254,14 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                                 .build())
                         .kwarray(singletonList("kwarray"))
                         .build())
+                .dooh(Dooh.builder().build())
                 .device(Device.builder().sua(UserAgent.builder().build()).langb("langb").build())
                 .user(User.builder().kwarray(singletonList("kwarray")).build())
                 .wlangb(singletonList("wlangb"))
                 .cattax(1));
 
         // when
-        final BidRequest result = converter.convert(bidRequest);
+        final BidRequest result = target.convert(bidRequest);
 
         // then
         assertThat(result).satisfies(request -> {
@@ -252,6 +271,9 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                         assertThat(imp.getVideo()).isEqualTo(Video.builder().build());
                         assertThat(imp.getAudio()).isEqualTo(Audio.builder().build());
                         assertThat(imp.getSsai()).isNull();
+                        assertThat(imp.getRefresh()).isNull();
+                        assertThat(imp.getQty()).isNull();
+                        assertThat(imp.getDt()).isNull();
                     });
 
             assertThat(request.getSite()).isEqualTo(Site.builder().build());

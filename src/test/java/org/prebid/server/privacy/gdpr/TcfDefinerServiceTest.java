@@ -1,6 +1,7 @@
 package org.prebid.server.privacy.gdpr;
 
 import com.iabtcf.decoder.TCString;
+import com.iabtcf.encoder.TCStringEncoder;
 import io.vertx.core.Future;
 import org.junit.Before;
 import org.junit.Rule;
@@ -121,7 +122,7 @@ public class TcfDefinerServiceTest {
     public void resolveTcfContextShouldReturnContextWithGdprZeroWhenGdprIsDisabledByAccountForRequestType() {
         // given
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
-                .enabledForRequestType(EnabledForRequestType.of(null, false, null, null))
+                .enabledForRequestType(EnabledForRequestType.of(null, false, null, null, null))
                 .build();
 
         // when
@@ -156,7 +157,7 @@ public class TcfDefinerServiceTest {
         // given
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
                 .enabled(false)
-                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                 .build();
 
         // when
@@ -185,7 +186,7 @@ public class TcfDefinerServiceTest {
                 metrics);
 
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
-                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                 .build();
 
         // when
@@ -229,6 +230,46 @@ public class TcfDefinerServiceTest {
         assertThat(result.result().getWarnings())
                 .containsExactly("Parsing consent string:\"BOEFEAyOEFEAyAHABDENAI4AAAB9vABAASA\" failed. "
                         + "TCF version 1 is deprecated and treated as corrupted TCF version 2");
+    }
+
+    @Test
+    public void resolveTcfContextShouldTreatTcfConsentWithTcfPolicyVersionGreaterThanFourAsCorrupted() {
+        // given
+        final GdprConfig gdprConfig = GdprConfig.builder()
+                .enabled(true)
+                .consentStringMeansInScope(true)
+                .build();
+
+        tcfDefinerService = new TcfDefinerService(
+                gdprConfig,
+                singleton(EEA_COUNTRY),
+                tcf2Service,
+                geoLocationService,
+                bidderCatalog,
+                ipAddressHelper,
+                metrics);
+
+        final String vendorConsent = TCStringEncoder.newBuilder()
+                .version(2)
+                .tcfPolicyVersion(5)
+                .encode();
+
+        // when
+        final Future<TcfContext> result = tcfDefinerService.resolveTcfContext(
+                Privacy.builder().gdpr("1").consentString(vendorConsent).ccpa(null).coppa(null).build(),
+                "london",
+                null,
+                null,
+                MetricName.setuid,
+                null,
+                null);
+
+        // then
+        final String expectedWarning = "Parsing consent string: %s failed. TCF policy version 5 is not supported"
+                .formatted(vendorConsent);
+        assertThat(result).isSucceeded();
+        assertThat(result.result().getConsent()).isInstanceOf(TCStringEmpty.class);
+        assertThat(result.result().getWarnings()).containsExactly(expectedWarning);
     }
 
     @Test

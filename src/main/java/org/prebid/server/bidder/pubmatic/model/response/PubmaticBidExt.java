@@ -14,4 +14,7 @@ public class PubmaticBidExt {
     Integer bidType;
 
     VideoCreativeInfo video;
+
+    @JsonProperty("prebiddealpriority")
+    Integer prebidDealPriority;
 }

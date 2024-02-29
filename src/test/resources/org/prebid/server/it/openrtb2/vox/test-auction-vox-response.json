@@ -1,0 +1,38 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 3.1415,
+          "adm": "<html><h1>Hi, there</h1></html>",
+          "crid": "24080",
+          "adid": "2068416",
+          "cid": "8048",
+          "mtype": 1,
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            },
+            "origbidcpm": 3.1415,
+            "origbidcur": "USD"
+          }
+        }
+      ],
+      "seat": "vox",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "vox": "{{ vox.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

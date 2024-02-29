@@ -20,3 +20,7 @@ adapters:
         url: https://cookiesync.api.bliink.io/getuid?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&url={{redirect_url}}
         support-cors: false
         uid-macro: '$UID'
+      iframe:
+        url: https://tag.bliink.io/usersync.html?gdpr={{gdpr}}&gdprConsent={{gdpr_consent}}&uspConsent={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '$UID'

@@ -5,7 +5,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -24,7 +23,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.tappx.ExtImpTappx;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
-import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
@@ -44,7 +42,7 @@ public class TappxBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpTappx>> TAPX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final Pattern NEW_ENDPOINT_PATTERN = Pattern.compile("^(zz|vz)[0-9]{3,}([a-z]{2}|test)$");
+    private static final Pattern NEW_ENDPOINT_PATTERN = Pattern.compile("^(zz|vz)[0-9]{3,}([a-z]{2,3}|test)$");
     private static final String SUBDOMAIN_MACRO = "{{subdomain}}";
 
     private final String endpointUrl;
@@ -83,7 +81,7 @@ public class TappxBidder implements Bidder<BidRequest> {
     }
 
     private static List<Imp> modifyImps(List<Imp> imps, ExtImpTappx extImpTappx) {
-        List<Imp> modifiedImps = new ArrayList<>(imps);
+        final List<Imp> modifiedImps = new ArrayList<>(imps);
         modifiedImps.set(0, modifyImp(imps.get(0), extImpTappx));
 
         return modifiedImps;
@@ -154,13 +152,7 @@ public class TappxBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String endpointUrl) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .headers(HttpUtil.headers())
-                .uri(endpointUrl)
-                .body(mapper.encodeToBytes(request))
-                .payload(request)
-                .build();
+        return BidderUtil.defaultRequest(request, endpointUrl, mapper);
     }
 
     @Override

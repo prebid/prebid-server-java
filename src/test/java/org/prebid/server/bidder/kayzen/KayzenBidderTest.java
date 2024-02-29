@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -37,12 +36,7 @@ public class KayzenBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://bids-{{ZoneID}}.bidder.kayzen.io/?exchange={{AccountID}}";
 
-    private KayzenBidder kayzenBidder;
-
-    @Before
-    public void setUp() {
-        kayzenBidder = new KayzenBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final KayzenBidder target = new KayzenBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -55,7 +49,7 @@ public class KayzenBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest((Function<Imp.ImpBuilder, Imp.ImpBuilder>) impBuilder ->
                 impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = kayzenBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -75,7 +69,7 @@ public class KayzenBidderTest extends VertxTest {
                         "oneMoreZoneIdLongerThan7", "oneMoreExchange"))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = kayzenBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -98,7 +92,7 @@ public class KayzenBidderTest extends VertxTest {
                 impBuilder.ext(mapper.valueToTree(givenPrebidKayzenExt("someZoneId", "someExchange"))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = kayzenBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -114,7 +108,7 @@ public class KayzenBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = kayzenBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -131,7 +125,7 @@ public class KayzenBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = kayzenBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -145,7 +139,7 @@ public class KayzenBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = kayzenBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -162,7 +156,7 @@ public class KayzenBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = kayzenBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -179,7 +173,7 @@ public class KayzenBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = kayzenBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -197,7 +191,7 @@ public class KayzenBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = kayzenBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -216,7 +210,7 @@ public class KayzenBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(impBuilder -> impBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = kayzenBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

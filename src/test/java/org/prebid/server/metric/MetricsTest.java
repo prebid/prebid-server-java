@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.activity.Activity;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.Stage;
@@ -153,7 +154,7 @@ public class MetricsTest {
 
     @Test
     public void shouldReturnSameAccountAdapterMetricsOnSuccessiveCalls() {
-        assertThat(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(RUBICON))
+        assertThat(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter("rUbIcOn"))
                 .isSameAs(metrics.forAccount(ACCOUNT_ID).adapter().forAdapter(RUBICON));
     }
 
@@ -425,7 +426,7 @@ public class MetricsTest {
     public void updateAdapterRequestTypeAndNoCookieMetricsShouldUpdateMetricsAsExpected() {
 
         // when
-        metrics.updateAdapterRequestTypeAndNoCookieMetrics(RUBICON, MetricName.openrtb2app, true);
+        metrics.updateAdapterRequestTypeAndNoCookieMetrics("rUbIcON", MetricName.openrtb2app, true);
         metrics.updateAdapterRequestTypeAndNoCookieMetrics(RUBICON, MetricName.amp, false);
 
         // then
@@ -470,6 +471,18 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("price-floors.general.err").getCount()).isOne();
+    }
+
+    @Test
+    public void updateAlertsMetricsShouldCreateMetricsAsExpected() {
+        // when
+        metrics.updateAlertsMetrics(MetricName.general);
+        metrics.updateAlertsMetrics(MetricName.failed);
+        metrics.updateAlertsMetrics(MetricName.general);
+
+        // then
+        assertThat(metricRegistry.counter("alerts.general").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter("alerts.failed").getCount()).isOne();
     }
 
     @Test
@@ -620,7 +633,7 @@ public class MetricsTest {
     @Test
     public void updateUserSyncSetsMetricShouldIncrementMetric() {
         // when
-        metrics.updateUserSyncSetsMetric(RUBICON);
+        metrics.updateUserSyncSetsMetric("RUBICON");
 
         // then
         assertThat(metricRegistry.counter("usersync.rubicon.sets").getCount()).isOne();
@@ -651,7 +664,7 @@ public class MetricsTest {
     public void updateCookieSyncFilteredMetricShouldIncrementMetric() {
         // when
         metrics.updateCookieSyncFilteredMetric(RUBICON);
-        metrics.updateCookieSyncFilteredMetric(CONVERSANT);
+        metrics.updateCookieSyncFilteredMetric("CONVERSANT");
         metrics.updateCookieSyncFilteredMetric(CONVERSANT);
 
         // then
@@ -1347,6 +1360,65 @@ public class MetricsTest {
 
         // then
         assertThat(metricRegistry.counter("win_notifications").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementRequestsActivityDisallowedCount() {
+        // when
+        metrics.updateRequestsActivityDisallowedCount(Activity.CALL_BIDDER);
+
+        // then
+        assertThat(metricRegistry.counter("requests.activity.fetch_bids.disallowed.count").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateAccountActivityDisallowedCount() {
+        // when
+        metrics.updateAccountActivityDisallowedCount("account_id", Activity.CALL_BIDDER);
+
+        // then
+        assertThat(metricRegistry.counter("account.account_id.activity.fetch_bids.disallowed.count").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateAdapterActivityDisallowedCount() {
+        // when
+        metrics.updateAdapterActivityDisallowedCount("adapter", Activity.CALL_BIDDER);
+
+        // then
+        assertThat(metricRegistry.counter("adapter.adapter.activity.fetch_bids.disallowed.count").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateRequestsActivityProcessedRulesCount() {
+        // when
+        metrics.updateRequestsActivityProcessedRulesCount();
+
+        // then
+        assertThat(metricRegistry.counter("requests.activity.processedrules.count").getCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateAccountActivityProcessedRulesCount() {
+        // when
+        metrics.updateAccountActivityProcessedRulesCount("account_id");
+
+        // then
+        assertThat(metricRegistry.counter("account.account_id.activity.processedrules.count").getCount())
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateAccountRequestRejectedByFailedFetchCount() {
+        // when
+        metrics.updateAccountRequestRejectedByFailedFetch("account_id");
+
+        // then
+        assertThat(metricRegistry.counter("account.account_id.requests.rejected.account-fetch-failed").getCount())
+                .isEqualTo(1);
     }
 
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {

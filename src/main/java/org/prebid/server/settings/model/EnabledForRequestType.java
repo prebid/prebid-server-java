@@ -20,6 +20,8 @@ public class EnabledForRequestType {
 
     Boolean video;
 
+    Boolean dooh;
+
     /**
      * Tells if gdpr is enabled for request type defined in {@param requestType}.
      * Returns null if request type is unknown or null.
@@ -31,6 +33,7 @@ public class EnabledForRequestType {
         return switch (requestType) {
             case openrtb2web -> pbjs;
             case openrtb2app -> app;
+            case openrtb2dooh -> dooh;
             case amp -> amp;
             case video -> video;
             default -> null;

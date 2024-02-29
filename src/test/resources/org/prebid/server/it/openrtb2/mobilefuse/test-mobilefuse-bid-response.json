@@ -11,7 +11,9 @@
           "id": "bid_id",
           "price": 0.01,
           "ext": {
-            "format": "BANNER"
+            "mf": {
+              "media_type": "banner"
+            }
           }
         }
       ]

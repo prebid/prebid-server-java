@@ -10,14 +10,19 @@ import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
@@ -27,6 +32,7 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.cookie.proto.Uids;
+import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
@@ -83,6 +89,10 @@ public class SetuidHandlerTest extends VertxTest {
     @Mock
     private PrivacyEnforcementService privacyEnforcementService;
     @Mock
+    private SetuidGppService gppService;
+    @Mock
+    private ActivityInfrastructureCreator activityInfrastructureCreator;
+    @Mock
     private HostVendorTcfDefinerService tcfDefinerService;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
@@ -96,6 +106,8 @@ public class SetuidHandlerTest extends VertxTest {
     private HttpServerRequest httpRequest;
     @Mock
     private HttpServerResponse httpResponse;
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
 
     private TcfContext tcfContext;
 
@@ -107,6 +119,11 @@ public class SetuidHandlerTest extends VertxTest {
         tcfContext = TcfContext.builder().inGdprScope(false).build();
         given(privacyEnforcementService.contextFromSetuidRequest(any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(null, tcfContext)));
+        given(gppService.contextFrom(any())).willReturn(Future.succeededFuture());
+        given(gppService.updateSetuidContext(any()))
+                .willAnswer(invocation -> invocation.getArgument(0));
+        given(activityInfrastructureCreator.create(any(), any(), any()))
+                .willReturn(activityInfrastructure);
         given(tcfDefinerService.resultForVendorIds(anySet(), any()))
                 .willReturn(Future.succeededFuture(TcfResponse.of(true, vendorIdToGdpr, null)));
         given(tcfDefinerService.isAllowedForHostVendorId(any()))
@@ -131,6 +148,9 @@ public class SetuidHandlerTest extends VertxTest {
         given(bidderCatalog.usersyncerByName(eq(FACEBOOK))).willReturn(
                 Optional.of(Usersyncer.of(FACEBOOK, null, redirectMethod())));
 
+        given(activityInfrastructure.isAllowed(any(), any()))
+                .willReturn(true);
+
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         setuidHandler = new SetuidHandler(
@@ -139,6 +159,8 @@ public class SetuidHandlerTest extends VertxTest {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                gppService,
+                activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporterDelegator,
                 metrics,
@@ -218,6 +240,48 @@ public class SetuidHandlerTest extends VertxTest {
         verify(metrics).updateUserSyncTcfInvalidMetric(RUBICON);
         verify(httpResponse).setStatusCode(eq(400));
         verify(httpResponse).end(eq("Invalid request format: Consent string is invalid"));
+    }
+
+    @Test
+    public void shouldRespondWithUnavailableForLegalReasonsStatusIfDisallowedActivity() {
+        // given
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("account")).willReturn("accountId");
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
+                .willReturn(emptyUidsCookie());
+        given(applicationSettings.getAccountById(eq("accountId"), any()))
+                .willReturn(Future.succeededFuture(Account.builder().build()));
+
+        given(activityInfrastructure.isAllowed(any(), any()))
+                .willReturn(false);
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(451));
+        verify(httpResponse).end(eq("Unavailable For Legal Reasons."));
+    }
+
+    @Test
+    public void shouldRespondWithErrorOnInvalidAccountConfigException() {
+        // given
+        given(httpRequest.getParam("bidder")).willReturn(RUBICON);
+        given(httpRequest.getParam("account")).willReturn("accountId");
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
+                .willReturn(emptyUidsCookie());
+        given(applicationSettings.getAccountById(eq("accountId"), any()))
+                .willReturn(Future.succeededFuture(Account.builder().build()));
+
+        given(gppService.contextFrom(any()))
+                .willReturn(Future.failedFuture(new InvalidAccountConfigException("Message")));
+
+        // when
+        setuidHandler.handle(routingContext);
+
+        // then
+        verify(httpResponse).setStatusCode(eq(400));
+        verify(httpResponse).end(eq("Invalid account configuration: Message"));
     }
 
     @Test
@@ -327,10 +391,10 @@ public class SetuidHandlerTest extends VertxTest {
         given(httpRequest.getParam("account")).willReturn("accId");
 
         final AccountGdprConfig accountGdprConfig = AccountGdprConfig.builder()
-                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                 .build();
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null))
+                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null, null, null, null))
                 .build();
         final Future<Account> accountFuture = Future.succeededFuture(account);
         given(applicationSettings.getAccountById(any(), any())).willReturn(accountFuture);
@@ -444,6 +508,8 @@ public class SetuidHandlerTest extends VertxTest {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                gppService,
+                activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporterDelegator,
                 metrics,
@@ -486,6 +552,8 @@ public class SetuidHandlerTest extends VertxTest {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                gppService,
+                activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporterDelegator,
                 metrics,
@@ -527,6 +595,8 @@ public class SetuidHandlerTest extends VertxTest {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                gppService,
+                activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporterDelegator,
                 metrics,
@@ -612,8 +682,17 @@ public class SetuidHandlerTest extends VertxTest {
     public void shouldSkipTcfChecksAndRespondWithCookieIfHostVendorIdNotDefined() throws IOException {
         // given
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
-        setuidHandler = new SetuidHandler(2000, uidsCookieService, applicationSettings,
-                bidderCatalog, privacyEnforcementService, tcfDefinerService, analyticsReporterDelegator, metrics,
+        setuidHandler = new SetuidHandler(
+                2000,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                privacyEnforcementService,
+                gppService,
+                activityInfrastructureCreator,
+                tcfDefinerService,
+                analyticsReporterDelegator,
+                metrics,
                 new TimeoutFactory(clock));
 
         given(tcfDefinerService.getGdprHostVendorId()).willReturn(null);
@@ -692,6 +771,39 @@ public class SetuidHandlerTest extends VertxTest {
                 .uid("updatedUid")
                 .success(true)
                 .build());
+    }
+
+    @Test
+    public void shouldThrowExceptionInCaseOfCookieFamilyNameDuplicates() {
+        // given
+        final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
+        final String firstDuplicateName = "firstBidderWithDuplicate";
+        final String secondDuplicateName = "secondBidderWithDuplicate";
+        given(bidderCatalog.names())
+                .willReturn(new HashSet<>(asList(RUBICON, FACEBOOK, firstDuplicateName, secondDuplicateName)));
+        given(bidderCatalog.usersyncerByName(eq(firstDuplicateName))).willReturn(
+                Optional.of(Usersyncer.of(RUBICON, iframeMethod(), redirectMethod())));
+        given(bidderCatalog.usersyncerByName(eq(secondDuplicateName))).willReturn(
+                Optional.of(Usersyncer.of(FACEBOOK, iframeMethod(), redirectMethod())));
+        final Executable exceptionSource = () -> new SetuidHandler(
+                2000,
+                uidsCookieService,
+                applicationSettings,
+                bidderCatalog,
+                privacyEnforcementService,
+                gppService,
+                activityInfrastructureCreator,
+                tcfDefinerService,
+                analyticsReporterDelegator,
+                metrics,
+                new TimeoutFactory(clock));
+
+        //when
+        final IllegalArgumentException exception =
+                Assertions.assertThrows(IllegalArgumentException.class, exceptionSource);
+
+        //then
+        assertThat(exception).hasMessage("Duplicated \"cookie-family-name\" found, values: audienceNetwork, rubicon");
     }
 
     private String getUidsCookie() {

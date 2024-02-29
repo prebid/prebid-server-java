@@ -2,30 +2,20 @@ package org.prebid.server.functional.util.privacy
 
 import com.iabtcf.encoder.TCStringEncoder
 import com.iabtcf.utils.BitSetIntIterable
+import org.prebid.server.functional.util.PBSUtils
 
-import static io.restassured.RestAssured.given
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 
 class TcfConsent implements ConsentString {
 
-    private static final String VENDOR_LIST_URL = "https://vendor-list.consensu.org/v2/vendor-list.json"
-    private static final Integer VENDOR_LIST_VERSION = vendorListVersion
-    public static final Integer RUBICON_VENDOR_ID = 52
-    public static final Integer GENERIC_VENDOR_ID = RUBICON_VENDOR_ID
+    public static final Integer RUBICON_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
+    public static final Integer GENERIC_VENDOR_ID = PBSUtils.getRandomNumber(0, 65534)
+    public static final Integer VENDOR_LIST_VERSION = PBSUtils.getRandomNumber(0, 4095)
 
     private final TCStringEncoder.Builder tcStringEncoder
 
     private TcfConsent(Builder builder) {
         this.tcStringEncoder = builder.tcStringEncoder
-    }
-
-    static Integer getVendorListVersion() {
-        def vendorListVersion = given().get(VENDOR_LIST_URL).path("vendorListVersion") as Integer
-        if (!vendorListVersion) {
-            throw new IllegalStateException("Vendor list version is null")
-        } else {
-            return vendorListVersion
-        }
-
     }
 
     @Override
@@ -45,7 +35,7 @@ class TcfConsent implements ConsentString {
         Builder() {
             tcStringEncoder = TCStringEncoder.newBuilder()
             setVersion(2)
-            setTcfPolicyVersion(2)
+            setTcfPolicyVersion(TCF_POLICY_V2.value)
             setVendorListVersion(VENDOR_LIST_VERSION)
         }
 
@@ -74,7 +64,7 @@ class TcfConsent implements ConsentString {
             this
         }
 
-        Builder addVendorLegitimateInterest(List<Integer> vendorLegitimateInterest) {
+        Builder setVendorLegitimateInterest(List<Integer> vendorLegitimateInterest) {
             tcStringEncoder.addVendorLegitimateInterest(BitSetIntIterable.from(vendorLegitimateInterest))
             this
         }
@@ -100,6 +90,26 @@ class TcfConsent implements ConsentString {
 
         PurposeId(int value) {
             this.value = value
+        }
+    }
+
+    enum TcfPolicyVersion {
+
+        TCF_POLICY_V2(2),
+        TCF_POLICY_V3(4)
+
+        final int value
+
+        TcfPolicyVersion(int value) {
+            this.value = value
+        }
+
+        int getVendorListVersion() {
+            (this == TCF_POLICY_V3) ? 3 : 2
+        }
+
+        int getReversedListVersion() {
+            (this == TCF_POLICY_V3) ? 2 : 3
         }
     }
 }

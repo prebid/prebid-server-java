@@ -12,7 +12,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
@@ -43,12 +42,7 @@ public class TelariaBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com/";
 
-    private TelariaBidder telariaBidder;
-
-    @Before
-    public void setUp() {
-        telariaBidder = new TelariaBidder(ENDPOINT_URL, jacksonMapper);
-    }
+    private final TelariaBidder target = new TelariaBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
@@ -64,7 +58,7 @@ public class TelariaBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("Telaria: Only Supports Video"));
@@ -79,7 +73,7 @@ public class TelariaBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("Telaria: Banner not supported"));
@@ -93,7 +87,7 @@ public class TelariaBidderTest extends VertxTest {
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
@@ -109,7 +103,7 @@ public class TelariaBidderTest extends VertxTest {
                                 ExtImpTelaria.of("adCode", null, mapper.createObjectNode())))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("Telaria: Seat Code required"));
@@ -124,7 +118,7 @@ public class TelariaBidderTest extends VertxTest {
                                 ExtImpTelaria.of("adCode", "seatCode", mapper.createObjectNode())))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -151,7 +145,7 @@ public class TelariaBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -172,7 +166,7 @@ public class TelariaBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -192,7 +186,7 @@ public class TelariaBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -213,7 +207,7 @@ public class TelariaBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -239,7 +233,7 @@ public class TelariaBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = telariaBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getValue())
@@ -281,7 +275,7 @@ public class TelariaBidderTest extends VertxTest {
                         .build()));
 
         // when
-        final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -295,7 +289,7 @@ public class TelariaBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -313,7 +307,7 @@ public class TelariaBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -329,7 +323,7 @@ public class TelariaBidderTest extends VertxTest {
                         .seatbid(singletonList(SeatBid.builder().build())).build()));
 
         // when
-        final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -349,7 +343,7 @@ public class TelariaBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -369,7 +363,7 @@ public class TelariaBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(identity())));
 
         // when
-        final Result<List<BidderBid>> result = telariaBidder.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();

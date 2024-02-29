@@ -11,12 +11,14 @@ import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
+import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
@@ -39,6 +41,9 @@ import org.prebid.server.handler.StatusHandler;
 import org.prebid.server.handler.VtrackHandler;
 import org.prebid.server.handler.info.BidderDetailsHandler;
 import org.prebid.server.handler.info.BiddersHandler;
+import org.prebid.server.handler.info.filters.BaseOnlyBidderInfoFilterStrategy;
+import org.prebid.server.handler.info.filters.BidderInfoFilterStrategy;
+import org.prebid.server.handler.info.filters.EnabledOnlyBidderInfoFilterStrategy;
 import org.prebid.server.handler.openrtb2.AmpHandler;
 import org.prebid.server.handler.openrtb2.VideoHandler;
 import org.prebid.server.health.HealthChecker;
@@ -71,6 +76,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
@@ -116,7 +122,10 @@ public class ApplicationServerConfiguration {
             @Value("#{'${http.max-initial-line-length:${server.max-initial-line-length:}}'}") int maxInitialLineLength,
             @Value("#{'${http.ssl:${server.ssl:}}'}") boolean ssl,
             @Value("#{'${http.jks-path:${server.jks-path:}}'}") String jksPath,
-            @Value("#{'${http.jks-password:${server.jks-password:}}'}") String jksPassword) {
+            @Value("#{'${http.jks-password:${server.jks-password:}}'}") String jksPassword,
+            @Value("#{'${http.idle-timeout:${server.idle-timeout}}'}") int idleTimeout,
+            @Value("${server.enable-quickack:#{null}}") Optional<Boolean> enableQuickAck,
+            @Value("${server.enable-reuseport:#{null}}") Optional<Boolean> enableReusePort) {
 
         final HttpServerOptions httpServerOptions = new HttpServerOptions()
                 .setHandle100ContinueAutomatically(true)
@@ -124,8 +133,9 @@ public class ApplicationServerConfiguration {
                 .setMaxHeaderSize(maxHeaderSize)
                 .setCompressionSupported(true)
                 .setDecompressionSupported(true)
-                .setIdleTimeout(10); // kick off long processing requests
-
+                .setIdleTimeout(idleTimeout); // kick off long processing requests, value in seconds
+        enableQuickAck.ifPresent(httpServerOptions::setTcpQuickAck);
+        enableReusePort.ifPresent(httpServerOptions::setReusePort);
         if (ssl) {
             final JksOptions jksOptions = new JksOptions()
                     .setPath(jksPath)
@@ -248,7 +258,8 @@ public class ApplicationServerConfiguration {
                 ampResponsePostProcessor,
                 httpInteractionLogger,
                 prebidVersionProvider,
-                mapper);
+                mapper,
+                logSamplingRate);
     }
 
     @Bean
@@ -288,6 +299,7 @@ public class ApplicationServerConfiguration {
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             CookieSyncGppService cookieSyncGppProcessor,
+            ActivityInfrastructureCreator activityInfrastructureCreator,
             ApplicationSettings applicationSettings,
             CookieSyncService cookieSyncService,
             PrivacyEnforcementService privacyEnforcementService,
@@ -301,6 +313,7 @@ public class ApplicationServerConfiguration {
                 logSamplingRate,
                 uidsCookieService,
                 cookieSyncGppProcessor,
+                activityInfrastructureCreator,
                 cookieSyncService,
                 applicationSettings,
                 privacyEnforcementService,
@@ -317,6 +330,8 @@ public class ApplicationServerConfiguration {
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
             PrivacyEnforcementService privacyEnforcementService,
+            SetuidGppService setuidGppService,
+            ActivityInfrastructureCreator activityInfrastructureCreator,
             HostVendorTcfDefinerService tcfDefinerService,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
@@ -328,6 +343,8 @@ public class ApplicationServerConfiguration {
                 applicationSettings,
                 bidderCatalog,
                 privacyEnforcementService,
+                setuidGppService,
+                activityInfrastructureCreator,
                 tcfDefinerService,
                 analyticsReporter,
                 metrics,
@@ -383,8 +400,20 @@ public class ApplicationServerConfiguration {
     }
 
     @Bean
-    BiddersHandler biddersHandler(BidderCatalog bidderCatalog, JacksonMapper mapper) {
-        return new BiddersHandler(bidderCatalog, mapper);
+    BidderInfoFilterStrategy enabledOnlyBidderInfoFilterStrategy(BidderCatalog bidderCatalog) {
+        return new EnabledOnlyBidderInfoFilterStrategy(bidderCatalog);
+    }
+
+    @Bean
+    BidderInfoFilterStrategy baseOnlyBidderInfoFilterStrategy(BidderCatalog bidderCatalog) {
+        return new BaseOnlyBidderInfoFilterStrategy(bidderCatalog);
+    }
+
+    @Bean
+    BiddersHandler biddersHandler(BidderCatalog bidderCatalog,
+                                  List<BidderInfoFilterStrategy> filterStrategies,
+                                  JacksonMapper mapper) {
+        return new BiddersHandler(bidderCatalog, filterStrategies, mapper);
     }
 
     @Bean
@@ -397,6 +426,7 @@ public class ApplicationServerConfiguration {
             UidsCookieService uidsCookieService,
             @Autowired(required = false) ApplicationEventService applicationEventService,
             @Autowired(required = false) UserService userService,
+            ActivityInfrastructureCreator activityInfrastructureCreator,
             AnalyticsReporterDelegator analyticsReporterDelegator,
             TimeoutFactory timeoutFactory,
             ApplicationSettings applicationSettings,
@@ -407,6 +437,7 @@ public class ApplicationServerConfiguration {
                 uidsCookieService,
                 applicationEventService,
                 userService,
+                activityInfrastructureCreator,
                 analyticsReporterDelegator,
                 timeoutFactory,
                 applicationSettings,

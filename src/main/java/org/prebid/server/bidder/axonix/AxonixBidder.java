@@ -3,10 +3,11 @@ package org.prebid.server.bidder.axonix;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -19,8 +20,10 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.axonix.ExtImpAxonix;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -32,6 +35,7 @@ public class AxonixBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
     public static final String URL_SUPPLY_ID_MACRO = "{{SupplyId}}";
+    private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
     private final JacksonMapper mapper;
     private final String endpointUrl;
@@ -50,13 +54,8 @@ public class AxonixBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        return Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(resolveEndpoint(extImpAxonix.getSupplyId()))
-                .headers(HttpUtil.headers())
-                .payload(request)
-                .body(mapper.encodeToBytes(request))
-                .build());
+        return Result.withValue(
+                BidderUtil.defaultRequest(request, resolveEndpoint(extImpAxonix.getSupplyId()), mapper));
     }
 
     private ExtImpAxonix parseImpExt(Imp imp) {
@@ -92,8 +91,19 @@ public class AxonixBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getMediaType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(resolveMacros(bid), getMediaType(bid.getImpid(), bidRequest.getImp()),
+                        bidResponse.getCur()))
                 .toList();
+    }
+
+    private static Bid resolveMacros(Bid bid) {
+        final BigDecimal price = bid.getPrice();
+        final String priceAsString = price != null ? price.toPlainString() : "0";
+
+        return bid.toBuilder()
+                .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
+                .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .build();
     }
 
     private static BidType getMediaType(String impId, List<Imp> imps) {

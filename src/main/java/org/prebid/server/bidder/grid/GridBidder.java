@@ -4,13 +4,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.MissingNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -35,6 +33,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.grid.ExtImpGrid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
@@ -71,16 +70,9 @@ public class GridBidder implements Bidder<BidRequest> {
 
         final Keywords firstImpKeywords = getKeywordsFromImpExt(imps.get(0).getExt());
         final BidRequest modifiedRequest = modifyRequest(request, firstImpKeywords, modifiedImps);
-        final HttpRequest<BidRequest> httpRequest =
-                HttpRequest.<BidRequest>builder()
-                        .uri(endpointUrl)
-                        .method(HttpMethod.POST)
-                        .headers(HttpUtil.headers())
-                        .payload(modifiedRequest)
-                        .body(mapper.encodeToBytes(modifiedRequest))
-                        .build();
 
-        return Result.of(Collections.singletonList(httpRequest), errors);
+        return Result.of(Collections.singletonList(
+                BidderUtil.defaultRequest(modifiedRequest, endpointUrl, mapper)), errors);
     }
 
     private List<Imp> modifyImps(List<Imp> imps, List<BidderError> errors) {
@@ -243,7 +235,7 @@ public class GridBidder implements Bidder<BidRequest> {
         }
 
         final ExtBidPrebid extBidPrebid = ExtBidPrebid.builder()
-                .meta(mapper.mapper().createObjectNode().set("demandsource", TextNode.valueOf(demandSource)))
+                .meta(ExtBidPrebidMeta.builder().demandSource(demandSource).build())
                 .build();
         return mapper.mapper().valueToTree(ExtPrebid.of(extBidPrebid, null));
     }

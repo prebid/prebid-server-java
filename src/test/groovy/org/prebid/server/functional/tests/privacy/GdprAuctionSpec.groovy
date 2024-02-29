@@ -2,39 +2,42 @@ package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountGdprConfig
-import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.DistributionChannel
+import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.service.PrebidServerService
+import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
+import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
+import org.prebid.server.functional.util.privacy.VendorListConsent
 import spock.lang.PendingFeature
+
+import java.time.Instant
 
 import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
-import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_BY_MEDIA_TYPE
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_BY_PRIVACY
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
+import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
 
 class GdprAuctionSpec extends PrivacyBaseSpec {
-
-    def setupSpec() {
-        cacheVendorList()
-    }
 
     @PendingFeature
     def "PBS should add debug log for auction request when valid gdpr was passed"() {
         given: "Default gdpr BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         def bidRequest = getGdprBidRequest(validConsentString)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain debug log"
         assert response.ext?.debug?.privacy
@@ -70,7 +73,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         def bidRequest = getGdprBidRequest(invalidConsentString)
 
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should not contain ext.errors"
         assert !response.ext?.errors
@@ -99,7 +102,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString)
 
@@ -122,7 +125,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString)
 
@@ -145,7 +148,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString)
 
@@ -153,7 +156,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         accountDao.save(getAccountWithGdpr(bidRequest.app.publisher.id, gdprConfig))
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain not masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -169,7 +172,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString)
 
@@ -177,7 +180,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         accountDao.save(getAccountWithGdpr(bidRequest.site.publisher.id, gdprConfig))
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain not masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -193,7 +196,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "BidRequest with channel: #requestChannel, gdpr"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString).tap {
             ext.prebid.channel = new Channel().tap {
@@ -242,5 +245,72 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "seatbid should be empty"
         assert response.seatbid.isEmpty()
+    }
+
+    def "PBS auction should process request and cache correct vendorList file with proper consent.tcfPolicyVersion parameter"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Create new container"
+        def serverContainer = new PrebidServerContainer(GDPR_VENDOR_LIST_CONFIG +
+                ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String])
+        serverContainer.start()
+        def privacyPbsService = new PrebidServerService(serverContainer)
+
+        and: "Tcf consent setup"
+        def tcfConsent = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .setTcfPolicyVersion(tcfPolicyVersion.value)
+                .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "Bid request"
+        def bidRequest = getGdprBidRequest(tcfConsent)
+
+        and: "Set vendor list response"
+        vendorListResponse.setResponse(tcfPolicyVersion)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Used vendor list have proper specification version of GVL"
+        def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/${tcfPolicyVersion.vendorListVersion}.json"
+        PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
+        def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
+        assert vendorList.tcfPolicyVersion == tcfPolicyVersion.vendorListVersion
+
+        and: "Logs should contain proper vendor list version"
+        def logs = privacyPbsService.getLogsByTime(startTime)
+        assert getLogsByText(logs, "Created new TCF 2 vendor list for version " +
+                "v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion}")
+
+        cleanup: "Stop container with default request"
+        serverContainer.stop()
+
+        where:
+        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
+    }
+
+    def "PBS auction should reject request with proper warning when incoming consent.tcfPolicyVersion have invalid parameter"() {
+        given: "Tcf consent string"
+        def invalidTcfPolicyVersion = PBSUtils.getRandomNumber(5, 63)
+        def tcfConsent = new TcfConsent.Builder()
+                .setTcfPolicyVersion(invalidTcfPolicyVersion)
+                .build()
+
+        and: "Bid request"
+        def bidRequest = getGdprBidRequest(tcfConsent)
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction request"
+        def response = privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should contain warning"
+        assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
+        assert response.ext?.warnings[ErrorType.PREBID]*.message ==
+                ["Parsing consent string: ${tcfConsent} failed. TCF policy version ${invalidTcfPolicyVersion} is not supported" as String]
     }
 }

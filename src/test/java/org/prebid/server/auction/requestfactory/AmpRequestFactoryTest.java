@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -48,6 +49,7 @@ import org.prebid.server.proto.openrtb.ext.ExtIncludeBrandCategory;
 import org.prebid.server.proto.openrtb.ext.request.ConsentedProvidersSettings;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidAmp;
@@ -55,7 +57,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
@@ -132,7 +133,8 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortbVersionConversionManager.convertToAuctionSupportedVersion(any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
-        given(ampGppService.apply(any(), any()))
+        given(ampGppService.contextFrom(any())).willReturn(Future.succeededFuture());
+        given(ampGppService.updateBidRequest(any(), any()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         given(routingContext.request()).willReturn(httpRequest);
@@ -159,10 +161,10 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(fpdResolver.resolveUser(any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(fpdResolver.resolveImpExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
-        given(fpdResolver.resolveBidRequestExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock
-                .getArgument(0));
         given(ortb2RequestFactory.populateUserAdditionalInfo(any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
+        given(ortb2RequestFactory.activityInfrastructureFrom(any()))
+                .willReturn(Future.succeededFuture());
 
         given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, true, null));
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
@@ -251,6 +253,22 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages())
                 .hasSize(1).containsOnly("request.app must not exist in AMP stored requests.");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfStoredBidRequestHasDooh() {
+        // given
+        final Imp imp = Imp.builder().build();
+        givenBidRequest(builder -> builder.dooh(Dooh.builder().build()), imp);
+
+        // when
+        final Future<?> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
+        assertThat(((InvalidRequestException) future.cause()).getMessages())
+                .hasSize(1).containsOnly("request.dooh must not exist in AMP stored requests.");
     }
 
     @Test
@@ -1234,30 +1252,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithExtPrebidDataBiddersUpdatedByFpdResolver() throws JsonProcessingException {
-        // given
-        routingContext.queryParams()
-                .add("targeting", mapper.writeValueAsString(
-                        Targeting.of(Arrays.asList("appnexus", "rubicon"), null, null)));
-
-        given(fpdResolver.resolveBidRequestExt(any(), any()))
-                .willReturn(ExtRequest.of(ExtRequestPrebid.builder()
-                        .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"), null)).build()));
-
-        givenBidRequest();
-
-        // when
-        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        verify(fpdResolver).resolveBidRequestExt(any(), any());
-        assertThat(request)
-                .extracting(BidRequest::getExt)
-                .isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
-                        .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"), null)).build()));
-    }
-
-    @Test
     public void shouldReturnBidRequestImpExtContextDataWithTargetingAttributes() throws JsonProcessingException {
         // given
         routingContext.queryParams()
@@ -1274,7 +1268,6 @@ public class AmpRequestFactoryTest extends VertxTest {
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        verify(fpdResolver).resolveBidRequestExt(any(), any());
         assertThat(singletonList(request))
                 .flatExtracting(BidRequest::getImp)
                 .containsOnly(Imp.builder().secure(1).ext(mapper.createObjectNode().set("context",
@@ -1487,6 +1480,22 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBidRequestWithGpc() {
+        // given
+        given(implicitParametersExtractor.gpcFrom(any())).willReturn("1");
+
+        givenBidRequest();
+
+        // when
+        final BidRequest result = target.fromRequest(routingContext, 0L).result().getBidRequest();
+
+        // then
+        assertThat(result.getRegs()).isEqualTo(Regs.builder()
+                .ext(ExtRegs.of(null, null, "1", null))
+                .build());
+    }
+
+    @Test
     public void shouldNotPopulateRegsObjectWithGppDataIfGppSidCouldNotBeParsed() {
         // given
         routingContext.queryParams()
@@ -1694,7 +1703,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), anyBoolean())).willAnswer(
                 answerWithFirstArgument());
-        given(ortb2RequestFactory.validateRequest(any(), any()))
+        given(ortb2RequestFactory.validateRequest(any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))

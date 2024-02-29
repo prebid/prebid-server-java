@@ -1,15 +1,19 @@
 adapters:
   rtbhouse:
-    endpoint: http://prebidserver-s2s-ams.creativecdn.com/bidder/prebidserver/bids
+    endpoint: https://prebidserver-s2s-ams.creativecdn.com/bidder/prebidserver/bids
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid@rtbhouse.com
       app-media-types:
+        - banner
+        - native
       site-media-types:
         - banner
+        - native
       supported-vendors:
       vendor-id: 16
     usersync:
       cookie-family-name: rtbhouse
       redirect:
-        url: https://creativecdn.com/cm-notify?pi=rp-pbserv
+        url: https://creativecdn.com/cm-notify?pi=ASK_FOR_INTEGRATION_ID&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}
         support-cors: false

@@ -8,7 +8,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -17,6 +16,7 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.yieldmo.proto.YieldmoBidExt;
 import org.prebid.server.bidder.yieldmo.proto.YieldmoImpExt;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -24,6 +24,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yieldmo.ExtImpYieldmo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -90,26 +91,20 @@ public class YieldmoBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .headers(HttpUtil.headers())
-                .uri(endpointUrl)
-                .body(mapper.encodeToBytes(bidRequest))
-                .payload(bidRequest)
-                .build();
+        return BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper);
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -120,16 +115,20 @@ public class YieldmoBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, resolveBidType(bid, bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> {
+                    final BidType bidType = resolveBidType(bid);
+                    return bidType != null ? BidderBid.of(bid, bidType, bidResponse.getCur()) : null;
+                })
+                .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidType resolveBidType(Bid bid, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (Objects.equals(imp.getId(), bid.getImpid())) {
-                return imp.getBanner() != null ? BidType.banner : BidType.video;
-            }
+    private BidType resolveBidType(Bid bid) {
+        try {
+            final YieldmoBidExt bidExt = mapper.mapper().treeToValue(bid.getExt(), YieldmoBidExt.class);
+            return BidType.fromString(bidExt.getMediaType());
+        } catch (Exception e) {
+            return null;
         }
-        return BidType.video;
     }
 }

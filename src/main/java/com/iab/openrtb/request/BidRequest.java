@@ -48,6 +48,12 @@ public class BidRequest {
     App app;
 
     /**
+     * This object should be included if the ad supported content is a Digital Out-Of-Home screen.
+     * A bid request with a DOOH object must not contain a site or app object.
+     */
+    Dooh dooh;
+
+    /**
      * Details via a {@link Device} object (Section 3.2.18) about the user’s device
      * to which the impression will be delivered.
      */
@@ -132,9 +138,16 @@ public class BidRequest {
     List<String> wlangb;
 
     /**
-     * Blocked advertiser categories using the specified category taxonomy. <p/>
-     * The taxonomy to be used is defined by the cattax field. If no cattax
-     * field is supplied IAB Content Category Taxonomy 1.0 is assumed.
+     * Allowed advertiser categories using the specified category taxonomy.
+     * The taxonomy to be used is defined by the cattax field.
+     * If no cattax field is supplied IAB Content Taxonomy 1.0 is assumed. Only one of acat or bcat should be present.
+     */
+    List<String> acat;
+
+    /**
+     * Blocked advertiser categories using the specified category taxonomy.
+     * The taxonomy to be used is defined by the cattax field.
+     * If no cattax field is supplied IAB Content Taxonomy 1.0 is assumed. Only one of acat or bcat should be present.
      */
     List<String> bcat;
 

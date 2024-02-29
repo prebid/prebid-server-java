@@ -1,0 +1,57 @@
+{
+  "id": "test-request-id",
+  "imp": [
+    {
+      "id": "test-imp-id",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "secure": 1,
+      "ext": {
+        "tid": "${json-unit.any-string}",
+        "bidder": {
+          "ppid": "ppidtest"
+        }
+      }
+    }
+  ],
+  "app": {
+    "bundle": "com.prebid"
+  },
+  "device": {
+    "ua": "userAgent",
+    "ip": "193.168.244.1",
+    "ifa": "87857b31-8942-4646-ae80-ab9c95bf3fab"
+  },
+  "at": 1,
+  "tmax": "${json-unit.any-number}",
+  "cur": [
+    "USD"
+  ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  },
+  "ext": {
+    "prebid": {
+      "channel": {
+        "name": "app"
+      },
+      "server": {
+        "externalurl": "http://localhost:8080",
+        "gvlid": 1,
+        "datacenter": "local",
+        "endpoint": "/openrtb2/auction"
+      }
+    }
+  }
+}

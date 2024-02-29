@@ -69,9 +69,8 @@ public class GetuidsHandlerTest extends VertxTest {
         uids.put("adnxs", new UidWithExpiry("Appnexus-uid",
                 ZonedDateTime.parse("2019-04-01T12:30:40.123456789Z")));
 
-        given(uidsCookieService.parseFromRequest(any(RoutingContext.class))).willReturn(new UidsCookie(
-                Uids.builder().uids(uids).bday(ZonedDateTime.parse("2019-04-01T13:28:40.123456789Z")).build(),
-                jacksonMapper));
+        given(uidsCookieService.parseFromRequest(any(RoutingContext.class)))
+                .willReturn(new UidsCookie(Uids.builder().uids(uids).build(), jacksonMapper));
 
         // when
         getuidsHandler.handle(routingContext);

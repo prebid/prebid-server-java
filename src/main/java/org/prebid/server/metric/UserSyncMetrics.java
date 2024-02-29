@@ -26,7 +26,7 @@ class UserSyncMetrics extends UpdatableMetrics {
     }
 
     BidderUserSyncMetrics forBidder(String bidder) {
-        return bidderUserSyncMetrics.computeIfAbsent(bidder, bidderUserSyncMetricsCreator);
+        return bidderUserSyncMetrics.computeIfAbsent(bidder.toLowerCase(), bidderUserSyncMetricsCreator);
     }
 
     static class BidderUserSyncMetrics extends UpdatableMetrics {

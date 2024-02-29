@@ -1,0 +1,11 @@
+adapters:
+  infytv:
+    endpoint: https://nxs.infy.tv/pbs/openrtb
+    meta-info:
+      maintainer-email: tech+hb@infy.tv
+      app-media-types:
+        - video
+      site-media-types:
+        - video
+      supported-vendors:
+      vendor-id: 0

@@ -98,7 +98,7 @@ public class ForceDealsUpdateHandler implements Handler<RoutingContext> {
                         .end(exception.getMessage()));
     }
 
-    enum DealsAction {
+    public enum DealsAction {
         UPDATE_LINE_ITEMS, SEND_REPORT, REGISTER_INSTANCE, RESET_ALERT_COUNT, CREATE_REPORT, INVALIDATE_LINE_ITEMS
     }
 }

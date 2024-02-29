@@ -325,7 +325,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
             auction.priceFloors.adjustForBidAdjustment = pbsConfigBidAdjustmentFlag
         }
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
                 ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "BidRequest with bidAdjustment"
@@ -371,7 +371,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
             auction.priceFloors.adjustForBidAdjustment = pbsConfigBidAdjustmentFlag
         }
-        def pbsService = pbsServiceFactory.getService(floorsConfig +
+        def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
                 ["settings.default-account-config": encode(defaultAccountConfigSettings)])
 
         and: "Default BidRequest"
@@ -412,7 +412,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
 
     def "PBS should choose most aggressive adjustment when request contains multiple media-types"() {
         given: "BidRequest with bidAdjustment"
-        def bidAdjustment = PBSUtils.roundDecimal(PBSUtils.getRandomDecimal(0, 10), 1)
+        def bidAdjustment = PBSUtils.roundDecimal(PBSUtils.getRandomDecimal(0.1, 10), 1)
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
             imp.first().video = Video.defaultVideo
             ext.prebid.floors = new ExtPrebidFloors(enforcement: new ExtPrebidPriceFloorEnforcement(bidAdjustment: true))

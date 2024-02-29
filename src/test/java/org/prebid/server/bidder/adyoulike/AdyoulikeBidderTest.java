@@ -52,14 +52,14 @@ public class AdyoulikeBidderTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    private AdyoulikeBidder adyoulikeBidder;
-
     @Mock
     private CurrencyConversionService currencyConversionService;
 
+    private AdyoulikeBidder target;
+
     @Before
     public void setUp() {
-        adyoulikeBidder = new AdyoulikeBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
+        target = new AdyoulikeBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
     }
 
     @Test
@@ -79,7 +79,7 @@ public class AdyoulikeBidderTest extends VertxTest {
                         givenImp(identity()))));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adyoulikeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -100,7 +100,7 @@ public class AdyoulikeBidderTest extends VertxTest {
                 .bidfloorcur("EUR"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adyoulikeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -122,7 +122,7 @@ public class AdyoulikeBidderTest extends VertxTest {
                 .bidfloorcur("EUR"));
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adyoulikeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).allSatisfy(bidderError -> {
@@ -144,7 +144,7 @@ public class AdyoulikeBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adyoulikeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -168,7 +168,7 @@ public class AdyoulikeBidderTest extends VertxTest {
                 .build();
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adyoulikeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(2);
@@ -181,7 +181,7 @@ public class AdyoulikeBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
-        final Result<List<HttpRequest<BidRequest>>> result = adyoulikeBidder.makeHttpRequests(bidRequest);
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -198,7 +198,7 @@ public class AdyoulikeBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
-        final Result<List<BidderBid>> result = adyoulikeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -212,7 +212,7 @@ public class AdyoulikeBidderTest extends VertxTest {
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
-        final Result<List<BidderBid>> result = adyoulikeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -225,7 +225,7 @@ public class AdyoulikeBidderTest extends VertxTest {
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
 
         // when
-        final Result<List<BidderBid>> result = adyoulikeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).hasSize(1)
@@ -246,7 +246,7 @@ public class AdyoulikeBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = adyoulikeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -264,7 +264,7 @@ public class AdyoulikeBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = adyoulikeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -282,7 +282,7 @@ public class AdyoulikeBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = adyoulikeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -300,7 +300,7 @@ public class AdyoulikeBidderTest extends VertxTest {
                 mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = adyoulikeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
@@ -319,7 +319,7 @@ public class AdyoulikeBidderTest extends VertxTest {
                         givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
 
         // when
-        final Result<List<BidderBid>> result = adyoulikeBidder.makeBids(httpCall, null);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();

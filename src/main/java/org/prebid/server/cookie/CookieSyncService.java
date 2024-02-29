@@ -7,6 +7,10 @@ import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.collections4.SetUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.TcfContextActivityInvocationPayload;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
@@ -255,7 +259,8 @@ public class CookieSyncService {
         return tcfDefinerService.isAllowedForHostVendorId(tcfContext)
                 .compose(hostTcfResponse -> filterWithTcfResponse(hostTcfResponse, cookieSyncContext))
                 .onSuccess(updatedContext -> updateCookieSyncTcfMetrics(updatedContext.getBiddersContext()))
-                .otherwise(error -> rethrowAsCookieSyncException(error, tcfContext));
+                .otherwise(error -> rethrowAsCookieSyncException(error, tcfContext))
+                .map(context -> filterDisallowedActivities(context, tcfContext));
     }
 
     private Future<CookieSyncContext> filterWithTcfResponse(HostVendorTcfResponse hostVendorTcfResponse,
@@ -320,6 +325,17 @@ public class CookieSyncService {
         return bidderInfo != null && bidderInfo.isCcpaEnforced();
     }
 
+    private CookieSyncContext filterDisallowedActivities(CookieSyncContext cookieSyncContext, TcfContext tcfContext) {
+        return filterBidders(
+                cookieSyncContext,
+                bidder -> !cookieSyncContext.getActivityInfrastructure().isAllowed(
+                        Activity.SYNC_USER,
+                        TcfContextActivityInvocationPayload.of(
+                                ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, bidder),
+                                tcfContext)),
+                RejectionReason.DISALLOWED_ACTIVITY);
+    }
+
     public CookieSyncResponse prepareResponse(CookieSyncContext cookieSyncContext) {
         final CookieSyncStatus cookieSyncStatus = cookieSyncContext.getUidsCookie().hasLiveUids()
                 ? CookieSyncStatus.OK
@@ -375,7 +391,7 @@ public class CookieSyncService {
     }
 
     private static <T> Predicate<T> distinctBy(Function<? super T, ?> keyExtractor) {
-        Set<Object> seen = new HashSet<>();
+        final Set<Object> seen = new HashSet<>();
         return value -> seen.add(keyExtractor.apply(value));
     }
 
@@ -453,6 +469,7 @@ public class CookieSyncService {
             case DISABLED_BIDDER -> builder.conditionalError(requested, "Disabled bidder");
             case REJECTED_BY_TCF -> builder.conditionalError(requested || coopSync, "Rejected by TCF");
             case REJECTED_BY_CCPA -> builder.conditionalError(requested || coopSync, "Rejected by CCPA");
+            case DISALLOWED_ACTIVITY -> builder.conditionalError(requested || coopSync, "Disallowed activity");
             case UNCONFIGURED_USERSYNC -> builder.conditionalError(requested, "No sync config");
             case DISABLED_USERSYNC -> builder.conditionalError(requested || coopSync, "Sync disabled by config");
             case REJECTED_BY_FILTER -> builder.conditionalError(requested || coopSync, "Rejected by request filter");

@@ -8,6 +8,7 @@ class NetworkServiceContainer extends MockServerContainer {
 
     NetworkServiceContainer(String version) {
         super(DockerImageName.parse("mockserver/mockserver:mockserver-$version"))
+        withCommand("-serverPort $PORT -logLevel WARN")
     }
 
     String getHostAndPort() {

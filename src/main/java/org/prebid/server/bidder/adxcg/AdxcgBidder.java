@@ -1,11 +1,9 @@
 package org.prebid.server.bidder.adxcg;
 
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -17,6 +15,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -38,13 +37,7 @@ public class AdxcgBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
 
-        return Result.withValue(HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(bidRequest))
-                .payload(bidRequest)
-                .build());
+        return Result.withValue(BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper));
     }
 
     @Override
@@ -52,59 +45,53 @@ public class AdxcgBidder implements Bidder<BidRequest> {
         final List<BidderError> errors = new ArrayList<>();
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(bidResponse, bidRequest, errors), errors);
+            return Result.of(extractBids(bidResponse, errors), errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse, BidRequest bidRequest,
-                                               List<BidderError> errors) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse, bidRequest, errors);
+        return bidsFromResponse(bidResponse, errors);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse,
-                                                    BidRequest bidRequest,
-                                                    List<BidderError> errors) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> createBidderBid(bid, bidRequest, bidResponse, errors))
+                .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidderBid createBidderBid(Bid bid,
-                                             BidRequest bidRequest,
-                                             BidResponse bidResponse,
-                                             List<BidderError> errors) {
+    private static BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
         try {
-            final BidType bidType = getBidType(bid, bidRequest.getImp());
-            return BidderBid.of(bid, bidType, bidResponse.getCur());
+            final BidType bidType = getBidMediaType(bid);
+            return BidderBid.of(bid, bidType, currency);
         } catch (PreBidException e) {
             errors.add(BidderError.badInput(e.getMessage()));
             return null;
         }
     }
 
-    private static BidType getBidType(Bid bid, List<Imp> imps) {
-        final String impId = bid.getImpid();
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                } else if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-            }
+    private static BidType getBidMediaType(Bid bid) {
+        final Integer markupType = bid.getMtype();
+        if (markupType == null) {
+            throw new PreBidException("Missing MType for bid: " + bid.getId());
         }
-        throw new PreBidException("Failed to find native/banner/video impression " + impId);
+
+        return switch (markupType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            default -> throw new PreBidException(
+                    "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid());
+        };
     }
 }

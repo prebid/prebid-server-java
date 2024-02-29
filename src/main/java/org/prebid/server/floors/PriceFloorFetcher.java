@@ -222,7 +222,7 @@ public class PriceFloorFetcher {
                                        AccountPriceFloorsFetchConfig fetchConfig,
                                        String accountId) {
 
-        long maxAgeTimerId = createMaxAgeTimer(accountId, resolveCacheTtl(cacheInfo, fetchConfig));
+        final long maxAgeTimerId = createMaxAgeTimer(accountId, resolveCacheTtl(cacheInfo, fetchConfig));
         final AccountFetchContext fetchContext =
                 AccountFetchContext.of(cacheInfo.getRulesData(), cacheInfo.getFetchStatus(), maxAgeTimerId);
 

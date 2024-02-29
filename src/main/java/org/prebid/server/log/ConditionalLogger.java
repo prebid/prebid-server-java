@@ -88,6 +88,12 @@ public class ConditionalLogger {
         log(message, duration, unit, logger -> logger.debug(message));
     }
 
+    public void debug(String message, double samplingRate) {
+        if (samplingRate >= 1.0d || ThreadLocalRandom.current().nextDouble() < samplingRate) {
+            logger.debug(message);
+        }
+    }
+
     public void warn(String message, int limit) {
         log(message, limit, logger -> logger.warn(message));
     }

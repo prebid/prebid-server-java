@@ -6,7 +6,6 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -22,6 +21,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.appush.ExtImpAppush;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
@@ -56,7 +56,7 @@ public class AppushBidder implements Bidder<BidRequest> {
             final ExtImpAppush extImpAppush;
             try {
                 extImpAppush = parseExtImp(imp);
-            } catch (IllegalArgumentException e) {
+            } catch (PreBidException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
 
@@ -102,21 +102,14 @@ public class AppushBidder implements Bidder<BidRequest> {
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp) {
         final BidRequest outgoingRequest = request.toBuilder().imp(List.of(imp)).build();
 
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .headers(HttpUtil.headers())
-                .payload(outgoingRequest)
-                .body(mapper.encodeToBytes(outgoingRequest))
-                .build();
+        return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse);
-            Result.empty();
+            final List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse);
             return Result.withValues(bids);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));

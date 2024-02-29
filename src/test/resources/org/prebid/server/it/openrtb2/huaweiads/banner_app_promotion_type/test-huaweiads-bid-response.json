@@ -1,0 +1,55 @@
+{
+  "multiad": [
+    {
+      "adtype": 8,
+      "content": [
+        {
+          "contentid": "58025103",
+          "creativetype": 2,
+          "ctrlSwitchs": "001011001001010112",
+          "endtime": 1621428898335,
+          "interactiontype": 3,
+          "landingTitle": 1,
+          "metaData": {
+            "adSign": "2",
+            "appPromotionChannel": "401721412",
+            "clickUrl": "https://ads.huawei.com/usermgtportal/home/index.html#/",
+            "intent": "https%3A%2F%2Fhibobi.app.link%2FK1sog7A40hb",
+            "imageInfo": [
+              {
+                "checkSha256Flag": 1,
+                "height": 300,
+                "imageType": "img",
+                "sha256": "f5d8487cddaecec45b73fc078649478c80ec646bfec8ed7da4ff931f90eab232",
+                "url": "https://ads.huawei.com/usermgtportal/home/img/huawei_logo_black.aaec817d.svg",
+                "width": 250
+              }
+            ],
+            "label": "Banner_API",
+            "landingPageType": "3"
+          },
+          "monitor": [
+            {
+              "eventType": "click",
+              "url": [
+                "http://test/click1"
+              ]
+            },
+            {
+              "eventType": "imp",
+              "url": [
+                "http://test/imp1"
+              ]
+            }
+          ],
+          "price": 2.8,
+          "starttime": 1621267200000,
+          "taskid": "48017658"
+        }
+      ],
+      "retcode30": 200,
+      "slotid": "testslotid"
+    }
+  ],
+  "retcode": 200
+}

@@ -1,0 +1,18 @@
+adapters:
+  freewheelssp:
+    endpoint: https://ads.stickyadstv.com/openrtb/dsp
+    modifyingVastXmlAllowed: true
+    meta-info:
+      maintainer-email: prebid-maintainer@freewheel.com
+      app-media-types:
+        - video
+      site-media-types:
+        - video
+      supported-vendors:
+      vendor-id: 285
+    usersync:
+      cookie-family-name: freewheelssp
+      iframe:
+        url: https://ads.stickyadstv.com/pbs-user-sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&r={{redirect_url}}
+        support-cors: false
+        uid-macro: '{viewerid}'

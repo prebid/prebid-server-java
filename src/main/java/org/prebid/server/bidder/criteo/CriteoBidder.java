@@ -1,11 +1,11 @@
 package org.prebid.server.bidder.criteo;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -17,6 +17,9 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Collection;
@@ -37,14 +40,7 @@ public class CriteoBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        return Result.withValue(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .body(mapper.encodeToBytes(bidRequest))
-                        .payload(bidRequest)
-                        .build());
+        return Result.withValue(BidderUtil.defaultRequest(bidRequest, endpointUrl, mapper));
     }
 
     @Override
@@ -57,7 +53,7 @@ public class CriteoBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidderBid> extractBidsFromResponse(BidResponse bidResponse) {
+    private List<BidderBid> extractBidsFromResponse(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -68,8 +64,18 @@ public class CriteoBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(modifyBidExt(bid), getBidType(bid), bidResponse.getCur()))
                 .toList();
+    }
+
+    private Bid modifyBidExt(Bid bid) {
+        return Optional.ofNullable(bid.getExt())
+                .map(ext -> ext.get("prebid"))
+                .map(prebid -> prebid.get("networkName"))
+                .filter(JsonNode::isTextual)
+                .map(JsonNode::textValue)
+                .map(networkName -> bid.toBuilder().ext(makeExt(networkName)).build())
+                .orElse(bid);
     }
 
     private static BidType getBidType(Bid bid) {
@@ -81,5 +87,11 @@ public class CriteoBidder implements Bidder<BidRequest> {
                 .map(BidType::fromString)
                 .orElseThrow(() -> new PreBidException(
                         "Missing ext.prebid.type in bid for impression : %s.".formatted(bid.getImpid())));
+    }
+
+    private ObjectNode makeExt(String networkName) {
+        return mapper.mapper().valueToTree(ExtBidPrebid.builder()
+                .meta(ExtBidPrebidMeta.builder().networkName(networkName).build())
+                .build());
     }
 }

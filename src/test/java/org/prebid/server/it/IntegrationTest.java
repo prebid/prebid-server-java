@@ -158,7 +158,7 @@ public abstract class IntegrationTest extends VertxTest {
         }
         final String userRequest = val.toString();
         final Matcher m = UTC_MILLIS_PATTERN.matcher(userRequest);
-        String userRequestDate;
+        final String userRequestDate;
         if (m.find()) {
             userRequestDate = m.group(1);
             return expectedResponseJson.replaceAll("\\{\\{ userservice_time }}", userRequestDate);
@@ -326,7 +326,7 @@ public abstract class IntegrationTest extends VertxTest {
             final Map<String, BidRequestExecutionParameters> idToParameters =
                     (Map<String, BidRequestExecutionParameters>) parameters.get(ID_TO_EXECUTION_PARAMETERS);
 
-            String requestDealId;
+            final String requestDealId;
             try {
                 requestDealId = readStringValue(mapper.readTree(request.getBodyAsString()), LINE_ITEM_PATH);
             } catch (IOException e) {

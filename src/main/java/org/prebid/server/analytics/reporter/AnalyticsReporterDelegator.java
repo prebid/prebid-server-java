@@ -3,7 +3,9 @@ package org.prebid.server.analytics.reporter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.User;
 import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
@@ -11,6 +13,12 @@ import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
+import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
+import org.prebid.server.activity.infrastructure.payload.impl.BidRequestActivityInvocationPayload;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
@@ -76,6 +84,10 @@ public class AnalyticsReporterDelegator {
 
     public <T> void processEvent(T event) {
         for (AnalyticsReporter analyticsReporter : delegates) {
+            if (!isAllowedAdapter(event, analyticsReporter.name())) {
+                continue;
+            }
+
             vertx.runOnContext(ignored -> processEventByReporter(analyticsReporter, event));
         }
     }
@@ -94,7 +106,12 @@ public class AnalyticsReporterDelegator {
                     privacyEnforcementMapResult.result();
             checkUnknownAdaptersForAuctionEvent(event);
             for (AnalyticsReporter analyticsReporter : delegates) {
-                final T updatedEvent = updateEvent(event, analyticsReporter.name());
+                final String name = analyticsReporter.name();
+                if (!isAllowedAdapter(event, name)) {
+                    continue;
+                }
+
+                final T updatedEvent = updateEvent(event, name);
                 final int reporterVendorId = analyticsReporter.vendorId();
                 // resultForVendorIds is guaranteed returning for each provided value except null,
                 // but to be sure lets use getOrDefault
@@ -143,7 +160,41 @@ public class AnalyticsReporterDelegator {
         return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
-    private static <T> T updateEvent(T event, String adapter) {
+    private static <T> boolean isAllowedAdapter(T event, String adapter) {
+        final ActivityInfrastructure activityInfrastructure;
+        final ActivityInvocationPayload activityInvocationPayload;
+        if (event instanceof AuctionEvent auctionEvent) {
+            final AuctionContext auctionContext = auctionEvent.getAuctionContext();
+            activityInfrastructure = auctionContext != null ? auctionContext.getActivityInfrastructure() : null;
+            activityInvocationPayload = auctionContext != null
+                    ? BidRequestActivityInvocationPayload.of(
+                    activityInvocationPayload(adapter),
+                    auctionContext.getBidRequest())
+                    : null;
+        } else if (event instanceof AmpEvent ampEvent) {
+            final AuctionContext auctionContext = ampEvent.getAuctionContext();
+            activityInfrastructure = auctionContext != null ? auctionContext.getActivityInfrastructure() : null;
+            activityInvocationPayload = auctionContext != null
+                    ? BidRequestActivityInvocationPayload.of(
+                    activityInvocationPayload(adapter),
+                    auctionContext.getBidRequest())
+                    : null;
+        } else if (event instanceof NotificationEvent notificationEvent) {
+            activityInfrastructure = notificationEvent.getActivityInfrastructure();
+            activityInvocationPayload = activityInvocationPayload(adapter);
+        } else {
+            activityInfrastructure = null;
+            activityInvocationPayload = null;
+        }
+
+        return isAllowedActivity(activityInfrastructure, Activity.REPORT_ANALYTICS, activityInvocationPayload);
+    }
+
+    private static ActivityInvocationPayload activityInvocationPayload(String adapterName) {
+        return ActivityInvocationPayloadImpl.of(ComponentType.ANALYTICS, adapterName);
+    }
+
+    private <T> T updateEvent(T event, String adapter) {
         if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(adapter) && event instanceof AuctionEvent auctionEvent) {
             final AuctionContext updatedAuctionContext =
                     updateAuctionContextAdapter(auctionEvent.getAuctionContext(), adapter);
@@ -155,32 +206,79 @@ public class AnalyticsReporterDelegator {
         return event;
     }
 
-    @SuppressWarnings("ConstantConditions")
-    private static AuctionContext updateAuctionContextAdapter(AuctionContext context, String adapter) {
-        final BidRequest bidRequest = context != null ? context.getBidRequest() : null;
-        final BidRequest updatedBidRequest = updateBidRequest(bidRequest, adapter);
+    private AuctionContext updateAuctionContextAdapter(AuctionContext context, String adapter) {
+        if (context == null) {
+            return null;
+        }
 
-        return updatedBidRequest != null ? context.toBuilder().bidRequest(updatedBidRequest).build() : null;
+        final BidRequest bidRequest = context.getBidRequest();
+        final ActivityInfrastructure activityInfrastructure = context.getActivityInfrastructure();
+        final BidRequest updatedBidRequest = updateBidRequest(bidRequest, adapter, activityInfrastructure);
+
+        return updatedBidRequest != null
+                ? context.toBuilder()
+                .bidRequest(updatedBidRequest)
+                .build()
+                : null;
     }
 
-    private static BidRequest updateBidRequest(BidRequest bidRequest, String adapterName) {
+    private BidRequest updateBidRequest(BidRequest bidRequest,
+                                        String adapter,
+                                        ActivityInfrastructure infrastructure) {
+
+        final ActivityInvocationPayload activityInvocationPayload = BidRequestActivityInvocationPayload.of(
+                activityInvocationPayload(adapter),
+                bidRequest);
+
+        final boolean disallowTransmitUfpd = !isAllowedActivity(
+                infrastructure, Activity.TRANSMIT_UFPD, activityInvocationPayload);
+        final boolean disallowTransmitGeo = !isAllowedActivity(
+                infrastructure, Activity.TRANSMIT_GEO, activityInvocationPayload);
+
+        final User user = bidRequest != null ? bidRequest.getUser() : null;
+        final User resolvedUser = privacyEnforcementService
+                .maskUserConsideringActivityRestrictions(user, disallowTransmitUfpd, disallowTransmitGeo);
+
+        final Device device = bidRequest != null ? bidRequest.getDevice() : null;
+        final Device resolvedDevice = privacyEnforcementService
+                .maskDeviceConsideringActivityRestrictions(device, disallowTransmitUfpd, disallowTransmitGeo);
+
         final ExtRequest requestExt = bidRequest != null ? bidRequest.getExt() : null;
+        final ExtRequest updatedExtRequest = updateExtRequest(requestExt, adapter);
+
+        return resolvedUser != null || resolvedDevice != null || updatedExtRequest != null
+                ? bidRequest.toBuilder()
+                .user(resolvedUser != null ? resolvedUser : user)
+                .device(resolvedDevice != null ? resolvedDevice : device)
+                .ext(updatedExtRequest != null ? updatedExtRequest : requestExt)
+                .build()
+                : null;
+    }
+
+    private static boolean isAllowedActivity(ActivityInfrastructure activityInfrastructure,
+                                             Activity activity,
+                                             ActivityInvocationPayload activityInvocationPayload) {
+
+        return activityInfrastructure != null
+                ? activityInfrastructure.isAllowed(activity, activityInvocationPayload)
+                : ActivityInfrastructure.ALLOW_ACTIVITY_BY_DEFAULT;
+    }
+
+    private static ExtRequest updateExtRequest(ExtRequest requestExt, String adapterName) {
         final ExtRequestPrebid extPrebid = requestExt != null ? requestExt.getPrebid() : null;
         final JsonNode analytics = extPrebid != null ? extPrebid.getAnalytics() : null;
-        ObjectNode preparedAnalytics = null;
-        if (isNotEmptyObjectNode(analytics)) {
-            preparedAnalytics = prepareAnalytics((ObjectNode) analytics, adapterName);
-        }
+        final ObjectNode preparedAnalytics = isNotEmptyObjectNode(analytics)
+                ? prepareAnalytics((ObjectNode) analytics, adapterName)
+                : null;
         final ExtRequest updatedExtRequest = preparedAnalytics != null
                 ? ExtRequest.of(extPrebid.toBuilder().analytics(preparedAnalytics).build())
                 : null;
 
         if (updatedExtRequest != null) {
             updatedExtRequest.addProperties(requestExt.getProperties());
-            return bidRequest.toBuilder().ext(updatedExtRequest).build();
         }
 
-        return null;
+        return updatedExtRequest;
     }
 
     private static ObjectNode prepareAnalytics(ObjectNode analytics, String adapterName) {
