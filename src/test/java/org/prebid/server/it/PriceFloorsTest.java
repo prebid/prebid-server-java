@@ -107,6 +107,28 @@ public class PriceFloorsTest extends VertxTest {
                 PriceFloorsTest::replaceBidderRelatedStaticInfo);
     }
 
+    @Test
+    public void openrtb2AuctionShouldSkipPriceFloorsForTheGenericBidderWhenGenericIsInNoSignalBiddersList()
+            throws IOException, JSONException {
+
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/floors/floors-test-bid-request-no-signal.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/floors/floors-test-bid-response.json"))));
+
+        // when
+        final Response firstResponse = responseFor(
+                "openrtb2/floors/floors-test-auction-request-no-signal.json",
+                Endpoint.openrtb2_auction,
+                SPEC);
+
+        // then
+        assertJsonEquals(
+                "openrtb2/floors/floors-test-auction-response-no-signal.json",
+                firstResponse,
+                singletonList("generic"),
+                PriceFloorsTest::replaceBidderRelatedStaticInfo);
+    }
+
     private static String replaceBidderRelatedStaticInfo(String json, String bidder) {
         return IntegrationTestsUtil.replaceBidderRelatedStaticInfo(json, bidder, WIREMOCK_PORT);
     }
