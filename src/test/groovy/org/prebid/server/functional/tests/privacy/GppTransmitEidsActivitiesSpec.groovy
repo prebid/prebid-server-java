@@ -856,12 +856,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         then: "Generic bidder request should have data in EIDS fields"
         def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-
-        and: "Generic bidder should be called due to positive allow in activities"
-        verifyAll {
-            !genericBidderRequest.user.eids
-            !genericBidderRequest.user?.ext?.eids
-        }
+        assert genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
 
         where:
         regsGpp << ["", new UspNatV1Consent.Builder().build(), new UspNatV1Consent.Builder().setGpc(false).build()]
