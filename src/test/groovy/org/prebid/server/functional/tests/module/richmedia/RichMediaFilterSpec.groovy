@@ -35,7 +35,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
         and: "Stored bid response in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].adm = amdValue as String
+            it.seatbid[0].bid[0].adm = admValue as String
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -57,7 +57,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !getAnalyticResults(response)
 
         where:
-        amdValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}-${PBSUtils.randomString}"]
+        admValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}-${PBSUtils.randomString}"]
     }
 
     def "PBS should reject request with error and provide analytic when adm matches with pattern name and filter set to enabled in host config"() {
@@ -70,7 +70,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
         and: "Stored bid response in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].adm = amdValue as String
+            it.seatbid[0].bid[0].adm = admValue as String
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -98,10 +98,10 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert analyticResult == AnalyticResult.buildFromImp(bidRequest.imp.first())
 
         where:
-        amdValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}.${PBSUtils.randomString}"]
+        admValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}.${PBSUtils.randomString}"]
     }
 
-    def "PBS should process request without analytics when adm is empty name and filter enabled in host config"() {
+    def "PBS should process request without analytics when adm is #admValue and filter enabled in host config"() {
         given: "BidRequest with stored response"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -111,7 +111,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
         and: "Stored bid response in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].adm = amdValue as String
+            it.seatbid[0].bid[0].adm = admValue as String
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -135,7 +135,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !getAnalyticResults(response)
 
         where:
-        amdValue << [null, '', PATTERN_NAME.substring(PBSUtils.getRandomNumber(0, PATTERN_NAME.size()))]
+        admValue << [null, '', PBSUtils.randomString]
     }
 
     def "PBS should prioritize account config and reject request with error and provide analytic when adm matches with pattern name and filter disabled in host config but enabled in account config"() {
@@ -154,7 +154,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
         and: "Stored bid response in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].adm = amdValue as String
+            it.seatbid[0].bid[0].adm = admValue as String
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -178,7 +178,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert analyticResult == AnalyticResult.buildFromImp(bidRequest.imp.first())
 
         where:
-        amdValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}-${PBSUtils.randomString}"]
+        admValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}-${PBSUtils.randomString}"]
     }
 
     def "PBS should prioritize account config and process request without analytics when adm matches with pattern name and filter enabled in host config but disabled in account config"() {
@@ -197,7 +197,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
         and: "Stored bid response in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].adm = amdValue as String
+            it.seatbid[0].bid[0].adm = admValue as String
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -215,7 +215,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !getAnalyticResults(response)
 
         where:
-        amdValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}-${PBSUtils.randomString}"]
+        admValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}-${PBSUtils.randomString}"]
     }
 
     def "PBS should prioritize account config and reject request with error and provide analytic when adm matches with account pattern and both host and account configs are enabled"() {
@@ -311,7 +311,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
         and: "Stored bid response in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].adm = amdValue
+            it.seatbid[0].bid[0].adm = admValue
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -329,7 +329,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
         assert !getAnalyticResults(response)
 
         where:
-        amdValue << [PATTERN_NAME, PATTERN_NAME_ACCOUNT]
+        admValue << [PATTERN_NAME, PATTERN_NAME_ACCOUNT]
     }
 
     private static List<AnalyticResult> getAnalyticResults(BidResponse response) {
