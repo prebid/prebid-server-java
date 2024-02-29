@@ -8,7 +8,10 @@ import org.prebid.server.functional.model.config.AccountDsaConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.db.Account
+import org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse
+import org.prebid.server.functional.model.privacy.EnforcementRequirement
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.amp.ConsentType
 import org.prebid.server.functional.model.request.auction.AllowActivities
@@ -32,6 +35,10 @@ import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX
+import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
+import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
+import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
+import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.getDefaultVendorListResponse
 import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_2
 import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
@@ -40,6 +47,9 @@ import static org.prebid.server.functional.model.response.cookiesync.UserSyncInf
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
+import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.REQUIRE_CONSENT
+import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.REQUIRE_LEGITIMATE_INTEREST
+import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.UNDEFINED
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 
 abstract class PrivacyBaseSpec extends BaseSpec {
@@ -58,6 +68,15 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     protected static final Map<String, String> GENERIC_VENDOR_CONFIG = ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String,
                                                                       "gdpr.host-vendor-id"                 : GENERIC_VENDOR_ID as String,
                                                                       "adapters.generic.ccpa-enforced"      : "true"]
+
+    @Shared
+    protected static final int PURPOSES_ONLY_GVL_VERSION = PBSUtils.getRandomNumber(0, 4095)
+    @Shared
+    protected static final int LEG_INT_PURPOSES_ONLY_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion(PURPOSES_ONLY_GVL_VERSION, 0, 4095)
+    @Shared
+    protected static final int LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion([PURPOSES_ONLY_GVL_VERSION, LEG_INT_PURPOSES_ONLY_GVL_VERSION], 0, 4095)
+    @Shared
+    protected static final int PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion([PURPOSES_ONLY_GVL_VERSION, LEG_INT_PURPOSES_ONLY_GVL_VERSION, LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION], 0, 4095)
 
     private static final PbsPgConfig pgConfig = new PbsPgConfig(networkServiceContainer)
 
@@ -187,5 +206,313 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
     protected static String getVendorListPath(Integer gvlVersion) {
         "/app/prebid-server/data/vendorlist-v${TCF_POLICY_V2.vendorListVersion}/${gvlVersion}.json"
+    }
+
+
+    protected static List<EnforcementRequirement> getBasicTcfCompanyBasedEnforcementRequirements(Purpose purpose) {
+        [new EnforcementRequirement(purpose: purpose, enforcePurpose: BASIC, purposeConsent: purpose, enforceVendor: false),
+         new EnforcementRequirement(purpose: purpose, enforcePurpose: NO, enforceVendor: false),
+         new EnforcementRequirement(purpose: purpose, enforcePurpose: NO, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID)
+        ]
+    }
+
+    protected static List<EnforcementRequirement> getBasicTcfLegalBasedEnforcementRequirements(Purpose purpose) {
+        [new EnforcementRequirement(purpose: purpose, enforcePurpose: BASIC, purposeConsent: purpose, enforceVendor: true, vendorConsentBitField: GENERIC_VENDOR_ID),
+         new EnforcementRequirement(purpose: purpose, vendorExceptions: [GENERIC])
+        ]
+    }
+
+    protected static List<EnforcementRequirement> getBasicTcfCompanySoftVendorExceptionsRequirements(Purpose purpose) {
+        [new EnforcementRequirement(purpose: purpose, enforcePurpose: BASIC, purposeConsent: purpose, vendorExceptions: [GENERIC]),
+         new EnforcementRequirement(purpose: purpose, enforcePurpose: NO, vendorExceptions: [GENERIC])]
+    }
+
+    protected static List<EnforcementRequirement> getBasicTcfLegalPurposesLITEnforcementRequirements(Purpose purpose) {
+        [new EnforcementRequirement(purpose: purpose, enforcePurpose: BASIC, purposesLITransparency: purpose)]
+    }
+
+    protected static List<EnforcementRequirement> getFullTcfLegalEnforcementRequirements(Purpose purpose) {
+        [new EnforcementRequirement(purpose: purpose,
+                restrictionType: [REQUIRE_CONSENT, UNDEFINED],
+                vendorIdGvl: GENERIC_VENDOR_ID,
+                enforcePurpose: FULL,
+                purposeConsent: purpose,
+                vendorConsentBitField: GENERIC_VENDOR_ID,
+                vendorListVersion: PURPOSES_ONLY_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST, UNDEFINED],
+                 purposesLITransparency: purpose,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_PURPOSES_ONLY_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST, UNDEFINED],
+                 purposesLITransparency: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: LEG_INT_PURPOSES_ONLY_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposeConsent: purpose,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposesLITransparency: purpose,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposesLITransparency: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
+                 purposesLITransparency: purpose,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
+                 purposesLITransparency: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_CONSENT],
+                 purposeConsent: purpose,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposesLITransparency: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposeConsent: purpose,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposesLITransparency: purpose,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_CONSENT],
+                 purposeConsent: purpose,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
+                 purposesLITransparency: purpose,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
+                 purposesLITransparency: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION)
+        ]
+    }
+
+    protected static List<EnforcementRequirement> getFullTcfCompanyEnforcementRequirements(Purpose purpose) {
+        [new EnforcementRequirement(purpose: purpose,
+                restrictionType: [REQUIRE_CONSENT, UNDEFINED],
+                vendorIdGvl: GENERIC_VENDOR_ID,
+                enforcePurpose: NO,
+                enforceVendor: false,
+                vendorListVersion: PURPOSES_ONLY_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 restrictionType: [REQUIRE_CONSENT],
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 enforcePurpose: FULL,
+                 purposeConsent: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: PURPOSES_ONLY_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 restrictionType: [REQUIRE_CONSENT],
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 enforcePurpose: NO,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: PURPOSES_ONLY_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST, UNDEFINED],
+                 enforcePurpose: NO,
+                 enforceVendor: false,
+                 vendorListVersion: LEG_INT_PURPOSES_ONLY_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST, UNDEFINED],
+                 enforcePurpose: NO,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_PURPOSES_ONLY_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 enforcePurpose: NO,
+                 enforceVendor: false,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposeConsent: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 enforcePurpose: NO,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 enforcePurpose: NO,
+                 enforceVendor: false,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 enforcePurpose: NO,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
+                 enforcePurpose: NO,
+                 enforceVendor: false,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
+                 enforcePurpose: NO,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_CONSENT],
+                 enforcePurpose: NO,
+                 enforceVendor: false,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_CONSENT],
+                 purposeConsent: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_CONSENT],
+                 enforcePurpose: NO,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 enforcePurpose: NO,
+                 enforceVendor: false,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 purposeConsent: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 enforcePurpose: NO,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 enforcePurpose: NO,
+                 enforceVendor: false,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [UNDEFINED],
+                 enforcePurpose: NO,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_CONSENT],
+                 enforcePurpose: NO,
+                 enforceVendor: false,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_CONSENT],
+                 purposeConsent: purpose,
+                 enforceVendor: false,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_CONSENT],
+                 enforcePurpose: NO,
+                 vendorConsentBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
+                 enforcePurpose: NO,
+                 enforceVendor: false,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 vendorIdGvl: GENERIC_VENDOR_ID,
+                 restrictionType: [REQUIRE_LEGITIMATE_INTEREST],
+                 enforcePurpose: NO,
+                 vendorLegitimateInterestBitField: GENERIC_VENDOR_ID,
+                 vendorListVersion: PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION),
+
+         new EnforcementRequirement(purpose: purpose,
+                 enforcePurpose: NO,
+                 enforceVendor: false)]
+    }
+
+    protected static String getVendorListContent(boolean includePurposes, boolean includeLegIntPurposes, boolean includeFlexiblePurposes) {
+        def purposeValues = TcfConsent.PurposeId.values().value
+        def vendor = VendorListResponse.Vendor.getDefaultVendor(GENERIC_VENDOR_ID).tap {
+            purposes = includePurposes ? purposeValues : []
+            legIntPurposes = includeLegIntPurposes ? purposeValues : []
+            flexiblePurposes = includeFlexiblePurposes ? purposeValues : []
+            specialPurposes = []
+            features = []
+            specialFeatures = []
+        }
+        encode(defaultVendorListResponse.tap {
+            it.tcfPolicyVersion = TCF_POLICY_V2.vendorListVersion
+            it.vendors = [(GENERIC_VENDOR_ID): vendor]
+        })
     }
 }
