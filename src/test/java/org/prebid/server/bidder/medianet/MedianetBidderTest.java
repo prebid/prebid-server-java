@@ -118,7 +118,7 @@ public class MedianetBidderTest extends VertxTest {
 
     @Test
     public void makeBidsShouldReturnCorrespondingMtypesAndAdTypes() throws JsonProcessingException {
-        List<Bid> bids = new ArrayList<>();
+        final List<Bid> bids = new ArrayList<>();
         final Bid bid1 = Bid.builder().impid("imp_id").mtype(1).build();
         final Bid bid2 = Bid.builder().impid("imp_id").mtype(2).build();
         final Bid bid3 = Bid.builder().impid("imp_id").mtype(3).build();
