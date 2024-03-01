@@ -20,7 +20,7 @@ jobs:
         java: [ 17 ]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up JDK
         uses: actions/setup-java@v3
@@ -33,4 +33,4 @@ jobs:
         run: mvn package -DskipUnitTests=true --file extra/pom.xml
 
       - name: Run module tests
-        run: mvn -B verify -DskipUnitTests=true -DskipFunctionalTests=true -Dtests.max-container-count=5 -DdockerfileName=Dockerfile-modules --file extra/pom.xml
+        run: mvn -B verify -DskipUnitTests=true -DskipFunctionalTests=true -DskipModuleFunctionalTests=false -Dtests.max-container-count=5 -DdockerfileName=Dockerfile-modules --file extra/pom.xml
