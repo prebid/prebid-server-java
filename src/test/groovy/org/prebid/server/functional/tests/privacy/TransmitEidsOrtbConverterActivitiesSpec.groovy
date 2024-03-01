@@ -244,22 +244,8 @@ class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
         where:
         enforcementRequirements << getFullTcfLegalEnforcementRequirements(P1) +
                 getFullTcfCompanyEnforcementRequirements(P1) +
-                getFullTcfLegalEnforcementRequirements(P2) +
-                getFullTcfCompanyEnforcementRequirements(P2) +
-                getFullTcfLegalEnforcementRequirements(P3) +
-                getFullTcfCompanyEnforcementRequirements(P3) +
-                getFullTcfLegalEnforcementRequirements(P5) +
-                getFullTcfCompanyEnforcementRequirements(P5) +
-                getFullTcfLegalEnforcementRequirements(P6) +
-                getFullTcfCompanyEnforcementRequirements(P6) +
-                getFullTcfLegalEnforcementRequirements(P7) +
-                getFullTcfCompanyEnforcementRequirements(P7) +
-                getFullTcfLegalEnforcementRequirements(P8) +
-                getFullTcfCompanyEnforcementRequirements(P8) +
-                getFullTcfLegalEnforcementRequirements(P9) +
-                getFullTcfCompanyEnforcementRequirements(P9) +
-                getFullTcfLegalEnforcementRequirements(P10) +
-                getFullTcfCompanyEnforcementRequirements(P10)
+                getFullTcfLegalEnforcementRequirementsRandomlyWithExcludePurpose(P4) +
+                getFullTcfCompanyEnforcementRequirementsRandomlyWithExcludePurpose(P4)
     }
 
     def "PBS should leave the original request with ext.eids data for elder ortb when requireConsent is disabled and #enforcementRequirements.purpose have full consent"() {
@@ -290,14 +276,6 @@ class TransmitEidsOrtbConverterActivitiesSpec extends PrivacyBaseSpec {
         assert !bidderRequest?.user?.eids
 
         where:
-        enforcementRequirements << getFullTcfLegalEnforcementRequirements(P2) +
-                getFullTcfLegalEnforcementRequirements(P3) +
-                getFullTcfLegalEnforcementRequirements(P4) +
-                getFullTcfLegalEnforcementRequirements(P5) +
-                getFullTcfLegalEnforcementRequirements(P6) +
-                getFullTcfLegalEnforcementRequirements(P7) +
-                getFullTcfLegalEnforcementRequirements(P8) +
-                getFullTcfLegalEnforcementRequirements(P9) +
-                getFullTcfLegalEnforcementRequirements(P10)
+        enforcementRequirements << getFullTcfLegalEnforcementRequirementsRandomlyWithExcludePurpose(P1)
     }
 }

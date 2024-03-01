@@ -13,15 +13,7 @@ import org.testcontainers.images.builder.Transferable
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.config.Purpose.P1
-import static org.prebid.server.functional.model.config.Purpose.P2
-import static org.prebid.server.functional.model.config.Purpose.P3
 import static org.prebid.server.functional.model.config.Purpose.P4
-import static org.prebid.server.functional.model.config.Purpose.P5
-import static org.prebid.server.functional.model.config.Purpose.P6
-import static org.prebid.server.functional.model.config.Purpose.P7
-import static org.prebid.server.functional.model.config.Purpose.P8
-import static org.prebid.server.functional.model.config.Purpose.P9
-import static org.prebid.server.functional.model.config.Purpose.P10
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 
 class TcfFullTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
@@ -104,24 +96,8 @@ class TcfFullTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         assert !bidderRequest.user?.ext?.eids
 
         where:
-        enforcementRequirements << getFullTcfLegalEnforcementRequirements(P1) +
-                getFullTcfCompanyEnforcementRequirements(P1) +
-                getFullTcfLegalEnforcementRequirements(P2) +
-                getFullTcfCompanyEnforcementRequirements(P2) +
-                getFullTcfLegalEnforcementRequirements(P3) +
-                getFullTcfCompanyEnforcementRequirements(P3) +
-                getFullTcfLegalEnforcementRequirements(P5) +
-                getFullTcfCompanyEnforcementRequirements(P5) +
-                getFullTcfLegalEnforcementRequirements(P6) +
-                getFullTcfCompanyEnforcementRequirements(P6) +
-                getFullTcfLegalEnforcementRequirements(P7) +
-                getFullTcfCompanyEnforcementRequirements(P7) +
-                getFullTcfLegalEnforcementRequirements(P8) +
-                getFullTcfCompanyEnforcementRequirements(P8) +
-                getFullTcfLegalEnforcementRequirements(P9) +
-                getFullTcfCompanyEnforcementRequirements(P9) +
-                getFullTcfLegalEnforcementRequirements(P10) +
-                getFullTcfCompanyEnforcementRequirements(P10)
+        enforcementRequirements << getFullTcfLegalEnforcementRequirementsRandomlyWithExcludePurpose(P4) +
+                getFullTcfCompanyEnforcementRequirementsRandomlyWithExcludePurpose(P4)
     }
 
     def "PBS should leave the original request with eids data when requireConsent is enabled but bidder is excepted and #enforcementRequirements.purpose have full consent"() {
@@ -149,15 +125,7 @@ class TcfFullTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         assert bidderRequest?.user?.eids == userEids
 
         where:
-        enforcementRequirements << getFullTcfLegalEnforcementRequirements(P2) +
-                getFullTcfLegalEnforcementRequirements(P3) +
-                getFullTcfLegalEnforcementRequirements(P4) +
-                getFullTcfLegalEnforcementRequirements(P5) +
-                getFullTcfLegalEnforcementRequirements(P6) +
-                getFullTcfLegalEnforcementRequirements(P7) +
-                getFullTcfLegalEnforcementRequirements(P8) +
-                getFullTcfLegalEnforcementRequirements(P9) +
-                getFullTcfLegalEnforcementRequirements(P10)
+        enforcementRequirements << getFullTcfLegalEnforcementRequirementsRandomlyWithExcludePurpose(P1)
     }
 
     def "PBS should remove the original request with eids data when requireConsent is enabled, bidder is excepted and #enforcementRequirements.purpose have unsupported full consent"() {
@@ -188,15 +156,7 @@ class TcfFullTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         enforcementRequirements << getFullTcfLegalEnforcementRequirements(P1) +
-                getFullTcfCompanyEnforcementRequirements(P1) +
-                getFullTcfCompanyEnforcementRequirements(P2) +
-                getFullTcfCompanyEnforcementRequirements(P3) +
-                getFullTcfCompanyEnforcementRequirements(P5) +
-                getFullTcfCompanyEnforcementRequirements(P6) +
-                getFullTcfCompanyEnforcementRequirements(P7) +
-                getFullTcfCompanyEnforcementRequirements(P8) +
-                getFullTcfCompanyEnforcementRequirements(P9) +
-                getFullTcfCompanyEnforcementRequirements(P10)
+                getFullTcfCompanyEnforcementRequirementsRandomlyWithExcludePurpose(P4)
     }
 
     def "PBS should leave the original request with eids data when requireConsent is disabled and #enforcementRequirements.purpose have full consent"() {
@@ -224,15 +184,7 @@ class TcfFullTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         assert bidderRequest?.user?.eids == userEids
 
         where:
-        enforcementRequirements << getFullTcfLegalEnforcementRequirements(P2) +
-                getFullTcfLegalEnforcementRequirements(P3) +
-                getFullTcfLegalEnforcementRequirements(P4) +
-                getFullTcfLegalEnforcementRequirements(P5) +
-                getFullTcfLegalEnforcementRequirements(P6) +
-                getFullTcfLegalEnforcementRequirements(P7) +
-                getFullTcfLegalEnforcementRequirements(P8) +
-                getFullTcfLegalEnforcementRequirements(P9) +
-                getFullTcfLegalEnforcementRequirements(P10)
+        enforcementRequirements << getFullTcfLegalEnforcementRequirementsRandomlyWithExcludePurpose(P1)
     }
 
     def "PBS should remove the original request with eids data when requireConsent is disabled and #enforcementRequirements.purpose have unsupported full consent"() {
@@ -262,14 +214,6 @@ class TcfFullTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         enforcementRequirements << getFullTcfLegalEnforcementRequirements(P1) +
-                getFullTcfCompanyEnforcementRequirements(P1) +
-                getFullTcfCompanyEnforcementRequirements(P2) +
-                getFullTcfCompanyEnforcementRequirements(P3) +
-                getFullTcfCompanyEnforcementRequirements(P5) +
-                getFullTcfCompanyEnforcementRequirements(P6) +
-                getFullTcfCompanyEnforcementRequirements(P7) +
-                getFullTcfCompanyEnforcementRequirements(P8) +
-                getFullTcfCompanyEnforcementRequirements(P9) +
-                getFullTcfCompanyEnforcementRequirements(P10)
+                getFullTcfCompanyEnforcementRequirementsRandomlyWithExcludePurpose(P4)
     }
 }

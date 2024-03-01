@@ -11,12 +11,11 @@ class EnforcementRequirement {
 
     Purpose purpose
     PurposeEnforcement enforcePurpose
-    Purpose purposeConsent
     Boolean enforceVendor
     Integer vendorConsentBitField
     Integer vendorLegitimateInterestBitField
     List<BidderName> vendorExceptions
-    Purpose purposesLITransparency
+    boolean purposesLITransparency
     List<TcfConsent.RestrictionType> restrictionType
     Integer vendorIdGvl
     Integer vendorListVersion

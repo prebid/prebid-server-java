@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.config.PurposeEid
 import org.prebid.server.functional.model.privacy.EnforcementRequirement
 
+import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
@@ -12,7 +13,7 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVers
 class TcfUtils {
 
     static Map<Purpose, PurposeConfig> getPurposeConfigsForPersonalizedAds(EnforcementRequirement enforcementRequirements, boolean requireConsent = false, List<String> eidsExceptions = []) {
-        def purpose = enforcementRequirements.purposeConsent ?: enforcementRequirements.purpose
+        def purpose = enforcementRequirements.purpose
         // Basic Ads required for any bidder call, should be present at least as company consent
         def purposes = [(Purpose.P2): new PurposeConfig(enforcePurpose: NO, enforceVendors: false)]
         def purposeConfig = new PurposeConfig(enforcePurpose: enforcementRequirements.enforcePurpose,
@@ -30,24 +31,23 @@ class TcfUtils {
     }
 
     static ConsentString getConsentString(EnforcementRequirement enforcementRequirements) {
-        def purposeConsent = enforcementRequirements.purposeConsent
-        def purpose = enforcementRequirements.purposeConsent ?: enforcementRequirements.purpose
+        def purposeConsent = enforcementRequirements.enforcePurpose != NO ? enforcementRequirements.getPurpose() : null
         def vendorConsentBitField = enforcementRequirements.getVendorConsentBitField()
         def purposesLITransparency = enforcementRequirements.getPurposesLITransparency()
         def restrictionType = enforcementRequirements.restrictionType
         def vendorIdGvl = enforcementRequirements.vendorIdGvl
         def builder = new TcfConsent.Builder()
-        if (purposeConsent != null) {
+        if (purposeConsent != null && !purposesLITransparency) {
             builder.setPurposesConsent(PurposeId.convertPurposeToPurposeId(purposeConsent))
         }
         if (vendorConsentBitField != null) {
             builder.setVendorConsent(vendorConsentBitField)
         }
-        if (purposesLITransparency != null) {
-            builder.setPurposesLITransparency(PurposeId.convertPurposeToPurposeId(purposesLITransparency))
+        if (purposesLITransparency) {
+            builder.setPurposesLITransparency(PurposeId.convertPurposeToPurposeId(enforcementRequirements.getPurpose()))
         }
-        if (purpose != null && restrictionType != null && vendorIdGvl != null) {
-            builder.setPublisherRestrictionEntry(PurposeId.convertPurposeToPurposeId(purpose), restrictionType, vendorIdGvl)
+        if (purposeConsent != null && restrictionType != null && vendorIdGvl != null) {
+            builder.setPublisherRestrictionEntry(PurposeId.convertPurposeToPurposeId(purposeConsent), restrictionType, vendorIdGvl)
         }
         if (vendorIdGvl != null) {
             builder.setVendorLegitimateInterest(vendorIdGvl)
