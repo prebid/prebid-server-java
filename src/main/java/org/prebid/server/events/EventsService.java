@@ -19,8 +19,6 @@ public class EventsService {
     public Events createEvent(String bidId,
                               String bidder,
                               String accountId,
-                              String lineItemId,
-                              boolean analyticsEnabled,
                               EventsContext eventsContext) {
         return Events.of(
                 eventUrl(
@@ -28,8 +26,6 @@ public class EventsService {
                         bidId,
                         bidder,
                         accountId,
-                        lineItemId,
-                        analytics(analyticsEnabled),
                         EventRequest.Format.image,
                         eventsContext),
                 eventUrl(
@@ -37,8 +33,6 @@ public class EventsService {
                         bidId,
                         bidder,
                         accountId,
-                        lineItemId,
-                        analytics(analyticsEnabled),
                         EventRequest.Format.image,
                         eventsContext));
     }
@@ -46,15 +40,16 @@ public class EventsService {
     /**
      * Returns url for win tracking.
      */
-    public String winUrl(String bidId, String bidder, String accountId, String lineItemId,
-                         boolean analyticsEnabled, EventsContext eventsContext) {
+    public String winUrl(String bidId,
+                         String bidder,
+                         String accountId,
+                         EventsContext eventsContext) {
+
         return eventUrl(
                 EventRequest.Type.win,
                 bidId,
                 bidder,
                 accountId,
-                lineItemId,
-                analytics(analyticsEnabled),
                 EventRequest.Format.image,
                 eventsContext);
     }
@@ -65,14 +60,12 @@ public class EventsService {
     public String vastUrlTracking(String bidId,
                                   String bidder,
                                   String accountId,
-                                  String lineItemId,
                                   EventsContext eventsContext) {
+
         return eventUrl(EventRequest.Type.imp,
                 bidId,
                 bidder,
                 accountId,
-                lineItemId,
-                null,
                 EventRequest.Format.blank,
                 eventsContext);
     }
@@ -81,8 +74,6 @@ public class EventsService {
                             String bidId,
                             String bidder,
                             String accountId,
-                            String lineItemId,
-                            EventRequest.Analytics analytics,
                             EventRequest.Format format,
                             EventsContext eventsContext) {
 
@@ -95,14 +86,8 @@ public class EventsService {
                 .timestamp(eventsContext.getAuctionTimestamp())
                 .format(format)
                 .integration(eventsContext.getIntegration())
-                .lineItemId(lineItemId)
-                .analytics(analytics)
                 .build();
 
         return EventUtil.toUrl(externalUrl, eventRequest);
-    }
-
-    private static EventRequest.Analytics analytics(boolean analyticsEnabled) {
-        return analyticsEnabled ? null : EventRequest.Analytics.disabled;
     }
 }

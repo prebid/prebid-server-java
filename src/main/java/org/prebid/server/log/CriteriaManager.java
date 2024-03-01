@@ -2,17 +2,12 @@ package org.prebid.server.log;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
-import org.prebid.server.deals.model.LogCriteriaFilter;
 
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
 public class CriteriaManager {
 
     private static final long MAX_CRITERIA_DURATION = 300000L;
-
-    private static final Logger logger = LoggerFactory.getLogger(CriteriaManager.class);
 
     private final CriteriaLogManager criteriaLogManager;
     private final Vertx vertx;
@@ -22,22 +17,14 @@ public class CriteriaManager {
         this.vertx = vertx;
     }
 
-    public void addCriteria(String accountId, String bidderCode, String lineItemId, String loggerLevel,
+    public void addCriteria(String accountId,
+                            String bidderCode,
+                            String loggerLevel,
                             Integer durationMillis) {
-        final Criteria criteria = Criteria.create(accountId, bidderCode, lineItemId, resolveLogLevel(loggerLevel));
+
+        final Criteria criteria = Criteria.create(accountId, bidderCode, resolveLogLevel(loggerLevel));
         criteriaLogManager.addCriteria(criteria);
         vertx.setTimer(limitDuration(durationMillis), ignored -> criteriaLogManager.removeCriteria(criteria));
-    }
-
-    public void addCriteria(LogCriteriaFilter filter, Long durationSeconds) {
-        if (filter != null) {
-            final Criteria criteria = Criteria.create(filter.getAccountId(), filter.getBidderCode(),
-                    filter.getLineItemId(), Logger::error);
-            criteriaLogManager.addCriteria(criteria);
-            logger.info("Logger was updated with new criteria {0}", criteria);
-            vertx.setTimer(limitDuration(TimeUnit.SECONDS.toMillis(durationSeconds)),
-                    ignored -> criteriaLogManager.removeCriteria(criteria));
-        }
     }
 
     public void stop() {
@@ -49,21 +36,18 @@ public class CriteriaManager {
     }
 
     private BiConsumer<Logger, Object> resolveLogLevel(String rawLogLevel) {
-        final LogLevel logLevel;
         try {
-            logLevel = LogLevel.valueOf(rawLogLevel.toLowerCase());
+            return switch (LogLevel.valueOf(rawLogLevel.toLowerCase())) {
+                case info -> Logger::info;
+                case warn -> Logger::warn;
+                case trace -> Logger::trace;
+                case error -> Logger::error;
+                case fatal -> Logger::fatal;
+                case debug -> Logger::debug;
+            };
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid LoggingLevel: " + rawLogLevel);
         }
-
-        return switch (logLevel) {
-            case info -> Logger::info;
-            case warn -> Logger::warn;
-            case trace -> Logger::trace;
-            case error -> Logger::error;
-            case fatal -> Logger::fatal;
-            case debug -> Logger::debug;
-        };
     }
 
     private enum LogLevel {

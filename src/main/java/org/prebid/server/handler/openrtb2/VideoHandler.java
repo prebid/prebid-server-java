@@ -66,6 +66,7 @@ public class VideoHandler implements Handler<RoutingContext> {
                         Clock clock,
                         PrebidVersionProvider prebidVersionProvider,
                         JacksonMapper mapper) {
+
         this.videoRequestFactory = Objects.requireNonNull(videoRequestFactory);
         this.videoResponseFactory = Objects.requireNonNull(videoResponseFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);

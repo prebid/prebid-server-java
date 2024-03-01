@@ -127,6 +127,7 @@ public class AuctionHandler implements Handler<RoutingContext> {
                               AuctionEvent.AuctionEventBuilder auctionEventBuilder,
                               RoutingContext routingContext,
                               long startTime) {
+
         final boolean responseSucceeded = responseResult.succeeded();
 
         final AuctionContext auctionContext = responseSucceeded ? responseResult.result() : null;
@@ -175,7 +176,8 @@ public class AuctionHandler implements Handler<RoutingContext> {
             } else if (exception instanceof BlacklistedAppException
                     || exception instanceof BlacklistedAccountException) {
                 metricRequestStatus = exception instanceof BlacklistedAccountException
-                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
+                        ? MetricName.blacklisted_account
+                        : MetricName.blacklisted_app;
                 final String message = "Blacklisted: " + exception.getMessage();
                 logger.debug(message);
 
@@ -205,17 +207,31 @@ public class AuctionHandler implements Handler<RoutingContext> {
         final AuctionEvent auctionEvent = auctionEventBuilder.status(status.code()).errors(errorMessages).build();
         final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
-        respondWith(routingContext, status, body, startTime, requestType, metricRequestStatus, auctionEvent,
-                tcfContext);
 
+        respondWith(
+                routingContext,
+                status,
+                body,
+                startTime,
+                requestType,
+                metricRequestStatus,
+                auctionEvent,
+                tcfContext);
         httpInteractionLogger.maybeLogOpenrtb2Auction(auctionContext, routingContext, status.code(), body);
     }
 
-    private void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body, long startTime,
-                             MetricName requestType, MetricName metricRequestStatus, AuctionEvent event,
+    private void respondWith(RoutingContext routingContext,
+                             HttpResponseStatus status,
+                             String body,
+                             long startTime,
+                             MetricName requestType,
+                             MetricName metricRequestStatus,
+                             AuctionEvent event,
                              TcfContext tcfContext) {
 
-        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_auction,
+        final boolean responseSent = HttpUtil.executeSafely(
+                routingContext,
+                Endpoint.openrtb2_auction,
                 response -> response
                         .exceptionHandler(throwable -> handleResponseException(throwable, requestType))
                         .setStatusCode(status.code())

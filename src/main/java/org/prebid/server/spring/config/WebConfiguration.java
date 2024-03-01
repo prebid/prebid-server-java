@@ -26,8 +26,6 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.deals.UserService;
-import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
@@ -82,7 +80,8 @@ public class WebConfiguration {
     @Autowired
     private Vertx vertx;
 
-    @Bean // TODO: remove support for properties with http prefix after transition period
+    // TODO: remove support for properties with http prefix after transition period
+    @Bean
     HttpServerOptions httpServerOptions(
             @Value("#{'${http.max-headers-size:${server.max-headers-size:}}'}") int maxHeaderSize,
             @Value("#{'${http.max-initial-line-length:${server.max-initial-line-length:}}'}") int maxInitialLineLength,
@@ -401,27 +400,18 @@ public class WebConfiguration {
     }
 
     @Bean
-    NotificationEventHandler notificationEventHandler(
-            UidsCookieService uidsCookieService,
-            @Autowired(required = false) ApplicationEventService applicationEventService,
-            @Autowired(required = false) UserService userService,
-            ActivityInfrastructureCreator activityInfrastructureCreator,
-            AnalyticsReporterDelegator analyticsReporterDelegator,
-            TimeoutFactory timeoutFactory,
-            ApplicationSettings applicationSettings,
-            @Value("${event.default-timeout-ms}") long defaultTimeoutMillis,
-            @Value("${deals.enabled}") boolean dealsEnabled) {
+    NotificationEventHandler notificationEventHandler(ActivityInfrastructureCreator activityInfrastructureCreator,
+                                                      AnalyticsReporterDelegator analyticsReporterDelegator,
+                                                      TimeoutFactory timeoutFactory,
+                                                      ApplicationSettings applicationSettings,
+                                                      @Value("${event.default-timeout-ms}") long defaultTimeoutMillis) {
 
         return new NotificationEventHandler(
-                uidsCookieService,
-                applicationEventService,
-                userService,
                 activityInfrastructureCreator,
                 analyticsReporterDelegator,
                 timeoutFactory,
                 applicationSettings,
-                defaultTimeoutMillis,
-                dealsEnabled);
+                defaultTimeoutMillis);
     }
 
     @Bean

@@ -96,7 +96,6 @@ public class AuctionRequestFactory {
 
         return ortb2RequestFactory.executeEntrypointHooks(routingContext, body, initialAuctionContext)
                 .compose(httpRequest -> parseBidRequest(httpRequest, initialAuctionContext.getPrebidErrors())
-
                         .map(bidRequest -> ortb2RequestFactory
                                 .enrichAuctionContext(initialAuctionContext, httpRequest, bidRequest, startTime)
                                 .with(requestTypeMetric(bidRequest))))
@@ -121,17 +120,15 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
                         .map(auctionContext::with))
 
-                .map(auctionContext -> auctionContext.with(
-                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
+                .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(ortb2RequestFactory::populateUserAdditionalInfo)
-
                 .map(ortb2RequestFactory::enrichWithPriceFloors)
 
-                .map(auctionContext -> ortb2RequestFactory.updateTimeout(auctionContext, startTime))
+                .map(ortb2RequestFactory::updateTimeout)
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
@@ -216,14 +213,12 @@ public class AuctionRequestFactory {
      */
     private Future<BidRequest> updateAndValidateBidRequest(AuctionContext auctionContext) {
         final Account account = auctionContext.getAccount();
+        final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
         final List<String> debugWarnings = auctionContext.getDebugWarnings();
 
         return storedRequestProcessor.processAuctionRequest(account.getId(), auctionContext.getBidRequest())
                 .compose(auctionStoredResult -> updateBidRequest(auctionStoredResult, auctionContext))
-                .compose(bidRequest -> ortb2RequestFactory.validateRequest(
-                        bidRequest,
-                        auctionContext.getHttpRequest(),
-                        debugWarnings))
+                .compose(bidRequest -> ortb2RequestFactory.validateRequest(bidRequest, httpRequest, debugWarnings))
                 .map(interstitialProcessor::process);
     }
 
