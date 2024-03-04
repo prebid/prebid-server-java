@@ -19,7 +19,6 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JsonLogic;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.model.activity.privacy.AccountUSCustomLogicModuleConfig;
 
 import java.util.Collection;
@@ -46,17 +45,13 @@ public class USCustomLogicModuleCreator implements PrivacyModuleCreator {
 
     public USCustomLogicModuleCreator(USCustomLogicGppReaderFactory gppReaderFactory,
                                       JsonLogic jsonLogic,
-                                      Integer cacheTtl,
-                                      Integer cacheSize,
+                                      Map<String, JsonLogicNode> jsonLogicNodesCache,
                                       Metrics metrics) {
 
         this.gppReaderFactory = Objects.requireNonNull(gppReaderFactory);
         this.jsonLogic = Objects.requireNonNull(jsonLogic);
         this.metrics = Objects.requireNonNull(metrics);
-
-        jsonLogicNodesCache = cacheTtl != null && cacheSize != null
-                ? SettingsCache.createCache(cacheTtl, cacheSize)
-                : null;
+        this.jsonLogicNodesCache = jsonLogicNodesCache;
     }
 
     @Override
