@@ -107,6 +107,8 @@
                 <artifactId>bom</artifactId>
                 <version>${aws.awssdk.version}</version>
                 <type>pom</type>
+            </dependency>
+            <dependency>
                 <groupId>com.google.code.gson</groupId>
                 <artifactId>gson</artifactId>
             </dependency>
