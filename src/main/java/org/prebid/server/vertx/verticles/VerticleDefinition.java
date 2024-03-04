@@ -1,6 +1,5 @@
 package org.prebid.server.vertx.verticles;
 
-import io.vertx.core.Verticle;
 import lombok.Value;
 
 import java.util.function.Supplier;
@@ -8,19 +7,15 @@ import java.util.function.Supplier;
 @Value(staticConstructor = "of")
 public class VerticleDefinition {
 
-    Supplier<Verticle> factory;
+    Supplier<InitializableVerticle> factory;
 
     int amount;
 
-    public static VerticleDefinition ofZeroInstances() {
-        return of(null, 0);
-    }
-
-    public static VerticleDefinition ofSingleInstance(Supplier<Verticle> factory) {
+    public static VerticleDefinition ofSingleInstance(Supplier<InitializableVerticle> factory) {
         return of(factory, 1);
     }
 
-    public static VerticleDefinition ofMultiInstance(Supplier<Verticle> factory, int amount) {
+    public static VerticleDefinition ofMultiInstance(Supplier<InitializableVerticle> factory, int amount) {
         return of(factory, amount);
     }
 }

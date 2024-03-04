@@ -1,8 +1,9 @@
 package org.prebid.server.vertx.verticles.server;
 
-import io.vertx.core.AbstractVerticle;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Context;
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
@@ -12,11 +13,12 @@ import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.Router;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.handler.ExceptionHandler;
+import org.prebid.server.vertx.verticles.InitializableVerticle;
 
 import java.util.Objects;
 import java.util.function.Supplier;
 
-public class ServerVerticle extends AbstractVerticle {
+public class ServerVerticle extends InitializableVerticle {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerVerticle.class);
 
@@ -48,7 +50,8 @@ public class ServerVerticle extends AbstractVerticle {
     }
 
     @Override
-    public void init(Vertx vertx, Context context) {
+    public Future<Void> initialize(Vertx vertx, Context context) {
+        final Promise<Void> completionPromise = Promise.promise();
         final HttpServerOptions httpServerOptions = ObjectUtils.defaultIfNull(serverOptions, new HttpServerOptions());
         final HttpServer server = vertx.createHttpServer(httpServerOptions)
                 .requestHandler(router);
@@ -57,18 +60,20 @@ public class ServerVerticle extends AbstractVerticle {
             server.exceptionHandler(exceptionHandler);
         }
 
-        server.listen(address, this::onServerStarted);
+        server.listen(address, result -> onServerStarted(result, completionPromise));
+        return completionPromise.future();
     }
 
-    private void onServerStarted(AsyncResult<HttpServer> result) {
+    private void onServerStarted(AsyncResult<HttpServer> result, Promise<Void> completionPromise) {
         if (result.succeeded()) {
+            completionPromise.tryComplete();
             logger.info(
                     "Successfully started {0} instance on address: {1}, thread: {2}",
                     name,
                     address,
                     Thread.currentThread().getName());
         } else {
-            throw new RuntimeException(result.cause());
+            completionPromise.tryFail(result.cause());
         }
     }
 }

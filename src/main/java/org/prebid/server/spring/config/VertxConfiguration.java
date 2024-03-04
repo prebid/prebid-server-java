@@ -70,7 +70,7 @@ public class VertxConfiguration {
     }
 
     @Bean
-    VerticleDeployer verticleDeployer(Vertx vertx) {
-        return new VerticleDeployer(vertx);
+    VerticleDeployer verticleDeployer(Vertx vertx, @Value("${vertx.init-timeout-ms}") long initTimeoutMs) {
+        return new VerticleDeployer(vertx, initTimeoutMs);
     }
 }
