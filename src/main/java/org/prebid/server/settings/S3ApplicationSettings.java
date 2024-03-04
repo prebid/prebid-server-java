@@ -11,6 +11,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
+import software.amazon.awssdk.core.BytesWrapper;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -28,7 +29,7 @@ import java.util.stream.Stream;
 /**
  * Implementation of {@link ApplicationSettings}.
  * <p>
- * Reads an application settings from JSON file in an s3 bucket, stores and serves them in and from the memory.
+ * Reads an application settings from JSON file in a s3 bucket, stores and serves them in and from the memory.
  * <p>
  * Immediately loads stored request data from local files. These are stored in memory for low-latency reads.
  * This expects each file in the directory to be named "{config_id}.json".
@@ -69,16 +70,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return downloadFile(accountsDirectory + "/" + accountId + JSON_SUFFIX)
-                .map(fileContentOpt ->
-                        fileContentOpt.map(fileContent -> jacksonMapper.decodeValue(fileContent, Account.class)))
-                .compose(accountOpt -> {
-                    if (accountOpt.isPresent()) {
-                        return Future.succeededFuture(accountOpt.get());
-                    } else {
-                        return Future
-                                .failedFuture(new PreBidException("Account with id %s not found".formatted(accountId)));
-                    }
-                })
+                .map(fileContent -> jacksonMapper.decodeValue(fileContent, Account.class))
                 .flatMap(account -> {
                     if (!Objects.equals(account.getId(), accountId)) {
                         return Future.failedFuture(new PreBidException(
@@ -183,7 +175,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
     }
 
     private Future<Map<String, String>> getFileContents(String directory, Set<String> ids) {
-        final List<Future<Tuple2<String, Optional<String>>>> futureListContents = ids.stream()
+        final List<Future<Tuple2<String, String>>> futureListContents = ids.stream()
                 .map(impressionId ->
                         downloadFile(directory + withInitialSlash(impressionId) + JSON_SUFFIX)
                                 .map(fileContent -> Tuple2.of(impressionId, fileContent)))
@@ -213,13 +205,13 @@ public class S3ApplicationSettings implements ApplicationSettings {
         return "/" + impressionId;
     }
 
-    private Future<Optional<String>> downloadFile(String key) {
+    private Future<String> downloadFile(String key) {
         final GetObjectRequest request = GetObjectRequest.builder().bucket(bucket).key(key).build();
 
         return Future.fromCompletionStage(
                         asyncClient.getObject(request, AsyncResponseTransformer.toBytes()),
                         vertx.getOrCreateContext())
-                .map(test -> Optional.of(test.asUtf8String())).recover(ex -> Future.succeededFuture(Optional.empty()));
+                .map(BytesWrapper::asUtf8String);
     }
 
 }
