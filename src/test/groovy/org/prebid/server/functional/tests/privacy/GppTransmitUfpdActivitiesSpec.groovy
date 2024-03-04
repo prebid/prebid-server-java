@@ -16,6 +16,7 @@ import org.prebid.server.functional.model.request.auction.Data
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtData
@@ -2674,7 +2675,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
                                                                                               .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 1, PBSUtils.getRandomNumber(0, 2))
     }
 
-    private BidRequest givenBidRequestWithAccountAndUfpdData(String accountId) {
+    private static BidRequest givenBidRequestWithAccountAndUfpdData(String accountId) {
         BidRequest.getDefaultBidRequest().tap {
             it.setAccountId(accountId)
             it.ext.prebid.trace = VERBOSE
@@ -2694,6 +2695,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             it.user.yob = PBSUtils.randomNumber
             it.user.gender = PBSUtils.randomString
             it.user.ext = new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString))
+            it.regs.ext ?= new RegsExt()
         }
     }
 }
