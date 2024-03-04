@@ -123,6 +123,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
             Set<String> requestIds,
             Set<String> impIds
     ) {
+
         final List<String> missingStoredRequestIds =
                 getMissingStoredDataIds(storedIdToRequest, requestIds).stream()
                         .map("No stored request found for id: %s"::formatted).toList();
