@@ -86,7 +86,7 @@ public class S3ApplicationSettingsTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .priceGranularity("testPriceGranularity")
                         .build())
-                .privacy(AccountPrivacyConfig.of(null, null, null, null))
+                .privacy(AccountPrivacyConfig.of(null, null, null, null, null))
                 .build();
 
         given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
@@ -165,7 +165,7 @@ public class S3ApplicationSettingsTest extends VertxTest {
         final Account account = Account.builder()
                 .id("wrong-id")
                 .auction(AccountAuctionConfig.builder().build())
-                .privacy(AccountPrivacyConfig.of(null, null, null, null))
+                .privacy(AccountPrivacyConfig.of(null, null, null, null, null))
                 .build();
 
         given(s3AsyncClient.getObject(any(GetObjectRequest.class), any(AsyncResponseTransformer.class)))
