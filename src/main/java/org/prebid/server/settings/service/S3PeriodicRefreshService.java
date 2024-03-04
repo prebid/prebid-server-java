@@ -150,18 +150,18 @@ public class S3PeriodicRefreshService implements Initializable {
         return storedDataResult;
     }
 
-    private Future<List<String>> listFiles(String prefix) {
+    private Future<Set<String>> listFiles(String prefix) {
         final ListObjectsRequest listObjectsRequest =
                 ListObjectsRequest.builder().bucket(bucket).prefix(prefix).build();
 
         return Future.fromCompletionStage(asyncClient.listObjects(listObjectsRequest))
-                .map(response -> response.contents().stream().map(S3Object::key).toList());
+                .map(response -> response.contents().stream().map(S3Object::key).collect(Collectors.toSet()));
     }
 
     private Future<Map<String, String>> getFileContentsForDirectory(String directory) {
         return listFiles(directory)
                 .compose(files ->
-                        getFileContents(new HashSet<>(files))
+                        getFileContents(files)
                                 .map(map -> map.entrySet().stream().collect(
                                         Collectors.toMap(
                                                 e -> stripFileName(directory, e.getKey()),
