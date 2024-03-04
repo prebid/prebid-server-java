@@ -19,13 +19,16 @@ public class EventsService {
     public Events createEvent(String bidId,
                               String bidder,
                               String accountId,
+                              boolean analyticsEnabled,
                               EventsContext eventsContext) {
+
         return Events.of(
                 eventUrl(
                         EventRequest.Type.win,
                         bidId,
                         bidder,
                         accountId,
+                        analytics(analyticsEnabled),
                         EventRequest.Format.image,
                         eventsContext),
                 eventUrl(
@@ -33,6 +36,7 @@ public class EventsService {
                         bidId,
                         bidder,
                         accountId,
+                        analytics(analyticsEnabled),
                         EventRequest.Format.image,
                         eventsContext));
     }
@@ -43,6 +47,7 @@ public class EventsService {
     public String winUrl(String bidId,
                          String bidder,
                          String accountId,
+                         boolean analyticsEnabled,
                          EventsContext eventsContext) {
 
         return eventUrl(
@@ -50,6 +55,7 @@ public class EventsService {
                 bidId,
                 bidder,
                 accountId,
+                analytics(analyticsEnabled),
                 EventRequest.Format.image,
                 eventsContext);
     }
@@ -66,6 +72,7 @@ public class EventsService {
                 bidId,
                 bidder,
                 accountId,
+                null,
                 EventRequest.Format.blank,
                 eventsContext);
     }
@@ -74,6 +81,7 @@ public class EventsService {
                             String bidId,
                             String bidder,
                             String accountId,
+                            EventRequest.Analytics analytics,
                             EventRequest.Format format,
                             EventsContext eventsContext) {
 
@@ -86,8 +94,13 @@ public class EventsService {
                 .timestamp(eventsContext.getAuctionTimestamp())
                 .format(format)
                 .integration(eventsContext.getIntegration())
+                .analytics(analytics)
                 .build();
 
         return EventUtil.toUrl(externalUrl, eventRequest);
+    }
+
+    private static EventRequest.Analytics analytics(boolean analyticsEnabled) {
+        return analyticsEnabled ? null : EventRequest.Analytics.disabled;
     }
 }

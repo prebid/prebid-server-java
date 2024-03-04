@@ -1491,6 +1491,7 @@ public class BidResponseCreator {
                 bidId,
                 bidder,
                 account.getId(),
+                true,
                 eventsContext)
                 : null;
     }

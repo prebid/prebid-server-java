@@ -527,6 +527,7 @@ public class CacheService {
                 bidId,
                 bidder,
                 accountId,
+                true,
                 eventsContext)
                 : null;
     }
