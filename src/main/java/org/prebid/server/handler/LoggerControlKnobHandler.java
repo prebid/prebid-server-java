@@ -62,7 +62,7 @@ public class LoggerControlKnobHandler implements Handler<RoutingContext> {
     }
 
     private Duration readDuration(MultiMap parameters) {
-        final Integer duration = getIntParameter(DURATION_PARAMETER, parameters);
+        final Integer duration = durationAsInt(parameters);
 
         if (duration == null) {
             throw new InvalidRequestException("Missing required parameter '%s'".formatted(DURATION_PARAMETER));
@@ -76,12 +76,13 @@ public class LoggerControlKnobHandler implements Handler<RoutingContext> {
         return Duration.ofMillis(duration);
     }
 
-    private Integer getIntParameter(String parameterName, MultiMap parameters) {
-        final String value = parameters.get(parameterName);
+    private Integer durationAsInt(MultiMap parameters) {
+        final String value = parameters.get(LoggerControlKnobHandler.DURATION_PARAMETER);
         try {
             return value != null ? Integer.parseInt(value) : null;
         } catch (NumberFormatException e) {
-            throw new InvalidRequestException("Invalid '%s' parameter value".formatted(parameterName));
+            throw new InvalidRequestException("Invalid '%s' parameter value"
+                    .formatted(LoggerControlKnobHandler.DURATION_PARAMETER));
         }
     }
 }

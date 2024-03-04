@@ -19,8 +19,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.jixie.ExtImpJixie;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Arrays;
@@ -204,10 +202,8 @@ public class JixieBidderTest extends VertxTest {
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
-                        .id("123"))
-                .banner(Banner.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpJixie.of("unit", "accountId", "jxProp1", "jxProp2"))))
+                        .id("123")
+                        .banner(Banner.builder().build()))
                 .build();
     }
 

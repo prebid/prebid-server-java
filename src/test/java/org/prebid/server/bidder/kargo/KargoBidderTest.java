@@ -15,8 +15,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.kargo.ExtImpKargo;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -217,11 +215,7 @@ public class KargoBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpKargo.of("placementId", "adSlotId")))))
-                .build();
+        return impCustomizer.apply(Imp.builder().id("123")).build();
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {

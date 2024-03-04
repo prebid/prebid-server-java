@@ -169,23 +169,7 @@ public class RequestValidator {
                 throw new ValidationException("request.imp must contain at least one element");
             }
 
-            final List<Imp> imps = bidRequest.getImp();
-            final List<String> errors = new ArrayList<>();
-            final Map<String, Integer> uniqueImps = new HashMap<>();
-            for (int i = 0; i < imps.size(); i++) {
-                final String impId = imps.get(i).getId();
-                if (uniqueImps.get(impId) != null) {
-                    errors.add("request.imp[%d].id and request.imp[%d].id are both \"%s\". Imp IDs must be unique."
-                            .formatted(uniqueImps.get(impId), i, impId));
-                }
-
-                uniqueImps.put(impId, i);
-            }
-
-            if (CollectionUtils.isNotEmpty(errors)) {
-                throw new ValidationException(String.join(System.lineSeparator(), errors));
-            }
-
+            validateImpsIds(bidRequest);
             for (int index = 0; index < bidRequest.getImp().size(); index++) {
                 validateImp(bidRequest.getImp().get(index), aliases, index, warnings);
             }
@@ -660,6 +644,25 @@ public class RequestValidator {
         }
     }
 
+    private void validateImpsIds(BidRequest bidRequest) throws ValidationException {
+        final List<Imp> imps = bidRequest.getImp();
+        final List<String> errors = new ArrayList<>();
+        final Map<String, Integer> uniqueImps = new HashMap<>();
+        for (int i = 0; i < imps.size(); i++) {
+            final String impId = imps.get(i).getId();
+            if (uniqueImps.get(impId) != null) {
+                errors.add("request.imp[%d].id and request.imp[%d].id are both \"%s\". Imp IDs must be unique."
+                        .formatted(uniqueImps.get(impId), i, impId));
+            }
+
+            uniqueImps.put(impId, i);
+        }
+
+        if (CollectionUtils.isNotEmpty(errors)) {
+            throw new ValidationException(String.join(System.lineSeparator(), errors));
+        }
+    }
+
     private void validateImp(Imp imp, Map<String, String> aliases, int index, List<String> warnings)
             throws ValidationException {
         if (StringUtils.isBlank(imp.getId())) {
@@ -1013,7 +1016,7 @@ public class RequestValidator {
             }
         }
 
-        if (extPrebidBidder.size() == 0) {
+        if (extPrebidBidder.isEmpty()) {
             warnings.add("WARNING: request.imp[%d].ext must contain at least one valid bidder".formatted(impIndex));
         }
     }

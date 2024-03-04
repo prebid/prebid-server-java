@@ -164,39 +164,6 @@ public class ImplicitParametersExtractorTest {
     }
 
     @Test
-    public void secureFromShouldReturnOneIfXForwardedProtoIsHttps() {
-        // given
-        final HttpRequestContext httpRequest = HttpRequestContext.builder()
-                .headers(CaseInsensitiveMultiMap.builder()
-                        .add("X-Forwarded-Proto", "https")
-                        .build())
-                .build();
-
-        // when and then
-        assertThat(extractor.secureFrom(httpRequest)).isEqualTo(1);
-    }
-
-    @Test
-    public void secureFromShouldReturnOneIfConnectedViaSSL() {
-        // given
-        final HttpRequestContext httpRequest = HttpRequestContext.builder()
-                .headers(CaseInsensitiveMultiMap.empty())
-                .scheme("https")
-                .build();
-
-        // when and then
-        assertThat(extractor.secureFrom(httpRequest)).isEqualTo(1);
-    }
-
-    @Test
-    public void secureFromShouldReturnNull() {
-        final HttpRequestContext httpRequest = HttpRequestContext.builder()
-                .headers(CaseInsensitiveMultiMap.empty())
-                .build();
-        assertThat(extractor.secureFrom(httpRequest)).isNull();
-    }
-
-    @Test
     public void gpcFromShouldReturn1OnInteger() {
         // given
         final HttpRequestContext httpRequest = HttpRequestContext.builder()

@@ -20,11 +20,8 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.bidder.visx.model.VisxBid;
 import org.prebid.server.bidder.visx.model.VisxResponse;
 import org.prebid.server.bidder.visx.model.VisxSeatBid;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.visx.ExtImpVisx;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -50,10 +47,7 @@ public class VisxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpVisx.of(123, Arrays.asList(10, 20)))))
-                        .build()))
+                .imp(singletonList(Imp.builder().build()))
                 .id("request_id")
                 .cur(singletonList("USD"))
                 .build();

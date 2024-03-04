@@ -75,14 +75,12 @@ public class AidemBidder implements Bidder<BidRequest> {
         }
 
         final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse, errors);
+        final List<BidderBid> bids = extractBids(bidResponse, errors);
 
         return Result.of(bids, errors);
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest,
-                                               BidResponse bidResponse,
-                                               List<BidderError> errors) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -93,12 +91,12 @@ public class AidemBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
+                .map(bid -> makeBidderBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+    private static BidderBid makeBidderBid(Bid bid, String currency, List<BidderError> errors) {
         try {
             return BidderBid.of(bid, resolveBidType(bid), currency);
         } catch (PreBidException e) {

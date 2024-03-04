@@ -56,6 +56,7 @@ import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.hooks.v1.analytics.ActivityImpl;
 import org.prebid.server.hooks.v1.analytics.AppliedToImpl;
 import org.prebid.server.hooks.v1.analytics.ResultImpl;
@@ -107,7 +108,6 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
-import static org.prebid.server.hooks.v1.PayloadUpdate.identity;
 
 @RunWith(VertxUnitRunner.class)
 public class HookStageExecutorTest extends VertxTest {
@@ -2884,6 +2884,10 @@ public class HookStageExecutorTest extends VertxTest {
                 vertx,
                 clock,
                 jacksonMapper);
+    }
+
+    private static <T> PayloadUpdate<T> identity() {
+        return payload -> payload;
     }
 
     @Value(staticConstructor = "of")

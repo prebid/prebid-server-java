@@ -2643,7 +2643,6 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(responseExt.getDebug()).isNull();
         assertThat(responseExt.getWarnings())
                 .containsEntry("bidder1", singletonList(ExtBidderError.of(999, "some_warning")));
-        assertThat(responseExt.getUsersync()).isNull();
         assertThat(responseExt.getTmaxrequest()).isEqualTo(1000L);
 
         assertThat(responseExt.getErrors()).hasSize(2).containsOnly(

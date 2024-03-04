@@ -74,7 +74,7 @@ public class InterstitialProcessor {
         final double minWidth = (double) maxWidth / 100 * minWidthPerc;
 
         final List<Format> interstitialFormats =
-                InterstitialSize.getNestedSizes(minWidth, minHeight, maxWidth, maxHeight, MAX_SIZES_COUNT)
+                InterstitialSize.getNestedSizes(minWidth, minHeight, maxWidth, maxHeight)
                         .stream()
                         .map(interstitialSize -> Format.builder().w(interstitialSize.w).h(interstitialSize.h).build())
                         .toList();
@@ -360,11 +360,14 @@ public class InterstitialProcessor {
             return new InterstitialSize(w, h);
         }
 
-        private static List<InterstitialSize> getNestedSizes(double minWidth, double minHeight, double maxWidth,
-                                                             double maxHeight, int count) {
+        private static List<InterstitialSize> getNestedSizes(double minWidth,
+                                                             double minHeight,
+                                                             double maxWidth,
+                                                             double maxHeight) {
+
             return INTERSTITIAL_SIZES.stream()
                     .filter(size -> isNested(size, minWidth, minHeight, maxWidth, maxHeight))
-                    .limit(count)
+                    .limit(InterstitialProcessor.MAX_SIZES_COUNT)
                     .toList();
         }
 

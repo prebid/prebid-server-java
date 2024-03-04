@@ -160,7 +160,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String PREBID_EXT = "prebid";
 
     private static final String PPUID_STYPE = "ppuid";
-    private static final String OTHER_STYPE = "other";
     private static final String SHA256EMAIL_STYPE = "sha256email";
     private static final String DMP_STYPE = "dmp";
     private static final String XAPI_CURRENCY = "USD";
@@ -710,7 +709,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         mergeFirstPartyDataFromApp(app, result);
         mergeFirstPartyDataFromImp(imp, rubiconImpExt, context, result);
 
-        return result.size() > 0 ? result : null;
+        return !result.isEmpty() ? result : null;
     }
 
     private RubiconImpExtPrebid makeRubiconExtPrebid(PriceFloorResult priceFloorResult,

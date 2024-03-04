@@ -89,7 +89,7 @@ public class PubstackEventHandler {
 
     public void reportEvents() {
         if (enabled) {
-            reportEventsOnCondition(events -> events.get().size() > 0, events);
+            reportEventsOnCondition(events -> !events.get().isEmpty(), events);
         }
     }
 
@@ -179,7 +179,7 @@ public class PubstackEventHandler {
     }
 
     private void sendOnTimer() {
-        final boolean requestWasSent = reportEventsOnCondition(events -> events.get().size() > 0, events);
+        final boolean requestWasSent = reportEventsOnCondition(events -> !events.get().isEmpty(), events);
         if (!requestWasSent) {
             setReportTtlTimer();
         }

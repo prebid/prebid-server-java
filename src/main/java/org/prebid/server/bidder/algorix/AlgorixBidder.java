@@ -201,18 +201,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
     }
 
     private BidType getBidType(Bid bid, List<Imp> imps) {
-        final ObjectNode bidExt = bid.getExt();
-        final JsonNode mediaTypeNode = bidExt != null ? bidExt.get("mediaType") : null;
-        final String mediaType = mediaTypeNode != null && mediaTypeNode.isTextual()
-                ? mediaTypeNode.textValue()
-                : StringUtils.EMPTY;
-
-        final BidType bidType = switch (mediaType) {
-            case "banner" -> BidType.banner;
-            case "native" -> BidType.xNative;
-            case "video" -> BidType.video;
-            default -> null;
-        };
+        final BidType bidType = getBidType(bid);
         if (bidType != null) {
             return bidType;
         }
@@ -229,5 +218,20 @@ public class AlgorixBidder implements Bidder<BidRequest> {
             }
         }
         return BidType.banner;
+    }
+
+    private static BidType getBidType(Bid bid) {
+        final ObjectNode bidExt = bid.getExt();
+        final JsonNode mediaTypeNode = bidExt != null ? bidExt.get("mediaType") : null;
+        final String mediaType = mediaTypeNode != null && mediaTypeNode.isTextual()
+                ? mediaTypeNode.textValue()
+                : StringUtils.EMPTY;
+
+        return switch (mediaType) {
+            case "banner" -> BidType.banner;
+            case "native" -> BidType.xNative;
+            case "video" -> BidType.video;
+            default -> null;
+        };
     }
 }

@@ -5,18 +5,13 @@ import lombok.Getter;
 import java.util.Collections;
 import java.util.List;
 
+@Getter
 public class InvalidRequestException extends RuntimeException {
 
-    @Getter
     private final List<String> messages;
 
     public InvalidRequestException(String message) {
         super(message);
-        this.messages = Collections.singletonList(message);
-    }
-
-    public InvalidRequestException(String message, Throwable cause) {
-        super(message, cause);
         this.messages = Collections.singletonList(message);
     }
 

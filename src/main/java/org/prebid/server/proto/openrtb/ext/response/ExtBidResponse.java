@@ -44,11 +44,6 @@ public class ExtBidResponse {
     Long tmaxrequest;
 
     /**
-     * Defines the contract for bidresponse.ext.usersync
-     */
-    Map<String, ExtResponseSyncData> usersync;
-
-    /**
      * Defines the contract for bidresponse.ext.prebid
      */
     ExtBidResponsePrebid prebid;

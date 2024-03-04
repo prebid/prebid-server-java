@@ -28,7 +28,6 @@ import org.prebid.server.auction.model.SetuidContext;
 import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncFormat;
-import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.UsersyncUtil;
 import org.prebid.server.bidder.Usersyncer;
@@ -127,11 +126,9 @@ public class SetuidHandler implements Handler<RoutingContext> {
     }
 
     private static UsersyncMethodType preferredUserSyncType(Usersyncer usersyncer) {
-        return Stream.of(usersyncer.getIframe(), usersyncer.getRedirect())
-                .filter(Objects::nonNull)
-                .findFirst()
-                .map(UsersyncMethod::getType)
-                .get(); // when usersyncer is present, it will contain at least one method
+        return Optional.ofNullable(usersyncer.getIframe())
+                .orElse(usersyncer.getRedirect())
+                .getType(); // when usersyncer is present, it will contain at least one method
     }
 
     private static void validateUsersyncers(Stream<Usersyncer> usersyncers) {

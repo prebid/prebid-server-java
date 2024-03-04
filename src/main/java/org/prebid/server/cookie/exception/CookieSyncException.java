@@ -6,11 +6,6 @@ public class CookieSyncException extends RuntimeException {
 
     public final TcfContext tcfContext;
 
-    public CookieSyncException(String error, Throwable cause, TcfContext tcfContext) {
-        super(error, cause);
-        this.tcfContext = tcfContext;
-    }
-
     public CookieSyncException(Throwable error, TcfContext tcfContext) {
         super(error);
         this.tcfContext = tcfContext;

@@ -42,7 +42,6 @@ public class MgidxBidder implements Bidder<BidRequest> {
     private static final String PUBLISHER_PROPERTY = "publisher";
     private static final String NETWORK_PROPERTY = "network";
     private static final String BIDDER_PROPERTY = "bidder";
-    private static final String PREBID_EXT = "prebid";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -109,14 +108,14 @@ public class MgidxBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse);
+            final List<BidderBid> bids = extractBids(bidResponse);
             return Result.withValues(bids);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
