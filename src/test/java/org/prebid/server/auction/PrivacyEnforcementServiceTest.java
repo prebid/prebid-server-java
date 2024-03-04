@@ -25,6 +25,7 @@ import org.prebid.server.assertion.FutureAssertion;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.exception.InvalidRequestException;
@@ -161,6 +162,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
+                .timeoutContext(TimeoutContext.of(0, null, 0))
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
                 .build();
@@ -209,6 +211,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .account(Account.empty(accountId))
                 .requestTypeMetric(requestType)
+                .timeoutContext(TimeoutContext.of(0, null, 0))
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
                 .build();
@@ -265,6 +268,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
                 .requestTypeMetric(MetricName.openrtb2web)
+                .timeoutContext(TimeoutContext.of(0, null, 0))
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
                 .build();
@@ -302,6 +306,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
+                .timeoutContext(TimeoutContext.of(0, null, 0))
                 .prebidErrors(new ArrayList<>())
                 .build();
 
@@ -325,6 +330,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
         final AuctionContext auctionContext = AuctionContext.builder()
                 .bidRequest(bidRequest)
                 .account(Account.empty("account"))
+                .timeoutContext(TimeoutContext.of(0, null, 0))
                 .prebidErrors(new ArrayList<>())
                 .build();
 
@@ -537,7 +543,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .build())
                 .requestTypeMetric(MetricName.openrtb2app)
                 .bidRequest(bidRequest)
-                .timeout(timeout)
+                .timeoutContext(TimeoutContext.of(0, timeout, 0))
                 .privacyContext(privacyContext)
                 .activityInfrastructure(activityInfrastructure)
                 .build();
@@ -591,7 +597,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .build())
                 .requestTypeMetric(MetricName.openrtb2app)
                 .bidRequest(bidRequest)
-                .timeout(timeout)
+                .timeoutContext(TimeoutContext.of(0, timeout, 0))
                 .privacyContext(privacyContext)
                 .activityInfrastructure(activityInfrastructure)
                 .build();
@@ -645,7 +651,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .build())
                 .requestTypeMetric(null)
                 .bidRequest(bidRequest)
-                .timeout(timeout)
+                .timeoutContext(TimeoutContext.of(0, timeout, 0))
                 .privacyContext(privacyContext)
                 .activityInfrastructure(activityInfrastructure)
                 .build();
@@ -1802,7 +1808,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .account(Account.builder().build())
                 .requestTypeMetric(MetricName.openrtb2web)
                 .bidRequest(bidRequest)
-                .timeout(timeout)
+                .timeoutContext(TimeoutContext.of(0, timeout, 0))
                 .privacyContext(privacyContext)
                 .activityInfrastructure(activityInfrastructure)
                 .build();

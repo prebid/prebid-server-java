@@ -1,6 +1,8 @@
 adapters:
   medianet:
     endpoint: https://prebid-adapter.media.net/rtb/pb/prebids2s?src={{PREBID_SERVER_ENDPOINT}}
+    ortb-version: "2.6"
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid@media.net
       app-media-types:
@@ -16,6 +18,6 @@ adapters:
     usersync:
       cookie-family-name: medianet
       redirect:
-        url: https://hbx.media.net/cksync.php?cs=1&type=pbs&ovsid=setstatuscode&redirect={{redirect_url}}
+        url: https://hbx.media.net/cksync.php?cs=1&type=pbs&ovsid=setstatuscode&bidder=medianet&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&redirect={{redirect_url}}
         support-cors: false
         uid-macro: '<vsid>'

@@ -51,11 +51,17 @@ public final class HttpUtil {
     public static final CharSequence ORIGIN_HEADER = HttpHeaders.createOptimized("Origin");
     public static final CharSequence ACCEPT_HEADER = HttpHeaders.createOptimized("Accept");
     public static final CharSequence SEC_GPC_HEADER = HttpHeaders.createOptimized("Sec-GPC");
+    public static final CharSequence SEC_BROWSING_TOPICS_HEADER = HttpHeaders.createOptimized("Sec-Browsing-Topics");
+    public static final CharSequence OBSERVE_BROWSING_TOPICS_HEADER =
+            HttpHeaders.createOptimized("Observe-Browsing-Topics");
     public static final CharSequence CONTENT_TYPE_HEADER = HttpHeaders.createOptimized("Content-Type");
     public static final CharSequence X_REQUESTED_WITH_HEADER = HttpHeaders.createOptimized("X-Requested-With");
     public static final CharSequence REFERER_HEADER = HttpHeaders.createOptimized("Referer");
     public static final CharSequence USER_AGENT_HEADER = HttpHeaders.createOptimized("User-Agent");
     public static final CharSequence COOKIE_HEADER = HttpHeaders.createOptimized("Cookie");
+    public static final CharSequence SEC_COOKIE_DEPRECATION =
+            HttpHeaders.createOptimized("Sec-Cookie-Deprecation");
+
     public static final CharSequence ACCEPT_LANGUAGE_HEADER = HttpHeaders.createOptimized("Accept-Language");
     public static final CharSequence SET_COOKIE_HEADER = HttpHeaders.createOptimized("Set-Cookie");
     public static final CharSequence AUTHORIZATION_HEADER = HttpHeaders.createOptimized("Authorization");

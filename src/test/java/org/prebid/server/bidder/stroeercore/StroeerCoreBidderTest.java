@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Imp.ImpBuilder;
+import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
@@ -28,11 +29,15 @@ import org.prebid.server.bidder.stroeercore.model.StroeerCoreBidResponse;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.stroeercore.ExtImpStroeerCore;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -123,6 +128,31 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getTagid)
                 .containsExactly("827194", "abc");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnDSA() {
+        // given
+        final List<ExtRegsDsaTransparency> transparencies = Arrays.asList(
+                ExtRegsDsaTransparency.of("platform-example.com", List.of(1, 2)),
+                ExtRegsDsaTransparency.of("ssp-example.com", List.of(1))
+        );
+
+        final ExtRegsDsa dsa = ExtRegsDsa.of(3, 1, 2, transparencies);
+
+        final BidRequest bidRequest = createBidRequest(createBannerImp("1")).toBuilder()
+                .regs(Regs.builder().ext(ExtRegs.of(null, null, null, dsa)).build())
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(payload -> payload.getRegs().getExt().getDsa())
+                .allSatisfy(actualDsa -> assertThat(actualDsa).isSameAs(dsa));
     }
 
     @Test
@@ -251,11 +281,13 @@ public class StroeerCoreBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnExpectedBidderBidsWithProperBidType() throws JsonProcessingException {
+    public void makeBidsShouldReturnExpectedBidderBids() throws JsonProcessingException {
         // given
         final Imp bannerImp = createBannerImp("banner-slot-id", impBuilder -> impBuilder.id("banner-imp-id"));
         final Imp videoImp = createVideoImp("video-slot-id", impBuilder -> impBuilder.id("video-imp-id"));
         final BidRequest bidRequest = createBidRequest(bannerImp, videoImp);
+
+        final ObjectNode dsaResponse = createDsaResponse();
 
         final StroeerCoreBid bannerBid = StroeerCoreBid.builder()
                 .id("1")
@@ -265,6 +297,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .creativeId("foo")
                 .width(300)
                 .height(600)
+                .dsa(dsaResponse.deepCopy())
                 .build();
 
         final StroeerCoreBid videoBid = StroeerCoreBid.builder()
@@ -273,6 +306,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .adMarkup("<vast><span></span></vast>")
                 .cpm(BigDecimal.valueOf(1.58))
                 .creativeId("vid")
+                .dsa(null)
                 .build();
 
         final StroeerCoreBidResponse response = StroeerCoreBidResponse.of(List.of(bannerBid, videoBid));
@@ -290,6 +324,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .crid("foo")
                 .w(300)
                 .h(600)
+                .ext(mapper.createObjectNode().set("dsa", dsaResponse))
                 .build();
 
         final Bid expectedVideoBid = Bid.builder()
@@ -298,6 +333,7 @@ public class StroeerCoreBidderTest extends VertxTest {
                 .adm("<vast><span></span></vast>")
                 .price(BigDecimal.valueOf(1.58))
                 .crid("vid")
+                .ext(null)
                 .build();
 
         assertThat(result.getErrors()).isEmpty();
@@ -391,5 +427,15 @@ public class StroeerCoreBidderTest extends VertxTest {
     private BidderCall<BidRequest> createHttpCallWithNonParsableResponse() {
         return createHttpCall(HttpRequest.<BidRequest>builder().build(),
                 HttpResponse.of(200, null, "[]"));
+    }
+
+    private ObjectNode createDsaResponse() {
+        final ObjectNode dsaTransparency = mapper.createObjectNode()
+                .put("domain", "example.com")
+                .set("dsaparams", mapper.createArrayNode().add(1).add(2));
+        return mapper.createObjectNode()
+                .put("behalf", "advertiser-a")
+                .put("paid", "advertiser-b")
+                .set("transparency", mapper.createArrayNode().add(dsaTransparency));
     }
 }
