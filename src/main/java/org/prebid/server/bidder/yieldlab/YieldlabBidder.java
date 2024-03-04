@@ -31,6 +31,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -49,6 +51,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -64,6 +67,9 @@ public class YieldlabBidder implements Bidder<Void> {
     private static final String CREATIVE_ID = "%s%s%s";
     private static final String AD_SOURCE_BANNER = "<script src=\"%s\"></script>";
     private static final String AD_SOURCE_URL = "https://ad.yieldlab.net/d/%s/%s/%s?%s";
+    private static final String TRANSPARENCY_TEMPLATE = "%s~%s";
+    private static final String TRANSPARENCY_TEMPLATE_PARAMS_DELIMITER = "_";
+    private static final String TRANSPARENCY_TEMPLATE_DELIMITER = "~~";
     private static final String VAST_MARKUP = """
             <VAST version="2.0"><Ad id="%s"><Wrapper>
             <AdSystem>Yieldlab</AdSystem>
@@ -195,7 +201,7 @@ public class YieldlabBidder implements Bidder<Void> {
             uriBuilder.addParameter("consent", consent);
         }
 
-        extractDsaRequestParams(request).forEach(uriBuilder::addParameter);
+        extractDsaRequestParamsFromBidRequest(request).forEach(uriBuilder::addParameter);
 
         return uriBuilder.toString();
     }
@@ -239,13 +245,16 @@ public class YieldlabBidder implements Bidder<Void> {
         return ObjectUtils.defaultIfNull(consent, "");
     }
 
-    private static Map<String, String> extractDsaRequestParams(BidRequest request) {
-        if (!hasDsa(request)) {
-            return Map.of();
-        }
+    private static Map<String, String> extractDsaRequestParamsFromBidRequest(BidRequest request) {
+        return Optional.ofNullable(request.getRegs())
+            .map(Regs::getExt)
+            .map(ExtRegs::getDsa)
+            .map(YieldlabBidder::extractDsaRequestParamsFromDsaRegsExtension)
+            .orElse(Map.of());
+    }
 
-        final var dsa = request.getRegs().getExt().getDsa();
-        final var dsaRequestParams = new HashMap<String, String>();
+    private static Map<String, String> extractDsaRequestParamsFromDsaRegsExtension(final ExtRegsDsa dsa) {
+        final HashMap<String, String> dsaRequestParams = new HashMap<>();
 
         if (dsa.getDsaRequired() != null) {
             dsaRequestParams.put("dsarequired", dsa.getDsaRequired().toString());
@@ -259,26 +268,21 @@ public class YieldlabBidder implements Bidder<Void> {
             dsaRequestParams.put("dsadatatopub", dsa.getDataToPub().toString());
         }
 
-        if (dsa.getTransparency() != null && !dsa.getTransparency().isEmpty()) {
-            dsaRequestParams.put("dsatransparency", encodeTransparenciesAsString(dsa.getTransparency()));
+        final List<ExtRegsDsaTransparency> dsaTransparency = dsa.getTransparency();
+        if (dsaTransparency != null && !dsaTransparency.isEmpty()) {
+            dsaRequestParams.put("dsatransparency", encodeTransparenciesAsString(dsaTransparency));
         }
 
         return dsaRequestParams.entrySet().stream()
-                .filter(entry -> !entry.getValue().isBlank())
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-
-    private static boolean hasDsa(BidRequest request) {
-        return request.getRegs() != null
-            && request.getRegs().getExt() != null
-            && request.getRegs().getExt().getDsa() != null;
+            .filter(entry -> !entry.getValue().isBlank())
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
     private static String encodeTransparenciesAsString(List<ExtRegsDsaTransparency> transparencies) {
         return transparencies.stream()
             .filter(transparencyIsValid())
             .map(YieldlabBidder::encodeTransparency)
-            .collect(Collectors.joining("~~"));
+            .collect(Collectors.joining(TRANSPARENCY_TEMPLATE_DELIMITER));
     }
 
     private static Predicate<ExtRegsDsaTransparency> transparencyIsValid() {
@@ -289,11 +293,13 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private static String encodeTransparency(ExtRegsDsaTransparency transparency) {
-        return "%s~%s".formatted(transparency.getDomain(), encodeTransparencyParams(transparency.getDsaParams()));
+        return TRANSPARENCY_TEMPLATE.formatted(transparency.getDomain(),
+            encodeTransparencyParams(transparency.getDsaParams()));
     }
 
     private static String encodeTransparencyParams(List<Integer> dsaParams) {
-        return dsaParams.stream().map(Objects::toString).collect(Collectors.joining("_"));
+        return dsaParams.stream().map(Objects::toString).collect(Collectors.joining(
+            TRANSPARENCY_TEMPLATE_PARAMS_DELIMITER));
     }
 
     private static MultiMap resolveHeaders(Site site, Device device, User user) {
@@ -479,7 +485,7 @@ public class YieldlabBidder implements Bidder<Void> {
         if (dsa == null) {
             return null;
         }
-        final var ext = mapper.mapper().createObjectNode();
+        final ObjectNode ext = mapper.mapper().createObjectNode();
         final JsonNode dsaNode;
         try {
             dsaNode = mapper.mapper().convertValue(dsa, JsonNode.class);

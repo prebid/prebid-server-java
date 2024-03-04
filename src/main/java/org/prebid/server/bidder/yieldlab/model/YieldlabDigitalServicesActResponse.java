@@ -6,12 +6,15 @@ import lombok.Value;
 import java.util.List;
 
 @AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class YieldlabDigitalServicesActResponse {
 
     String behalf;
+
     String paid;
+
     Integer adrender;
+
     List<Transparency> transparency;
 
     @AllArgsConstructor(staticName = "of")
