@@ -1,5 +1,6 @@
 package org.prebid.server.spring.config.server.application;
 
+import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
@@ -58,7 +59,6 @@ import org.prebid.server.spring.config.server.admin.AdminResourcesBinder;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.version.PrebidVersionProvider;
-import org.prebid.server.vertx.verticles.InitializableVerticle;
 import org.prebid.server.vertx.verticles.VerticleDefinition;
 import org.prebid.server.vertx.verticles.server.ServerVerticle;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
@@ -95,7 +95,7 @@ public class ApplicationServerConfiguration {
     VerticleDefinition httpApplicationServerVerticleDefinition(
             @Value("#{'${http.port:${server.http.port}}'}") Integer port,
             @Value("#{'${vertx.http-server-instances:${server.http.server-instances}}'}") Integer instances,
-            BiFunction<String, SocketAddress, InitializableVerticle> applicationVerticleFactory) {
+            BiFunction<String, SocketAddress, Verticle> applicationVerticleFactory) {
 
         return VerticleDefinition.ofMultiInstance(
                 () -> applicationVerticleFactory.apply(
@@ -108,7 +108,7 @@ public class ApplicationServerConfiguration {
     VerticleDefinition unixSocketApplicationServerVerticleDefinition(
             @Value("${server.unix-socket.path}") String path,
             @Value("${server.unix-socket.server-instances}") Integer instances,
-            BiFunction<String, SocketAddress, InitializableVerticle> applicationVerticleFactory) {
+            BiFunction<String, SocketAddress, Verticle> applicationVerticleFactory) {
 
         return VerticleDefinition.ofMultiInstance(
                 () -> applicationVerticleFactory.apply(
@@ -116,7 +116,8 @@ public class ApplicationServerConfiguration {
                 instances);
     }
 
-    @Bean // TODO: remove support for properties with http prefix after transition period
+    @Bean
+        // TODO: remove support for properties with http prefix after transition period
     HttpServerOptions httpServerOptions(
             @Value("#{'${http.max-headers-size:${server.max-headers-size:}}'}") int maxHeaderSize,
             @Value("#{'${http.max-initial-line-length:${server.max-initial-line-length:}}'}") int maxInitialLineLength,
@@ -155,7 +156,7 @@ public class ApplicationServerConfiguration {
     }
 
     @Bean
-    BiFunction<String, SocketAddress, InitializableVerticle> applicationVerticleFactory(
+    BiFunction<String, SocketAddress, Verticle> applicationVerticleFactory(
             @Qualifier("applicationServerRouterFactory") Supplier<Router> routerFactory,
             HttpServerOptions httpServerOptions,
             ExceptionHandler exceptionHandler) {
