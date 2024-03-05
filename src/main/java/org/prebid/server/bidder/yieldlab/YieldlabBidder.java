@@ -52,7 +52,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 public class YieldlabBidder implements Bidder<Void> {
@@ -250,7 +249,7 @@ public class YieldlabBidder implements Bidder<Void> {
             .map(Regs::getExt)
             .map(ExtRegs::getDsa)
             .map(YieldlabBidder::extractDsaRequestParamsFromDsaRegsExtension)
-            .orElse(Map.of());
+            .orElseGet(Map::of);
     }
 
     private static Map<String, String> extractDsaRequestParamsFromDsaRegsExtension(final ExtRegsDsa dsa) {
@@ -273,22 +272,19 @@ public class YieldlabBidder implements Bidder<Void> {
             dsaRequestParams.put("dsatransparency", encodeTransparenciesAsString(dsaTransparency));
         }
 
-        return dsaRequestParams.entrySet().stream()
-            .filter(entry -> !entry.getValue().isBlank())
-            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        return dsaRequestParams;
     }
 
     private static String encodeTransparenciesAsString(List<ExtRegsDsaTransparency> transparencies) {
         return transparencies.stream()
-            .filter(transparencyIsValid())
+            .filter(YieldlabBidder::transparencyIsValid)
             .map(YieldlabBidder::encodeTransparency)
             .collect(Collectors.joining(TRANSPARENCY_TEMPLATE_DELIMITER));
     }
 
-    private static Predicate<ExtRegsDsaTransparency> transparencyIsValid() {
-        return transparency ->
-            !Objects.isNull(transparency.getDomain())
-                && !Objects.isNull(transparency.getDsaParams())
+    private static boolean transparencyIsValid(ExtRegsDsaTransparency transparency) {
+        return transparency.getDomain() != null
+                && transparency.getDsaParams() != null
                 && !transparency.getDsaParams().isEmpty();
     }
 

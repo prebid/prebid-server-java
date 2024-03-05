@@ -18,7 +18,7 @@ public class YieldlabDigitalServicesActResponse {
     List<Transparency> transparency;
 
     @AllArgsConstructor(staticName = "of")
-    @Value
+    @Value(staticConstructor = "of")
     public static class Transparency {
         String domain;
         List<Integer> dsaparams;
