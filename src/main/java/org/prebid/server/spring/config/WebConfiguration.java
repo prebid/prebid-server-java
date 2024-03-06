@@ -14,10 +14,11 @@ import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureC
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.auction.gpp.SetuidGppService;
+import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContextFactory;
+import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
@@ -82,7 +83,8 @@ public class WebConfiguration {
     @Autowired
     private Vertx vertx;
 
-    @Bean // TODO: remove support for properties with http prefix after transition period
+    // TODO: remove support for properties with http prefix after transition period
+    @Bean
     HttpServerOptions httpServerOptions(
             @Value("#{'${http.max-headers-size:${server.max-headers-size:}}'}") int maxHeaderSize,
             @Value("#{'${http.max-initial-line-length:${server.max-initial-line-length:}}'}") int maxInitialLineLength,
@@ -280,7 +282,7 @@ public class WebConfiguration {
             ActivityInfrastructureCreator activityInfrastructureCreator,
             ApplicationSettings applicationSettings,
             CookieSyncService cookieSyncService,
-            PrivacyEnforcementService privacyEnforcementService,
+            CookieSyncPrivacyContextFactory cookieSyncPrivacyContextFactory,
             AnalyticsReporterDelegator analyticsReporterDelegator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
@@ -295,7 +297,7 @@ public class WebConfiguration {
                 activityInfrastructureCreator,
                 cookieSyncService,
                 applicationSettings,
-                privacyEnforcementService,
+                cookieSyncPrivacyContextFactory,
                 analyticsReporterDelegator,
                 metrics,
                 timeoutFactory,
@@ -308,7 +310,7 @@ public class WebConfiguration {
             UidsCookieService uidsCookieService,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
-            PrivacyEnforcementService privacyEnforcementService,
+            SetuidPrivacyContextFactory setuidPrivacyContextFactory,
             SetuidGppService setuidGppService,
             ActivityInfrastructureCreator activityInfrastructureCreator,
             HostVendorTcfDefinerService tcfDefinerService,
@@ -321,7 +323,7 @@ public class WebConfiguration {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 setuidGppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,

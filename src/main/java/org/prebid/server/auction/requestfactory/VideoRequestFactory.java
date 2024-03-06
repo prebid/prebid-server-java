@@ -16,11 +16,11 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.DebugResolver;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
@@ -57,7 +57,7 @@ public class VideoRequestFactory {
     private final VideoStoredRequestProcessor storedRequestProcessor;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final Ortb2ImplicitParametersResolver paramsResolver;
-    private final PrivacyEnforcementService privacyEnforcementService;
+    private final AuctionPrivacyContextFactory auctionPrivacyContextFactory;
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
 
@@ -68,7 +68,7 @@ public class VideoRequestFactory {
                                VideoStoredRequestProcessor storedRequestProcessor,
                                BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                                Ortb2ImplicitParametersResolver paramsResolver,
-                               PrivacyEnforcementService privacyEnforcementService,
+                               AuctionPrivacyContextFactory auctionPrivacyContextFactory,
                                DebugResolver debugResolver,
                                JacksonMapper mapper) {
 
@@ -78,7 +78,7 @@ public class VideoRequestFactory {
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
-        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.auctionPrivacyContextFactory = Objects.requireNonNull(auctionPrivacyContextFactory);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
 
@@ -108,9 +108,9 @@ public class VideoRequestFactory {
                         createBidRequest(httpRequest)
 
                                 .compose(bidRequest -> validateRequest(
-                                                bidRequest,
-                                                httpRequest,
-                                                initialAuctionContext.getDebugWarnings()))
+                                        bidRequest,
+                                        httpRequest,
+                                        initialAuctionContext.getDebugWarnings()))
 
                                 .map(bidRequestWithErrors -> populatePodErrors(
                                         bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
@@ -126,7 +126,7 @@ public class VideoRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.activityInfrastructureFrom(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
+                .compose(auctionContext -> auctionPrivacyContextFactory.contextFrom(auctionContext)
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(
