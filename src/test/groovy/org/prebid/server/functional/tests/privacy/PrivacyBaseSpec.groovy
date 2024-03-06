@@ -93,11 +93,11 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     @Shared
     protected final PrebidServerService activityPbsService = pbsServiceFactory.getService(PBS_CONFIG)
 
-    void setup() {
+    def setupSpec() {
         vendorListResponse.setResponse()
     }
 
-    void cleanup() {
+    def cleanupSpec() {
         vendorListResponse.reset()
     }
 
@@ -207,7 +207,6 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     protected static String getVendorListPath(Integer gvlVersion) {
         "/app/prebid-server/data/vendorlist-v${TCF_POLICY_V2.vendorListVersion}/${gvlVersion}.json"
     }
-
 
     protected static List<EnforcementRequirement> getBasicTcfCompanyBasedEnforcementRequirements(Purpose purpose) {
         [new EnforcementRequirement(purpose: purpose, enforcePurpose: BASIC, enforceVendor: false),
