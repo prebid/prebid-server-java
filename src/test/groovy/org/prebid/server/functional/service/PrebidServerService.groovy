@@ -1,6 +1,7 @@
 package org.prebid.server.functional.service
 
 import com.fasterxml.jackson.core.type.TypeReference
+import io.qameta.allure.Step
 import io.restassured.authentication.AuthenticationScheme
 import io.restassured.authentication.BasicAuthScheme
 import io.restassured.builder.RequestSpecBuilder
@@ -81,6 +82,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         prometheusRequestSpecification = buildAndGetRequestSpecification(pbsContainer.prometheusRootUri, authenticationScheme)
     }
 
+    @Step("[POST] /openrtb2/auction")
     BidResponse sendAuctionRequest(BidRequest bidRequest, Map<String, ?> headers = [:]) {
         def response = postAuction(bidRequest, headers)
 
@@ -88,6 +90,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), BidResponse)
     }
 
+    @Step("[POST RAW] /openrtb2/auction")
     RawAuctionResponse sendAuctionRequestRaw(BidRequest bidRequest, Map<String, String> headers = [:]) {
         def response = postAuction(bidRequest, headers)
 
@@ -97,6 +100,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
+    @Step("[GET] /openrtb2/amp")
     AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers = [:]) {
         def response = getAmp(ampRequest, headers)
 
@@ -104,6 +108,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), AmpResponse)
     }
 
+    @Step("[GET RAW] /openrtb2/amp")
     RawAmpResponse sendAmpRequestRaw(AmpRequest ampRequest, Map<String, String> headers = [:]) {
         def response = getAmp(ampRequest, headers)
 
@@ -113,6 +118,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
+    @Step("[POST] /cookie_sync without cookie")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request) {
         def response = postCookieSync(request)
 
@@ -120,6 +126,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), CookieSyncResponse)
     }
 
+    @Step("[POST] /cookie_sync with headers")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request, Map<String, String> headers) {
         def response = postCookieSync(request, null, headers)
 
@@ -127,6 +134,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), CookieSyncResponse)
     }
 
+    @Step("[POST] /cookie_sync with uids cookie")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request, UidsCookie uidsCookie) {
         def response = postCookieSync(request, uidsCookie)
 
@@ -134,6 +142,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), CookieSyncResponse)
     }
 
+    @Step("[POST] /cookie_sync with uids and additional cookies")
     CookieSyncResponse sendCookieSyncRequest(CookieSyncRequest request,
                                              UidsCookie uidsCookie,
                                              Map<String, String> additionalCookies) {
@@ -143,6 +152,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), CookieSyncResponse)
     }
 
+    @Step("[POST RAW] /cookie_sync with uids cookies")
     RawCookieSyncResponse sendCookieSyncRequestRaw(CookieSyncRequest request, UidsCookie uidsCookie) {
         def response = postCookieSync(request, uidsCookie)
 
@@ -152,6 +162,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
+    @Step("[POST RAW] /cookie_sync with uids and additional cookies")
     RawCookieSyncResponse sendCookieSyncRequestRaw(CookieSyncRequest request,
                                                    UidsCookie uidsCookie,
                                                    Map<String, String> additionalCookies) {
@@ -163,6 +174,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
+    @Step("[GET] /setuid")
     SetuidResponse sendSetUidRequest(SetuidRequest request, UidsCookie uidsCookie, Map header = [:]) {
         def uidsCookieAsJson = encode(uidsCookie)
         def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
@@ -180,6 +192,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         setuidResponse
     }
 
+    @Step("[GET] /getuids")
     GetuidResponse sendGetUidRequest(UidsCookie uidsCookie) {
         def uidsCookieAsJson = encode(uidsCookie)
         def uidsCookieAsEncodedJson = Base64.urlEncoder.encodeToString(uidsCookieAsJson.bytes)
@@ -191,6 +204,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), GetuidResponse)
     }
 
+    @Step("[GET] /event")
     byte[] sendEventRequest(EventRequest eventRequest, Map<String, String> headers = [:]) {
         def response = given(requestSpecification).headers(headers)
                                                   .queryParams(toMap(eventRequest))
@@ -200,6 +214,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         response.body.asByteArray()
     }
 
+    @Step("[POST] /vtrack")
     PrebidCacheResponse sendVtrackRequest(VtrackRequest request, String account) {
         def response = given(requestSpecification).queryParam("a", account)
                                                   .body(request)
@@ -209,6 +224,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), PrebidCacheResponse)
     }
 
+    @Step("[GET] /status")
     StatusResponse sendStatusRequest() {
         def response = given(requestSpecification).get(STATUS_ENDPOINT)
 
@@ -216,6 +232,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), StatusResponse)
     }
 
+    @Step("[GET] /info/bidders")
     String sendInfoBiddersRequest() {
         def response = given(requestSpecification).get(INFO_BIDDERS_ENDPOINT)
 
@@ -223,6 +240,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         response.body().asString()
     }
 
+    @Step("[GET] /info/bidders with params={queryParam}")
     List<String> sendInfoBiddersRequest(Map<String, String> queryParam) {
         def response = given(requestSpecification).queryParams(queryParam).get(INFO_BIDDERS_ENDPOINT)
 
@@ -230,6 +248,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.asString(), new TypeReference<List<String>>() {})
     }
 
+    @Step("[GET] /info/bidders/{bidderName}")
     BidderInfoResponse sendBidderInfoRequest(BidderName bidderName) {
 
         def response = given(requestSpecification).get("$INFO_BIDDERS_ENDPOINT/$bidderName.value")
@@ -238,6 +257,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), BidderInfoResponse)
     }
 
+    @Step("[GET] /bidders/params")
     BiddersParamsResponse sendBiddersParamsRequest() {
         def response = given(requestSpecification).get(BIDDERS_PARAMS_ENDPOINT)
 
@@ -245,6 +265,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), BiddersParamsResponse)
     }
 
+    @Step("[GET] /currency/rates")
     CurrencyRatesResponse sendCurrencyRatesRequest() {
         def response = given(adminRequestSpecification).get(CURRENCY_RATES_ENDPOINT)
 
@@ -252,6 +273,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), CurrencyRatesResponse)
     }
 
+    @Step("[GET] /logging/httpinteraction")
     String sendLoggingHttpInteractionRequest(HttpInteractionRequest httpInteractionRequest) {
         def response = given(adminRequestSpecification).queryParams(toMap(httpInteractionRequest))
                                                        .get(HTTP_INTERACTION_ENDPOINT)
@@ -260,6 +282,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         response.body().asString()
     }
 
+    @Step("[GET] /collected-metrics")
     Map<String, Number> sendCollectedMetricsRequest() {
         def response = given(adminRequestSpecification).get(COLLECTED_METRICS_ENDPOINT)
 
@@ -267,6 +290,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.asString(), new TypeReference<Map<String, Number>>() {})
     }
 
+    @Step("[GET] /pbs-admin/force-deals-update")
     void sendForceDealsUpdateRequest(ForceDealsUpdateRequest forceDealsUpdateRequest) {
         def response = given(adminRequestSpecification).queryParams(toMap(forceDealsUpdateRequest))
                                                        .get(FORCE_DEALS_UPDATE_ENDPOINT)
@@ -274,6 +298,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         checkResponseStatusCode(response, 204)
     }
 
+    @Step("[GET] /pbs-admin/lineitem-status")
     LineItemStatusReport sendLineItemStatusRequest(String lineItemId) {
         def request = given(adminRequestSpecification)
         if (lineItemId != null) {
@@ -286,6 +311,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.body.asString(), LineItemStatusReport)
     }
 
+    @Step("[GET] /metrics")
     String sendPrometheusMetricsRequest() {
         def response = given(prometheusRequestSpecification).get(PROMETHEUS_METRICS_ENDPOINT)
 

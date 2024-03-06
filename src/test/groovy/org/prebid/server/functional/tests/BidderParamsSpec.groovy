@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import io.qameta.allure.Issue
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredImp
@@ -270,6 +271,7 @@ class BidderParamsSpec extends BaseSpec {
     }
 
     // TODO: create same test for enabled circuit breaker
+    @Issue("https://github.com/prebid/prebid-server-java/issues/1478")
     def "PBS should emit warning when bidder endpoint is invalid"() {
         given: "Pbs config"
         def pbsService = pbsServiceFactory.getService(["adapters.generic.enabled"           : "true",
