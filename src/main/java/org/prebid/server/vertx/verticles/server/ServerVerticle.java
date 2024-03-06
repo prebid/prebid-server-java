@@ -13,7 +13,6 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.handler.ExceptionHandler;
 
 import java.util.Objects;
-import java.util.function.Supplier;
 
 public class ServerVerticle extends AbstractVerticle {
 

@@ -13,7 +13,6 @@ import io.vertx.ext.web.handler.BodyHandler;
 import org.prebid.server.spring.config.metrics.MetricsConfiguration;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.LocalMessageCodec;
-import org.prebid.server.vertx.verticles.VerticleDeployer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -67,10 +66,5 @@ public class VertxConfiguration {
     @Bean
     ContextRunner contextRunner(Vertx vertx, @Value("${vertx.init-timeout-ms}") long initTimeoutMs) {
         return new ContextRunner(vertx, initTimeoutMs);
-    }
-
-    @Bean
-    VerticleDeployer verticleDeployer(Vertx vertx, @Value("${vertx.init-timeout-ms}") long initTimeoutMs) {
-        return new VerticleDeployer(vertx, initTimeoutMs);
     }
 }
