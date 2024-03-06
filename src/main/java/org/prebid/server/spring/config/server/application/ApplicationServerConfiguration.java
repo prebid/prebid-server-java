@@ -79,7 +79,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
 @Configuration
 public class ApplicationServerConfiguration {
@@ -157,16 +156,16 @@ public class ApplicationServerConfiguration {
 
     @Bean
     BiFunction<String, SocketAddress, Verticle> applicationVerticleFactory(
-            @Qualifier("applicationServerRouterFactory") Supplier<Router> routerFactory,
+            @Qualifier("applicationServerRouter") Router router,
             HttpServerOptions httpServerOptions,
             ExceptionHandler exceptionHandler) {
 
         return (name, address) -> new ServerVerticle(
-                name, httpServerOptions, address, routerFactory, exceptionHandler);
+                name, httpServerOptions, address, router, exceptionHandler);
     }
 
-    @Bean("applicationServerRouterFactory")
-    Supplier<Router> applicationServerRouterFactory(
+    @Bean("applicationServerRouter")
+    Router applicationServerRouter(
             BodyHandler bodyHandler,
             NoCacheHandler noCacheHandler,
             CorsHandler corsHandler,
@@ -174,23 +173,21 @@ public class ApplicationServerConfiguration {
             @Qualifier("applicationPortAdminResourcesBinder") AdminResourcesBinder adminResourcesBinder,
             StaticHandler staticHandler) {
 
-        return () -> {
-            final Router router = Router.router(vertx);
-            router.route().handler(bodyHandler);
-            router.route().handler(noCacheHandler);
-            router.route().handler(corsHandler);
+        final Router router = Router.router(vertx);
+        router.route().handler(bodyHandler);
+        router.route().handler(noCacheHandler);
+        router.route().handler(corsHandler);
 
-            resources.forEach(resource ->
-                    resource.endpoints().forEach(endpoint ->
-                            router.route(endpoint.getMethod(), endpoint.getPath()).handler(resource)));
+        resources.forEach(resource ->
+                resource.endpoints().forEach(endpoint ->
+                        router.route(endpoint.getMethod(), endpoint.getPath()).handler(resource)));
 
-            adminResourcesBinder.bind(router);
+        adminResourcesBinder.bind(router);
 
-            router.get("/static/*").handler(staticHandler);
-            router.get("/").handler(staticHandler); // serves index.html by default
+        router.get("/static/*").handler(staticHandler);
+        router.get("/").handler(staticHandler); // serves index.html by default
 
-            return router;
-        };
+        return router;
     }
 
     @Bean

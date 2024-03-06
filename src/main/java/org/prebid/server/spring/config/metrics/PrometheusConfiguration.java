@@ -28,7 +28,6 @@ import org.springframework.validation.annotation.Validated;
 
 import javax.validation.constraints.NotNull;
 import java.util.List;
-import java.util.function.Supplier;
 
 @Configuration
 @ConditionalOnProperty(prefix = "metrics.prometheus", name = "enabled", havingValue = "true")
@@ -40,7 +39,7 @@ public class PrometheusConfiguration {
     @Bean
     public VerticleDefinition prometheusHttpServerVerticleDefinition(
             PrometheusConfigurationProperties prometheusConfigurationProperties,
-            @Qualifier("prometheusRouterFactory") Supplier<Router> routerFactory,
+            @Qualifier("prometheusRouter") Router router,
             DropwizardExports dropwizardExports) {
 
         CollectorRegistry.defaultRegistry.register(dropwizardExports);
@@ -49,7 +48,7 @@ public class PrometheusConfiguration {
                 () -> new ServerVerticle(
                         "Prometheus Http Server",
                         SocketAddress.inetSocketAddress(prometheusConfigurationProperties.getPort(), "0.0.0.0"),
-                        routerFactory));
+                        router));
     }
 
     @Bean
@@ -71,13 +70,11 @@ public class PrometheusConfiguration {
         return new DropwizardExports(metricRegistry, sampleBuilder);
     }
 
-    @Bean("prometheusRouterFactory")
-    Supplier<Router> prometheusRouterFactory(Vertx vertx) {
-        return () -> {
-            final Router router = Router.router(vertx);
-            router.route("/metrics").handler(new MetricsHandler());
-            return router;
-        };
+    @Bean("prometheusRouter")
+    Router prometheusRouter(Vertx vertx) {
+        final Router router = Router.router(vertx);
+        router.route("/metrics").handler(new MetricsHandler());
+        return router;
     }
 
     @Data

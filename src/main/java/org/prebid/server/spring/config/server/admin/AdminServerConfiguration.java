@@ -12,36 +12,32 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.function.Supplier;
-
 @Configuration
 @ConditionalOnProperty(prefix = "admin", name = "port")
 public class AdminServerConfiguration {
 
-    @Bean("adminPortAdminServerRouterFactory")
-    Supplier<Router> adminPortAdminServerRouterFactory(
+    @Bean("adminPortAdminServerRouter")
+    Router adminPortAdminServerRouter(
             Vertx vertx,
             @Qualifier("adminPortAdminResourcesBinder") AdminResourcesBinder adminResourcesBinder,
             BodyHandler bodyHandler) {
 
-        return () -> {
-            final Router router = Router.router(vertx);
-            router.route().handler(bodyHandler);
+        final Router router = Router.router(vertx);
+        router.route().handler(bodyHandler);
 
-            adminResourcesBinder.bind(router);
-            return router;
-        };
+        adminResourcesBinder.bind(router);
+        return router;
     }
 
     @Bean
     VerticleDefinition adminPortAdminHttpServerVerticleDefinition(
-            @Qualifier("adminPortAdminServerRouterFactory") Supplier<Router> routerFactory,
+            @Qualifier("adminPortAdminServerRouter") Router router,
             @Value("${admin.port}") int port) {
 
         return VerticleDefinition.ofSingleInstance(
                 () -> new ServerVerticle(
                         "Admin Http Server",
                         SocketAddress.inetSocketAddress(port, "0.0.0.0"),
-                        routerFactory));
+                        router));
     }
 }

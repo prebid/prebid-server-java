@@ -28,21 +28,21 @@ public class ServerVerticle extends AbstractVerticle {
     public ServerVerticle(String name,
                           HttpServerOptions serverOptions,
                           SocketAddress address,
-                          Supplier<Router> routerFactory,
+                          Router router,
                           ExceptionHandler exceptionHandler) {
 
         this.name = Objects.requireNonNull(name);
         this.serverOptions = Objects.requireNonNull(serverOptions);
         this.address = Objects.requireNonNull(address);
-        this.router = Objects.requireNonNull(routerFactory.get());
+        this.router = Objects.requireNonNull(router);
         this.exceptionHandler = Objects.requireNonNull(exceptionHandler);
     }
 
-    public ServerVerticle(String name, SocketAddress address, Supplier<Router> routerFactory) {
+    public ServerVerticle(String name, SocketAddress address, Router router) {
         this.name = Objects.requireNonNull(name);
         this.serverOptions = null;
         this.address = Objects.requireNonNull(address);
-        this.router = Objects.requireNonNull(routerFactory.get());
+        this.router = Objects.requireNonNull(router);
         this.exceptionHandler = null;
     }
 
