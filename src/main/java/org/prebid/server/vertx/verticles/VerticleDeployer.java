@@ -32,7 +32,7 @@ public class VerticleDeployer {
         vertx.deployVerticle(
                 definition.getFactory(),
                 new DeploymentOptions().setInstances(definition.getAmount()),
-                (result) -> {
+                result -> {
                     deployResult.set(result);
                     latch.countDown();
                 });

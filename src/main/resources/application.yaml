@@ -67,21 +67,6 @@ admin-endpoints:
     path: /pbs-admin/tracelog
     on-application-port: false
     protected: true
-  deals-status:
-    enabled: false
-    path: /pbs-admin/deals-status
-    on-application-port: false
-    protected: true
-  lineitem-status:
-    enabled: false
-    path: /pbs-admin/lineitem-status
-    on-application-port: false
-    protected: true
-  force-deals-update:
-    enabled: false
-    path: /pbs-admin/force-deals-update
-    on-application-port: false
-    protected: true
   e2eadmin:
     enabled: false
     path: /pbs-admin/e2eAdmin/*

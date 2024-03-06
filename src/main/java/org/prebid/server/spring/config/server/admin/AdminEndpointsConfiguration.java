@@ -5,21 +5,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.deals.AlertHttpService;
-import org.prebid.server.deals.DeliveryProgressService;
-import org.prebid.server.deals.DeliveryStatsService;
-import org.prebid.server.deals.LineItemService;
-import org.prebid.server.deals.PlannerService;
-import org.prebid.server.deals.RegisterService;
-import org.prebid.server.deals.simulation.DealsSimulationAdminHandler;
 import org.prebid.server.handler.admin.AccountCacheInvalidationHandler;
 import org.prebid.server.handler.admin.AdminResourceWrapper;
 import org.prebid.server.handler.admin.CollectedMetricsHandler;
 import org.prebid.server.handler.admin.CurrencyRatesHandler;
-import org.prebid.server.handler.admin.DealsStatusHandler;
-import org.prebid.server.handler.admin.ForceDealsUpdateHandler;
 import org.prebid.server.handler.admin.HttpInteractionLogHandler;
-import org.prebid.server.handler.admin.LineItemStatusHandler;
 import org.prebid.server.handler.admin.LoggerControlKnobHandler;
 import org.prebid.server.handler.admin.SettingsCacheNotificationHandler;
 import org.prebid.server.handler.admin.TracerLogHandler;
@@ -173,74 +163,6 @@ public class AdminEndpointsConfiguration {
             @Value("${admin-endpoints.tracelog.protected}") boolean isProtected) {
 
         return new AdminResourceWrapper(path, isOnApplicationPort, isProtected, new TracerLogHandler(criteriaManager));
-    }
-
-    @Bean
-    @ConditionalOnExpression("${deals.enabled} == true and ${admin-endpoints.deals-status.enabled} == true")
-    AdminResource dealsStatusEndpoint(
-            DeliveryProgressService deliveryProgressService,
-            JacksonMapper mapper,
-            @Value("${admin-endpoints.deals-status.path}") String path,
-            @Value("${admin-endpoints.deals-status.on-application-port}") boolean isOnApplicationPort,
-            @Value("${admin-endpoints.deals-status.protected}") boolean isProtected) {
-
-        return new AdminResourceWrapper(
-                path, isOnApplicationPort, isProtected, new DealsStatusHandler(deliveryProgressService, mapper));
-    }
-
-    @Bean
-    @ConditionalOnExpression("${deals.enabled} == true and ${admin-endpoints.lineitem-status.enabled} == true")
-    AdminResource lineItemStatusEndpoint(
-            DeliveryProgressService deliveryProgressService,
-            JacksonMapper mapper,
-            @Value("${admin-endpoints.lineitem-status.path}") String path,
-            @Value("${admin-endpoints.lineitem-status.on-application-port}") boolean isOnApplicationPort,
-            @Value("${admin-endpoints.lineitem-status.protected}") boolean isProtected) {
-
-        return new AdminResourceWrapper(
-                path,
-                isOnApplicationPort,
-                isProtected,
-                new LineItemStatusHandler(deliveryProgressService, mapper, path));
-    }
-
-    @Bean
-    @ConditionalOnExpression("${deals.enabled} == true and ${admin-endpoints.force-deals-update.enabled} == true")
-    AdminResource forceDealsUpdateEndpoint(
-            DeliveryStatsService deliveryStatsService,
-            PlannerService plannerService,
-            RegisterService registerService,
-            AlertHttpService alertHttpService,
-            DeliveryProgressService deliveryProgressService,
-            LineItemService lineItemService,
-            @Value("${admin-endpoints.force-deals-update.path}") String path,
-            @Value("${admin-endpoints.force-deals-update.on-application-port}") boolean isOnApplicationPort,
-            @Value("${admin-endpoints.force-deals-update.protected}") boolean isProtected) {
-
-        return new AdminResourceWrapper(
-                path,
-                isOnApplicationPort,
-                isProtected,
-                new ForceDealsUpdateHandler(
-                        deliveryStatsService,
-                        plannerService,
-                        registerService,
-                        alertHttpService,
-                        deliveryProgressService,
-                        lineItemService,
-                        path));
-    }
-
-    @Bean
-    @ConditionalOnExpression("${deals.enabled} == true and ${deals.simulation.enabled} == true"
-            + " and ${admin-endpoints.e2eadmin.enabled} == true")
-    AdminResource dealsSimulationAdminEndpoint(
-            DealsSimulationAdminHandler dealsSimulationAdminHandler,
-            @Value("${admin-endpoints.e2eadmin.path}") String path,
-            @Value("${admin-endpoints.e2eadmin.on-application-port}") boolean isOnApplicationPort,
-            @Value("${admin-endpoints.e2eadmin.protected}") boolean isProtected) {
-
-        return new AdminResourceWrapper(path, isOnApplicationPort, isProtected, dealsSimulationAdminHandler);
     }
 
     @Bean

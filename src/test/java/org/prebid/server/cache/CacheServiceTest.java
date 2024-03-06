@@ -19,6 +19,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidInfo;
 import org.prebid.server.auction.model.CachedDebugLog;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.CacheInfo;
@@ -206,7 +207,9 @@ public class CacheServiceTest extends VertxTest {
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(givenBidInfo(identity())),
-                givenAuctionContext().toBuilder().timeout(expiredTimeout).build(),
+                givenAuctionContext().toBuilder()
+                        .timeoutContext(TimeoutContext.of(0, expiredTimeout, 0))
+                        .build(),
                 CacheContext.builder()
                         .shouldCacheBids(true)
                         .build(),
@@ -229,8 +232,7 @@ public class CacheServiceTest extends VertxTest {
                 .build();
         // when
         cacheService.cacheBidsOpenrtb(
-                singletonList(givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder",
-                        "lineItemId")),
+                singletonList(givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder")),
                 givenAuctionContext(),
                 CacheContext.builder()
                         .shouldCacheBids(true)
@@ -238,9 +240,16 @@ public class CacheServiceTest extends VertxTest {
                 eventsContext);
 
         // then
-        verify(eventsService).winUrl(eq("bidId1"), eq("bidder"), eq("accountId"), eq("lineItemId"), eq(true),
-                eq(EventsContext.builder().enabledForAccount(true).enabledForRequest(true)
-                        .auctionId("auctionId").build()));
+        verify(eventsService).winUrl(
+                eq("bidId1"),
+                eq("bidder"),
+                eq("accountId"),
+                eq(true),
+                eq(EventsContext.builder()
+                        .enabledForAccount(true)
+                        .enabledForRequest(true)
+                        .auctionId("auctionId")
+                        .build()));
     }
 
     @Test
@@ -787,8 +796,8 @@ public class CacheServiceTest extends VertxTest {
         // given
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
 
-        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bid1").adm("adm"),
-                BidType.video, "bidder", null)
+        final BidInfo bidInfo1 = givenBidInfo(
+                builder -> builder.id("bid1").adm("adm"), BidType.video, "bidder")
                 .toBuilder().category("bid1Category").build();
 
         given(idGenerator.generateId()).willReturn("randomId");
@@ -817,10 +826,10 @@ public class CacheServiceTest extends VertxTest {
     public void cacheBidsOpenrtbShouldNotUpdateVastXmlPutObjectWithKeyWhenDoesNotHaveCatDur() throws IOException {
         // given
         final Imp imp1 = givenImp(builder -> builder.id("impId1").video(Video.builder().build()));
-        final BidInfo bidInfo1 = givenBidInfo(builder -> builder.id("bid1").impid("impId1").adm("adm"),
-                BidType.video, "bidder", null);
+        final BidInfo bidInfo1 = givenBidInfo(
+                builder -> builder.id("bid1").impid("impId1").adm("adm"), BidType.video, "bidder");
 
-        given(vastModifier.createBidVastXml(any(), any(), any(), any(), any(), any(), any(), any())).willReturn("adm");
+        given(vastModifier.createBidVastXml(any(), any(), any(), any(), any(), any(), any())).willReturn("adm");
 
         // when
         cacheService.cacheBidsOpenrtb(
@@ -975,7 +984,7 @@ public class CacheServiceTest extends VertxTest {
         return AuctionContext.builder()
                 .account(accountCustomizer.apply(accountBuilder).build())
                 .bidRequest(bidRequestCustomizer.apply(bidRequestBuilder).build())
-                .timeout(timeout)
+                .timeoutContext(TimeoutContext.of(0, timeout, 0))
                 .build();
     }
 
@@ -1009,15 +1018,6 @@ public class CacheServiceTest extends VertxTest {
                 .correspondingImp(givenImp(UnaryOperator.identity()))
                 .bidder(bidder)
                 .bidType(bidType)
-                .build();
-    }
-
-    private static BidInfo givenBidInfo(UnaryOperator<Bid.BidBuilder> bidCustomizer,
-                                        BidType bidType,
-                                        String bidder,
-                                        String lineItemId) {
-        return givenBidInfo(bidCustomizer, bidType, bidder).toBuilder()
-                .lineItemId(lineItemId)
                 .build();
     }
 

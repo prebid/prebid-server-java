@@ -55,7 +55,7 @@ public class TracerLogHandlerTest extends VertxTest {
 
         // then
         verify(httpResponse).setStatusCode(eq(400));
-        verify(httpResponse).end(eq("At least one parameter should ne defined: account, bidderCode, lineItemId"));
+        verify(httpResponse).end(eq("At least one parameter should be defined: account, bidderCode"));
     }
 
     @Test
@@ -91,7 +91,7 @@ public class TracerLogHandlerTest extends VertxTest {
         given(httpRequest.params()).willReturn(MultiMap.caseInsensitiveMultiMap().add("account", "1001")
                 .add("duration", "200").add("level", "invalid"));
         doThrow(new IllegalArgumentException("Invalid LoggingLevel: invalid"))
-                .when(criteriaManager).addCriteria(any(), any(), any(), any(), any());
+                .when(criteriaManager).addCriteria(any(), any(), any(), any());
 
         // when
         tracerLogHandler.handle(routingContext);

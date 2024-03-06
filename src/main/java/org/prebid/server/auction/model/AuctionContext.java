@@ -10,9 +10,6 @@ import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.deals.model.DeepDebugLog;
-import org.prebid.server.deals.model.TxnLog;
-import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.hooks.execution.model.HookExecutionContext;
 import org.prebid.server.metric.MetricName;
@@ -40,12 +37,6 @@ public class AuctionContext {
     @JsonIgnore
     List<AuctionParticipation> auctionParticipations;
 
-    @JsonIgnore
-    long startTime;
-
-    @JsonIgnore
-    Timeout timeout;
-
     Account account;
 
     MetricName requestTypeMetric;
@@ -57,6 +48,9 @@ public class AuctionContext {
     Map<String, List<DebugHttpCall>> debugHttpCalls;
 
     Map<String, BidRejectionTracker> bidRejectionTrackers;
+
+    @JsonIgnore
+    TimeoutContext timeoutContext;
 
     GppContext gppContext;
 
@@ -71,12 +65,6 @@ public class AuctionContext {
     DebugContext debugContext;
 
     boolean requestRejected;
-
-    @JsonIgnore
-    TxnLog txnLog;
-
-    @JsonIgnore
-    DeepDebugLog deepDebugLog;
 
     CachedDebugLog cachedDebugLog;
 

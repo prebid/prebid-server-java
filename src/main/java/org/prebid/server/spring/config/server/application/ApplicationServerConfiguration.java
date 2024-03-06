@@ -25,10 +25,9 @@ import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.CacheService;
+import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.deals.UserService;
-import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
@@ -115,8 +114,8 @@ public class ApplicationServerConfiguration {
                 instances);
     }
 
+    // TODO: remove support for properties with http prefix after transition period
     @Bean
-        // TODO: remove support for properties with http prefix after transition period
     HttpServerOptions httpServerOptions(
             @Value("#{'${http.max-headers-size:${server.max-headers-size:}}'}") int maxHeaderSize,
             @Value("#{'${http.max-initial-line-length:${server.max-initial-line-length:}}'}") int maxInitialLineLength,
@@ -297,6 +296,7 @@ public class ApplicationServerConfiguration {
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             CookieSyncGppService cookieSyncGppProcessor,
+            CookieDeprecationService cookieDeprecationService,
             ActivityInfrastructureCreator activityInfrastructureCreator,
             ApplicationSettings applicationSettings,
             CookieSyncService cookieSyncService,
@@ -310,6 +310,7 @@ public class ApplicationServerConfiguration {
                 defaultTimeoutMs,
                 logSamplingRate,
                 uidsCookieService,
+                cookieDeprecationService,
                 cookieSyncGppProcessor,
                 activityInfrastructureCreator,
                 cookieSyncService,
@@ -420,27 +421,18 @@ public class ApplicationServerConfiguration {
     }
 
     @Bean
-    NotificationEventHandler notificationEventHandler(
-            UidsCookieService uidsCookieService,
-            @Autowired(required = false) ApplicationEventService applicationEventService,
-            @Autowired(required = false) UserService userService,
-            ActivityInfrastructureCreator activityInfrastructureCreator,
-            AnalyticsReporterDelegator analyticsReporterDelegator,
-            TimeoutFactory timeoutFactory,
-            ApplicationSettings applicationSettings,
-            @Value("${event.default-timeout-ms}") long defaultTimeoutMillis,
-            @Value("${deals.enabled}") boolean dealsEnabled) {
+    NotificationEventHandler notificationEventHandler(ActivityInfrastructureCreator activityInfrastructureCreator,
+                                                      AnalyticsReporterDelegator analyticsReporterDelegator,
+                                                      TimeoutFactory timeoutFactory,
+                                                      ApplicationSettings applicationSettings,
+                                                      @Value("${event.default-timeout-ms}") long defaultTimeoutMillis) {
 
         return new NotificationEventHandler(
-                uidsCookieService,
-                applicationEventService,
-                userService,
                 activityInfrastructureCreator,
                 analyticsReporterDelegator,
                 timeoutFactory,
                 applicationSettings,
-                defaultTimeoutMillis,
-                dealsEnabled);
+                defaultTimeoutMillis);
     }
 
     @Bean

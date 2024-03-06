@@ -157,7 +157,7 @@ public class BoldwinBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.mtype(4).impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -165,7 +165,7 @@ public class BoldwinBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").mtype(4).build(), xNative, "USD"));
     }
 
     @Test
@@ -176,7 +176,7 @@ public class BoldwinBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.mtype(1).impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -184,7 +184,7 @@ public class BoldwinBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().mtype(1).impid("123").build(), banner, "USD"));
     }
 
     @Test
@@ -195,7 +195,7 @@ public class BoldwinBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().id("123").video(Video.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.mtype(2).impid("123"))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -203,11 +203,11 @@ public class BoldwinBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().mtype(2).impid("123").build(), video, "USD"));
     }
 
     @Test
-    public void makeBidsShouldThrowErrorFailedToFindImpression() throws JsonProcessingException {
+    public void makeBidsShouldThrowErrorUnableToFetchMediaType() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -223,7 +223,7 @@ public class BoldwinBidderTest extends VertxTest {
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
-                    assertThat(error.getMessage()).startsWith("Failed to find impression for ID: '123'");
+                    assertThat(error.getMessage()).startsWith("Unable to fetch mediaType in multi-format: 123");
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
                 });
     }
