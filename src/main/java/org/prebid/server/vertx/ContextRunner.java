@@ -43,7 +43,7 @@ public class ContextRunner {
         }
 
         if (future.failed()) {
-            throw new RuntimeException("Action failed");
+            throw new RuntimeException(future.cause());
         }
     }
 }

@@ -62,7 +62,6 @@ public class VertxConfiguration {
         return BodyHandler.create(uploadsDir);
     }
 
-    // TODO: Remove this class entirely
     @Bean
     ContextRunner contextRunner(Vertx vertx, @Value("${vertx.init-timeout-ms}") long initTimeoutMs) {
         return new ContextRunner(vertx, initTimeoutMs);
