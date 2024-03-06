@@ -14,7 +14,7 @@ import java.util.List;
  * The specific data providers in use should be published by the exchange
  * <em>a priori</em> to its bidders.
  */
-@Builder
+@Builder(toBuilder = true)
 @Value
 public class Data {
 

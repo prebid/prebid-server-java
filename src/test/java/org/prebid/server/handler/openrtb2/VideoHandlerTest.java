@@ -8,6 +8,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,6 +23,7 @@ import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.cache.CacheService;
@@ -34,6 +36,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.response.VideoResponse;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
 import java.time.Clock;
@@ -132,7 +135,11 @@ public class VideoHandlerTest extends VertxTest {
         videoHandler.handle(routingContext);
 
         // then
-        assertThat(captureAuctionContext().getTimeout().remaining()).isEqualTo(2000L);
+        assertThat(captureAuctionContext())
+                .extracting(AuctionContext::getTimeoutContext)
+                .extracting(TimeoutContext::getTimeout)
+                .extracting(Timeout::remaining)
+                .isEqualTo(2000L);
     }
 
     @Test
@@ -158,6 +165,28 @@ public class VideoHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldAddObserveBrowsingTopicsResponseHeader() {
+        // given
+        httpRequest.headers().add(HttpUtil.SEC_BROWSING_TOPICS_HEADER, "");
+
+        given(videoRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity(), emptyList())));
+
+        given(exchangeService.holdAuction(any()))
+                .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
+                        .bidResponse(BidResponse.builder().build())
+                        .build()));
+
+        // when
+        videoHandler.handle(routingContext);
+
+        // then
+        assertThat(httpResponse.headers())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple("Observe-Browsing-Topics", "?1"));
+    }
+
+    @Test
     public void shouldComputeTimeoutBasedOnRequestProcessingStartTime() {
         // given
         given(videoRequestFactory.fromRequest(any(), anyLong()))
@@ -172,7 +201,12 @@ public class VideoHandlerTest extends VertxTest {
         videoHandler.handle(routingContext);
 
         // then
-        assertThat(captureAuctionContext().getTimeout().remaining()).isLessThanOrEqualTo(1950L);
+        assertThat(captureAuctionContext())
+                .extracting(AuctionContext::getTimeoutContext)
+                .extracting(TimeoutContext::getTimeout)
+                .extracting(Timeout::remaining)
+                .asInstanceOf(InstanceOfAssertFactories.LONG)
+                .isLessThanOrEqualTo(1950L);
     }
 
     @Test
@@ -344,7 +378,7 @@ public class VideoHandlerTest extends VertxTest {
                 .cachedDebugLog(new CachedDebugLog(false, 100, null, jacksonMapper))
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
-                .timeout(timeout)
+                .timeoutContext(TimeoutContext.of(0, timeout, 0))
                 .build();
 
         return WithPodErrors.of(auctionContext, errors);

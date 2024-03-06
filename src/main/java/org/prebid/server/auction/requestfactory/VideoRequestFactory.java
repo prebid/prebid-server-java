@@ -21,6 +21,7 @@ import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.WithPodErrors;
+import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.DecodeException;
@@ -107,9 +108,9 @@ public class VideoRequestFactory {
                         createBidRequest(httpRequest)
 
                                 .compose(bidRequest -> validateRequest(
-                                                bidRequest,
-                                                httpRequest,
-                                                initialAuctionContext.getDebugWarnings()))
+                                        bidRequest,
+                                        httpRequest,
+                                        initialAuctionContext.getDebugWarnings()))
 
                                 .map(bidRequestWithErrors -> populatePodErrors(
                                         bidRequestWithErrors.getPodErrors(), podErrors, bidRequestWithErrors))
@@ -128,17 +129,15 @@ public class VideoRequestFactory {
                 .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
                         .map(auctionContext::with))
 
-                .map(auctionContext -> auctionContext.with(
-                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
+                .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(ortb2RequestFactory::populateUserAdditionalInfo)
-
                 .map(ortb2RequestFactory::enrichWithPriceFloors)
 
-                .map(auctionContext -> ortb2RequestFactory.updateTimeout(auctionContext, startTime))
+                .map(ortb2RequestFactory::updateTimeout)
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection)
 
@@ -297,7 +296,10 @@ public class VideoRequestFactory {
         final BidRequest bidRequest = bidRequestToErrors.getData();
         final BidRequest updatedBidRequest = paramsResolver.resolve(
                 bidRequest,
-                httpRequest,
+                AuctionContext.builder()
+                        .httpRequest(httpRequest)
+                        .debugContext(DebugContext.empty())
+                        .build(),
                 ENDPOINT,
                 false);
         final BidRequest updatedWithDebugBidRequest = debugEnabled

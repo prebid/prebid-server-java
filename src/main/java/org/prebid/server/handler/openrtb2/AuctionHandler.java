@@ -6,6 +6,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -133,6 +134,7 @@ public class AuctionHandler implements ApplicationResource {
                               AuctionEvent.AuctionEventBuilder auctionEventBuilder,
                               RoutingContext routingContext,
                               long startTime) {
+
         final boolean responseSucceeded = responseResult.succeeded();
 
         final AuctionContext auctionContext = responseSucceeded ? responseResult.result() : null;
@@ -146,7 +148,7 @@ public class AuctionHandler implements ApplicationResource {
         final String body;
 
         final HttpServerResponse response = routingContext.response();
-        enrichWithCommonHeaders(response);
+        enrichResponseWithCommonHeaders(routingContext);
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
@@ -181,7 +183,8 @@ public class AuctionHandler implements ApplicationResource {
             } else if (exception instanceof BlacklistedAppException
                     || exception instanceof BlacklistedAccountException) {
                 metricRequestStatus = exception instanceof BlacklistedAccountException
-                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
+                        ? MetricName.blacklisted_account
+                        : MetricName.blacklisted_app;
                 final String message = "Blacklisted: " + exception.getMessage();
                 logger.debug(message);
 
@@ -211,16 +214,31 @@ public class AuctionHandler implements ApplicationResource {
         final AuctionEvent auctionEvent = auctionEventBuilder.status(status.code()).errors(errorMessages).build();
         final PrivacyContext privacyContext = auctionContext != null ? auctionContext.getPrivacyContext() : null;
         final TcfContext tcfContext = privacyContext != null ? privacyContext.getTcfContext() : TcfContext.empty();
-        respondWith(routingContext, status, body, startTime, requestType, metricRequestStatus, auctionEvent,
+
+        respondWith(
+                routingContext,
+                status,
+                body,
+                startTime,
+                requestType,
+                metricRequestStatus,
+                auctionEvent,
                 tcfContext);
         httpInteractionLogger.maybeLogOpenrtb2Auction(auctionContext, routingContext, status.code(), body);
     }
 
-    private void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body, long startTime,
-                             MetricName requestType, MetricName metricRequestStatus, AuctionEvent event,
+    private void respondWith(RoutingContext routingContext,
+                             HttpResponseStatus status,
+                             String body,
+                             long startTime,
+                             MetricName requestType,
+                             MetricName metricRequestStatus,
+                             AuctionEvent event,
                              TcfContext tcfContext) {
 
-        final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_auction,
+        final boolean responseSent = HttpUtil.executeSafely(
+                routingContext,
+                Endpoint.openrtb2_auction,
                 response -> response
                         .exceptionHandler(throwable -> handleResponseException(throwable, requestType))
                         .setStatusCode(status.code())
@@ -240,9 +258,15 @@ public class AuctionHandler implements ApplicationResource {
         metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
     }
 
-    private void enrichWithCommonHeaders(HttpServerResponse response) {
+    private void enrichResponseWithCommonHeaders(RoutingContext routingContext) {
+        final MultiMap responseHeaders = routingContext.response().headers();
         HttpUtil.addHeaderIfValueIsNotEmpty(
-                response.headers(), HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+                responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+
+        final MultiMap requestHeaders = routingContext.request().headers();
+        if (requestHeaders.contains(HttpUtil.SEC_BROWSING_TOPICS_HEADER)) {
+            responseHeaders.add(HttpUtil.OBSERVE_BROWSING_TOPICS_HEADER, "?1");
+        }
     }
 
     private void enrichWithSuccessfulHeaders(HttpServerResponse response) {

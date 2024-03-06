@@ -16,6 +16,7 @@ import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.bidder.UsersyncMethodChooser;
+import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
@@ -24,6 +25,7 @@ import org.prebid.server.cookie.exception.InvalidCookieSyncRequestException;
 import org.prebid.server.cookie.exception.UnauthorizedUidsException;
 import org.prebid.server.cookie.model.BiddersContext;
 import org.prebid.server.cookie.model.CookieSyncContext;
+import org.prebid.server.cookie.model.PartitionedCookie;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
@@ -46,6 +48,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class CookieSyncHandler implements ApplicationResource {
 
@@ -55,6 +58,7 @@ public class CookieSyncHandler implements ApplicationResource {
     private final long defaultTimeout;
     private final double logSamplingRate;
     private final UidsCookieService uidsCookieService;
+    private final CookieDeprecationService cookieDeprecationService;
     private final CookieSyncGppService gppService;
     private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final CookieSyncService cookieSyncService;
@@ -68,6 +72,7 @@ public class CookieSyncHandler implements ApplicationResource {
     public CookieSyncHandler(long defaultTimeout,
                              double logSamplingRate,
                              UidsCookieService uidsCookieService,
+                             CookieDeprecationService cookieDeprecationService,
                              CookieSyncGppService gppService,
                              ActivityInfrastructureCreator activityInfrastructureCreator,
                              CookieSyncService cookieSyncService,
@@ -81,6 +86,7 @@ public class CookieSyncHandler implements ApplicationResource {
         this.defaultTimeout = defaultTimeout;
         this.logSamplingRate = logSamplingRate;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
+        this.cookieDeprecationService = Objects.requireNonNull(cookieDeprecationService);
         this.gppService = Objects.requireNonNull(gppService);
         this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.cookieSyncService = Objects.requireNonNull(cookieSyncService);
@@ -198,12 +204,20 @@ public class CookieSyncHandler implements ApplicationResource {
 
     private void respondWithResult(CookieSyncContext cookieSyncContext, CookieSyncResponse cookieSyncResponse) {
         final HttpResponseStatus status = HttpResponseStatus.OK;
+        final PartitionedCookie deprecationCookie = cookieDeprecationService.makeCookie(
+                cookieSyncContext.getAccount(),
+                cookieSyncContext.getRoutingContext());
 
         HttpUtil.executeSafely(cookieSyncContext.getRoutingContext(), Endpoint.cookie_sync,
-                response -> response
-                        .setStatusCode(status.code())
-                        .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                        .end(mapper.encodeToString(cookieSyncResponse)));
+                response -> {
+                    response.setStatusCode(status.code())
+                            .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+
+                    Optional.ofNullable(deprecationCookie)
+                            .ifPresent(cookie -> response.putHeader(HttpUtil.SET_COOKIE_HEADER, cookie.encode()));
+
+                    response.end(mapper.encodeToString(cookieSyncResponse));
+                });
 
         final CookieSyncEvent event = CookieSyncEvent.builder()
                 .status(status.code())

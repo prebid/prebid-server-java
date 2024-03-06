@@ -4,6 +4,7 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -67,6 +68,7 @@ public class VideoHandler implements ApplicationResource {
                         Clock clock,
                         PrebidVersionProvider prebidVersionProvider,
                         JacksonMapper mapper) {
+
         this.videoRequestFactory = Objects.requireNonNull(videoRequestFactory);
         this.videoResponseFactory = Objects.requireNonNull(videoResponseFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
@@ -131,7 +133,7 @@ public class VideoHandler implements ApplicationResource {
         final VideoResponse videoResponse = responseSucceeded ? responseResult.result() : null;
 
         final HttpServerResponse response = routingContext.response();
-        enrichWithCommonHeaders(response);
+        enrichResponseWithCommonHeaders(routingContext);
 
         if (responseSucceeded) {
             metricRequestStatus = MetricName.ok;
@@ -238,9 +240,15 @@ public class VideoHandler implements ApplicationResource {
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 
-    private void enrichWithCommonHeaders(HttpServerResponse response) {
+    private void enrichResponseWithCommonHeaders(RoutingContext routingContext) {
+        final MultiMap responseHeaders = routingContext.response().headers();
         HttpUtil.addHeaderIfValueIsNotEmpty(
-                response.headers(), HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+                responseHeaders, HttpUtil.X_PREBID_HEADER, prebidVersionProvider.getNameVersionRecord());
+
+        final MultiMap requestHeaders = routingContext.request().headers();
+        if (requestHeaders.contains(HttpUtil.SEC_BROWSING_TOPICS_HEADER)) {
+            responseHeaders.add(HttpUtil.OBSERVE_BROWSING_TOPICS_HEADER, "?1");
+        }
     }
 
     private void enrichWithSuccessfulHeaders(HttpServerResponse response) {

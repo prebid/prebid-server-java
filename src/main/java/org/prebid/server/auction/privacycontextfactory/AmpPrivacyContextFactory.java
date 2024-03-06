@@ -49,7 +49,7 @@ public class AmpPrivacyContextFactory {
         final BidRequest bidRequest = auctionContext.getBidRequest();
 
         final MetricName requestType = auctionContext.getRequestTypeMetric();
-        final Timeout timeout = auctionContext.getTimeout();
+        final Timeout timeout = auctionContext.getTimeoutContext().getTimeout();
         final List<String> errors = auctionContext.getPrebidErrors();
 
         final Privacy initialPrivacy = privacyExtractor.validPrivacyFrom(bidRequest, errors);

@@ -13,7 +13,6 @@ import java.util.Objects;
 public class TracerLogHandler implements Handler<RoutingContext> {
 
     private static final String ACCOUNT_PARAMETER = "account";
-    private static final String LINE_ITEM_PARAMETER = "lineItemId";
     private static final String BIDDER_CODE_PARAMETER = "bidderCode";
     private static final String LOG_LEVEL_PARAMETER = "level";
     private static final String DURATION_IN_SECONDS = "duration";
@@ -29,11 +28,11 @@ public class TracerLogHandler implements Handler<RoutingContext> {
         final MultiMap parameters = routingContext.request().params();
         final String accountId = parameters.get(ACCOUNT_PARAMETER);
         final String bidderCode = parameters.get(BIDDER_CODE_PARAMETER);
-        final String lineItemId = parameters.get(LINE_ITEM_PARAMETER);
 
-        if (StringUtils.isBlank(accountId) && StringUtils.isBlank(lineItemId) && StringUtils.isBlank(bidderCode)) {
-            routingContext.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
-                    .end("At least one parameter should ne defined: account, bidderCode, lineItemId");
+        if (StringUtils.isBlank(accountId) && StringUtils.isBlank(bidderCode)) {
+            routingContext.response()
+                    .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                    .end("At least one parameter should be defined: account, bidderCode");
             return;
         }
 
@@ -42,14 +41,17 @@ public class TracerLogHandler implements Handler<RoutingContext> {
         try {
             duration = parseDuration(parameters.get(DURATION_IN_SECONDS));
         } catch (InvalidRequestException e) {
-            routingContext.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code()).end(e.getMessage());
+            routingContext.response()
+                    .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+                    .end(e.getMessage());
             return;
         }
 
         try {
-            criteriaManager.addCriteria(accountId, bidderCode, lineItemId, loggerLevel, duration);
+            criteriaManager.addCriteria(accountId, bidderCode, loggerLevel, duration);
         } catch (IllegalArgumentException e) {
-            routingContext.response().setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
+            routingContext.response()
+                    .setStatusCode(HttpResponseStatus.BAD_REQUEST.code())
                     .end("Invalid parameter: " + e.getMessage());
             return;
         }
@@ -67,6 +69,5 @@ public class TracerLogHandler implements Handler<RoutingContext> {
             throw new InvalidRequestException(
                     "duration parameter should be defined as integer, but was " + rawDuration);
         }
-
     }
 }

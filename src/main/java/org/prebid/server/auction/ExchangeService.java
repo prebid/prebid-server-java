@@ -8,11 +8,9 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Content;
-import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
@@ -48,6 +46,7 @@ import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.bidder.Bidder;
@@ -59,9 +58,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
-import org.prebid.server.deals.DealsService;
-import org.prebid.server.deals.events.ApplicationEventService;
-import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -96,8 +92,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -126,7 +120,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.LineItemUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 import org.prebid.server.validation.ResponseBidValidator;
@@ -147,9 +140,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
@@ -170,13 +161,10 @@ public class ExchangeService {
     private static final Integer DEFAULT_MULTIBID_LIMIT_MAX = 9;
     private static final String EID_ALLOWED_FOR_ALL_BIDDERS = "*";
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
-    private static final Set<Integer> DSA_REQUIRED = Set.of(2, 3);
 
     private final double logSamplingRate;
-    private final int timeoutAdjustmentFactor;
     private final BidderCatalog bidderCatalog;
     private final StoredResponseProcessor storedResponseProcessor;
-    private final DealsService dealsService;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final FpdResolver fpdResolver;
     private final SupplyChainResolver supplyChainResolver;
@@ -190,12 +178,12 @@ public class ExchangeService {
     private final ResponseBidValidator responseBidValidator;
     private final CurrencyConversionService currencyService;
     private final BidResponseCreator bidResponseCreator;
-    private final ApplicationEventService applicationEventService;
     private final BidResponsePostProcessor bidResponsePostProcessor;
     private final HookStageExecutor hookStageExecutor;
     private final HttpInteractionLogger httpInteractionLogger;
     private final PriceFloorAdjuster priceFloorAdjuster;
     private final PriceFloorEnforcer priceFloorEnforcer;
+    private final DsaEnforcer dsaEnforcer;
     private final BidAdjustmentFactorResolver bidAdjustmentFactorResolver;
     private final Metrics metrics;
     private final Clock clock;
@@ -204,10 +192,8 @@ public class ExchangeService {
     private final boolean enabledStrictAppSiteDoohValidation;
 
     public ExchangeService(double logSamplingRate,
-                           int timeoutAdjustmentFactor,
                            BidderCatalog bidderCatalog,
                            StoredResponseProcessor storedResponseProcessor,
-                           DealsService dealsService,
                            PrivacyEnforcementService privacyEnforcementService,
                            FpdResolver fpdResolver,
                            SupplyChainResolver supplyChainResolver,
@@ -223,10 +209,10 @@ public class ExchangeService {
                            BidResponseCreator bidResponseCreator,
                            BidResponsePostProcessor bidResponsePostProcessor,
                            HookStageExecutor hookStageExecutor,
-                           ApplicationEventService applicationEventService,
                            HttpInteractionLogger httpInteractionLogger,
                            PriceFloorAdjuster priceFloorAdjuster,
                            PriceFloorEnforcer priceFloorEnforcer,
+                           DsaEnforcer dsaEnforcer,
                            BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
                            Metrics metrics,
                            Clock clock,
@@ -234,14 +220,9 @@ public class ExchangeService {
                            CriteriaLogManager criteriaLogManager,
                            boolean enabledStrictAppSiteDoohValidation) {
 
-        if (timeoutAdjustmentFactor < 0 || timeoutAdjustmentFactor > 100) {
-            throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 100].");
-        }
         this.logSamplingRate = logSamplingRate;
-        this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
-        this.dealsService = dealsService;
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
         this.supplyChainResolver = Objects.requireNonNull(supplyChainResolver);
@@ -257,10 +238,10 @@ public class ExchangeService {
         this.bidResponseCreator = Objects.requireNonNull(bidResponseCreator);
         this.bidResponsePostProcessor = Objects.requireNonNull(bidResponsePostProcessor);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
-        this.applicationEventService = applicationEventService;
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.priceFloorAdjuster = Objects.requireNonNull(priceFloorAdjuster);
         this.priceFloorEnforcer = Objects.requireNonNull(priceFloorEnforcer);
+        this.dsaEnforcer = Objects.requireNonNull(dsaEnforcer);
         this.bidAdjustmentFactorResolver = Objects.requireNonNull(bidAdjustmentFactorResolver);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -293,7 +274,7 @@ public class ExchangeService {
     private Future<AuctionContext> runAuction(AuctionContext receivedContext) {
         final UidsCookie uidsCookie = receivedContext.getUidsCookie();
         final BidRequest bidRequest = receivedContext.getBidRequest();
-        final Timeout timeout = receivedContext.getTimeout();
+        final Timeout timeout = receivedContext.getTimeoutContext().getTimeout();
         final Account account = receivedContext.getAccount();
         final List<String> debugWarnings = receivedContext.getDebugWarnings();
         final MetricName requestTypeMetric = receivedContext.getRequestTypeMetric();
@@ -307,11 +288,8 @@ public class ExchangeService {
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedAuctionResponses))
                 .compose(storedResponseResult -> extractAuctionParticipations(
-                        receivedContext, storedResponseResult, aliases, bidderToMultiBid))
-
-                .map(auctionParticipations -> matchAndPopulateDeals(auctionParticipations, aliases, receivedContext))
-                .map(auctionParticipations -> postProcessDeals(auctionParticipations, receivedContext))
-                .map(auctionParticipations -> fillContext(receivedContext, auctionParticipations))
+                        receivedContext, storedResponseResult, aliases, bidderToMultiBid)
+                        .map(receivedContext::with))
 
                 .map(context -> updateRequestMetric(context, uidsCookie, aliases, account, requestTypeMetric))
 
@@ -336,9 +314,11 @@ public class ExchangeService {
 
                 // produce response from bidder results
                 .compose(context -> bidResponseCreator.create(context, cacheInfo, bidderToMultiBid)
-                        .map(bidResponse -> publishAuctionEvent(bidResponse, context))
-                        .map(bidResponse -> criteriaLogManager.traceResponse(logger, bidResponse,
-                                context.getBidRequest(), context.getDebugContext().isDebugEnabled()))
+                        .map(bidResponse -> criteriaLogManager.traceResponse(
+                                logger,
+                                bidResponse,
+                                context.getBidRequest(),
+                                context.getDebugContext().isDebugEnabled()))
                         .compose(bidResponse -> bidResponsePostProcessor.postProcess(
                                 context.getHttpRequest(), uidsCookie, bidRequest, bidResponse, account))
                         .map(context::with));
@@ -544,8 +524,13 @@ public class ExchangeService {
         final Map<String, Map<String, String>> impBidderToStoredBidResponse =
                 storedResponseResult.getImpBidderToStoredBidResponse();
 
-        return makeAuctionParticipation(bidders, context, aliases, impBidderToStoredBidResponse,
-                imps, bidderToMultiBid);
+        return makeAuctionParticipation(
+                bidders,
+                context,
+                aliases,
+                impBidderToStoredBidResponse,
+                imps,
+                bidderToMultiBid);
     }
 
     private Set<String> bidderNamesFromImpExt(Imp imp, BidderAliases aliases) {
@@ -609,9 +594,15 @@ public class ExchangeService {
                 prepareUsers(bidders, context, aliases, biddersToConfigs, eidPermissions);
 
         return privacyEnforcementService.mask(context, bidderToUser, bidders, aliases)
-                .map(bidderToPrivacyResult ->
-                        getAuctionParticipation(bidderToPrivacyResult, bidRequest, impBidderToStoredResponse, imps,
-                                bidderToMultiBid, biddersToConfigs, aliases, context));
+                .map(bidderToPrivacyResult -> getAuctionParticipation(
+                        bidderToPrivacyResult,
+                        bidRequest,
+                        impBidderToStoredResponse,
+                        imps,
+                        bidderToMultiBid,
+                        biddersToConfigs,
+                        aliases,
+                        context));
     }
 
     private Map<String, ExtBidderConfigOrtb> getBiddersToConfigs(ExtRequestPrebid prebid) {
@@ -1142,7 +1133,7 @@ public class ExchangeService {
 
         final SupplyChain bidderSchain = supplyChainResolver.resolveForBidder(bidder, bidRequest);
 
-        if (bidderSchain == null && transmitTid) {
+        if (bidderSchain == null && (transmitTid || receivedSource == null)) {
             return receivedSource;
         }
 
@@ -1150,7 +1141,8 @@ public class ExchangeService {
                 ? Source.builder().schain(bidderSchain).build()
                 : receivedSource.toBuilder()
                 .schain(bidderSchain != null ? bidderSchain : receivedSource.getSchain())
-                .tid(transmitTid ? receivedSource.getTid() : null).build();
+                .tid(transmitTid ? receivedSource.getTid() : null)
+                .build();
     }
 
     /**
@@ -1224,32 +1216,6 @@ public class ExchangeService {
         return params != null ? mapper.mapper().createObjectNode().set(bidder, params) : null;
     }
 
-    private List<AuctionParticipation> matchAndPopulateDeals(List<AuctionParticipation> auctionParticipants,
-                                                             BidderAliases aliases,
-                                                             AuctionContext context) {
-
-        if (dealsService == null) {
-            return auctionParticipants;
-        }
-
-        final List<BidderRequest> updatedBidderRequests = auctionParticipants.stream()
-                .map(auctionParticipation -> !auctionParticipation.isRequestBlocked()
-                        ? dealsService.matchAndPopulateDeals(auctionParticipation.getBidderRequest(), aliases, context)
-                        : null)
-                .toList();
-
-        return IntStream.range(0, auctionParticipants.size())
-                .mapToObj(i -> auctionParticipants.get(i).toBuilder()
-                        .bidderRequest(updatedBidderRequests.get(i))
-                        .build())
-                .toList();
-    }
-
-    private static List<AuctionParticipation> postProcessDeals(List<AuctionParticipation> auctionParticipations,
-                                                               AuctionContext context) {
-        return DealsService.removePgDealsOnlyImpsWithoutDeals(auctionParticipations, context);
-    }
-
     /**
      * Updates 'account.*.request', 'request' and 'no_cookie_requests' metrics for each {@link AuctionParticipation} .
      */
@@ -1281,26 +1247,6 @@ public class ExchangeService {
         }
 
         return context;
-    }
-
-    private static AuctionContext fillContext(AuctionContext context,
-                                              List<AuctionParticipation> auctionParticipations) {
-
-        final Map<String, List<Deal>> impIdToDeals = new HashMap<>();
-        auctionParticipations.stream()
-                .map(AuctionParticipation::getBidderRequest)
-                .map(BidderRequest::getImpIdToDeals)
-                .filter(Objects::nonNull)
-                .map(Map::entrySet)
-                .flatMap(Collection::stream)
-                .forEach(entry -> impIdToDeals
-                        .computeIfAbsent(entry.getKey(), key -> new ArrayList<>())
-                        .addAll(entry.getValue()));
-
-        return context.toBuilder()
-                .bidRequest(DealsService.populateDeals(context.getBidRequest(), impIdToDeals))
-                .auctionParticipations(auctionParticipations)
-                .build();
     }
 
     private Future<BidderResponse> processAndRequestBids(AuctionContext auctionContext,
@@ -1389,11 +1335,13 @@ public class ExchangeService {
         final Bidder<?> bidder = bidderCatalog.bidderByName(resolvedBidderName);
         final BidRejectionTracker bidRejectionTracker = auctionContext.getBidRejectionTrackers().get(bidderName);
 
-        final long auctionStartTime = auctionContext.getStartTime();
+        final TimeoutContext timeoutContext = auctionContext.getTimeoutContext();
+        final long auctionStartTime = timeoutContext.getStartTime();
+        final int adjustmentFactor = timeoutContext.getAdjustmentFactor();
         final long bidderRequestStartTime = clock.millis();
 
         return Future.succeededFuture(bidderRequest.getBidRequest())
-                .map(bidRequest -> adjustTmax(bidRequest, auctionStartTime, bidderRequestStartTime))
+                .map(bidRequest -> adjustTmax(bidRequest, auctionStartTime, adjustmentFactor, bidderRequestStartTime))
                 .map(bidRequest -> ortbVersionConversionManager.convertFromAuctionSupportedVersion(
                         bidRequest, bidderRequest.getOrtbVersion()))
                 .map(bidderRequest::with)
@@ -1408,10 +1356,9 @@ public class ExchangeService {
                 .map(seatBid -> BidderResponse.of(bidderName, seatBid, responseTime(bidderRequestStartTime)));
     }
 
-    private BidRequest adjustTmax(BidRequest bidRequest, long startTime, long currentTime) {
+    private BidRequest adjustTmax(BidRequest bidRequest, long startTime, int adjustmentFactor, long currentTime) {
         final long tmax = timeoutResolver.limitToMax(bidRequest.getTmax());
-        final long adjustedTmax = timeoutResolver.adjustForBidder(
-                tmax, timeoutAdjustmentFactor, currentTime - startTime);
+        final long adjustedTmax = timeoutResolver.adjustForBidder(tmax, adjustmentFactor, currentTime - startTime);
         return tmax != adjustedTmax
                 ? bidRequest.toBuilder().tmax(adjustedTmax).build()
                 : bidRequest;
@@ -1482,6 +1429,10 @@ public class ExchangeService {
                         auctionParticipation,
                         auctionContext.getAccount(),
                         auctionContext.getBidRejectionTrackers().get(auctionParticipation.getBidder())))
+                .map(auctionParticipation -> dsaEnforcer.enforce(
+                        auctionContext.getBidRequest(),
+                        auctionParticipation,
+                        auctionContext.getBidRejectionTrackers().get(auctionParticipation.getBidder())))
                 .toList();
     }
 
@@ -1514,27 +1465,16 @@ public class ExchangeService {
 
         final List<BidderBid> bids = seatBid.getBids();
         final List<BidderBid> validBids = new ArrayList<>(bids.size());
-        final TxnLog txnLog = auctionContext.getTxnLog();
-        final String bidder = bidderResponse.getBidder();
 
         for (final BidderBid bid : bids) {
-            final String lineItemId = LineItemUtil.lineItemIdFrom(bid.getBid(), bidRequest.getImp(), mapper);
-            maybeRecordInTxnLog(lineItemId, () -> txnLog.lineItemsReceivedFromBidder().get(bidder));
-
             final ValidationResult validationResult = responseBidValidator.validate(
                     bid,
                     bidderResponse.getBidder(),
                     auctionContext,
-                    aliases,
-                    isDsaValidationRequired(bidRequest));
+                    aliases);
 
             if (validationResult.hasWarnings() || validationResult.hasErrors()) {
                 errors.add(makeValidationBidderError(bid.getBid(), validationResult));
-            }
-
-            if (validationResult.hasErrors()) {
-                maybeRecordInTxnLog(lineItemId, txnLog::lineItemsResponseInvalidated);
-                continue;
             }
 
             if (!validationResult.hasErrors()) {
@@ -1553,15 +1493,6 @@ public class ExchangeService {
         return auctionParticipation.with(resultBidderResponse);
     }
 
-    private static boolean isDsaValidationRequired(BidRequest bidRequest) {
-        return Optional.ofNullable(bidRequest.getRegs())
-                .map(Regs::getExt)
-                .map(ExtRegs::getDsa)
-                .map(ExtRegsDsa::getDsaRequired)
-                .map(DSA_REQUIRED::contains)
-                .orElse(false);
-    }
-
     private BidderError makeValidationBidderError(Bid bid, ValidationResult validationResult) {
         final String validationErrors = Stream.concat(
                         validationResult.getErrors().stream().map(message -> "Error: " + message),
@@ -1570,19 +1501,6 @@ public class ExchangeService {
 
         final String bidId = ObjectUtil.getIfNotNullOrDefault(bid, Bid::getId, () -> "unknown");
         return BidderError.invalidBid("BidId `" + bidId + "` validation messages: " + validationErrors);
-    }
-
-    private static void maybeRecordInTxnLog(String lineItemId, Supplier<Set<String>> metricSupplier) {
-        if (lineItemId != null) {
-            metricSupplier.get().add(lineItemId);
-        }
-    }
-
-    private BidResponse publishAuctionEvent(BidResponse bidResponse, AuctionContext auctionContext) {
-        if (applicationEventService != null) {
-            applicationEventService.publishAuctionEvent(auctionContext);
-        }
-        return bidResponse;
     }
 
     /**
@@ -1726,8 +1644,8 @@ public class ExchangeService {
                 for (final BidderBid bidderBid : bidderBids) {
                     final Bid bid = bidderBid.getBid();
                     final long cpm = bid.getPrice().multiply(THOUSAND).longValue();
-                    metrics.updateAdapterBidMetrics(bidder, account, cpm, bid.getAdm() != null,
-                            bidderBid.getType().toString());
+                    final String bidType = bidderBid.getType().toString();
+                    metrics.updateAdapterBidMetrics(bidder, account, cpm, bid.getAdm() != null, bidType);
                 }
             }
 

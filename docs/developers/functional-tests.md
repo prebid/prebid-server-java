@@ -46,7 +46,7 @@ You have two options for running modular tests:
 1. Use `mvn verify -DdockerfileName=Dockerfile-modules` to include all previous steps (including Java tests and functional tests) because Groovy runs in the `failsafe:integration-test` phase.
 2. For modular tests only, use a more granular command:
 
-`mvn -B verify -DskipUnitTests=true -DskipFunctionalTests=true -DdockerfileName=Dockerfile-modules`
+`mvn -B verify -DskipUnitTests=true -DskipFunctionalTests=true -DskipModuleFunctionalTests=false -DdockerfileName=Dockerfile-modules`
 
 ## Developing
 

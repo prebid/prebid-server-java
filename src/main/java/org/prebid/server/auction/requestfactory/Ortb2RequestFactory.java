@@ -13,6 +13,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
+import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -24,11 +25,9 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.TimeoutResolver;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.deals.UserAdditionalInfoService;
-import org.prebid.server.deals.model.DeepDebugLog;
-import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -60,7 +59,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
-import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -74,7 +72,6 @@ import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
-import java.time.Clock;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -91,6 +88,7 @@ public class Ortb2RequestFactory {
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
     private final boolean enforceValidAccount;
+    private final int timeoutAdjustmentFactor;
     private final double logSamplingRate;
     private final List<String> blacklistedAccounts;
     private final UidsCookieService uidsCookieService;
@@ -100,15 +98,14 @@ public class Ortb2RequestFactory {
     private final TimeoutFactory timeoutFactory;
     private final StoredRequestProcessor storedRequestProcessor;
     private final ApplicationSettings applicationSettings;
-    private final UserAdditionalInfoService userAdditionalInfoService;
     private final IpAddressHelper ipAddressHelper;
     private final HookStageExecutor hookStageExecutor;
     private final PriceFloorProcessor priceFloorProcessor;
     private final CountryCodeMapper countryCodeMapper;
     private final Metrics metrics;
-    private final Clock clock;
 
     public Ortb2RequestFactory(boolean enforceValidAccount,
+                               int timeoutAdjustmentFactor,
                                double logSamplingRate,
                                List<String> blacklistedAccounts,
                                UidsCookieService uidsCookieService,
@@ -120,13 +117,16 @@ public class Ortb2RequestFactory {
                                ApplicationSettings applicationSettings,
                                IpAddressHelper ipAddressHelper,
                                HookStageExecutor hookStageExecutor,
-                               UserAdditionalInfoService userAdditionalInfoService,
                                PriceFloorProcessor priceFloorProcessor,
                                CountryCodeMapper countryCodeMapper,
-                               Metrics metrics,
-                               Clock clock) {
+                               Metrics metrics) {
+
+        if (timeoutAdjustmentFactor < 0 || timeoutAdjustmentFactor > 100) {
+            throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 100].");
+        }
 
         this.enforceValidAccount = enforceValidAccount;
+        this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.logSamplingRate = logSamplingRate;
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
@@ -138,11 +138,9 @@ public class Ortb2RequestFactory {
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.hookStageExecutor = Objects.requireNonNull(hookStageExecutor);
-        this.userAdditionalInfoService = userAdditionalInfoService;
         this.priceFloorProcessor = Objects.requireNonNull(priceFloorProcessor);
         this.countryCodeMapper = Objects.requireNonNull(countryCodeMapper);
         this.metrics = Objects.requireNonNull(metrics);
-        this.clock = Objects.requireNonNull(clock);
     }
 
     public AuctionContext createAuctionContext(Endpoint endpoint, MetricName requestTypeMetric) {
@@ -153,7 +151,6 @@ public class Ortb2RequestFactory {
                 .hookExecutionContext(HookExecutionContext.of(endpoint))
                 .debugContext(DebugContext.empty())
                 .requestRejected(false)
-                .txnLog(TxnLog.create())
                 .debugHttpCalls(new HashMap<>())
                 .bidRejectionTrackers(new TreeMap<>(String.CASE_INSENSITIVE_ORDER))
                 .build();
@@ -168,9 +165,7 @@ public class Ortb2RequestFactory {
                 .httpRequest(httpRequest)
                 .uidsCookie(uidsCookieService.parseFromRequest(httpRequest))
                 .bidRequest(bidRequest)
-                .startTime(startTime)
-                .timeout(timeout(bidRequest, startTime))
-                .deepDebugLog(createDeepDebugLog(bidRequest))
+                .timeoutContext(TimeoutContext.of(startTime, timeout(bidRequest, startTime), timeoutAdjustmentFactor))
                 .build();
     }
 
@@ -184,7 +179,7 @@ public class Ortb2RequestFactory {
 
     private Future<Account> fetchAccount(AuctionContext auctionContext, boolean isLookupStoredRequest) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Timeout timeout = auctionContext.getTimeout();
+        final Timeout timeout = auctionContext.getTimeoutContext().getTimeout();
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return findAccountIdFrom(bidRequest, isLookupStoredRequest)
@@ -214,13 +209,10 @@ public class Ortb2RequestFactory {
                 : Future.succeededFuture(bidRequest);
     }
 
-    public BidRequest enrichBidRequestWithAccountAndPrivacyData(AuctionContext auctionContext) {
+    public Future<BidRequest> enrichBidRequestWithAccountAndPrivacyData(AuctionContext auctionContext) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Account account = auctionContext.getAccount();
         final PrivacyContext privacyContext = auctionContext.getPrivacyContext();
-
-        final ExtRequest requestExt = bidRequest.getExt();
-        final ExtRequest enrichedRequestExt = enrichExtRequest(requestExt, account);
 
         final Device device = bidRequest.getDevice();
         final Device enrichedDevice = enrichDevice(device, privacyContext);
@@ -228,15 +220,19 @@ public class Ortb2RequestFactory {
         final Regs regs = bidRequest.getRegs();
         final Regs enrichedRegs = enrichRegs(regs, privacyContext, account);
 
-        if (enrichedRequestExt != null || enrichedDevice != null || enrichedRegs != null) {
-            return bidRequest.toBuilder()
-                    .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
-                    .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
-                    .regs(ObjectUtils.defaultIfNull(enrichedRegs, regs))
-                    .build();
+        final ExtRequest requestExt = bidRequest.getExt();
+        final ExtRequest enrichedRequestExt = enrichExtRequest(requestExt, account);
+
+        if (enrichedRequestExt == null && enrichedDevice == null && enrichedRegs == null) {
+            return Future.succeededFuture(bidRequest);
         }
 
-        return bidRequest;
+        final BidRequest enrichedBidRequest = bidRequest.toBuilder()
+                .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
+                .regs(ObjectUtils.defaultIfNull(enrichedRegs, regs))
+                .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
+                .build();
+        return Future.succeededFuture(enrichedBidRequest);
     }
 
     private static Regs enrichRegs(Regs regs, PrivacyContext privacyContext, Account account) {
@@ -348,18 +344,14 @@ public class Ortb2RequestFactory {
         return stageResult.getPayload().bidRequest();
     }
 
-    public Future<AuctionContext> populateUserAdditionalInfo(AuctionContext auctionContext) {
-        return userAdditionalInfoService != null
-                ? userAdditionalInfoService.populate(auctionContext)
-                : Future.succeededFuture(auctionContext);
-    }
-
     public AuctionContext enrichWithPriceFloors(AuctionContext auctionContext) {
         return priceFloorProcessor.enrichWithPriceFloors(auctionContext);
     }
 
-    public AuctionContext updateTimeout(AuctionContext auctionContext, long startTime) {
-        final Timeout currentTimeout = auctionContext.getTimeout();
+    public AuctionContext updateTimeout(AuctionContext auctionContext) {
+        final TimeoutContext timeoutContext = auctionContext.getTimeoutContext();
+        final long startTime = timeoutContext.getStartTime();
+        final Timeout currentTimeout = timeoutContext.getTimeout();
 
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final BidRequest resolvedBidRequest = resolveBidRequest(bidRequest);
@@ -376,7 +368,7 @@ public class Ortb2RequestFactory {
 
         return auctionContext.toBuilder()
                 .bidRequest(effectiveBidRequest)
-                .timeout(requestTimeout)
+                .timeoutContext(timeoutContext.with(requestTimeout))
                 .build();
     }
 
@@ -671,29 +663,13 @@ public class Ortb2RequestFactory {
         return mapBuilder.build();
     }
 
-    private DeepDebugLog createDeepDebugLog(BidRequest bidRequest) {
-        final ExtRequest ext = bidRequest.getExt();
-        return DeepDebugLog.create(ext != null && isDeepDebugEnabled(ext), clock);
-    }
-
-    /**
-     * Determines deep debug flag from {@link ExtRequest}.
-     */
-    private static boolean isDeepDebugEnabled(ExtRequest extRequest) {
-        final ExtRequestPrebid extRequestPrebid = extRequest != null ? extRequest.getPrebid() : null;
-        return extRequestPrebid != null && extRequestPrebid.getTrace() == TraceLevel.verbose;
-    }
-
+    @Getter
     static class RejectedRequestException extends RuntimeException {
 
         private final AuctionContext auctionContext;
 
         RejectedRequestException(AuctionContext auctionContext) {
             this.auctionContext = auctionContext;
-        }
-
-        public AuctionContext getAuctionContext() {
-            return auctionContext;
         }
     }
 
