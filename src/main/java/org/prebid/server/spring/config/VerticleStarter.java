@@ -1,24 +1,29 @@
 package org.prebid.server.spring.config;
 
+import io.vertx.core.DeploymentOptions;
+import io.vertx.core.Vertx;
+import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.verticles.VerticleDefinition;
-import org.prebid.server.vertx.verticles.VerticleDeployer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 
-import javax.annotation.PostConstruct;
 import java.util.List;
 
 @Configuration
 public class VerticleStarter {
 
     @Autowired
-    private VerticleDeployer deployer;
+    public void start(Vertx vertx, ContextRunner contextRunner, List<VerticleDefinition> definitions) {
+        for (VerticleDefinition definition : definitions) {
+            if (definition.getAmount() <= 0) {
+                continue;
+            }
 
-    @Autowired
-    private List<VerticleDefinition> verticleDefinitions;
-
-    @PostConstruct
-    public void startVerticles() {
-        verticleDefinitions.forEach(deployer::deploy);
+            contextRunner.<String>runBlocking(promise ->
+                    vertx.deployVerticle(
+                            definition.getFactory(),
+                            new DeploymentOptions().setInstances(definition.getAmount()),
+                            promise));
+        }
     }
 }

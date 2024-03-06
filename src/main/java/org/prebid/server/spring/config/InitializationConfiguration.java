@@ -35,7 +35,7 @@ public class InitializationConfiguration {
 
     @EventListener(ContextRefreshedEvent.class)
     public void initializeServices() {
-        contextRunner.runOnServiceContext(promise -> {
+        contextRunner.runBlocking(promise -> {
             initializables.forEach(Initializable::initialize);
             promise.complete();
         });
