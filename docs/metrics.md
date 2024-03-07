@@ -106,8 +106,6 @@ Following metrics are collected and submitted if account is configured with `det
 
 ## /cookie_sync endpoint metrics
 - `cookie_sync_requests` - number of requests received
-- `cookie_sync.<bidder-name>.gen` - number of times cookies was synced per bidder 
-- `cookie_sync.<bidder-name>.matches` - number of times cookie was already matched when synced per bidder 
 - `cookie_sync.<bidder-name>.tcf.blocked` - number of times cookie sync was prevented by TCF per bidder
 
 ## /setuid endpoint metrics

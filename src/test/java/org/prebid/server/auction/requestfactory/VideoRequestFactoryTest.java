@@ -25,11 +25,11 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.PriceGranularity;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.auction.model.debug.DebugContext;
+import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
@@ -81,7 +81,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Mock
     private Ortb2ImplicitParametersResolver paramsResolver;
     @Mock
-    private PrivacyEnforcementService privacyEnforcementService;
+    private AuctionPrivacyContextFactory auctionPrivacyContextFactory;
 
     private VideoRequestFactory target;
 
@@ -124,7 +124,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                         .coppa(0)
                         .build(),
                 TcfContext.empty());
-        given(privacyEnforcementService.contextFromBidRequest(any()))
+        given(auctionPrivacyContextFactory.contextFrom(any()))
                 .willReturn(Future.succeededFuture(defaultPrivacyContext));
 
         target = new VideoRequestFactory(
@@ -135,7 +135,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 videoStoredRequestProcessor,
                 ortbVersionConversionManager,
                 paramsResolver,
-                privacyEnforcementService,
+                auctionPrivacyContextFactory,
                 debugResolver,
                 jacksonMapper);
     }
@@ -170,7 +170,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 videoStoredRequestProcessor,
                 ortbVersionConversionManager,
                 paramsResolver,
-                privacyEnforcementService,
+                auctionPrivacyContextFactory,
                 debugResolver,
                 jacksonMapper);
 
@@ -195,7 +195,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 videoStoredRequestProcessor,
                 ortbVersionConversionManager,
                 paramsResolver,
-                privacyEnforcementService,
+                auctionPrivacyContextFactory,
                 debugResolver,
                 jacksonMapper);
 

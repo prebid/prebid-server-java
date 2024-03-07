@@ -33,7 +33,7 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.debug.DebugContext;
-import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
+import org.prebid.server.auction.privacy.contextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;

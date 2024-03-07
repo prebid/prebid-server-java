@@ -116,7 +116,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 0,
                 Account.builder()
                         .auction(AccountAuctionConfig.builder().bannerCacheTtl(100).build())
-                        .privacy(AccountPrivacyConfig.of(gdprConfig, null, null, null, null))
+                        .privacy(AccountPrivacyConfig.builder().gdpr(gdprConfig).build())
                         .build(),
                 delegate,
                 priceFloorsConfigResolver,
@@ -127,14 +127,11 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .videoCacheTtl(200)
                         .build())
-                .privacy(AccountPrivacyConfig.of(
-                        AccountGdprConfig.builder()
+                .privacy(AccountPrivacyConfig.builder()
+                        .gdpr(AccountGdprConfig.builder()
                                 .enabledForRequestType(EnabledForRequestType.of(true, null, null, null, null))
-                                .build(),
-                        null,
-                        null,
-                        null,
-                        null))
+                                .build())
+                        .build())
                 .build()));
 
         // when
@@ -147,15 +144,12 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                         .bannerCacheTtl(100)
                         .videoCacheTtl(200)
                         .build())
-                .privacy(AccountPrivacyConfig.of(
-                        AccountGdprConfig.builder()
+                .privacy(AccountPrivacyConfig.builder()
+                        .gdpr(AccountGdprConfig.builder()
                                 .enabled(true)
                                 .enabledForRequestType(EnabledForRequestType.of(true, null, null, null, null))
-                                .build(),
-                        null,
-                        null,
-                        null,
-                        null))
+                                .build())
+                        .build())
                 .build());
     }
 
@@ -236,11 +230,8 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 jsonMerger);
 
         given(delegate.getAccountById(anyString(), any())).willReturn(Future.succeededFuture(Account.builder()
-                .privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
-                        Map.of(
+                .privacy(AccountPrivacyConfig.builder()
+                        .activities(Map.of(
                                 Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                                 Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
                                         AccountActivityComponentRuleConfig.of(null, null),
@@ -255,8 +246,8 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                                         AccountActivityComponentRuleConfig.of(
                                                 AccountActivityComponentRuleConfig.Condition.of(
                                                         singletonList(ComponentType.BIDDER), singletonList("bidder")),
-                                                null)))),
-                        null))
+                                                null)))))
+                        .build())
                 .build()));
 
         // when
@@ -264,11 +255,8 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
 
         // then
         assertThat(accountFuture).succeededWith(Account.builder()
-                .privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
-                        Map.of(
+                .privacy(AccountPrivacyConfig.builder()
+                        .activities(Map.of(
                                 Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                                 Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
                                         AccountActivityComponentRuleConfig.of(null, null),
@@ -278,8 +266,8 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                                         AccountActivityComponentRuleConfig.of(
                                                 AccountActivityComponentRuleConfig.Condition.of(
                                                         singletonList(ComponentType.BIDDER), singletonList("bidder")),
-                                                null)))),
-                        null))
+                                                null)))))
+                        .build())
                 .build());
     }
 }

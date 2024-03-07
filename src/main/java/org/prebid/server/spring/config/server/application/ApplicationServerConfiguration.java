@@ -16,10 +16,11 @@ import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureC
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.auction.gpp.SetuidGppService;
+import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContextFactory;
+import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
@@ -300,7 +301,7 @@ public class ApplicationServerConfiguration {
             ActivityInfrastructureCreator activityInfrastructureCreator,
             ApplicationSettings applicationSettings,
             CookieSyncService cookieSyncService,
-            PrivacyEnforcementService privacyEnforcementService,
+            CookieSyncPrivacyContextFactory cookieSyncPrivacyContextFactory,
             AnalyticsReporterDelegator analyticsReporterDelegator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
@@ -315,7 +316,7 @@ public class ApplicationServerConfiguration {
                 activityInfrastructureCreator,
                 cookieSyncService,
                 applicationSettings,
-                privacyEnforcementService,
+                cookieSyncPrivacyContextFactory,
                 analyticsReporterDelegator,
                 metrics,
                 timeoutFactory,
@@ -328,7 +329,7 @@ public class ApplicationServerConfiguration {
             UidsCookieService uidsCookieService,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
-            PrivacyEnforcementService privacyEnforcementService,
+            SetuidPrivacyContextFactory setuidPrivacyContextFactory,
             SetuidGppService setuidGppService,
             ActivityInfrastructureCreator activityInfrastructureCreator,
             HostVendorTcfDefinerService tcfDefinerService,
@@ -341,7 +342,7 @@ public class ApplicationServerConfiguration {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 setuidGppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,

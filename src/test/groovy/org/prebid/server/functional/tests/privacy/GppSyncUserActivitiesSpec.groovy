@@ -1385,7 +1385,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert response.responseBody
     }
 
-
     def "PBS setuid call when privacy regulation don't match custom requirement should respond with required UIDs cookies"() {
         given: "Cookie sync SetuidRequest with accountId"
         def accountId = PBSUtils.randomNumber as String

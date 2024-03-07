@@ -56,6 +56,7 @@ import org.prebid.server.auction.model.MultiBidConfig;
 import org.prebid.server.auction.model.StoredResponseResult;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
+import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcementService;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
@@ -321,7 +322,7 @@ public class ExchangeServiceTest extends VertxTest {
                 CompressionType.NONE,
                 Ortb.of(false)));
 
-        given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any(), any()))
+        given(privacyEnforcementService.mask(any(), argThat(MapUtils::isNotEmpty), any()))
                 .willAnswer(inv ->
                         Future.succeededFuture(((Map<String, User>) inv.getArgument(1)).entrySet().stream()
                                 .map(bidderAndUser -> BidderPrivacyResult.builder()
@@ -330,7 +331,7 @@ public class ExchangeServiceTest extends VertxTest {
                                         .build())
                                 .toList()));
 
-        given(privacyEnforcementService.mask(any(), argThat(MapUtils::isEmpty), any(), any()))
+        given(privacyEnforcementService.mask(any(), argThat(MapUtils::isEmpty), any()))
                 .willReturn(Future.succeededFuture(emptyList()));
 
         given(fpdResolver.resolveUser(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
@@ -996,7 +997,7 @@ public class ExchangeServiceTest extends VertxTest {
         final Bidder<?> bidder = mock(Bidder.class);
         givenBidder("someBidder", bidder, givenEmptySeatBid());
 
-        given(privacyEnforcementService.mask(any(), any(), any(), any()))
+        given(privacyEnforcementService.mask(any(), any(), any()))
                 .willReturn(Future.failedFuture("Error when retrieving allowed purpose ids"));
 
         final BidRequest bidRequest = givenBidRequest(givenSingleImp(singletonMap("someBidder", 1)),
@@ -1021,7 +1022,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .requestBidder("bidderAlias")
                 .blockedRequestByTcf(true)
                 .build();
-        given(privacyEnforcementService.mask(any(), any(), any(), any()))
+        given(privacyEnforcementService.mask(any(), any(), any()))
                 .willReturn(Future.succeededFuture(singletonList(restrictedPrivacy)));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
@@ -1053,7 +1054,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidderPrivacyResult bidderPrivacyResult = BidderPrivacyResult.builder()
                 .requestBidder("bidder-test")
                 .build();
-        given(privacyEnforcementService.mask(any(), any(), any(), any()))
+        given(privacyEnforcementService.mask(any(), any(), any()))
                 .willReturn(Future.succeededFuture(singletonList(bidderPrivacyResult)));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
@@ -4377,7 +4378,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
-        given(privacyEnforcementService.mask(any(), anyMap(), any(), any()))
+        given(privacyEnforcementService.mask(any(), anyMap(), any()))
                 .willReturn(Future.succeededFuture(singletonList(BidderPrivacyResult.builder()
                         .requestBidder("bidderName")
                         .build())));
@@ -4411,7 +4412,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(singletonList(imp), identity());
         final AuctionContext auctionContext = givenRequestContext(bidRequest);
 
-        given(privacyEnforcementService.mask(any(), anyMap(), any(), any()))
+        given(privacyEnforcementService.mask(any(), anyMap(), any()))
                 .willReturn(Future.succeededFuture(singletonList(BidderPrivacyResult.builder()
                         .requestBidder(bidderName)
                         .build())));
@@ -4437,7 +4438,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(supplyChainResolver.resolveForBidder(any(), any()))
                 .willReturn(givenSourceSchain);
 
-        given(privacyEnforcementService.mask(any(), anyMap(), any(), any()))
+        given(privacyEnforcementService.mask(any(), anyMap(), any()))
                 .willReturn(Future.succeededFuture(singletonList(BidderPrivacyResult.builder()
                         .requestBidder("bidderName")
                         .build())));

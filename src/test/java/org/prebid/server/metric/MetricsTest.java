@@ -675,19 +675,21 @@ public class MetricsTest {
     @Test
     public void updateAuctionTcfMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAuctionTcfMetrics(RUBICON, MetricName.openrtb2web, true, true, true, true);
-        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.openrtb2web, false, true, true, false);
-        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.openrtb2app, true, false, false, true);
+        metrics.updateAuctionTcfMetrics(RUBICON, MetricName.openrtb2web, true, true, true, true, true);
+        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.openrtb2web, true, false, true, false, true);
+        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.openrtb2app, false, true, false, true, false);
 
         // then
+        assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.userfpd_masked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.userid_removed").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.geo_masked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.analytics_blocked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.request_blocked").getCount()).isOne();
-        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.geo_masked").getCount()).isOne();
-        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.analytics_blocked").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.userfpd_masked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.conversant.openrtb2-app.tcf.userid_removed").getCount()).isOne();
-        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-app.tcf.request_blocked").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.geo_masked").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-app.tcf.analytics_blocked").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.request_blocked").getCount()).isOne();
     }
 
     @Test
