@@ -43,13 +43,7 @@ public class ActivitiesConfigResolverTest extends VertxTest {
     @Test
     public void resolveShouldReturnAccountAsIsWhenAccountPrivacyActivitiesNull() {
         // given
-        final Account givenAccount = Account.builder().privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
-                        null,
-                        null))
-                .build();
+        final Account givenAccount = Account.builder().privacy(AccountPrivacyConfig.builder().build()).build();
 
         // when
         final Account result = target.resolve(givenAccount);
@@ -62,10 +56,7 @@ public class ActivitiesConfigResolverTest extends VertxTest {
     public void resolveShouldRemoveInvalidRulesFromAccountActivitiesConfiguration() {
         // given
         final Account givenAccount = Account.builder()
-                .privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
+                .privacy(AccountPrivacyConfig.builder().activities(
                         Map.of(
                                 Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                                 Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
@@ -98,8 +89,8 @@ public class ActivitiesConfigResolverTest extends VertxTest {
                                                         null,
                                                         null,
                                                         null),
-                                                null)))),
-                        null))
+                                                null)))))
+                        .build())
                 .build();
 
         // when
@@ -107,10 +98,7 @@ public class ActivitiesConfigResolverTest extends VertxTest {
 
         // then
         assertThat(actualAccount).isEqualTo(Account.builder()
-                .privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
+                .privacy(AccountPrivacyConfig.builder().activities(
                         Map.of(
                                 Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                                 Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
@@ -134,8 +122,7 @@ public class ActivitiesConfigResolverTest extends VertxTest {
                                                         null,
                                                         null,
                                                         null),
-                                                null)))),
-                        null))
+                                                null))))).build())
                 .build());
     }
 }

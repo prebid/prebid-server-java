@@ -36,14 +36,11 @@ public class ActivitiesConfigResolver {
                         .formatted(account.getId()),
                 logSamplingRate);
 
-        final AccountPrivacyConfig privacyConfig = account.getPrivacy();
+        final AccountPrivacyConfig accountPrivacyConfig = account.getPrivacy();
         return account.toBuilder()
-                .privacy(AccountPrivacyConfig.of(
-                        privacyConfig.getGdpr(),
-                        privacyConfig.getCcpa(),
-                        privacyConfig.getDsa(),
-                        removeInvalidRules(privacyConfig.getActivities()),
-                        privacyConfig.getModules()))
+                .privacy(accountPrivacyConfig.toBuilder()
+                        .activities(removeInvalidRules(accountPrivacyConfig.getActivities()))
+                        .build())
                 .build();
     }
 
