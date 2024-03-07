@@ -6,14 +6,16 @@ adapters:
       app-media-types:
         - banner
         - video
+        - native
       site-media-types:
         - banner
         - video
+        - native
       supported-vendors:
       vendor-id: 686
     usersync:
       cookie-family-name: grid
       redirect:
-        url: https://x.bidswitch.net/check_uuid/{{redirect_url}}
+        url: https://x.bidswitch.net/check_uuid/{{redirect_url}}?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&gpp={{gpp}}&gpp_sid={{gpp_sid}}&us_privacy={{us_privacy}}
         support-cors: false
         uid-macro: '${BSW_UUID}'
