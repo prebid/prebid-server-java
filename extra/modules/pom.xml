@@ -30,7 +30,7 @@
 
         <prebid-server.version>2.2.0-SNAPSHOT</prebid-server.version>
 
-        <lombok.version>1.18.22</lombok.version>
+        <lombok.version>1.18.30</lombok.version>
 
         <junit-bom.version>5.9.0</junit-bom.version>
         <assertj.version>3.23.1</assertj.version>
