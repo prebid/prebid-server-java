@@ -16,6 +16,9 @@ import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
@@ -56,6 +59,7 @@ import java.util.stream.Collectors;
 
 public class YieldlabBidder implements Bidder<Void> {
 
+    private static final Logger logger = LoggerFactory.getLogger(YieldlabBidder.class);
     private static final TypeReference<ExtPrebid<?, ExtImpYieldlab>> YIELDLAB_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -253,7 +257,7 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private static Map<String, String> extractDsaRequestParamsFromDsaRegsExtension(final ExtRegsDsa dsa) {
-        final HashMap<String, String> dsaRequestParams = new HashMap<>();
+        final Map<String, String> dsaRequestParams = new HashMap<>();
 
         if (dsa.getDsaRequired() != null) {
             dsaRequestParams.put("dsarequired", dsa.getDsaRequired().toString());
@@ -277,15 +281,16 @@ public class YieldlabBidder implements Bidder<Void> {
 
     private static String encodeTransparenciesAsString(List<ExtRegsDsaTransparency> transparencies) {
         return transparencies.stream()
-            .filter(YieldlabBidder::transparencyIsValid)
+            .filter(YieldlabBidder::isTransparencyValid)
             .map(YieldlabBidder::encodeTransparency)
             .collect(Collectors.joining(TRANSPARENCY_TEMPLATE_DELIMITER));
     }
 
-    private static boolean transparencyIsValid(ExtRegsDsaTransparency transparency) {
+    private static boolean isTransparencyValid(ExtRegsDsaTransparency transparency) {
         return transparency.getDomain() != null
+                && StringUtils.isNotBlank(transparency.getDomain())
                 && transparency.getDsaParams() != null
-                && !transparency.getDsaParams().isEmpty();
+                && CollectionUtils.isNotEmpty(transparency.getDsaParams());
     }
 
     private static String encodeTransparency(ExtRegsDsaTransparency transparency) {
@@ -407,7 +412,7 @@ public class YieldlabBidder implements Bidder<Void> {
                 .crid(makeCreativeId(bidRequest, yieldlabResponse, matchedExtImp))
                 .w(resolveSizeParameter(yieldlabResponse.getAdSize(), true))
                 .h(resolveSizeParameter(yieldlabResponse.getAdSize(), false))
-                .ext(resolveExtParameter(yieldlabResponse.getDsa()));
+                .ext(resolveExtParameter(yieldlabResponse));
 
         return updatedBid;
     }
@@ -477,7 +482,8 @@ public class YieldlabBidder implements Bidder<Void> {
                 uriBuilder.toString().replace("?", ""));
     }
 
-    private ObjectNode resolveExtParameter(YieldlabDigitalServicesActResponse dsa) {
+    private ObjectNode resolveExtParameter(YieldlabResponse yieldlabResponse) {
+        final YieldlabDigitalServicesActResponse dsa = yieldlabResponse.getDsa();
         if (dsa == null) {
             return null;
         }
@@ -486,7 +492,8 @@ public class YieldlabBidder implements Bidder<Void> {
         try {
             dsaNode = mapper.mapper().convertValue(dsa, JsonNode.class);
         } catch (IllegalArgumentException e) {
-            throw new PreBidException("Failed to serialize DSA object", e);
+            logger.error("Failed to serialize DSA object for adslot {}", yieldlabResponse.getId(), e);
+            return null;
         }
         ext.set("dsa", dsaNode);
         return ext;

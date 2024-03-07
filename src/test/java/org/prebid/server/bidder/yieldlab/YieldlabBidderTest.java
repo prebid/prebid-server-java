@@ -13,8 +13,8 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.Before;
+import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -56,7 +56,7 @@ public class YieldlabBidderTest extends VertxTest {
 
     private YieldlabBidder target;
 
-    @BeforeEach
+    @Before
     public void setUp() {
         clock = Clock.fixed(Instant.parse("2019-07-26T10:00:00Z"), ZoneId.systemDefault());
         target = new YieldlabBidder(ENDPOINT_URL, clock, jacksonMapper);
@@ -308,7 +308,7 @@ public class YieldlabBidderTest extends VertxTest {
     }
 
     @Test
-    public void dsaIsForwarded() {
+    public void makeHttpRequestsShouldAddDsaRequestParamsToRequestWhenDsaIsPresent() {
         //given
         final ExtRegsDsa dsa = ExtRegsDsa.of(
                 1, 2, 3, List.of(ExtRegsDsaTransparency.of("testDomain", List.of(1, 2, 3)))
@@ -342,7 +342,7 @@ public class YieldlabBidderTest extends VertxTest {
     }
 
     @Test
-    public void dsaWithMultipleTransparenciesIsEncodedCorrectly() {
+    public void makeHttpRequestsEncodesDsaTransparencyCorrectlyWhenBidRequestContainsDsaTransparencyInformation() {
         //given
         final ExtRegsDsa dsa = ExtRegsDsa.of(
                 1, 2, 3, List.of(
@@ -379,7 +379,7 @@ public class YieldlabBidderTest extends VertxTest {
     }
 
     @Test
-    public void missingDsaValuesAreNotForwarded() {
+    public void makeHttpRequestsShouldNotSendDsaInfoInBidRequestWhenDsaIsMissing() {
         //given
         final ExtRegsDsa dsa = ExtRegsDsa.of(
                 2, null, 3, null
@@ -411,7 +411,7 @@ public class YieldlabBidderTest extends VertxTest {
     }
 
     @Test
-    public void incompleteTransparencyObjectIsIgnored() {
+    public void makeHttpRequestsShouldNotAddDsaTransparencyParamsToBidRequestWhenParamsAreMissing() {
         //given
         final ExtRegsDsa dsa = ExtRegsDsa.of(
                 2, null, 3, List.of(ExtRegsDsaTransparency.of("domain", null))
@@ -443,7 +443,7 @@ public class YieldlabBidderTest extends VertxTest {
     }
 
     @Test
-    public void dsaParamsIsAddedToResponse() throws JsonProcessingException {
+    public void makeBidsShouldAddDsaParamsWhenDsaIsPresentInResponse() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(singletonList(Imp.builder()
