@@ -119,14 +119,11 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .videoCacheTtl(200)
                         .build())
-                .privacy(AccountPrivacyConfig.of(
-                        AccountGdprConfig.builder()
+                .privacy(AccountPrivacyConfig.builder()
+                        .gdpr(AccountGdprConfig.builder()
                                 .enabledForRequestType(EnabledForRequestType.of(true, null, null, null, null))
-                                .build(),
-                        null,
-                        null,
-                        null,
-                        null))
+                                .build())
+                        .build())
                 .build()));
 
         // when
@@ -140,15 +137,12 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
                         .videoCacheTtl(200)
                         .priceFloors(AccountPriceFloorsConfig.builder().enabled(true).enforceFloorsRate(3).build())
                         .build())
-                .privacy(AccountPrivacyConfig.of(
-                        AccountGdprConfig.builder()
+                .privacy(AccountPrivacyConfig.builder()
+                        .gdpr(AccountGdprConfig.builder()
                                 .enabled(true)
                                 .enabledForRequestType(EnabledForRequestType.of(true, null, null, null, null))
-                                .build(),
-                        null,
-                        null,
-                        null,
-                        null))
+                                .build())
+                        .build())
                 .build();
         assertThat(accountFuture).succeededWith(expectedAccount);
 

@@ -23,9 +23,9 @@ import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocation
 import org.prebid.server.activity.infrastructure.payload.impl.TcfContextActivityInvocationPayload;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.gpp.SetuidGppService;
 import org.prebid.server.auction.model.SetuidContext;
+import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncFormat;
 import org.prebid.server.bidder.UsersyncMethod;
@@ -76,7 +76,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
     private final long defaultTimeout;
     private final UidsCookieService uidsCookieService;
     private final ApplicationSettings applicationSettings;
-    private final PrivacyEnforcementService privacyEnforcementService;
+    private final SetuidPrivacyContextFactory setuidPrivacyContextFactory;
     private final SetuidGppService gppService;
     private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final HostVendorTcfDefinerService tcfDefinerService;
@@ -89,7 +89,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
                          UidsCookieService uidsCookieService,
                          ApplicationSettings applicationSettings,
                          BidderCatalog bidderCatalog,
-                         PrivacyEnforcementService privacyEnforcementService,
+                         SetuidPrivacyContextFactory setuidPrivacyContextFactory,
                          SetuidGppService gppService,
                          ActivityInfrastructureCreator activityInfrastructureCreator,
                          HostVendorTcfDefinerService tcfDefinerService,
@@ -100,7 +100,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         this.defaultTimeout = defaultTimeout;
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
-        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.setuidPrivacyContextFactory = Objects.requireNonNull(setuidPrivacyContextFactory);
         this.gppService = Objects.requireNonNull(gppService);
         this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.tcfDefinerService = Objects.requireNonNull(tcfDefinerService);
@@ -164,7 +164,7 @@ public class SetuidHandler implements Handler<RoutingContext> {
         final Timeout timeout = timeoutFactory.create(defaultTimeout);
 
         return accountById(requestAccount, timeout)
-                .compose(account -> privacyEnforcementService.contextFromSetuidRequest(httpRequest, account, timeout)
+                .compose(account -> setuidPrivacyContextFactory.contextFrom(httpRequest, account, timeout)
                         .map(privacyContext -> SetuidContext.builder()
                                 .routingContext(routingContext)
                                 .uidsCookie(uidsCookie)
