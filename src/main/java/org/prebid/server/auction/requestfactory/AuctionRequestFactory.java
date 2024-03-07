@@ -10,11 +10,11 @@ import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
+import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -44,7 +44,7 @@ public class AuctionRequestFactory {
     private final ImplicitParametersExtractor paramsExtractor;
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final InterstitialProcessor interstitialProcessor;
-    private final PrivacyEnforcementService privacyEnforcementService;
+    private final AuctionPrivacyContextFactory auctionPrivacyContextFactory;
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
@@ -61,7 +61,7 @@ public class AuctionRequestFactory {
                                  Ortb2ImplicitParametersResolver paramsResolver,
                                  InterstitialProcessor interstitialProcessor,
                                  OrtbTypesResolver ortbTypesResolver,
-                                 PrivacyEnforcementService privacyEnforcementService,
+                                 AuctionPrivacyContextFactory auctionPrivacyContextFactory,
                                  DebugResolver debugResolver,
                                  JacksonMapper mapper) {
 
@@ -75,7 +75,7 @@ public class AuctionRequestFactory {
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
-        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.auctionPrivacyContextFactory = Objects.requireNonNull(auctionPrivacyContextFactory);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -117,7 +117,7 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> updateAndValidateBidRequest(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
+                .compose(auctionContext -> auctionPrivacyContextFactory.contextFrom(auctionContext)
                         .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)
