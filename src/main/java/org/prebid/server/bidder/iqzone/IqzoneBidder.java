@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
@@ -113,25 +114,23 @@ public class IqzoneBidder implements Bidder<BidRequest> {
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur()))
                 .toList();
     }
 
-    private static BidType getBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                }
-                if (imp.getVideo() != null) {
-                    return BidType.video;
-                }
-                if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                }
-                throw new PreBidException("Unknown impression type for ID: \"%s\"".formatted(impId));
-            }
+    private static BidType getBidMediaType(Bid bid) {
+        final Integer markupType = bid.getMtype();
+        if (markupType == null) {
+            throw new PreBidException("Missing MType for bid: " + bid.getId());
         }
-        throw new PreBidException("Failed to find impression for ID: \"%s\"".formatted(impId));
+
+        return switch (markupType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            default -> throw new PreBidException(
+                    "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid());
+        };
     }
 }
