@@ -1445,16 +1445,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final Account account = Account.builder()
                 .id(accountId)
-                .privacy(AccountPrivacyConfig.of(null,
-                        null,
-                        AccountDsaConfig.of(DefaultDsa.of(0,
-                                        1,
-                                        2,
-                                        List.of(DsaTransparency.of("",
-                                                List.of(0)))),
-                                null),
-                        null,
-                        null))
+                .privacy(AccountPrivacyConfig.builder()
+                        .dsa(AccountDsaConfig.of(
+                                DefaultDsa.of(0, 1, 2, List.of(DsaTransparency.of("", List.of(0)))), null))
+                        .build())
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
@@ -1506,12 +1500,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final Account account = Account.builder()
                 .id(accountId)
-                .privacy(AccountPrivacyConfig.of(null,
-                        null,
-                        AccountDsaConfig.of(null,
-                                null),
-                        null,
-                        null))
+                .privacy(AccountPrivacyConfig.builder().dsa(AccountDsaConfig.of(null, null)).build())
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
@@ -1565,16 +1554,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final Account account = Account.builder()
                 .id(accountId)
-                .privacy(AccountPrivacyConfig.of(null,
-                        null,
-                        AccountDsaConfig.of(DefaultDsa.of(3,
-                                        4,
-                                        5,
-                                        List.of(DsaTransparency.of("domain",
-                                                List.of(1)))),
-                                null),
-                        null,
-                        null))
+                .privacy(AccountPrivacyConfig.builder()
+                        .dsa(AccountDsaConfig.of(
+                                DefaultDsa.of(3, 4, 5, List.of(DsaTransparency.of("domain", List.of(1)))), null))
+                        .build())
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
@@ -1624,16 +1607,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final Account account = Account.builder()
                 .id(accountId)
-                .privacy(AccountPrivacyConfig.of(null,
-                        null,
-                        AccountDsaConfig.of(DefaultDsa.of(0,
-                                        1,
-                                        2,
-                                        List.of(DsaTransparency.of("",
-                                                List.of(0)))),
-                                true),
-                        null,
-                        null))
+                .privacy(AccountPrivacyConfig.builder()
+                        .dsa(AccountDsaConfig.of(
+                                DefaultDsa.of(0, 1, 2, List.of(DsaTransparency.of("", List.of(0)))), true))
+                        .build())
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
@@ -1685,16 +1662,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         final Account account = Account.builder()
                 .id(accountId)
-                .privacy(AccountPrivacyConfig.of(null,
-                        null,
-                        AccountDsaConfig.of(DefaultDsa.of(0,
-                                        1,
-                                        2,
-                                        List.of(DsaTransparency.of("",
-                                                List.of(0)))),
-                                true),
-                        null,
-                        null))
+                .privacy(AccountPrivacyConfig.builder()
+                        .dsa(AccountDsaConfig.of(
+                                DefaultDsa.of(0, 1, 2, List.of(DsaTransparency.of("", List.of(0)))), true))
+                        .build())
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
