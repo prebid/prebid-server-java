@@ -287,8 +287,7 @@ public class YieldlabBidder implements Bidder<Void> {
     }
 
     private static boolean isTransparencyValid(ExtRegsDsaTransparency transparency) {
-        return transparency.getDomain() != null
-                && StringUtils.isNotBlank(transparency.getDomain())
+        return StringUtils.isNotBlank(transparency.getDomain())
                 && transparency.getDsaParams() != null
                 && CollectionUtils.isNotEmpty(transparency.getDsaParams());
     }
