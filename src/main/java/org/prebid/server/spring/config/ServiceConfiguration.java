@@ -15,13 +15,14 @@ import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
 import org.prebid.server.auction.BidResponsePostProcessor;
 import org.prebid.server.auction.DebugResolver;
+import org.prebid.server.auction.DsaEnforcer;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.OrtbTypesResolver;
-import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.SecBrowsingTopicsResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.StoredResponseProcessor;
 import org.prebid.server.auction.SupplyChainResolver;
@@ -46,7 +47,15 @@ import org.prebid.server.auction.mediatypeprocessor.BidderMediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.CompositeMediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.MediaTypeProcessor;
 import org.prebid.server.auction.mediatypeprocessor.MultiFormatMediaTypeProcessor;
-import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
+import org.prebid.server.auction.privacy.contextfactory.AmpPrivacyContextFactory;
+import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
+import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContextFactory;
+import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
+import org.prebid.server.auction.privacy.enforcement.ActivityEnforcement;
+import org.prebid.server.auction.privacy.enforcement.CcpaEnforcement;
+import org.prebid.server.auction.privacy.enforcement.CoppaEnforcement;
+import org.prebid.server.auction.privacy.enforcement.PrivacyEnforcementService;
+import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
@@ -62,6 +71,7 @@ import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
 import org.prebid.server.cache.CacheService;
 import org.prebid.server.cache.model.CacheTtl;
+import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.CoopSyncProvider;
 import org.prebid.server.cookie.PrioritizedCoopSyncProvider;
@@ -81,6 +91,7 @@ import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.CriteriaLogManager;
@@ -93,6 +104,7 @@ import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
@@ -257,6 +269,13 @@ public class ServiceConfiguration {
     }
 
     @Bean
+    SecBrowsingTopicsResolver secBrowsingTopicsResolver(
+            @Value("${auction.privacysandbox.topicsdomain:#{null}}") String topicsDomain) {
+
+        return new SecBrowsingTopicsResolver(topicsDomain);
+    }
+
+    @Bean
     Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver(
             @Value("${auction.cache.only-winning-bids}") boolean cacheOnlyWinningBids,
             @Value("${settings.generate-storedrequest-bidrequest-id}") boolean generateBidRequestId,
@@ -269,6 +288,7 @@ public class ServiceConfiguration {
             TimeoutResolver timeoutResolver,
             IpAddressHelper ipAddressHelper,
             IdGenerator sourceIdGenerator,
+            SecBrowsingTopicsResolver topicsResolver,
             JsonMerger jsonMerger,
             JacksonMapper mapper) {
 
@@ -284,6 +304,7 @@ public class ServiceConfiguration {
                 timeoutResolver,
                 ipAddressHelper,
                 sourceIdGenerator,
+                topicsResolver,
                 jsonMerger,
                 mapper);
     }
@@ -338,6 +359,7 @@ public class ServiceConfiguration {
     @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
+            @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
             ActivityInfrastructureCreator activityInfrastructureCreator,
@@ -358,6 +380,7 @@ public class ServiceConfiguration {
 
         return new Ortb2RequestFactory(
                 enforceValidAccount,
+                timeoutAdjustmentFactor,
                 logSamplingRate,
                 blacklistedAccounts,
                 uidsCookieService,
@@ -383,10 +406,11 @@ public class ServiceConfiguration {
             StoredRequestProcessor storedRequestProcessor,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             AuctionGppService auctionGppService,
+            CookieDeprecationService cookieDeprecationService,
             ImplicitParametersExtractor implicitParametersExtractor,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             OrtbTypesResolver ortbTypesResolver,
-            PrivacyEnforcementService privacyEnforcementService,
+            AuctionPrivacyContextFactory auctionPrivacyContextFactory,
             DebugResolver debugResolver,
             JacksonMapper mapper) {
 
@@ -396,11 +420,12 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 bidRequestOrtbVersionConversionManager,
                 auctionGppService,
+                cookieDeprecationService,
                 implicitParametersExtractor,
                 ortb2ImplicitParametersResolver,
                 new InterstitialProcessor(),
                 ortbTypesResolver,
-                privacyEnforcementService,
+                auctionPrivacyContextFactory,
                 debugResolver,
                 mapper);
     }
@@ -458,7 +483,7 @@ public class ServiceConfiguration {
             VideoStoredRequestProcessor storedRequestProcessor,
             BidRequestOrtbVersionConversionManager bidRequestOrtbVersionConversionManager,
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
-            PrivacyEnforcementService privacyEnforcementService,
+            AuctionPrivacyContextFactory auctionPrivacyContextFactory,
             DebugResolver debugResolver,
             JacksonMapper mapper) {
 
@@ -470,7 +495,7 @@ public class ServiceConfiguration {
                 storedRequestProcessor,
                 bidRequestOrtbVersionConversionManager,
                 ortb2ImplicitParametersResolver,
-                privacyEnforcementService,
+                auctionPrivacyContextFactory,
                 debugResolver,
                 mapper);
     }
@@ -654,7 +679,7 @@ public class ServiceConfiguration {
             @Value("${cookie-sync.max-limit:#{null}}") Integer maxLimit,
             BidderCatalog bidderCatalog,
             HostVendorTcfDefinerService hostVendorTcfDefinerService,
-            PrivacyEnforcementService privacyEnforcementService,
+            CcpaEnforcement ccpaEnforcement,
             UidsCookieService uidsCookieService,
             CoopSyncProvider coopSyncProvider,
             Metrics metrics) {
@@ -665,10 +690,16 @@ public class ServiceConfiguration {
                 ObjectUtils.defaultIfNull(maxLimit, Integer.MAX_VALUE),
                 bidderCatalog,
                 hostVendorTcfDefinerService,
-                privacyEnforcementService,
+                ccpaEnforcement,
                 uidsCookieService,
                 coopSyncProvider,
                 metrics);
+    }
+
+    @Bean
+    CookieDeprecationService deprecationCookieResolver(Account defaultAccount) {
+
+        return new CookieDeprecationService(defaultAccount);
     }
 
     @Bean
@@ -775,7 +806,6 @@ public class ServiceConfiguration {
     @Bean
     ExchangeService exchangeService(
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
-            @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
             BidderCatalog bidderCatalog,
             StoredResponseProcessor storedResponseProcessor,
             @Autowired(required = false) DealsService dealsService,
@@ -798,6 +828,7 @@ public class ServiceConfiguration {
             HttpInteractionLogger httpInteractionLogger,
             PriceFloorAdjuster priceFloorAdjuster,
             PriceFloorEnforcer priceFloorEnforcer,
+            DsaEnforcer dsaEnforcer,
             BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
             Metrics metrics,
             Clock clock,
@@ -807,7 +838,6 @@ public class ServiceConfiguration {
 
         return new ExchangeService(
                 logSamplingRate,
-                timeoutAdjustmentFactor,
                 bidderCatalog,
                 storedResponseProcessor,
                 dealsService,
@@ -830,6 +860,7 @@ public class ServiceConfiguration {
                 httpInteractionLogger,
                 priceFloorAdjuster,
                 priceFloorEnforcer,
+                dsaEnforcer,
                 bidAdjustmentFactorResolver,
                 metrics,
                 clock,
@@ -875,27 +906,29 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PrivacyEnforcementService privacyEnforcementService(
-            BidderCatalog bidderCatalog,
-            PrivacyExtractor privacyExtractor,
-            TcfDefinerService tcfDefinerService,
-            ImplicitParametersExtractor implicitParametersExtractor,
-            IpAddressHelper ipAddressHelper,
-            Metrics metrics,
-            CountryCodeMapper countryCodeMapper,
-            @Value("${ccpa.enforce}") boolean ccpaEnforce,
-            @Value("${lmt.enforce}") boolean lmtEnforce) {
+    PrivacyEnforcementService privacyEnforcementService(CoppaEnforcement coppaEnforcement,
+                                                        CcpaEnforcement ccpaEnforcement,
+                                                        TcfEnforcement tcfEnforcement,
+                                                        ActivityEnforcement activityEnforcement) {
 
         return new PrivacyEnforcementService(
-                bidderCatalog,
+                coppaEnforcement,
+                ccpaEnforcement,
+                tcfEnforcement,
+                activityEnforcement);
+    }
+
+    @Bean
+    AuctionPrivacyContextFactory auctionPrivacyContextFactory(PrivacyExtractor privacyExtractor,
+                                                              TcfDefinerService tcfDefinerService,
+                                                              IpAddressHelper ipAddressHelper,
+                                                              CountryCodeMapper countryCodeMapper) {
+
+        return new AuctionPrivacyContextFactory(
                 privacyExtractor,
                 tcfDefinerService,
-                implicitParametersExtractor,
                 ipAddressHelper,
-                metrics,
-                countryCodeMapper,
-                ccpaEnforce,
-                lmtEnforce);
+                countryCodeMapper);
     }
 
     @Bean
@@ -909,6 +942,34 @@ public class ServiceConfiguration {
                 tcfDefinerService,
                 ipAddressHelper,
                 countryCodeMapper);
+    }
+
+    @Bean
+    CookieSyncPrivacyContextFactory cookieSyncPrivacyContextFactory(
+            PrivacyExtractor privacyExtractor,
+            TcfDefinerService tcfDefinerService,
+            ImplicitParametersExtractor implicitParametersExtractor,
+            IpAddressHelper ipAddressHelper) {
+
+        return new CookieSyncPrivacyContextFactory(
+                privacyExtractor,
+                tcfDefinerService,
+                implicitParametersExtractor,
+                ipAddressHelper);
+    }
+
+    @Bean
+    SetuidPrivacyContextFactory setuidPrivacyContextFactory(
+            PrivacyExtractor privacyExtractor,
+            TcfDefinerService tcfDefinerService,
+            ImplicitParametersExtractor implicitParametersExtractor,
+            IpAddressHelper ipAddressHelper) {
+
+        return new SetuidPrivacyContextFactory(
+                privacyExtractor,
+                tcfDefinerService,
+                implicitParametersExtractor,
+                ipAddressHelper);
     }
 
     @Bean
@@ -940,12 +1001,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PriceFloorsConfigResolver accountValidator(
-            @Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
-            Metrics metrics,
-            JacksonMapper jacksonMapper) {
-
-        return new PriceFloorsConfigResolver(defaultAccountConfig, metrics, jacksonMapper);
+    PriceFloorsConfigResolver accountValidator(Account defaultAccount, Metrics metrics) {
+        return new PriceFloorsConfigResolver(defaultAccount, metrics);
     }
 
     @Bean
@@ -1064,6 +1121,25 @@ public class ServiceConfiguration {
     @Bean
     LoggerControlKnob loggerControlKnob(Vertx vertx) {
         return new LoggerControlKnob(vertx);
+    }
+
+    @Bean
+    DsaEnforcer dsaEnforcer() {
+        return new DsaEnforcer();
+    }
+
+    @Bean
+    Account defaultAccount(@Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
+                           JacksonMapper mapper) {
+        try {
+            final Account account = StringUtils.isNotBlank(defaultAccountConfig)
+                    ? mapper.decodeValue(defaultAccountConfig, Account.class)
+                    : null;
+            return account != null ? account : Account.builder().build();
+        } catch (DecodeException e) {
+            logger.warn("Could not parse default account configuration", e);
+            return Account.builder().build();
+        }
     }
 
     private static List<String> splitToList(String listAsString) {

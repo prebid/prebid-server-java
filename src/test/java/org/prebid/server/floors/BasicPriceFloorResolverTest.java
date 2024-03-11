@@ -1436,6 +1436,39 @@ public class BasicPriceFloorResolverTest extends VertxTest {
     }
 
     @Test
+    public void resolveShouldNotEmitWarningIfRequestFloorMinCurIsNull() {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .app(App.builder()
+                        .publisher(Publisher.builder().domain("appDomain").build())
+                        .build())
+                .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .floors(PriceFloorRules.builder()
+                                .floorMin(BigDecimal.ONE)
+                                .build())
+                        .build()))
+                .build();
+        final JsonNode impFloorsNode = mapper.valueToTree(ExtImpPrebidFloors.of(
+                null, null, null, BigDecimal.TEN, "USD"));
+        final ObjectNode givenImpExt = mapper.createObjectNode();
+        final ObjectNode givenImpExtPrebid = mapper.createObjectNode();
+        givenImpExtPrebid.set("floors", impFloorsNode);
+        givenImpExt.set("prebid", givenImpExtPrebid);
+
+        // when
+        final List<String> warnings = new ArrayList<>();
+        priceFloorResolver.resolve(bidRequest,
+                givenRules(PriceFloorModelGroup.builder()
+                        .schema(PriceFloorSchema.of("|", singletonList(PriceFloorField.pubDomain)))
+                        .value("appDomain", BigDecimal.ONE)
+                        .build()),
+                givenImp(impBuilder -> impBuilder.ext(givenImpExt)), warnings);
+
+        // then
+        assertThat(warnings).isEmpty();
+    }
+
+    @Test
     public void resolveShouldReturnConvertedFloorMinInProvidedCurrencyAndFloorMinMoreThanFloor() {
         // given
         when(currencyConversionService.convertCurrency(any(), any(), eq("EUR"), eq("GUF")))

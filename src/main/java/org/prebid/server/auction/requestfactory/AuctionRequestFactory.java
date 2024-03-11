@@ -10,12 +10,13 @@ import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AuctionGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.AuctionStoredResult;
+import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
+import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.MetricName;
@@ -39,10 +40,11 @@ public class AuctionRequestFactory {
     private final StoredRequestProcessor storedRequestProcessor;
     private final BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     private final AuctionGppService gppService;
+    private final CookieDeprecationService cookieDeprecationService;
     private final ImplicitParametersExtractor paramsExtractor;
     private final Ortb2ImplicitParametersResolver paramsResolver;
     private final InterstitialProcessor interstitialProcessor;
-    private final PrivacyEnforcementService privacyEnforcementService;
+    private final AuctionPrivacyContextFactory auctionPrivacyContextFactory;
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
@@ -54,11 +56,12 @@ public class AuctionRequestFactory {
                                  StoredRequestProcessor storedRequestProcessor,
                                  BidRequestOrtbVersionConversionManager ortbVersionConversionManager,
                                  AuctionGppService gppService,
+                                 CookieDeprecationService cookieDeprecationService,
                                  ImplicitParametersExtractor paramsExtractor,
                                  Ortb2ImplicitParametersResolver paramsResolver,
                                  InterstitialProcessor interstitialProcessor,
                                  OrtbTypesResolver ortbTypesResolver,
-                                 PrivacyEnforcementService privacyEnforcementService,
+                                 AuctionPrivacyContextFactory auctionPrivacyContextFactory,
                                  DebugResolver debugResolver,
                                  JacksonMapper mapper) {
 
@@ -67,11 +70,12 @@ public class AuctionRequestFactory {
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
         this.ortbVersionConversionManager = Objects.requireNonNull(ortbVersionConversionManager);
         this.gppService = Objects.requireNonNull(gppService);
+        this.cookieDeprecationService = Objects.requireNonNull(cookieDeprecationService);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.paramsResolver = Objects.requireNonNull(paramsResolver);
         this.interstitialProcessor = Objects.requireNonNull(interstitialProcessor);
         this.ortbTypesResolver = Objects.requireNonNull(ortbTypesResolver);
-        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.auctionPrivacyContextFactory = Objects.requireNonNull(auctionPrivacyContextFactory);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -114,7 +118,7 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> updateAndValidateBidRequest(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(auctionContext -> privacyEnforcementService.contextFromBidRequest(auctionContext)
+                .compose(auctionContext -> auctionPrivacyContextFactory.contextFrom(auctionContext)
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(
@@ -231,8 +235,8 @@ public class AuctionRequestFactory {
         return Future.succeededFuture(auctionStoredResult.bidRequest())
                 .map(ortbVersionConversionManager::convertToAuctionSupportedVersion)
                 .map(bidRequest -> gppService.updateBidRequest(bidRequest, auctionContext))
-                .map(bidRequest -> paramsResolver.resolve(
-                        bidRequest, auctionContext.getHttpRequest(), ENDPOINT, hasStoredBidRequest));
+                .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, hasStoredBidRequest))
+                .map(bidRequest -> cookieDeprecationService.updateBidRequestDevice(bidRequest, auctionContext));
     }
 
     private static MetricName requestTypeMetric(BidRequest bidRequest) {

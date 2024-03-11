@@ -14,15 +14,17 @@ import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureC
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.ExchangeService;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.VideoResponseFactory;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
 import org.prebid.server.auction.gpp.SetuidGppService;
+import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContextFactory;
+import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cache.CacheService;
+import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.deals.UserService;
@@ -81,7 +83,8 @@ public class WebConfiguration {
     @Autowired
     private Vertx vertx;
 
-    @Bean // TODO: remove support for properties with http prefix after transition period
+    // TODO: remove support for properties with http prefix after transition period
+    @Bean
     HttpServerOptions httpServerOptions(
             @Value("#{'${http.max-headers-size:${server.max-headers-size:}}'}") int maxHeaderSize,
             @Value("#{'${http.max-initial-line-length:${server.max-initial-line-length:}}'}") int maxInitialLineLength,
@@ -275,10 +278,11 @@ public class WebConfiguration {
             @Value("${cookie-sync.default-timeout-ms}") int defaultTimeoutMs,
             UidsCookieService uidsCookieService,
             CookieSyncGppService cookieSyncGppProcessor,
+            CookieDeprecationService cookieDeprecationService,
             ActivityInfrastructureCreator activityInfrastructureCreator,
             ApplicationSettings applicationSettings,
             CookieSyncService cookieSyncService,
-            PrivacyEnforcementService privacyEnforcementService,
+            CookieSyncPrivacyContextFactory cookieSyncPrivacyContextFactory,
             AnalyticsReporterDelegator analyticsReporterDelegator,
             Metrics metrics,
             TimeoutFactory timeoutFactory,
@@ -288,11 +292,12 @@ public class WebConfiguration {
                 defaultTimeoutMs,
                 logSamplingRate,
                 uidsCookieService,
+                cookieDeprecationService,
                 cookieSyncGppProcessor,
                 activityInfrastructureCreator,
                 cookieSyncService,
                 applicationSettings,
-                privacyEnforcementService,
+                cookieSyncPrivacyContextFactory,
                 analyticsReporterDelegator,
                 metrics,
                 timeoutFactory,
@@ -305,7 +310,7 @@ public class WebConfiguration {
             UidsCookieService uidsCookieService,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
-            PrivacyEnforcementService privacyEnforcementService,
+            SetuidPrivacyContextFactory setuidPrivacyContextFactory,
             SetuidGppService setuidGppService,
             ActivityInfrastructureCreator activityInfrastructureCreator,
             HostVendorTcfDefinerService tcfDefinerService,
@@ -318,7 +323,7 @@ public class WebConfiguration {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 setuidGppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
