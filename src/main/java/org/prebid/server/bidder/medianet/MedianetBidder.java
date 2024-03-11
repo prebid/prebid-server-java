@@ -2,6 +2,7 @@ package org.prebid.server.bidder.medianet;
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
@@ -11,6 +12,7 @@ import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -59,11 +61,28 @@ public class MedianetBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, resolveBidType(bid.getImpid(), bidRequest.getImp()), currency))
+                .map(bid -> BidderBid.of(bid, resolveBidType(bid, bidRequest.getImp()), currency))
                 .toList();
     }
 
-    private static BidType resolveBidType(String impId, List<Imp> imps) {
+    private static BidType resolveBidType(Bid bid, List<Imp> imps) {
+        final Integer markupType = bid.getMtype();
+        if (markupType == null) {
+            return resolveBidTypeFromImpId(bid.getImpid(), imps);
+        }
+
+        return switch (markupType) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            case 3 -> BidType.audio;
+            case 4 -> BidType.xNative;
+            default ->
+                    throw new PreBidException("Unable to fetch mediaType: %s"
+                            .formatted(bid.getImpid()));
+        };
+    }
+
+    private static BidType resolveBidTypeFromImpId(String impId, List<Imp> imps) {
         for (Imp imp : imps) {
             if (Objects.equals(impId, imp.getId())) {
                 if (imp.getBanner() != null) {
