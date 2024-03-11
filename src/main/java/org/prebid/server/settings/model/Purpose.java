@@ -20,4 +20,6 @@ public class Purpose {
 
     @JsonProperty("vendor-exceptions")
     List<String> vendorExceptions;
+
+    PurposeEid eid;
 }

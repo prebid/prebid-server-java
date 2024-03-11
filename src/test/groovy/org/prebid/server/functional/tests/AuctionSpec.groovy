@@ -176,7 +176,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain buyeruid from the user.ext.prebid.buyeruids"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.user
+        assert !bidderRequest.user.ext
     }
 
     def "PBS should populate buyeruid from uids cookie when buyeruids with appropriate bidder but without value present in request"() {
@@ -221,7 +221,7 @@ class AuctionSpec extends BaseSpec {
 
         then: "Bidder request shouldn't contain buyeruid from the uids cookie"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert !bidderRequest.user
+        assert !bidderRequest.user.buyeruid
     }
 
     def "PBS should take precedence buyeruids whenever present valid uid cookie"() {

@@ -400,6 +400,23 @@
           },
           {
             "description": "Invocation of Activity Infrastructure.",
+            "activity": "transmitEids",
+            "activity_invocation_payload": {
+              "component_type": "BIDDER",
+              "component_name": "rubicon"
+            }
+          },
+          {
+            "description": "Setting the default invocation result.",
+            "allow_by_default": true
+          },
+          {
+            "description": "Activity Infrastructure invocation result.",
+            "activity": "transmitEids",
+            "allowed": true
+          },
+          {
+            "description": "Invocation of Activity Infrastructure.",
             "activity": "transmitPreciseGeo",
             "activity_invocation_payload": {
               "component_type": "BIDDER",

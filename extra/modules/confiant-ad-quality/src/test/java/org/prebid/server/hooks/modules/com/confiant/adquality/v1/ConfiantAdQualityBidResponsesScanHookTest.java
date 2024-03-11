@@ -13,9 +13,9 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderResponse;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.hooks.execution.v1.bidder.AllProcessedBidResponsesPayloadImpl;
 import org.prebid.server.hooks.modules.com.confiant.adquality.core.BidsMapper;
@@ -61,7 +61,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
     private ActivityInfrastructure activityInfrastructure;
 
     @Mock
-    private PrivacyEnforcementService privacyEnforcementService;
+    private UserFpdActivityMask userFpdActivityMask;
 
     private ConfiantAdQualityBidResponsesScanHook target;
 
@@ -69,7 +69,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
 
     @Before
     public void setUp() {
-        target = new ConfiantAdQualityBidResponsesScanHook(bidsScanner, List.of(), privacyEnforcementService);
+        target = new ConfiantAdQualityBidResponsesScanHook(bidsScanner, List.of(), userFpdActivityMask);
     }
 
     @Test
@@ -176,7 +176,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
                 .bidRequest(BidRequest.builder().cur(List.of("USD")).build())
                 .build();
 
-        target = new ConfiantAdQualityBidResponsesScanHook(bidsScanner, List.of(secureBidderName), privacyEnforcementService);
+        target = new ConfiantAdQualityBidResponsesScanHook(bidsScanner, List.of(secureBidderName), userFpdActivityMask);
 
         doReturn(List.of(secureBidderResponse, notSecureBadBidderResponse, notSecureGoodBidderResponse)).when(allProcessedBidResponsesPayload).bidResponses();
         doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
@@ -234,7 +234,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
                 .bidRequest(BidRequest.builder().cur(List.of("USD")).build())
                 .build();
 
-        target = new ConfiantAdQualityBidResponsesScanHook(bidsScanner, List.of(secureBidderName), privacyEnforcementService);
+        target = new ConfiantAdQualityBidResponsesScanHook(bidsScanner, List.of(secureBidderName), userFpdActivityMask);
 
         doReturn(List.of(secureBidderResponse, notSecureBadBidderResponse, emptyBidderResponse)).when(allProcessedBidResponsesPayload).bidResponses();
         doReturn(Future.succeededFuture(bidsScanResult)).when(bidsScanner).submitBids(any());
@@ -277,9 +277,9 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final Boolean transmitGeoIsAllowed = true;
         final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
                 "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
-        final User user = privacyEnforcementService.maskUserConsideringActivityRestrictions(
-                getUser(), true, !transmitGeoIsAllowed);
-        final Device device = privacyEnforcementService.maskDeviceConsideringActivityRestrictions(
+        final User user = userFpdActivityMask.maskUser(
+                getUser(), true, true, !transmitGeoIsAllowed);
+        final Device device = userFpdActivityMask.maskDevice(
                 getDevice(), true, !transmitGeoIsAllowed);
 
         bidsScanner.enableScan();
@@ -306,9 +306,9 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final Boolean transmitGeoIsAllowed = false;
         final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
                 "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
-        final User user = privacyEnforcementService.maskUserConsideringActivityRestrictions(
-                getUser(), true, !transmitGeoIsAllowed);
-        final Device device = privacyEnforcementService.maskDeviceConsideringActivityRestrictions(
+        final User user = userFpdActivityMask.maskUser(
+                getUser(), true, true, !transmitGeoIsAllowed);
+        final Device device = userFpdActivityMask.maskDevice(
                 getDevice(), true, !transmitGeoIsAllowed);
 
         bidsScanner.enableScan();

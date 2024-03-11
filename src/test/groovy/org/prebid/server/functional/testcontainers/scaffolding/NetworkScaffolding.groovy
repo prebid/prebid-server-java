@@ -156,6 +156,7 @@ abstract class NetworkScaffolding implements ObjectMapperWrapper {
         getRequestsHeaders(mockServerClient.retrieveRecordedRequests(getRequest(value)) as List<HttpRequest>)
     }
 
+    // should be used instead of mockServerClient.reset due to memory leak on library
     void reset(String resetEndpoint = endpoint, ClearType clearType = ALL) {
         mockServerClient.clear(request().withPath(resetEndpoint), clearType)
     }
