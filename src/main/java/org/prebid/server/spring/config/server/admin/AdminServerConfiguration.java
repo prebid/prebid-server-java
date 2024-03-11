@@ -6,7 +6,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import org.prebid.server.vertx.verticles.VerticleDefinition;
 import org.prebid.server.vertx.verticles.server.ServerVerticle;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -16,28 +15,26 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnProperty(prefix = "admin", name = "port")
 public class AdminServerConfiguration {
 
-    @Bean("adminPortAdminServerRouter")
-    Router adminPortAdminServerRouter(
-            Vertx vertx,
-            @Qualifier("adminPortAdminResourcesBinder") AdminResourcesBinder adminResourcesBinder,
-            BodyHandler bodyHandler) {
+    @Bean
+    Router adminPortAdminServerRouter(Vertx vertx,
+                                      AdminResourcesBinder adminPortAdminResourcesBinder,
+                                      BodyHandler bodyHandler) {
 
         final Router router = Router.router(vertx);
         router.route().handler(bodyHandler);
 
-        adminResourcesBinder.bind(router);
+        adminPortAdminResourcesBinder.bind(router);
         return router;
     }
 
     @Bean
-    VerticleDefinition adminPortAdminHttpServerVerticleDefinition(
-            @Qualifier("adminPortAdminServerRouter") Router router,
-            @Value("${admin.port}") int port) {
+    VerticleDefinition adminPortAdminHttpServerVerticleDefinition(Router adminPortAdminServerRouter,
+                                                                  @Value("${admin.port}") int port) {
 
         return VerticleDefinition.ofSingleInstance(
                 () -> new ServerVerticle(
                         "Admin Http Server",
                         SocketAddress.inetSocketAddress(port, "0.0.0.0"),
-                        router));
+                        adminPortAdminServerRouter));
     }
 }

@@ -18,7 +18,6 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.prometheus.NamespaceSubsystemSampleBuilder;
 import org.prebid.server.vertx.verticles.VerticleDefinition;
 import org.prebid.server.vertx.verticles.server.ServerVerticle;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -39,7 +38,7 @@ public class PrometheusConfiguration {
     @Bean
     public VerticleDefinition prometheusHttpServerVerticleDefinition(
             PrometheusConfigurationProperties prometheusConfigurationProperties,
-            @Qualifier("prometheusRouter") Router router,
+            Router prometheusRouter,
             DropwizardExports dropwizardExports) {
 
         CollectorRegistry.defaultRegistry.register(dropwizardExports);
@@ -48,7 +47,7 @@ public class PrometheusConfiguration {
                 () -> new ServerVerticle(
                         "Prometheus Http Server",
                         SocketAddress.inetSocketAddress(prometheusConfigurationProperties.getPort(), "0.0.0.0"),
-                        router));
+                        prometheusRouter));
     }
 
     @Bean
@@ -70,7 +69,7 @@ public class PrometheusConfiguration {
         return new DropwizardExports(metricRegistry, sampleBuilder);
     }
 
-    @Bean("prometheusRouter")
+    @Bean
     Router prometheusRouter(Vertx vertx) {
         final Router router = Router.router(vertx);
         router.route("/metrics").handler(new MetricsHandler());

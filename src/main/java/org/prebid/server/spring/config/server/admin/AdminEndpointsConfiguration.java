@@ -181,10 +181,9 @@ public class AdminEndpointsConfiguration {
                 new CollectedMetricsHandler(metricRegistry, mapper, path));
     }
 
-    @Bean(name = "applicationPortAdminResourcesBinder")
-    AdminResourcesBinder applicationPortAdminResourcesBinder(
-            @Autowired(required = false) Map<String, String> adminEndpointCredentials,
-            List<AdminResource> resources) {
+    @Bean
+    AdminResourcesBinder applicationPortAdminResourcesBinder(Map<String, String> adminEndpointCredentials,
+                                                             List<AdminResource> resources) {
 
         final List<AdminResource> applicationPortAdminResources = resources.stream()
                 .filter(AdminResource::isOnApplicationPort)
@@ -193,10 +192,9 @@ public class AdminEndpointsConfiguration {
         return new AdminResourcesBinder(adminEndpointCredentials, applicationPortAdminResources);
     }
 
-    @Bean(name = "adminPortAdminResourcesBinder")
-    AdminResourcesBinder adminPortAdminResourcesBinder(
-            @Autowired(required = false) Map<String, String> adminEndpointCredentials,
-            List<AdminResource> resources) {
+    @Bean
+    AdminResourcesBinder adminPortAdminResourcesBinder(Map<String, String> adminEndpointCredentials,
+                                                       List<AdminResource> resources) {
 
         final List<AdminResource> adminPortAdminResources = resources.stream()
                 .filter(Predicate.not(AdminResource::isOnApplicationPort))
@@ -206,10 +204,8 @@ public class AdminEndpointsConfiguration {
     }
 
     @Bean
-    Map<String, String> adminEndpointCredentials(
-            @Autowired(required = false) AdminEndpointCredentials adminEndpointCredentials) {
-
-        return ObjectUtils.defaultIfNull(adminEndpointCredentials.getCredentials(), Collections.emptyMap());
+    Map<String, String> adminEndpointCredentials(@Autowired(required = false) AdminEndpointCredentials credentials) {
+        return ObjectUtils.defaultIfNull(credentials.getCredentials(), Collections.emptyMap());
     }
 
     @Component

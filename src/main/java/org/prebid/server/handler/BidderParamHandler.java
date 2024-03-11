@@ -22,7 +22,7 @@ public class BidderParamHandler implements ApplicationResource {
 
     @Override
     public List<HttpEndpoint> endpoints() {
-        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, "/bidders/params"));
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.bidder_params.value()));
     }
 
     @Override

@@ -12,8 +12,8 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.verticles.server.HttpEndpoint;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
-import java.util.List;
 import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -37,7 +37,7 @@ public class BiddersHandler implements ApplicationResource {
 
     @Override
     public List<HttpEndpoint> endpoints() {
-        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, "/info/bidders"));
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.info_bidders.value()));
     }
 
     @Override

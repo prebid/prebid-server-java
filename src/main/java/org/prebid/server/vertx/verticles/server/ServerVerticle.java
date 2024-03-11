@@ -47,7 +47,7 @@ public class ServerVerticle extends AbstractVerticle {
 
     @Override
     public void start(Promise<Void> startPromise) {
-        final HttpServerOptions httpServerOptions = ObjectUtils.defaultIfNull(serverOptions, new HttpServerOptions());
+        final HttpServerOptions httpServerOptions = ObjectUtils.getIfNull(serverOptions, HttpServerOptions::new);
         final HttpServer server = vertx.createHttpServer(httpServerOptions)
                 .requestHandler(router);
 

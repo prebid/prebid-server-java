@@ -119,7 +119,7 @@ public class AmpHandler implements ApplicationResource {
 
     @Override
     public List<HttpEndpoint> endpoints() {
-        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, "/openrtb2/amp"));
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.openrtb2_amp.value()));
     }
 
     @Override

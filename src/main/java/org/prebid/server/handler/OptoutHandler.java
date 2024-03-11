@@ -47,8 +47,8 @@ public class OptoutHandler implements ApplicationResource {
     @Override
     public List<HttpEndpoint> endpoints() {
         return List.of(
-                HttpEndpoint.of(HttpMethod.GET, "/optout"),
-                HttpEndpoint.of(HttpMethod.POST, "/optout"));
+                HttpEndpoint.of(HttpMethod.GET, Endpoint.optout.value()),
+                HttpEndpoint.of(HttpMethod.POST, Endpoint.optout.value()));
     }
 
     @Override

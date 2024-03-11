@@ -3,8 +3,8 @@ package org.prebid.server.handler.openrtb2;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.http.HttpMethod;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -82,7 +82,7 @@ public class VideoHandler implements ApplicationResource {
 
     @Override
     public List<HttpEndpoint> endpoints() {
-        return Collections.singletonList(HttpEndpoint.of(HttpMethod.POST, "/openrtb2/video"));
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.POST, Endpoint.openrtb2_video.value()));
     }
 
     @Override

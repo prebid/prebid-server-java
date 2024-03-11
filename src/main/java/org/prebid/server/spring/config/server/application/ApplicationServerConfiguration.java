@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config.server.application;
 
-import io.vertx.core.Verticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
@@ -62,8 +61,6 @@ import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.verticles.VerticleDefinition;
 import org.prebid.server.vertx.verticles.server.ServerVerticle;
 import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -78,7 +75,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.BiFunction;
 
 @Configuration
 public class ApplicationServerConfiguration {
@@ -86,32 +82,41 @@ public class ApplicationServerConfiguration {
     @Value("${logging.sampling-rate:0.01}")
     private double logSamplingRate;
 
-    @Autowired
-    private Vertx vertx;
-
     @Bean
     @ConditionalOnProperty(name = "server.http.enabled", havingValue = "true")
     VerticleDefinition httpApplicationServerVerticleDefinition(
+            HttpServerOptions httpServerOptions,
             @Value("#{'${http.port:${server.http.port}}'}") Integer port,
-            @Value("#{'${vertx.http-server-instances:${server.http.server-instances}}'}") Integer instances,
-            BiFunction<String, SocketAddress, Verticle> applicationVerticleFactory) {
+            Router applicationServerRouter,
+            ExceptionHandler exceptionHandler,
+            @Value("#{'${vertx.http-server-instances:${server.http.server-instances}}'}") Integer instances) {
 
         return VerticleDefinition.ofMultiInstance(
-                () -> applicationVerticleFactory.apply(
-                        "Application Http Server", SocketAddress.inetSocketAddress(port, "0.0.0.0")),
+                () -> new ServerVerticle(
+                        "Application Http Server",
+                        httpServerOptions,
+                        SocketAddress.inetSocketAddress(port, "0.0.0.0"),
+                        applicationServerRouter,
+                        exceptionHandler),
                 instances);
     }
 
     @Bean
     @ConditionalOnProperty(name = "server.unix-socket.enabled", havingValue = "true")
     VerticleDefinition unixSocketApplicationServerVerticleDefinition(
+            HttpServerOptions httpServerOptions,
             @Value("${server.unix-socket.path}") String path,
-            @Value("${server.unix-socket.server-instances}") Integer instances,
-            BiFunction<String, SocketAddress, Verticle> applicationVerticleFactory) {
+            Router applicationServerRouter,
+            ExceptionHandler exceptionHandler,
+            @Value("${server.unix-socket.server-instances}") Integer instances) {
 
         return VerticleDefinition.ofMultiInstance(
-                () -> applicationVerticleFactory.apply(
-                        "Application Unix Socket Server", SocketAddress.domainSocketAddress(path)),
+                () -> new ServerVerticle(
+                        "Application Unix Socket Server",
+                        httpServerOptions,
+                        SocketAddress.domainSocketAddress(path),
+                        applicationServerRouter,
+                        exceptionHandler),
                 instances);
     }
 
@@ -155,23 +160,13 @@ public class ApplicationServerConfiguration {
     }
 
     @Bean
-    BiFunction<String, SocketAddress, Verticle> applicationVerticleFactory(
-            @Qualifier("applicationServerRouter") Router router,
-            HttpServerOptions httpServerOptions,
-            ExceptionHandler exceptionHandler) {
-
-        return (name, address) -> new ServerVerticle(
-                name, httpServerOptions, address, router, exceptionHandler);
-    }
-
-    @Bean("applicationServerRouter")
-    Router applicationServerRouter(
-            BodyHandler bodyHandler,
-            NoCacheHandler noCacheHandler,
-            CorsHandler corsHandler,
-            List<ApplicationResource> resources,
-            @Qualifier("applicationPortAdminResourcesBinder") AdminResourcesBinder adminResourcesBinder,
-            StaticHandler staticHandler) {
+    Router applicationServerRouter(Vertx vertx,
+                                   BodyHandler bodyHandler,
+                                   NoCacheHandler noCacheHandler,
+                                   CorsHandler corsHandler,
+                                   List<ApplicationResource> resources,
+                                   AdminResourcesBinder applicationPortAdminResourcesBinder,
+                                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
         router.route().handler(bodyHandler);
@@ -182,7 +177,7 @@ public class ApplicationServerConfiguration {
                 resource.endpoints().forEach(endpoint ->
                         router.route(endpoint.getMethod(), endpoint.getPath()).handler(resource)));
 
-        adminResourcesBinder.bind(router);
+        applicationPortAdminResourcesBinder.bind(router);
 
         router.get("/static/*").handler(staticHandler);
         router.get("/").handler(staticHandler); // serves index.html by default

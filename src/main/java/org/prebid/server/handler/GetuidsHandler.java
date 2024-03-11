@@ -31,7 +31,7 @@ public class GetuidsHandler implements ApplicationResource {
 
     @Override
     public List<HttpEndpoint> endpoints() {
-        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, "/getuids"));
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.getuids.value()));
     }
 
     @Override

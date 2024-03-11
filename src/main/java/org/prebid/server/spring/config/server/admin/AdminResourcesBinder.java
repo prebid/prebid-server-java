@@ -1,7 +1,9 @@
 package org.prebid.server.spring.config.server.admin;
 
-import io.vertx.ext.auth.AuthProvider;
+import io.vertx.core.Handler;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.AuthHandler;
 import io.vertx.ext.web.handler.BasicAuthHandler;
 import org.prebid.server.vertx.verticles.server.admin.AdminResource;
 
@@ -20,21 +22,29 @@ public class AdminResourcesBinder {
     }
 
     public void bind(Router router) {
-        resources.forEach(resource -> bindResource(router, resource));
+        for (AdminResource resource : resources) {
+            router
+                    .route(resource.path())
+                    .handler(resource.isSecured() ? securedAuthHandler() : PassNextHandler.INSTANCE)
+                    .handler(resource);
+        }
     }
 
-    private void bindResource(Router router, AdminResource resource) {
-        final String path = resource.path();
+    private AuthHandler securedAuthHandler() {
+        if (credentials == null) {
+            throw new IllegalArgumentException("Credentials for admin endpoint is empty.");
+        }
 
-        if (resource.isSecured()) {
-            if (credentials == null) {
-                throw new IllegalArgumentException("Credentials for admin endpoint is empty.");
-            }
+        return BasicAuthHandler.create(new AdminServerAuthProvider(credentials));
+    }
 
-            final AuthProvider authProvider = new AdminServerAuthProvider(credentials);
-            router.route(path).handler(BasicAuthHandler.create(authProvider)).handler(resource);
-        } else {
-            router.route(path).handler(resource);
+    private static class PassNextHandler implements Handler<RoutingContext> {
+
+        private static final Handler<RoutingContext> INSTANCE = new PassNextHandler();
+
+        @Override
+        public void handle(RoutingContext event) {
+            event.next();
         }
     }
 }

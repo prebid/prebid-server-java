@@ -130,7 +130,7 @@ public class SetuidHandler implements ApplicationResource {
 
     @Override
     public List<HttpEndpoint> endpoints() {
-        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, "/setuid"));
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.setuid.value()));
     }
 
     private static UsersyncMethodType preferredUserSyncType(Usersyncer usersyncer) {
