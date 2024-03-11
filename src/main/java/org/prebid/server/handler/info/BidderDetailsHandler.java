@@ -73,7 +73,7 @@ public class BidderDetailsHandler implements ApplicationResource {
     @Override
     public List<HttpEndpoint> endpoints() {
         return Collections.singletonList(
-                HttpEndpoint.of(HttpMethod.GET, "/info/bidders/:%s".formatted(BIDDER_NAME_PARAM)));
+                HttpEndpoint.of(HttpMethod.GET, "%s/:%s".formatted(Endpoint.info_bidders.value(), BIDDER_NAME_PARAM)));
     }
 
     @Override

@@ -77,7 +77,7 @@ public class VtrackHandler implements ApplicationResource {
 
     @Override
     public List<HttpEndpoint> endpoints() {
-        return Collections.singletonList(HttpEndpoint.of(HttpMethod.POST, "/vtrack"));
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.POST, Endpoint.vtrack.value()));
     }
 
     @Override

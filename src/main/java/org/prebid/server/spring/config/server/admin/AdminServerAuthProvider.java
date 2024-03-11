@@ -10,7 +10,6 @@ import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Map;
-import java.util.Objects;
 
 public class AdminServerAuthProvider implements AuthProvider {
 
@@ -31,7 +30,7 @@ public class AdminServerAuthProvider implements AuthProvider {
         final String requestPassword = StringUtils.chomp(authInfo.getString("password"));
 
         final String storedPassword = credentials.get(requestUsername);
-        if (StringUtils.isNotBlank(requestPassword) && Objects.equals(storedPassword, requestPassword)) {
+        if (StringUtils.isNotBlank(requestPassword) && StringUtils.equals(storedPassword, requestPassword)) {
             resultHandler.handle(Future.succeededFuture());
         } else {
             resultHandler.handle(Future.failedFuture("No such user, or password incorrect."));

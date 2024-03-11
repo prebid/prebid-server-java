@@ -83,7 +83,7 @@ public class NotificationEventHandler implements ApplicationResource {
 
     @Override
     public List<HttpEndpoint> endpoints() {
-        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, "/event"));
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.event.value()));
     }
 
     @Override

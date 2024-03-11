@@ -100,7 +100,7 @@ public class CookieSyncHandler implements ApplicationResource {
 
     @Override
     public List<HttpEndpoint> endpoints() {
-        return Collections.singletonList(HttpEndpoint.of(HttpMethod.POST, "/cookie_sync"));
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.POST, Endpoint.cookie_sync.value()));
     }
 
     @Override
