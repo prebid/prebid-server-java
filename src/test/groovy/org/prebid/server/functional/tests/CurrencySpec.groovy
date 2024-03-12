@@ -9,6 +9,7 @@ import org.prebid.server.functional.testcontainers.scaffolding.CurrencyConversio
 
 import java.math.RoundingMode
 
+import static org.prebid.server.functional.model.Currency.CHF
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.JPY
 import static org.prebid.server.functional.model.Currency.USD
@@ -18,7 +19,9 @@ class CurrencySpec extends BaseSpec {
 
     private static final Currency DEFAULT_CURRENCY = USD
     private static final int PRICE_PRECISION = 3
-    private static final Map<Currency, Map<Currency, BigDecimal>> DEFAULT_CURRENCY_RATES = [(USD): [(EUR): 0.8872327211427558,
+    private static final Map<Currency, Map<Currency, BigDecimal>> DEFAULT_CURRENCY_RATES = [(USD): [(USD): 1,
+                                                                                                    (EUR): 0.8872327211427558,
+                                                                                                    (CHF): 0.7780889621087314,
                                                                                                     (JPY): 114.12],
                                                                                             (EUR): [(USD): 1.3429368029739777]]
     private static final CurrencyConversion currencyConversion = new CurrencyConversion(networkServiceContainer).tap {
@@ -111,6 +114,29 @@ class CurrencySpec extends BaseSpec {
         requestCurrency || bidCurrency
         USD             || JPY
         JPY             || USD
+    }
+    def "PBS should use intermediate currency conversion when direct conversion is not available"() {
+        given: "Default BidRequest with #requestCurrency currency"
+        def bidRequest = BidRequest.defaultBidRequest.tap { cur = [requestCurrency] }
+
+        and: "Default Bid with a #bidCurrency currency"
+        def bidderResponse = BidResponse.getDefaultBidResponse(bidRequest).tap { cur = bidCurrency }
+
+        when: "PBS processes auction request"
+        bidder.setResponse(bidRequest.id, bidderResponse)
+        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
+
+        then: "Auction response should contain bid in #requestCurrency currency"
+        assert bidResponse.cur == requestCurrency
+        def bidPrice = bidResponse.seatbid[0].bid[0].price
+        assert bidPrice == convertCurrency(bidderResponse.seatbid[0].bid[0].price, bidCurrency, requestCurrency)
+        assert bidResponse.seatbid[0].bid[0].ext.origbidcpm == bidderResponse.seatbid[0].bid[0].price
+        assert bidResponse.seatbid[0].bid[0].ext.origbidcur == bidCurrency
+
+        where:
+        requestCurrency || bidCurrency
+        CHF             || JPY
+        JPY             || CHF
     }
 
     private static Map<String, String> getExternalCurrencyConverterConfig() {

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 
 enum Currency {
 
-    USD, EUR, GBP, JPY, BOGUS
+    USD, EUR, GBP, JPY, CHF, BOGUS
 
     @JsonValue
     String getValue() {
