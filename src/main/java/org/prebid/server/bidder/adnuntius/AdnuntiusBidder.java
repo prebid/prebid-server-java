@@ -3,7 +3,16 @@ package org.prebid.server.bidder.adnuntius;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.*;
+import com.iab.openrtb.request.Banner;
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
+import com.iab.openrtb.request.Format;
+import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Regs;
+import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Uid;
+import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -194,7 +203,6 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         final String page = extractPage(site);
         final String uri = createUri(request, noCookies);
         final Device device = request.getDevice();
-
 
         for (List<AdnuntiusAdUnit> adUnits : networkToAdUnits.values()) {
             final AdnuntiusRequest adnuntiusRequest = AdnuntiusRequest.builder()
