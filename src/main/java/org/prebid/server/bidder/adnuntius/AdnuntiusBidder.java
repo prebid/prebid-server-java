@@ -2,14 +2,8 @@ package org.prebid.server.bidder.adnuntius;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.iab.openrtb.request.Banner;
-import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.Format;
-import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Regs;
-import com.iab.openrtb.request.Site;
-import com.iab.openrtb.request.User;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.*;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -39,6 +33,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adnuntius.ExtImpAdnuntius;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -85,24 +80,41 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     public Result<List<HttpRequest<AdnuntiusRequest>>> makeHttpRequests(BidRequest request) {
         final Map<String, List<AdnuntiusAdUnit>> networkToAdUnits = new HashMap<>();
         boolean noCookies = false;
+        final ExtUser extUser;
+        final ObjectNode siteExtData;
 
-        for (Imp imp : request.getImp()) {
-            final ExtImpAdnuntius extImpAdnuntius;
-            try {
+        try {
+            extUser = extractUserExt(request.getUser());
+            siteExtData = extractData(request.getSite());
+            for (Imp imp : request.getImp()) {
+                final ExtImpAdnuntius extImpAdnuntius;
                 validateImp(imp);
                 extImpAdnuntius = parseImpExt(imp);
-            } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
+
+                noCookies = resolveIsNoCookies(extImpAdnuntius);
+                final String network = resolveNetwork(extImpAdnuntius);
+
+                networkToAdUnits.computeIfAbsent(network, n -> new ArrayList<>())
+                        .add(makeAdnuntiusAdUnit(imp, extImpAdnuntius));
             }
-
-            noCookies = resolveIsNoCookies(extImpAdnuntius);
-            final String network = resolveNetwork(extImpAdnuntius);
-
-            networkToAdUnits.computeIfAbsent(network, n -> new ArrayList<>())
-                    .add(makeAdnuntiusAdUnit(imp, extImpAdnuntius));
+        } catch (PreBidException e) {
+            return Result.withError(BidderError.badInput(e.getMessage()));
         }
 
-        return Result.withValues(createHttpRequests(networkToAdUnits, request, noCookies));
+        return Result.withValues(createHttpRequests(networkToAdUnits, request, noCookies, extUser, siteExtData));
+    }
+
+    private static ExtUser extractUserExt(User user) {
+        return Optional.ofNullable(user)
+                .map(User::getExt)
+                .orElseThrow(() -> new PreBidException("Failed to parse user.ext"));
+    }
+
+    private static ObjectNode extractData(Site site) {
+        return Optional.ofNullable(site)
+                .map(Site::getExt)
+                .map(ExtSite::getData)
+                .orElseThrow(() -> new PreBidException("Failed to parse site.ext.data"));
     }
 
     private static AdnuntiusAdUnit makeAdnuntiusAdUnit(Imp imp, ExtImpAdnuntius extImpAdnuntius) {
@@ -171,26 +183,47 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     }
 
     private List<HttpRequest<AdnuntiusRequest>> createHttpRequests(Map<String, List<AdnuntiusAdUnit>> networkToAdUnits,
-                                                                   BidRequest request, Boolean noCookies) {
+                                                                   BidRequest request, Boolean noCookies,
+                                                                   ExtUser extUser, ObjectNode data) {
 
         final List<HttpRequest<AdnuntiusRequest>> adnuntiusRequests = new ArrayList<>();
 
-        final AdnuntiusMetaData metaData = createMetaData(request.getUser());
-        final String page = extractPage(request.getSite());
+        final String uidId = extractUidId(extUser);
+        final String metaData = createMetaData(request.getUser());
+        final Site site = request.getSite();
+        final String page = extractPage(site);
         final String uri = createUri(request, noCookies);
         final Device device = request.getDevice();
 
+
         for (List<AdnuntiusAdUnit> adUnits : networkToAdUnits.values()) {
-            final AdnuntiusRequest adnuntiusRequest = AdnuntiusRequest.of(adUnits, metaData, page);
+            final AdnuntiusRequest adnuntiusRequest = AdnuntiusRequest.builder()
+                    .adUnits(adUnits)
+                    .context(page)
+                    .metaData(updateMetaData(uidId, metaData))
+                    .keyValue(data)
+                    .build();
             adnuntiusRequests.add(createHttpRequest(adnuntiusRequest, uri, device));
         }
 
         return adnuntiusRequests;
     }
 
-    private static AdnuntiusMetaData createMetaData(User user) {
+    private static String extractUidId(ExtUser extUser) {
+        return Optional.of(extUser)
+                .map(ExtUser::getEids)
+                .filter(CollectionUtils::isNotEmpty)
+                .map(a -> a.get(0))
+                .map(Eid::getUids)
+                .filter(CollectionUtils::isNotEmpty)
+                .map(a -> a.get(0))
+                .map(Uid::getId)
+                .orElse(null);
+    }
+
+    private static String createMetaData(User user) {
         final String userId = ObjectUtil.getIfNotNull(user, User::getId);
-        return StringUtils.isNotBlank(userId) ? AdnuntiusMetaData.of(userId) : null;
+        return StringUtils.isNotBlank(userId) ? userId : null;
     }
 
     private static String extractPage(Site site) {
@@ -218,6 +251,16 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
         } catch (URISyntaxException e) {
             throw new PreBidException(e.getMessage());
         }
+    }
+
+    private AdnuntiusMetaData updateMetaData(String eidsId, String metaData) {
+        if (metaData != null) {
+            return AdnuntiusMetaData.of(metaData);
+        }
+        if (eidsId != null) {
+            return AdnuntiusMetaData.of(eidsId);
+        }
+        return null;
     }
 
     private String getTimeZoneOffset() {

@@ -7,10 +7,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
+import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
@@ -36,6 +38,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.adnuntius.ExtImpAdnuntius;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -235,17 +238,123 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithMetaDataIfUserIdIsPresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(request -> request.user(User.builder().id("userId").build()),
+        final BidRequest bidRequest = givenBidRequest(request -> request.user(User.builder().id("userId")
+                        .ext(ExtUser.builder().build()).build()),
                 givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()), givenImp(identity()));
 
         // when
         final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).extracting(HttpRequest::getPayload)
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
                 .extracting(AdnuntiusRequest::getMetaData)
                 .extracting(AdnuntiusMetaData::getUsi)
                 .containsExactly("userId", "userId");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnThrowErrorWhenUserExtIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request -> request.user(User.builder().id("userId")
+                        .ext(null).build()),
+                givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()), givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
+                .allMatch(errorMessage -> errorMessage.startsWith("Failed to parse user.ext"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnThrowErrorWhenSiteExtDataIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request ->
+                        request.user(User.builder().id("userId").ext(ExtUser.builder().build()).build())
+                                .site(Site.builder().ext(ExtSite.of(null, null)).build()),
+                givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()), givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors())
+                .extracting(BidderError::getMessage)
+                .allMatch(errorMessage -> errorMessage.startsWith("Failed to parse site.ext.data"));
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPopulateMetaDataUsiFromUserIdWhenBothUidIdAndUserIdPresentInRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request ->
+                        request.user(User.builder().id("userId").ext(ExtUser.builder()
+                                                .eids(List.of(Eid.of(null,
+                                                        List.of(Uid.of("eidsId", null, null)), null)))
+                                                .build())
+                                        .build())
+                                .site(Site.builder().ext(ExtSite.of(null, mapper.createObjectNode())).build()),
+                givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()), givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(AdnuntiusRequest::getMetaData)
+                .extracting(AdnuntiusMetaData::getUsi)
+                .containsExactly("userId", "userId");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPopulateMetaDataUsiWhenUserExtEidsUidIdPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request ->
+                        request.user(User.builder().id(null).ext(ExtUser.builder()
+                                                .eids(List.of(Eid.of(null,
+                                                        List.of(Uid.of("eidsId", null, null)), null)))
+                                                .build())
+                                        .build())
+                                .site(Site.builder().ext(ExtSite.of(null, mapper.createObjectNode())).build()),
+                givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()), givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(AdnuntiusRequest::getMetaData)
+                .extracting(AdnuntiusMetaData::getUsi)
+                .containsExactly("eidsId", "eidsId");
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldPopulateHttpRequestKeyValueFieldFromSiteExtDataWhenDataIsPresentInRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(request ->
+                        request.site(Site.builder().ext(ExtSite.of(null,
+                                mapper.createObjectNode().put("ANY", "ANY"))).build()),
+                givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()), givenImp(identity()));
+
+        // when
+        final Result<List<HttpRequest<AdnuntiusRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .extracting(AdnuntiusRequest::getKeyValue)
+                .containsExactly(
+                        mapper.createObjectNode().put("ANY", "ANY"),
+                        mapper.createObjectNode().put("ANY", "ANY"));
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -275,7 +384,8 @@ public class AdnuntiusBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnRequestsWithContextIfSitePageIsPresent() {
         // given
-        final BidRequest bidRequest = givenBidRequest(request -> request.site(Site.builder().page("page").build()),
+        final BidRequest bidRequest = givenBidRequest(request -> request.site(Site.builder().page("page")
+                        .ext(ExtSite.of(null, mapper.createObjectNode())).build()),
                 givenImp(ExtImpAdnuntius.builder().network("network").build(), identity()), givenImp(identity()));
 
         // when
@@ -766,7 +876,10 @@ public class AdnuntiusBidderTest extends VertxTest {
     }
 
     private BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer, Imp... imps) {
-        return bidRequestCustomizer.apply(BidRequest.builder()).imp(List.of(imps)).build();
+        return bidRequestCustomizer.apply(BidRequest.builder()
+                        .user(User.builder().ext(ExtUser.builder().build()).build())
+                        .site(Site.builder().ext(ExtSite.of(null, mapper.createObjectNode())).build()))
+                .imp(List.of(imps)).build();
     }
 
     private BidRequest givenBidRequest(Imp... imps) {
