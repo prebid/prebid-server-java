@@ -25,7 +25,7 @@ public class AopConfiguration {
         @Autowired
         HealthMonitor healthMonitor;
 
-        @Around(value = "execution(* org.prebid.server.vertx.http.HttpClient.*(..)) "
+        @Around(value = "execution(* org.prebid.server.vertx.httpclient.HttpClient.*(..)) "
                 + "|| execution(* org.prebid.server.settings.ApplicationSettings.*(..)) "
                 + "|| execution(* org.prebid.server.geolocation.GeoLocationService.*(..))")
         public Future<?> around(ProceedingJoinPoint joinPoint) {

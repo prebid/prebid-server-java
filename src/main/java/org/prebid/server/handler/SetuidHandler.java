@@ -3,9 +3,9 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
@@ -51,6 +51,8 @@ import org.prebid.server.privacy.gdpr.model.TcfResponse;
 import org.prebid.server.settings.ApplicationSettings;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.util.Collections;
 import java.util.List;
@@ -63,7 +65,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class SetuidHandler implements Handler<RoutingContext> {
+public class SetuidHandler implements ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(SetuidHandler.class);
 
@@ -124,6 +126,11 @@ public class SetuidHandler implements Handler<RoutingContext> {
 
         return usersyncers.get()
                 .collect(Collectors.toMap(Usersyncer::getCookieFamilyName, SetuidHandler::preferredUserSyncType));
+    }
+
+    @Override
+    public List<HttpEndpoint> endpoints() {
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.setuid.value()));
     }
 
     private static UsersyncMethodType preferredUserSyncType(Usersyncer usersyncer) {

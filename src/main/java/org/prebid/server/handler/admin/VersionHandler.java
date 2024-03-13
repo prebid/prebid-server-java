@@ -1,4 +1,4 @@
-package org.prebid.server.handler;
+package org.prebid.server.handler.admin;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.netty.handler.codec.http.HttpResponseStatus;

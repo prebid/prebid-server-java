@@ -19,8 +19,8 @@ import org.prebid.server.analytics.reporter.pubstack.model.EventType;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackConfig;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collections;

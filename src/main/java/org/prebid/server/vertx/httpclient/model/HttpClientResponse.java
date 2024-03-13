@@ -1,4 +1,4 @@
-package org.prebid.server.vertx.http.model;
+package org.prebid.server.vertx.httpclient.model;
 
 import io.vertx.core.MultiMap;
 import lombok.AllArgsConstructor;

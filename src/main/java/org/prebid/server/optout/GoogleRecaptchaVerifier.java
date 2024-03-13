@@ -10,8 +10,8 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.optout.model.RecaptchaResponse;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;

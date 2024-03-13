@@ -3,7 +3,7 @@ package org.prebid.server.spring.config;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.Initializable;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextRefreshedEvent;
@@ -35,7 +35,7 @@ public class InitializationConfiguration {
 
     @EventListener(ContextRefreshedEvent.class)
     public void initializeServices() {
-        contextRunner.runOnServiceContext(promise -> {
+        contextRunner.runBlocking(promise -> {
             initializables.forEach(Initializable::initialize);
             promise.complete();
         });

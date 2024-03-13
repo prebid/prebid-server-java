@@ -118,7 +118,11 @@ public class DatabaseConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "true")
     CircuitBreakerSecuredJdbcClient circuitBreakerSecuredJdbcClient(
-            Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner,
+            Vertx vertx,
+            JDBCClient vertxJdbcClient,
+            Metrics metrics,
+            Clock clock,
+            ContextRunner contextRunner,
             @Qualifier("databaseCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties) {
 
         final JdbcClient jdbcClient = createBasicJdbcClient(vertx, vertxJdbcClient, metrics, clock, contextRunner);
@@ -131,7 +135,7 @@ public class DatabaseConfiguration {
             Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner) {
         final BasicJdbcClient basicJdbcClient = new BasicJdbcClient(vertx, vertxJdbcClient, metrics, clock);
 
-        contextRunner.<Void>runOnServiceContext(promise -> basicJdbcClient.initialize().onComplete(promise));
+        contextRunner.<Void>runBlocking(promise -> basicJdbcClient.initialize().onComplete(promise));
 
         return basicJdbcClient;
     }

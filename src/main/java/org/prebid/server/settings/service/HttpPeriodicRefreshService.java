@@ -15,8 +15,8 @@ import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.proto.response.HttpRefreshResponse;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.Initializable;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.time.Instant;
 import java.util.ArrayList;

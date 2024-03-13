@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
+import org.prebid.server.handler.admin.VersionHandler;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;

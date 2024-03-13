@@ -1,4 +1,4 @@
-package org.prebid.server.vertx.http;
+package org.prebid.server.vertx.httpclient;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.vertx.core.Future;
@@ -11,7 +11,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.CircuitBreaker;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.net.MalformedURLException;
 import java.net.URL;
