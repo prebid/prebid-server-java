@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config.bidder.model;
 
-import jakarta.annotation.PostConstruct;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -11,8 +10,9 @@ import org.prebid.server.spring.config.bidder.model.usersync.UsersyncConfigurati
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.annotation.PostConstruct;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import java.util.Map;
 
