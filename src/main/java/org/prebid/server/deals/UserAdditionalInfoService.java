@@ -101,6 +101,7 @@ public class UserAdditionalInfoService {
                 : Future.failedFuture("Device info is disabled by configuration");
     }
 
+    //todo: to be removed
     private Future<GeoInfo> lookupGeoInfo(Device device, Timeout timeout) {
         return geoLocationService != null
                 ? geoLocationService.lookup(ObjectUtils.defaultIfNull(device.getIp(), device.getIpv6()), timeout)

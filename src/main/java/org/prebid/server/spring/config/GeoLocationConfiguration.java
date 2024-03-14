@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClientOptions;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
@@ -15,6 +16,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.spring.config.model.HttpClientProperties;
 import org.prebid.server.spring.config.model.RemoteFileSyncerProperties;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
@@ -198,4 +200,17 @@ public class GeoLocationConfiguration {
             return csv;
         }
     }
+
+    @Configuration
+    static class GeoLocationWrapperConfiguration {
+
+        @Bean
+        GeoLocationServiceWrapper geoLocationServiceWrapper(
+                @Autowired(required = false) GeoLocationService geoLocationService,
+                Metrics metrics) {
+
+            return new GeoLocationServiceWrapper(geoLocationService, metrics);
+        }
+    }
+
 }

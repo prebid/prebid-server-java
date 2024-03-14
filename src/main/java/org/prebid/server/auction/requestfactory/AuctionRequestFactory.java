@@ -7,6 +7,7 @@ import com.iab.openrtb.request.Regs;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.auction.DebugResolver;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
@@ -48,6 +49,7 @@ public class AuctionRequestFactory {
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
     private final OrtbTypesResolver ortbTypesResolver;
+    private final GeoLocationServiceWrapper geoLocationServiceWrapper;
 
     private static final String ENDPOINT = Endpoint.openrtb2_auction.value();
 
@@ -63,7 +65,8 @@ public class AuctionRequestFactory {
                                  OrtbTypesResolver ortbTypesResolver,
                                  AuctionPrivacyContextFactory auctionPrivacyContextFactory,
                                  DebugResolver debugResolver,
-                                 JacksonMapper mapper) {
+                                 JacksonMapper mapper,
+                                 GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         this.maxRequestSize = maxRequestSize;
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
@@ -78,6 +81,7 @@ public class AuctionRequestFactory {
         this.auctionPrivacyContextFactory = Objects.requireNonNull(auctionPrivacyContextFactory);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
+        this.geoLocationServiceWrapper = Objects.requireNonNull(geoLocationServiceWrapper);
     }
 
     /**
@@ -105,6 +109,12 @@ public class AuctionRequestFactory {
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
+
+                .compose(auctionContext -> geoLocationServiceWrapper.lookup(auctionContext)
+                        .map(auctionContext::with))
+
+                .map(auctionContext -> auctionContext.with(
+                        ortb2RequestFactory.enrichBidRequestWithGeolocationData(auctionContext)))
 
                 .compose(auctionContext -> gppService.contextFrom(auctionContext)
                         .map(auctionContext::with))

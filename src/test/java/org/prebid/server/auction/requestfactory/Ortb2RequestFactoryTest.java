@@ -1012,6 +1012,27 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void enrichBidRequestWithGeolocationDataShouldAddCountryFromGeoInfo() {
+        // given
+        given(countryCodeMapper.mapToAlpha3("ua")).willReturn("UKR");
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(givenBidRequest(identity()))
+                .geoInfo(GeoInfo.builder().vendor("v").country("ua").build())
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithGeolocationData(auctionContext);
+
+        // then
+        assertThat(List.of(result))
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getGeo)
+                .extracting(Geo::getCountry)
+                .containsExactly("UKR");
+    }
+
+    @Test
     public void enrichBidRequestWithAccountAndPrivacyDataShouldAddRegionFromPrivacy() {
         // given
         given(countryCodeMapper.mapToAlpha3(any())).willReturn(null);
@@ -1052,6 +1073,32 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
+    public void enrichBidRequestWithGeolocationDataShouldAddRegionFromPrivacy() {
+        // given
+        given(countryCodeMapper.mapToAlpha3(any())).willReturn(null);
+
+        final Device device = Device.builder()
+                .geo(Geo.builder().region("regionInRequest").build())
+                .build();
+        final BidRequest bidRequest = givenBidRequest(requestCustomizer -> requestCustomizer.device(device));
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .geoInfo(GeoInfo.builder().vendor("v").region("region").build())
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithGeolocationData(auctionContext);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getGeo)
+                .extracting(Geo::getRegion)
+                .isEqualTo("REGION");
+    }
+
+    @Test
     public void enrichBidRequestWithAccountAndPrivacyDataShouldMakeRegionUpperCasedWhenNoPrivateGeoInfoProvided() {
         // given
         given(countryCodeMapper.mapToAlpha3(any())).willReturn(null);
@@ -1075,6 +1122,32 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+
+        // then
+        assertThat(result)
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getGeo)
+                .extracting(Geo::getRegion)
+                .isEqualTo("REGIONINREQUEST");
+    }
+
+    @Test
+    public void enrichBidRequestWithGeolocationDataShouldMakeRegionUpperCasedWhenNoGeoInfoProvided() {
+        // given
+        given(countryCodeMapper.mapToAlpha3(any())).willReturn(null);
+
+        final Device device = Device.builder()
+                .geo(Geo.builder().region("regionInRequest").build())
+                .build();
+        final BidRequest bidRequest = givenBidRequest(requestCustomizer -> requestCustomizer.device(device));
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .geoInfo(GeoInfo.builder().vendor("v").build())
+                .build();
+
+        // when
+        final BidRequest result = target.enrichBidRequestWithGeolocationData(auctionContext);
 
         // then
         assertThat(result)

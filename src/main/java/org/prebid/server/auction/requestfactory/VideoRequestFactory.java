@@ -16,6 +16,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.DebugResolver;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
@@ -60,6 +61,7 @@ public class VideoRequestFactory {
     private final AuctionPrivacyContextFactory auctionPrivacyContextFactory;
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
+    private final GeoLocationServiceWrapper geoLocationServiceWrapper;
 
     public VideoRequestFactory(int maxRequestSize,
                                boolean enforceStoredRequest,
@@ -70,7 +72,8 @@ public class VideoRequestFactory {
                                Ortb2ImplicitParametersResolver paramsResolver,
                                AuctionPrivacyContextFactory auctionPrivacyContextFactory,
                                DebugResolver debugResolver,
-                               JacksonMapper mapper) {
+                               JacksonMapper mapper,
+                               GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         this.enforceStoredRequest = enforceStoredRequest;
         this.maxRequestSize = maxRequestSize;
@@ -81,6 +84,7 @@ public class VideoRequestFactory {
         this.auctionPrivacyContextFactory = Objects.requireNonNull(auctionPrivacyContextFactory);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mapper = Objects.requireNonNull(mapper);
+        this.geoLocationServiceWrapper = Objects.requireNonNull(geoLocationServiceWrapper);
 
         this.escapeLogCacheRegexPattern = StringUtils.isNotBlank(escapeLogCacheRegex)
                 ? Pattern.compile(escapeLogCacheRegex)
@@ -122,6 +126,12 @@ public class VideoRequestFactory {
                         .map(auctionContext::with))
 
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
+
+                .compose(auctionContext -> geoLocationServiceWrapper.lookup(auctionContext)
+                        .map(auctionContext::with))
+
+                .map(auctionContext -> auctionContext.with(
+                        ortb2RequestFactory.enrichBidRequestWithGeolocationData(auctionContext)))
 
                 .compose(auctionContext -> ortb2RequestFactory.activityInfrastructureFrom(auctionContext)
                         .map(auctionContext::with))

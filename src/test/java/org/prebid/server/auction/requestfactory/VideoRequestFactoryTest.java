@@ -24,6 +24,7 @@ import org.mockito.junit.MockitoRule;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.DebugResolver;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.PriceGranularity;
 import org.prebid.server.auction.VideoStoredRequestProcessor;
 import org.prebid.server.auction.model.AuctionContext;
@@ -32,6 +33,7 @@ import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.auction.privacy.contextfactory.AuctionPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
+import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
@@ -82,6 +84,8 @@ public class VideoRequestFactoryTest extends VertxTest {
     private Ortb2ImplicitParametersResolver paramsResolver;
     @Mock
     private AuctionPrivacyContextFactory auctionPrivacyContextFactory;
+    @Mock
+    private GeoLocationServiceWrapper geoLocationServiceWrapper;
 
     private VideoRequestFactory target;
 
@@ -115,6 +119,8 @@ public class VideoRequestFactoryTest extends VertxTest {
         given(routingContext.queryParams()).willReturn(MultiMap.caseInsensitiveMultiMap());
         given(httpServerRequest.remoteAddress()).willReturn(new SocketAddressImpl(1234, "host"));
         given(httpServerRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
+        given(geoLocationServiceWrapper.lookup(any()))
+                .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("vendor").build()));
 
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
                 Privacy.builder()
@@ -140,7 +146,8 @@ public class VideoRequestFactoryTest extends VertxTest {
                 paramsResolver,
                 auctionPrivacyContextFactory,
                 debugResolver,
-                jacksonMapper);
+                jacksonMapper,
+                geoLocationServiceWrapper);
     }
 
     @Test
@@ -175,7 +182,8 @@ public class VideoRequestFactoryTest extends VertxTest {
                 paramsResolver,
                 auctionPrivacyContextFactory,
                 debugResolver,
-                jacksonMapper);
+                jacksonMapper,
+                geoLocationServiceWrapper);
 
         // when
         final Future<?> future = target.fromRequest(routingContext, 0L);
@@ -200,7 +208,8 @@ public class VideoRequestFactoryTest extends VertxTest {
                 paramsResolver,
                 auctionPrivacyContextFactory,
                 debugResolver,
-                jacksonMapper);
+                jacksonMapper,
+                geoLocationServiceWrapper);
 
         given(routingContext.getBodyAsString()).willReturn("body");
 
@@ -406,6 +415,8 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .willAnswer(answerWithFirstArgument());
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
+                .willAnswer(invocation -> ((AuctionContext) invocation.getArgument(0)).getBidRequest());
+        given(ortb2RequestFactory.enrichBidRequestWithGeolocationData(any()))
                 .willAnswer(invocation -> ((AuctionContext) invocation.getArgument(0)).getBidRequest());
         given(ortb2RequestFactory.executeProcessedAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
