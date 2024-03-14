@@ -221,7 +221,7 @@ public class Ortb2RequestFactory {
                 : Future.succeededFuture(bidRequest);
     }
 
-    public BidRequest enrichBidRequestWithGeolocationData(AuctionContext auctionContext) {
+    public Future<BidRequest> enrichBidRequestWithGeolocationData(AuctionContext auctionContext) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Device device = bidRequest.getDevice();
         final GeoInfo geoInfo = auctionContext.getGeoInfo();
@@ -230,25 +230,28 @@ public class Ortb2RequestFactory {
         final UpdateResult<String> resolvedCountry = resolveCountry(geo, geoInfo);
         final UpdateResult<String> resolvedRegion = resolveRegion(geo, geoInfo);
 
-        if (resolvedCountry.isUpdated() || resolvedRegion.isUpdated()) {
-            final Geo updatedGeo = Optional.ofNullable(geo)
-                    .map(Geo::toBuilder)
-                    .orElseGet(Geo::builder)
-                    .country(resolvedCountry.getValue())
-                    .region(resolvedRegion.getValue())
-                    .build();
-
-            final Device updatedDevice = ObjectUtil.getIfNotNullOrDefault(device, Device::toBuilder, Device::builder)
-                    .geo(updatedGeo)
-                    .build();
-
-            return bidRequest.toBuilder().device(updatedDevice).build();
+        if (!resolvedCountry.isUpdated() && !resolvedRegion.isUpdated()) {
+            return Future.succeededFuture(bidRequest);
         }
 
-        return bidRequest;
+        final Geo updatedGeo = Optional.ofNullable(geo)
+                .map(Geo::toBuilder)
+                .orElseGet(Geo::builder)
+                .country(resolvedCountry.getValue())
+                .region(resolvedRegion.getValue())
+                .build();
+
+        final Device updatedDevice = Optional.ofNullable(device)
+                .map(Device::toBuilder)
+                .orElseGet(Device::builder)
+                .geo(updatedGeo)
+                .build();
+
+        return Future.succeededFuture(bidRequest.toBuilder().device(updatedDevice).build());
+
     }
 
-    public BidRequest enrichBidRequestWithAccountAndPrivacyData(AuctionContext auctionContext) {
+    public Future<BidRequest> enrichBidRequestWithAccountAndPrivacyData(AuctionContext auctionContext) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Account account = auctionContext.getAccount();
         final PrivacyContext privacyContext = auctionContext.getPrivacyContext();
@@ -262,15 +265,16 @@ public class Ortb2RequestFactory {
         final Regs regs = bidRequest.getRegs();
         final Regs enrichedRegs = enrichRegs(regs, privacyContext, account);
 
-        if (enrichedRequestExt != null || enrichedDevice != null || enrichedRegs != null) {
-            return bidRequest.toBuilder()
-                    .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
-                    .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
-                    .regs(ObjectUtils.defaultIfNull(enrichedRegs, regs))
-                    .build();
+        if (enrichedRequestExt == null && enrichedDevice == null && enrichedRegs == null) {
+            return Future.succeededFuture(bidRequest);
         }
 
-        return bidRequest;
+        return Future.succeededFuture(bidRequest.toBuilder()
+                .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
+                .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
+                .regs(ObjectUtils.defaultIfNull(enrichedRegs, regs))
+                .build());
+
     }
 
     private static Regs enrichRegs(Regs regs, PrivacyContext privacyContext, Account account) {

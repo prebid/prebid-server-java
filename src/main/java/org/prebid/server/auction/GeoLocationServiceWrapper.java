@@ -37,7 +37,7 @@ public class GeoLocationServiceWrapper {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Timeout timeout = auctionContext.getTimeoutContext().getTimeout();
 
-        final Boolean isGeoLookupEnabled = Optional.ofNullable(account.getSettings())
+        final boolean isGeoLookupEnabled = Optional.ofNullable(account.getSettings())
                 .map(AccountSettings::getGeoLookup)
                 .map(BooleanUtils::isTrue)
                 .orElse(false);

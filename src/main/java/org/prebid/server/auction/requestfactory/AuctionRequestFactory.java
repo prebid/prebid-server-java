@@ -113,8 +113,8 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> geoLocationServiceWrapper.lookup(auctionContext)
                         .map(auctionContext::with))
 
-                .map(auctionContext -> auctionContext.with(
-                        ortb2RequestFactory.enrichBidRequestWithGeolocationData(auctionContext)))
+                .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithGeolocationData(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> gppService.contextFrom(auctionContext)
                         .map(auctionContext::with))
@@ -131,8 +131,8 @@ public class AuctionRequestFactory {
                 .compose(auctionContext -> auctionPrivacyContextFactory.contextFrom(auctionContext)
                         .map(auctionContext::with))
 
-                .map(auctionContext -> auctionContext.with(
-                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
+                .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))

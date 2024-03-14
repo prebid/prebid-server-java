@@ -54,7 +54,6 @@ public class AmpPrivacyContextFactory {
         final Privacy strippedPrivacy = stripPrivacy(initialPrivacy, auctionContext);
         final Device device = bidRequest.getDevice();
 
-        //todo: pass geo info here as well
         return tcfDefinerService.resolveTcfContext(
                         strippedPrivacy,
                         resolveAlpha2CountryCode(device),

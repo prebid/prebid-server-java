@@ -82,7 +82,6 @@ import org.prebid.server.validation.model.ValidationResult;
 
 import java.time.Clock;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -93,7 +92,6 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -902,10 +900,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .satisfies(extPrebid -> {
@@ -956,10 +954,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .satisfies(extPrebid -> {
@@ -1001,14 +999,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(List.of(result))
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getGeo)
                 .extracting(Geo::getCountry)
-                .containsExactly("UKR");
+                .isEqualTo("UKR");
     }
 
     @Test
@@ -1022,14 +1020,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithGeolocationData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithGeolocationData(auctionContext);
 
         // then
-        assertThat(List.of(result))
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getGeo)
                 .extracting(Geo::getCountry)
-                .containsExactly("UKR");
+                .isEqualTo("UKR");
     }
 
     @Test
@@ -1062,10 +1060,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getGeo)
                 .extracting(Geo::getRegion)
@@ -1088,10 +1086,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithGeolocationData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithGeolocationData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getGeo)
                 .extracting(Geo::getRegion)
@@ -1121,10 +1119,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getGeo)
                 .extracting(Geo::getRegion)
@@ -1147,10 +1145,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithGeolocationData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithGeolocationData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getGeo)
                 .extracting(Geo::getRegion)
@@ -1176,7 +1174,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final Account account = Account.empty("id");
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(
                 AuctionContext.builder()
                         .bidRequest(bidRequest)
                         .account(account)
@@ -1184,10 +1182,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build());
 
         // then
-        assertThat(Collections.singleton(result))
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getIp, Device::getIpv6)
-                .containsOnly(tuple("ipv4", null));
+                .containsOnly("ipv4", null);
     }
 
     @Test
@@ -1209,7 +1207,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final Account account = Account.empty("id");
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(
                 AuctionContext.builder()
                         .bidRequest(bidRequest)
                         .account(account)
@@ -1217,10 +1215,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build());
 
         // then
-        assertThat(Collections.singleton(result))
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getIp, Device::getIpv6)
-                .containsOnly(tuple(null, "ipv6"));
+                .containsOnly(null, "ipv6");
     }
 
     @Test
@@ -1532,10 +1530,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .extracting(Regs::getExt)
                 .extracting(ExtRegs::getDsa)
@@ -1584,14 +1582,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .extracting(Regs::getExt)
                 .isNull();
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .isSameAs(regs);
     }
@@ -1641,10 +1639,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .extracting(Regs::getExt)
                 .extracting(ExtRegs::getDsa)
@@ -1694,10 +1692,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .extracting(Regs::getExt)
                 .extracting(ExtRegs::getDsa)
@@ -1749,14 +1747,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .extracting(Regs::getExt)
                 .isNull();
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .isSameAs(regs);
     }

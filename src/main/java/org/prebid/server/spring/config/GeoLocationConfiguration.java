@@ -36,6 +36,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
+@Configuration
 public class GeoLocationConfiguration {
 
     @Configuration
@@ -182,35 +183,27 @@ public class GeoLocationConfiguration {
         }
     }
 
-    @Configuration
-    static class CountryCodeMapperConfiguration {
+    @Bean
+    public CountryCodeMapper countryCodeMapper(@Value("classpath:country-codes.csv") Resource countryCodes,
+                                               @Value("classpath:mcc-country-codes.csv") Resource mccCountryCodes)
+            throws IOException {
 
-        @Bean
-        public CountryCodeMapper countryCodeMapper(@Value("classpath:country-codes.csv") Resource countryCodes,
-                                                   @Value("classpath:mcc-country-codes.csv") Resource mccCountryCodes)
-                throws IOException {
-
-            return new CountryCodeMapper(readCsv(countryCodes), readCsv(mccCountryCodes));
-        }
-
-        private String readCsv(Resource resource) throws IOException {
-            final Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
-            final String csv = FileCopyUtils.copyToString(reader);
-            reader.close();
-            return csv;
-        }
+        return new CountryCodeMapper(readCsv(countryCodes), readCsv(mccCountryCodes));
     }
 
-    @Configuration
-    static class GeoLocationWrapperConfiguration {
+    private String readCsv(Resource resource) throws IOException {
+        final Reader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
+        final String csv = FileCopyUtils.copyToString(reader);
+        reader.close();
+        return csv;
+    }
 
-        @Bean
-        GeoLocationServiceWrapper geoLocationServiceWrapper(
-                @Autowired(required = false) GeoLocationService geoLocationService,
-                Metrics metrics) {
+    @Bean
+    GeoLocationServiceWrapper geoLocationServiceWrapper(
+            @Autowired(required = false) GeoLocationService geoLocationService,
+            Metrics metrics) {
 
-            return new GeoLocationServiceWrapper(geoLocationService, metrics);
-        }
+        return new GeoLocationServiceWrapper(geoLocationService, metrics);
     }
 
 }
