@@ -42,7 +42,13 @@ public class AccountActivitiesConfigurationUtilsTest {
     @Test
     public void isInvalidActivitiesConfigurationShouldReturnFalseIfAccountPrivacyActivitiesNull() {
         // given
-        final Account account = Account.builder().privacy(AccountPrivacyConfig.of(null, null, null, null)).build();
+        final Account account = Account.builder().privacy(AccountPrivacyConfig.of(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null))
+                .build();
 
         // when
         final boolean result = AccountActivitiesConfigurationUtils.isInvalidActivitiesConfiguration(account);
@@ -56,6 +62,7 @@ public class AccountActivitiesConfigurationUtilsTest {
         // given
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.of(
+                        null,
                         null,
                         null,
                         Map.of(
@@ -100,6 +107,7 @@ public class AccountActivitiesConfigurationUtilsTest {
                 .privacy(AccountPrivacyConfig.of(
                         null,
                         null,
+                        null,
                         Map.of(Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, singletonList(
                                 AccountActivityComponentRuleConfig.of(
                                         AccountActivityComponentRuleConfig.Condition.of(emptyList(), emptyList()),
@@ -119,6 +127,7 @@ public class AccountActivitiesConfigurationUtilsTest {
         // given
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.of(
+                        null,
                         null,
                         null,
                         Map.of(Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, singletonList(

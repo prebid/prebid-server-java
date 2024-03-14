@@ -243,7 +243,7 @@ public class OpenxBidderTest extends VertxTest {
 
                         Imp.builder().id("impId1").audio(Audio.builder().build()).build()))
                 .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
-                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null)).build())
+                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
                 .build();
 
         // when
@@ -290,7 +290,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .user(User.builder()
                                         .ext(ExtUser.builder().consent("consent").build())
                                         .build())
-                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null)).build())
+                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
                                 .build(),
                         // check if each of video imps is a part of separate bidRequest and impId3 is rewarded video
                         BidRequest.builder()
@@ -317,7 +317,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .user(User.builder()
                                         .ext(ExtUser.builder().consent("consent").build())
                                         .build())
-                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null)).build())
+                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
                                 .build(),
                         // check if each of video imps is a part of separate bidRequest
                         BidRequest.builder()
@@ -338,7 +338,7 @@ public class OpenxBidderTest extends VertxTest {
                                 .user(User.builder()
                                         .ext(ExtUser.builder().consent("consent").build())
                                         .build())
-                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null)).build())
+                                .regs(Regs.builder().coppa(0).ext(ExtRegs.of(1, null, null, null)).build())
                                 .build());
     }
 

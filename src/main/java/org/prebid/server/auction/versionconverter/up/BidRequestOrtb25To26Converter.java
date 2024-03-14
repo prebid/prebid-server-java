@@ -191,7 +191,7 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
             return null;
         }
 
-        final ExtRegs modifiedExtRegs = ExtRegs.of(null, null, extRegs.getGpc());
+        final ExtRegs modifiedExtRegs = ExtRegs.of(null, null, extRegs.getGpc(), extRegs.getDsa());
         copyProperties(extRegs, modifiedExtRegs);
 
         return modifiedExtRegs;
@@ -259,7 +259,8 @@ public class BidRequestOrtb25To26Converter implements BidRequestOrtbVersionConve
     }
 
     private static ExtRegs nullIfEmpty(ExtRegs ext) {
-        return allNull(ext.getGdpr(), ext.getUsPrivacy(), ext.getGpc()) && MapUtils.isEmpty(ext.getProperties())
+        return allNull(ext.getGdpr(), ext.getUsPrivacy(), ext.getGpc(), ext.getDsa())
+                && MapUtils.isEmpty(ext.getProperties())
                 ? null
                 : ext;
     }

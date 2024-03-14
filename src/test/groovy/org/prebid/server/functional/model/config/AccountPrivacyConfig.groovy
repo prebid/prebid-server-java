@@ -12,6 +12,7 @@ class AccountPrivacyConfig {
 
     AccountGdprConfig gdpr
     AccountCcpaConfig ccpa
+    AccountDsaConfig dsa
     @JsonProperty("allowactivities")
     AllowActivities allowActivities
     List<AccountGppConfig> modules

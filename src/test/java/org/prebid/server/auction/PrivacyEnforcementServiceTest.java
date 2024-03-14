@@ -532,6 +532,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                                                 EnabledForRequestType.of(false, false, true, false, false))
                                         .build(),
                                 null,
+                                null,
                                 null))
                         .build())
                 .requestTypeMetric(MetricName.openrtb2app)
@@ -585,6 +586,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                                 null,
                                 AccountCcpaConfig.builder().enabled(true).build(),
                                 null,
+                                null,
                                 null))
                         .build())
                 .requestTypeMetric(MetricName.openrtb2app)
@@ -637,6 +639,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                         .privacy(AccountPrivacyConfig.of(
                                 null,
                                 AccountCcpaConfig.builder().enabled(true).build(),
+                                null,
                                 null,
                                 null))
                         .build())
@@ -1518,7 +1521,12 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
 
         final Ccpa ccpa = Ccpa.of("1YYY");
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(null, AccountCcpaConfig.builder().enabled(false).build(), null, null))
+                .privacy(AccountPrivacyConfig.of(
+                        null,
+                        AccountCcpaConfig.builder().enabled(false).build(),
+                        null,
+                        null,
+                        null))
                 .build();
 
         // when and then
@@ -1551,6 +1559,7 @@ public class PrivacyEnforcementServiceTest extends VertxTest {
                 .privacy(AccountPrivacyConfig.of(
                         null,
                         AccountCcpaConfig.builder().enabled(true).build(),
+                        null,
                         null,
                         null))
                 .build();

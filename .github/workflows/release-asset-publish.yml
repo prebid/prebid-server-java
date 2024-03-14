@@ -1,9 +1,10 @@
 name: Publish release .jar
 
 on:
-  push:
-    tags:
-      - '*'
+  workflow_run:
+    workflows: [Publish release]
+    types:
+      - completed
 
 jobs:
   build:
