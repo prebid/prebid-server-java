@@ -4,7 +4,7 @@ import lombok.Data;
 import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.Min;
+import jakarta.validation.constraints.Min;
 
 @Data
 @Validated

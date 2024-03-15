@@ -401,9 +401,12 @@ public class AdtelligentBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsExactly(BidderError.badServerResponse(
-                        "Failed to decode: Unexpected end-of-input: expected close marker for Object (start marker at"
-                                + " [Source: (String)\"{\"; line: 1, column: 1])\n at [Source: (String)\"{\"; line: 1, "
-                                + "column: 2]"));
+                        "Failed to decode: Unexpected end-of-input: expected close marker"
+                                + " for Object (start marker at [Source: REDACTED "
+                                + "(`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); "
+                                + "line: 1, column: 1])\n"
+                                + " at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled);"
+                                + " line: 1, column: 2]"));
     }
 
     private static BidderCall<BidRequest> givenHttpCall(String body) {

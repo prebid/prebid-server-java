@@ -54,7 +54,7 @@ import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 
-import javax.validation.ValidationException;
+import jakarta.validation.ValidationException;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.util.ArrayList;

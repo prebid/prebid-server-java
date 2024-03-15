@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 @Configuration
 @PropertySource(value = "classpath:/bidder-config/adtarget.yaml", factory = YamlPropertySourceFactory.class)

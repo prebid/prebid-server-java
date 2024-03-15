@@ -127,7 +127,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 
-import javax.validation.constraints.Min;
+import jakarta.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.ArrayList;

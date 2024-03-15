@@ -3,7 +3,7 @@ package org.prebid.server.spring.config.server.admin;
 import io.vertx.core.Handler;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.AuthHandler;
+import io.vertx.ext.web.handler.AuthenticationHandler;
 import io.vertx.ext.web.handler.BasicAuthHandler;
 import org.prebid.server.vertx.verticles.server.admin.AdminResource;
 
@@ -30,7 +30,7 @@ public class AdminResourcesBinder {
         }
     }
 
-    private AuthHandler securedAuthHandler() {
+    private AuthenticationHandler securedAuthHandler() {
         if (credentials == null) {
             throw new IllegalArgumentException("Credentials for admin endpoint is empty.");
         }

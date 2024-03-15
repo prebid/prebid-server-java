@@ -3,7 +3,7 @@ package org.prebid.server.hooks.modules.pb.richmedia.filter.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 @Value(staticConstructor = "of")
 public class PbRichMediaFilterProperties {

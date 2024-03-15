@@ -75,7 +75,7 @@
         </module>
         <module name="ImportOrder">
             <property name="option" value="bottom"/>
-            <property name="groups" value="*,/^java/"/>
+            <property name="groups" value="*,/^java|^jakarta/"/>
             <property name="ordered" value="false"/>
             <property name="separated" value="true"/>
             <property name="caseSensitive" value="true"/>

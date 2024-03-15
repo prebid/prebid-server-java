@@ -4,8 +4,8 @@ import lombok.Data;
 import org.prebid.server.execution.retry.ExponentialBackoffRetryPolicy;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.Positive;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 
 @Data
 @Validated
