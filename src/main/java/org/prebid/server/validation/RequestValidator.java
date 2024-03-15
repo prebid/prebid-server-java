@@ -33,7 +33,7 @@ import com.iab.openrtb.request.ntv.EventTrackingMethod;
 import com.iab.openrtb.request.ntv.EventType;
 import com.iab.openrtb.request.ntv.PlacementType;
 import com.iab.openrtb.request.ntv.Protocol;
-import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.log.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;

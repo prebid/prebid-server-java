@@ -1,8 +1,8 @@
 package org.prebid.server.settings.helper;
 
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.PreBidException;

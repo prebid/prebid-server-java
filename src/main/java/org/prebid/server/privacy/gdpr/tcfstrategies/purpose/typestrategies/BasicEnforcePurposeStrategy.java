@@ -1,8 +1,8 @@
 package org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies;
 
 import com.iabtcf.decoder.TCString;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode;

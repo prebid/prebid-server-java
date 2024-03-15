@@ -1,6 +1,6 @@
 package org.prebid.server.hooks.execution;
 
-import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.log.LoggerFactory;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.prebid.server.hooks.execution.model.ExecutionAction;

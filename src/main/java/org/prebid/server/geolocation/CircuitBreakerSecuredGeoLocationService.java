@@ -2,8 +2,8 @@ package org.prebid.server.geolocation;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.log.ConditionalLogger;

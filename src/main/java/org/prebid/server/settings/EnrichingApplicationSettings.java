@@ -1,7 +1,7 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.floors.PriceFloorsConfigResolver;

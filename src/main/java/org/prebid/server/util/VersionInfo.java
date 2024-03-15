@@ -1,8 +1,8 @@
 package org.prebid.server.util;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.json.JacksonMapper;

@@ -1,7 +1,7 @@
 package org.prebid.server.activity.infrastructure.creator;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.ActivityController;

@@ -3,8 +3,8 @@ package org.prebid.server.log;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.impl.ConcurrentHashSet;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 
