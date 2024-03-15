@@ -15,14 +15,22 @@ import org.prebid.server.metric.Metrics;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class VastModifier {
 
-    private static final String IN_LINE_TAG = "<InLine>";
-    private static final String IN_LINE_CLOSE_TAG = "</InLine>";
-    private static final String WRAPPER_TAG = "<Wrapper>";
-    private static final String WRAPPER_CLOSE_TAG = "</Wrapper>";
-    private static final String IMPRESSION_CLOSE_TAG = "</Impression>";
+    private static final Pattern WRAPPER_OPEN_TAG_PATTERN =
+            Pattern.compile("<\\s*wrapper(>|\\s+.*?>)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern WRAPPER_CLOSE_TAG_PATTERN =
+            Pattern.compile("<\\s*/\\s*wrapper(>|\\s+.*?>)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern INLINE_OPEN_TAG_PATTERN =
+            Pattern.compile("<\\s*inline(>|\\s+.*?>)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern INLINE_CLOSE_TAG_PATTERN =
+            Pattern.compile("<\\s*/\\s*inline(>|\\s+.*?>)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern IMPRESSION_CLOSE_TAG_PATTERN =
+            Pattern.compile("<\\s*/\\s*impression(>|\\s+.*?>)", Pattern.CASE_INSENSITIVE);
+
     private final BidderCatalog bidderCatalog;
     private final EventsService eventsService;
     private final Metrics metrics;
@@ -102,43 +110,55 @@ public class VastModifier {
                 : bidAdm;
     }
 
-    private String appendTrackingUrlToVastXml(String vastXml, String vastUrlTracking, String bidder) {
-        final int inLineTagIndex = StringUtils.indexOfIgnoreCase(vastXml, IN_LINE_TAG);
-        final int wrapperTagIndex = StringUtils.indexOfIgnoreCase(vastXml, WRAPPER_TAG);
-
-        if (inLineTagIndex != -1) {
-            return appendTrackingUrl(vastXml, vastUrlTracking, IN_LINE_CLOSE_TAG);
-        } else if (wrapperTagIndex != -1) {
-            return appendTrackingUrl(vastXml, vastUrlTracking, WRAPPER_CLOSE_TAG);
+    private static String appendTrackingUrlToVastXml(String vastXml, String vastUrlTracking, String bidder) {
+        if (INLINE_OPEN_TAG_PATTERN.matcher(vastXml).find()) {
+            final Matcher inlineMatcher = INLINE_CLOSE_TAG_PATTERN.matcher(vastXml);
+            return appendTrackingUrl(vastXml, vastUrlTracking, inlineMatcher);
+        } else if (WRAPPER_OPEN_TAG_PATTERN.matcher(vastXml).find()) {
+            final Matcher wrapperMatcher = WRAPPER_CLOSE_TAG_PATTERN.matcher(vastXml);
+            return appendTrackingUrl(vastXml, vastUrlTracking, wrapperMatcher);
         }
         throw new PreBidException("VastXml does not contain neither InLine nor Wrapper for %s response"
                 .formatted(bidder));
     }
 
-    private static String appendTrackingUrl(String vastXml, String vastUrlTracking, String elementCloseTag) {
-        if (vastXml.contains(IMPRESSION_CLOSE_TAG)) {
-            return insertAfterExistingImpressionTag(vastXml, vastUrlTracking);
+    private static String appendTrackingUrl(String vastXml, String vastUrlTracking, Matcher closeTagMatcher) {
+        final Matcher impressionMatcher = IMPRESSION_CLOSE_TAG_PATTERN.matcher(vastXml);
+        if (impressionMatcher.find()) {
+            return insertAfterExistingImpressionTag(vastXml, vastUrlTracking, impressionMatcher);
         }
-        return insertBeforeElementCloseTag(vastXml, vastUrlTracking, elementCloseTag);
+        return insertBeforeElementCloseTag(vastXml, vastUrlTracking, closeTagMatcher);
     }
 
-    private static String insertAfterExistingImpressionTag(String vastXml, String vastUrlTracking) {
+    private static String insertAfterExistingImpressionTag(String vastXml,
+                                                           String vastUrlTracking,
+                                                           Matcher impressionMatcher) {
+
         final String impressionTag = "<Impression><![CDATA[" + vastUrlTracking + "]]></Impression>";
-        final int replacementStart = vastXml.lastIndexOf(IMPRESSION_CLOSE_TAG);
 
-        return vastXml.substring(0, replacementStart) + IMPRESSION_CLOSE_TAG + impressionTag
-                + vastXml.substring(replacementStart + IMPRESSION_CLOSE_TAG.length());
+        String group = impressionMatcher.group();
+        while (impressionMatcher.find()) {
+            group = impressionMatcher.group();
+        }
+        final int replacementStart = vastXml.lastIndexOf(group);
+
+        return vastXml.substring(0, replacementStart + group.length()) + impressionTag
+                + vastXml.substring(replacementStart + group.length());
     }
 
-    private static String insertBeforeElementCloseTag(String vastXml, String vastUrlTracking, String elementCloseTag) {
-        final int indexOfCloseTag = StringUtils.indexOfIgnoreCase(vastXml, elementCloseTag);
+    private static String insertBeforeElementCloseTag(String vastXml,
+                                                      String vastUrlTracking,
+                                                      Matcher closeTagMatcher) {
 
-        if (indexOfCloseTag == -1) {
+        if (!closeTagMatcher.find()) {
             return vastXml;
         }
 
+        final String group = closeTagMatcher.group();
+        final int indexOfCloseTag = vastXml.indexOf(group);
+
         final String caseSpecificCloseTag =
-                vastXml.substring(indexOfCloseTag, indexOfCloseTag + elementCloseTag.length());
+                vastXml.substring(indexOfCloseTag, indexOfCloseTag + group.length());
         final String impressionTag = "<Impression><![CDATA[" + vastUrlTracking + "]]></Impression>";
 
         return vastXml.replace(caseSpecificCloseTag, impressionTag + caseSpecificCloseTag);
