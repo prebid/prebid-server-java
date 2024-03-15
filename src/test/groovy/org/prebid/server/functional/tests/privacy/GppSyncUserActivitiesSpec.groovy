@@ -1,12 +1,17 @@
 package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.config.AccountCcpaConfig
+import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGppConfig
+import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.config.AccountSetting
 import org.prebid.server.functional.model.config.ActivityConfig
 import org.prebid.server.functional.model.config.EqualityValueRule
 import org.prebid.server.functional.model.config.InequalityValueRule
 import org.prebid.server.functional.model.config.LogicalRestrictedRule
 import org.prebid.server.functional.model.config.GppModuleConfig
+import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
@@ -1845,5 +1850,57 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         countyConfig | regionConfig         | conditionGeo
         USA.value    | null                 | [USA.value]
         USA.value    | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
+    }
+
+    def "PBS cookie sync should fetch geo once when gpp sync user and account require geo look up"() {
+        given: "Pbs config with geo location"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
+                ["geolocation.configurations.[0].geo-info.country": USA.value,
+                 "geolocation.configurations.[0].geo-info.region" : ALABAMA.abbreviation])
+
+        and: "Cookie sync request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.account = accountId
+            it.gppSid = null
+            it.gdpr = null
+        }
+
+        and: "Setup condition"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gppSid = null
+            it.geo = [USA.withState(ALABAMA)]
+        }
+
+        and: "Set activity"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
+
+        and: "Flush metrics"
+        flushMetrics(prebidServerService)
+
+        and: "Set up account for allow activities"
+        def privacy = new AccountPrivacyConfig(ccpa: new AccountCcpaConfig(enabled: true), allowActivities: activities)
+        def accountConfig = new AccountConfig(privacy: privacy, settings: new AccountSetting(geoLookup: true))
+        def account = new Account(uuid: accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request with header"
+        def response = prebidServerService
+                .sendCookieSyncRequest(cookieSyncRequest, ["X-Forwarded-For": "209.232.44.21"])
+
+        then: "Response should not contain any URLs for bidders"
+        assert !response.bidderStatus.userSync.url
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = prebidServerService.sendCollectedMetricsRequest()
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+
+        and: "Metrics processed across activities should be updated"
+        assert metrics["geolocation_requests"] == 1
+        assert metrics["geolocation_successful"] == 1
     }
 }
