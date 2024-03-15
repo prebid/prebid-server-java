@@ -21,15 +21,15 @@ import java.util.regex.Pattern;
 public class VastModifier {
 
     private static final Pattern WRAPPER_OPEN_TAG_PATTERN =
-            Pattern.compile("<\\s*wrapper(>|\\s+.*?>)", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("<\\s*wrapper(?:>|\\s.*?>)", Pattern.CASE_INSENSITIVE);
     private static final Pattern WRAPPER_CLOSE_TAG_PATTERN =
-            Pattern.compile("<\\s*/\\s*wrapper(>|\\s+.*?>)", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("<\\s*/\\s*wrapper(?:>|\\s.*?>)", Pattern.CASE_INSENSITIVE);
     private static final Pattern INLINE_OPEN_TAG_PATTERN =
-            Pattern.compile("<\\s*inline(>|\\s+.*?>)", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("<\\s*inline(?:>|\\s.*?>)", Pattern.CASE_INSENSITIVE);
     private static final Pattern INLINE_CLOSE_TAG_PATTERN =
-            Pattern.compile("<\\s*/\\s*inline(>|\\s+.*?>)", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("<\\s*/\\s*inline(?:>|\\s.*?>)", Pattern.CASE_INSENSITIVE);
     private static final Pattern IMPRESSION_CLOSE_TAG_PATTERN =
-            Pattern.compile("<\\s*/\\s*impression(>|\\s+.*?>)", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("<\\s*/\\s*impression(?:>|\\s.*?>)", Pattern.CASE_INSENSITIVE);
 
     private final BidderCatalog bidderCatalog;
     private final EventsService eventsService;
