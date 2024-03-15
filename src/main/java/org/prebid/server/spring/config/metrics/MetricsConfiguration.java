@@ -12,8 +12,10 @@ import com.izettle.metrics.influxdb.InfluxDbHttpSender;
 import com.izettle.metrics.influxdb.InfluxDbReporter;
 import com.izettle.metrics.influxdb.InfluxDbSender;
 import io.vertx.core.Vertx;
+import io.vertx.core.impl.VertxInternal;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.metric.AccountMetricsVerbosityResolver;
 import org.prebid.server.metric.CounterType;
@@ -31,7 +33,6 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -46,12 +47,6 @@ import java.util.concurrent.TimeUnit;
 public class MetricsConfiguration {
 
     public static final String METRIC_REGISTRY_NAME = "metric-registry";
-
-    @Autowired(required = false)
-    private List<ScheduledReporter> reporters = Collections.emptyList();
-
-    @Autowired
-    private Vertx vertx;
 
     @Bean
     @ConditionalOnProperty(prefix = "metrics.graphite", name = "enabled", havingValue = "true")
@@ -128,11 +123,13 @@ public class MetricsConfiguration {
                 accountsProperties.getDetailedVerbosity());
     }
 
-    @PostConstruct
-    void registerReporterCloseHooks() {
-        reporters.stream()
+    @Autowired
+    public void registerReporterCloseHooks(Vertx vertx,
+                                           @Autowired(required = false) List<ScheduledReporter> reporters) {
+
+        CollectionUtils.emptyIfNull(reporters).stream()
                 .map(CloseableAdapter::new)
-                .forEach(closeable -> vertx.getOrCreateContext().addCloseHook(closeable));
+                .forEach(closeable -> ((VertxInternal) vertx).addCloseHook(closeable));
     }
 
     @Component
