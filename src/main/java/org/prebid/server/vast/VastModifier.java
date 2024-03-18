@@ -14,6 +14,7 @@ import org.prebid.server.metric.Metrics;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -110,47 +111,38 @@ public class VastModifier {
                 : bidAdm;
     }
 
-    private static String appendTrackingUrlToVastXml(String vastXml, String vastUrlTracking, String bidder) {
-        if (INLINE_OPEN_TAG_PATTERN.matcher(vastXml).find()) {
-            final Matcher inlineMatcher = INLINE_CLOSE_TAG_PATTERN.matcher(vastXml);
-            return appendTrackingUrl(vastXml, vastUrlTracking, inlineMatcher);
-        } else if (WRAPPER_OPEN_TAG_PATTERN.matcher(vastXml).find()) {
-            final Matcher wrapperMatcher = WRAPPER_CLOSE_TAG_PATTERN.matcher(vastXml);
-            return appendTrackingUrl(vastXml, vastUrlTracking, wrapperMatcher);
-        }
-        throw new PreBidException("VastXml does not contain neither InLine nor Wrapper for %s response"
-                .formatted(bidder));
+    private static String appendTrackingUrlToVastXml(String xml, String urlTracking, String bidder) {
+        return appendTrackingUrl(xml, urlTracking, INLINE_OPEN_TAG_PATTERN, INLINE_CLOSE_TAG_PATTERN)
+                .or(() -> appendTrackingUrl(xml, urlTracking, WRAPPER_OPEN_TAG_PATTERN, WRAPPER_CLOSE_TAG_PATTERN))
+                .orElseThrow(() -> new PreBidException(
+                        "VastXml does not contain neither InLine nor Wrapper for %s response".formatted(bidder)));
     }
 
-    private static String appendTrackingUrl(String vastXml, String vastUrlTracking, Matcher closeTagMatcher) {
-        final Matcher impressionMatcher = IMPRESSION_CLOSE_TAG_PATTERN.matcher(vastXml);
-        if (impressionMatcher.find()) {
-            return insertAfterExistingImpressionTag(vastXml, vastUrlTracking, impressionMatcher);
-        }
-        return insertBeforeElementCloseTag(vastXml, vastUrlTracking, closeTagMatcher);
-    }
-
-    private static String insertAfterExistingImpressionTag(String vastXml,
-                                                           String vastUrlTracking,
-                                                           Matcher impressionMatcher) {
-
-        int replacementEnd = impressionMatcher.end();
-        while (impressionMatcher.find()) {
-            replacementEnd = impressionMatcher.end();
-        }
-
-        return insertUrlTracking(vastXml, replacementEnd, vastUrlTracking);
-    }
-
-    private static String insertBeforeElementCloseTag(String vastXml,
+    private static Optional<String> appendTrackingUrl(String vastXml,
                                                       String vastUrlTracking,
-                                                      Matcher closeTagMatcher) {
+                                                      Pattern openTagPattern,
+                                                      Pattern closeTagPattern) {
 
-        if (!closeTagMatcher.find()) {
-            return vastXml;
+        final Matcher openTagMatcher = openTagPattern.matcher(vastXml);
+        if (!openTagMatcher.find()) {
+            return Optional.empty();
         }
 
-        return insertUrlTracking(vastXml, closeTagMatcher.start(), vastUrlTracking);
+        final Matcher impressionCloseTagMatcher = IMPRESSION_CLOSE_TAG_PATTERN.matcher(vastXml);
+        if (impressionCloseTagMatcher.find(openTagMatcher.end())) {
+            int replacementEnd = impressionCloseTagMatcher.end();
+            while (impressionCloseTagMatcher.find(replacementEnd)) {
+                replacementEnd = impressionCloseTagMatcher.end();
+            }
+            return Optional.of(insertUrlTracking(vastXml, replacementEnd, vastUrlTracking));
+        }
+
+        final Matcher closeTagMatcher = closeTagPattern.matcher(vastXml);
+        if (!closeTagMatcher.find(openTagMatcher.end())) {
+            return Optional.of(vastXml);
+        }
+
+        return Optional.of(insertUrlTracking(vastXml, closeTagMatcher.start(), vastUrlTracking));
     }
 
     private static String insertUrlTracking(String vastXml, int index, String vastUrlTracking) {
