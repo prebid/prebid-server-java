@@ -121,6 +121,7 @@ public class MultiFormatMediaTypeProcessor implements MediaTypeProcessor {
 
     private static boolean isMultiFormat(Imp imp) {
         int count = 0;
+        //noinspection ConstantValue
         return (imp.getBanner() != null && ++count > 1)
                 || (imp.getVideo() != null && ++count > 1)
                 || (imp.getAudio() != null && ++count > 1)

@@ -23,7 +23,6 @@ import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.service.PrebidServerService
-import org.prebid.server.functional.testcontainers.PbsPgConfig
 import org.prebid.server.functional.testcontainers.scaffolding.VendorList
 import org.prebid.server.functional.tests.BaseSpec
 import org.prebid.server.functional.util.PBSUtils
@@ -57,17 +56,17 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     private static final int GEO_PRECISION = 2
 
     protected static final Map<String, String> GENERIC_COOKIE_SYNC_CONFIG = ["adapters.${GENERIC.value}.usersync.${REDIRECT.value}.url"         : "$networkServiceContainer.rootUri/generic-usersync".toString(),
-                                                                           "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": false.toString()]
+                                                                             "adapters.${GENERIC.value}.usersync.${REDIRECT.value}.support-cors": false.toString()]
     private static final Map<String, String> OPENX_COOKIE_SYNC_CONFIG = ["adaptrs.${OPENX.value}.enabled"                     : "true",
                                                                          "adapters.${OPENX.value}.usersync.cookie-family-name": OPENX.value]
     private static final Map<String, String> OPENX_CONFIG = ["adapters.${OPENX.value}.endpoint": "$networkServiceContainer.rootUri/auction".toString(),
                                                              "adapters.${OPENX.value}.enabled" : 'true']
     protected static final Map<String, String> GDPR_VENDOR_LIST_CONFIG = ["gdpr.vendorlist.v2.http-endpoint-template": "$networkServiceContainer.rootUri/v2/vendor-list.json".toString(),
-                                                                "gdpr.vendorlist.v3.http-endpoint-template": "$networkServiceContainer.rootUri/v3/vendor-list.json".toString()]
+                                                                          "gdpr.vendorlist.v3.http-endpoint-template": "$networkServiceContainer.rootUri/v3/vendor-list.json".toString()]
     protected static final Map<String, String> SETTING_CONFIG = ["settings.enforce-valid-account": 'true']
     protected static final Map<String, String> GENERIC_VENDOR_CONFIG = ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String,
-                                                                      "gdpr.host-vendor-id"                 : GENERIC_VENDOR_ID as String,
-                                                                      "adapters.generic.ccpa-enforced"      : "true"]
+                                                                        "gdpr.host-vendor-id"                 : GENERIC_VENDOR_ID as String,
+                                                                        "adapters.generic.ccpa-enforced"      : "true"]
 
     @Shared
     protected static final int PURPOSES_ONLY_GVL_VERSION = PBSUtils.getRandomNumber(0, 4095)
@@ -78,10 +77,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     @Shared
     protected static final int PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion([PURPOSES_ONLY_GVL_VERSION, LEG_INT_PURPOSES_ONLY_GVL_VERSION, LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION], 0, 4095)
 
-    private static final PbsPgConfig pgConfig = new PbsPgConfig(networkServiceContainer)
-
     protected static final Map<String, String> PBS_CONFIG = OPENX_CONFIG + OPENX_COOKIE_SYNC_CONFIG +
-            GENERIC_COOKIE_SYNC_CONFIG + pgConfig.properties + GDPR_VENDOR_LIST_CONFIG + SETTING_CONFIG + GENERIC_VENDOR_CONFIG
+            GENERIC_COOKIE_SYNC_CONFIG + GDPR_VENDOR_LIST_CONFIG + SETTING_CONFIG + GENERIC_VENDOR_CONFIG
     protected static final String VALID_VALUE_FOR_GPC_HEADER = "1"
     protected static final GppConsent SIMPLE_GPC_DISALLOW_LOGIC = new UspNatV1Consent.Builder().setGpc(true).build()
     protected static final VendorList vendorListResponse = new VendorList(networkServiceContainer)

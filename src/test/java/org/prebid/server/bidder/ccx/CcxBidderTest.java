@@ -18,8 +18,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.ccx.ExtImpCcx;
 
 import java.util.List;
 import java.util.function.Function;
@@ -61,20 +59,17 @@ public class CcxBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldHaveTheSameIncomingAndOutGoingBidRequest() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
-                .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpCcx.of(123456789)))));
+        final BidRequest bidRequest = givenBidRequest(identity());
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
+                .hasSize(1)
+                .element(0)
                 .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .containsExactly(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpCcx.of(123456789))));
+                .isSameAs(bidRequest);
     }
 
     @Test
@@ -215,11 +210,7 @@ public class CcxBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                        .id("123")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpCcx.of(123456789)))))
-                .build();
+        return impCustomizer.apply(Imp.builder().id("123")).build();
     }
 
     private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {

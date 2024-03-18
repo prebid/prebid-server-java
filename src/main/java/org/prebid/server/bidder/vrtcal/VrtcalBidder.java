@@ -36,7 +36,6 @@ public class VrtcalBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-
         return Result.withValue(BidderUtil.defaultRequest(request, endpointUrl, mapper));
     }
 

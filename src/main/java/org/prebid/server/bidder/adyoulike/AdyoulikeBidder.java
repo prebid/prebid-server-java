@@ -70,7 +70,7 @@ public class AdyoulikeBidder implements Bidder<BidRequest> {
             }
         }
 
-        if (errors.size() > 0) {
+        if (!errors.isEmpty()) {
             return Result.withErrors(errors);
         }
 

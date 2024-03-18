@@ -172,5 +172,4 @@ public class ExtRequestPrebid {
      * Defines the contract for bidrequest.ext.prebid.sdk
      */
     ExtRequestPrebidSdk sdk;
-
 }

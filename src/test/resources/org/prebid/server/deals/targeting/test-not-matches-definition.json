@@ -1,7 +1,0 @@
-{
-  "$not": {
-    "site.domain": {
-      "$matches": "*nba.com*"
-    }
-  }
-}

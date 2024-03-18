@@ -15,8 +15,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.vrtcal.ExtImpVrtcal;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.List;
@@ -46,8 +44,7 @@ public class VrtcalBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder ->
-                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))));
+        final BidRequest bidRequest = givenBidRequest(identity());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -189,9 +186,7 @@ public class VrtcalBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpVrtcal.of("JustAnUnusedVrtcalParam")))))
-                .build();
+        return impCustomizer.apply(Imp.builder()).build();
     }
 
     private static String givenBidResponse(Bid... bids) throws JsonProcessingException {

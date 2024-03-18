@@ -20,18 +20,6 @@ public class Timeout {
     }
 
     /**
-     * Returns a {@link Timeout} instance expiring sooner than the current instance by specified amount of
-     * milliseconds.
-     */
-    public Timeout minus(long amount) {
-        if (amount < 0) {
-            throw new IllegalArgumentException("Amount must be non-negative");
-        }
-
-        return new Timeout(clock, deadline - amount);
-    }
-
-    /**
      * Returns amount of time remaining before this {@link Timeout} expires.
      */
     public long remaining() {

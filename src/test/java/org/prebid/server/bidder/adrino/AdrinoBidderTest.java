@@ -17,8 +17,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.adrino.ExtImpAdrino;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.List;
@@ -69,16 +67,9 @@ public class AdrinoBidderTest extends VertxTest {
     public void makeHttpRequestShouldReturnSingleHttpRequestsWhenTwoImpsHasDifferentSourceId() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(Imp.builder()
-                                .xNative(Native.builder().build())
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdrino.of("test"))))
-                                .build(),
-                        Imp.builder()
-                                .xNative(Native.builder().build())
-                                .ext(mapper.valueToTree(
-                                        ExtPrebid.of(null, ExtImpAdrino.of("test"))))
-                                .build()))
+                .imp(asList(
+                        Imp.builder().xNative(Native.builder().build()).build(),
+                        Imp.builder().xNative(Native.builder().build()).build()))
                 .build();
 
         // when

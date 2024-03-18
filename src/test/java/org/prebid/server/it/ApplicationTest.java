@@ -649,7 +649,6 @@ public class ApplicationTest extends IntegrationTest {
                 .param("duration", "1000")
                 .param("account", "1001")
                 .param("bidderCode", "rubicon")
-                .param("lineitemId", "1001")
                 .post("/pbs-admin/tracelog")
                 .then()
                 .assertThat()

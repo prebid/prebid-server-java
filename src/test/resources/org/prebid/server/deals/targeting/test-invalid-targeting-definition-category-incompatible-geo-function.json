@@ -1,5 +1,0 @@
-{
-  "geo.distance": {
-    "$intersects": []
-  }
-}

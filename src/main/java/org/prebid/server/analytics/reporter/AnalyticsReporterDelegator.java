@@ -201,6 +201,7 @@ public class AnalyticsReporterDelegator {
         if (!ADAPTERS_PERMITTED_FOR_FULL_DATA.contains(adapter) && event instanceof AuctionEvent auctionEvent) {
             final AuctionContext updatedAuctionContext =
                     updateAuctionContextAdapter(auctionEvent.getAuctionContext(), adapter);
+            //noinspection unchecked
             return updatedAuctionContext != null
                     ? (T) auctionEvent.toBuilder().auctionContext(updatedAuctionContext).build()
                     : event;

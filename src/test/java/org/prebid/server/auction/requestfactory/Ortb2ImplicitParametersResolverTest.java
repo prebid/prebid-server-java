@@ -950,10 +950,9 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldUpdateImpsWithSecurityOneIfRequestIsSecuredAndImpSecurityNotDefined() {
+    public void shouldUpdateImpsWithSecurityOneIfImpSecurityNotDefined() {
         // given
         final BidRequest bidRequest = BidRequest.builder().imp(singletonList(Imp.builder().build())).build();
-        given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
         final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
@@ -963,13 +962,11 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotUpdateImpsWithSecurityOneIfRequestIsSecureAndImpSecurityIsZero() {
+    public void shouldNotUpdateImpsWithSecurityOneIfImpSecurityIsZero() {
         // given
         final List<Imp> imps = singletonList(Imp.builder().id("someImpId").secure(0).build());
 
         final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
-
-        given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
         final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
@@ -979,34 +976,17 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldUpdateImpsOnlyWithNotDefinedSecurityWithSecurityOneIfRequestIsSecure() {
+    public void shouldUpdateImpsOnlyWithNotDefinedSecurityWithSecurityOne() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(Imp.builder().build(), Imp.builder().secure(0).build()))
                 .build();
-        given(paramsExtractor.secureFrom(any())).willReturn(1);
 
         // when
         final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
         // then
         assertThat(result.getImp()).extracting(Imp::getSecure).containsOnly(1, 0);
-    }
-
-    @Test
-    public void shouldNotUpdateImpsWithSecurityOneIfRequestIsNotSecureAndImpSecurityIsNotDefined() {
-        // given
-        final List<Imp> imps = singletonList(Imp.builder().id("someImpId").secure(1).build());
-
-        final BidRequest bidRequest = BidRequest.builder().imp(imps).build();
-
-        given(paramsExtractor.secureFrom(any())).willReturn(0);
-
-        // when
-        final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
-
-        // then
-        assertThat(result.getImp()).isSameAs(imps);
     }
 
     @Test
@@ -1838,8 +1818,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                                         .set("bidder1", mapper.createObjectNode().put("key1", "value1")))))
                         .build())).build();
 
-        given(paramsExtractor.secureFrom(any())).willReturn(0);
-
         // when
         final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
@@ -1870,8 +1848,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
         given(jsonMerger.merge(any(), any())).willReturn(mapper.createObjectNode().put("key1", "value1-imp")
                 .put("key2", "value2"));
 
-        given(paramsExtractor.secureFrom(any())).willReturn(0);
-
         // when
         final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
@@ -1900,8 +1876,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
         given(jsonMerger.merge(any(), any())).willReturn(mapper.createObjectNode().put("key1", "value1")
                 .put("key2", "value2"));
-
-        given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
         final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
@@ -1934,8 +1908,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                                                 .set("bidder1", mapper.createObjectNode().put("key1", "value1")))))
                         .build())).build();
 
-        given(paramsExtractor.secureFrom(any())).willReturn(0);
-
         // when
         final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);
 
@@ -1962,8 +1934,6 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 .ext(ExtRequest.of(ExtRequestPrebid.builder().bidderparams(requestBidderParams).build()))
                 .imp(singletonList(Imp.builder()
                         .ext(impBidderParams).build())).build();
-
-        given(paramsExtractor.secureFrom(any())).willReturn(0);
 
         // when
         final BidRequest result = target.resolve(bidRequest, auctionContext, ENDPOINT, false);

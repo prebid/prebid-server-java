@@ -38,8 +38,8 @@ import java.util.function.UnaryOperator;
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.prebid.server.hooks.v1.PayloadUpdate.identity;
 
 public class BidRequestOrtb26To25ConverterTest extends VertxTest {
 

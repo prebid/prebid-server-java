@@ -92,16 +92,6 @@ public class ImplicitParametersExtractor {
         return StringUtils.trimToNull(request.getHeaders().get(HttpUtil.USER_AGENT_HEADER));
     }
 
-    /**
-     * Determines the value of 'secure' flag by checking if 'X-Forwarded-Proto' contains 'value' or if HTTP request
-     * scheme is 'https'. Returns 1 if one of these conditions evaluates to true or null otherwise.
-     */
-    public Integer secureFrom(HttpRequestContext httpRequest) {
-        return StringUtils.equalsIgnoreCase(httpRequest.getHeaders().get("X-Forwarded-Proto"), "https")
-                || StringUtils.equalsIgnoreCase(httpRequest.getScheme(), "https")
-                ? 1 : null;
-    }
-
     public String gpcFrom(HttpRequestContext httpRequest) {
         final String gpcAsString = httpRequest.getHeaders().get(HttpUtil.SEC_GPC_HEADER);
         return "1".equals(gpcAsString) || "\"1\"".equals(gpcAsString) ? "1" : null;

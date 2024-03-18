@@ -49,20 +49,20 @@ public class OmsBidder implements Bidder<BidRequest> {
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
+        return bidsFromResponse(bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)

@@ -202,17 +202,7 @@ Also, each bidder could have its own bidder-specific options.
 - `admin-endpoints.tracelog.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.tracelog.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.tracelog.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.tracelog.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
-
-- `admin-endpoints.deals-status.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.deals-status.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.deals-status.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.deals-status.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
-
-- `admin-endpoints.lineitem-status.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.lineitem-status.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.lineitem-status.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.lineitem-status.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
+- `admin-endpoints.tracelog.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.e2eadmin.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.e2eadmin.path` - the server context path where the endpoint will be accessible.
@@ -223,11 +213,6 @@ Also, each bidder could have its own bidder-specific options.
 - `admin-endpoints.collected-metrics.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.collected-metrics.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
 - `admin-endpoints.collected-metrics.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
-
-- `admin-endpoints.force-deals-update.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.force-deals-update.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.force-deals-update.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.force-deals-update.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
 - `admin-endpoints.credentials` - user and password for access to admin endpoints if `admin-endpoints.[NAME].protected` is true`.
 
@@ -441,41 +426,6 @@ If not defined in config all other Health Checkers would be disabled and endpoin
 - `analytics.pubstack.buffers.size-bytes` - threshold in bytes for buffer to send events. 
 - `analytics.pubstack.buffers.count` - threshold in events count for buffer to send events
 - `analytics.pubstack.buffers.report-ttl-ms` - max period between two reports.
-
-## Programmatic Guaranteed Delivery
-- `deals.planner.plan-endpoint` - planner endpoint to get plans from.
-- `deals.planner.update-period` - cron expression to start job for requesting Line Item metadata updates from the Planner.
-- `deals.planner.plan-advance-period` - cron expression to start job for advancing Line Items to the next plan.
-- `deals.planner.retry-period-sec` - how long (in seconds) to wait before re-sending a request to the Planner that previously failed with 5xx HTTP error code.
-- `deals.planner.timeout-ms` - default operation timeout for requests to planner's endpoints.
-- `deals.planner.register-endpoint` - register endpoint to get plans from.
-- `deals.planner.register-period-sec` - time period (in seconds) to send register request to the Planner.
-- `deals.planner.username` - username for planner BasicAuth.
-- `deals.planner.password` - password for planner BasicAuth.
-- `deals.delivery-stats.delivery-period` - cron expression to start job for sending delivery progress to planner.
-- `deals.delivery-stats.cached-reports-number` - how many reports to cache while planner is unresponsive.
-- `deals.delivery-stats.timeout-ms` - default operation timeout for requests to delivery progress endpoints.
-- `deals.delivery-stats.username` - username for delivery progress BasicAuth.
-- `deals.delivery-stats.password` - password for delivery progress BasicAuth.
-- `deals.delivery-stats.line-items-per-report` - max number of line items in each report to split for batching. Default is 25.
-- `deals.delivery-stats.reports-interval-ms` - interval in ms between consecutive reports. Default is 0.
-- `deals.delivery-stats.batches-interval-ms` - interval in ms between consecutive batches. Default is 1000.
-- `deals.delivery-stats.request-compression-enabled` - enables request gzip compression when set to true.
-- `deals.delivery-progress.line-item-status-ttl-sec` - how long to store line item's metrics after it was expired.
-- `deals.delivery-progress.cached-plans-number` -  how many plans to store in metrics per line item.
-- `deals.delivery-progress.report-reset-period`- cron expression to start job for closing current delivery progress and starting new one.
-- `deals.delivery-progress-report.competitors-number`- number of line items top competitors to send in delivery progress report.
-- `deals.user-data.user-details-endpoint` - user Data Store endpoint to get user details from.
-- `deals.user-data.win-event-endpoint` - user Data Store endpoint to which win events should be sent.
-- `deals.user-data.timeout` - time to wait (in milliseconds) for User Data Service response.
-- `deals.user-data.user-ids` - list of Rules for determining user identifiers to send to User Data Store.
-- `deals.max-deals-per-bidder` - maximum number of deals to send to each bidder.
-- `deals.alert-proxy.enabled` - enable alert proxy service if `true`.
-- `deals.alert-proxy.url` - alert service endpoint to send alerts to.
-- `deals.alert-proxy.timeout-sec` - default operation timeout for requests to alert service endpoint.
-- `deals.alert-proxy.username` - username for alert proxy BasicAuth.
-- `deals.alert-proxy.password` - password for alert proxy BasicAuth.
-- `deals.alert-proxy.alert-types` - key value pair of alert type and sampling factor to send high priority alert.
 
 ## Debugging
 - `debug.override-token` - special string token for overriding Prebid Server account and/or adapter debug information presence in the auction response.

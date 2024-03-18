@@ -1,7 +1,0 @@
-{
-  "bidp.rubicon.siteId": {
-    "$in": [
-      false
-    ]
-  }
-}

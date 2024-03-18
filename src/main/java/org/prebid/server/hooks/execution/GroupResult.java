@@ -88,7 +88,7 @@ class GroupResult<T> {
                             .formatted(hookId),
                     LOG_SAMPLING_RATE);
 
-            throw new RejectionNotSupportedException("Rejection is not supported during this stage");
+            throw new RejectionNotSupportedException();
         }
 
         shouldReject = true;
@@ -178,8 +178,8 @@ class GroupResult<T> {
 
     private static class RejectionNotSupportedException extends RuntimeException {
 
-        RejectionNotSupportedException(String message) {
-            super(message);
+        RejectionNotSupportedException() {
+            super("Rejection is not supported during this stage");
         }
     }
 

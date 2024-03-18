@@ -47,27 +47,26 @@ public class AxisBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
-            final ExtImpAxis extImpAxis;
             try {
-                extImpAxis = parseImpExt(imp);
+                validateImpExt(imp);
             } catch (PreBidException e) {
                 continue;
             }
-            httpRequests.add(makeRequest(request, imp, extImpAxis));
+            httpRequests.add(makeRequest(request, imp));
         }
 
         return Result.withValues(httpRequests);
     }
 
-    private ExtImpAxis parseImpExt(Imp imp) {
+    private void validateImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), ADMAN_EXT_TYPE_REFERENCE).getBidder();
+            mapper.mapper().convertValue(imp.getExt(), ADMAN_EXT_TYPE_REFERENCE);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
     }
 
-    private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, Imp imp, ExtImpAxis extImpAxis) {
+    private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, Imp imp) {
         final BidRequest modifyBidRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
                 .build();

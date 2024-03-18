@@ -16,8 +16,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.adxcg.ExtImpAdxcg;
 
 import java.util.Collections;
 import java.util.List;
@@ -48,9 +46,7 @@ public class AdxcgBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotModifyIncomingRequest() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(singletonList(Imp.builder()
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAdxcg.of("adZoneId"))))
-                        .build()))
+                .imp(singletonList(Imp.builder().build()))
                 .id("request_id")
                 .build();
 
@@ -246,9 +242,7 @@ public class AdxcgBidderTest extends VertxTest {
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
-                        .banner(Banner.builder().id("banner_id").build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAdxcg.of("adzoneid")))))
+                        .banner(Banner.builder().id("banner_id").build()))
                 .build();
     }
 }

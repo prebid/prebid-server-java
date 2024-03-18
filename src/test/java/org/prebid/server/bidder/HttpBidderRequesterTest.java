@@ -50,6 +50,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -459,8 +460,28 @@ public class HttpBidderRequesterTest extends VertxTest {
     @Test
     public void shouldNotWaitForResponsesWhenAllDealsIsGathered() throws JsonProcessingException {
         // given
-        target = new HttpBidderRequester(httpClient, new DealsBidderRequestCompletionTrackerFactory(),
-                bidderErrorNotifier, requestEnricher, jacksonMapper);
+        target = new HttpBidderRequester(
+                httpClient,
+                bidRequest -> new BidderRequestCompletionTracker() {
+
+                    private final AtomicInteger waitAllDeals = new AtomicInteger(2);
+                    private final Promise<Void> promise = Promise.promise();
+
+                    @Override
+                    public Future<Void> future() {
+                        return promise.future();
+                    }
+
+                    @Override
+                    public void processBids(List<BidderBid> bids) {
+                        if (waitAllDeals.decrementAndGet() <= 0) {
+                            promise.complete();
+                        }
+                    }
+                },
+                bidderErrorNotifier,
+                requestEnricher,
+                jacksonMapper);
 
         final BidRequest bidRequest = bidRequestWithDeals("deal1", "deal2");
         final BidderRequest bidderRequest = BidderRequest.builder()
@@ -512,16 +533,15 @@ public class HttpBidderRequesterTest extends VertxTest {
                 CompositeBidderResponse.withBids(singletonList(bidderBidDeal2), emptyList()));
 
         // when
-        final BidderSeatBid bidderSeatBid =
-                target.requestBids(
-                                bidder,
-                                bidderRequest,
-                                bidRejectionTracker,
-                                timeout,
-                                CaseInsensitiveMultiMap.empty(),
-                                bidderAliases,
-                                false)
-                        .result();
+        final BidderSeatBid bidderSeatBid = target.requestBids(
+                        bidder,
+                        bidderRequest,
+                        bidRejectionTracker,
+                        timeout,
+                        CaseInsensitiveMultiMap.empty(),
+                        bidderAliases,
+                        false)
+                .result();
 
         // then
         verify(bidder).makeHttpRequests(any());
