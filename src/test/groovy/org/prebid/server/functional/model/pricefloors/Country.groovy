@@ -6,7 +6,7 @@ import org.prebid.server.functional.util.privacy.model.State
 enum Country {
 
     USA("USA","US"),
-    CAN("CAN","CAN"),
+    CAN("CAN","CA"),
     MULTIPLE("*","*")
 
     @JsonValue
