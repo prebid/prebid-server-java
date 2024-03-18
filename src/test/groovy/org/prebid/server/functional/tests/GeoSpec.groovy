@@ -4,7 +4,6 @@ import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.pricefloors.Country
-import org.prebid.server.functional.model.pricefloors.PublicCountryIpV4
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.config.AccountSetting
 import org.prebid.server.functional.model.request.auction.Device
@@ -13,7 +12,8 @@ import org.prebid.server.functional.util.PBSUtils
 import java.time.Instant
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
-
+import static org.prebid.server.functional.model.pricefloors.Country.USA
+import static org.prebid.server.functional.model.request.auction.PublicCountryIp.USA_IP
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
@@ -24,22 +24,24 @@ class GeoSpec extends BaseSpec {
     private static final String GEO_LOCATION_FAIL = "geolocation_fail"
     private static final String GEO_LOCATION_SUCCESSFUL = "geolocation_successful"
     private static final Map<String, String> GEO_LOCATION = ["geolocation.type"                               : "configuration",
-                                                             "geolocation.configurations.[0].address-pattern" : PublicCountryIpV4.USA.ipV4,
-                                                             "geolocation.configurations.[0].geo-info.country": Country.USA.ISOAlpha2,
+                                                             "geolocation.configurations.[0].address-pattern" : USA_IP.v4,
+                                                             "geolocation.configurations.[0].geo-info.country": USA.ISOAlpha2,
                                                              "geolocation.configurations.[0].geo-info.region" : ALABAMA.abbreviation]
 
     def "PBS should populate geo with country and region when geo location enabled in host and account config"() {
-        given: "Default basic generic BidRequest"
+        given: "PBS service with geolocation and default account configs"
         def config = AccountConfig.defaultAccountConfig.tap {
             settings = new AccountSetting(geoLookup: defaultAccountGeoLookup)
         }
         def defaultPbsService = pbsServiceFactory.getService(
                 ["settings.default-account-config": encode(config),
                  "geolocation.enabled"            : "true"] + GEO_LOCATION)
+
+        and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             device = new Device(
-                    ip: PublicCountryIpV4.USA.ipV4,
-                    ipv6: "af47:892b:3e98:b49a:a747:bda4:a6c8:aee2",
+                    ip: USA_IP.v4,
+                    ipv6: USA_IP.v6,
                     geo: new Geo(
                             country: null,
                             region: null,
@@ -60,7 +62,7 @@ class GeoSpec extends BaseSpec {
 
         then: "Bidder request should contain country and region"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequests.device.geo.country == Country.USA
+        assert bidderRequests.device.geo.country == USA
         assert bidderRequests.device.geo.region == ALABAMA.abbreviation
 
         and: "Metrics processed across activities should be updated"
@@ -76,17 +78,19 @@ class GeoSpec extends BaseSpec {
     }
 
     def "PBS shouldn't populate geo with country and region when geo location disable in host and account config enabled"() {
-        given: "Default basic generic BidRequest"
+        given: "PBS service with geolocation and default account configs"
         def config = AccountConfig.defaultAccountConfig.tap {
             settings = new AccountSetting(geoLookup: defaultAccountGeoLookupConfig)
         }
         def defaultPbsService = pbsServiceFactory.getService(GEO_LOCATION +
                 ["settings.default-account-config": encode(config),
                  "geolocation.enabled"            : hostGeolocation])
+
+        and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             device = new Device(
-                    ip: PublicCountryIpV4.USA.ipV4,
-                    ipv6: "af47:892b:3e98:b49a:a747:bda4:a6c8:aee2",
+                    ip: USA_IP.v4,
+                    ipv6: USA_IP.v6,
                     geo: new Geo(
                             country: null,
                             region: null,
@@ -114,6 +118,7 @@ class GeoSpec extends BaseSpec {
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert !metrics[GEO_LOCATION_REQUESTS]
         assert !metrics[GEO_LOCATION_SUCCESSFUL]
+        assert !metrics[GEO_LOCATION_FAIL]
 
         where:
         defaultAccountGeoLookupConfig | hostGeolocation | accountGeoLookup
@@ -127,14 +132,16 @@ class GeoSpec extends BaseSpec {
         given: "Test start time"
         def startTime = Instant.now()
 
-        and: "Default basic generic BidRequest"
+        and: "PBS service with geolocation"
         def defaultPbsService = pbsServiceFactory.getService(GEO_LOCATION +
                 ["geolocation.configurations.[0].address-pattern": PBSUtils.randomNumber as String,
                  "geolocation.enabled"                           : "true"])
+
+        and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             device = new Device(
-                    ip: PublicCountryIpV4.USA.ipV4,
-                    ipv6: "af47:892b:3e98:b49a:a747:bda4:a6c8:aee2",
+                    ip: USA_IP.v4,
+                    ipv6: USA_IP.v6,
                     geo: new Geo(
                             country: null,
                             region: null,
@@ -173,13 +180,15 @@ class GeoSpec extends BaseSpec {
     }
 
     def "PBS shouldn't populate country and region via geo when geo enabled in account and country and region specified in request"() {
-        given: "Default basic generic BidRequest"
+        given: "PBS service with geolocation"
         def defaultPbsService = pbsServiceFactory.getService(
                 ["geolocation.enabled": "true"] + GEO_LOCATION)
+
+        and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             device = new Device(
-                    ip: PublicCountryIpV4.USA.ipV4,
-                    ipv6: "af47:892b:3e98:b49a:a747:bda4:a6c8:aee2",
+                    ip: USA_IP.v4,
+                    ipv6: USA_IP.v6,
                     geo: new Geo(
                             country: Country.CAN,
                             region: ONTARIO.abbreviation,

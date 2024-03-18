@@ -12,8 +12,6 @@ import org.prebid.server.functional.model.config.InequalityValueRule
 import org.prebid.server.functional.model.config.LogicalRestrictedRule
 import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.db.Account
-import org.prebid.server.functional.model.pricefloors.Country
-import org.prebid.server.functional.model.pricefloors.PublicCountryIpV4
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
@@ -30,7 +28,6 @@ import org.prebid.server.functional.util.privacy.gpp.UspUtV1Consent
 import org.prebid.server.functional.util.privacy.gpp.UspVaV1Consent
 import org.prebid.server.functional.util.privacy.gpp.data.UsCaliforniaSensitiveData
 import org.prebid.server.functional.util.privacy.gpp.data.UsUtahSensitiveData
-import spock.lang.IgnoreRest
 
 import java.time.Instant
 
@@ -60,7 +57,6 @@ import static org.prebid.server.functional.model.config.UsNationalPrivacySection
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
-import static org.prebid.server.functional.model.pricefloors.PublicCountryIpV4.USA
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CO_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CT_V1
@@ -72,6 +68,7 @@ import static org.prebid.server.functional.model.request.auction.ActivityType.SY
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.ALL
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_ALL
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
+import static org.prebid.server.functional.model.request.auction.PublicCountryIp.USA_IP
 import static org.prebid.server.functional.util.privacy.model.State.MANITOBA
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ALASKA
@@ -92,7 +89,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
     private static final Map<String, String> GEO_LOCATION = ["geolocation.enabled"                           : "true",
                                                              "geolocation.type"                              : "configuration",
-                                                             "geolocation.configurations.[0].address-pattern": USA.ipV4]
+                                                             "geolocation.configurations.[0].address-pattern": USA_IP.v4]
 
     def "PBS cookie sync call when bidder allowed in activities should include proper responded with bidders URLs and update processed metrics"() {
         given: "Cookie sync request with link to account"
@@ -1694,12 +1691,12 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
 
         where:
-        countyConfig | regionConfig          | conditionGeo
-        null                  | null                  | ["$Country.USA.ISOAlpha3".toString()]
-        Country.USA.ISOAlpha3 | ALABAMA.abbreviation  | null
-        CAN.ISOAlpha3         | ALASKA.abbreviation   | [Country.USA.withState(ALABAMA)]
-        null                  | MANITOBA.abbreviation | [Country.USA.withState(ALABAMA)]
-        CAN.ISOAlpha3         | null                  | [Country.USA.withState(ALABAMA)]
+        countyConfig  | regionConfig          | conditionGeo
+        null          | null                  | ["$USA.ISOAlpha3".toString()]
+        USA.ISOAlpha3 | ALABAMA.abbreviation  | null
+        CAN.ISOAlpha3 | ALASKA.abbreviation   | [USA.withState(ALABAMA)]
+        null          | MANITOBA.abbreviation | [USA.withState(ALABAMA)]
+        CAN.ISOAlpha3 | null                  | [USA.withState(ALABAMA)]
     }
 
     def "PBS setuid should process rule when geo doesn't intersection"() {
@@ -1750,11 +1747,11 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
 
         where:
-        countyConfig | regionConfig          | conditionGeo
-        null          | null                | [Country.USA.ISOAlpha3]
-        CAN.ISOAlpha3 | ALASKA.abbreviation | [Country.USA.withState(ALABAMA)]
-        null         | MANITOBA.abbreviation | [Country.USA.withState(ALABAMA)]
-        CAN.ISOAlpha3 | null                | [Country.USA.withState(ALABAMA)]
+        countyConfig  | regionConfig          | conditionGeo
+        null          | null                  | [USA.ISOAlpha3]
+        CAN.ISOAlpha3 | ALASKA.abbreviation   | [USA.withState(ALABAMA)]
+        null          | MANITOBA.abbreviation | [USA.withState(ALABAMA)]
+        CAN.ISOAlpha3 | null                  | [USA.withState(ALABAMA)]
     }
 
     def "PBS cookie sync should disallowed rule when device.geo intersection"() {
@@ -1803,9 +1800,9 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
 
         where:
-        countyConfig | regionConfig         | conditionGeo
-        Country.USA.ISOAlpha3 | null                 | [Country.USA.ISOAlpha3]
-        Country.USA.ISOAlpha3 | ALABAMA.abbreviation | [Country.USA.withState(ALABAMA)]
+        countyConfig  | regionConfig         | conditionGeo
+        USA.ISOAlpha3 | null                 | [USA.ISOAlpha3]
+        USA.ISOAlpha3 | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
     }
 
     def "PBS setuid should disallowed rule when device.geo intersection"() {
@@ -1853,16 +1850,15 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert exception.responseBody == INVALID_STATUS_MESSAGE
 
         where:
-        countyConfig | regionConfig         | conditionGeo
-        Country.USA.ISOAlpha3 | null                 | [Country.USA.ISOAlpha3]
-        Country.USA.ISOAlpha3 | ALABAMA.abbreviation | [Country.USA.withState(ALABAMA)]
+        countyConfig  | regionConfig         | conditionGeo
+        USA.ISOAlpha3 | null                 | [USA.ISOAlpha3]
+        USA.ISOAlpha3 | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
     }
 
-    @IgnoreRest
     def "PBS cookie sync should fetch geo once when gpp sync user and account require geo look up"() {
         given: "Pbs config with geo location"
         def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
-                ["geolocation.configurations.[0].geo-info.country": Country.USA.ISOAlpha3,
+                ["geolocation.configurations.[0].geo-info.country": USA.ISOAlpha3,
                  "geolocation.configurations.[0].geo-info.region" : ALABAMA.abbreviation])
 
         and: "Cookie sync request with account connection"
@@ -1878,7 +1874,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
             it.componentType = null
             it.componentName = null
             it.gppSid = null
-            it.geo = [Country.USA.withState(ALABAMA)]
+            it.geo = [USA.withState(ALABAMA)]
         }
 
         and: "Set activity"
@@ -1896,7 +1892,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         when: "PBS processes cookie sync request with header"
         def response = prebidServerService
-                .sendCookieSyncRequest(cookieSyncRequest, ["X-Forwarded-For": USA.ipV4])
+                .sendCookieSyncRequest(cookieSyncRequest, ["X-Forwarded-For": USA_IP.v4])
 
         then: "Response should not contain any URLs for bidders"
         assert !response.bidderStatus.userSync.url
