@@ -69,6 +69,7 @@ class GeoSpec extends BaseSpec {
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
         assert metrics[GEO_LOCATION_REQUESTS] == 1
         assert metrics[GEO_LOCATION_SUCCESSFUL] == 1
+        assert !metrics[GEO_LOCATION_FAIL]
 
         where:
         defaultAccountGeoLookup | accountGeoLookup
