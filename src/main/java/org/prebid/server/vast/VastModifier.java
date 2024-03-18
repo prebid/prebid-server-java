@@ -134,16 +134,12 @@ public class VastModifier {
                                                            String vastUrlTracking,
                                                            Matcher impressionMatcher) {
 
-        final String impressionTag = "<Impression><![CDATA[" + vastUrlTracking + "]]></Impression>";
-
-        String group = impressionMatcher.group();
+        int replacementEnd = impressionMatcher.end();
         while (impressionMatcher.find()) {
-            group = impressionMatcher.group();
+            replacementEnd = impressionMatcher.end();
         }
-        final int replacementStart = vastXml.lastIndexOf(group);
 
-        return vastXml.substring(0, replacementStart + group.length()) + impressionTag
-                + vastXml.substring(replacementStart + group.length());
+        return insertUrlTracking(vastXml, replacementEnd, vastUrlTracking);
     }
 
     private static String insertBeforeElementCloseTag(String vastXml,
@@ -154,13 +150,11 @@ public class VastModifier {
             return vastXml;
         }
 
-        final String group = closeTagMatcher.group();
-        final int indexOfCloseTag = vastXml.indexOf(group);
+        return insertUrlTracking(vastXml, closeTagMatcher.start(), vastUrlTracking);
+    }
 
-        final String caseSpecificCloseTag =
-                vastXml.substring(indexOfCloseTag, indexOfCloseTag + group.length());
+    private static String insertUrlTracking(String vastXml, int index, String vastUrlTracking) {
         final String impressionTag = "<Impression><![CDATA[" + vastUrlTracking + "]]></Impression>";
-
-        return vastXml.replace(caseSpecificCloseTag, impressionTag + caseSpecificCloseTag);
+        return vastXml.substring(0, index) + impressionTag + vastXml.substring(index);
     }
 }
