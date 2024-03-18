@@ -501,7 +501,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         deviceGeo                                           | conditionGeo
-        null                                                | [USA.value]
+        null                                                | [USA.ISOAlpha3]
         new Geo(country: USA)                               | null
         new Geo(region: ALABAMA.abbreviation)               | [USA.withState(ALABAMA)]
         new Geo(country: CAN, region: ALABAMA.abbreviation) | [USA.withState(ALABAMA)]
@@ -564,7 +564,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         deviceGeo                                           | conditionGeo
-        new Geo(country: USA)                               | [USA.value]
+        new Geo(country: USA)                               | [USA.ISOAlpha3]
         new Geo(country: USA, region: ALABAMA.abbreviation) | [USA.withState(ALABAMA)]
         new Geo(country: USA, region: ALABAMA.abbreviation) | [CAN.withState(ONTARIO), USA.withState(ALABAMA)]
     }
