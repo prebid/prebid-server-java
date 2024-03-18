@@ -395,8 +395,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         final BidResponse bidResponse = BidResponse.builder()
                 .ext(ExtBidResponse.builder()
-                        .debug(ExtResponseDebug.of(null, resolvedRequest,
-                                null, null))
+                        .debug(ExtResponseDebug.of(null, resolvedRequest, null))
                         .build())
                 .build();
         final AuctionContext auctionContext = AuctionContext.builder()

@@ -28,8 +28,6 @@ public class EventRequest {
 
     Analytics analytics;
 
-    String lineItemId;
-
     public enum Type {
 
         win, imp

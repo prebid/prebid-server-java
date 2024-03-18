@@ -370,8 +370,13 @@ public class AmpHandler implements Handler<RoutingContext> {
         return origin;
     }
 
-    private void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body, long startTime,
-                             MetricName metricRequestStatus, AmpEvent event, TcfContext tcfContext) {
+    private void respondWith(RoutingContext routingContext,
+                             HttpResponseStatus status,
+                             String body,
+                             long startTime,
+                             MetricName metricRequestStatus,
+                             AmpEvent event,
+                             TcfContext tcfContext) {
 
         final boolean responseSent = HttpUtil.executeSafely(routingContext, Endpoint.openrtb2_amp,
                 response -> response

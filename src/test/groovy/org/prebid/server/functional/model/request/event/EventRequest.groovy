@@ -24,8 +24,6 @@ class EventRequest {
     Integer analytics
     @JsonProperty("ts")
     Long timestamp
-    @JsonProperty("l")
-    String lineItemId
 
     static EventRequest getDefaultEventRequest() {
         def request = new EventRequest()

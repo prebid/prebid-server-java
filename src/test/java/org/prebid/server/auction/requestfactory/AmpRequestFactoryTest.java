@@ -152,7 +152,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
         given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
-        given(ortb2RequestFactory.updateTimeout(any(), anyLong())).willAnswer(invocation -> invocation.getArgument(0));
+        given(ortb2RequestFactory.updateTimeout(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(fpdResolver.resolveApp(any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -161,8 +161,6 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(fpdResolver.resolveUser(any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(fpdResolver.resolveImpExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
-        given(ortb2RequestFactory.populateUserAdditionalInfo(any()))
-                .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
         given(ortb2RequestFactory.activityInfrastructureFrom(any()))
                 .willReturn(Future.succeededFuture());
 
@@ -1665,7 +1663,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest();
 
-        given(ortb2RequestFactory.updateTimeout(any(), anyLong()))
+        given(ortb2RequestFactory.updateTimeout(any()))
                 .willAnswer(invocation -> {
                     final AuctionContext auctionContext = invocation.getArgument(0);
                     return auctionContext.with(auctionContext.getBidRequest().toBuilder().tmax(10000L).build());
@@ -1707,7 +1705,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
-                .willAnswer(invocation -> ((AuctionContext) invocation.getArgument(0)).getBidRequest());
+                .willAnswer(invocation -> Future.succeededFuture(
+                        ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
         given(ortb2RequestFactory.executeProcessedAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));

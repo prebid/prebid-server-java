@@ -42,13 +42,6 @@ import org.springframework.test.context.TestPropertySource;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -240,10 +233,6 @@ public abstract class IntegrationTest extends VertxTest {
         return new Customization("ext.debug.httpcalls.cache", arrayValueMatcher);
     }
 
-    static Customization headersDebugCustomization() {
-        return new Customization("**.requestheaders.x-prebid", (o1, o2) -> true);
-    }
-
     protected static void assertJsonEquals(String file,
                                            Response response,
                                            List<String> bidders,
@@ -295,77 +284,6 @@ public abstract class IntegrationTest extends VertxTest {
         @Override
         public String getName() {
             return "cache-response-transformer";
-        }
-
-        @Override
-        public boolean applyGlobally() {
-            return false;
-        }
-    }
-
-    static final String LINE_ITEM_RESPONSE_ORDER = "lineItemResponseOrder";
-    static final String ID_TO_EXECUTION_PARAMETERS = "idToExecutionParameters";
-
-    public static class ResponseOrderTransformer extends ResponseTransformer {
-
-        private static final String LINE_ITEM_PATH = "/imp/0/ext/rp/target/line_item";
-
-        private final Lock lock = new ReentrantLock();
-        private final Condition lockCondition = lock.newCondition();
-
-        @Override
-        @SuppressWarnings("unchecked")
-        public com.github.tomakehurst.wiremock.http.Response transform(
-                Request request,
-                com.github.tomakehurst.wiremock.http.Response response,
-                FileSource files,
-                Parameters parameters) {
-
-            final Queue<String> lineItemResponseOrder =
-                    (Queue<String>) parameters.get(LINE_ITEM_RESPONSE_ORDER);
-            final Map<String, BidRequestExecutionParameters> idToParameters =
-                    (Map<String, BidRequestExecutionParameters>) parameters.get(ID_TO_EXECUTION_PARAMETERS);
-
-            final String requestDealId;
-            try {
-                requestDealId = readStringValue(mapper.readTree(request.getBodyAsString()), LINE_ITEM_PATH);
-            } catch (IOException e) {
-                throw new RuntimeException("Request should contain imp/ext/rp/target/line_item for deals request");
-            }
-
-            final BidRequestExecutionParameters requestParameters = idToParameters.get(requestDealId);
-
-            waitForTurn(lineItemResponseOrder, requestParameters.getDealId(), requestParameters.getDelay());
-
-            return com.github.tomakehurst.wiremock.http.Response.response()
-                    .body(requestParameters.getBody())
-                    .status(requestParameters.getStatus())
-                    .build();
-        }
-
-        private void waitForTurn(Queue<String> dealsResponseOrder, String id, Long delay) {
-            lock.lock();
-            try {
-                while (!Objects.equals(dealsResponseOrder.peek(), id)) {
-                    lockCondition.await();
-                }
-                TimeUnit.MILLISECONDS.sleep(delay);
-                dealsResponseOrder.poll();
-                lockCondition.signalAll();
-            } catch (InterruptedException e) {
-                throw new RuntimeException("Failed on waiting to return bid request for lineItem id = " + id);
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        private String readStringValue(JsonNode jsonNode, String path) {
-            return jsonNode.at(path).asText();
-        }
-
-        @Override
-        public String getName() {
-            return "response-order-transformer";
         }
 
         @Override

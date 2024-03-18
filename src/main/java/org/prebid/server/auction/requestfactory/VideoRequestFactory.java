@@ -129,17 +129,15 @@ public class VideoRequestFactory {
                 .compose(auctionContext -> auctionPrivacyContextFactory.contextFrom(auctionContext)
                         .map(auctionContext::with))
 
-                .map(auctionContext -> auctionContext.with(
-                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
+                .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(ortb2RequestFactory::populateUserAdditionalInfo)
-
                 .map(ortb2RequestFactory::enrichWithPriceFloors)
 
-                .map(auctionContext -> ortb2RequestFactory.updateTimeout(auctionContext, startTime))
+                .map(ortb2RequestFactory::updateTimeout)
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection)
 

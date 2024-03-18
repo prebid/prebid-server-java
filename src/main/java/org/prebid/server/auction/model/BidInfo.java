@@ -25,10 +25,6 @@ public class BidInfo {
 
     CacheInfo cacheInfo;
 
-    String lineItemId;
-
-    String lineItemSource;
-
     TargetingInfo targetingInfo;
 
     String category;

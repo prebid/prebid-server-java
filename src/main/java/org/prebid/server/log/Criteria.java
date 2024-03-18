@@ -1,48 +1,32 @@
 package org.prebid.server.log;
 
 import io.vertx.core.logging.Logger;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Value;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.Objects;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-@Value
-@Builder
-@AllArgsConstructor
 public class Criteria {
 
     private static final String TAG_SEPARATOR = "-";
-    private static final String TAGGED_MESSAGE_PATTERN = "[%s]: %s";
     private static final String TAGGED_RESPONSE_PATTERN = "[%s]: %s - %s";
     public static final String BID_RESPONSE = "BidResponse";
     public static final String RESOLVED_BID_REQUEST = "Resolved BidRequest";
 
-    String account;
+    private final String account;
+    private final String bidder;
+    private final String tag;
+    private final BiConsumer<Logger, Object> loggerLevel;
 
-    String bidder;
-
-    String lineItemId;
-
-    String tag;
-
-    BiConsumer<Logger, Object> loggerLevel;
-
-    public static Criteria create(String account, String bidder, String lineItemId,
-                                  BiConsumer<Logger, Object> loggerLevel) {
-        return new Criteria(account, bidder, lineItemId, makeTag(account, bidder, lineItemId), loggerLevel);
+    private Criteria(String account, String bidder, BiConsumer<Logger, Object> loggerLevel) {
+        this.account = account;
+        this.bidder = bidder;
+        this.tag = makeTag(account, bidder);
+        this.loggerLevel = Objects.requireNonNull(loggerLevel);
     }
 
-    public void log(Criteria criteria, Logger logger, Object message, Consumer<Object> defaultLogger) {
-        if (isMatched(criteria)) {
-            loggerLevel.accept(logger, TAGGED_MESSAGE_PATTERN.formatted(tag, message));
-        } else {
-            defaultLogger.accept(message);
-        }
+    public static Criteria create(String account, String bidder, BiConsumer<Logger, Object> loggerLevel) {
+        return new Criteria(account, bidder, loggerLevel);
     }
 
     public void logResponse(String bidResponse, Logger logger) {
@@ -58,23 +42,19 @@ public class Criteria {
         }
     }
 
-    private boolean isMatched(Criteria criteria) {
-        return criteria != null
-                && (account == null || account.equals(criteria.account))
-                && (bidder == null || bidder.equals(criteria.bidder))
-                && (lineItemId == null || lineItemId.equals(criteria.lineItemId));
-    }
-
     private boolean isMatchedToString(String value) {
         return (account == null || value.contains(account))
-                && (bidder == null || value.contains(bidder))
-                && (lineItemId == null || value.contains(lineItemId));
+                && (bidder == null || value.contains(bidder));
     }
 
-    private static String makeTag(String account, String bidder, String lineItemId) {
-        return Stream.of(account, bidder, lineItemId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.joining(TAG_SEPARATOR));
-    }
+    private static String makeTag(String account, String bidder) {
+        if (account == null) {
+            return StringUtils.defaultString(bidder);
+        }
+        if (bidder == null) {
+            return account;
+        }
 
+        return account + TAG_SEPARATOR + bidder;
+    }
 }

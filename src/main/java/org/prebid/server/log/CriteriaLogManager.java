@@ -10,7 +10,6 @@ import org.prebid.server.json.JacksonMapper;
 
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
 
 public class CriteriaLogManager {
 
@@ -24,25 +23,11 @@ public class CriteriaLogManager {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
-    public void log(Logger logger, Criteria criteria, Object message, Consumer<Object> defaultLogger) {
-        if (criterias.isEmpty()) {
-            defaultLogger.accept(message);
-        }
-        criterias.forEach(cr -> cr.log(criteria, logger, message, defaultLogger));
-    }
-
-    public void log(Logger logger, String account, Object message, Consumer<Object> defaultLogger) {
-        log(logger, Criteria.builder().account(account).build(), message, defaultLogger);
-    }
-
-    public void log(Logger logger, String account, String bidder, String lineItemId, Object message,
-                    Consumer<Object> defaultLogger) {
-        log(logger, Criteria.builder().account(account).bidder(bidder).lineItemId(lineItemId).build(),
-                message, defaultLogger);
-    }
-
-    public BidResponse traceResponse(Logger logger, BidResponse bidResponse, BidRequest bidRequest,
+    public BidResponse traceResponse(Logger logger,
+                                     BidResponse bidResponse,
+                                     BidRequest bidRequest,
                                      boolean debugEnabled) {
+
         if (criterias.isEmpty()) {
             return bidResponse;
         }
