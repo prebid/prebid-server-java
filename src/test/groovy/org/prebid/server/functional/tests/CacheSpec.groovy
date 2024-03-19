@@ -198,7 +198,10 @@ class CacheSpec extends BaseSpec {
     }
 
     def "PBS should update prebid_cache.creative_size.xml metric and adding tracking xml when xml creative contain #wrapper and impression are valid xml value"() {
-        given: "Create and save enabled events config in account"
+        given: "Current value of metric prebid_cache.requests.ok"
+        def initialValue = getCurrentMetricValue(defaultPbsService, "prebid_cache.requests.ok")
+
+        and: "Create and save enabled events config in account"
         def accountId = PBSUtils.randomNumber.toString()
         def account = new Account().tap {
             uuid = accountId
@@ -214,9 +217,6 @@ class CacheSpec extends BaseSpec {
                 "<VASTAdTagURI>&lt;![CDATA[//${payload}]]&gt;</VASTAdTagURI>" +
                 "<${impression}> &lt;![CDATA[ ]]&gt; </${impression}><Creatives></Creatives></${wrapper}></Ad></VAST>"
         def request = VtrackRequest.getDefaultVtrackRequest(creative)
-
-        and: "Flush metrics"
-        flushMetrics(defaultPbsService)
 
         when: "PBS processes vtrack request"
         defaultPbsService.sendVtrackRequest(request, accountId)
