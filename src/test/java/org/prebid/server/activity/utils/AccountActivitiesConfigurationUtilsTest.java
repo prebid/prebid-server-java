@@ -42,13 +42,7 @@ public class AccountActivitiesConfigurationUtilsTest {
     @Test
     public void isInvalidActivitiesConfigurationShouldReturnFalseIfAccountPrivacyActivitiesNull() {
         // given
-        final Account account = Account.builder().privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
-                        null,
-                        null))
-                .build();
+        final Account account = Account.builder().privacy(AccountPrivacyConfig.builder().build()).build();
 
         // when
         final boolean result = AccountActivitiesConfigurationUtils.isInvalidActivitiesConfiguration(account);
@@ -61,11 +55,8 @@ public class AccountActivitiesConfigurationUtilsTest {
     public void isInvalidActivitiesConfigurationShouldReturnFalseIfConfigurationValid() {
         // given
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
-                        Map.of(
+                .privacy(AccountPrivacyConfig.builder()
+                        .activities(Map.of(
                                 Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                                 Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, asList(
                                         null,
@@ -89,8 +80,8 @@ public class AccountActivitiesConfigurationUtilsTest {
                                                         null,
                                                         null,
                                                         null),
-                                                null)))),
-                        null))
+                                                null)))))
+                        .build())
                 .build();
 
         // when
@@ -104,15 +95,12 @@ public class AccountActivitiesConfigurationUtilsTest {
     public void isInvalidActivitiesConfigurationShouldReturnTrueOnInvalidComponentRule() {
         // given
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
-                        Map.of(Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, singletonList(
+                .privacy(AccountPrivacyConfig.builder()
+                        .activities(Map.of(Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, singletonList(
                                 AccountActivityComponentRuleConfig.of(
                                         AccountActivityComponentRuleConfig.Condition.of(emptyList(), emptyList()),
-                                        null)))),
-                        null))
+                                        null)))))
+                        .build())
                 .build();
 
         // when
@@ -126,16 +114,13 @@ public class AccountActivitiesConfigurationUtilsTest {
     public void isInvalidActivitiesConfigurationShouldReturnTrueOnInvalidGeoRule() {
         // given
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(
-                        null,
-                        null,
-                        null,
-                        Map.of(Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, singletonList(
+                .privacy(AccountPrivacyConfig.builder()
+                        .activities(Map.of(Activity.CALL_BIDDER, AccountActivityConfiguration.of(null, singletonList(
                                 AccountActivityGeoRuleConfig.of(
                                         AccountActivityGeoRuleConfig.Condition.of(
                                                 emptyList(), emptyList(), null, null, null),
-                                        null)))),
-                        null))
+                                        null)))))
+                        .build())
                 .build();
 
         // when

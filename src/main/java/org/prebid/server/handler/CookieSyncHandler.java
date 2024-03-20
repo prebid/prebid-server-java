@@ -13,8 +13,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.gpp.CookieSyncGppService;
+import org.prebid.server.auction.privacy.contextfactory.CookieSyncPrivacyContextFactory;
 import org.prebid.server.bidder.UsersyncMethodChooser;
 import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.cookie.CookieSyncService;
@@ -59,7 +59,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final CookieSyncService cookieSyncService;
     private final ApplicationSettings applicationSettings;
-    private final PrivacyEnforcementService privacyEnforcementService;
+    private final CookieSyncPrivacyContextFactory cookieSyncPrivacyContextFactory;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final TimeoutFactory timeoutFactory;
@@ -73,7 +73,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
                              ActivityInfrastructureCreator activityInfrastructureCreator,
                              CookieSyncService cookieSyncService,
                              ApplicationSettings applicationSettings,
-                             PrivacyEnforcementService privacyEnforcementService,
+                             CookieSyncPrivacyContextFactory cookieSyncPrivacyContextFactory,
                              AnalyticsReporterDelegator analyticsDelegator,
                              Metrics metrics,
                              TimeoutFactory timeoutFactory,
@@ -87,7 +87,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
         this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.cookieSyncService = Objects.requireNonNull(cookieSyncService);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
-        this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
+        this.cookieSyncPrivacyContextFactory = Objects.requireNonNull(cookieSyncPrivacyContextFactory);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
@@ -185,7 +185,7 @@ public class CookieSyncHandler implements Handler<RoutingContext> {
     }
 
     private Future<CookieSyncContext> fillWithPrivacyContext(CookieSyncContext cookieSyncContext) {
-        return privacyEnforcementService.contextFromCookieSyncRequest(
+        return cookieSyncPrivacyContextFactory.contextFrom(
                         cookieSyncContext.getCookieSyncRequest(),
                         cookieSyncContext.getRoutingContext().request(),
                         cookieSyncContext.getAccount(),

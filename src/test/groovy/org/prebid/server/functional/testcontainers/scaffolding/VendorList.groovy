@@ -34,15 +34,15 @@ class VendorList extends NetworkScaffolding {
         request().withPath(VENDOR_LIST_ENDPOINT)
     }
 
+    @Override
     void reset() {
-        TcfPolicyVersion.values().each { version -> super.reset("/v${version.getVendorListVersion()}/vendor-list.json") }
+        TcfPolicyVersion.values().each { version -> super.reset("/v${version.vendorListVersion}/vendor-list.json") }
     }
 
-    void setResponse(
-            TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2,
-            Delay delay = null,
-            Map<Integer, Vendor> vendors = [(GENERIC_VENDOR_ID): Vendor.getDefaultVendor(GENERIC_VENDOR_ID)]) {
-        def prepareEndpoint = VENDOR_LIST_ENDPOINT.replace("{TCF_POLICY}", tcfPolicyVersion.vendorListVersion.toString())
+    void setResponse(TcfPolicyVersion tcfPolicyVersion = TCF_POLICY_V2,
+                     Delay delay = null,
+                     Map<Integer, Vendor> vendors = [(GENERIC_VENDOR_ID): Vendor.getDefaultVendor(GENERIC_VENDOR_ID)]) {
+        def prepareEndpoint = endpoint.replace("{TCF_POLICY}", "v" + tcfPolicyVersion.vendorListVersion)
         def prepareEncodeResponseBody = encode(defaultVendorListResponse.tap {
             it.tcfPolicyVersion = tcfPolicyVersion.vendorListVersion
             it.vendors = vendors

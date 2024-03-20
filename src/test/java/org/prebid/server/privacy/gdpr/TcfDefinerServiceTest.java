@@ -80,7 +80,7 @@ public class TcfDefinerServiceTest {
                 .defaultValue("1")
                 .enabled(true)
                 .purposes(Purposes.builder()
-                        .p1(Purpose.of(EnforcePurpose.basic, true, emptyList()))
+                        .p1(Purpose.of(EnforcePurpose.basic, true, emptyList(), null))
                         .build())
                 .build();
 
