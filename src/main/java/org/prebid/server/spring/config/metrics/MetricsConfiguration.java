@@ -11,19 +11,14 @@ import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
 import com.izettle.metrics.influxdb.InfluxDbHttpSender;
 import com.izettle.metrics.influxdb.InfluxDbReporter;
 import com.izettle.metrics.influxdb.InfluxDbSender;
-import io.vertx.core.Vertx;
-import io.vertx.core.impl.VertxInternal;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.metric.AccountMetricsVerbosityResolver;
 import org.prebid.server.metric.CounterType;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 import org.prebid.server.spring.env.YamlPropertySourceFactory;
-import org.prebid.server.vertx.CloseableAdapter;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -121,15 +116,6 @@ public class MetricsConfiguration {
                 accountsProperties.getDefaultVerbosity(),
                 accountsProperties.getBasicVerbosity(),
                 accountsProperties.getDetailedVerbosity());
-    }
-
-    @Autowired
-    public void registerReporterCloseHooks(Vertx vertx,
-                                           @Autowired(required = false) List<ScheduledReporter> reporters) {
-
-        CollectionUtils.emptyIfNull(reporters).stream()
-                .map(CloseableAdapter::new)
-                .forEach(closeable -> ((VertxInternal) vertx).addCloseHook(closeable));
     }
 
     @Component

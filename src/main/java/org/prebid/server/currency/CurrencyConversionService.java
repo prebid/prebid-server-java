@@ -2,6 +2,7 @@ package org.prebid.server.currency;
 
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -66,19 +67,23 @@ public class CurrencyConversionService implements Initializable {
      * Must be called on Vertx event loop thread.
      */
     @Override
-    public void initialize() {
+    public void initialize(Promise<Void> initializePromise) {
         if (externalConversionProperties != null) {
             final Long refreshPeriod = externalConversionProperties.getRefreshPeriodMs();
             final Long defaultTimeout = externalConversionProperties.getDefaultTimeoutMs();
             final HttpClient httpClient = externalConversionProperties.getHttpClient();
 
             final Vertx vertx = externalConversionProperties.getVertx();
-            vertx.setPeriodic(refreshPeriod, ignored -> populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout,
+            vertx.setPeriodic(refreshPeriod, ignored -> populatesLatestCurrencyRates(
+                    currencyServerUrl,
+                    defaultTimeout,
                     httpClient));
             populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout, httpClient);
 
             externalConversionProperties.getMetrics().createCurrencyRatesGauge(this::isRatesStale);
         }
+
+        initializePromise.tryComplete();
     }
 
     /**
