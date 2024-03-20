@@ -276,7 +276,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Used vendor list have proper specification version of GVL"
-        def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/${tcfPolicyVersion.vendorListVersion}.json"
+        def properVendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
         PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
         def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
         assert vendorList.tcfPolicyVersion == tcfPolicyVersion.vendorListVersion
@@ -315,7 +315,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                 ["Parsing consent string: ${tcfConsent} failed. TCF policy version ${invalidTcfPolicyVersion} is not supported" as String]
     }
 
-    def "PBS auction should try to fetch vendor list by exponential backoff and emit error when vendor list response is absent"() {
+    def "PBS auction should emit the same error without a second GVL list request if a retry is too soon for the exponential-backoff"() {
         given: "Test start time"
         def startTime = Instant.now()
 
@@ -334,13 +334,13 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         vendorListResponse.reset()
 
         and: "Set vendor list response with delay"
-        vendorListResponse.setResponse(tcfPolicyVersion, Delay.seconds(3))
+        vendorListResponse.setResponse(tcfPolicyVersion, Delay.seconds(EXPONENTIAL_BACKOFF_MAX_DELAY + 3))
 
         when: "PBS processes auction request"
         privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Used vendor list have proper specification version of GVL"
-        def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/${tcfPolicyVersion.vendorListVersion}.json"
+        def properVendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
         assert !privacyPbsService.isFileExist(properVendorListPath)
 
         and: "Logs should contain proper vendor list version"
