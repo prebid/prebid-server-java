@@ -2,6 +2,7 @@ package org.prebid.server.settings.service;
 
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.junit.Before;
 import org.junit.Rule;
@@ -157,7 +158,7 @@ public class JdbcPeriodicRefreshServiceTest {
                 metrics,
                 clock);
 
-        jdbcPeriodicRefreshService.initialize();
+        jdbcPeriodicRefreshService.initialize(Promise.promise());
     }
 
     @SuppressWarnings("unchecked")

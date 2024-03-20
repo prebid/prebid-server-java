@@ -3,6 +3,7 @@ package org.prebid.server.settings.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.junit.Before;
 import org.junit.Rule;
@@ -171,7 +172,7 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
                                              Vertx vertx, HttpClient httpClient) {
         final HttpPeriodicRefreshService httpPeriodicRefreshService = new HttpPeriodicRefreshService(
                 url, refreshPeriod, timeout, notificationListener, vertx, httpClient, jacksonMapper);
-        httpPeriodicRefreshService.initialize();
+        httpPeriodicRefreshService.initialize(Promise.promise());
     }
 
     @SuppressWarnings("unchecked")
