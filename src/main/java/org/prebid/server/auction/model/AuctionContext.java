@@ -60,6 +60,7 @@ public class AuctionContext {
 
     ActivityInfrastructure activityInfrastructure;
 
+    @JsonIgnore
     GeoInfo geoInfo;
 
     HookExecutionContext hookExecutionContext;
@@ -120,6 +121,12 @@ public class AuctionContext {
     public AuctionContext with(DebugContext debugContext) {
         return this.toBuilder()
                 .debugContext(debugContext)
+                .build();
+    }
+
+    public AuctionContext with(GeoInfo geoInfo) {
+        return this.toBuilder()
+                .geoInfo(geoInfo)
                 .build();
     }
 
