@@ -5,6 +5,8 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Closeable;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.vertx.CloseableAdapter;
 import org.prebid.server.vertx.Initializable;
@@ -16,6 +18,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class DaemonVertilce extends AbstractVerticle {
+
+    private static final Logger logger = LoggerFactory.getLogger(DaemonVertilce.class);
 
     private final List<Initializable> initializables;
     private final List<Closeable> closeables;
@@ -49,6 +53,11 @@ public class DaemonVertilce extends AbstractVerticle {
             entryToPromiseConsumerMapper.apply(entry).accept(entryPromise);
         }
 
-        return Future.all(entriesFutures).mapEmpty();
+        return Future.all(entriesFutures)
+                .onSuccess(r -> logger.info(
+                        "Successfully started {0} instance on thread: {1}",
+                        DaemonVertilce.class.getSimpleName(),
+                        Thread.currentThread().getName()))
+                .mapEmpty();
     }
 }
