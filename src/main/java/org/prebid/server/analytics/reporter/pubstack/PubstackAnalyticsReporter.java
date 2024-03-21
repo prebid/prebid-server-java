@@ -2,6 +2,7 @@ package org.prebid.server.analytics.reporter.pubstack;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -124,9 +125,10 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     }
 
     @Override
-    public void initialize() {
+    public void initialize(Promise<Void> initializePromise) {
         vertx.setPeriodic(configurationRefreshDelay, id -> fetchRemoteConfig());
         fetchRemoteConfig();
+        initializePromise.tryComplete();
     }
 
     void shutdown() {

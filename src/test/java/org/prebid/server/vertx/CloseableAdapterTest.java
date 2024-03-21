@@ -1,8 +1,7 @@
 package org.prebid.server.vertx;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -26,7 +25,7 @@ public class CloseableAdapterTest {
     @Mock
     private Closeable closeable;
     @Mock
-    private Handler<AsyncResult<Void>> completionHandler;
+    private Promise<Void> completionPromise;
 
     @Test
     public void creationShouldFailOnNullArguments() {
@@ -36,10 +35,10 @@ public class CloseableAdapterTest {
     @Test
     public void closeShouldInvokeHandlerWithSuccededFuture() {
         // when
-        new CloseableAdapter(closeable).close(completionHandler);
+        new CloseableAdapter(closeable).close(completionPromise);
 
         // then
-        verify(completionHandler).handle(eq(Future.succeededFuture()));
+        verify(completionPromise).handle(eq(Future.succeededFuture()));
     }
 
     @Test
@@ -49,9 +48,9 @@ public class CloseableAdapterTest {
         willThrow(exception).given(closeable).close();
 
         // when
-        new CloseableAdapter(closeable).close(completionHandler);
+        new CloseableAdapter(closeable).close(completionPromise);
 
         // then
-        verify(completionHandler).handle(argThat(future -> future.failed() && future.cause() == exception));
+        verify(completionPromise).handle(argThat(future -> future.failed() && future.cause() == exception));
     }
 }

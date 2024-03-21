@@ -6,6 +6,8 @@ import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.verticles.VerticleDefinition;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.context.event.EventListener;
 
 import java.util.List;
 
@@ -13,7 +15,16 @@ import java.util.List;
 public class VerticleStarter {
 
     @Autowired
-    public void start(Vertx vertx, ContextRunner contextRunner, List<VerticleDefinition> definitions) {
+    private Vertx vertx;
+
+    @Autowired
+    private ContextRunner contextRunner;
+
+    @Autowired
+    private List<VerticleDefinition> definitions;
+
+    @EventListener(ContextRefreshedEvent.class)
+    public void start() {
         for (VerticleDefinition definition : definitions) {
             if (definition.getAmount() <= 0) {
                 continue;
