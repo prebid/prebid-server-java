@@ -114,6 +114,26 @@ public class IqzoneBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotModifyImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIqzone.of(null, null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("bidder"))
+                .map(JsonNode::isEmpty)
+                .containsExactly(true);
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");

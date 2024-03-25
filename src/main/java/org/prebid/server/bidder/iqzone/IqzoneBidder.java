@@ -50,32 +50,43 @@ public class IqzoneBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
+            final ExtImpIqzone extImpIqzone;
             try {
-                final ExtImpIqzone extImpIqzone = parseImpExt(imp);
-                final Imp modifiedImp = modifyImp(imp, extImpIqzone);
-
-                httpRequests.add(makeHttpRequest(request, modifiedImp));
+                extImpIqzone = parseImpExt(imp);
             } catch (IllegalArgumentException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
+
+            final Imp modifiedImp = modifyImp(imp, extImpIqzone);
+            httpRequests.add(makeHttpRequest(request, modifiedImp));
         }
 
         return Result.withValues(httpRequests);
     }
 
     private ExtImpIqzone parseImpExt(Imp imp) {
-        return mapper.mapper().convertValue(imp.getExt(), IQZONE_EXT_TYPE_REFERENCE).getBidder();
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), IQZONE_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
     private Imp modifyImp(Imp imp, ExtImpIqzone impExt) {
         final String placementId = impExt.getPlacementId();
-        final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
+        final String endpointId = impExt.getEndpointId();
 
-        if (StringUtils.isNotEmpty(placementId)) {
+        final boolean isPlacementIdEmpty = StringUtils.isEmpty(placementId);
+        if (isPlacementIdEmpty && StringUtils.isEmpty(endpointId)) {
+            return imp;
+        }
+
+        final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
+        if (!isPlacementIdEmpty) {
             modifiedImpExtBidder.set("placementId", TextNode.valueOf(placementId));
             modifiedImpExtBidder.set("type", TextNode.valueOf("publisher"));
         } else {
-            modifiedImpExtBidder.set("endpointId", TextNode.valueOf(impExt.getEndpointId()));
+            modifiedImpExtBidder.set("endpointId", TextNode.valueOf(endpointId));
             modifiedImpExtBidder.set("type", TextNode.valueOf("network"));
         }
 
@@ -85,8 +96,7 @@ public class IqzoneBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp) {
-        final BidRequest outgoingRequest = request.toBuilder().imp(List.of(imp)).build();
-
+        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
         return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
     }
 
@@ -94,26 +104,23 @@ public class IqzoneBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
+            return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
 
-        return bidsFromResponse(bidRequest, bidResponse);
-    }
-
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur()))
                 .toList();
     }
