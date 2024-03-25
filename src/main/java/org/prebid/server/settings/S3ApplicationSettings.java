@@ -3,6 +3,7 @@ package org.prebid.server.settings;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -136,10 +137,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
     }
 
     private List<String> getMissingStoredDataIds(Map<String, String> fileContents, Set<String> responseIds) {
-        final List<String> missingStoredDataIds = new ArrayList<>(responseIds);
-        missingStoredDataIds.removeAll(fileContents.keySet());
-
-        return missingStoredDataIds;
+        return SetUtils.difference(responseIds, fileContents.keySet()).stream().toList();
     }
 
     @Override
