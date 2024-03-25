@@ -253,7 +253,7 @@ public class YieldlabBidder implements Bidder<Void> {
             .map(Regs::getExt)
             .map(ExtRegs::getDsa)
             .map(YieldlabBidder::extractDsaRequestParamsFromDsaRegsExtension)
-            .orElseGet(Map::of);
+            .orElse(Collections.emptyMap());
     }
 
     private static Map<String, String> extractDsaRequestParamsFromDsaRegsExtension(final ExtRegsDsa dsa) {
@@ -272,8 +272,11 @@ public class YieldlabBidder implements Bidder<Void> {
         }
 
         final List<ExtRegsDsaTransparency> dsaTransparency = dsa.getTransparency();
-        if (dsaTransparency != null && !dsaTransparency.isEmpty()) {
-            dsaRequestParams.put("dsatransparency", encodeTransparenciesAsString(dsaTransparency));
+        if (CollectionUtils.isNotEmpty(dsaTransparency)) {
+            final String encodedTransparencies = encodeTransparenciesAsString(dsaTransparency);
+            if (StringUtils.isNotBlank(encodedTransparencies)) {
+                dsaRequestParams.put("dsatransparency", encodedTransparencies);
+            }
         }
 
         return dsaRequestParams;
@@ -489,7 +492,7 @@ public class YieldlabBidder implements Bidder<Void> {
         final ObjectNode ext = mapper.mapper().createObjectNode();
         final JsonNode dsaNode;
         try {
-            dsaNode = mapper.mapper().convertValue(dsa, JsonNode.class);
+            dsaNode = mapper.mapper().valueToTree(dsa);
         } catch (IllegalArgumentException e) {
             logger.error("Failed to serialize DSA object for adslot {}", yieldlabResponse.getId(), e);
             return null;
