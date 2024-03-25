@@ -11,7 +11,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
-import software.amazon.awssdk.core.BytesWrapper;
 import software.amazon.awssdk.core.async.AsyncResponseTransformer;
 import software.amazon.awssdk.services.s3.S3AsyncClient;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -70,6 +69,11 @@ public class S3ApplicationSettings implements ApplicationSettings {
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
         return downloadFile(accountsDirectory + "/" + accountId + JSON_SUFFIX)
+                .flatMap(fileContentOpt -> fileContentOpt.map(Future::succeededFuture)
+                        .orElseGet(() -> Future.failedFuture(
+                                new PreBidException("Account with id %s not found".formatted(accountId)))
+                        )
+                )
                 .map(fileContent -> jacksonMapper.decodeValue(fileContent, Account.class))
                 .flatMap(account -> {
                     if (!Objects.equals(account.getId(), accountId)) {
@@ -175,20 +179,20 @@ public class S3ApplicationSettings implements ApplicationSettings {
     }
 
     private Future<Map<String, String>> getFileContents(String directory, Set<String> ids) {
-        final List<Future<Tuple2<String, String>>> futureListContents = ids.stream()
+        final List<Future<Optional<Tuple2<String, String>>>> futureListContents = ids.stream()
                 .map(impressionId ->
                         downloadFile(directory + withInitialSlash(impressionId) + JSON_SUFFIX)
-                                .map(fileContent -> Tuple2.of(impressionId, fileContent)))
+                                .map(fileContentOpt -> fileContentOpt
+                                        .map(fileContent -> Tuple2.of(impressionId, fileContent))))
                 .collect(Collectors.toCollection(ArrayList::new));
 
-        final Future<List<Tuple2<String, Optional<String>>>> composedFutures = CompositeFuture
+        final Future<List<Optional<Tuple2<String, String>>>> composedFutures = CompositeFuture
                 .all(new ArrayList<>(futureListContents))
                 .map(CompositeFuture::list);
 
         // filter out IDs that had no stored request present and return a map from ids to stored request content
-        return composedFutures.map(one -> one.stream().flatMap(idContentTuple ->
-                idContentTuple.getRight().stream().map(content -> Tuple2.of(idContentTuple.getLeft(), content))
-        )).map(one -> one.collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight)));
+        return composedFutures.map(one -> one.stream().flatMap(Optional::stream))
+                .map(one -> one.collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight)));
     }
 
     /**
@@ -205,13 +209,13 @@ public class S3ApplicationSettings implements ApplicationSettings {
         return "/" + impressionId;
     }
 
-    private Future<String> downloadFile(String key) {
+    private Future<Optional<String>> downloadFile(String key) {
         final GetObjectRequest request = GetObjectRequest.builder().bucket(bucket).key(key).build();
 
         return Future.fromCompletionStage(
                         asyncClient.getObject(request, AsyncResponseTransformer.toBytes()),
                         vertx.getOrCreateContext())
-                .map(BytesWrapper::asUtf8String);
+                .map(test -> Optional.of(test.asUtf8String())).recover(ex -> Future.succeededFuture(Optional.empty()));
     }
 
 }
