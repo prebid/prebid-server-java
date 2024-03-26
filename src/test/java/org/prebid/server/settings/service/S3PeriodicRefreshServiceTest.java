@@ -185,7 +185,6 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
                 STORED_REQ_DIR,
                 STORED_IMP_DIR,
                 refreshPeriod,
-                2000,
                 MetricName.stored_request,
                 cacheNotificationListener,
                 vertx,

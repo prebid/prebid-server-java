@@ -318,7 +318,6 @@ public class SettingsConfiguration {
                     s3ConfigurationProperties.getStoredRequestsDir(),
                     s3ConfigurationProperties.getStoredImpsDir(),
                     refreshPeriod,
-                    timeout,
                     MetricName.stored_request,
                     settingsCache,
                     vertx,

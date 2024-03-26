@@ -18,6 +18,7 @@ import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
 import software.amazon.awssdk.services.s3.model.S3Object;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.time.Clock;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,20 +46,18 @@ public class S3PeriodicRefreshService implements Initializable {
     private final String storedImpressionsDirectory;
     private final String storedRequestsDirectory;
     private final long refreshPeriod;
-    private final long timeout;
     private final MetricName cacheType;
     private final CacheNotificationListener cacheNotificationListener;
     private final Vertx vertx;
     private final Metrics metrics;
     private final Clock clock;
-    private StoredDataResult lastResult;
+    private AtomicReference<StoredDataResult> lastResult;
 
     public S3PeriodicRefreshService(S3AsyncClient asyncClient,
                                     String bucket,
                                     String storedRequestsDirectory,
                                     String storedImpressionsDirectory,
                                     long refreshPeriod,
-                                    long timeout,
                                     MetricName cacheType,
                                     CacheNotificationListener cacheNotificationListener,
                                     Vertx vertx,
@@ -70,7 +69,6 @@ public class S3PeriodicRefreshService implements Initializable {
         this.storedRequestsDirectory = Objects.requireNonNull(storedRequestsDirectory);
         this.storedImpressionsDirectory = Objects.requireNonNull(storedImpressionsDirectory);
         this.refreshPeriod = refreshPeriod;
-        this.timeout = timeout;
         this.cacheType = Objects.requireNonNull(cacheType);
         this.cacheNotificationListener = Objects.requireNonNull(cacheNotificationListener);
         this.vertx = Objects.requireNonNull(vertx);
@@ -116,7 +114,7 @@ public class S3PeriodicRefreshService implements Initializable {
                               long startTime,
                               MetricName refreshType) {
 
-        lastResult = storedDataResult;
+        lastResult.set(storedDataResult);
 
         cacheNotificationListener.save(storedDataResult.getStoredIdToRequest(), storedDataResult.getStoredIdToImp());
 
@@ -137,10 +135,10 @@ public class S3PeriodicRefreshService implements Initializable {
     private StoredDataResult invalidate(StoredDataResult storedDataResult) {
         final List<String> invalidatedRequests = getInvalidatedKeys(
                 storedDataResult.getStoredIdToRequest(),
-                lastResult != null ? lastResult.getStoredIdToRequest() : Collections.emptyMap());
+                lastResult != null ? lastResult.get().getStoredIdToRequest() : Collections.emptyMap());
         final List<String> invalidatedImps = getInvalidatedKeys(
                 storedDataResult.getStoredIdToImp(),
-                lastResult != null ? lastResult.getStoredIdToImp() : Collections.emptyMap());
+                lastResult != null ? lastResult.get().getStoredIdToImp() : Collections.emptyMap());
 
         if (!invalidatedRequests.isEmpty() || !invalidatedImps.isEmpty()) {
             cacheNotificationListener.invalidate(invalidatedRequests, invalidatedImps);
