@@ -9,8 +9,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.FileSystemException;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.collections4.MapUtils;
@@ -19,6 +17,8 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
@@ -153,7 +153,7 @@ public class VendorListService {
         metrics.updatePrivacyTcfVendorListMissingMetric(tcf);
 
         if (fetchThrottler.registerFetchAttempt(version)) {
-            logger.info("TCF {0} vendor list for version {1}.{2} not found, started downloading.",
+            logger.info("TCF {} vendor list for version {}.{} not found, started downloading.",
                     tcf, generationVersion, version);
             fetchNewVendorListFor(version);
         }
@@ -346,7 +346,7 @@ public class VendorListService {
 
         metrics.updatePrivacyTcfVendorListOkMetric(tcf);
 
-        logger.info("Created new TCF {0} vendor list for version {1}.{2}", tcf, generationVersion, version);
+        logger.info("Created new TCF {} vendor list for version {}.{}", tcf, generationVersion, version);
 
         stopUsingFallbackForVersion(version);
 

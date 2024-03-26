@@ -1,8 +1,8 @@
 package org.prebid.server.cookie;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountCookieSyncConfig;
 
@@ -39,15 +39,15 @@ public class PrioritizedCoopSyncProvider {
         for (String bidder : bidders) {
             if (!bidderCatalog.isValidName(bidder)) {
                 logger.info("""
-                        bidder {0} is provided for prioritized coop-syncing, \
+                        bidder {} is provided for prioritized coop-syncing, \
                         but is invalid bidder name, ignoring""", bidder);
             } else if (!bidderCatalog.isActive(bidder)) {
                 logger.info("""
-                        bidder {0} is provided for prioritized coop-syncing, \
+                        bidder {} is provided for prioritized coop-syncing, \
                         but disabled in current pbs instance, ignoring""", bidder);
             } else if (bidderCatalog.usersyncerByName(bidder).isEmpty()) {
                 logger.info("""
-                        bidder {0} is provided for prioritized coop-syncing, \
+                        bidder {} is provided for prioritized coop-syncing, \
                         but has no user-sync configuration, ignoring""", bidder);
             } else {
                 validBidders.add(bidder);

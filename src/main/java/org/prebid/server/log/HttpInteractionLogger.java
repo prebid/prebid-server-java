@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
@@ -47,7 +45,7 @@ public class HttpInteractionLogger {
 
         if (interactionSatisfiesSpec(HttpLogSpec.Endpoint.auction, statusCode, auctionContext)) {
             logger.info(
-                    "Requested URL: \"{0}\", request body: \"{1}\", response status: \"{2}\", response body: \"{3}\"",
+                    "Requested URL: \"{}\", request body: \"{}\", response status: \"{}\", response body: \"{}\"",
                     routingContext.request().uri(),
                     toOneLineString(routingContext.getBodyAsString()),
                     statusCode,
@@ -72,7 +70,7 @@ public class HttpInteractionLogger {
 
         if (interactionSatisfiesSpec(HttpLogSpec.Endpoint.amp, statusCode, auctionContext)) {
             logger.info(
-                    "Requested URL: \"{0}\", response status: \"{1}\", response body: \"{2}\"",
+                    "Requested URL: \"{}\", response status: \"{}\", response body: \"{}\"",
                     routingContext.request().uri(),
                     statusCode,
                     responseBody);
@@ -87,7 +85,7 @@ public class HttpInteractionLogger {
             final BidRequest bidRequest = bidderRequest.getBidRequest();
             final BidRequest updatedBidRequest = bidRequestWithBidderName(bidder, bidRequest);
             final String jsonBidRequest = mapper.encodeToString(updatedBidRequest);
-            logger.info("Request body to {0}: \"{1}\"", bidder, jsonBidRequest);
+            logger.info("Request body to {}: \"{}\"", bidder, jsonBidRequest);
 
             incLoggedInteractions();
         }

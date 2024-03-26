@@ -3,8 +3,6 @@ package org.prebid.server.log;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.impl.ConcurrentHashSet;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 
@@ -38,7 +36,7 @@ public class CriteriaLogManager {
             jsonBidResponse = mapper.encodeToString(bidResponse);
             jsonBidRequest = debugEnabled ? null : mapper.encodeToString(bidRequest);
         } catch (EncodeException e) {
-            CriteriaLogManager.logger.warn("Failed to parse bidResponse or bidRequest to json string: {0}", e);
+            CriteriaLogManager.logger.warn("Failed to parse bidResponse or bidRequest to json string: {}", e);
             return bidResponse;
         }
 

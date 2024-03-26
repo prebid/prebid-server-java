@@ -6,8 +6,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
@@ -21,6 +19,8 @@ import org.prebid.server.cache.CacheService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
@@ -147,7 +147,7 @@ public class VideoHandler implements ApplicationResource {
             if (exception instanceof InvalidRequestException) {
                 metricRequestStatus = MetricName.badinput;
                 errorMessages = ((InvalidRequestException) exception).getMessages();
-                logger.info("Invalid request format: {0}", errorMessages);
+                logger.info("Invalid request format: {}", errorMessages);
 
                 status = HttpResponseStatus.BAD_REQUEST;
                 body = errorMessages.stream()
@@ -156,7 +156,7 @@ public class VideoHandler implements ApplicationResource {
             } else if (exception instanceof UnauthorizedAccountException) {
                 metricRequestStatus = MetricName.badinput;
                 final String errorMessage = exception.getMessage();
-                logger.info("Unauthorized: {0}", errorMessage);
+                logger.info("Unauthorized: {}", errorMessage);
                 errorMessages = Collections.singletonList(errorMessage);
 
                 status = HttpResponseStatus.UNAUTHORIZED;
@@ -236,7 +236,7 @@ public class VideoHandler implements ApplicationResource {
     }
 
     private void handleResponseException(Throwable throwable) {
-        logger.warn("Failed to send video response: {0}", throwable.getMessage());
+        logger.warn("Failed to send video response: {}", throwable.getMessage());
         metrics.updateRequestTypeMetric(REQUEST_TYPE_METRIC, MetricName.networkerr);
     }
 

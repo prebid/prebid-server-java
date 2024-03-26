@@ -4,11 +4,11 @@ import inet.ipaddr.AddressStringException;
 import inet.ipaddr.IPAddress;
 import inet.ipaddr.IPAddressString;
 import inet.ipaddr.IPAddressStringParameters;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.conn.util.InetAddressUtils;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 
 import java.util.List;
 
@@ -43,7 +43,7 @@ public class IpAddressHelper {
                     ? ipAddressString.toAddress().mask(ipv6AnonLeftMaskAddress).toCanonicalString()
                     : null;
         } catch (AddressStringException e) {
-            logger.debug("Exception occurred while anonymizing IPv6 address: {0}", e.getMessage());
+            logger.debug("Exception occurred while anonymizing IPv6 address: {}", e.getMessage());
             return null;
         }
     }

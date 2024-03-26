@@ -1,6 +1,5 @@
 package org.prebid.server.log;
 
-import io.vertx.core.logging.Logger;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Objects;

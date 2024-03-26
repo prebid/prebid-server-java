@@ -1,6 +1,5 @@
 package org.prebid.server.hooks.execution;
 
-import io.vertx.core.logging.LoggerFactory;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
@@ -13,6 +12,7 @@ import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.PayloadUpdate;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;

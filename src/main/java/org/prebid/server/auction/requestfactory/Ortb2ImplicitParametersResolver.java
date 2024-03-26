@@ -15,8 +15,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.SetUtils;
@@ -41,6 +39,8 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -440,7 +440,7 @@ public class Ortb2ImplicitParametersResolver {
         try {
             return paramsExtractor.domainFrom(url);
         } catch (PreBidException e) {
-            logger.warn("Error occurred while populating bid request: {0}", e.getMessage());
+            logger.warn("Error occurred while populating bid request: {}", e.getMessage());
             return null;
         }
     }

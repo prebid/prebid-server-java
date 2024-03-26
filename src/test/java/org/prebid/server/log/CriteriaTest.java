@@ -1,6 +1,6 @@
 package org.prebid.server.log;
 
-import io.vertx.core.logging.Logger;
+import org.prebid.server.log.Logger;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
