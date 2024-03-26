@@ -137,7 +137,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
     }
 
     private static AdnuntiusAdUnit makeAdUnit(Imp imp, ExtImpAdnuntius extImpAdnuntius) {
-        final String auId = StringUtils.defaultString(extImpAdnuntius.getAuId());
+        final String auId = extImpAdnuntius.getAuId();
         return AdnuntiusAdUnit.builder()
                 .auId(auId)
                 .targetId(targetId(auId, imp.getId()))
@@ -334,14 +334,17 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
         final Map<String, AdnuntiusAdsUnit> targetIdToAdsUnit = adnuntiusResponse.getAdsUnits().stream()
                 .filter(AdnuntiusBidder::validateAdsUnit)
-                .collect(Collectors.toMap(AdnuntiusAdsUnit::getTargetId, Function.identity()));
+                .collect(Collectors.toMap(
+                        AdnuntiusAdsUnit::getTargetId,
+                        Function.identity(),
+                        (first, second) -> second));
 
         String currency = null;
         final List<Bid> bids = new ArrayList<>();
 
         for (Imp imp : bidRequest.getImp()) {
             final ExtImpAdnuntius extImpAdnuntius = parseImpExt(imp);
-            final String targetId = targetId(StringUtils.defaultString(extImpAdnuntius.getAuId()), imp.getId());
+            final String targetId = targetId(extImpAdnuntius.getAuId(), imp.getId());
 
             final AdnuntiusAdsUnit adsUnit = targetIdToAdsUnit.get(targetId);
             if (adsUnit == null) {

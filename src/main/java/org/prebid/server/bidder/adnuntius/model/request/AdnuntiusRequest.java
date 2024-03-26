@@ -4,12 +4,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Value;
 
 import java.util.List;
 
 @Builder(toBuilder = true)
-@Getter
+@Value
 public class AdnuntiusRequest {
 
     @JsonProperty("adUnits")
