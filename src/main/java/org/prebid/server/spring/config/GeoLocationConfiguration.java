@@ -5,6 +5,8 @@ import io.vertx.core.http.HttpClientOptions;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.GeoLocationServiceWrapper;
+import org.prebid.server.auction.ImplicitParametersExtractor;
+import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
@@ -201,9 +203,14 @@ public class GeoLocationConfiguration {
     @Bean
     GeoLocationServiceWrapper geoLocationServiceWrapper(
             @Autowired(required = false) GeoLocationService geoLocationService,
-            Metrics metrics) {
+            Metrics metrics,
+            ImplicitParametersExtractor implicitParametersExtractor,
+            IpAddressHelper ipAddressHelper) {
 
-        return new GeoLocationServiceWrapper(geoLocationService, metrics);
+        return new GeoLocationServiceWrapper(geoLocationService,
+                metrics,
+                implicitParametersExtractor,
+                ipAddressHelper);
     }
 
 }

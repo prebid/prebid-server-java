@@ -18,6 +18,7 @@ import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountSettings;
 
@@ -42,19 +43,28 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
     private GeoLocationService geoLocationService;
     @Mock
     private Metrics metrics;
+    @Mock
+    private ImplicitParametersExtractor extractor;
+    @Mock
+    private IpAddressHelper ipAddressHelper;
 
     private GeoLocationServiceWrapper target;
 
     @Before
     public void before() {
-        target = new GeoLocationServiceWrapper(geoLocationService, metrics);
+        target = new GeoLocationServiceWrapper(geoLocationService,
+                metrics,
+                extractor,
+                ipAddressHelper);
     }
 
     @Test
     public void doLookupShouldFailWhenGeoLocationServiceIsNotConfigured() {
         // given
-        target = new GeoLocationServiceWrapper(null, metrics);
-
+        target = new GeoLocationServiceWrapper(null,
+                metrics,
+                extractor,
+                ipAddressHelper);
         // when
         final Future<GeoInfo> result = target.doLookup("ip", null, TIMEOUT);
 
@@ -113,10 +123,13 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
     @Test
     public void lookupShouldReturnNothingWhenLookupIsEnabledInAccountAndGeoLocationServiceIsNotConfigured() {
         // given
-        target = new GeoLocationServiceWrapper(null, metrics);
+        target = new GeoLocationServiceWrapper(null, metrics,
+                extractor,
+                ipAddressHelper);
 
         final AuctionContext givenContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().device(Device.builder().ip("ip").build()).build())
+                .httpRequest(HttpRequestContext.builder().build())
                 .timeoutContext(TimeoutContext.of(100L, TIMEOUT, 2))
                 .account(Account.builder().settings(AccountSettings.of(true)).build())
                 .build();
@@ -136,6 +149,7 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
                 .bidRequest(BidRequest.builder()
                         .device(Device.builder().ip("ip").geo(Geo.builder().country("UKR").build()).build())
                         .build())
+                .httpRequest(HttpRequestContext.builder().build())
                 .timeoutContext(TimeoutContext.of(100L, TIMEOUT, 2))
                 .account(Account.builder().settings(AccountSettings.of(true)).build())
                 .build();
@@ -153,6 +167,7 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
         // given
         final AuctionContext givenContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().device(Device.builder().ip(null).build()).build())
+                .httpRequest(HttpRequestContext.builder().build())
                 .timeoutContext(TimeoutContext.of(100L, TIMEOUT, 2))
                 .account(Account.builder().settings(AccountSettings.of(true)).build())
                 .build();
@@ -172,6 +187,7 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
 
         final AuctionContext givenContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().device(Device.builder().ip("ip").build()).build())
+                .httpRequest(HttpRequestContext.builder().build())
                 .timeoutContext(TimeoutContext.of(100L, TIMEOUT, 2))
                 .account(Account.builder().settings(AccountSettings.of(true)).build())
                 .build();
@@ -192,6 +208,7 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
 
         final AuctionContext givenContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().device(Device.builder().ip("ip").build()).build())
+                .httpRequest(HttpRequestContext.builder().build())
                 .timeoutContext(TimeoutContext.of(100L, TIMEOUT, 2))
                 .account(Account.builder().settings(AccountSettings.of(true)).build())
                 .build();
