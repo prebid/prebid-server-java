@@ -121,23 +121,23 @@ public class S3ApplicationSettings implements ApplicationSettings {
             Set<String> impIds
     ) {
 
-        final List<String> missingStoredRequestIds =
+        final Stream<String> missingStoredRequestIds =
                 getMissingStoredDataIds(storedIdToRequest, requestIds).stream()
-                        .map("No stored request found for id: %s"::formatted).toList();
-        final List<String> missingStoredImpressionIds =
+                        .map("No stored request found for id: %s"::formatted);
+        final Stream<String> missingStoredImpressionIds =
                 getMissingStoredDataIds(storedIdToImp, impIds).stream()
-                        .map("No stored impression found for id: %s"::formatted).toList();
+                        .map("No stored impression found for id: %s"::formatted);
 
         return StoredDataResult.of(
                 storedIdToRequest,
                 storedIdToImp,
                 Stream.concat(
-                        missingStoredImpressionIds.stream(),
-                        missingStoredRequestIds.stream()).toList());
+                        missingStoredImpressionIds,
+                        missingStoredRequestIds).toList());
     }
 
-    private List<String> getMissingStoredDataIds(Map<String, String> fileContents, Set<String> responseIds) {
-        return SetUtils.difference(responseIds, fileContents.keySet()).stream().toList();
+    private Set<String> getMissingStoredDataIds(Map<String, String> fileContents, Set<String> responseIds) {
+        return SetUtils.difference(responseIds, fileContents.keySet());
     }
 
     @Override
@@ -201,10 +201,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
      * @return impression id with only a single slash at the beginning
      */
     private static String withInitialSlash(String impressionId) {
-        if (impressionId.startsWith("/")) {
-            return impressionId;
-        }
-        return "/" + impressionId;
+        return impressionId.startsWith("/") ? impressionId : "/" + impressionId;
     }
 
     private Future<Optional<String>> downloadFile(String key) {

@@ -77,8 +77,8 @@ public class S3PeriodicRefreshService implements Initializable {
         this.clock = Objects.requireNonNull(clock);
     }
 
-    private static List<String> getInvalidatedKeys(Map<String, String> newMap, Map<String, String> oldMap) {
-        return SetUtils.difference(newMap.keySet(), oldMap.keySet()).stream().toList();
+    private static Set<String> getInvalidatedKeys(Map<String, String> newMap, Map<String, String> oldMap) {
+        return SetUtils.difference(newMap.keySet(), oldMap.keySet());
     }
 
     @Override
@@ -134,15 +134,18 @@ public class S3PeriodicRefreshService implements Initializable {
     }
 
     private StoredDataResult invalidate(StoredDataResult storedDataResult) {
-        final List<String> invalidatedRequests = getInvalidatedKeys(
+        final Set<String> invalidatedRequests = getInvalidatedKeys(
                 storedDataResult.getStoredIdToRequest(),
                 lastResult != null ? lastResult.get().getStoredIdToRequest() : Collections.emptyMap());
-        final List<String> invalidatedImps = getInvalidatedKeys(
+        final Set<String> invalidatedImps = getInvalidatedKeys(
                 storedDataResult.getStoredIdToImp(),
                 lastResult != null ? lastResult.get().getStoredIdToImp() : Collections.emptyMap());
 
         if (!invalidatedRequests.isEmpty() || !invalidatedImps.isEmpty()) {
-            cacheNotificationListener.invalidate(invalidatedRequests, invalidatedImps);
+            cacheNotificationListener.invalidate(
+                    invalidatedRequests.stream().toList(),
+                    invalidatedImps.stream().toList()
+            );
         }
 
         return storedDataResult;
