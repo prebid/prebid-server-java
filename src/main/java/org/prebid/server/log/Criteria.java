@@ -1,6 +1,5 @@
 package org.prebid.server.log;
 
-import org.prebid.server.log.Logger;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.Objects;

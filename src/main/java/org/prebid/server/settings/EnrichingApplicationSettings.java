@@ -1,12 +1,12 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.floors.PriceFloorsConfigResolver;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.StoredDataResult;

@@ -45,7 +45,7 @@ public class RedisClient {
     public void start(Promise<Void> startFuture) {
         createRedisClient(onCreate -> {
             if (onCreate.succeeded()) {
-                logger.info("Confiant Redis {0} connection is established", type);
+                logger.info("Confiant Redis {} connection is established", type);
                 startFuture.tryComplete();
             }
         }, false);

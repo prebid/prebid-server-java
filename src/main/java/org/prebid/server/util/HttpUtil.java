@@ -6,11 +6,11 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
-import org.prebid.server.log.Logger;
-import org.prebid.server.log.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 
@@ -185,7 +185,7 @@ public final class HttpUtil {
             responseConsumer.accept(response);
             return true;
         } catch (Exception e) {
-            logger.warn("Failed to send {0} response: {1}", endpoint, e.getMessage());
+            logger.warn("Failed to send {} response: {}", endpoint, e.getMessage());
             return false;
         }
     }

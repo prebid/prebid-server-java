@@ -1,7 +1,6 @@
 package org.prebid.server.log;
 
 import io.vertx.core.Vertx;
-import org.prebid.server.log.Logger;
 
 import java.util.function.BiConsumer;
 

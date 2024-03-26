@@ -3,8 +3,6 @@ package org.prebid.server.analytics.reporter.pubstack;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import org.prebid.server.log.Logger;
-import org.prebid.server.log.LoggerFactory;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
@@ -20,6 +18,8 @@ import org.prebid.server.analytics.reporter.pubstack.model.PubstackConfig;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.httpclient.HttpClient;
@@ -134,7 +134,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
     }
 
     private void fetchRemoteConfig() {
-        logger.info("[pubstack] Updating config: {0}", pubstackConfig);
+        logger.info("[pubstack] Updating config: {}", pubstackConfig);
         httpClient.get(makeEventEndpointUrl(pubstackConfig.getEndpoint(), pubstackConfig.getScopeId()), timeout)
                 .map(this::processRemoteConfigurationResponse)
                 .onComplete(this::updateConfigsOnChange);
@@ -156,7 +156,7 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
 
     private void updateConfigsOnChange(AsyncResult<PubstackConfig> asyncConfigResult) {
         if (asyncConfigResult.failed()) {
-            logger.error("[pubstask] Fail to fetch remote configuration: {0}", asyncConfigResult.cause().getMessage());
+            logger.error("[pubstask] Fail to fetch remote configuration: {}", asyncConfigResult.cause().getMessage());
         } else if (!Objects.equals(pubstackConfig, asyncConfigResult.result())) {
             final PubstackConfig pubstackConfig = asyncConfigResult.result();
             eventHandlers.values().forEach(PubstackEventHandler::reportEvents);
