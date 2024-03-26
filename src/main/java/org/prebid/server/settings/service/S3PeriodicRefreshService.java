@@ -85,7 +85,7 @@ public class S3PeriodicRefreshService implements Initializable {
     public void initialize() {
         getAll();
         if (refreshPeriod > 0) {
-            vertx.setPeriodic(refreshPeriod, aLong -> refresh());
+            vertx.setPeriodic(refreshPeriod, ignored -> refresh());
         }
     }
 
