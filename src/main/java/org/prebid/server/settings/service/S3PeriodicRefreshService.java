@@ -96,8 +96,8 @@ public class S3PeriodicRefreshService implements Initializable {
                 .compose(storedIdToRequest -> getFileContentsForDirectory(storedImpressionsDirectory)
                         .map(storedIdToImp ->
                                 StoredDataResult.of(storedIdToRequest, storedIdToImp, Collections.emptyList())))
-                .map(storedDataResult -> handleResult(storedDataResult, startTime, MetricName.initialize))
-                .recover(exception -> handleFailure(exception, startTime, MetricName.initialize));
+                .onSuccess(storedDataResult -> handleResult(storedDataResult, startTime, MetricName.initialize))
+                .onFailure(exception -> handleFailure(exception, startTime, MetricName.initialize));
     }
 
     private void refresh() {
@@ -107,8 +107,8 @@ public class S3PeriodicRefreshService implements Initializable {
                 .compose(storedIdToRequest -> getFileContentsForDirectory(storedImpressionsDirectory)
                         .map(storedIdToImp ->
                                 StoredDataResult.of(storedIdToRequest, storedIdToImp, Collections.emptyList())))
-                .map(storedDataResult -> handleResult(invalidate(storedDataResult), startTime, MetricName.update))
-                .recover(exception -> handleFailure(exception, startTime, MetricName.update));
+                .onSuccess(storedDataResult -> handleResult(invalidate(storedDataResult), startTime, MetricName.update))
+                .onFailure(exception -> handleFailure(exception, startTime, MetricName.update));
     }
 
     private Void handleResult(StoredDataResult storedDataResult,
