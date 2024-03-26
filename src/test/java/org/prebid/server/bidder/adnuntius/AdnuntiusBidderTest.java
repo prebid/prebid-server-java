@@ -26,9 +26,9 @@ import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusRequest;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAd;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusAdsUnit;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusBid;
-import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusResponse;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusGrossBid;
 import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusNetBid;
+import org.prebid.server.bidder.adnuntius.model.response.AdnuntiusResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -685,7 +685,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     public void makeBidsShouldPopulateGrossBidPriceWhenGrossBidSpecified() throws JsonProcessingException {
         // given
         final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnitWithAds(
-                givenAd(ad -> ad.adnuntiusGrossBid(AdnuntiusGrossBid.of(BigDecimal.ONE)))));
+                givenAd(ad -> ad.grossBid(AdnuntiusGrossBid.of(BigDecimal.ONE)))));
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(ExtImpAdnuntius.builder().bidType("gross").build(), identity()));
 
@@ -704,7 +704,7 @@ public class AdnuntiusBidderTest extends VertxTest {
     public void makeBidsShouldPopulateNetBidPriceWhenGrossBidSpecified() throws JsonProcessingException {
         // given
         final BidderCall<AdnuntiusRequest> httpCall = givenHttpCall(givenAdsUnitWithAds(
-                givenAd(ad -> ad.adnuntiusNetBid(AdnuntiusNetBid.of(BigDecimal.ONE)))));
+                givenAd(ad -> ad.netBid(AdnuntiusNetBid.of(BigDecimal.ONE)))));
         final BidRequest bidRequest = givenBidRequest(
                 givenImp(ExtImpAdnuntius.builder().bidType("net").build(), identity()));
 
