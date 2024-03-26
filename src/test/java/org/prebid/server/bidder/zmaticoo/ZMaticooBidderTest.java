@@ -1,7 +1,7 @@
 package org.prebid.server.bidder.zmaticoo;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.iab.openrtb.request.Banner;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
@@ -19,14 +19,14 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.zmaticoo.ExtImpZMaticoo;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -39,132 +39,131 @@ public class ZMaticooBidderTest extends VertxTest {
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new ZMaticooBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new ZMaticooBidder("invalid_url", jacksonMapper));
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnWhenImpExtPrebidIsNullOrEmpty() {
+    public void makeHttpRequestsShouldReturnErrorsOnInvalidImps() {
         // given
-        final Imp firstImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpZMaticoo.of(null, "pubId")))));
-
-        final Imp secondImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpZMaticoo.of("asd", null)))));
-
-        final Imp thirdImp = givenImp(impBuilder -> impBuilder
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpZMaticoo.of("", null)))));
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .imp(Arrays.asList(firstImp, secondImp, thirdImp))
-                .build();
+        final ObjectNode invalidNode = mapper.createObjectNode();
+        invalidNode.putArray("bidder");
+        final BidRequest bidRequest = givenBidRequest(
+                givenImp(imp -> imp.ext(invalidNode)),
+                givenImp(ExtImpZMaticoo.of("", "")),
+                givenImp(ExtImpZMaticoo.of("pubId", "")),
+                givenImp(ExtImpZMaticoo.of("", "zoneId")));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors())
-                .hasSize(3)
-                .containsExactlyInAnyOrder(
-                        BidderError.badInput("imp.ext.pubId or imp.ext.zoneId required"),
-                        BidderError.badInput("imp.ext.pubId or imp.ext.zoneId required"),
-                        BidderError.badInput("imp.ext.pubId or imp.ext.zoneId required"));
         assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).satisfies(errors -> {
+            assertThat(errors.get(0)).satisfies(error -> {
+                assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+                assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
+            });
+            assertThat(errors.stream().skip(1))
+                    .map(BidderError::getType, BidderError::getMessage)
+                    .containsOnly(tuple(BidderError.Type.bad_input, "imp.ext.pubId or imp.ext.zoneId required"));
+        });
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorsOfNotValidImps() {
+    public void makeHttpRequestsShouldProperlyHandleValidNative() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                givenImp(identity()),
+                givenImp(imp -> imp.xNative(Native.builder().build())),
+                givenImp(imp -> imp.xNative(Native.builder()
+                        .request("""
+                                {
+                                    "native": 1
+                                }
+                                """)
+                        .build())),
+                givenImp(imp -> imp.xNative(Native.builder()
+                        .request("""
+                                {
+                                    "field": 0
+                                }
+                                """)
+                        .build())));
+
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
+        assertThat(result.getValue())
                 .hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
-                    assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
+                .extracting(HttpRequest::getPayload)
+                .extracting(BidRequest::getImp)
+                .allSatisfy(imps -> {
+                    assertThat(imps.get(0)).isSameAs(bidRequest.getImp().get(0));
+                    assertThat(imps.get(1))
+                            .extracting(Imp::getXNative)
+                            .extracting(Native::getRequest)
+                            .isEqualTo("{\"native\":{}}");
+                    assertThat(imps.get(2)).isSameAs(bidRequest.getImp().get(2));
+                    assertThat(imps.get(3))
+                            .extracting(Imp::getXNative)
+                            .extracting(Native::getRequest)
+                            .isEqualTo("{\"native\":{\"field\":0}}");
                 });
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
-    public void makeHttpRequestsShouldAddNativeRequest() {
+    public void makeHttpRequestsShouldReturnErrorOnInvalidNativeRequest() {
         // given
-        final String nativeRequest = "{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,"
-                + "\"assets\":[{\"id\":2,"
-                + "\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,\"img\":{\"type\":3,\"wmin\""
-                + ":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},{\"id\":7,"
-                + "\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}";
-
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder().build())
-                        .xNative(Native.builder().request(nativeRequest).build()));
+                givenImp(imp -> imp.xNative(Native.builder().request("invalid").build())));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final String expectedNativeRequest = "{\"native\":"
-                + "{\"ver\":\"1.2\",\"context\":1,\"plcmttype\":4,\"plcmtcnt\":1,"
-                + "\"assets\":[{\"id\":2,\"required\":1,\"title\":{\"len\":90}},{\"id\":6,\"required\":1,\"img\":"
-                + "{\"type\":3,\"wmin\":128,\"hmin\":128,\"mimes\":[\"image/jpg\",\"image/jpeg\",\"image/png\"]}},"
-                + "{\"id\":7,\"required\":1,\"data\":{\"type\":2,\"len\":120}}]}}";
-
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getXNative)
-                .extracting(Native::getRequest)
-                .containsExactly(expectedNativeRequest);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldAddEmptyNativeRequestIfRequestNotPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder().build())
-                        .xNative(Native.builder().build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getXNative)
-                .extracting(Native::getRequest)
-                .containsExactly("{\"native\":{}}");
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(error.getMessage()).startsWith("Unrecognized token 'invalid': was");
+        });
     }
 
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .allSatisfy(error -> {
-                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
-                });
         assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+            assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+        });
     }
 
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(null));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidResponse());
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -175,157 +174,52 @@ public class ZMaticooBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
+    public void makeBidsShouldReturnValidBids() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(BidResponse.builder().build()));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnAllThreeBidsTypesSuccessfully() throws JsonProcessingException {
-        // given
-        final Bid bannerBid = Bid.builder().impid("1").mtype(1).build();
-        final Bid videoBid = Bid.builder().impid("2").mtype(2).build();
-        final Bid nativeBid = Bid.builder().impid("3").mtype(4).build();
-
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(identity()),
-                givenBidResponse(bannerBid, videoBid, nativeBid));
+                givenBidResponse(
+                        Bid.builder().id("1").mtype(1).build(),
+                        Bid.builder().id("2").mtype(2).build(),
+                        Bid.builder().id("3").impid("impId3").mtype(null).build(),
+                        Bid.builder().id("4").mtype(4).build(),
+                        Bid.builder().id("5").impid("impId5").mtype(0).build()));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(
-                BidderBid.of(bannerBid, banner, null),
-                BidderBid.of(videoBid, video, null),
-                BidderBid.of(nativeBid, xNative, null));
+        assertThat(result.getValue())
+                .extracting(bidderBid -> bidderBid.getBid().getId(), BidderBid::getType)
+                .containsExactly(tuple("1", banner), tuple("2", video), tuple("4", xNative));
+        assertThat(result.getErrors()).containsExactly(
+                BidderError.badServerResponse("unrecognized bid type in response from zmaticoo for bid impId3"),
+                BidderError.badServerResponse("unrecognized bid type in response from zmaticoo for bid impId5"));
     }
 
-    @Test
-    public void makeBidsShouldReturnBannerBidSuccessfully() throws JsonProcessingException {
-        // given
-        final Bid bannerBid = Bid.builder().impid("1").mtype(1).build();
-
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(bannerBid));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(bannerBid, banner, null));
-
+    private static BidRequest givenBidRequest(Imp... imp) {
+        return BidRequest.builder().imp(List.of(imp)).build();
     }
 
-    @Test
-    public void makeBidsShouldReturnVideoBidSuccessfully() throws JsonProcessingException {
-        // given
-        final Bid videoBid = Bid.builder().impid("2").mtype(2).build();
-
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(videoBid));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(videoBid, video, null));
-    }
-
-    @Test
-    public void makeBidsShouldReturnNativeBidSuccessfully() throws JsonProcessingException {
-        // given
-        final Bid nativeBid = Bid.builder().impid("3").mtype(4).build();
-
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(nativeBid));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(nativeBid, xNative, null));
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenMTypeIsInvalid() throws JsonProcessingException {
-        // given
-        final Bid nativeBid = Bid.builder().impid("3").mtype(999).build();
-
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(nativeBid));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badServerResponse("Unable to fetch mediaType 999 in multi-format: 3"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorWhenMTypeIsNull() throws JsonProcessingException {
-        // given
-        final Bid nativeBid = Bid.builder().impid("3").mtype(null).build();
-
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()), givenBidResponse(nativeBid));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badServerResponse("Missing MType for bid: null"));
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(givenImp(impCustomizer))))
+    private static Imp givenImp(ExtImpZMaticoo extImpZMaticoo) {
+        return Imp.builder()
+                .ext(mapper.valueToTree(ExtPrebid.of(null, extImpZMaticoo)))
                 .build();
     }
 
-    private static BidRequest givenBidRequest(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
-    }
-
-    private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                        .id("123")
-                        .banner(Banner.builder().w(23).h(25).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpZMaticoo.of("pubId", "pubId")))))
-                .build();
-    }
-
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer
+                .apply(Imp.builder().ext(mapper.valueToTree(
+                        ExtPrebid.of(null, ExtImpZMaticoo.of("pubId", "pubId")))))
                 .build();
     }
 
     private static String givenBidResponse(Bid... bids) throws JsonProcessingException {
         return mapper.writeValueAsString(BidResponse.builder()
-                .seatbid(bids.length == 0 ? List.of() : List.of(SeatBid.builder().bid(List.of(bids)).build()))
+                .seatbid(singletonList(SeatBid.builder().bid(List.of(bids)).build()))
                 .build());
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(null, HttpResponse.of(200, null, body), null);
     }
 }

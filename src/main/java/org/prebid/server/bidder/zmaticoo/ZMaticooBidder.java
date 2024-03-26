@@ -3,7 +3,6 @@ package org.prebid.server.bidder.zmaticoo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
@@ -12,6 +11,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -22,6 +22,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.zmaticoo.ExtImpZMaticoo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -33,7 +34,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class ZMaticooBidder implements Bidder<BidRequest> {
 
@@ -56,7 +56,7 @@ public class ZMaticooBidder implements Bidder<BidRequest> {
 
         for (Imp imp : request.getImp()) {
             try {
-                parseImpExt(imp);
+                validateImpExt(imp);
                 modifiedImps.add(modifyImp(imp));
             } catch (PreBidException e) {
                 bidderErrors.add(BidderError.badInput(e.getMessage()));
@@ -71,6 +71,55 @@ public class ZMaticooBidder implements Bidder<BidRequest> {
         return Result.withValue(makeHttpRequest(modifiedRequest));
     }
 
+    private void validateImpExt(Imp imp) {
+        final ExtImpZMaticoo extImpZMaticoo;
+        try {
+            extImpZMaticoo = mapper.mapper().convertValue(imp.getExt(), ZMATICOO_EXT_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+        if (StringUtils.isBlank(extImpZMaticoo.getPubId()) || StringUtils.isBlank(extImpZMaticoo.getZoneId())) {
+            throw new PreBidException("imp.ext.pubId or imp.ext.zoneId required");
+        }
+    }
+
+    private Imp modifyImp(Imp imp) {
+        final Native xNative = imp.getXNative();
+        if (xNative == null) {
+            return imp;
+        }
+
+        final UpdateResult<String> nativeRequest = resolveNativeRequest(xNative.getRequest());
+        return nativeRequest.isUpdated()
+                ? imp.toBuilder()
+                .xNative(xNative.toBuilder()
+                        .request(nativeRequest.getValue())
+                        .build())
+                .build()
+                : imp;
+    }
+
+    private UpdateResult<String> resolveNativeRequest(String nativeRequest) {
+        final JsonNode nativeRequestNode;
+        try {
+            nativeRequestNode = StringUtils.isNotBlank(nativeRequest)
+                    ? mapper.mapper().readTree(nativeRequest)
+                    : mapper.mapper().createObjectNode();
+        } catch (JsonProcessingException e) {
+            throw new PreBidException(e.getMessage());
+        }
+
+        if (nativeRequestNode.has("native")) {
+            return UpdateResult.unaltered(nativeRequest);
+        }
+
+        final String updatedNativeRequest = mapper.mapper().createObjectNode()
+                .putPOJO("native", nativeRequestNode)
+                .toString();
+
+        return UpdateResult.updated(updatedNativeRequest);
+    }
+
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest modifiedRequest) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
@@ -82,80 +131,51 @@ public class ZMaticooBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private Imp modifyImp(Imp imp) {
-        final Native impNative = imp.getXNative();
-        return Optional.ofNullable(impNative)
-                .map(xNative -> resolveNativeRequest(xNative.getRequest()))
-                .map(nativeRequest -> imp.toBuilder().xNative(
-                                impNative.toBuilder().request(nativeRequest).build())
-                        .build())
-                .orElse(imp);
-    }
-
-    private String resolveNativeRequest(String nativeRequest) {
-        try {
-            final JsonNode nativePayload = nativeRequest != null
-                    ? mapper.mapper().readValue(nativeRequest, JsonNode.class)
-                    : mapper.mapper().createObjectNode();
-            final ObjectNode objectNode = mapper.mapper().createObjectNode().set("native", nativePayload);
-            return mapper.mapper().writeValueAsString(objectNode);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage());
-        }
-    }
-
-    private ExtImpZMaticoo parseImpExt(Imp imp) {
-        final ExtImpZMaticoo extImpZMaticoo;
-        try {
-            extImpZMaticoo = mapper.mapper().convertValue(imp.getExt(), ZMATICOO_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
-        if (StringUtils.isBlank(extImpZMaticoo.getPubId()) || StringUtils.isBlank(extImpZMaticoo.getZoneId())) {
-            throw new PreBidException("imp.ext.pubId or imp.ext.zoneId required");
-        }
-        return extImpZMaticoo;
-    }
-
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
+            final List<BidderError> errors = new ArrayList<>();
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
-        } catch (PreBidException | DecodeException e) {
+            return Result.of(extractBids(bidResponse, errors), errors);
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse);
-    }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur()))
+                .filter(Objects::nonNull)
+                .map(bid -> makeBidderBid(bid, bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidType getBidMediaType(Bid bid) {
-        final Integer markupType = bid.getMtype();
-        if (markupType == null) {
-            throw new PreBidException("Missing MType for bid: " + bid.getId());
+    private static BidderBid makeBidderBid(Bid bid, String currency, List<BidderError> errors) {
+        try {
+            final BidType bidType = getBidMediaType(bid);
+            return BidderBid.of(bid, bidType, currency);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
         }
+    }
 
+    private static BidType getBidMediaType(Bid bid) {
+        final int markupType = ObjectUtils.defaultIfNull(bid.getMtype(), 0);
         return switch (markupType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 4 -> BidType.xNative;
             default -> throw new PreBidException(
-                    "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid());
+                    "unrecognized bid type in response from zmaticoo for bid " + bid.getImpid());
         };
     }
 
