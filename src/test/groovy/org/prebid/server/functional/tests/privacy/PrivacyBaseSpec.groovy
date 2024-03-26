@@ -66,8 +66,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                                                                 "gdpr.vendorlist.v3.http-endpoint-template": "$networkServiceContainer.rootUri/v3/vendor-list.json".toString()]
     protected static final Map<String, String> SETTING_CONFIG = ["settings.enforce-valid-account": 'true']
     protected static final Map<String, String> GENERIC_VENDOR_CONFIG = ["adapters.generic.meta-info.vendor-id": GENERIC_VENDOR_ID as String,
-                                                                      "gdpr.host-vendor-id"                 : GENERIC_VENDOR_ID as String,
-                                                                      "adapters.generic.ccpa-enforced"      : "true"]
+                                                                        "gdpr.host-vendor-id"                 : GENERIC_VENDOR_ID as String,
+                                                                        "adapters.generic.ccpa-enforced"      : "true"]
 
     @Shared
     protected static final int PURPOSES_ONLY_GVL_VERSION = PBSUtils.getRandomNumber(0, 4095)
@@ -78,17 +78,29 @@ abstract class PrivacyBaseSpec extends BaseSpec {
     @Shared
     protected static final int PURPOSES_AND_LEG_INT_PURPOSES_GVL_VERSION = PBSUtils.getRandomNumberWithExclusion([PURPOSES_ONLY_GVL_VERSION, LEG_INT_PURPOSES_ONLY_GVL_VERSION, LEG_INT_AND_FLEXIBLE_PURPOSES_GVL_VERSION], 0, 4095)
 
+    protected static final int EXPONENTIAL_BACKOFF_MAX_DELAY = 1
+
+    private static final Map<String, String> RETRY_POLICY_EXPONENTIAL_CONFIG = [
+            "gdpr.vendorlist.v2.retry-policy.exponential-backoff.delay-millis"    : 1 as String,
+            "gdpr.vendorlist.v2.retry-policy.exponential-backoff.max-delay-millis": EXPONENTIAL_BACKOFF_MAX_DELAY as String,
+            "gdpr.vendorlist.v2.retry-policy.exponential-backoff.factor"          : Long.MAX_VALUE as String,
+            "gdpr.vendorlist.v3.retry-policy.exponential-backoff.delay-millis"    : 1 as String,
+            "gdpr.vendorlist.v3.retry-policy.exponential-backoff.max-delay-millis": EXPONENTIAL_BACKOFF_MAX_DELAY as String,
+            "gdpr.vendorlist.v3.retry-policy.exponential-backoff.factor"          : Long.MAX_VALUE as String]
+
     private static final PbsPgConfig pgConfig = new PbsPgConfig(networkServiceContainer)
 
-    protected static final Map<String, String> PBS_CONFIG = OPENX_CONFIG + OPENX_COOKIE_SYNC_CONFIG +
-            GENERIC_COOKIE_SYNC_CONFIG + pgConfig.properties + GDPR_VENDOR_LIST_CONFIG + SETTING_CONFIG + GENERIC_VENDOR_CONFIG
+    protected static final String VENDOR_LIST_PATH = "/app/prebid-server/data/vendorlist-v{VendorVersion}/{VendorVersion}.json"
     protected static final String VALID_VALUE_FOR_GPC_HEADER = "1"
     protected static final GppConsent SIMPLE_GPC_DISALLOW_LOGIC = new UspNatV1Consent.Builder().setGpc(true).build()
     protected static final VendorList vendorListResponse = new VendorList(networkServiceContainer)
 
     @Shared
     protected final PrebidServerService privacyPbsService = pbsServiceFactory.getService(GDPR_VENDOR_LIST_CONFIG +
-            GENERIC_COOKIE_SYNC_CONFIG + GENERIC_VENDOR_CONFIG)
+            GENERIC_COOKIE_SYNC_CONFIG + GENERIC_VENDOR_CONFIG + RETRY_POLICY_EXPONENTIAL_CONFIG)
+
+    protected static final Map<String, String> PBS_CONFIG = OPENX_CONFIG + OPENX_COOKIE_SYNC_CONFIG +
+            GENERIC_COOKIE_SYNC_CONFIG + pgConfig.properties + GDPR_VENDOR_LIST_CONFIG + SETTING_CONFIG + GENERIC_VENDOR_CONFIG
 
     @Shared
     protected final PrebidServerService activityPbsService = pbsServiceFactory.getService(PBS_CONFIG)
