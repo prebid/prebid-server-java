@@ -177,7 +177,7 @@ public class S3ApplicationSettings implements ApplicationSettings {
     }
 
     private Future<Map<String, String>> getFileContents(String directory, Set<String> ids) {
-        return CompositeFuture.all(ids.stream()
+        return CompositeFuture.join(ids.stream()
                         .<Future>map(impId -> downloadFile(directory + withInitialSlash(impId) + JSON_SUFFIX)
                                 .map(fileContentOpt -> fileContentOpt
                                         .map(fileContent -> Tuple2.of(impId, fileContent))))
