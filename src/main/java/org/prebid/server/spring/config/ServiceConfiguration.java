@@ -610,7 +610,7 @@ public class ServiceConfiguration {
                     .setKeyStoreOptions(jksOptions);
         }
 
-        return new BasicHttpClient(vertx.createHttpClient(options));
+        return new BasicHttpClient(vertx, vertx.createHttpClient(options));
     }
 
     @Bean

@@ -2,6 +2,8 @@ package org.prebid.server.vertx.httpclient;
 
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -9,6 +11,8 @@ import io.vertx.core.http.RequestOptions;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
@@ -18,9 +22,11 @@ import java.util.concurrent.TimeoutException;
  */
 public class BasicHttpClient implements HttpClient {
 
+    private final Vertx vertx;
     private final io.vertx.core.http.HttpClient httpClient;
 
-    public BasicHttpClient(io.vertx.core.http.HttpClient httpClient) {
+    public BasicHttpClient(Vertx vertx, io.vertx.core.http.HttpClient httpClient) {
+        this.vertx = Objects.requireNonNull(vertx);
         this.httpClient = Objects.requireNonNull(httpClient);
     }
 
@@ -45,16 +51,31 @@ public class BasicHttpClient implements HttpClient {
             return Future.failedFuture(new TimeoutException("Timeout has been exceeded"));
         }
 
+        final URL absoluteUrl;
+        try {
+            absoluteUrl = new URL(url);
+        } catch (MalformedURLException e) {
+            return Future.failedFuture(e);
+        }
+
+        final Promise<HttpClientResponse> promise = Promise.promise();
+        final long timerId = vertx.setTimer(timeoutMs, ignored ->
+                promise.tryFail(new TimeoutException("Timeout period of %dms has been exceeded".formatted(timeoutMs))));
+
         final RequestOptions options = new RequestOptions()
                 .setFollowRedirects(true)
-                .setTimeout(timeoutMs)
                 .setMethod(method)
-                .setAbsoluteURI(url)
+                .setAbsoluteURI(absoluteUrl)
                 .setHeaders(headers);
 
-        return httpClient.request(options)
+        httpClient.request(options)
                 .compose(request -> body != null ? request.send(Buffer.buffer(body)) : request.send())
-                .compose(response -> toInternalResponse(response, maxResponseSize));
+                .compose(response -> toInternalResponse(response, maxResponseSize))
+                .onSuccess(promise::tryComplete)
+                .onFailure(promise::tryFail)
+                .onComplete(ignored -> vertx.cancelTimer(timerId));
+
+        return promise.future();
     }
 
 
