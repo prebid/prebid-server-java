@@ -1,6 +1,8 @@
 package org.prebid.server.vertx;
 
-import io.vertx.core.Promise;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Handler;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -19,12 +21,12 @@ public class CloseableAdapter implements io.vertx.core.Closeable {
     }
 
     @Override
-    public void close(Promise<Void> completion) {
+    public void close(Handler<AsyncResult<Void>> completionHandler) {
         try {
             adaptee.close();
-            completion.tryComplete();
+            completionHandler.handle(Future.succeededFuture());
         } catch (IOException e) {
-            completion.tryFail(e);
+            completionHandler.handle(Future.failedFuture(e));
         }
     }
 }

@@ -130,9 +130,9 @@ public class MetricsConfiguration {
 
     @PostConstruct
     void registerReporterCloseHooks() {
-//        reporters.stream()
-//                .map(CloseableAdapter::new)
-//                .forEach(closeable -> vertx.getOrCreateContext().addCloseHook(closeable));
+        reporters.stream()
+                .map(CloseableAdapter::new)
+                .forEach(closeable -> vertx.getOrCreateContext().addCloseHook(closeable));
     }
 
     @Component
