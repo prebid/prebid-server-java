@@ -5,6 +5,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import org.apache.commons.collections4.SetUtils;
 import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -77,7 +78,7 @@ public class S3PeriodicRefreshService implements Initializable {
     }
 
     private static List<String> getInvalidatedKeys(Map<String, String> newMap, Map<String, String> oldMap) {
-        return oldMap.keySet().stream().filter(s -> !newMap.containsKey(s)).toList();
+        return SetUtils.difference(newMap.keySet(), oldMap.keySet()).stream().toList();
     }
 
     @Override
