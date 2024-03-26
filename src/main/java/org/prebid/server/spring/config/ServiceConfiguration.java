@@ -18,6 +18,7 @@ import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.DsaEnforcer;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
@@ -412,7 +413,8 @@ public class ServiceConfiguration {
             OrtbTypesResolver ortbTypesResolver,
             AuctionPrivacyContextFactory auctionPrivacyContextFactory,
             DebugResolver debugResolver,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         return new AuctionRequestFactory(
                 maxRequestSize,
@@ -427,7 +429,8 @@ public class ServiceConfiguration {
                 ortbTypesResolver,
                 auctionPrivacyContextFactory,
                 debugResolver,
-                mapper);
+                mapper,
+                geoLocationServiceWrapper);
     }
 
     @Bean
@@ -458,7 +461,8 @@ public class ServiceConfiguration {
                                         FpdResolver fpdResolver,
                                         AmpPrivacyContextFactory ampPrivacyContextFactory,
                                         DebugResolver debugResolver,
-                                        JacksonMapper mapper) {
+                                        JacksonMapper mapper,
+                                        GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         return new AmpRequestFactory(
                 ortb2RequestFactory,
@@ -471,7 +475,8 @@ public class ServiceConfiguration {
                 fpdResolver,
                 ampPrivacyContextFactory,
                 debugResolver,
-                mapper);
+                mapper,
+                geoLocationServiceWrapper);
     }
 
     @Bean
@@ -485,7 +490,8 @@ public class ServiceConfiguration {
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             AuctionPrivacyContextFactory auctionPrivacyContextFactory,
             DebugResolver debugResolver,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         return new VideoRequestFactory(
                 maxRequestSize,
@@ -497,7 +503,8 @@ public class ServiceConfiguration {
                 ortb2ImplicitParametersResolver,
                 auctionPrivacyContextFactory,
                 debugResolver,
-                mapper);
+                mapper,
+                geoLocationServiceWrapper);
     }
 
     @Bean

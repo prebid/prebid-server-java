@@ -10,6 +10,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -22,6 +23,9 @@ public class BizzclickTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromBizzclick() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/bizzclick-exchange"))
+                .withQueryParam("host", equalTo("host"))
+                .withQueryParam("source", equalTo("placementId"))
+                .withQueryParam("account", equalTo("accountId"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/bizzclick/test-bizzclick-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/bizzclick/test-bizzclick-bid-response.json"))));
 

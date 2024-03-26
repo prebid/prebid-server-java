@@ -93,7 +93,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert fetchBidsActivity.ruleConfiguration.every { it == null }
         assert fetchBidsActivity.allowByDefault.contains(activity.defaultAction)
         assert fetchBidsActivity.result.contains("DISALLOW")
@@ -133,7 +133,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert fetchBidsActivity.allowByDefault.contains(activity.defaultAction)
         assert fetchBidsActivity.ruleConfiguration.every { it == null }
         assert fetchBidsActivity.result.contains("ALLOW")
@@ -148,7 +148,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert transmitUfpdActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitUfpdActivity.ruleConfiguration.every { it == null }
         assert transmitUfpdActivity.result.every { it == null }
@@ -163,7 +163,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert transmitPreciseGeoActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitPreciseGeoActivity.ruleConfiguration.every { it == null }
         assert transmitPreciseGeoActivity.result.every { it == null }
@@ -178,7 +178,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentName: GENERIC.value,
                 componentType: BIDDER,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert transmitTidActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitTidActivity.ruleConfiguration.every { it == null }
         assert transmitTidActivity.result.every { it == null }
@@ -227,7 +227,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentType: BIDDER,
                 gpc: bidRequest.regs.ext.gpc,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert fetchBidsActivity.ruleConfiguration.contains(new RuleConfiguration(
                 componentNames: condition.componentName,
                 componentTypes: condition.componentType,
@@ -265,7 +265,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
                 componentType: BIDDER,
                 gpc: bidRequest.regs.ext.gpc,
                 region: ALABAMA.abbreviation,
-                country: USA.value))
+                country: USA.ISOAlpha3))
         assert transmitPreciseGeoActivity.ruleConfiguration.every { it == null }
         assert transmitPreciseGeoActivity.allowByDefault.contains(activity.defaultAction)
         assert transmitPreciseGeoActivity.result.every { it == null }
