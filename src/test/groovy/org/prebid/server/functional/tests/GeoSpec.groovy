@@ -54,7 +54,7 @@ class GeoSpec extends BaseSpec {
         def accountConfig = new AccountConfig(
                 auction: new AccountAuctionConfig(debugAllow: true),
                 settings: new AccountSetting(geoLookup: accountGeoLookup))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.site.publisher.id, config: accountConfig)
+        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -90,6 +90,8 @@ class GeoSpec extends BaseSpec {
         and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             device = new Device(
+                    ip: null,
+                    ipv6: null,
                     geo: new Geo(
                             country: null,
                             region: null,
@@ -102,7 +104,7 @@ class GeoSpec extends BaseSpec {
         def accountConfig = new AccountConfig(
                 auction: new AccountAuctionConfig(debugAllow: true),
                 settings: new AccountSetting(geoLookup: accountGeoLookup))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.site.publisher.id, config: accountConfig)
+        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -152,7 +154,7 @@ class GeoSpec extends BaseSpec {
         def accountConfig = new AccountConfig(
                 auction: new AccountAuctionConfig(debugAllow: true),
                 settings: new AccountSetting(geoLookup: accountGeoLookup))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.site.publisher.id, config: accountConfig)
+        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -189,6 +191,8 @@ class GeoSpec extends BaseSpec {
         and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             device = new Device(
+                    ip: null,
+                    ipv6: null,
                     geo: new Geo(
                             country: null,
                             region: null,
@@ -201,7 +205,7 @@ class GeoSpec extends BaseSpec {
         def accountConfig = new AccountConfig(
                 auction: new AccountAuctionConfig(debugAllow: true),
                 settings: new AccountSetting(geoLookup: accountGeoLookup))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.site.publisher.id, config: accountConfig)
+        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -252,7 +256,7 @@ class GeoSpec extends BaseSpec {
         def accountConfig = new AccountConfig(
                 auction: new AccountAuctionConfig(debugAllow: true),
                 settings: new AccountSetting(geoLookup: true))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.site.publisher.id, config: accountConfig)
+        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -289,6 +293,8 @@ class GeoSpec extends BaseSpec {
         and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             device = new Device(
+                    ip: null,
+                    ipv6: null,
                     geo: new Geo(
                             country: null,
                             region: null,
@@ -301,7 +307,7 @@ class GeoSpec extends BaseSpec {
         def accountConfig = new AccountConfig(
                 auction: new AccountAuctionConfig(debugAllow: true),
                 settings: new AccountSetting(geoLookup: true))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.site.publisher.id, config: accountConfig)
+        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -348,7 +354,7 @@ class GeoSpec extends BaseSpec {
         def accountConfig = new AccountConfig(
                 auction: new AccountAuctionConfig(debugAllow: true),
                 settings: new AccountSetting(geoLookup: true))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.site.publisher.id, config: accountConfig)
+        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -374,6 +380,8 @@ class GeoSpec extends BaseSpec {
         and: "Default bid request with device and geo data"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             device = new Device(
+                    ip: null,
+                    ipv6: null,
                     geo: new Geo(
                             country: Country.CAN,
                             region: ONTARIO.abbreviation,
@@ -386,7 +394,7 @@ class GeoSpec extends BaseSpec {
         def accountConfig = new AccountConfig(
                 auction: new AccountAuctionConfig(debugAllow: true),
                 settings: new AccountSetting(geoLookup: true))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.site.publisher.id, config: accountConfig)
+        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
         when: "PBS processes auction request"
