@@ -91,7 +91,6 @@ public class Ortb2RequestFactory {
     private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
-    private final boolean enforceValidAccount;
     private final int timeoutAdjustmentFactor;
     private final double logSamplingRate;
     private final List<String> blacklistedAccounts;
@@ -110,8 +109,7 @@ public class Ortb2RequestFactory {
     private final Metrics metrics;
     private final Clock clock;
 
-    public Ortb2RequestFactory(boolean enforceValidAccount,
-                               int timeoutAdjustmentFactor,
+    public Ortb2RequestFactory(int timeoutAdjustmentFactor,
                                double logSamplingRate,
                                List<String> blacklistedAccounts,
                                UidsCookieService uidsCookieService,
@@ -133,7 +131,6 @@ public class Ortb2RequestFactory {
             throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 100].");
         }
 
-        this.enforceValidAccount = enforceValidAccount;
         this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.logSamplingRate = logSamplingRate;
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
@@ -457,18 +454,24 @@ public class Ortb2RequestFactory {
         return accountId;
     }
 
-    private Future<Account> loadAccount(Timeout timeout,
-                                        HttpRequestContext httpRequest,
-                                        String accountId) {
+    private Future<Account> loadAccount(Timeout timeout, HttpRequestContext httpRequest, String accountId) {
+        if (StringUtils.isBlank(accountId)) {
+            EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
+        }
 
-        final Future<Account> accountFuture = StringUtils.isBlank(accountId)
-                ? responseForEmptyAccount(httpRequest)
-                : applicationSettings.getAccountById(accountId, timeout)
-                .compose(this::ensureAccountActive,
-                        exception -> accountFallback(exception, accountId, httpRequest));
-
-        return accountFuture
+        return applicationSettings.getAccountById(accountId, timeout)
+                .compose(this::ensureAccountActive)
+                .recover(exception -> wrapFailure(exception, accountId, httpRequest))
                 .onFailure(ignored -> metrics.updateAccountRequestRejectedByInvalidAccountMetrics(accountId));
+    }
+
+    private Future<Account> ensureAccountActive(Account account) {
+        final String accountId = account.getId();
+
+        return account.getStatus() == AccountStatus.inactive
+                ? Future.failedFuture(
+                        new UnauthorizedAccountException("Account %s is inactive".formatted(accountId), accountId))
+                : Future.succeededFuture(account);
     }
 
     /**
@@ -505,23 +508,10 @@ public class Ortb2RequestFactory {
         return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
     }
 
-    private Future<Account> responseForEmptyAccount(HttpRequestContext httpRequest) {
-        EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
-        return responseForUnknownAccount(StringUtils.EMPTY);
-    }
-
-    private static String accountErrorMessage(String message, HttpRequestContext httpRequest) {
-        return "%s, Url: %s and Referer: %s".formatted(
-                message,
-                httpRequest.getAbsoluteUri(),
-                httpRequest.getHeaders().get(HttpUtil.REFERER_HEADER));
-    }
-
-    private Future<Account> accountFallback(Throwable exception,
-                                            String accountId,
-                                            HttpRequestContext httpRequest) {
-
-        if (exception instanceof PreBidException) {
+    private Future<Account> wrapFailure(Throwable exception, String accountId, HttpRequestContext httpRequest) {
+        if (exception instanceof UnauthorizedAccountException) {
+            return Future.failedFuture(exception);
+        } else if (exception instanceof PreBidException) {
             UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
         } else {
             metrics.updateAccountRequestRejectedByFailedFetch(accountId);
@@ -529,24 +519,15 @@ public class Ortb2RequestFactory {
             logger.debug("Error occurred while fetching account", exception);
         }
 
-        // hide all errors occurred while fetching account
-        return responseForUnknownAccount(accountId);
+        return Future.failedFuture(
+                new UnauthorizedAccountException("Unauthorized account id: " + accountId, accountId));
     }
 
-    private Future<Account> responseForUnknownAccount(String accountId) {
-        return enforceValidAccount
-                ? Future.failedFuture(new UnauthorizedAccountException(
-                "Unauthorized account id: " + accountId, accountId))
-                : Future.succeededFuture(Account.empty(accountId));
-    }
-
-    private Future<Account> ensureAccountActive(Account account) {
-        final String accountId = account.getId();
-
-        return account.getStatus() == AccountStatus.inactive
-                ? Future.failedFuture(new UnauthorizedAccountException(
-                "Account %s is inactive".formatted(accountId), accountId))
-                : Future.succeededFuture(account);
+    private static String accountErrorMessage(String message, HttpRequestContext httpRequest) {
+        return "%s, Url: %s and Referer: %s".formatted(
+                message,
+                httpRequest.getAbsoluteUri(),
+                httpRequest.getHeaders().get(HttpUtil.REFERER_HEADER));
     }
 
     private ExtRequest enrichExtRequest(ExtRequest ext, Account account) {

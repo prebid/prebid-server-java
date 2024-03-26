@@ -125,6 +125,9 @@ public class CookieSyncHandlerTest extends VertxTest {
                                 .build(),
                         TcfContext.empty())));
 
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().build()));
+
         target = new CookieSyncHandler(
                 500,
                 0.05,
