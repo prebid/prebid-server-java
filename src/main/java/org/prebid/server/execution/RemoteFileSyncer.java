@@ -138,7 +138,7 @@ public class RemoteFileSyncer {
 
     private Future<HttpClientResponse> requestData() {
         final Promise<HttpClientResponse> promise = Promise.promise();
-        httpClient.getAbs(downloadUrl, promise::complete).end();
+//        httpClient.getAbs(downloadUrl, promise::complete).end();
         return promise.future();
     }
 
@@ -193,7 +193,7 @@ public class RemoteFileSyncer {
 
     private void handleResponseEnd(AsyncFile asyncFile, long idTimer, Promise<Void> promise) {
         vertx.cancelTimer(idTimer);
-        asyncFile.flush().close(promise);
+//        asyncFile.flush().close(promise);
     }
 
     private Future<Void> swapFiles() {
@@ -250,9 +250,9 @@ public class RemoteFileSyncer {
 
     private Future<Boolean> isUpdateRequired() {
         final Promise<Boolean> isUpdateRequired = Promise.promise();
-        httpClient.headAbs(downloadUrl, response -> checkNewVersion(response, isUpdateRequired))
-                .exceptionHandler(isUpdateRequired::fail)
-                .end();
+//        httpClient.headAbs(downloadUrl, response -> checkNewVersion(response, isUpdateRequired))
+//                .exceptionHandler(isUpdateRequired::fail)
+//                .end();
         return isUpdateRequired.future();
     }
 
