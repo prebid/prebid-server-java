@@ -28,7 +28,7 @@ class GeoSpec extends BaseSpec {
                                                              "geolocation.configurations.[0].geo-info.country": USA.ISOAlpha2,
                                                              "geolocation.configurations.[0].geo-info.region" : ALABAMA.abbreviation]
 
-    def "PBS should populate geo with country and region when geo location enabled in host and account config and ip resent in device.id"() {
+    def "PBS should populate geo with country and region when geo location enabled in host and account config and ip present in device.id"() {
         given: "PBS service with geolocation and default account configs"
         def config = AccountConfig.defaultAccountConfig.tap {
             settings = new AccountSetting(geoLookup: defaultAccountGeoLookup)
