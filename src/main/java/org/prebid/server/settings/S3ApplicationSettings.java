@@ -177,20 +177,15 @@ public class S3ApplicationSettings implements ApplicationSettings {
     }
 
     private Future<Map<String, String>> getFileContents(String directory, Set<String> ids) {
-        final List<Future<Optional<Tuple2<String, String>>>> futureListContents = ids.stream()
-                .map(impressionId ->
-                        downloadFile(directory + withInitialSlash(impressionId) + JSON_SUFFIX)
+        return CompositeFuture.all(ids.stream()
+                        .<Future>map(impId -> downloadFile(directory + withInitialSlash(impId) + JSON_SUFFIX)
                                 .map(fileContentOpt -> fileContentOpt
-                                        .map(fileContent -> Tuple2.of(impressionId, fileContent))))
-                .collect(Collectors.toCollection(ArrayList::new));
-
-        final Future<List<Optional<Tuple2<String, String>>>> composedFutures = CompositeFuture
-                .all(new ArrayList<>(futureListContents))
-                .map(CompositeFuture::list);
-
-        // filter out IDs that had no stored request present and return a map from ids to stored request content
-        return composedFutures.map(one -> one.stream().flatMap(Optional::stream))
-                .map(one -> one.collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight)));
+                                        .map(fileContent -> Tuple2.of(impId, fileContent))))
+                        .toList())
+                .map(CompositeFuture::<Optional<Tuple2<String, String>>>list)
+                .map(impIdToFileContent -> impIdToFileContent.stream()
+                        .flatMap(Optional::stream)
+                        .collect(Collectors.toMap(Tuple2::getLeft, Tuple2::getRight)));
     }
 
     /**
