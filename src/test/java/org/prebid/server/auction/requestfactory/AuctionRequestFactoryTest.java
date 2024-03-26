@@ -26,6 +26,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.DebugResolver;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.OrtbTypesResolver;
@@ -101,8 +102,9 @@ public class AuctionRequestFactoryTest extends VertxTest {
     private AuctionPrivacyContextFactory auctionPrivacyContextFactory;
     @Mock
     private DebugResolver debugResolver;
-
     @Mock
+    private GeoLocationServiceWrapper geoLocationServiceWrapper;
+
     private AuctionRequestFactory target;
 
     @Mock
@@ -171,7 +173,11 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture(defaultPrivacyContext));
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
-                .willAnswer(invocation -> ((AuctionContext) invocation.getArgument(0)).getBidRequest());
+                .willAnswer(invocation -> Future.succeededFuture(((AuctionContext) invocation.getArgument(0))
+                        .getBidRequest()));
+        given(ortb2RequestFactory.enrichBidRequestWithGeolocationData(any()))
+                .willAnswer(invocation -> Future.succeededFuture(((AuctionContext) invocation.getArgument(0))
+                        .getBidRequest()));
         given(ortb2RequestFactory.executeProcessedAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
@@ -183,6 +189,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 .willReturn(Future.succeededFuture());
         given(cookieDeprecationService.updateBidRequestDevice(any(), any()))
                 .will(invocationOnMock -> invocationOnMock.getArgument(0));
+        given(geoLocationServiceWrapper.lookup(any()))
+                .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("vendor").build()));
 
         target = new AuctionRequestFactory(
                 Integer.MAX_VALUE,
@@ -197,7 +205,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ortbTypesResolver,
                 auctionPrivacyContextFactory,
                 debugResolver,
-                jacksonMapper);
+                jacksonMapper,
+                geoLocationServiceWrapper);
     }
 
     @Test
@@ -231,7 +240,8 @@ public class AuctionRequestFactoryTest extends VertxTest {
                 ortbTypesResolver,
                 auctionPrivacyContextFactory,
                 debugResolver,
-                jacksonMapper);
+                jacksonMapper,
+                geoLocationServiceWrapper);
 
         given(routingContext.getBodyAsString()).willReturn("body");
 

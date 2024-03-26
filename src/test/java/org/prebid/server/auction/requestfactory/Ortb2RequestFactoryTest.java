@@ -82,7 +82,6 @@ import org.prebid.server.validation.model.ValidationResult;
 
 import java.time.Clock;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -93,14 +92,12 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.groups.Tuple.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
@@ -146,14 +143,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Mock
     private Timeout timeout;
 
-    private BidRequest defaultBidRequest;
     private HttpRequestContext httpRequest;
     private HookExecutionContext hookExecutionContext;
 
     @Before
     public void setUp() {
-        defaultBidRequest = BidRequest.builder().build();
-
         httpRequest = HttpRequestContext.builder()
                 .headers(CaseInsensitiveMultiMap.empty())
                 .build();
@@ -182,20 +176,20 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         given(userAdditionalInfoService.populate(any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
 
-        givenTarget(false, 90);
+        givenTarget(90);
     }
 
     @Test
     public void creationShouldFailOnNegativeTimeoutAdjustmentFactor() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> givenTarget(false, -1))
+                .isThrownBy(() -> givenTarget(-1))
                 .withMessage("Expected timeout adjustment factor should be in [0, 100].");
     }
 
     @Test
     public void shouldIncrementRejectedByInvalidAccountMetricsIfUnknownUser() {
         // given
-        givenTarget(true, 90);
+        givenTarget(90);
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));
@@ -219,34 +213,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void fetchAccountShouldReturnFailedFutureIfAccountIsEnforcedAndIdIsNotProvided() {
-        // given
-        givenTarget(true, 90);
-
-        given(storedRequestProcessor.processAuctionRequest(any(), any()))
-                .willReturn(Future.succeededFuture(AuctionStoredResult.of(false, givenBidRequest(identity()))));
-
-        // when
-        final Future<?> future = target.fetchAccount(
-                AuctionContext.builder()
-                        .httpRequest(httpRequest)
-                        .bidRequest(defaultBidRequest)
-                        .timeoutContext(TimeoutContext.of(0, null, 0))
-                        .build());
-
-        // then
-        verify(applicationSettings, never()).getAccountById(any(), any());
-
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause())
-                .isInstanceOf(UnauthorizedAccountException.class)
-                .hasMessage("Unauthorized account id: ");
-    }
-
-    @Test
     public void fetchAccountShouldReturnFailedFutureIfAccountIsEnforcedAndFailedGetAccountById() {
         // given
-        givenTarget(true, 90);
+        givenTarget(90);
 
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.failedFuture(new PreBidException("Not found")));
@@ -337,7 +306,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                                 .build())
                         .build()));
 
-        final Account account = Account.builder().id(parentAccount).build();
+        final Account account = Account.builder()
+                .id(parentAccount)
+                .auction(AccountAuctionConfig.builder().build())
+                .build();
         given(applicationSettings.getAccountById(any(), any()))
                 .willReturn(Future.succeededFuture(account));
 
@@ -363,7 +335,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .publisher(Publisher.builder().id(accountId).ext(null).build())
                         .build()));
 
-        final Account account = Account.builder().id(accountId).build();
+        final Account account = Account.builder().id(accountId).auction(AccountAuctionConfig.builder().build()).build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
         // when
@@ -390,7 +362,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                                 .build())
                         .build()));
 
-        final Account account = Account.builder().id(accountId).build();
+        final Account account = Account.builder().id(accountId).auction(AccountAuctionConfig.builder().build()).build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
         // when
@@ -416,9 +388,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                                 .build())
                         .build()));
 
-        final Account account = Account.builder().id("accountId").build();
-        given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.succeededFuture(account));
+        final Account account = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder().build())
+                .build();
+        given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
         // when
         final Future<Account> result = target.fetchAccount(
@@ -443,7 +417,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build())
                 .build();
 
-        final Account account = Account.builder().id(accountId).build();
+        final Account account = Account.builder().id(accountId).auction(AccountAuctionConfig.builder().build()).build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
         // when
@@ -469,7 +443,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build())
                 .build();
 
-        final Account account = Account.builder().id(accountId).build();
+        final Account account = Account.builder().id(accountId).auction(AccountAuctionConfig.builder().build()).build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
 
         // when
@@ -483,85 +457,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         verify(applicationSettings).getAccountById(eq(accountId), any());
 
         assertThat(result.result()).isSameAs(account);
-    }
-
-    @Test
-    public void fetchAccountShouldReturnEmptyAccountIfNotFound() {
-        // given
-        final String parentAccount = "parentAccount";
-        final BidRequest bidRequest = givenBidRequest(builder -> builder
-                .site(Site.builder()
-                        .publisher(Publisher.builder().id("accountId")
-                                .ext(ExtPublisher.of(ExtPublisherPrebid.of(parentAccount)))
-                                .build())
-                        .build()));
-
-        given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.failedFuture(new PreBidException("not found")));
-
-        // when
-        final Future<Account> result = target.fetchAccount(
-                AuctionContext.builder()
-                        .httpRequest(httpRequest)
-                        .bidRequest(bidRequest)
-                        .timeoutContext(TimeoutContext.of(0, null, 0))
-                        .build());
-
-        // then
-        verify(applicationSettings).getAccountById(eq(parentAccount), any());
-
-        assertThat(result.result()).isEqualTo(Account.empty(parentAccount));
-    }
-
-    @Test
-    public void fetchAccountShouldReturnEmptyAccountIfExceptionOccurred() {
-        // given
-        final String accountId = "accountId";
-        final BidRequest bidRequest = givenBidRequest(builder -> builder
-                .site(Site.builder()
-                        .publisher(Publisher.builder().id(accountId).build())
-                        .build()));
-
-        given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.failedFuture(new RuntimeException("error")));
-
-        // when
-        final Future<Account> result = target.fetchAccount(
-                AuctionContext.builder()
-                        .bidRequest(bidRequest)
-                        .timeoutContext(TimeoutContext.of(0, null, 0))
-                        .build());
-
-        // then
-        verify(metrics).updateAccountRequestRejectedByFailedFetch(accountId);
-        verify(applicationSettings).getAccountById(eq(accountId), any());
-
-        assertThat(result.result()).isEqualTo(Account.empty(accountId));
-    }
-
-    @Test
-    public void fetchAccountShouldReturnEmptyAccountIfItIsMissingInRequest() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(identity());
-
-        given(storedRequestProcessor.processAuctionRequest(any(), any()))
-                .willReturn(Future.succeededFuture(AuctionStoredResult.of(false, bidRequest)));
-
-        given(applicationSettings.getAccountById(any(), any()))
-                .willReturn(Future.failedFuture(new RuntimeException("error")));
-
-        // when
-        final Future<Account> result = target.fetchAccount(
-                AuctionContext.builder()
-                        .httpRequest(httpRequest)
-                        .bidRequest(bidRequest)
-                        .timeoutContext(TimeoutContext.of(0, null, 0))
-                        .build());
-
-        // then
-        verifyNoInteractions(applicationSettings);
-
-        assertThat(result.result()).isEqualTo(Account.empty(""));
     }
 
     @Test
@@ -629,9 +524,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldFetchAccountFromStoredAndReturnFailedFutureIfValidIsEnforcedAndStoredLookupIsFailed() {
+    public void shouldFetchAccountFromStoredAndReturnFailedFutureIfStoredLookupIsFailed() {
         // given
-        givenTarget(true, 90);
+        givenTarget(90);
 
         final BidRequest receivedBidRequest = givenBidRequest(identity());
         given(storedRequestProcessor.processAuctionRequest(any(), any()))
@@ -902,10 +797,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .satisfies(extPrebid -> {
@@ -956,10 +851,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getExt)
                 .extracting(ExtRequest::getPrebid)
                 .satisfies(extPrebid -> {
@@ -1001,14 +896,35 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(List.of(result))
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getGeo)
                 .extracting(Geo::getCountry)
-                .containsExactly("UKR");
+                .isEqualTo("UKR");
+    }
+
+    @Test
+    public void enrichBidRequestWithGeolocationDataShouldAddCountryFromGeoInfo() {
+        // given
+        given(countryCodeMapper.mapToAlpha3("ua")).willReturn("UKR");
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(givenBidRequest(identity()))
+                .geoInfo(GeoInfo.builder().vendor("v").country("ua").build())
+                .build();
+
+        // when
+        final Future<BidRequest> result = target.enrichBidRequestWithGeolocationData(auctionContext);
+
+        // then
+        assertThat(result).isSucceeded().unwrap()
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getGeo)
+                .extracting(Geo::getCountry)
+                .isEqualTo("UKR");
     }
 
     @Test
@@ -1041,10 +957,36 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getGeo)
+                .extracting(Geo::getRegion)
+                .isEqualTo("REGION");
+    }
+
+    @Test
+    public void enrichBidRequestWithGeolocationDataShouldAddRegionFromPrivacy() {
+        // given
+        given(countryCodeMapper.mapToAlpha3(any())).willReturn(null);
+
+        final Device device = Device.builder()
+                .geo(Geo.builder().region("regionInRequest").build())
+                .build();
+        final BidRequest bidRequest = givenBidRequest(requestCustomizer -> requestCustomizer.device(device));
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .geoInfo(GeoInfo.builder().vendor("v").region("region").build())
+                .build();
+
+        // when
+        final Future<BidRequest> result = target.enrichBidRequestWithGeolocationData(auctionContext);
+
+        // then
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getGeo)
                 .extracting(Geo::getRegion)
@@ -1074,10 +1016,36 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
+                .extracting(BidRequest::getDevice)
+                .extracting(Device::getGeo)
+                .extracting(Geo::getRegion)
+                .isEqualTo("REGIONINREQUEST");
+    }
+
+    @Test
+    public void enrichBidRequestWithGeolocationDataShouldMakeRegionUpperCasedWhenNoGeoInfoProvided() {
+        // given
+        given(countryCodeMapper.mapToAlpha3(any())).willReturn(null);
+
+        final Device device = Device.builder()
+                .geo(Geo.builder().region("regionInRequest").build())
+                .build();
+        final BidRequest bidRequest = givenBidRequest(requestCustomizer -> requestCustomizer.device(device));
+
+        final AuctionContext auctionContext = AuctionContext.builder()
+                .bidRequest(bidRequest)
+                .geoInfo(GeoInfo.builder().vendor("v").build())
+                .build();
+
+        // when
+        final Future<BidRequest> result = target.enrichBidRequestWithGeolocationData(auctionContext);
+
+        // then
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getGeo)
                 .extracting(Geo::getRegion)
@@ -1103,7 +1071,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final Account account = Account.empty("id");
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(
                 AuctionContext.builder()
                         .bidRequest(bidRequest)
                         .account(account)
@@ -1111,10 +1079,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build());
 
         // then
-        assertThat(Collections.singleton(result))
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getIp, Device::getIpv6)
-                .containsOnly(tuple("ipv4", null));
+                .containsOnly("ipv4", null);
     }
 
     @Test
@@ -1136,7 +1104,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         final Account account = Account.empty("id");
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(
                 AuctionContext.builder()
                         .bidRequest(bidRequest)
                         .account(account)
@@ -1144,10 +1112,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .build());
 
         // then
-        assertThat(Collections.singleton(result))
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getDevice)
                 .extracting(Device::getIp, Device::getIpv6)
-                .containsOnly(tuple(null, "ipv6"));
+                .containsOnly(null, "ipv6");
     }
 
     @Test
@@ -1459,10 +1427,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .extracting(Regs::getExt)
                 .extracting(ExtRegs::getDsa)
@@ -1511,14 +1479,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .extracting(Regs::getExt)
                 .isNull();
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .isSameAs(regs);
     }
@@ -1568,10 +1536,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .extracting(Regs::getExt)
                 .extracting(ExtRegs::getDsa)
@@ -1621,10 +1589,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .extracting(Regs::getExt)
                 .extracting(ExtRegs::getDsa)
@@ -1676,21 +1644,20 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final BidRequest result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
+        final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(auctionContext);
 
         // then
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .extracting(Regs::getExt)
                 .isNull();
-        assertThat(result)
+        assertThat(result).isSucceeded().unwrap()
                 .extracting(BidRequest::getRegs)
                 .isSameAs(regs);
     }
 
-    private void givenTarget(boolean enforceValidAccount, int timeoutAdjustmentFactor) {
+    private void givenTarget(int timeoutAdjustmentFactor) {
         target = new Ortb2RequestFactory(
-                enforceValidAccount,
                 timeoutAdjustmentFactor,
                 0.01,
                 BLACKLISTED_ACCOUNTS,

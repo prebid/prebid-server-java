@@ -5,23 +5,26 @@ import org.prebid.server.functional.util.privacy.model.State
 
 enum Country {
 
-    USA("USA"),
-    CAN("CAN"),
-    MULTIPLE("*")
+    USA("USA","US"),
+    CAN("CAN","CA"),
+    MULTIPLE("*","*")
 
     @JsonValue
-    final String value
+    final String ISOAlpha3
 
-    Country(String value) {
-        this.value = value
+    final String ISOAlpha2
+
+    Country(String ISOAlpha3,String ISOAlpha2) {
+        this.ISOAlpha3 = ISOAlpha3
+        this.ISOAlpha2 = ISOAlpha2
     }
 
     @Override
     String toString() {
-        value
+        ISOAlpha3
     }
 
     String withState(State state) {
-        return "${value}.${state.abbreviation}".toString()
+        return "${ISOAlpha3}.${state.abbreviation}".toString()
     }
 }

@@ -91,7 +91,6 @@ public class Ortb2RequestFactory {
     private static final ConditionalLogger EMPTY_ACCOUNT_LOGGER = new ConditionalLogger("empty_account", logger);
     private static final ConditionalLogger UNKNOWN_ACCOUNT_LOGGER = new ConditionalLogger("unknown_account", logger);
 
-    private final boolean enforceValidAccount;
     private final int timeoutAdjustmentFactor;
     private final double logSamplingRate;
     private final List<String> blacklistedAccounts;
@@ -110,8 +109,7 @@ public class Ortb2RequestFactory {
     private final Metrics metrics;
     private final Clock clock;
 
-    public Ortb2RequestFactory(boolean enforceValidAccount,
-                               int timeoutAdjustmentFactor,
+    public Ortb2RequestFactory(int timeoutAdjustmentFactor,
                                double logSamplingRate,
                                List<String> blacklistedAccounts,
                                UidsCookieService uidsCookieService,
@@ -133,7 +131,6 @@ public class Ortb2RequestFactory {
             throw new IllegalArgumentException("Expected timeout adjustment factor should be in [0, 100].");
         }
 
-        this.enforceValidAccount = enforceValidAccount;
         this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.logSamplingRate = logSamplingRate;
         this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
@@ -221,7 +218,37 @@ public class Ortb2RequestFactory {
                 : Future.succeededFuture(bidRequest);
     }
 
-    public BidRequest enrichBidRequestWithAccountAndPrivacyData(AuctionContext auctionContext) {
+    public Future<BidRequest> enrichBidRequestWithGeolocationData(AuctionContext auctionContext) {
+        final BidRequest bidRequest = auctionContext.getBidRequest();
+        final Device device = bidRequest.getDevice();
+        final GeoInfo geoInfo = auctionContext.getGeoInfo();
+        final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
+
+        final UpdateResult<String> resolvedCountry = resolveCountry(geo, geoInfo);
+        final UpdateResult<String> resolvedRegion = resolveRegion(geo, geoInfo);
+
+        if (!resolvedCountry.isUpdated() && !resolvedRegion.isUpdated()) {
+            return Future.succeededFuture(bidRequest);
+        }
+
+        final Geo updatedGeo = Optional.ofNullable(geo)
+                .map(Geo::toBuilder)
+                .orElseGet(Geo::builder)
+                .country(resolvedCountry.getValue())
+                .region(resolvedRegion.getValue())
+                .build();
+
+        final Device updatedDevice = Optional.ofNullable(device)
+                .map(Device::toBuilder)
+                .orElseGet(Device::builder)
+                .geo(updatedGeo)
+                .build();
+
+        return Future.succeededFuture(bidRequest.toBuilder().device(updatedDevice).build());
+
+    }
+
+    public Future<BidRequest> enrichBidRequestWithAccountAndPrivacyData(AuctionContext auctionContext) {
         final BidRequest bidRequest = auctionContext.getBidRequest();
         final Account account = auctionContext.getAccount();
         final PrivacyContext privacyContext = auctionContext.getPrivacyContext();
@@ -235,15 +262,16 @@ public class Ortb2RequestFactory {
         final Regs regs = bidRequest.getRegs();
         final Regs enrichedRegs = enrichRegs(regs, privacyContext, account);
 
-        if (enrichedRequestExt != null || enrichedDevice != null || enrichedRegs != null) {
-            return bidRequest.toBuilder()
-                    .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
-                    .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
-                    .regs(ObjectUtils.defaultIfNull(enrichedRegs, regs))
-                    .build();
+        if (enrichedRequestExt == null && enrichedDevice == null && enrichedRegs == null) {
+            return Future.succeededFuture(bidRequest);
         }
 
-        return bidRequest;
+        return Future.succeededFuture(bidRequest.toBuilder()
+                .ext(ObjectUtils.defaultIfNull(enrichedRequestExt, requestExt))
+                .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
+                .regs(ObjectUtils.defaultIfNull(enrichedRegs, regs))
+                .build());
+
     }
 
     private static Regs enrichRegs(Regs regs, PrivacyContext privacyContext, Account account) {
@@ -426,18 +454,24 @@ public class Ortb2RequestFactory {
         return accountId;
     }
 
-    private Future<Account> loadAccount(Timeout timeout,
-                                        HttpRequestContext httpRequest,
-                                        String accountId) {
+    private Future<Account> loadAccount(Timeout timeout, HttpRequestContext httpRequest, String accountId) {
+        if (StringUtils.isBlank(accountId)) {
+            EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
+        }
 
-        final Future<Account> accountFuture = StringUtils.isBlank(accountId)
-                ? responseForEmptyAccount(httpRequest)
-                : applicationSettings.getAccountById(accountId, timeout)
-                .compose(this::ensureAccountActive,
-                        exception -> accountFallback(exception, accountId, httpRequest));
-
-        return accountFuture
+        return applicationSettings.getAccountById(accountId, timeout)
+                .compose(this::ensureAccountActive)
+                .recover(exception -> wrapFailure(exception, accountId, httpRequest))
                 .onFailure(ignored -> metrics.updateAccountRequestRejectedByInvalidAccountMetrics(accountId));
+    }
+
+    private Future<Account> ensureAccountActive(Account account) {
+        final String accountId = account.getId();
+
+        return account.getStatus() == AccountStatus.inactive
+                ? Future.failedFuture(
+                        new UnauthorizedAccountException("Account %s is inactive".formatted(accountId), accountId))
+                : Future.succeededFuture(account);
     }
 
     /**
@@ -474,23 +508,10 @@ public class Ortb2RequestFactory {
         return extPublisherPrebid != null ? StringUtils.stripToNull(extPublisherPrebid.getParentAccount()) : null;
     }
 
-    private Future<Account> responseForEmptyAccount(HttpRequestContext httpRequest) {
-        EMPTY_ACCOUNT_LOGGER.warn(accountErrorMessage("Account not specified", httpRequest), logSamplingRate);
-        return responseForUnknownAccount(StringUtils.EMPTY);
-    }
-
-    private static String accountErrorMessage(String message, HttpRequestContext httpRequest) {
-        return "%s, Url: %s and Referer: %s".formatted(
-                message,
-                httpRequest.getAbsoluteUri(),
-                httpRequest.getHeaders().get(HttpUtil.REFERER_HEADER));
-    }
-
-    private Future<Account> accountFallback(Throwable exception,
-                                            String accountId,
-                                            HttpRequestContext httpRequest) {
-
-        if (exception instanceof PreBidException) {
+    private Future<Account> wrapFailure(Throwable exception, String accountId, HttpRequestContext httpRequest) {
+        if (exception instanceof UnauthorizedAccountException) {
+            return Future.failedFuture(exception);
+        } else if (exception instanceof PreBidException) {
             UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
         } else {
             metrics.updateAccountRequestRejectedByFailedFetch(accountId);
@@ -498,24 +519,15 @@ public class Ortb2RequestFactory {
             logger.debug("Error occurred while fetching account", exception);
         }
 
-        // hide all errors occurred while fetching account
-        return responseForUnknownAccount(accountId);
+        return Future.failedFuture(
+                new UnauthorizedAccountException("Unauthorized account id: " + accountId, accountId));
     }
 
-    private Future<Account> responseForUnknownAccount(String accountId) {
-        return enforceValidAccount
-                ? Future.failedFuture(new UnauthorizedAccountException(
-                "Unauthorized account id: " + accountId, accountId))
-                : Future.succeededFuture(Account.empty(accountId));
-    }
-
-    private Future<Account> ensureAccountActive(Account account) {
-        final String accountId = account.getId();
-
-        return account.getStatus() == AccountStatus.inactive
-                ? Future.failedFuture(new UnauthorizedAccountException(
-                "Account %s is inactive".formatted(accountId), accountId))
-                : Future.succeededFuture(account);
+    private static String accountErrorMessage(String message, HttpRequestContext httpRequest) {
+        return "%s, Url: %s and Referer: %s".formatted(
+                message,
+                httpRequest.getAbsoluteUri(),
+                httpRequest.getHeaders().get(HttpUtil.REFERER_HEADER));
     }
 
     private ExtRequest enrichExtRequest(ExtRequest ext, Account account) {
@@ -613,9 +625,10 @@ public class Ortb2RequestFactory {
         final boolean shouldUpdateIpV6 = ipV6 != null && !Objects.equals(ipV6InRequest, ipV6);
 
         final Geo geo = ObjectUtil.getIfNotNull(device, Device::getGeo);
+        final GeoInfo geoInfo = privacyContext.getTcfContext().getGeoInfo();
 
-        final UpdateResult<String> resolvedCountry = resolveCountry(geo, privacyContext);
-        final UpdateResult<String> resolvedRegion = resolveRegion(geo, privacyContext);
+        final UpdateResult<String> resolvedCountry = resolveCountry(geo, geoInfo);
+        final UpdateResult<String> resolvedRegion = resolveRegion(geo, geoInfo);
 
         if (shouldUpdateIpV4 || shouldUpdateIpV6 || resolvedCountry.isUpdated() || resolvedRegion.isUpdated()) {
             final Device.DeviceBuilder deviceBuilder = device != null ? device.toBuilder() : Device.builder();
@@ -645,10 +658,9 @@ public class Ortb2RequestFactory {
         return null;
     }
 
-    private UpdateResult<String> resolveCountry(Geo geo, PrivacyContext privacyContext) {
-        final String countryInRequest = geo != null ? geo.getCountry() : null;
+    private UpdateResult<String> resolveCountry(Geo originalGeo, GeoInfo geoInfo) {
+        final String countryInRequest = originalGeo != null ? originalGeo.getCountry() : null;
 
-        final GeoInfo geoInfo = privacyContext.getTcfContext().getGeoInfo();
         final String alpha2CountryCode = geoInfo != null ? geoInfo.getCountry() : null;
         final String alpha3CountryCode = countryCodeMapper.mapToAlpha3(alpha2CountryCode);
 
@@ -657,11 +669,10 @@ public class Ortb2RequestFactory {
                 : UpdateResult.unaltered(countryInRequest);
     }
 
-    private static UpdateResult<String> resolveRegion(Geo geo, PrivacyContext privacyContext) {
-        final String regionInRequest = geo != null ? geo.getRegion() : null;
+    private static UpdateResult<String> resolveRegion(Geo originalGeo, GeoInfo geoInfo) {
+        final String regionInRequest = originalGeo != null ? originalGeo.getRegion() : null;
         final String upperCasedRegionInRequest = StringUtils.upperCase(regionInRequest);
 
-        final GeoInfo geoInfo = privacyContext.getTcfContext().getGeoInfo();
         final String region = geoInfo != null ? geoInfo.getRegion() : null;
         final String upperCasedRegion = StringUtils.upperCase(region);
 

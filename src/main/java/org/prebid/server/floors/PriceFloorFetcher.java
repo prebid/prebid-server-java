@@ -310,11 +310,8 @@ public class PriceFloorFetcher {
     }
 
     private Future<Account> accountById(String accountId) {
-        return StringUtils.isBlank(accountId)
-                ? Future.succeededFuture()
-                : applicationSettings
-                .getAccountById(accountId, timeoutFactory.create(ACCOUNT_FETCH_TIMEOUT_MS))
-                .recover(ignored -> Future.succeededFuture());
+        return applicationSettings.getAccountById(accountId, timeoutFactory.create(ACCOUNT_FETCH_TIMEOUT_MS))
+                .otherwiseEmpty();
     }
 
     @Value(staticConstructor = "of")

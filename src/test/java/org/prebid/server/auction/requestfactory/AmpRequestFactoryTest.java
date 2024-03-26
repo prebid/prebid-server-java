@@ -27,6 +27,7 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.FpdResolver;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
@@ -116,6 +117,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     private AmpPrivacyContextFactory ampPrivacyContextFactory;
     @Mock
     private DebugResolver debugResolver;
+    @Mock
+    private GeoLocationServiceWrapper geoLocationServiceWrapper;
 
     private AmpRequestFactory target;
 
@@ -165,8 +168,11 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
         given(ortb2RequestFactory.activityInfrastructureFrom(any()))
                 .willReturn(Future.succeededFuture());
+        given(geoLocationServiceWrapper.lookup(any()))
+                .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("vendor").build()));
 
         given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, true, null));
+
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
                 Privacy.builder()
                         .gdpr("0")
@@ -189,7 +195,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 fpdResolver,
                 ampPrivacyContextFactory,
                 debugResolver,
-                jacksonMapper);
+                jacksonMapper,
+                geoLocationServiceWrapper);
     }
 
     @Test
@@ -1568,8 +1575,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                         .build(),
                 TcfContext.builder().geoInfo(geoInfo).build());
 
-        given(ampPrivacyContextFactory.contextFrom(any()))
-                .willReturn(Future.succeededFuture(privacyContext));
+        given(ampPrivacyContextFactory.contextFrom(any())).willReturn(Future.succeededFuture(privacyContext));
 
         // when
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
@@ -1707,7 +1713,11 @@ public class AmpRequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
-                .willAnswer(invocation -> ((AuctionContext) invocation.getArgument(0)).getBidRequest());
+                .willAnswer(invocation -> Future.succeededFuture(((AuctionContext) invocation.getArgument(0))
+                        .getBidRequest()));
+        given(ortb2RequestFactory.enrichBidRequestWithGeolocationData(any()))
+                .willAnswer(invocation -> Future.succeededFuture(((AuctionContext) invocation.getArgument(0))
+                        .getBidRequest()));
         given(ortb2RequestFactory.executeProcessedAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));
