@@ -53,8 +53,8 @@
         <protobuf.version>3.21.7</protobuf.version>
         <protoc.version>3.17.3</protoc.version>
         <json-logic.version>1.0.7</json-logic.version>
+        <aws.awssdk.version>2.17.274</aws.awssdk.version>
         <slf4j.version>1.7.32</slf4j.version>
-
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
         <junit-jupiter.version>5.10.2</junit-jupiter.version>
@@ -99,6 +99,12 @@
                 <version>${spring.boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>software.amazon.awssdk</groupId>
+                <artifactId>bom</artifactId>
+                <version>${aws.awssdk.version}</version>
+                <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>com.google.code.gson</groupId>
@@ -283,6 +289,11 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>${aws.awssdk.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
