@@ -12,6 +12,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.IpAddress.IP;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.execution.Timeout;
@@ -27,6 +29,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -197,13 +200,55 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
     }
 
     @Test
-    public void lookupShouldReturnGeoInfoAndUpdateMetricWhenGeoLookupSucceeds() {
+    public void lookupShouldReturnGeoInfoAndUpdateMetricWhenGeoLookupByDeviceSucceeds() {
         // given
         final GeoInfo givenGeoInfo = GeoInfo.builder().vendor("vendor").build();
         given(geoLocationService.lookup("ip", TIMEOUT)).willReturn(Future.succeededFuture(givenGeoInfo));
 
         final AuctionContext givenContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().device(Device.builder().ip("ip").build()).build())
+                .httpRequest(HttpRequestContext.builder().build())
+                .timeoutContext(TimeoutContext.of(100L, TIMEOUT, 2))
+                .account(Account.builder().settings(AccountSettings.of(true)).build())
+                .build();
+
+        // when
+        final Future<GeoInfo> result = target.lookup(givenContext);
+
+        // then
+        assertThat(result).succeededWith(givenGeoInfo);
+        verify(metrics).updateGeoLocationMetric(true);
+    }
+
+    @Test
+    public void lookupShouldReturnGeoInfoAndUpdateMetricWhenGeoLookupByHeaderSucceeds() {
+        // given
+        final GeoInfo givenGeoInfo = GeoInfo.builder().vendor("vendor").build();
+        given(geoLocationService.lookup("ip", TIMEOUT)).willReturn(Future.succeededFuture(givenGeoInfo));
+        given(resolver.findIpFromRequest(any(HttpRequestContext.class))).willReturn(IpAddress.of("ip", IP.v4));
+        final AuctionContext givenContext = AuctionContext.builder()
+                .bidRequest(BidRequest.builder().device(Device.builder().build()).build())
+                .httpRequest(HttpRequestContext.builder().build())
+                .timeoutContext(TimeoutContext.of(100L, TIMEOUT, 2))
+                .account(Account.builder().settings(AccountSettings.of(true)).build())
+                .build();
+
+        // when
+        final Future<GeoInfo> result = target.lookup(givenContext);
+
+        // then
+        assertThat(result).succeededWith(givenGeoInfo);
+        verify(metrics).updateGeoLocationMetric(true);
+    }
+
+    @Test
+    public void lookupShouldPreferGeoLookupFromDeviceIpWhenIpPresentInRequestAndHeader() {
+        // given
+        final GeoInfo givenGeoInfo = GeoInfo.builder().vendor("vendor").build();
+        given(geoLocationService.lookup("deviceIp", TIMEOUT)).willReturn(Future.succeededFuture(givenGeoInfo));
+        given(resolver.findIpFromRequest(any(HttpRequestContext.class))).willReturn(IpAddress.of("headerIp", IP.v4));
+        final AuctionContext givenContext = AuctionContext.builder()
+                .bidRequest(BidRequest.builder().device(Device.builder().ip("deviceIp").build()).build())
                 .httpRequest(HttpRequestContext.builder().build())
                 .timeoutContext(TimeoutContext.of(100L, TIMEOUT, 2))
                 .account(Account.builder().settings(AccountSettings.of(true)).build())
