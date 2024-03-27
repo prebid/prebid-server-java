@@ -74,6 +74,7 @@ public class BasicHttpClientTest {
 
         final RequestOptions expectedRequestOptions = new RequestOptions()
                 .setFollowRedirects(true)
+                .setConnectTimeout(500L)
                 .setMethod(HttpMethod.POST)
                 .setAbsoluteURI("http://www.example.com")
                 .setHeaders(MultiMap.caseInsensitiveMultiMap());
