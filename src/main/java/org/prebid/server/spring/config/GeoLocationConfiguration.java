@@ -5,8 +5,7 @@ import io.vertx.core.http.HttpClientOptions;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.GeoLocationServiceWrapper;
-import org.prebid.server.auction.ImplicitParametersExtractor;
-import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
@@ -204,13 +203,11 @@ public class GeoLocationConfiguration {
     GeoLocationServiceWrapper geoLocationServiceWrapper(
             @Autowired(required = false) GeoLocationService geoLocationService,
             Metrics metrics,
-            ImplicitParametersExtractor implicitParametersExtractor,
-            IpAddressHelper ipAddressHelper) {
+            Ortb2ImplicitParametersResolver implicitParametersResolver) {
 
         return new GeoLocationServiceWrapper(geoLocationService,
                 metrics,
-                implicitParametersExtractor,
-                ipAddressHelper);
+                implicitParametersResolver);
     }
 
 }

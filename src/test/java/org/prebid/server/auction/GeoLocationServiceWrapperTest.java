@@ -13,6 +13,7 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.TimeoutContext;
+import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.geolocation.GeoLocationService;
@@ -44,9 +45,7 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
     @Mock
     private Metrics metrics;
     @Mock
-    private ImplicitParametersExtractor extractor;
-    @Mock
-    private IpAddressHelper ipAddressHelper;
+    private Ortb2ImplicitParametersResolver resolver;
 
     private GeoLocationServiceWrapper target;
 
@@ -54,8 +53,7 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
     public void before() {
         target = new GeoLocationServiceWrapper(geoLocationService,
                 metrics,
-                extractor,
-                ipAddressHelper);
+                resolver);
     }
 
     @Test
@@ -63,8 +61,7 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
         // given
         target = new GeoLocationServiceWrapper(null,
                 metrics,
-                extractor,
-                ipAddressHelper);
+                resolver);
         // when
         final Future<GeoInfo> result = target.doLookup("ip", null, TIMEOUT);
 
@@ -124,8 +121,7 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
     public void lookupShouldReturnNothingWhenLookupIsEnabledInAccountAndGeoLocationServiceIsNotConfigured() {
         // given
         target = new GeoLocationServiceWrapper(null, metrics,
-                extractor,
-                ipAddressHelper);
+                resolver);
 
         final AuctionContext givenContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().device(Device.builder().ip("ip").build()).build())

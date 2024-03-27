@@ -7,19 +7,19 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountSettings;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -29,17 +29,14 @@ public class GeoLocationServiceWrapper {
 
     private final GeoLocationService geoLocationService;
     private final Metrics metrics;
-    private final ImplicitParametersExtractor implicitParametersExtractor;
-    private final IpAddressHelper ipAddressHelper;
+    private final Ortb2ImplicitParametersResolver implicitParametersResolver;
 
     public GeoLocationServiceWrapper(GeoLocationService geoLocationService,
                                      Metrics metrics,
-                                     ImplicitParametersExtractor implicitParametersExtractor,
-                                     IpAddressHelper ipAddressHelper) {
+                                     Ortb2ImplicitParametersResolver implicitParametersResolver) {
         this.geoLocationService = geoLocationService;
         this.metrics = Objects.requireNonNull(metrics);
-        this.implicitParametersExtractor = Objects.requireNonNull(implicitParametersExtractor);
-        this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
+        this.implicitParametersResolver = Objects.requireNonNull(implicitParametersResolver);
     }
 
     //todo: account settings will work as expected if the default account resolving refactoring is done
@@ -80,24 +77,17 @@ public class GeoLocationServiceWrapper {
 
     private String getIpAddress(Device device, HttpRequestContext request) {
         final Optional<Device> optionalDevice = Optional.ofNullable(device);
-        final String deviceIp = optionalDevice.map(Device::getIp)
+        final String deviceIpString = optionalDevice.map(Device::getIp)
                 .filter(StringUtils::isNotBlank)
                 .or(() -> optionalDevice
                         .map(Device::getIpv6)
                         .filter(StringUtils::isNotBlank))
                 .orElse(null);
 
-        final CaseInsensitiveMultiMap headers = request.getHeaders();
-        final String host = request.getRemoteHost();
-        final List<String> requestIps = implicitParametersExtractor.ipFrom(headers, host);
-        final String headerIp = requestIps.stream()
-                .map(ipAddressHelper::toIpAddress)
-                .filter(Objects::nonNull)
-                .map(IpAddress::getIp)
-                .findFirst()
-                .orElse(null);
+        final IpAddress headerIp = implicitParametersResolver.findIpFromRequest(request);
+        final String headerIpString = headerIp != null ? headerIp.getIp() : null;
 
-        return StringUtils.defaultIfEmpty(deviceIp, headerIp);
+        return ObjectUtils.firstNonNull(deviceIpString, headerIpString);
     }
 
     private void logError(Throwable error) {
