@@ -17,7 +17,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Simple wrapper around {@link HttpClient} with general functionality.
@@ -60,9 +59,11 @@ public class BasicHttpClient implements HttpClient {
             return Future.failedFuture(e);
         }
 
-        final Promise<HttpClientResponse> promise = Promise.promise();
-        final long requestDeadlineMs = System.currentTimeMillis() + timeoutMs;
-        final AtomicLong timerId = new AtomicLong(-1);
+        final Promise<HttpClientResponse> responsePromise = Promise.promise();
+        final long timerId = vertx.setTimer(timeoutMs, ignored ->
+                responsePromise.tryFail(
+                        new TimeoutException("Timeout period of %dms has been exceeded".formatted(timeoutMs))));
+
         final RequestOptions options = new RequestOptions()
                 .setFollowRedirects(true)
                 .setConnectTimeout(timeoutMs)
@@ -70,29 +71,17 @@ public class BasicHttpClient implements HttpClient {
                 .setAbsoluteURI(absoluteUrl)
                 .setHeaders(headers);
 
-        httpClient.request(options)
-                .onSuccess(request -> timerId.set(makeTimeoutTimer(requestDeadlineMs, timeoutMs, request, promise)))
+        final Future<HttpClientRequest> requestFuture = httpClient.request(options);
+
+        requestFuture
                 .compose(request -> body != null ? request.send(Buffer.buffer(body)) : request.send())
                 .compose(response -> toInternalResponse(response, maxResponseSize))
-                .onSuccess(promise::tryComplete)
-                .onFailure(promise::tryFail)
-                .onComplete(ignored -> vertx.cancelTimer(timerId.get()));
+                .onSuccess(responsePromise::tryComplete)
+                .onFailure(responsePromise::tryFail);
 
-        return promise.future();
-    }
-
-    private long makeTimeoutTimer(long requestDeadlineMs,
-                                  long timeoutMs,
-                                  HttpClientRequest request,
-                                  Promise<HttpClientResponse> responsePromise) {
-
-        return vertx.setTimer(
-                Math.max(0L, requestDeadlineMs - System.currentTimeMillis()),
-                ignored -> {
-                    responsePromise.tryFail(
-                            new TimeoutException("Timeout period of %dms has been exceeded".formatted(timeoutMs)));
-                    request.reset();
-                });
+        return responsePromise.future()
+                .onComplete(ignored -> vertx.cancelTimer(timerId))
+                .onFailure(ignored -> requestFuture.onSuccess(HttpClientRequest::reset));
     }
 
     private Future<HttpClientResponse> toInternalResponse(io.vertx.core.http.HttpClientResponse response,
