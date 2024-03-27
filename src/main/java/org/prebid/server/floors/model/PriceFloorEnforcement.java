@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
+import java.util.List;
+
 @Value
 @Builder(toBuilder = true)
 public class PriceFloorEnforcement {
@@ -26,4 +28,7 @@ public class PriceFloorEnforcement {
 
     @JsonProperty("enforceRate")
     Integer enforceRate;
+
+    @JsonProperty("noFloorSignalBidders")
+    List<String> noFloorSignalBidders;
 }

@@ -26,4 +26,7 @@ public class PriceFloorData {
 
     @JsonProperty("modelGroups")
     List<PriceFloorModelGroup> modelGroups;
+
+    @JsonProperty("noFloorSignalBidders")
+    List<String> noFloorSignalBidders;
 }
