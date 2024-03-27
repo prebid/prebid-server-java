@@ -202,12 +202,13 @@ public class GeoLocationConfiguration {
     @Bean
     GeoLocationServiceWrapper geoLocationServiceWrapper(
             @Autowired(required = false) GeoLocationService geoLocationService,
-            Metrics metrics,
-            Ortb2ImplicitParametersResolver implicitParametersResolver) {
+            Ortb2ImplicitParametersResolver implicitParametersResolver,
+            Metrics metrics) {
 
-        return new GeoLocationServiceWrapper(geoLocationService,
-                metrics,
-                implicitParametersResolver);
+        return new GeoLocationServiceWrapper(
+                geoLocationService,
+                implicitParametersResolver,
+                metrics);
     }
 
 }

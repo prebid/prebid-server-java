@@ -46,25 +46,21 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
     @Mock
     private GeoLocationService geoLocationService;
     @Mock
-    private Metrics metrics;
-    @Mock
     private Ortb2ImplicitParametersResolver resolver;
+    @Mock
+    private Metrics metrics;
 
     private GeoLocationServiceWrapper target;
 
     @Before
     public void before() {
-        target = new GeoLocationServiceWrapper(geoLocationService,
-                metrics,
-                resolver);
+        target = new GeoLocationServiceWrapper(geoLocationService, resolver, metrics);
     }
 
     @Test
     public void doLookupShouldFailWhenGeoLocationServiceIsNotConfigured() {
         // given
-        target = new GeoLocationServiceWrapper(null,
-                metrics,
-                resolver);
+        target = new GeoLocationServiceWrapper(null, resolver, metrics);
         // when
         final Future<GeoInfo> result = target.doLookup("ip", null, TIMEOUT);
 
@@ -123,8 +119,7 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
     @Test
     public void lookupShouldReturnNothingWhenLookupIsEnabledInAccountAndGeoLocationServiceIsNotConfigured() {
         // given
-        target = new GeoLocationServiceWrapper(null, metrics,
-                resolver);
+        target = new GeoLocationServiceWrapper(null, resolver, metrics);
 
         final AuctionContext givenContext = AuctionContext.builder()
                 .bidRequest(BidRequest.builder().device(Device.builder().ip("ip").build()).build())
