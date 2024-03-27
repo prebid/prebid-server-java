@@ -22,13 +22,13 @@ public class RemoteFileSyncerProperties {
     @NotBlank
     private String tmpFilepath;
 
-    @NotNull
     @Min(1)
     private Integer retryCount;
 
-    @NotNull
     @Min(1)
     private Long retryIntervalMs;
+
+    private ExponentialBackoffProperties retry;
 
     @NotNull
     @Min(1)
