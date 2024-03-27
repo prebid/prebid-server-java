@@ -7,12 +7,16 @@ import io.vertx.core.Future;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.geolocation.model.GeoInfo;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountSettings;
 
@@ -25,16 +29,21 @@ public class GeoLocationServiceWrapper {
 
     private final GeoLocationService geoLocationService;
     private final Metrics metrics;
+    private final Ortb2ImplicitParametersResolver implicitParametersResolver;
 
-    public GeoLocationServiceWrapper(GeoLocationService geoLocationService, Metrics metrics) {
+    public GeoLocationServiceWrapper(GeoLocationService geoLocationService,
+                                     Metrics metrics,
+                                     Ortb2ImplicitParametersResolver implicitParametersResolver) {
         this.geoLocationService = geoLocationService;
         this.metrics = Objects.requireNonNull(metrics);
+        this.implicitParametersResolver = Objects.requireNonNull(implicitParametersResolver);
     }
 
     //todo: account settings will work as expected if the default account resolving refactoring is done
     public Future<GeoInfo> lookup(AuctionContext auctionContext) {
         final Account account = auctionContext.getAccount();
         final BidRequest bidRequest = auctionContext.getBidRequest();
+        final HttpRequestContext requestContext = auctionContext.getHttpRequest();
         final Timeout timeout = auctionContext.getTimeoutContext().getTimeout();
 
         final boolean isGeoLookupEnabled = Optional.ofNullable(account.getSettings())
@@ -45,7 +54,7 @@ public class GeoLocationServiceWrapper {
         final Device device = bidRequest.getDevice();
 
         return isGeoLookupEnabled
-                ? doLookup(getIpAddress(device), getCountry(device), timeout).otherwiseEmpty()
+                ? doLookup(getIpAddress(device, requestContext), getCountry(device), timeout).otherwiseEmpty()
                 : Future.succeededFuture();
     }
 
@@ -66,14 +75,19 @@ public class GeoLocationServiceWrapper {
                 .orElse(null);
     }
 
-    private String getIpAddress(Device device) {
+    private String getIpAddress(Device device, HttpRequestContext request) {
         final Optional<Device> optionalDevice = Optional.ofNullable(device);
-        return optionalDevice.map(Device::getIp)
+        final String deviceIpString = optionalDevice.map(Device::getIp)
                 .filter(StringUtils::isNotBlank)
                 .or(() -> optionalDevice
                         .map(Device::getIpv6)
                         .filter(StringUtils::isNotBlank))
                 .orElse(null);
+
+        final IpAddress headerIp = implicitParametersResolver.findIpFromRequest(request);
+        final String headerIpString = headerIp != null ? headerIp.getIp() : null;
+
+        return ObjectUtils.firstNonNull(deviceIpString, headerIpString);
     }
 
     private void logError(Throwable error) {
