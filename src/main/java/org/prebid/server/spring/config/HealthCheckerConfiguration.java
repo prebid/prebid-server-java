@@ -25,20 +25,22 @@ public class HealthCheckerConfiguration {
     @ConditionalOnProperty(prefix = "health-check.database", name = "enabled", havingValue = "true")
     HealthChecker databaseChecker(Vertx vertx,
                                   JDBCClient jdbcClient,
-                                  @Value("${health-check.database.refresh-period-ms}") long refreshPeriod) {
+                                  @Value("${health-check.database.refresh-period-ms}") long refreshPeriod,
+                                  @Value("${health-check.database.refresh-period-jitter-ms:0}") long jitter) {
 
-        return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod);
+        return new DatabaseHealthChecker(vertx, jdbcClient, refreshPeriod, jitter);
     }
 
     @Bean
     @ConditionalOnExpression("${health-check.geolocation.enabled} == true and ${geolocation.enabled} == true")
     HealthChecker geoLocationChecker(Vertx vertx,
                                      @Value("${health-check.geolocation.refresh-period-ms}") long refreshPeriod,
+                                     @Value("${health-check.geolocation.refresh-period-jitter-ms:0}") long jitter,
                                      GeoLocationService geoLocationService,
                                      TimeoutFactory timeoutFactory,
                                      Clock clock) {
 
-        return new GeoLocationHealthChecker(vertx, refreshPeriod, geoLocationService, timeoutFactory, clock);
+        return new GeoLocationHealthChecker(vertx, refreshPeriod, jitter, geoLocationService, timeoutFactory, clock);
     }
 
     @Bean

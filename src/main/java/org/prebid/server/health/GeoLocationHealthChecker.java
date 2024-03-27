@@ -24,11 +24,12 @@ public class GeoLocationHealthChecker extends PeriodicHealthChecker {
 
     public GeoLocationHealthChecker(Vertx vertx,
                                     long refreshPeriod,
+                                    long jitter,
                                     GeoLocationService geoLocationService,
                                     TimeoutFactory timeoutFactory,
                                     Clock clock) {
 
-        super(vertx, refreshPeriod);
+        super(vertx, refreshPeriod, jitter);
         this.geoLocationService = Objects.requireNonNull(geoLocationService);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.clock = Objects.requireNonNull(clock);

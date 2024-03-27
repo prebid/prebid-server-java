@@ -47,7 +47,8 @@ public class GeoLocationHealthCheckerTest {
     public void setUp() {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
-        geoLocationHealthChecker = new GeoLocationHealthChecker(vertx, 1L, geoLocationService, timeoutFactory, clock);
+        geoLocationHealthChecker = new GeoLocationHealthChecker(
+                vertx, 1L, 0L, geoLocationService, timeoutFactory, clock);
     }
 
     @Test
