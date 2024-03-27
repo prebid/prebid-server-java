@@ -1,0 +1,13 @@
+adapters:
+  ownadx:
+    endpoint: "https://pbs.prebid-ownadx.com/bidder/bid/{{AccountID}}/{{ZoneID}}?token={{SourceId}}"
+    meta-info:
+      maintainer-email: prebid-team@techbravo.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 0
