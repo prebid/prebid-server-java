@@ -15,7 +15,6 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
-import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 
 import java.util.ArrayList;
@@ -181,7 +180,7 @@ public class MedianetBidderTest extends VertxTest {
         assertThat(result.getValue()).containsExactly(bannerBid);
     }
 
-    @Test(expected = PreBidException.class)
+    @Test
     public void makeBidsShouldReturnErrorIfMtypeIsWrong() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = sampleHttpCall(
@@ -191,7 +190,11 @@ public class MedianetBidderTest extends VertxTest {
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
-        // then throws PreBidException
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getValue()).isEmpty();
+        final BidderError error = BidderError.badServerResponse("Unable to fetch mediaType: imp_id");
+        assertThat(result.getErrors()).containsExactly(error);
     }
 
     private static BidResponse sampleBidResponse(Function<Bid.BidBuilder,

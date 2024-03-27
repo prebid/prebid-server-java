@@ -19,6 +19,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -41,15 +42,21 @@ public class MedianetBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final BidResponse bidResponse;
         try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
+            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
+
+        final List<BidderError> errors = new ArrayList<>();
+        final List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse, errors);
+
+        return Result.of(bids, errors);
     }
 
-    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
+    private static List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse,
+                                               List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
@@ -61,7 +68,8 @@ public class MedianetBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, resolveBidType(bid, bidRequest.getImp()), currency))
+                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), currency, errors))
+                .filter(Objects::nonNull)
                 .toList();
     }
 
@@ -80,6 +88,18 @@ public class MedianetBidder implements Bidder<BidRequest> {
                     throw new PreBidException("Unable to fetch mediaType: %s"
                             .formatted(bid.getImpid()));
         };
+    }
+
+    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String cur, List<BidderError> errors) {
+        final BidType bidType;
+        try {
+            bidType = resolveBidType(bid, imps);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badServerResponse(e.getMessage()));
+            return null;
+        }
+
+        return BidderBid.of(bid, bidType, cur);
     }
 
     private static BidType resolveBidTypeFromImpId(String impId, List<Imp> imps) {
