@@ -26,6 +26,9 @@ public class Ccpa {
     }
 
     public boolean isEnforced() {
+        if (usPrivacy == null) {
+            return false;
+        }
         try {
             validateUsPrivacy(usPrivacy);
         } catch (PreBidException e) {
