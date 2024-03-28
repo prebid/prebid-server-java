@@ -3,6 +3,7 @@ package org.prebid.server.handler.admin;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -12,6 +13,9 @@ import org.prebid.server.settings.proto.request.UpdateSettingsCacheRequest;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
+
+import static io.vertx.core.http.HttpMethod.DELETE;
+import static io.vertx.core.http.HttpMethod.POST;
 
 /**
  * Handles HTTP requests for updating/invalidating settings cache.
@@ -31,10 +35,13 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
 
     @Override
     public void handle(RoutingContext routingContext) {
-        switch (routingContext.request().method()) {
-            case POST -> doSave(routingContext);
-            case DELETE -> doInvalidate(routingContext);
-            default -> doFail(routingContext);
+        HttpMethod method = routingContext.request().method();
+        if (method.equals(POST)) {
+            doSave(routingContext);
+        } else if (method.equals(DELETE)) {
+            doInvalidate(routingContext);
+        } else {
+            doFail(routingContext);
         }
     }
 
