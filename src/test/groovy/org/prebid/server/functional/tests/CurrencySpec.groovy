@@ -118,15 +118,15 @@ class CurrencySpec extends BaseSpec {
         JPY             || USD
     }
 
-    def "PBS should use intermediate currency conversion when direct conversion is not available"() {
+    def "PBS should use cross currency conversion when direct, reverse and intermediate conversion is not available"() {
         given: "Default BidRequest with #requestCurrency currency"
         def bidRequest = BidRequest.defaultBidRequest.tap { cur = [requestCurrency] }
 
         and: "Default Bid with a #bidCurrency currency"
         def bidderResponse = BidResponse.getDefaultBidResponse(bidRequest).tap { cur = bidCurrency }
+        bidder.setResponse(bidRequest.id, bidderResponse)
 
         when: "PBS processes auction request"
-        bidder.setResponse(bidRequest.id, bidderResponse)
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Auction response should contain bid in #requestCurrency currency"
