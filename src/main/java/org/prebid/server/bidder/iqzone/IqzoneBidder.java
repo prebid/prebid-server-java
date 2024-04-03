@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
@@ -50,43 +49,32 @@ public class IqzoneBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
-            final ExtImpIqzone extImpIqzone;
             try {
-                extImpIqzone = parseImpExt(imp);
+                final ExtImpIqzone extImpIqzone = parseImpExt(imp);
+                final Imp modifiedImp = modifyImp(imp, extImpIqzone);
+
+                httpRequests.add(makeHttpRequest(request, modifiedImp));
             } catch (IllegalArgumentException e) {
                 return Result.withError(BidderError.badInput(e.getMessage()));
             }
-
-            final Imp modifiedImp = modifyImp(imp, extImpIqzone);
-            httpRequests.add(makeHttpRequest(request, modifiedImp));
         }
 
         return Result.withValues(httpRequests);
     }
 
     private ExtImpIqzone parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), IQZONE_EXT_TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
+        return mapper.mapper().convertValue(imp.getExt(), IQZONE_EXT_TYPE_REFERENCE).getBidder();
     }
 
     private Imp modifyImp(Imp imp, ExtImpIqzone impExt) {
         final String placementId = impExt.getPlacementId();
-        final String endpointId = impExt.getEndpointId();
-
-        final boolean isPlacementIdEmpty = StringUtils.isEmpty(placementId);
-        if (isPlacementIdEmpty && StringUtils.isEmpty(endpointId)) {
-            return imp;
-        }
-
         final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
-        if (!isPlacementIdEmpty) {
+
+        if (StringUtils.isNotEmpty(placementId)) {
             modifiedImpExtBidder.set("placementId", TextNode.valueOf(placementId));
             modifiedImpExtBidder.set("type", TextNode.valueOf("publisher"));
         } else {
-            modifiedImpExtBidder.set("endpointId", TextNode.valueOf(endpointId));
+            modifiedImpExtBidder.set("endpointId", TextNode.valueOf(impExt.getEndpointId()));
             modifiedImpExtBidder.set("type", TextNode.valueOf("network"));
         }
 
@@ -96,7 +84,8 @@ public class IqzoneBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp) {
-        final BidRequest outgoingRequest = request.toBuilder().imp(Collections.singletonList(imp)).build();
+        final BidRequest outgoingRequest = request.toBuilder().imp(List.of(imp)).build();
+
         return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
     }
 
@@ -104,39 +93,45 @@ public class IqzoneBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
+            return Result.of(extractBids(httpCall.getRequest().getPayload(), bidResponse), Collections.emptyList());
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             return Collections.emptyList();
         }
 
+        return bidsFromResponse(bidRequest, bidResponse);
+    }
+
+    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), bidRequest.getImp()), bidResponse.getCur()))
                 .toList();
     }
 
-    private static BidType getBidMediaType(Bid bid) {
-        final Integer markupType = bid.getMtype();
-        if (markupType == null) {
-            throw new PreBidException("Missing MType for bid: " + bid.getId());
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                }
+                if (imp.getVideo() != null) {
+                    return BidType.video;
+                }
+                if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                }
+                throw new PreBidException("Unknown impression type for ID: \"%s\"".formatted(impId));
+            }
         }
-
-        return switch (markupType) {
-            case 1 -> BidType.banner;
-            case 2 -> BidType.video;
-            case 4 -> BidType.xNative;
-            default -> throw new PreBidException(
-                    "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid());
-        };
+        throw new PreBidException("Failed to find impression for ID: \"%s\"".formatted(impId));
     }
 }
