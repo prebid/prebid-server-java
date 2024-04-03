@@ -344,7 +344,9 @@ class PrebidServerService implements ObjectMapperWrapper {
         requestSpecification.post(COOKIE_SYNC_ENDPOINT)
     }
 
-    private Response getAmp(AmpRequest ampRequest, Map<String, String> headers = [:], Map<String, Object> queries) {
+    private Response getAmp(AmpRequest ampRequest,
+                            Map<String, String> headers = [:],
+                            Map<String, Object> queries = [:]) {
         def map = toMap(ampRequest)
 
         if (!queries.isEmpty()) {

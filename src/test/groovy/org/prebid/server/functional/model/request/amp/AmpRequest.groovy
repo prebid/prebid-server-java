@@ -28,7 +28,7 @@ class AmpRequest {
     String addtlConsent
     String gppSid
     String unknownField
-    String secondUnknownField
+    Integer secondUnknownField
 
     static AmpRequest getDefaultAmpRequest() {
         def request = new AmpRequest()

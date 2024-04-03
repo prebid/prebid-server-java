@@ -1097,7 +1097,7 @@ class TargetingSpec extends BaseSpec {
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
         def ampData = bidderRequests.ext.prebid.amp.data
         assert ampData.unknownField == unknownValue
-        assert ampData.secondUnknownField == unknownValue
+        assert ampData.secondUnknownField == secondUnknownValue
     }
 
     private static PrebidServerService getEnabledWinBidsPbsService() {
