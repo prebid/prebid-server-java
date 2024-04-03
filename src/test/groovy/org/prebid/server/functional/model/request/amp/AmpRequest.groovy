@@ -27,6 +27,8 @@ class AmpRequest {
     Boolean gdprApplies
     String addtlConsent
     String gppSid
+    String unknownField
+    String secondUnknownField
 
     static AmpRequest getDefaultAmpRequest() {
         def request = new AmpRequest()
