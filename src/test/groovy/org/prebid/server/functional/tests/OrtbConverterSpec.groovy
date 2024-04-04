@@ -606,7 +606,8 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request shouldn't contain the imp[0].video.* as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest) {
             !imp[0].video.rqddurs
             !imp[0].video.maxseq
             !imp[0].video.poddur
@@ -617,7 +618,7 @@ class OrtbConverterSpec extends BaseSpec {
         }
 
         and: "Bidder request should contain the imp[0].video.* as on request"
-        bidder.getBidderRequest(bidRequest.id).imp[0].video.plcmt == placement
+        bidderRequest.imp[0].video.plcmt == placement
     }
 
     def "PBS shouldn't remove imp[0].video.* when we support ortb 2.6"() {
