@@ -50,6 +50,9 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
             logEvent = LogEvent.of("unknown", null);
         }
 
+        LogEvent<AuctionEvent> newEvent = (LogEvent<AuctionEvent>) logEvent.getEvent();
+        newEvent.getEvent();
+
         logger.debug(mapper.encodeToString(logEvent));
 
         return Future.succeededFuture();
