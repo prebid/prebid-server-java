@@ -1,6 +1,7 @@
 package org.prebid.server.auction.gpp;
 
 import io.vertx.core.Future;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
 import org.prebid.server.auction.gpp.model.GppContextWrapper;
@@ -44,7 +45,7 @@ public class SetuidGppService {
 
     private static Integer toInt(String string) {
         try {
-            return string != null ? Integer.parseInt(string) : null;
+            return StringUtils.isNotBlank(string) ? Integer.parseInt(string) : null;
         } catch (NumberFormatException e) {
             return null;
         }

@@ -1,6 +1,9 @@
 package org.prebid.server.bidder.yieldlab;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
@@ -19,9 +22,12 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.yieldlab.model.YieldlabDigitalServicesActResponse;
 import org.prebid.server.bidder.yieldlab.model.YieldlabResponse;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.yieldlab.ExtImpYieldlab;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -226,7 +232,7 @@ public class YieldlabBidderTest extends VertxTest {
                 .build();
 
         final YieldlabResponse yieldlabResponse = YieldlabResponse.of(1, 201d, "yieldlab",
-                "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
+                "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5", null);
 
         final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
 
@@ -274,7 +280,7 @@ public class YieldlabBidderTest extends VertxTest {
                 .build();
 
         final YieldlabResponse yieldlabResponse = YieldlabResponse.of(12345, 201d, "yieldlab",
-                "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5");
+                "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5", null);
 
         final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
 
@@ -299,6 +305,199 @@ public class YieldlabBidderTest extends VertxTest {
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getAdm)
                 .containsExactly(expectedAdm);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddDsaRequestParamsToRequestWhenDsaIsPresent() {
+        //given
+        final ExtRegsDsa dsa = ExtRegsDsa.of(
+                1, 2, 3, List.of(ExtRegsDsaTransparency.of("testDomain", List.of(1, 2, 3)))
+        );
+        final Regs regs = Regs.builder()
+                    .ext(ExtRegs.of(null, null, null, dsa))
+                    .build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                    .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpYieldlab.builder()
+                            .adslotId("123")
+                            .build())))
+                    .build()))
+                .regs(regs)
+                .build();
+
+        //when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        final List<String> expectations = List.of(
+                "&dsarequired=1",
+                "&dsapubrender=2",
+                "&dsadatatopub=3",
+                "&dsatransparency=testDomain%7E1_2_3"
+        );
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue().get(0).getUri())
+                .contains(expectations);
+    }
+
+    @Test
+    public void makeHttpRequestsEncodesDsaTransparencyCorrectlyWhenBidRequestContainsDsaTransparencyInformation() {
+        //given
+        final ExtRegsDsa dsa = ExtRegsDsa.of(
+                1, 2, 3, List.of(
+                    ExtRegsDsaTransparency.of("testDomain", List.of(1, 2, 3)),
+                    ExtRegsDsaTransparency.of("testDomain2", List.of(4, 5, 6))
+                )
+        );
+        final Regs regs = Regs.builder()
+                .ext(ExtRegs.of(null, null, null, dsa))
+                .build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                    .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpYieldlab.builder()
+                            .adslotId("123")
+                            .build())))
+                    .build()))
+                .regs(regs)
+                .build();
+
+        //when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        final List<String> expectations = List.of(
+                "&dsarequired=1",
+                "&dsapubrender=2",
+                "&dsadatatopub=3",
+                "&dsatransparency=testDomain%7E1_2_3%7E%7EtestDomain2%7E4_5_6"
+        );
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue().get(0).getUri())
+                .contains(expectations);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSendDsaInfoInBidRequestWhenDsaIsMissing() {
+        //given
+        final ExtRegsDsa dsa = ExtRegsDsa.of(
+                2, null, 3, null
+        );
+        final Regs regs = Regs.builder()
+                .ext(ExtRegs.of(null, null, null, dsa))
+                .build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                    .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpYieldlab.builder()
+                            .adslotId("123")
+                            .build())))
+                    .build()))
+                .regs(regs)
+                .build();
+
+        //when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        final List<String> expectations = List.of(
+                "dsarequired=2",
+                "dsadatatopub=3"
+        );
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue().get(0).getUri())
+                .contains(expectations);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotAddDsaTransparencyParamsToBidRequestWhenParamsAreMissing() {
+        //given
+        final ExtRegsDsa dsa = ExtRegsDsa.of(
+                2, null, 3, List.of(ExtRegsDsaTransparency.of("domain", null))
+        );
+        final Regs regs = Regs.builder()
+                .ext(ExtRegs.of(null, null, null, dsa))
+                .build();
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                    .ext(mapper.valueToTree(ExtPrebid.of(null,
+                        ExtImpYieldlab.builder()
+                            .adslotId("123")
+                            .build())))
+                    .build()))
+                .regs(regs)
+                .build();
+
+        //when
+        final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        final List<String> expectations = List.of(
+                "dsarequired=2",
+                "dsadatatopub=3"
+        );
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue().get(0).getUri())
+                .contains(expectations);
+    }
+
+    @Test
+    public void makeBidsShouldAddDsaParamsWhenDsaIsPresentInResponse() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(singletonList(Imp.builder()
+                    .id("test-imp-id")
+                    .banner(Banner.builder().w(1).h(1).build())
+                    .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpYieldlab.builder()
+                        .adslotId("1")
+                        .supplyId("2")
+                        .adSize("adSize")
+                        .targeting(singletonMap("key", "value"))
+                        .extId("extId")
+                        .build())))
+                    .build()))
+                .build();
+
+        final YieldlabDigitalServicesActResponse dsaResponse = YieldlabDigitalServicesActResponse.of(
+                "yieldlab",
+                "yieldlab",
+                2,
+                List.of(
+                    YieldlabDigitalServicesActResponse.Transparency.of(
+                        "yieldlab.de",
+                        List.of(1, 2, 3)
+                    )
+                )
+        );
+
+        final YieldlabResponse yieldlabResponse = YieldlabResponse.of(1, 201d, "yieldlab",
+                "728x90", 1234, 5678, "40cb3251-1e1e-4cfd-8edc-7d32dc1a21e5", dsaResponse
+        );
+
+        final BidderCall<Void> httpCall = givenHttpCall(mapper.writeValueAsString(yieldlabResponse));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        final ObjectNode expectedTransparency = mapper.createObjectNode();
+        expectedTransparency.put("domain", "yieldlab.de");
+        expectedTransparency.set("dsaparams", mapper.convertValue(List.of(1, 2, 3), JsonNode.class));
+
+        final ArrayNode transparencies = mapper.createArrayNode();
+        transparencies.add(expectedTransparency);
+
+        final ObjectNode expectedDsa = mapper.createObjectNode();
+        expectedDsa.put("paid", "yieldlab");
+        expectedDsa.put("behalf", "yieldlab");
+        expectedDsa.put("adrender", 2);
+        expectedDsa.set("transparency", transparencies);
+
+        final JsonNode actualDsa = result.getValue().get(0).getBid().getExt().get("dsa");
+
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(actualDsa).isEqualTo(expectedDsa);
     }
 
     private static BidderCall<Void> givenHttpCall(String body) {

@@ -471,7 +471,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
             it.componentType = null
             it.componentName = [PBSUtils.randomString]
             it.gppSid = [USP_V1.intValue]
-            it.geo = ["$USA.value".toString()]
+            it.geo = ["$USA.ISOAlpha3".toString()]
         }
 
         and: "Set activity"
@@ -561,7 +561,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         deviceGeo                                           | conditionGeo
-        new Geo(country: USA)                               | [USA.value]
+        new Geo(country: USA)                               | [USA.ISOAlpha3]
         new Geo(country: USA, region: ALABAMA.abbreviation) | [USA.withState(ALABAMA)]
         new Geo(country: USA, region: ALABAMA.abbreviation) | [CAN.withState(ONTARIO), USA.withState(ALABAMA)]
     }
