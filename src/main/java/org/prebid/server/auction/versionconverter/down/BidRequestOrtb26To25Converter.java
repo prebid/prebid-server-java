@@ -155,8 +155,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 video.getPodseq(),
                 video.getRqddurs(),
                 video.getSlotinpod(),
-                video.getMincpmpersec(),
-                video.getPlcmt())
+                video.getMincpmpersec())
 
                 ? video.toBuilder()
                 .maxseq(null)
@@ -166,7 +165,6 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 .rqddurs(null)
                 .slotinpod(null)
                 .mincpmpersec(null)
-                .plcmt(null)
                 .build()
 
                 : null;

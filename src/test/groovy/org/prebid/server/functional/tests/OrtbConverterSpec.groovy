@@ -586,8 +586,9 @@ class OrtbConverterSpec extends BaseSpec {
         }
     }
 
-    def "PBS should remove imp[0].video.* when we don't support ortb 2.6"() {
+    def "PBS should remove imp[0].video.* and keep imp[0].video.plcmt when we don't support ortb 2.6"() {
         given: "Default bid request with imp[0].video.*"
+        def placement = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].video = Video.defaultVideo.tap {
                 rqddurs = [PBSUtils.randomNumber]
@@ -597,15 +598,16 @@ class OrtbConverterSpec extends BaseSpec {
                 podseq = PBSUtils.randomNumber
                 mincpmpersec = PBSUtils.randomDecimal
                 slotinpod = PBSUtils.randomNumber
-                plcmt = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
+                plcmt = placement
             }
         }
 
         when: "Requesting PBS auction with ortb 2.5"
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
-        then: "BidResponse shouldn't contain the imp[0].video.* as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
+        then: "Bidder request shouldn't contain the imp[0].video.* as on request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest) {
             !imp[0].video.rqddurs
             !imp[0].video.maxseq
             !imp[0].video.poddur
@@ -613,8 +615,10 @@ class OrtbConverterSpec extends BaseSpec {
             !imp[0].video.podseq
             !imp[0].video.mincpmpersec
             !imp[0].video.slotinpod
-            !imp[0].video.plcmt
         }
+
+        and: "Bidder request should contain the imp[0].video.* as on request"
+        bidderRequest.imp[0].video.plcmt == placement
     }
 
     def "PBS shouldn't remove imp[0].video.* when we support ortb 2.6"() {

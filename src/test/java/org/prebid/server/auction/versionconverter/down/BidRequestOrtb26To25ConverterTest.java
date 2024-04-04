@@ -209,7 +209,6 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                                 .rqddurs(singletonList(1))
                                 .slotinpod(1)
                                 .mincpmpersec(BigDecimal.ONE)
-                                .plcmt(1)
                                 .build())
                         .audio(Audio.builder()
                                 .poddur(1)
