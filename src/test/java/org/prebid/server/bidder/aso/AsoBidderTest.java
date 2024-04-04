@@ -47,7 +47,7 @@ public class AsoBidderTest extends VertxTest {
 
     @Test
     public void shouldFailOnBidderCreation() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new VoxBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new AsoBidder("invalid_url", jacksonMapper));
     }
 
     @Test
