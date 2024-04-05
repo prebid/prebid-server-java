@@ -10,7 +10,6 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
@@ -18,9 +17,6 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
-import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.deals.UserService;
-import org.prebid.server.deals.events.ApplicationEventService;
 import org.prebid.server.events.EventRequest;
 import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
@@ -48,36 +44,24 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     private static final String TRACKING_PIXEL_PNG = "static/tracking-pixel.png";
     private static final String PNG_CONTENT_TYPE = "image/png";
 
-    private final UidsCookieService uidsCookieService;
-    private final ApplicationEventService applicationEventService;
-    private final UserService userService;
     private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final TimeoutFactory timeoutFactory;
     private final ApplicationSettings applicationSettings;
     private final long defaultTimeoutMillis;
-    private final boolean dealsEnabled;
     private final TrackingPixel trackingPixel;
 
-    public NotificationEventHandler(UidsCookieService uidsCookieService,
-                                    ApplicationEventService applicationEventService,
-                                    UserService userService,
-                                    ActivityInfrastructureCreator activityInfrastructureCreator,
+    public NotificationEventHandler(ActivityInfrastructureCreator activityInfrastructureCreator,
                                     AnalyticsReporterDelegator analyticsDelegator,
                                     TimeoutFactory timeoutFactory,
                                     ApplicationSettings applicationSettings,
-                                    long defaultTimeoutMillis,
-                                    boolean dealsEnabled) {
+                                    long defaultTimeoutMillis) {
 
-        this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
-        this.applicationEventService = applicationEventService;
-        this.userService = userService;
         this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.defaultTimeoutMillis = defaultTimeoutMillis;
-        this.dealsEnabled = dealsEnabled;
 
         trackingPixel = createTrackingPixel();
     }
@@ -144,45 +128,35 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
     private void handleEvent(AsyncResult<Account> async, EventRequest eventRequest, RoutingContext routingContext) {
         if (async.failed()) {
-            respondWithServerError(routingContext, "Error occurred while fetching account", async.cause());
-        } else {
-            final Account account = async.result();
-
-            final String lineItemId = eventRequest.getLineItemId();
-            final String bidId = eventRequest.getBidId();
-            if (dealsEnabled && lineItemId != null) {
-                applicationEventService.publishLineItemWinEvent(lineItemId);
-                userService.processWinEvent(lineItemId, bidId, uidsCookieService.parseFromRequest(routingContext));
-            }
-
-            final boolean eventsEnabledForAccount = Objects.equals(accountEventsEnabled(account), true);
-            final boolean eventsEnabledForRequest = eventRequest.getAnalytics() == EventRequest.Analytics.enabled;
-
-            if (!eventsEnabledForAccount && eventsEnabledForRequest) {
-                respondWithUnauthorized(routingContext,
-                        "Account '%s' doesn't support events".formatted(account.getId()));
-                return;
-            }
-
-            final EventRequest.Type eventType = eventRequest.getType();
-            if (eventsEnabledForRequest) {
-                final NotificationEvent notificationEvent = NotificationEvent.builder()
-                        .type(eventType == EventRequest.Type.win
-                                ? NotificationEvent.Type.win : NotificationEvent.Type.imp)
-                        .bidId(eventRequest.getBidId())
-                        .account(account)
-                        .bidder(eventRequest.getBidder())
-                        .timestamp(eventRequest.getTimestamp())
-                        .integration(eventRequest.getIntegration())
-                        .httpContext(HttpRequestContext.from(routingContext))
-                        .lineItemId(lineItemId)
-                        .activityInfrastructure(activityInfrastructure(account))
-                        .build();
-
-                analyticsDelegator.processEvent(notificationEvent);
-            }
-            respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.image);
+            respondWithAccountError(routingContext, async.cause());
+            return;
         }
+
+        final Account account = async.result();
+        final boolean eventsEnabledForAccount = Objects.equals(accountEventsEnabled(account), true);
+        final boolean eventsEnabledForRequest = eventRequest.getAnalytics() == EventRequest.Analytics.enabled;
+
+        if (!eventsEnabledForAccount && eventsEnabledForRequest) {
+            respondWithUnauthorized(routingContext, "Account '%s' doesn't support events".formatted(account.getId()));
+            return;
+        }
+
+        final EventRequest.Type eventType = eventRequest.getType();
+        if (eventsEnabledForRequest) {
+            final NotificationEvent notificationEvent = NotificationEvent.builder()
+                    .type(eventType == EventRequest.Type.win ? NotificationEvent.Type.win : NotificationEvent.Type.imp)
+                    .bidId(eventRequest.getBidId())
+                    .account(account)
+                    .bidder(eventRequest.getBidder())
+                    .timestamp(eventRequest.getTimestamp())
+                    .integration(eventRequest.getIntegration())
+                    .httpContext(HttpRequestContext.from(routingContext))
+                    .activityInfrastructure(activityInfrastructure(account))
+                    .build();
+
+            analyticsDelegator.processEvent(notificationEvent);
+        }
+        respondWithOk(routingContext, eventRequest.getFormat() == EventRequest.Format.image);
     }
 
     private static Boolean accountEventsEnabled(Account account) {
@@ -202,13 +176,14 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
 
     private void respondWithOk(RoutingContext routingContext, boolean respondWithPixel) {
         if (respondWithPixel) {
-            HttpUtil.executeSafely(routingContext, Endpoint.event,
+            HttpUtil.executeSafely(
+                    routingContext,
+                    Endpoint.event,
                     response -> response
                             .putHeader(HttpHeaders.CONTENT_TYPE, trackingPixel.getContentType())
                             .end(Buffer.buffer(trackingPixel.getContent())));
         } else {
-            HttpUtil.executeSafely(routingContext, Endpoint.event,
-                    HttpServerResponse::end);
+            HttpUtil.executeSafely(routingContext, Endpoint.event, HttpServerResponse::end);
         }
     }
 
@@ -220,14 +195,16 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
         respondWith(routingContext, HttpResponseStatus.UNAUTHORIZED, message);
     }
 
-    private static void respondWithServerError(RoutingContext routingContext, String message, Throwable exception) {
-        logger.warn(message, exception);
-        final String body = "%s: %s".formatted(message, exception.getMessage());
+    private static void respondWithAccountError(RoutingContext routingContext, Throwable exception) {
+        logger.warn("Error occurred while fetching account", exception);
+        final String body = "Error occurred while fetching account: " + exception.getMessage();
         respondWith(routingContext, HttpResponseStatus.INTERNAL_SERVER_ERROR, body);
     }
 
     private static void respondWith(RoutingContext routingContext, HttpResponseStatus status, String body) {
-        HttpUtil.executeSafely(routingContext, Endpoint.event,
+        HttpUtil.executeSafely(
+                routingContext,
+                Endpoint.event,
                 response -> response
                         .setStatusCode(status.code())
                         .end(body));
@@ -236,8 +213,7 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
     /**
      * Internal class for holding pixels content type to its value.
      */
-    @AllArgsConstructor(staticName = "of")
-    @Value
+    @Value(staticConstructor = "of")
     private static class TrackingPixel {
 
         String contentType;

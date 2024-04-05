@@ -60,7 +60,6 @@ public class VastModifier {
                     putObject.getBidid(),
                     bidder,
                     accountId,
-                    null,
                     eventsContext);
             try {
                 return new TextNode(appendTrackingUrlToVastXml(value.asText(), vastUrlTracking, bidder));
@@ -78,8 +77,8 @@ public class VastModifier {
                                    String eventBidId,
                                    String accountId,
                                    EventsContext eventsContext,
-                                   List<String> debugWarnings,
-                                   String lineItemId) {
+                                   List<String> debugWarnings) {
+
         if (!bidderCatalog.isModifyingVastXmlAllowed(bidder)) {
             return bidAdm;
         }
@@ -89,8 +88,7 @@ public class VastModifier {
             return vastXml;
         }
 
-        final String vastUrl = eventsService.vastUrlTracking(eventBidId, bidder,
-                accountId, lineItemId, eventsContext);
+        final String vastUrl = eventsService.vastUrlTracking(eventBidId, bidder, accountId, eventsContext);
         try {
             return appendTrackingUrlToVastXml(vastXml, vastUrl, bidder);
         } catch (PreBidException e) {

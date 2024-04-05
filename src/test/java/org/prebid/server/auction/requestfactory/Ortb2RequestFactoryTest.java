@@ -33,9 +33,6 @@ import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.proto.Uids;
-import org.prebid.server.deals.UserAdditionalInfoService;
-import org.prebid.server.deals.model.DeepDebugLog;
-import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.exception.BlacklistedAccountException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -80,7 +77,6 @@ import org.prebid.server.settings.model.DsaTransparency;
 import org.prebid.server.validation.RequestValidator;
 import org.prebid.server.validation.model.ValidationResult;
 
-import java.time.Clock;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -128,15 +124,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     @Mock
     private HookStageExecutor hookStageExecutor;
     @Mock
-    private UserAdditionalInfoService userAdditionalInfoService;
-    @Mock
     private PriceFloorProcessor priceFloorProcessor;
     @Mock
     private CountryCodeMapper countryCodeMapper;
     @Mock
     private Metrics metrics;
-
-    private final Clock clock = Clock.systemDefaultZone();
 
     private Ortb2RequestFactory target;
 
@@ -172,9 +164,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .willAnswer(invocation -> Future.succeededFuture(HookStageExecutionResult.of(
                         false,
                         AuctionRequestPayloadImpl.of(invocation.getArgument(0)))));
-
-        given(userAdditionalInfoService.populate(any()))
-                .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
 
         givenTarget(90);
     }
@@ -598,7 +587,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .hookExecutionContext(hookExecutionContext)
                 .debugContext(DebugContext.empty())
                 .requestRejected(false)
-                .txnLog(TxnLog.create())
                 .debugHttpCalls(emptyMap())
                 .bidRejectionTrackers(new HashMap<>())
                 .build());
@@ -629,7 +617,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                         .prebidErrors(new ArrayList<>())
                         .debugWarnings(new ArrayList<>())
                         .hookExecutionContext(hookExecutionContext)
-                        .txnLog(TxnLog.create())
                         .debugHttpCalls(emptyMap())
                         .build(),
                 httpRequest,
@@ -651,8 +638,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .prebidErrors(new ArrayList<>())
                 .debugWarnings(new ArrayList<>())
                 .hookExecutionContext(hookExecutionContext)
-                .txnLog(TxnLog.create())
-                .deepDebugLog(DeepDebugLog.create(false, clock))
                 .debugHttpCalls(new HashMap<>())
                 .build());
     }
@@ -670,38 +655,6 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getDebugContext()).isEqualTo(DebugContext.empty());
-    }
-
-    @Test
-    public void enrichAuctionContextShouldReturnAuctionContextWithDeepDebugLogWhenDeepDebugIsOff() {
-        // when
-        final AuctionContext auctionContext = target.enrichAuctionContext(
-                AuctionContext.builder().build(),
-                httpRequest,
-                BidRequest.builder().build(),
-                100);
-
-        // then
-        assertThat(auctionContext.getDeepDebugLog()).isNotNull().returns(false, DeepDebugLog::isDeepDebugEnabled);
-    }
-
-    @Test
-    public void enrichAuctionContextShouldReturnAuctionContextWithDeepDebugLogWhenDeepDebugIsOn() {
-        // given
-        final BidRequest bidRequest = BidRequest.builder()
-                .ext(ExtRequest.of(
-                        ExtRequestPrebid.builder().trace(TraceLevel.verbose).build()))
-                .build();
-
-        // when
-        final AuctionContext auctionContext = target.enrichAuctionContext(
-                AuctionContext.builder().build(),
-                httpRequest,
-                bidRequest,
-                100);
-
-        // then
-        assertThat(auctionContext.getDeepDebugLog()).isNotNull().returns(true, DeepDebugLog::isDeepDebugEnabled);
     }
 
     @Test
@@ -1072,11 +1025,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(
-                AuctionContext.builder()
-                        .bidRequest(bidRequest)
-                        .account(account)
-                        .privacyContext(privacyContext)
-                        .build());
+                        AuctionContext.builder()
+                                .bidRequest(bidRequest)
+                                .account(account)
+                                .privacyContext(privacyContext)
+                                .build());
 
         // then
         assertThat(result).isSucceeded().unwrap()
@@ -1105,11 +1058,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         // when
         final Future<BidRequest> result = target.enrichBidRequestWithAccountAndPrivacyData(
-                AuctionContext.builder()
-                        .bidRequest(bidRequest)
-                        .account(account)
-                        .privacyContext(privacyContext)
-                        .build());
+                        AuctionContext.builder()
+                                .bidRequest(bidRequest)
+                                .account(account)
+                                .privacyContext(privacyContext)
+                                .build());
 
         // then
         assertThat(result).isSucceeded().unwrap()
@@ -1316,7 +1269,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionContext result = target.updateTimeout(auctionContext, 0L);
+        final AuctionContext result = target.updateTimeout(auctionContext);
 
         // then
         assertThat(result).isSameAs(auctionContext);
@@ -1339,7 +1292,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionContext result = target.updateTimeout(auctionContext, 0L);
+        final AuctionContext result = target.updateTimeout(auctionContext);
 
         // then
         assertThat(result.getBidRequest()).isSameAs(auctionContext.getBidRequest());
@@ -1360,7 +1313,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionContext result = target.updateTimeout(auctionContext, 0L);
+        final AuctionContext result = target.updateTimeout(auctionContext);
 
         // then
         assertThat(result.getBidRequest()).isEqualTo(givenBidRequest(request -> request.tmax(500L)));
@@ -1384,7 +1337,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .build();
 
         // when
-        final AuctionContext result = target.updateTimeout(auctionContext, 0L);
+        final AuctionContext result = target.updateTimeout(auctionContext);
 
         // then
         assertThat(result.getBidRequest()).isEqualTo(givenBidRequest(request -> request.tmax(500L)));
@@ -1670,11 +1623,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 applicationSettings,
                 ipAddressHelper,
                 hookStageExecutor,
-                userAdditionalInfoService,
                 priceFloorProcessor,
                 countryCodeMapper,
-                metrics,
-                clock);
+                metrics);
     }
 
     private static String bidRequestToString(BidRequest bidRequest) {

@@ -64,7 +64,7 @@ import java.util.stream.Stream;
 /**
  * Client stores values in Prebid Cache.
  * <p>
- * For more info, see https://github.com/prebid/prebid-cache project.
+ * For more info, see <a href="https://github.com/prebid/prebid-cache">Prebid Cache</a> project.
  */
 public class CacheService {
 
@@ -471,12 +471,11 @@ public class CacheService {
         final Bid bid = bidInfo.getBid();
         final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
 
-        final String eventUrl =
-                generateWinUrl(bidInfo.getBidId(),
-                        bidInfo.getBidder(),
-                        accountId,
-                        eventsContext,
-                        bidInfo.getLineItemId());
+        final String eventUrl = generateWinUrl(
+                bidInfo.getBidId(),
+                bidInfo.getBidder(),
+                accountId,
+                eventsContext);
         if (eventUrl != null) {
             bidObjectNode.put(BID_WURL_ATTRIBUTE, eventUrl);
         }
@@ -521,24 +520,16 @@ public class CacheService {
     private String generateWinUrl(String bidId,
                                   String bidder,
                                   String accountId,
-                                  EventsContext eventsContext,
-                                  String lineItemId) {
+                                  EventsContext eventsContext) {
 
-        if (!eventsContext.isEnabledForAccount()) {
-            return null;
-        }
-
-        if (eventsContext.isEnabledForRequest() || StringUtils.isNotBlank(lineItemId)) {
-            return eventsService.winUrl(
-                    bidId,
-                    bidder,
-                    accountId,
-                    lineItemId,
-                    eventsContext.isEnabledForRequest(),
-                    eventsContext);
-        }
-
-        return null;
+        return eventsContext.isEnabledForAccount() && eventsContext.isEnabledForRequest()
+                ? eventsService.winUrl(
+                bidId,
+                bidder,
+                accountId,
+                true,
+                eventsContext)
+                : null;
     }
 
     /**
