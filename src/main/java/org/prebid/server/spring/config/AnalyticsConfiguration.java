@@ -61,12 +61,12 @@ public class AnalyticsConfiguration {
         @Bean
         GreenbidsAnalyticsReporter greenbidsAnalyticsReporter(
                 GreenbidsAnalyticsConfigurationProperties greenbidsAnalyticsConfigurationProperties,
-                //HttpClient httpClient,
+                HttpClient httpClient,
                 JacksonMapper jacksonMapper,
                 Vertx vertx) {
             return new GreenbidsAnalyticsReporter(
                     greenbidsAnalyticsConfigurationProperties.toComponentProperties(),
-                    //httpClient,
+                    httpClient,
                     jacksonMapper,
                     vertx);
         }

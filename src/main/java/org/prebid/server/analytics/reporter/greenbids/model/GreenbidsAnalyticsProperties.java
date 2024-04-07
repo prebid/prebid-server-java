@@ -9,15 +9,15 @@ public class GreenbidsAnalyticsProperties {
     String pbuid;
     Double greenbidsSampling;
     Double exploratorySamplingSplit;
+    Long configurationRefreshDelayMs;
+    Long timeoutMs;
 
     /*
     String endpoint;
     String scopeId;
     Boolean enabled;
-    Long configurationRefreshDelayMs;
     Integer sizeBytes;
     Integer count;
     Long reportTtlMs;
-    Long timeoutMs;
      */
 }

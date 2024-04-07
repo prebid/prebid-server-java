@@ -1,22 +1,33 @@
 package org.prebid.server.analytics.reporter.greenbids;
 
 import com.iab.openrtb.response.Bid;
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.analytics.AnalyticsReporter;
+import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
+import org.prebid.server.analytics.model.CookieSyncEvent;
+import org.prebid.server.analytics.model.NotificationEvent;
+import org.prebid.server.analytics.model.SetuidEvent;
+import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.analytics.reporter.greenbids.model.AnalyticsOptions;
 import org.prebid.server.analytics.reporter.greenbids.model.AuctionCacheManager;
 import org.prebid.server.analytics.reporter.greenbids.model.CachedAuction;
 import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBidder;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsConfig;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsEvent;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.Initializable;
+import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.http.model.HttpClientResponse;
 
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Random;
@@ -33,29 +44,37 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
     public Double exploratorySamplingSplit;
 
     //private final Map<EventType, GreenbidsEventHandler> eventHandlers;
-    //private GreenbidsConfig greenbidsConfig;
-
     //private static final String  CONFIG_URL_SUFFIX = "/bootstrap?scopeId=";
-    //private final long configurationRefreshDelay;
-    //private final long timeout;
-    //private final HttpClient httpClient;
-    //private final JacksonMapper jacksonMapper;
-    //private final Vertx vertx;
+
+    private final long configurationRefreshDelay;
+    private final Vertx vertx;
+    private GreenbidsConfig greenbidsConfig;
+    private final HttpClient httpClient;
+    private final long timeout;
+    private final JacksonMapper jacksonMapper;
 
 
 
     // constructor
     public GreenbidsAnalyticsReporter(
             GreenbidsAnalyticsProperties greenbidsAnalyticsProperties,
-            //HttpClient httpClient,
+            HttpClient httpClient,
             JacksonMapper jacksonMapper,
             Vertx vertx
     ) {
-        //this.eventHandlers = createEventHandlers(greenbidsAnalyticsProperties, httpClient, jacksonMapper);
-
         this.pbuid = Objects.requireNonNull(greenbidsAnalyticsProperties.getPbuid());
         this.greenbidsSampling = greenbidsAnalyticsProperties.getGreenbidsSampling();
         this.exploratorySamplingSplit = greenbidsAnalyticsProperties.getExploratorySamplingSplit();
+        this.configurationRefreshDelay = Objects.requireNonNull(greenbidsAnalyticsProperties.getConfigurationRefreshDelayMs());
+        this.vertx = Objects.requireNonNull(vertx);
+        this.greenbidsConfig = GreenbidsConfig.of(
+                greenbidsAnalyticsProperties.getPbuid(),
+                greenbidsAnalyticsProperties.getGreenbidsSampling(),
+                greenbidsAnalyticsProperties.getExploratorySamplingSplit()
+        );
+        this.httpClient = Objects.requireNonNull(httpClient);
+        this.timeout = Objects.requireNonNull(greenbidsAnalyticsProperties.getTimeoutMs());
+        this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
     }
 
 
@@ -71,24 +90,12 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
         );
     }
 
-    public <T> GreenbidsBidder serializeBidResponse(Bid bid, BidderStatus bidderStatus, T event) {
-        AuctionEvent auctuionEvent = getAuctionEvent(bidderStatus).get();
-
-        Integer notBiddingReason = auctuionEvent.getBidResponse().getNbr();
-
-        return new GreenbidsBidder(
-                bid.getBidder(),
-                status == auctionEvent,
-                status == bidderStatus.hasBid()
-        );
-
-        /*
-        return Map.of(
-                "bidder", bid.getBidder(),
-                "isTimeout", auctuionEvent.,
-                "hasBid", bidderStatus.hasBid()
-        );
-         */
+    public GreenbidsBidder serializeBidResponse(SetuidEvent  event) {
+        return GreenbidsBidder.builder()
+                .bidder(event.getBidder())
+                .isTimeout(event.getStatus() == 408)
+                .hasBid(event.getSuccess())
+                .build();
     }
 
 
@@ -156,60 +163,80 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
         }
     }
 
-
-    /*
     @Override
-    public <T> Future<Void> processEvent(T event) { // ??? vertx.Future
-        final EventType eventType; // ??? final
+    public int vendorId() {
+        return 0;
+    }
 
-        if (event instanceof AmpEvent) {
-            eventType = EventType.amp;
-        } else if (event instanceof AuctionEvent) {
-            eventType = EventType.auction;
-        } else if (event instanceof CookieSyncEvent) {
-            eventType = EventType.cookiesync;
-        } else if (event instanceof NotificationEvent) {
-            eventType = EventType.notification;
-        } else if (event instanceof SetuidEvent) {
-            eventType = EventType.setuid;
-        } else if (event instanceof VideoEvent) {
-            eventType = EventType.video;
-        } else {
-            eventType = null
+    @Override
+    public String name() {
+        return "greenbids";
+    }
+
+    @Override
+    public void initialize() {
+        vertx.setPeriodic(configurationRefreshDelay, id -> fetchRemoteConfig());
+        fetchRemoteConfig();
+    }
+
+    private void fetchRemoteConfig() {
+        logger.info("[greenbids] Updating config: {0}", greenbidsConfig);
+        httpClient.get(ANALYTICS_SERVER, timeout)
+                .map(this::ProcessRemoteConfigurationResponse)
+                .onComplete(this::handleConfigResponse);
+    }
+
+    private GreenbidsConfig ProcessRemoteConfigurationResponse(HttpClientResponse response) {
+        final int statusCode = response.getStatusCode();
+        if (statusCode!= 200) {
+            throw new PreBidException("[greenbids] Failed to fetch config, reason: HTTP status code " + statusCode);
         }
+        final String body = response.getBody();
+        try {
+            return jacksonMapper.decodeValue(body, GreenbidsConfig.class);
+        } catch (DecodeException e) {
+            throw new PreBidException(
+                    "[greenbids] Failed to fetch config, reason: failed to parse response: " + body, e);
+        }
+    }
 
-        if (eventType != null) {
-            eventHandlers.get(eventType).handle(event);
+    private String makeEventHandlerEndpoint() {
+        try {
+            return HttpUtil.validateUrl(ANALYTICS_SERVER);
+        } catch (IllegalArgumentException e) {
+            final String message = "[greenbids] Failed to create event report url";
+            logger.error(message);
+            throw new PreBidException(message);
+        }
+    }
+
+    // get bidder from event setuidEvent, NotificationEvent, CoolieSyncEvent
+    // get timeout status code from HttpResponseStatus  REQUEST_TIMEOUT 408
+
+    @Override
+    public <T> Future<Void> processEvent(T event) {
+        final GreenbidsEvent<?> greenbidsEvent;
+
+        if (event instanceof AmpEvent ampEvent) {
+            greenbidsEvent =  GreenbidsEvent.of("/openrtb2/amp", ampEvent.getBidResponse());
+        } else if (event instanceof AuctionEvent auctionEvent) {
+            greenbidsEvent =  GreenbidsEvent.of("/openrtb2/auction", auctionEvent.getBidResponse());
+        } else if (event instanceof CookieSyncEvent cookieSyncEvent) {
+            greenbidsEvent = GreenbidsEvent.of("/cookie_sync", cookieSyncEvent.getBidderStatus());
+        } else if (event instanceof NotificationEvent notificationEvent) {
+            greenbidsEvent = GreenbidsEvent.of("/event", notificationEvent.getType() + notificationEvent.getBidId());
+        } else if (event instanceof SetuidEvent setuidEvent) {
+            greenbidsEvent = GreenbidsEvent.of(
+                    "/setuid",
+                    setuidEvent.getBidder() + ":" + setuidEvent.getUid() + ":" + setuidEvent.getSuccess()
+            );
+            GreenbidsBidder greenbidsBidder = serializeBidResponse(setuidEvent);
+        } else if (event instanceof VideoEvent videoEvent) {
+            greenbidsEvent = GreenbidsEvent.of("/openrtb2/video", videoEvent.getBidResponse());
+        } else {
+            greenbidsEvent = GreenbidsEvent.of("unknown", null);
         }
 
         return Future.succeededFuture();
     }
-
-    // createEventHandlers used in constructor
-    private static Map<EventType, GreenbidsEventHandler> createEventHandlers(
-            GreenbidsAnalyticsProperties greenbidsAnalyticsProperties,
-            HttpClient httpClient,
-            JacksonMapper jacksonMapper,
-            Vertx vertx
-    ) {
-        return Arrays.stream(EventType.values())
-                .collect(
-                        Collectors.toMap(
-                                Function.identity(),
-                                eventType -> new GreenbidsEventHandler(
-                                        greenbidsAnalyticsProperties,
-                                        false,
-                                        buildEventEndpointUrl(greenbidsAnalyticsProperties.getEndpoint(), eventType),
-                                        jacksonMapper,
-                                        httpClient,
-                                        vertx
-                                )
-                        )
-                );
-    }
-
-    private static String buildEventEndpointUrl(String endpoint, EventType eventType) {
-        return HttpUtil.validateUrl(endpoint + EVENT_REPORT_ENDPOINT_PATH + eventType.name());
-    }
-     */
 }

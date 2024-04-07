@@ -4,13 +4,21 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 
-import java.util.Map;
-
 @Value
 @AllArgsConstructor(staticName = "of")
 public class GreenbidsConfig {
-    @JsonProperty("scopeId")
-    String scopeId;
-    String endpoint;
-    Map<EventType, Boolean> features;
+
+    @JsonProperty("pbuid")
+    String pbuid;
+
+    @JsonProperty("greenbidsSampling")
+    Double greenbidsSampling;
+
+    @JsonProperty("exploratorySamplingSplit")
+    Double exploratorySamplingSplit;
+
+    //@JsonProperty("scopeId")
+    //String scopeId;
+    //String endpoint;
+    //Map<EventType, Boolean> features;
 }
