@@ -8,6 +8,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
@@ -36,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class NextMillenniumBidder implements Bidder<BidRequest> {
 
@@ -88,16 +90,28 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
     }
 
     private BidRequest updateBidRequest(BidRequest bidRequest, ExtImpNextMillennium ext) {
-        final ExtRequestPrebid prebid = ExtRequestPrebid.builder()
-                .storedrequest(ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext)))
+        final ExtStoredRequest storedRequest = ExtStoredRequest.of(resolveStoredRequestId(bidRequest, ext));
+
+        final ExtRequestPrebid createdExtRequestPrebid = ExtRequestPrebid.builder()
+                .storedrequest(storedRequest)
                 .build();
-        final ExtRequest extRequest = ExtRequest.of(prebid);
 
-        final List<Imp> imps = bidRequest.getImp().stream()
-                .map(imp -> imp.toBuilder().ext(createImpExt(prebid)).build())
+        final ExtRequestPrebid extRequestPrebid = Optional.of(bidRequest)
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(prebid -> prebid.toBuilder().storedrequest(storedRequest).build())
+                .orElse(createdExtRequestPrebid);
+
+        return bidRequest.toBuilder()
+                .imp(updateImps(bidRequest, createdExtRequestPrebid))
+                .ext(ExtRequest.of(extRequestPrebid))
+                .build();
+    }
+
+    private List<Imp> updateImps(BidRequest bidRequest, ExtRequestPrebid extRequestPrebid) {
+        return bidRequest.getImp().stream()
+                .map(imp -> imp.toBuilder().ext(createImpExt(extRequestPrebid)).build())
                 .toList();
-
-        return bidRequest.toBuilder().imp(imps).ext(extRequest).build();
     }
 
     private static String resolveStoredRequestId(BidRequest bidRequest, ExtImpNextMillennium extImpNextMillennium) {
@@ -164,24 +178,47 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final List<BidderError> bidderErrors = new ArrayList<>();
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             if (CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
                 return Result.empty();
             }
-            return Result.withValues(bidsFromResponse(bidResponse));
+            return Result.of(bidsFromResponse(bidResponse, bidderErrors), bidderErrors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> bidderErrors) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidType.banner, bidResponse.getCur()))
+                .map(bid -> resolveBidderBid(bidResponse, bidderErrors, bid))
+                .filter(Objects::nonNull)
                 .toList();
+    }
+
+    private static BidderBid resolveBidderBid(BidResponse bidResponse, List<BidderError> bidderErrors, Bid bid) {
+        final BidType bidType = getBidType(bid, bidderErrors);
+        if (bidType == null) {
+            return null;
+        }
+
+        return BidderBid.of(bid, bidType, bidResponse.getCur());
+    }
+
+    private static BidType getBidType(Bid bid, List<BidderError> bidderErrors) {
+        return switch (ObjectUtils.defaultIfNull(bid.getMtype(), 0)) {
+            case 1 -> BidType.banner;
+            case 2 -> BidType.video;
+            default -> {
+                bidderErrors.add(BidderError.badServerResponse("Failed to parse bid mtype for impression id \"%s\""
+                        .formatted(bid.getImpid())));
+                yield null;
+            }
+        };
     }
 }
