@@ -1,9 +1,10 @@
-package org.prebid.server.spring.config;
+package org.prebid.server.spring.config.server.application;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
@@ -30,7 +31,6 @@ import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.handler.BidderParamHandler;
 import org.prebid.server.handler.CookieSyncHandler;
-import org.prebid.server.handler.CustomizedAdminEndpoint;
 import org.prebid.server.handler.ExceptionHandler;
 import org.prebid.server.handler.GetuidsHandler;
 import org.prebid.server.handler.NoCacheHandler;
@@ -54,11 +54,15 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
+import org.prebid.server.spring.config.server.admin.AdminResourcesBinder;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.validation.BidderParamValidator;
 import org.prebid.server.version.PrebidVersionProvider;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.prebid.server.vertx.verticles.VerticleDefinition;
+import org.prebid.server.vertx.verticles.server.ServerVerticle;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -73,13 +77,48 @@ import java.util.Optional;
 import java.util.Set;
 
 @Configuration
-public class WebConfiguration {
+public class ApplicationServerConfiguration {
 
     @Value("${logging.sampling-rate:0.01}")
     private double logSamplingRate;
 
-    @Autowired
-    private Vertx vertx;
+    @Bean
+    @ConditionalOnProperty(name = "server.http.enabled", havingValue = "true")
+    VerticleDefinition httpApplicationServerVerticleDefinition(
+            HttpServerOptions httpServerOptions,
+            @Value("#{'${http.port:${server.http.port}}'}") Integer port,
+            Router applicationServerRouter,
+            ExceptionHandler exceptionHandler,
+            @Value("#{'${vertx.http-server-instances:${server.http.server-instances}}'}") Integer instances) {
+
+        return VerticleDefinition.ofMultiInstance(
+                () -> new ServerVerticle(
+                        "Application Http Server",
+                        httpServerOptions,
+                        SocketAddress.inetSocketAddress(port, "0.0.0.0"),
+                        applicationServerRouter,
+                        exceptionHandler),
+                instances);
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "server.unix-socket.enabled", havingValue = "true")
+    VerticleDefinition unixSocketApplicationServerVerticleDefinition(
+            HttpServerOptions httpServerOptions,
+            @Value("${server.unix-socket.path}") String path,
+            Router applicationServerRouter,
+            ExceptionHandler exceptionHandler,
+            @Value("${server.unix-socket.server-instances}") Integer instances) {
+
+        return VerticleDefinition.ofMultiInstance(
+                () -> new ServerVerticle(
+                        "Application Unix Socket Server",
+                        httpServerOptions,
+                        SocketAddress.domainSocketAddress(path),
+                        applicationServerRouter,
+                        exceptionHandler),
+                instances);
+    }
 
     // TODO: remove support for properties with http prefix after transition period
     @Bean
@@ -120,48 +159,25 @@ public class WebConfiguration {
         return ExceptionHandler.create(metrics);
     }
 
-    @Bean("router")
-    Router router(BodyHandler bodyHandler,
-                  NoCacheHandler noCacheHandler,
-                  CorsHandler corsHandler,
-                  org.prebid.server.handler.openrtb2.AuctionHandler openrtbAuctionHandler,
-                  AmpHandler openrtbAmpHandler,
-                  VideoHandler openrtbVideoHandler,
-                  StatusHandler statusHandler,
-                  CookieSyncHandler cookieSyncHandler,
-                  SetuidHandler setuidHandler,
-                  GetuidsHandler getuidsHandler,
-                  VtrackHandler vtrackHandler,
-                  OptoutHandler optoutHandler,
-                  BidderParamHandler bidderParamHandler,
-                  BiddersHandler biddersHandler,
-                  BidderDetailsHandler bidderDetailsHandler,
-                  NotificationEventHandler notificationEventHandler,
-                  List<CustomizedAdminEndpoint> customizedAdminEndpoints,
-                  StaticHandler staticHandler) {
+    @Bean
+    Router applicationServerRouter(Vertx vertx,
+                                   BodyHandler bodyHandler,
+                                   NoCacheHandler noCacheHandler,
+                                   CorsHandler corsHandler,
+                                   List<ApplicationResource> resources,
+                                   AdminResourcesBinder applicationPortAdminResourcesBinder,
+                                   StaticHandler staticHandler) {
 
         final Router router = Router.router(vertx);
         router.route().handler(bodyHandler);
         router.route().handler(noCacheHandler);
         router.route().handler(corsHandler);
-        router.post("/openrtb2/auction").handler(openrtbAuctionHandler);
-        router.get("/openrtb2/amp").handler(openrtbAmpHandler);
-        router.post("/openrtb2/video").handler(openrtbVideoHandler);
-        router.get("/status").handler(statusHandler);
-        router.post("/cookie_sync").handler(cookieSyncHandler);
-        router.get("/setuid").handler(setuidHandler);
-        router.get("/getuids").handler(getuidsHandler);
-        router.post("/vtrack").handler(vtrackHandler);
-        router.post("/optout").handler(optoutHandler);
-        router.get("/optout").handler(optoutHandler);
-        router.get("/bidders/params").handler(bidderParamHandler);
-        router.get("/info/bidders").handler(biddersHandler);
-        router.get("/info/bidders/:bidderName").handler(bidderDetailsHandler);
-        router.get("/event").handler(notificationEventHandler);
 
-        customizedAdminEndpoints.stream()
-                .filter(CustomizedAdminEndpoint::isOnApplicationPort)
-                .forEach(customizedAdminEndpoint -> customizedAdminEndpoint.router(router));
+        resources.forEach(resource ->
+                resource.endpoints().forEach(endpoint ->
+                        router.route(endpoint.getMethod(), endpoint.getPath()).handler(resource)));
+
+        applicationPortAdminResourcesBinder.bind(router);
 
         router.get("/static/*").handler(staticHandler);
         router.get("/").handler(staticHandler); // serves index.html by default

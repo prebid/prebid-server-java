@@ -1,4 +1,4 @@
-package org.prebid.server.vertx.http;
+package org.prebid.server.vertx.httpclient;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -18,7 +18,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.time.Clock;
 import java.time.Instant;

@@ -1,4 +1,4 @@
-package org.prebid.server.handler;
+package org.prebid.server.handler.admin;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.Handler;

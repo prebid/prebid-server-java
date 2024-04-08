@@ -7,18 +7,17 @@ import io.prometheus.client.dropwizard.samplebuilder.MapperConfig;
 import io.prometheus.client.dropwizard.samplebuilder.SampleBuilder;
 import io.prometheus.client.vertx.MetricsHandler;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpServer;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.Router;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.prebid.server.metric.CounterType;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.prometheus.NamespaceSubsystemSampleBuilder;
-import org.prebid.server.vertx.ContextRunner;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.prebid.server.vertx.verticles.VerticleDefinition;
+import org.prebid.server.vertx.verticles.server.ServerVerticle;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -26,15 +25,32 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
-import javax.annotation.PostConstruct;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
 @Configuration
+@ConditionalOnProperty(prefix = "metrics.prometheus", name = "enabled", havingValue = "true")
 public class PrometheusConfiguration {
 
+    private static final Logger logger = LoggerFactory.getLogger(PrometheusConfiguration.class);
+
+    // TODO: Decide how to integrate this with ability to serve requests on unix domain socket
     @Bean
-    @ConditionalOnBean(PrometheusConfigurationProperties.class)
+    public VerticleDefinition prometheusHttpServerVerticleDefinition(
+            PrometheusConfigurationProperties prometheusConfigurationProperties,
+            Router prometheusRouter,
+            DropwizardExports dropwizardExports) {
+
+        CollectorRegistry.defaultRegistry.register(dropwizardExports);
+
+        return VerticleDefinition.ofSingleInstance(
+                () -> new ServerVerticle(
+                        "Prometheus Http Server",
+                        SocketAddress.inetSocketAddress(prometheusConfigurationProperties.getPort(), "0.0.0.0"),
+                        prometheusRouter));
+    }
+
+    @Bean
     public SampleBuilder sampleBuilder(PrometheusConfigurationProperties prometheusConfigurationProperties,
                                        List<MapperConfig> mapperConfigs) {
 
@@ -44,51 +60,20 @@ public class PrometheusConfiguration {
                 mapperConfigs);
     }
 
-    @Configuration
-    @ConditionalOnBean(PrometheusConfigurationProperties.class)
-    public static class PrometheusServerConfiguration {
-        private static final Logger logger = LoggerFactory.getLogger(PrometheusServerConfiguration.class);
-
-        @Autowired
-        private ContextRunner contextRunner;
-
-        @Autowired
-        private Vertx vertx;
-
-        @Autowired
-        private MetricRegistry metricRegistry;
-
-        @Autowired
-        private Metrics metrics;
-
-        @Autowired
-        private PrometheusConfigurationProperties prometheusConfigurationProperties;
-
-        @Autowired
-        private SampleBuilder sampleBuilder;
-
-        @PostConstruct
-        public void startPrometheusServer() {
-            logger.info(
-                    "Starting Prometheus Server on port {0,number,#}",
-                    prometheusConfigurationProperties.getPort());
-
-            if (metrics.getCounterType() == CounterType.flushingCounter) {
-                logger.warn("Prometheus metric system: Metric type is flushingCounter.");
-            }
-
-            final Router router = Router.router(vertx);
-            router.route("/metrics").handler(new MetricsHandler());
-
-            CollectorRegistry.defaultRegistry.register(new DropwizardExports(metricRegistry, sampleBuilder));
-
-            contextRunner.<HttpServer>runOnServiceContext(promise ->
-                    vertx.createHttpServer()
-                            .requestHandler(router)
-                            .listen(prometheusConfigurationProperties.getPort(), promise));
-
-            logger.info("Successfully started Prometheus Server");
+    @Bean
+    DropwizardExports dropwizardExports(Metrics metrics, MetricRegistry metricRegistry, SampleBuilder sampleBuilder) {
+        if (metrics.getCounterType() == CounterType.flushingCounter) {
+            logger.warn("Prometheus metric system: Metric type is flushingCounter.");
         }
+
+        return new DropwizardExports(metricRegistry, sampleBuilder);
+    }
+
+    @Bean
+    Router prometheusRouter(Vertx vertx) {
+        final Router router = Router.router(vertx);
+        router.route("/metrics").handler(new MetricsHandler());
+        return router;
     }
 
     @Data

@@ -5,8 +5,8 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
@@ -30,13 +30,16 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class VtrackHandler implements Handler<RoutingContext> {
+public class VtrackHandler implements ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(VtrackHandler.class);
 
@@ -70,6 +73,11 @@ public class VtrackHandler implements Handler<RoutingContext> {
         this.cacheService = Objects.requireNonNull(cacheService);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.mapper = Objects.requireNonNull(mapper);
+    }
+
+    @Override
+    public List<HttpEndpoint> endpoints() {
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.POST, Endpoint.vtrack.value()));
     }
 
     @Override

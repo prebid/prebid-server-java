@@ -233,7 +233,6 @@ public class Ortb2RequestFactory {
                 .build();
 
         return Future.succeededFuture(bidRequest.toBuilder().device(updatedDevice).build());
-
     }
 
     public Future<BidRequest> enrichBidRequestWithAccountAndPrivacyData(AuctionContext auctionContext) {
@@ -259,7 +258,6 @@ public class Ortb2RequestFactory {
                 .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
                 .regs(ObjectUtils.defaultIfNull(enrichedRegs, regs))
                 .build());
-
     }
 
     private static Regs enrichRegs(Regs regs, PrivacyContext privacyContext, Account account) {

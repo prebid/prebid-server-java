@@ -1,4 +1,4 @@
-package org.prebid.server.vertx.http;
+package org.prebid.server.vertx.httpclient;
 
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
