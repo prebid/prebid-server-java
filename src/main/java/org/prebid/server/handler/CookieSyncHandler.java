@@ -9,7 +9,6 @@ import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
@@ -167,10 +166,7 @@ public class CookieSyncHandler implements ApplicationResource {
     }
 
     private Future<Account> accountById(String accountId, Timeout timeout) {
-        return StringUtils.isBlank(accountId)
-                ? Future.succeededFuture(Account.empty(accountId))
-                : applicationSettings.getAccountById(accountId, timeout)
-                .otherwise(Account.empty(accountId));
+        return applicationSettings.getAccountById(accountId, timeout).otherwise(Account.empty(accountId));
     }
 
     private CookieSyncContext fillWithGppContext(CookieSyncContext cookieSyncContext) {

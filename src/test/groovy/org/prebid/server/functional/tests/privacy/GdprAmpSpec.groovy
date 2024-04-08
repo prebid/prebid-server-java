@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.privacy
 
+import org.mockserver.model.Delay
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
@@ -327,7 +328,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Used vendor list have proper specification version of GVL"
-        def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/${tcfPolicyVersion.vendorListVersion}.json"
+        def properVendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
         PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
         def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
         assert vendorList.tcfPolicyVersion == tcfPolicyVersion.vendorListVersion
@@ -368,5 +369,65 @@ class GdprAmpSpec extends PrivacyBaseSpec {
         assert response.ext?.warnings[PREBID]*.code == [999]
         assert response.ext?.warnings[PREBID]*.message ==
                 ["Parsing consent string: ${tcfConsent} failed. TCF policy version ${invalidTcfPolicyVersion} is not supported" as String]
+    }
+
+    def "PBS amp should emit the same error without a second GVL list request if a retry is too soon for the exponential-backoff"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Prepare tcf consent string"
+        def tcfConsent = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .setTcfPolicyVersion(tcfPolicyVersion.value)
+                .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "AMP request"
+        def ampRequest = getGdprAmpRequest(tcfConsent)
+
+        and: "Default stored request"
+        def ampStoredRequest = BidRequest.defaultBidRequest
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Reset valid vendor list response"
+        vendorListResponse.reset()
+
+        and: "Set vendor list response with delay"
+        vendorListResponse.setResponse(tcfPolicyVersion, Delay.seconds(EXPONENTIAL_BACKOFF_MAX_DELAY + 3))
+
+        when: "PBS processes amp request"
+        privacyPbsService.sendAmpRequest(ampRequest)
+
+        then: "PBS shouldn't fetch vendor list"
+        def vendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
+        assert !privacyPbsService.isFileExist(vendorListPath)
+
+        and: "Logs should contain proper vendor list version"
+        def logs = privacyPbsService.getLogsByTime(startTime)
+        def tcfError = "TCF 2 vendor list for version v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion} not found, started downloading."
+        assert getLogsByText(logs, tcfError)
+
+        and: "Second start for fetch second round of logs"
+        def secondStartTime = Instant.now()
+
+        when: "PBS processes amp request"
+        privacyPbsService.sendAmpRequest(ampRequest)
+
+        then: "PBS shouldn't fetch vendor list"
+        assert !privacyPbsService.isFileExist(vendorListPath)
+
+        and: "Logs should contain proper vendor list version"
+        def logsSecond = privacyPbsService.getLogsByTime(secondStartTime)
+        assert getLogsByText(logsSecond, tcfError)
+
+        and: "Reset vendor list response"
+        vendorListResponse.reset()
+
+        where:
+        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
     }
 }
