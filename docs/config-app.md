@@ -204,11 +204,6 @@ Also, each bidder could have its own bidder-specific options.
 - `admin-endpoints.tracelog.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
 - `admin-endpoints.tracelog.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
-- `admin-endpoints.e2eadmin.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.e2eadmin.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.e2eadmin.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.e2eadmin.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
-
 - `admin-endpoints.collected-metrics.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.collected-metrics.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.collected-metrics.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
