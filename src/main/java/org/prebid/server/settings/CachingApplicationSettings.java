@@ -243,11 +243,13 @@ public class CachingApplicationSettings implements ApplicationSettings {
 
     public void invalidateAccountCache(String accountId) {
         accountCache.remove(accountId);
+        accountToErrorCache.remove(accountId);
         logger.debug("Account with id {0} was invalidated", accountId);
     }
 
     public void invalidateAllAccountCache() {
         accountCache.clear();
+        accountToErrorCache.clear();
         logger.debug("All accounts cache were invalidated");
     }
 
