@@ -406,14 +406,8 @@ public class ConsumableBidderTest extends VertxTest {
         return bidRequestCustomizer.apply(
                         BidRequest.builder()
                                 .imp(impCustomizers.stream()
-<<<<<<< HEAD
-                                        .map(ConsumableBidderTest::givenImp)
-                                        .toList())).build();
-=======
                                         .map(ConsumableBidderTest::givenSiteImp)
-                                        .toList()))
-                .build();
->>>>>>> 8c8260c49 (App Support initial Commit)
+                                        .toList())).build();
     }
 
     private static BidRequest givenAppBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
