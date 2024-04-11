@@ -5,7 +5,7 @@ import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.verticles.VerticleDefinition;
-import org.prebid.server.vertx.verticles.server.DaemonVertilce;
+import org.prebid.server.vertx.verticles.server.DaemonVerticle;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,6 +32,6 @@ public class InitializationConfiguration {
     VerticleDefinition daemonVerticleDefinition(@Autowired(required = false) List<Initializable> initializables,
                                                 @Autowired(required = false) List<ScheduledReporter> reporters) {
 
-        return VerticleDefinition.ofSingleInstance(() -> new DaemonVertilce(initializables, reporters));
+        return VerticleDefinition.ofSingleInstance(() -> new DaemonVerticle(initializables, reporters));
     }
 }
