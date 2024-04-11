@@ -14,9 +14,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.Objects;
 
-import static io.vertx.core.http.HttpMethod.DELETE;
-import static io.vertx.core.http.HttpMethod.POST;
-
 /**
  * Handles HTTP requests for updating/invalidating settings cache.
  */
@@ -35,10 +32,10 @@ public class SettingsCacheNotificationHandler implements Handler<RoutingContext>
 
     @Override
     public void handle(RoutingContext routingContext) {
-        HttpMethod method = routingContext.request().method();
-        if (method.equals(POST)) {
+        final HttpMethod method = routingContext.request().method();
+        if (method.equals(HttpMethod.POST)) {
             doSave(routingContext);
-        } else if (method.equals(DELETE)) {
+        } else if (method.equals(HttpMethod.DELETE)) {
             doInvalidate(routingContext);
         } else {
             doFail(routingContext);

@@ -1,6 +1,5 @@
 package org.prebid.server.log;
 
-import org.prebid.server.log.Logger;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;

@@ -9,9 +9,9 @@ public class LoggerFactory {
     }
 
     public static Logger getLogger(Class<?> clazz) {
-        String name = clazz.isAnonymousClass() ?
-                clazz.getEnclosingClass().getCanonicalName() :
-                clazz.getCanonicalName();
+        final String name = clazz.isAnonymousClass()
+                ? clazz.getEnclosingClass().getCanonicalName()
+                : clazz.getCanonicalName();
 
         return getLogger(name);
     }

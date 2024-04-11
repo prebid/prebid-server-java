@@ -108,8 +108,8 @@ public class RemoteFileSyncerTest extends VertxTest {
                 () -> new RemoteFileSyncer(remoteFileProcessor, null, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
                         TIMEOUT, UPDATE_INTERVAL, httpClient, vertx));
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new RemoteFileSyncer(remoteFileProcessor, "bad url", FILE_PATH, TMP_FILE_PATH, RETRY_POLICY, TIMEOUT,
-                        UPDATE_INTERVAL, httpClient, vertx));
+                () -> new RemoteFileSyncer(remoteFileProcessor, "bad url", FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+                        TIMEOUT, UPDATE_INTERVAL, httpClient, vertx));
     }
 
     @Test
@@ -471,4 +471,3 @@ public class RemoteFileSyncerTest extends VertxTest {
         };
     }
 }
-

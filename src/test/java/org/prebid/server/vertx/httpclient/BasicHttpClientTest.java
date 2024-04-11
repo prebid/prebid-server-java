@@ -69,7 +69,8 @@ public class BasicHttpClientTest {
         httpClient.request(HttpMethod.POST, "http://www.example.com", MultiMap.caseInsensitiveMultiMap(), "body", 500L);
 
         // then
-        final ArgumentCaptor<RequestOptions> requestOptionsArgumentCaptor = ArgumentCaptor.forClass(RequestOptions.class);
+        final ArgumentCaptor<RequestOptions> requestOptionsArgumentCaptor =
+                ArgumentCaptor.forClass(RequestOptions.class);
         verify(wrappedHttpClient).request(requestOptionsArgumentCaptor.capture());
 
         final RequestOptions expectedRequestOptions = new RequestOptions()
@@ -101,7 +102,8 @@ public class BasicHttpClientTest {
         httpClient.request(HttpMethod.POST, "http://www.example.com", MultiMap.caseInsensitiveMultiMap(), "body", 500L);
 
         // then
-        final ArgumentCaptor<RequestOptions> requestOptionsArgumentCaptor = ArgumentCaptor.forClass(RequestOptions.class);
+        final ArgumentCaptor<RequestOptions> requestOptionsArgumentCaptor =
+                ArgumentCaptor.forClass(RequestOptions.class);
         verify(wrappedHttpClient).request(requestOptionsArgumentCaptor.capture());
         assertTrue(requestOptionsArgumentCaptor.getValue().getFollowRedirects());
     }
