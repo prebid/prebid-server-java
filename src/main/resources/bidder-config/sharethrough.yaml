@@ -16,6 +16,6 @@ adapters:
     usersync:
       cookie-family-name: sharethrough
       redirect:
-        url: https://match.sharethrough.com/FGMrCMMc/v1?redirectUri={{redirect_url}}
+        url: https://match.sharethrough.com/FGMrCMMc/v1?gdpr={{.GDPR}}&gdpr_consent={{.GDPRConsent}}&us_privacy={{.USPrivacy}}&gpp={{.GPP}}&gpp_sid={{.GPPSID}}&redirectUri={{.RedirectURL}}
         support-cors: false
         uid-macro: '$UID'
