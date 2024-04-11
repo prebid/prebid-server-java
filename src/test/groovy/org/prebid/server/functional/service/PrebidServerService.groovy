@@ -346,7 +346,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         if (testEnd.isBefore(testStart)) {
             throw new IllegalArgumentException("The end time of the test is less than the start time")
         }
-        def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
                                          .withZone(ZoneId.from(UTC))
         def logs = Arrays.asList(pbsContainer.logs.split("\n"))
         def filteredLogs = []
