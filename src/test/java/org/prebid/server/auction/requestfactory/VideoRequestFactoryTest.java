@@ -478,7 +478,7 @@ public class VideoRequestFactoryTest extends VertxTest {
                 .containsSequence("""
                         <Request>{"device":{"ua":"123"}}</Request>
                         <Response></Response>
-                        <Headers>header1: value1
+                        <Headers>header1=value1
                         </Headers>""");
     }
 
