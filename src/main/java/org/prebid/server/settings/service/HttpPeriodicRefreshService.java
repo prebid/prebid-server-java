@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
@@ -90,11 +91,13 @@ public class HttpPeriodicRefreshService implements Initializable {
     }
 
     @Override
-    public void initialize() {
+    public void initialize(Promise<Void> initializePromise) {
         getAll();
         if (refreshPeriod > 0) {
             vertx.setPeriodic(refreshPeriod, aLong -> refresh());
         }
+
+        initializePromise.tryComplete();
     }
 
     private void getAll() {
