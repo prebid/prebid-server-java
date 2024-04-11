@@ -17,14 +17,14 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class DaemonVertilce extends AbstractVerticle {
+public class DaemonVerticle extends AbstractVerticle {
 
-    private static final Logger logger = LoggerFactory.getLogger(DaemonVertilce.class);
+    private static final Logger logger = LoggerFactory.getLogger(DaemonVerticle.class);
 
     private final List<Initializable> initializables;
     private final List<Closeable> closeables;
 
-    public DaemonVertilce(List<Initializable> initializables, List<ScheduledReporter> reporters) {
+    public DaemonVerticle(List<Initializable> initializables, List<ScheduledReporter> reporters) {
         this.initializables = ListUtils.emptyIfNull(initializables);
         this.closeables = ListUtils.emptyIfNull(reporters).stream()
                 .<Closeable>map(CloseableAdapter::new)
@@ -55,8 +55,8 @@ public class DaemonVertilce extends AbstractVerticle {
 
         return Future.all(entriesFutures)
                 .onSuccess(r -> logger.info(
-                        "Successfully started {0} instance on thread: {1}",
-                        DaemonVertilce.class.getSimpleName(),
+                        "Successfully started {} instance on thread: {}",
+                        DaemonVerticle.class.getSimpleName(),
                         Thread.currentThread().getName()))
                 .mapEmpty();
     }
