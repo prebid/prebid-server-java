@@ -5,9 +5,9 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Closeable;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.ListUtils;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.vertx.CloseableAdapter;
 import org.prebid.server.vertx.Initializable;
 
