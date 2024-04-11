@@ -25,11 +25,11 @@ class Asset {
         }
     }
 
-    static Asset getImgAsset() {
+    static Asset getImgAsset(String url = PBSUtils.randomString) {
         new Asset().tap {
             id = 2
             required = 1
-            img = new AssetImage(type: 3, w: PBSUtils.randomNumber, h: PBSUtils.randomNumber)
+            img = new AssetImage(type: 3, w: PBSUtils.randomNumber, h: PBSUtils.randomNumber, url: url)
         }
     }
 
