@@ -1,11 +1,11 @@
 package org.prebid.server.settings.helper;
 
 import io.vertx.core.json.JsonArray;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.model.StoredItem;
@@ -85,7 +85,7 @@ public class JdbcStoredDataResultMapper {
                 try {
                     type = StoredDataType.valueOf(typeAsString);
                 } catch (IllegalArgumentException e) {
-                    logger.error("Stored request data with id={0} has invalid type: ''{1}'' and will be ignored.", e,
+                    logger.error("Stored request data with id={} has invalid type: ''{}'' and will be ignored.", e,
                             id, typeAsString);
                     continue;
                 }

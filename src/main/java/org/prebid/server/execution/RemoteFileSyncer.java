@@ -13,13 +13,13 @@ import io.vertx.core.file.OpenOptions;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.streams.Pump;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
-import org.prebid.server.execution.retry.Retryable;
 import org.prebid.server.execution.retry.RetryPolicy;
+import org.prebid.server.execution.retry.Retryable;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.HttpUtil;
 
 import java.nio.file.Files;
@@ -144,7 +144,7 @@ public class RemoteFileSyncer {
 
     private Future<Void> retrySync(RetryPolicy retryPolicy) {
         if (retryPolicy instanceof Retryable policy) {
-            logger.info("Retrying file download from {0} with policy: {1}", downloadUrl, retryPolicy);
+            logger.info("Retrying file download from {} with policy: {}", downloadUrl, retryPolicy);
 
             final Promise<Void> promise = Promise.promise();
             vertx.setTimer(policy.delay(), timerId ->
@@ -166,7 +166,7 @@ public class RemoteFileSyncer {
 
     private Future<Void> pumpToFile(HttpClientResponse httpClientResponse, AsyncFile asyncFile) {
         final Promise<Void> promise = Promise.promise();
-        logger.info("Trying to download file from {0}", downloadUrl);
+        logger.info("Trying to download file from {}", downloadUrl);
         httpClientResponse.pause();
 
         final Pump pump = Pump.pump(httpClientResponse, asyncFile);
@@ -198,7 +198,7 @@ public class RemoteFileSyncer {
 
     private Future<Void> swapFiles() {
         final Promise<Void> promise = Promise.promise();
-        logger.info("Sync {0} to {1}", tmpFilePath, saveFilePath);
+        logger.info("Sync {} to {}", tmpFilePath, saveFilePath);
 
         final CopyOptions copyOptions = new CopyOptions().setReplaceExisting(true);
         fileSystem.move(tmpFilePath, saveFilePath, copyOptions, promise);
@@ -208,14 +208,14 @@ public class RemoteFileSyncer {
     private void handleSync(RemoteFileProcessor remoteFileProcessor, AsyncResult<Boolean> syncResult) {
         if (syncResult.succeeded()) {
             if (syncResult.result()) {
-                logger.info("Sync service for {0}", saveFilePath);
+                logger.info("Sync service for {}", saveFilePath);
                 remoteFileProcessor.setDataPath(saveFilePath)
                         .onComplete(this::logFileProcessStatus);
             } else {
-                logger.info("Sync is not required for {0}", saveFilePath);
+                logger.info("Sync is not required for {}", saveFilePath);
             }
         } else {
-            logger.error("Cant sync file from {0}", syncResult.cause(), downloadUrl);
+            logger.error("Cant sync file from {}", syncResult.cause(), downloadUrl);
         }
 
         // setup new update regardless of the result
@@ -226,17 +226,17 @@ public class RemoteFileSyncer {
 
     private void logFileProcessStatus(AsyncResult<?> serviceRespond) {
         if (serviceRespond.succeeded()) {
-            logger.info("Service successfully received file {0}.", saveFilePath);
+            logger.info("Service successfully received file {}.", saveFilePath);
         } else {
-            logger.error("Service cant process file {0} and still unavailable.", saveFilePath);
+            logger.error("Service cant process file {} and still unavailable.", saveFilePath);
         }
     }
 
     private void configureAutoUpdates(RemoteFileProcessor remoteFileProcessor) {
-        logger.info("Check for updated for {0}", saveFilePath);
+        logger.info("Check for updated for {}", saveFilePath);
         tryUpdate().onComplete(asyncUpdate -> {
             if (asyncUpdate.failed()) {
-                logger.warn("File {0} update failed", asyncUpdate.cause(), saveFilePath);
+                logger.warn("File {} update failed", asyncUpdate.cause(), saveFilePath);
             }
             handleSync(remoteFileProcessor, asyncUpdate);
         });
@@ -262,7 +262,7 @@ public class RemoteFileSyncer {
             final long contentLength = Long.parseLong(contentLengthParameter);
             fileSystem.props(saveFilePath, filePropsResult -> {
                 if (filePropsResult.succeeded()) {
-                    logger.info("Prev length = {0}, new length = {1}", filePropsResult.result().size(), contentLength);
+                    logger.info("Prev length = {}, new length = {}", filePropsResult.result().size(), contentLength);
                     isUpdateRequired.complete(filePropsResult.result().size() != contentLength);
                 } else {
                     isUpdateRequired.fail(filePropsResult.cause());

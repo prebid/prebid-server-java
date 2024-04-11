@@ -7,8 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -35,6 +33,8 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -185,7 +185,7 @@ public class CacheService {
     private Future<BidCacheResponse> failResponse(Throwable exception, String accountId, long startTime) {
         metrics.updateCacheRequestFailedTime(accountId, clock.millis() - startTime);
 
-        logger.warn("Error occurred while interacting with cache service: {0}", exception.getMessage());
+        logger.warn("Error occurred while interacting with cache service: {}", exception.getMessage());
         logger.debug("Error occurred while interacting with cache service", exception);
 
         return Future.failedFuture(exception);
@@ -423,7 +423,7 @@ public class CacheService {
                                                    CacheHttpRequest request,
                                                    long startTime) {
 
-        logger.warn("Error occurred while interacting with cache service: {0}", exception.getMessage());
+        logger.warn("Error occurred while interacting with cache service: {}", exception.getMessage());
         logger.debug("Error occurred while interacting with cache service", exception);
 
         metrics.updateCacheRequestFailedTime(accountId, clock.millis() - startTime);
