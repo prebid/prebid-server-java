@@ -10,6 +10,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -21,7 +22,8 @@ public class RoulaxTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromTheRoulaxBidder() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/roulax-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/roulax-exchange/testPublisherPath"))
+                        .withQueryParam("pid", equalTo("testPid"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/roulax/test-roulax-bid-request.json")))
                 .willReturn(aResponse().withBody(

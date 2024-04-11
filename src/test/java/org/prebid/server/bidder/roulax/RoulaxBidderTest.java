@@ -16,7 +16,6 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.roulax.ExtImpRoulax;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -25,10 +24,13 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.groups.Tuple.tuple;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class RoulaxBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test-url.com/{{PublisherPath}}?pid={{AccountId}}";
+    private static final String ENDPOINT_URL = "https://test-url.com/{{PublisherId}}?pid={{AccountId}}";
 
     private final RoulaxBidder target = new RoulaxBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -57,7 +59,7 @@ public class RoulaxBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldResolveEndpointUrl() {
         // given
-        final Imp imp = givenImp(ExtImpRoulax.of("     testPublisherId   ", "   testPid   "));
+        final Imp imp = givenImp("     testPublisherId   ", "   testPid   ");
         final BidRequest bidRequest = givenBidRequest(imp);
 
         // when
@@ -74,10 +76,10 @@ public class RoulaxBidderTest extends VertxTest {
     public void makeHttpRequestsShouldResolveEndpointWithPidAndPublisherPathBasedOnFirstImp() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                givenImp(ExtImpRoulax.of("testPublisherPath0", "testPid0")),
+                givenImp("testPublisherPath0", "testPid0"),
                 givenInvalidImp(),
-                givenImp(ExtImpRoulax.of("testPublisherPath2", "testPid2")),
-                givenImp(ExtImpRoulax.of(null, null)));
+                givenImp("testPublisherPath2", "testPid2"),
+                givenImp(null, null));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -122,8 +124,7 @@ public class RoulaxBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(BidResponse.builder().build()));
+        final BidderCall<BidRequest> httpCall = givenHttpCall();
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -134,76 +135,119 @@ public class RoulaxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnErrorIfMtypeInvalid() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerBidIfBannerIsPresentInRequestImp() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
-                givenBidResponse(givenBid(0))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBid(1));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(givenBid(1), banner, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoBidIfVideoIsPresentInRequestImp() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBid(2));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(givenBid(2), video, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeBidIfNativeIsPresentInRequestImp() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBid(4));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(givenBid(4), xNative, "USD"));
+    }
+
+    @Test
+    public void makeBidsShouldThrowErrorUnableToFetchMediaTypeWhenMTypeUnknownNumber() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBid(0));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors())
-                .containsExactly(BidderError.badServerResponse("Unable to fetch mediaType in impID: null, mType: 0"));
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Unable to fetch mediaType in impID: impId, mType: 0");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                });
     }
 
     @Test
-    public void makeBidsShouldReturnBidsWithProperType() throws JsonProcessingException {
+    public void makeBidsShouldThrowErrorUnableToFetchMediaTypeWhenMTypeNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(mapper.writeValueAsString(
-                givenBidResponse(
-                        givenBid(null),
-                        givenBid(1),
-                        givenBid(2),
-                        givenBid(3),
-                        givenBid(4))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBid(null));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getValue()).hasSize(3)
-                .extracting(BidderBid::getType)
-                .containsExactly(BidType.banner, BidType.video, BidType.xNative);
-        assertThat(result.getErrors()).hasSize(2)
-                .containsExactlyInAnyOrder(
-                        BidderError.badServerResponse("Unable to fetch mediaType in impID: null, mType: null"),
-                        BidderError.badServerResponse("Unable to fetch mediaType in impID: null, mType: 3"));
-    }
-
-    private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {
-        return bidRequestCustomizer.apply(BidRequest.builder()).build();
+        assertThat(result.getValue()).isEmpty();
+        assertThat(result.getErrors()).hasSize(1)
+                .allSatisfy(error -> {
+                    assertThat(error.getMessage()).startsWith("Missing MType for bid: id");
+                    assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+                });
     }
 
     private static BidRequest givenBidRequest(Imp... imps) {
-        return givenBidRequest(request -> request.imp(List.of(imps)));
+        return BidRequest.builder().imp(List.of(imps)).build();
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()).build();
     }
 
-    private static Imp givenImp(ExtImpRoulax extImpRoulax) {
-        return givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, extImpRoulax))));
+    private static Imp givenImp(String publisherPath, String pid) {
+        return givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRoulax.of(publisherPath, pid)))));
     }
 
     private static Imp givenInvalidImp() {
         return givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
     }
 
-    private BidderCall<BidRequest> givenHttpCall(String body) {
-        final HttpResponse response = HttpResponse.of(200, null, body);
-        return BidderCall.succeededHttp(null, response, null);
+    private static String givenBidResponse(Bid... bids) throws JsonProcessingException {
+        return mapper.writeValueAsString(BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder().bid(List.of(bids)).build()))
+                .build());
     }
 
-    private static BidResponse givenBidResponse(Bid... bids) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(List.of(bids)).build()))
-                .build();
+    private static BidderCall<BidRequest> givenHttpCall(Bid... bids) throws JsonProcessingException {
+        return BidderCall.succeededHttp(
+                HttpRequest.<BidRequest>builder().payload(null).build(),
+                HttpResponse.of(200, null, givenBidResponse(bids)),
+                null);
+    }
+
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
+        return BidderCall.succeededHttp(
+                HttpRequest.<BidRequest>builder().payload(null).build(),
+                HttpResponse.of(200, null, body),
+                null);
     }
 
     private static Bid givenBid(Integer mtype) {
-        return Bid.builder().mtype(mtype).build();
+        return Bid.builder().mtype(mtype).id("id").impid("impId").build();
     }
 }

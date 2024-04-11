@@ -11,8 +11,8 @@
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "Pid": "pid",
-          "PublisherPath": "publisherPath"
+          "Pid": "testPid",
+          "PublisherPath": "testPublisherPath"
         }
       }
     }

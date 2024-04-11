@@ -7,7 +7,6 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
@@ -35,7 +34,7 @@ public class RoulaxBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    private static final String PUBLISHER_PATH_MACRO = "{{PublisherPath}}";
+    private static final String PUBLISHER_PATH_MACRO = "{{PublisherId}}";
     private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
 
     private static final TypeReference<ExtPrebid<?, ExtImpRoulax>> ROULAX_EXT_TYPE_REFERENCE =
@@ -108,7 +107,11 @@ public class RoulaxBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(Bid bid) {
-        return switch (ObjectUtils.defaultIfNull(bid.getMtype(), 0)) {
+        final Integer markupType = bid.getMtype();
+        if (markupType == null) {
+            throw new PreBidException("Missing MType for bid: " + bid.getId());
+        }
+        return switch (markupType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             case 4 -> BidType.xNative;

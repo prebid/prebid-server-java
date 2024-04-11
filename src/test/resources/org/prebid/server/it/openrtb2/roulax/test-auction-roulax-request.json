@@ -9,8 +9,8 @@
       },
       "ext": {
         "roulax": {
-          "Pid": "pid",
-          "PublisherPath": "publisherPath"
+          "Pid": "testPid",
+          "PublisherPath": "testPublisherPath"
         }
       }
     }
