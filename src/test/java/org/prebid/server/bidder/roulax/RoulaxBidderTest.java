@@ -30,7 +30,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class RoulaxBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test-url.com/{{PublisherId}}?pid={{AccountId}}";
+    private static final String ENDPOINT_URL = "https://test-url.com/{{PublisherID}}?pid={{AccountID}}";
 
     private final RoulaxBidder target = new RoulaxBidder(ENDPOINT_URL, jacksonMapper);
 

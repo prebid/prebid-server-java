@@ -34,8 +34,8 @@ public class RoulaxBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    private static final String PUBLISHER_PATH_MACRO = "{{PublisherId}}";
-    private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
+    private static final String PUBLISHER_PATH_MACRO = "{{PublisherID}}";
+    private static final String ACCOUNT_ID_MACRO = "{{AccountID}}";
 
     private static final TypeReference<ExtPrebid<?, ExtImpRoulax>> ROULAX_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
