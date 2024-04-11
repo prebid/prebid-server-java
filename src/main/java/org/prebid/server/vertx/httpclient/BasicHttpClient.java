@@ -71,7 +71,7 @@ public class BasicHttpClient implements HttpClient {
                 .setAbsoluteURI(absoluteUrl)
                 .setHeaders(headers);
 
-        final Future<HttpClientRequest> requestFuture = httpClient.request(options);
+        final Future<HttpClientRequest> requestFuture = makeRequest(options);
 
         requestFuture
                 .compose(request -> body != null ? request.send(Buffer.buffer(body)) : request.send())
@@ -82,6 +82,14 @@ public class BasicHttpClient implements HttpClient {
         return responsePromise.future()
                 .onComplete(ignored -> vertx.cancelTimer(timerId))
                 .onFailure(ignored -> requestFuture.onSuccess(HttpClientRequest::reset));
+    }
+
+    private Future<HttpClientRequest> makeRequest(RequestOptions options) {
+        try {
+            return httpClient.request(options);
+        } catch (Throwable e) {
+            return Future.failedFuture(e);
+        }
     }
 
     private Future<HttpClientResponse> toInternalResponse(io.vertx.core.http.HttpClientResponse response,
