@@ -29,7 +29,6 @@
         <!-- dependencies versions -->
         <spring.boot.version>3.2.3</spring.boot.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
-        <vertx.version>4.5.5</vertx.version>
         <commons.version>3.14.0</commons.version>
         <commons.collections.version>4.4</commons.collections.version>
         <commons.compress.version>1.26.0</commons.compress.version>
@@ -44,16 +43,15 @@
         <postgresql.version>42.7.2</postgresql.version>
         <psl.version>2.2.0</psl.version>
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
+        <vertx.prometheus.version>0.16.0</vertx.prometheus.version>
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
         <iabtcf.version>2.0.7</iabtcf.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
-        <logback.version>1.5.3</logback.version>
         <hikari.version>5.0.1</hikari.version>
         <gpp-encoder.version>3.0.10</gpp-encoder.version>
         <protobuf.version>3.21.7</protobuf.version>
         <protoc.version>3.17.3</protoc.version>
         <json-logic.version>1.0.7</json-logic.version>
-        <slf4j.version>2.0.12</slf4j.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
@@ -129,12 +127,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>ch.qos.logback</groupId>
-                    <artifactId>logback-classic</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -344,40 +336,18 @@
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>
-            <artifactId>simpleclient_vertx</artifactId>
+            <artifactId>simpleclient_vertx4</artifactId>
+            <version>${vertx.prometheus.version}</version>
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_dropwizard</artifactId>
+            <version>${vertx.prometheus.version}</version>
         </dependency>
         <dependency>
             <groupId>com.maxmind.geoip2</groupId>
             <artifactId>geoip2</artifactId>
             <version>${maxmind-client.version}</version>
-        </dependency>
-        <!--TODO: Remove this after bumping to new Spring Parent with safe log4j and logback -->
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <version>${logback.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-to-slf4j</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
         </dependency>
         <dependency>
             <groupId>com.zaxxer</groupId>
