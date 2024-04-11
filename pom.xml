@@ -61,7 +61,6 @@
         <mockito.version>4.11.0</mockito.version>
         <assertj.version>3.24.2</assertj.version>
         <wiremock.version>2.35.1</wiremock.version>
-        <awaitility.version>4.2.0</awaitility.version>
         <jetty.version>9.4.53.v20231009</jetty.version>
         <restassured.version>4.4.0</restassured.version>
         <h2.version>2.2.220</h2.version>
@@ -422,12 +421,6 @@
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
             <version>${assertj.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
-            <version>${awaitility.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
