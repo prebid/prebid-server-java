@@ -284,7 +284,7 @@ class BidderParamsSpec extends BaseSpec {
 
         then: "Response should contain error"
         assert response.ext?.errors[ErrorType.GENERIC]*.code == [999]
-        assert response.ext?.errors[ErrorType.GENERIC]*.message == ["no empty host accepted"]
+        assert response.ext?.errors[ErrorType.GENERIC]*.message == ["host name must not be empty"]
     }
 
     def "PBS should reject bidder when bidder params from request doesn't satisfy json-schema for auction request"() {
