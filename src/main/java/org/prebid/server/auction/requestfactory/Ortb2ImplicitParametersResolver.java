@@ -284,7 +284,7 @@ public class Ortb2ImplicitParametersResolver {
         return ipAddress != null && ipAddress.getVersion() == version ? ipAddress.getIp() : null;
     }
 
-    private IpAddress findIpFromRequest(HttpRequestContext request) {
+    public IpAddress findIpFromRequest(HttpRequestContext request) {
         final CaseInsensitiveMultiMap headers = request.getHeaders();
         final String remoteHost = request.getRemoteHost();
         final List<String> requestIps = paramsExtractor.ipFrom(headers, remoteHost);

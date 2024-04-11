@@ -8,6 +8,7 @@ import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.net.JksOptions;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.ActivitiesConfigResolver;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.AmpResponsePostProcessor;
 import org.prebid.server.auction.BidResponseCreator;
@@ -16,6 +17,7 @@ import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.DsaEnforcer;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.FpdResolver;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.InterstitialProcessor;
 import org.prebid.server.auction.IpAddressHelper;
@@ -86,7 +88,6 @@ import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.identity.NoneIdGenerator;
 import org.prebid.server.identity.UUIDIdGenerator;
-import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.CriteriaLogManager;
@@ -101,7 +102,6 @@ import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.PrivacyExtractor;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
 import org.prebid.server.settings.ApplicationSettings;
-import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.BidValidationEnforcement;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.spring.config.model.HttpClientCircuitBreakerProperties;
@@ -355,7 +355,6 @@ public class ServiceConfiguration {
 
     @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
-            @Value("${settings.enforce-valid-account}") boolean enforceValidAccount,
             @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
             @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
             UidsCookieService uidsCookieService,
@@ -374,7 +373,6 @@ public class ServiceConfiguration {
         final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
 
         return new Ortb2RequestFactory(
-                enforceValidAccount,
                 timeoutAdjustmentFactor,
                 logSamplingRate,
                 blacklistedAccounts,
@@ -405,7 +403,8 @@ public class ServiceConfiguration {
             OrtbTypesResolver ortbTypesResolver,
             AuctionPrivacyContextFactory auctionPrivacyContextFactory,
             DebugResolver debugResolver,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         return new AuctionRequestFactory(
                 maxRequestSize,
@@ -420,7 +419,8 @@ public class ServiceConfiguration {
                 ortbTypesResolver,
                 auctionPrivacyContextFactory,
                 debugResolver,
-                mapper);
+                mapper,
+                geoLocationServiceWrapper);
     }
 
     @Bean
@@ -451,7 +451,8 @@ public class ServiceConfiguration {
                                         FpdResolver fpdResolver,
                                         AmpPrivacyContextFactory ampPrivacyContextFactory,
                                         DebugResolver debugResolver,
-                                        JacksonMapper mapper) {
+                                        JacksonMapper mapper,
+                                        GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         return new AmpRequestFactory(
                 ortb2RequestFactory,
@@ -464,7 +465,8 @@ public class ServiceConfiguration {
                 fpdResolver,
                 ampPrivacyContextFactory,
                 debugResolver,
-                mapper);
+                mapper,
+                geoLocationServiceWrapper);
     }
 
     @Bean
@@ -478,7 +480,8 @@ public class ServiceConfiguration {
             Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver,
             AuctionPrivacyContextFactory auctionPrivacyContextFactory,
             DebugResolver debugResolver,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         return new VideoRequestFactory(
                 maxRequestSize,
@@ -490,7 +493,8 @@ public class ServiceConfiguration {
                 ortb2ImplicitParametersResolver,
                 auctionPrivacyContextFactory,
                 debugResolver,
-                mapper);
+                mapper,
+                geoLocationServiceWrapper);
     }
 
     @Bean
@@ -690,9 +694,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    CookieDeprecationService deprecationCookieResolver(Account defaultAccount) {
-
-        return new CookieDeprecationService(defaultAccount);
+    CookieDeprecationService cookieDeprecationService() {
+        return new CookieDeprecationService();
     }
 
     @Bean
@@ -990,8 +993,13 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    PriceFloorsConfigResolver accountValidator(Account defaultAccount, Metrics metrics) {
-        return new PriceFloorsConfigResolver(defaultAccount, metrics);
+    PriceFloorsConfigResolver priceFloorsConfigResolver(Metrics metrics) {
+        return new PriceFloorsConfigResolver(metrics);
+    }
+
+    @Bean
+    ActivitiesConfigResolver activitiesConfigResolver(@Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
+        return new ActivitiesConfigResolver(logSamplingRate);
     }
 
     @Bean
@@ -1111,20 +1119,6 @@ public class ServiceConfiguration {
     @Bean
     DsaEnforcer dsaEnforcer() {
         return new DsaEnforcer();
-    }
-
-    @Bean
-    Account defaultAccount(@Value("${settings.default-account-config:#{null}}") String defaultAccountConfig,
-                           JacksonMapper mapper) {
-        try {
-            final Account account = StringUtils.isNotBlank(defaultAccountConfig)
-                    ? mapper.decodeValue(defaultAccountConfig, Account.class)
-                    : null;
-            return account != null ? account : Account.builder().build();
-        } catch (DecodeException e) {
-            logger.warn("Could not parse default account configuration", e);
-            return Account.builder().build();
-        }
     }
 
     private static List<String> splitToList(String listAsString) {

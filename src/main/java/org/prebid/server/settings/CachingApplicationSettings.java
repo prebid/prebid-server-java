@@ -72,7 +72,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
         return getFromCacheOrDelegate(
                 accountCache,
                 accountToErrorCache,
-                accountId,
+                StringUtils.isBlank(accountId) ? StringUtils.EMPTY : accountId,
                 timeout,
                 delegate::getAccountById,
                 event -> metrics.updateSettingsCacheEventMetric(MetricName.account, event));

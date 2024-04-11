@@ -3,11 +3,8 @@ package org.prebid.server.bidder.iqzone;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Native;
-import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -117,6 +114,26 @@ public class IqzoneBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldNotModifyImpExt() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpIqzone.of(null, null)))));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("bidder"))
+                .map(JsonNode::isEmpty)
+                .containsExactly(true);
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
@@ -163,9 +180,8 @@ public class IqzoneBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldCorrectlyProceedWithVideo() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
-                        .id("someId").video(Video.builder().build())),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(2))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -179,9 +195,8 @@ public class IqzoneBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldCorrectlyProceedWithNative() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
-                        .id("someId").xNative(Native.builder().build())),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(4))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -195,9 +210,8 @@ public class IqzoneBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldCorrectlyProceedWithBanner() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
-                        .id("someId").banner(Banner.builder().build())),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(1))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -211,9 +225,8 @@ public class IqzoneBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfImpIdDoesNotMatchImpIdInBid() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(impBuilder -> impBuilder
-                        .id("someIdThatIsDifferentFromIDInBid").xNative(Native.builder().build())),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
+                mapper.writeValueAsString(givenBidResponse(identity())));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -222,17 +235,16 @@ public class IqzoneBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("Failed to find impression for ID:");
+                    assertThat(error.getMessage()).startsWith("Missing MType for bid: null");
                 });
         assertThat(result.getValue()).isEmpty();
     }
 
     @Test
-    public void makeBidsShouldReturnErrorWhenMissingType() throws JsonProcessingException {
+    public void makeBidsShouldReturnErrorWhenMissingMType() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                givenBidRequest(impBuilder -> impBuilder.id("someId")),
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("someId"))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(),
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.mtype(null))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -241,7 +253,7 @@ public class IqzoneBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .allSatisfy(error -> {
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
-                    assertThat(error.getMessage()).startsWith("Unknown impression type for ID");
+                    assertThat(error.getMessage()).startsWith("Missing MType for bid: null");
                 });
     }
 

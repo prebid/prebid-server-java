@@ -1,6 +1,7 @@
-package org.prebid.server.activity.utils;
+package org.prebid.server.activity;
 
-import org.prebid.server.activity.Activity;
+import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
@@ -14,19 +15,43 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class AccountActivitiesConfigurationUtils {
+public class ActivitiesConfigResolver {
 
-    private AccountActivitiesConfigurationUtils() {
+    private static final ConditionalLogger conditionalLogger =
+            new ConditionalLogger(LoggerFactory.getLogger(ActivitiesConfigResolver.class));
+
+    private final double logSamplingRate;
+
+    public ActivitiesConfigResolver(double logSamplingRate) {
+        this.logSamplingRate = logSamplingRate;
     }
 
-    public static boolean isInvalidActivitiesConfiguration(Account account) {
+    public Account resolve(Account account) {
+        if (!isInvalidActivitiesConfiguration(account)) {
+            return account;
+        }
+
+        conditionalLogger.warn(
+                "Activity configuration for account %s contains conditional rule with empty array."
+                        .formatted(account.getId()),
+                logSamplingRate);
+
+        final AccountPrivacyConfig accountPrivacyConfig = account.getPrivacy();
+        return account.toBuilder()
+                .privacy(accountPrivacyConfig.toBuilder()
+                        .activities(removeInvalidRules(accountPrivacyConfig.getActivities()))
+                        .build())
+                .build();
+    }
+
+    private static boolean isInvalidActivitiesConfiguration(Account account) {
         return Optional.ofNullable(account)
                 .map(Account::getPrivacy)
                 .map(AccountPrivacyConfig::getActivities)
                 .stream()
                 .map(Map::values)
                 .flatMap(Collection::stream)
-                .anyMatch(AccountActivitiesConfigurationUtils::containsInvalidRule);
+                .anyMatch(ActivitiesConfigResolver::containsInvalidRule);
     }
 
     private static boolean containsInvalidRule(AccountActivityConfiguration accountActivityConfiguration) {
@@ -34,7 +59,7 @@ public class AccountActivitiesConfigurationUtils {
                 .map(AccountActivityConfiguration::getRules)
                 .stream()
                 .flatMap(Collection::stream)
-                .anyMatch(AccountActivitiesConfigurationUtils::isInvalidConditionRule);
+                .anyMatch(ActivitiesConfigResolver::isInvalidConditionRule);
     }
 
     private static boolean isInvalidConditionRule(AccountActivityRuleConfig rule) {
@@ -63,13 +88,13 @@ public class AccountActivitiesConfigurationUtils {
         return collection != null && collection.isEmpty();
     }
 
-    public static Map<Activity, AccountActivityConfiguration> removeInvalidRules(
+    private static Map<Activity, AccountActivityConfiguration> removeInvalidRules(
             Map<Activity, AccountActivityConfiguration> activitiesConfiguration) {
 
         return activitiesConfiguration.entrySet().stream()
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
-                        entry -> AccountActivitiesConfigurationUtils.removeInvalidRules(entry.getValue())));
+                        entry -> removeInvalidRules(entry.getValue())));
     }
 
     private static AccountActivityConfiguration removeInvalidRules(AccountActivityConfiguration activityConfiguration) {

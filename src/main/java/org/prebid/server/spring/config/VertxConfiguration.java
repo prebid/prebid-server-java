@@ -2,7 +2,6 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.file.FileSystem;
 import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.Match;
@@ -12,7 +11,6 @@ import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.spring.config.metrics.MetricsConfiguration;
 import org.prebid.server.vertx.ContextRunner;
-import org.prebid.server.vertx.LocalMessageCodec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,14 +40,6 @@ public class VertxConfiguration {
         final Vertx vertx = Vertx.vertx(vertxOptions);
         logger.info("Native transport enabled: {}", vertx.isNativeTransportEnabled());
         return vertx;
-    }
-
-    @Bean
-    EventBus eventBus(Vertx vertx) {
-        final EventBus eventBus = vertx.eventBus();
-        eventBus.registerCodec(LocalMessageCodec.create());
-
-        return eventBus;
     }
 
     @Bean

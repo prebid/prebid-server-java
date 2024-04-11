@@ -1,6 +1,5 @@
 package org.prebid.server.settings.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
@@ -26,12 +25,10 @@ public class Account {
 
     AccountHooksConfiguration hooks;
 
+    AccountSettings settings;
+
     public static Account empty(String id) {
         return Account.builder().id(id).build();
     }
 
-    @JsonIgnore
-    public boolean isEmpty() {
-        return this.equals(empty(id));
-    }
 }

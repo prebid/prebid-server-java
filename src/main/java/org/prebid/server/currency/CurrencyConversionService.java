@@ -27,6 +27,7 @@ import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -277,7 +278,13 @@ public class CurrencyConversionService implements Initializable {
             return conversionRate;
         }
 
-        return findIntermediateConversionRate(directCurrencyRates, reverseCurrencyRates);
+        final BigDecimal intermediateConversionRate = findIntermediateConversionRate(directCurrencyRates,
+                reverseCurrencyRates);
+        if (intermediateConversionRate != null) {
+            return intermediateConversionRate;
+        }
+
+        return findCrossConversionRate(currencyConversionRates, fromCurrency, toCurrency);
     }
 
     /**
@@ -291,7 +298,8 @@ public class CurrencyConversionService implements Initializable {
                 : null;
 
         return reverseConversionRate != null
-                ? BigDecimal.ONE.divide(reverseConversionRate, reverseConversionRate.precision(),
+                ? BigDecimal.ONE.divide(reverseConversionRate,
+                getRatePrecision(reverseConversionRate),
                 RoundingMode.HALF_EVEN)
                 : null;
     }
@@ -315,13 +323,36 @@ public class CurrencyConversionService implements Initializable {
                 final BigDecimal reverseCurrencyRateIntermediate = reverseCurrencyRates.get(sharedCurrency);
                 conversionRate = directCurrencyRateIntermediate.divide(reverseCurrencyRateIntermediate,
                         // chose largest precision among intermediate rates
-                        reverseCurrencyRateIntermediate.compareTo(directCurrencyRateIntermediate) > 0
-                                ? reverseCurrencyRateIntermediate.precision()
-                                : directCurrencyRateIntermediate.precision(),
+                        getRatePrecision(directCurrencyRateIntermediate, reverseCurrencyRateIntermediate),
                         RoundingMode.HALF_EVEN);
             }
         }
         return conversionRate;
+    }
+
+    private static BigDecimal findCrossConversionRate(Map<String, Map<String, BigDecimal>> currencyConversionRates,
+                                                      String fromCurrency,
+                                                      String toCurrency) {
+        for (Map<String, BigDecimal> rates : currencyConversionRates.values()) {
+            final BigDecimal fromRate = rates.get(fromCurrency);
+            final BigDecimal toRate = rates.get(toCurrency);
+            if (fromRate != null && toRate != null) {
+                return toRate.divide(fromRate,
+                        getRatePrecision(fromRate, toRate),
+                        RoundingMode.HALF_EVEN);
+            }
+        }
+
+        return null;
+    }
+
+    private static int getRatePrecision(BigDecimal... rates) {
+        final int precision = Arrays.stream(rates)
+                .map(BigDecimal::precision)
+                .max(Integer::compareTo)
+                .orElse(DEFAULT_PRICE_PRECISION);
+
+        return Math.max(precision, DEFAULT_PRICE_PRECISION);
     }
 
     private boolean isRatesStale() {

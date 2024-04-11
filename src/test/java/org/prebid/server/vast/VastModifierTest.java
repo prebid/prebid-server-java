@@ -177,6 +177,20 @@ public class VastModifierTest {
     }
 
     @Test
+    public void createBidVastXmlShouldBeModifiedWithNewImpressionVastUrlWhenEventsEnabledAndNoEmptyTag2() {
+        // when
+        final String bidAdm = "<Wrapper><  impreSSion garbage >http:/test.com<  /ImPression  garbage ></Wrapper>";
+        final String result = target
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
+
+        // then
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
+
+        assertThat(result).isEqualTo("<Wrapper><  impreSSion garbage >http:/test.com<  /ImPression  garbage >"
+                + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></Wrapper>");
+    }
+
+    @Test
     public void createBidVastXmlShouldBeModifiedWithNewImpressionAfterExistingImpressionTags() {
         // when
         final String bidAdm = "<InLine><Impression>http:/test.com</Impression>"
@@ -189,6 +203,22 @@ public class VastModifierTest {
 
         assertThat(result).isEqualTo("<InLine><Impression>http:/test.com</Impression>"
                 + "<Impression>http:/test2.com</Impression>"
+                + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression><Creatives></Creatives></InLine>");
+    }
+
+    @Test
+    public void createBidVastXmlShouldBeModifiedWithNewImpressionAfterExistingImpressionTags2() {
+        // when
+        final String bidAdm = "<InLine>< Impression  >http:/test.com<   /Impression  >"
+                + "<ImprEssion garbage>http:/test2.com<  /ImPRession garbage><Creatives></Creatives></InLine>";
+        final String result = target
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
+
+        // then
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
+
+        assertThat(result).isEqualTo("<InLine>< Impression  >http:/test.com<   /Impression  >"
+                + "<ImprEssion garbage>http:/test2.com<  /ImPRession garbage>"
                 + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression><Creatives></Creatives></InLine>");
     }
 
@@ -233,16 +263,47 @@ public class VastModifierTest {
     }
 
     @Test
+    public void createBidVastXmlShouldModifyWrapperTagInCaseInsensitiveMode2() {
+        // when
+        final String bidAdm = "<  wraPPer garbage><Impression>http:/test.com</Impression><  / wraPPer garbage>";
+        final String result = target
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
+
+        // then
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
+
+        assertThat(result).isEqualTo("<  wraPPer garbage><Impression>http:/test.com</Impression>"
+                + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression><  / wraPPer garbage>");
+    }
+
+    @Test
     public void createBidVastXmlShouldInsertImpressionTagForEmptyWrapper() {
         // when
+        final String bidAdm = "<wrapper></wrapper>";
         final String result = target.createBidVastXml(
-                BIDDER, "<wrapper></wrapper>", BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
+                BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
         verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result)
                 .isEqualTo("<wrapper><Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></wrapper>");
+    }
+
+    @Test
+    public void createBidVastXmlShouldInsertImpressionTagForEmptyWrapper2() {
+        // when
+        final String bidAdm = "<  wraPPer garbage>< / wrapPer  garbage>";
+        final String result = target
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL,
+                        BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
+
+        // then
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
+
+        assertThat(result)
+                .isEqualTo("<  wraPPer garbage><Impression><![CDATA["
+                        + VAST_URL_TRACKING + "]]></Impression>< / wrapPer  garbage>");
     }
 
     @Test
@@ -273,6 +334,20 @@ public class VastModifierTest {
     }
 
     @Test
+    public void createBidVastXmlShouldModifyInlineTagInCaseInsensitiveMode2() {
+        // when
+        final String bidAdm = "<  InLIne garbage ><Impression>http:/test.com</Impression></  Inline garbage >";
+        final String result = target
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
+
+        // then
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
+
+        assertThat(result).isEqualTo("<  InLIne garbage ><Impression>http:/test.com</Impression>"
+                + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></  Inline garbage >");
+    }
+
+    @Test
     public void createBidVastXmlShouldBeModifiedIfInLineHasNoImpressionTags() {
         // when
         final String bidAdm = "<InLine></InLine>";
@@ -286,9 +361,53 @@ public class VastModifierTest {
     }
 
     @Test
+    public void createBidVastXmlShouldBeModifiedIfInLineHasNoImpressionTags2() {
+        // when
+        final String bidAdm = "<  InLIne garbage >< / InLIne garbage >";
+        final String result = target
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
+
+        // then
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
+
+        assertThat(result).isEqualTo("<  InLIne garbage ><Impression><![CDATA["
+                + VAST_URL_TRACKING + "]]></Impression>< / InLIne garbage >");
+    }
+
+    @Test
     public void createBidVastXmlShouldNotBeModifiedIfNoParentTagsPresent() {
         // when
         final String adm = "<Impression>http:/test.com</Impression>";
+        final List<String> warnings = new ArrayList<>();
+        final String result = target
+                .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), warnings);
+
+        // then
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
+        assertThat(result).isEqualTo(adm);
+        assertThat(warnings).containsExactly("VastXml does not contain neither InLine nor Wrapper for bidder response");
+        verify(metrics).updateAdapterRequestErrorMetric(BIDDER, MetricName.badserverresponse);
+    }
+
+    @Test
+    public void createBidVastXmlShouldNotBeModifiedIfWrapperTagIsInvalid() {
+        // when
+        final String adm = "<wrappergarbage></wrapper>";
+        final List<String> warnings = new ArrayList<>();
+        final String result = target
+                .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), warnings);
+
+        // then
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
+        assertThat(result).isEqualTo(adm);
+        assertThat(warnings).containsExactly("VastXml does not contain neither InLine nor Wrapper for bidder response");
+        verify(metrics).updateAdapterRequestErrorMetric(BIDDER, MetricName.badserverresponse);
+    }
+
+    @Test
+    public void createBidVastXmlShouldNotBeModifiedIfInlineTagIsInvalid() {
+        // when
+        final String adm = "<inlinegarbage></inline>";
         final List<String> warnings = new ArrayList<>();
         final String result = target
                 .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), warnings);

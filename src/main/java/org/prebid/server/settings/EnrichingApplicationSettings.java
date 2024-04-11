@@ -1,56 +1,79 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import org.prebid.server.activity.utils.AccountActivitiesConfigurationUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.activity.ActivitiesConfigResolver;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.floors.PriceFloorsConfigResolver;
+import org.prebid.server.json.DecodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
-import org.prebid.server.log.ConditionalLogger;
-import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountPrivacyConfig;
+import org.prebid.server.settings.model.AccountAuctionConfig;
+import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public class EnrichingApplicationSettings implements ApplicationSettings {
 
-    private static final ConditionalLogger conditionalLogger =
-            new ConditionalLogger(LoggerFactory.getLogger(EnrichingApplicationSettings.class));
-
     private final boolean enforceValidAccount;
-    private final double logSamplingRate;
     private final ApplicationSettings delegate;
     private final PriceFloorsConfigResolver priceFloorsConfigResolver;
+    private final ActivitiesConfigResolver activitiesConfigResolver;
     private final JsonMerger jsonMerger;
-
     private final Account defaultAccount;
 
     public EnrichingApplicationSettings(boolean enforceValidAccount,
-                                        double logSamplingRate,
-                                        Account defaultAccount,
+                                        String defaultAccountConfig,
                                         ApplicationSettings delegate,
                                         PriceFloorsConfigResolver priceFloorsConfigResolver,
-                                        JsonMerger jsonMerger) {
+                                        ActivitiesConfigResolver activitiesConfigResolver,
+                                        JsonMerger jsonMerger,
+                                        JacksonMapper mapper) {
 
         this.enforceValidAccount = enforceValidAccount;
-        this.logSamplingRate = logSamplingRate;
+        this.activitiesConfigResolver = Objects.requireNonNull(activitiesConfigResolver);
+        this.priceFloorsConfigResolver = Objects.requireNonNull(priceFloorsConfigResolver);
         this.delegate = Objects.requireNonNull(delegate);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
-        this.priceFloorsConfigResolver = Objects.requireNonNull(priceFloorsConfigResolver);
-        this.defaultAccount = Objects.requireNonNull(defaultAccount);
+
+        this.defaultAccount = parseAccount(defaultAccountConfig, mapper);
     }
 
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
-        return delegate.getAccountById(accountId, timeout)
-                .compose(priceFloorsConfigResolver::updateFloorsConfig)
-                .map(this::mergeAccounts)
-                .map(this::validateAndModifyAccount)
-                .recover(throwable -> recoverIfNeeded(throwable, accountId));
+        if (StringUtils.isNotBlank(accountId)) {
+            return delegate.getAccountById(accountId, timeout)
+                    .map(this::mergeAccounts)
+                    .map(account -> priceFloorsConfigResolver.resolve(account, extractDefaultPriceFloors()))
+                    .map(activitiesConfigResolver::resolve)
+                    .recover(throwable -> recoverIfNeeded(throwable, accountId));
+        }
+
+        return recoverIfNeeded(new PreBidException("Unauthorized account: account id is empty"), StringUtils.EMPTY);
+    }
+
+    private AccountPriceFloorsConfig extractDefaultPriceFloors() {
+        return Optional.ofNullable(defaultAccount)
+                .map(Account::getAuction)
+                .map(AccountAuctionConfig::getPriceFloors)
+                .orElse(null);
+    }
+
+    private static Account parseAccount(String accountConfig, JacksonMapper mapper) {
+        try {
+            return StringUtils.isNotBlank(accountConfig)
+                    ? mapper.decodeValue(accountConfig, Account.class)
+                    : null;
+        } catch (DecodeException e) {
+            throw new IllegalArgumentException("Could not parse default account configuration", e);
+        }
     }
 
     @Override
@@ -91,32 +114,15 @@ public class EnrichingApplicationSettings implements ApplicationSettings {
     }
 
     private Account mergeAccounts(Account account) {
-        return jsonMerger.merge(account, defaultAccount, Account.class);
-    }
-
-    private Account validateAndModifyAccount(Account account) {
-        if (AccountActivitiesConfigurationUtils.isInvalidActivitiesConfiguration(account)) {
-            conditionalLogger.warn(
-                    "Activity configuration for account %s contains conditional rule with empty array."
-                            .formatted(account.getId()),
-                    logSamplingRate);
-
-            final AccountPrivacyConfig accountPrivacyConfig = account.getPrivacy();
-            return account.toBuilder()
-                    .privacy(accountPrivacyConfig.toBuilder()
-                            .activities(AccountActivitiesConfigurationUtils
-                                    .removeInvalidRules(accountPrivacyConfig.getActivities()))
-                            .build())
-                    .build();
-        }
-
-        return account;
+        return defaultAccount == null
+                ? account
+                : jsonMerger.merge(account, defaultAccount, Account.class);
     }
 
     private Future<Account> recoverIfNeeded(Throwable throwable, String accountId) {
         // In case of invalid account return failed future
-        return !enforceValidAccount
-                ? Future.succeededFuture(mergeAccounts(Account.empty(accountId)))
-                : Future.failedFuture(throwable);
+        return enforceValidAccount
+                ? Future.failedFuture(throwable)
+                : Future.succeededFuture(mergeAccounts(Account.empty(accountId)));
     }
 }

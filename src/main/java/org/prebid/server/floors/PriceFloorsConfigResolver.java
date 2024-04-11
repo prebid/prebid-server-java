@@ -1,6 +1,6 @@
 package org.prebid.server.floors;
 
-import io.vertx.core.Future;
+import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.log.ConditionalLogger;
@@ -35,26 +35,16 @@ public class PriceFloorsConfigResolver {
     private static final int MAX_ENFORCE_RATE_VALUE = 100;
     private static final long DEFAULT_MAX_AGE_SEC_VALUE = 86400L;
 
-    private final Account defaultAccount;
     private final Metrics metrics;
-    private final AccountPriceFloorsConfig defaultFloorsConfig;
 
-    public PriceFloorsConfigResolver(Account defaultAccount, Metrics metrics) {
-        this.defaultAccount = Objects.requireNonNull(defaultAccount);
-        this.defaultFloorsConfig = getFloorsConfig(defaultAccount);
+    public PriceFloorsConfigResolver(Metrics metrics) {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    private static AccountPriceFloorsConfig getFloorsConfig(Account account) {
-        final AccountAuctionConfig auctionConfig = ObjectUtil.getIfNotNull(account, Account::getAuction);
-
-        return ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getPriceFloors);
-    }
-
-    public Future<Account> updateFloorsConfig(Account account) {
+    public Account resolve(Account account, AccountPriceFloorsConfig fallbackPriceFloorConfig) {
         try {
-            validatePriceFloorConfig(account, defaultFloorsConfig);
-            return Future.succeededFuture(account);
+            validatePriceFloorConfig(account);
+            return account;
         } catch (PreBidException e) {
             final String message = "Account with id '%s' has invalid config: %s"
                     .formatted(account.getId(), e.getMessage());
@@ -65,75 +55,60 @@ public class PriceFloorsConfigResolver {
             conditionalLogger.error(message, 0.01d);
         }
 
-        return Future.succeededFuture(fallbackToDefaultConfig(account));
+        return account.toBuilder()
+                .auction(account.getAuction().toBuilder().priceFloors(fallbackPriceFloorConfig).build())
+                .build();
     }
 
-    private static void validatePriceFloorConfig(Account account, AccountPriceFloorsConfig defaultFloorsConfig) {
+    private static void validatePriceFloorConfig(Account account) {
         final AccountPriceFloorsConfig floorsConfig = getFloorsConfig(account);
         if (floorsConfig == null) {
             return;
         }
-        final Integer accountEnforceRate = floorsConfig.getEnforceFloorsRate();
-        final Integer enforceFloorsRate = accountEnforceRate != null
-                ? accountEnforceRate
-                : ObjectUtil.getIfNotNull(defaultFloorsConfig, AccountPriceFloorsConfig::getEnforceFloorsRate);
-        if (enforceFloorsRate != null
-                && isNotInRange(enforceFloorsRate, MIN_ENFORCE_RATE_VALUE, MAX_ENFORCE_RATE_VALUE)) {
-            throw new PreBidException(
-                    invalidPriceFloorsPropertyMessage("enforce-floors-rate", enforceFloorsRate));
+
+        final Integer enforceRate = floorsConfig.getEnforceFloorsRate();
+        if (enforceRate != null && isNotInRange(enforceRate, MIN_ENFORCE_RATE_VALUE, MAX_ENFORCE_RATE_VALUE)) {
+            throw new PreBidException(invalidPriceFloorsPropertyMessage("enforce-floors-rate", enforceRate));
         }
+
         final AccountPriceFloorsFetchConfig fetchConfig =
                 ObjectUtil.getIfNotNull(floorsConfig, AccountPriceFloorsConfig::getFetch);
-        final AccountPriceFloorsFetchConfig defaultFetchConfig =
-                ObjectUtil.getIfNotNull(defaultFloorsConfig, AccountPriceFloorsConfig::getFetch);
 
-        validatePriceFloorsFetchConfig(fetchConfig, defaultFetchConfig);
+        validatePriceFloorsFetchConfig(fetchConfig);
     }
 
-    private static void validatePriceFloorsFetchConfig(AccountPriceFloorsFetchConfig fetchConfig,
-                                                       AccountPriceFloorsFetchConfig defaultFetchConfig) {
+    private static AccountPriceFloorsConfig getFloorsConfig(Account account) {
+        final AccountAuctionConfig auctionConfig = ObjectUtil.getIfNotNull(account, Account::getAuction);
+
+        return ObjectUtil.getIfNotNull(auctionConfig, AccountAuctionConfig::getPriceFloors);
+    }
+
+    private static void validatePriceFloorsFetchConfig(AccountPriceFloorsFetchConfig fetchConfig) {
         if (fetchConfig == null) {
             return;
         }
 
-        final Long accountMaxAgeSec = fetchConfig.getMaxAgeSec();
-        final Long defaultMaxAgeSec =
-                ObjectUtil.getIfNotNull(defaultFetchConfig, AccountPriceFloorsFetchConfig::getMaxAgeSec);
-        final long maxAgeSec = accountMaxAgeSec != null
-                ? accountMaxAgeSec
-                : defaultMaxAgeSec != null ? defaultMaxAgeSec : DEFAULT_MAX_AGE_SEC_VALUE;
+        final long maxAgeSec = ObjectUtils.defaultIfNull(fetchConfig.getMaxAgeSec(), DEFAULT_MAX_AGE_SEC_VALUE);
         if (isNotInRange(maxAgeSec, MIN_MAX_AGE_SEC_VALUE, MAX_AGE_SEC_VALUE)) {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("max-age-sec", maxAgeSec));
         }
 
-        final Long accountPeriodicSec = fetchConfig.getPeriodSec();
-        final Long periodicSec = accountPeriodicSec != null
-                ? accountPeriodicSec
-                : ObjectUtil.getIfNotNull(defaultFetchConfig, AccountPriceFloorsFetchConfig::getPeriodSec);
+        final Long periodicSec = fetchConfig.getPeriodSec();
         if (periodicSec != null && isNotInRange(periodicSec, MIN_PERIODIC_SEC_VALUE, maxAgeSec)) {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("period-sec", periodicSec));
         }
 
-        final Long accountTimeout = fetchConfig.getTimeout();
-        final Long timeout = accountTimeout != null
-                ? accountTimeout
-                : ObjectUtil.getIfNotNull(defaultFetchConfig, AccountPriceFloorsFetchConfig::getTimeout);
+        final Long timeout = fetchConfig.getTimeout();
         if (timeout != null && isNotInRange(timeout, MIN_TIMEOUT_MS_VALUE, MAX_TIMEOUT_MS_VALUE)) {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("timeout-ms", timeout));
         }
 
-        final Long accountMaxRules = fetchConfig.getMaxRules();
-        final Long maxRules = accountMaxRules != null
-                ? accountMaxRules
-                : ObjectUtil.getIfNotNull(defaultFetchConfig, AccountPriceFloorsFetchConfig::getMaxRules);
+        final Long maxRules = fetchConfig.getMaxRules();
         if (maxRules != null && isNotInRange(maxRules, MIN_RULES_VALUE, MAX_RULES_VALUE)) {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("max-rules", maxRules));
         }
 
-        final Long accountMaxFileSize = fetchConfig.getMaxFileSize();
-        final Long maxFileSize = accountMaxFileSize != null
-                ? accountMaxFileSize
-                : ObjectUtil.getIfNotNull(defaultFetchConfig, AccountPriceFloorsFetchConfig::getMaxFileSize);
+        final Long maxFileSize = fetchConfig.getMaxFileSize();
         if (maxFileSize != null && isNotInRange(maxFileSize, MIN_FILE_SIZE_VALUE, MAX_FILE_SIZE_VALUE)) {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("max-file-size-kb", maxFileSize));
         }
@@ -145,15 +120,5 @@ public class PriceFloorsConfigResolver {
 
     private static String invalidPriceFloorsPropertyMessage(String property, Object value) {
         return "Invalid price-floors property '%s', value passed: %s".formatted(property, value);
-    }
-
-    private Account fallbackToDefaultConfig(Account account) {
-        final AccountAuctionConfig auctionConfig = account.getAuction();
-        final AccountPriceFloorsConfig defaultPriceFloorsConfig =
-                ObjectUtil.getIfNotNull(defaultAccount.getAuction(), AccountAuctionConfig::getPriceFloors);
-
-        return account.toBuilder()
-                .auction(auctionConfig.toBuilder().priceFloors(defaultPriceFloorsConfig).build())
-                .build();
     }
 }

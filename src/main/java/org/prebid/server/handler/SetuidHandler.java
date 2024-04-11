@@ -191,10 +191,7 @@ public class SetuidHandler implements ApplicationResource {
     }
 
     private Future<Account> accountById(String accountId, Timeout timeout) {
-        return StringUtils.isBlank(accountId)
-                ? Future.succeededFuture(Account.empty(accountId))
-                : applicationSettings.getAccountById(accountId, timeout)
-                .otherwise(Account.empty(accountId));
+        return applicationSettings.getAccountById(accountId, timeout).otherwise(Account.empty(accountId));
     }
 
     private SetuidContext fillWithActivityInfrastructure(SetuidContext setuidContext) {
