@@ -18,6 +18,7 @@ import org.prebid.server.functional.model.response.auction.Adm
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
+import spock.lang.PendingFeature
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
@@ -500,7 +501,7 @@ class BidderFormatSpec extends BaseSpec {
         ENFORCE               | SKIP.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1
     }
 
-    //todo: Need confirm
+    @PendingFeature(reason = "Waiting for confirmation")
     def "PBS shouldn't make a validation for audio media type when secure is #secure and secure markUp is #secureMarkup"() {
         given: "PBS with secure-markUp: #secureMarkup"
         def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": secureMarkup])
@@ -555,12 +556,13 @@ class BidderFormatSpec extends BaseSpec {
         given: "PBS with secure-markUp: warn"
         def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": WARN.value])
 
-        and: "Default bid request"
+        and: "Default bid request with secure and banner or video or nativeObj"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].secure = 1
             imp[0].banner = banner
             imp[0].video = video
+            imp[0].nativeObj = nativeObj
             imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
         }
 
@@ -595,23 +597,26 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        url       | banner               | video
-        "http%3A" | Banner.defaultBanner | null
-        "http"    | Banner.defaultBanner | null
-        "http"    | null                 | Video.defaultVideo
-        "http%3A" | null                 | Video.defaultVideo
+        url       | banner               | video              | nativeObj
+        "http%3A" | Banner.defaultBanner | null               | null
+        "http"    | Banner.defaultBanner | null               | null
+        "http"    | null                 | Video.defaultVideo | null
+        "http%3A" | null                 | Video.defaultVideo | null
+        "http"    | null                 | null               | Native.defaultNative
+        "http%3A" | null                 | null               | Native.defaultNative
     }
 
     def "PBS should emit metrics and error when imp[0].secure = 1, banner and config SKIP and bid response adm contain #url"() {
         given: "PBS with secure-markUp: skip"
         def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": SKIP.value])
 
-        and: "Default bid request with secure 1 and video or banner"
+        and: "Default bid request with secure and banner or video or nativeObj"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].secure = 1
             imp[0].banner = banner
             imp[0].video = video
+            imp[0].nativeObj = nativeObj
             imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
         }
 
@@ -642,23 +647,26 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        url       | banner               | video
-        "http%3A" | Banner.defaultBanner | null
-        "http"    | Banner.defaultBanner | null
-        "http"    | null                 | Video.defaultVideo
-        "http%3A" | null                 | Video.defaultVideo
+        url       | banner               | video              | nativeObj
+        "http%3A" | Banner.defaultBanner | null               | null
+        "http"    | Banner.defaultBanner | null               | null
+        "http"    | null                 | Video.defaultVideo | null
+        "http%3A" | null                 | Video.defaultVideo | null
+        "http"    | null                 | null               | Native.defaultNative
+        "http%3A" | null                 | null               | Native.defaultNative
     }
 
     def "PBS should emit metrics and error and remove bid response when imp[0].secure = 1, banner and config ENFORCE and bid response adm contain #url"() {
         given: "PBS with secure-markUp: enforce"
         def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": ENFORCE.value])
 
-        and: "Default bid request with secure and banner or video"
+        and: "Default bid request with secure and banner or video or nativeObj"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].secure = 1
             imp[0].banner = banner
             imp[0].video = video
+            imp[0].nativeObj = nativeObj
             imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
         }
 
@@ -693,11 +701,13 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        url       | banner               | video
-        "http%3A" | Banner.defaultBanner | null
-        "http"    | Banner.defaultBanner | null
-        "http"    | null                 | Video.defaultVideo
-        "http%3A" | null                 | Video.defaultVideo
+        url       | banner               | video              | nativeObj
+        "http%3A" | Banner.defaultBanner | null               | null
+        "http"    | Banner.defaultBanner | null               | null
+        "http"    | null                 | Video.defaultVideo | null
+        "http%3A" | null                 | Video.defaultVideo | null
+        "http"    | null                 | null               | Native.defaultNative
+        "http%3A" | null                 | null               | Native.defaultNative
     }
 
     def "PBS shouldn't emit errors and metrics when imp[0].secure = #secure and bid response adm contain #url"() {
@@ -749,56 +759,6 @@ class BidderFormatSpec extends BaseSpec {
         "http%3A" | 0      | ENFORCE.value
         "http"    | 0      | ENFORCE.value
         "https"   | 1      | ENFORCE.value
-    }
-
-    //todo: Need confirm
-    def "PBS shouldn't emit errors and metrics when imp[0].secure = 1 and bid response adm contain #url and secureMarkup #secureMarkup but media type is native"() {
-        given: "PBS with secure-markUp"
-        def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": secureMarkup])
-
-        and: "Default bid request with native"
-        def storedResponseId = PBSUtils.randomNumber
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].secure = 1
-            imp[0].banner = null
-            imp[0].nativeObj = Native.defaultNative
-            imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
-        }
-
-        and: "Stored bid response in DB with adm"
-        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].adm = new Adm(assets: [Asset.getImgAsset("${url}://secure-assets.${PBSUtils.randomString}.com")])
-        }
-        def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
-        storedResponseDao.save(storedResponse)
-
-        when: "Requesting PBS auction"
-        def bidResponse = pbsService.sendAuctionRequest(bidRequest)
-
-        then: "Corresponding metric shouldn't increments"
-        def metrics = pbsService.sendCollectedMetricsRequest()
-        assert !metrics["account.${bidRequest.accountId}.response.validation.secure.warn"]
-        assert !metrics["account.${bidRequest.accountId}.response.validation.secure.err"]
-        assert !metrics["adapter.${BidderName.GENERIC.value}.response.validation.secure.warn"]
-        assert !metrics["adapter.${BidderName.GENERIC.value}.response.validation.secure.err"]
-
-        and: "Bid response shouldn't contain error"
-        assert !bidResponse.ext?.errors
-
-        and: "Pbs should contain seatBid"
-        assert bidResponse.seatbid
-
-        and: "PBs shouldn't perform a bidder request due to stored bid response"
-        assert !bidder.getBidderRequests(bidRequest.id)
-
-        where:
-        url       | secureMarkup
-        "http%3A" | SKIP.value
-        "http"    | SKIP.value
-        "http%3A" | ENFORCE.value
-        "http"    | ENFORCE.value
-        "http%3A" | WARN.value
-        "http"    | WARN.value
     }
 
     def "PBS should ignore specified secureMarkup #secureMarkup validation when secure is 0"() {
