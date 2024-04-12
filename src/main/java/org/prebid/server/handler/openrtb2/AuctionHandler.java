@@ -8,8 +8,6 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
@@ -25,6 +23,8 @@ import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.HttpInteractionLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.Endpoint;
@@ -254,7 +254,7 @@ public class AuctionHandler implements ApplicationResource {
     }
 
     private void handleResponseException(Throwable throwable, MetricName requestType) {
-        logger.warn("Failed to send auction response: {0}", throwable.getMessage());
+        logger.warn("Failed to send auction response: {}", throwable.getMessage());
         metrics.updateRequestTypeMetric(requestType, MetricName.networkerr);
     }
 

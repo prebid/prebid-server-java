@@ -5,10 +5,10 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.CircuitBreaker;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -127,11 +127,11 @@ public class CircuitBreakerSecuredHttpClient implements HttpClient {
     }
 
     private void circuitHalfOpened(String name) {
-        logger.warn("Http client request to {0} will try again, circuit half-opened.", name);
+        logger.warn("Http client request to {} will try again, circuit half-opened.", name);
     }
 
     private void circuitClosed(String name) {
-        logger.warn("Http client request to {0} becomes succeeded, circuit closed.", name);
+        logger.warn("Http client request to {} becomes succeeded, circuit closed.", name);
     }
 
     private static String nameFrom(String urlAsString) {

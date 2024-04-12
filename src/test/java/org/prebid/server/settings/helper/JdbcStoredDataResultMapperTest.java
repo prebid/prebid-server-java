@@ -87,8 +87,8 @@ public class JdbcStoredDataResultMapperTest {
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
         assertThat(result.getStoredIdToImp()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Error occurred while mapping stored request data");
+        assertThat(result.getErrors())
+                .containsExactly("No stored request found for id: reqId");
     }
 
     @Test
@@ -257,7 +257,7 @@ public class JdbcStoredDataResultMapperTest {
     }
 
     @Test
-    public void mapWithoutParamsShouldReturnEmptyStoredResultWithErrorWhenResultSetHasUnexpectedColumnType() {
+    public void mapWithoutParamsShouldReturnEmptyStoredResultWhenResultSetHasInvalidDataType() {
         // given
         given(resultSet.getResults()).willReturn(singletonList(
                 new JsonArray(asList("accountId", "id1", "data", 123))));
@@ -268,8 +268,7 @@ public class JdbcStoredDataResultMapperTest {
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
         assertThat(result.getStoredIdToImp()).isEmpty();
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Error occurred while mapping stored request data");
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test

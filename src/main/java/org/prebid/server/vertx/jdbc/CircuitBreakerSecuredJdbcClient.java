@@ -2,11 +2,11 @@ package org.prebid.server.vertx.jdbc;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.sql.ResultSet;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.CircuitBreaker;
 

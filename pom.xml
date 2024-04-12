@@ -27,9 +27,8 @@
         <dockerfileName>Dockerfile</dockerfileName>
 
         <!-- dependencies versions -->
-        <spring.boot.version>2.5.6</spring.boot.version>
+        <spring.boot.version>3.2.3</spring.boot.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
-        <vertx.version>3.9.10</vertx.version>
         <commons.version>3.14.0</commons.version>
         <commons.collections.version>4.4</commons.collections.version>
         <commons.compress.version>1.26.0</commons.compress.version>
@@ -37,23 +36,22 @@
         <httpclient.version>4.5.14</httpclient.version>
         <ipaddress.version>5.3.1</ipaddress.version>
         <oshi.version>6.4.5</oshi.version>
-        <jackson.version>2.14.1</jackson.version>
+        <jackson.version>2.16.2</jackson.version>
         <json-schema-validator.version>1.0.76</json-schema-validator.version>
         <jsonpatch.version>1.13</jsonpatch.version>
         <mysql.version>8.0.28</mysql.version>
         <postgresql.version>42.7.2</postgresql.version>
         <psl.version>2.2.0</psl.version>
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
+        <vertx.prometheus.version>0.16.0</vertx.prometheus.version>
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
         <iabtcf.version>2.0.7</iabtcf.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
-        <logback.version>1.2.13</logback.version>
         <hikari.version>5.0.1</hikari.version>
         <gpp-encoder.version>3.0.10</gpp-encoder.version>
         <protobuf.version>3.21.7</protobuf.version>
         <protoc.version>3.17.3</protoc.version>
         <json-logic.version>1.0.7</json-logic.version>
-        <slf4j.version>1.7.32</slf4j.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
@@ -63,9 +61,9 @@
         <wiremock.version>2.35.1</wiremock.version>
         <awaitility.version>4.2.0</awaitility.version>
         <jetty.version>9.4.53.v20231009</jetty.version>
-        <restassured.version>4.4.0</restassured.version>
+        <restassured.version>5.4.0</restassured.version>
         <h2.version>2.2.220</h2.version>
-        <spock.version>2.4-M1-groovy-3.0</spock.version>
+        <spock.version>2.4-M2-groovy-4.0</spock.version>
         <groovy.version>3.0.14</groovy.version>
         <testcontainers.version>1.17.4</testcontainers.version>
         <mockserver.version>5.14.0</mockserver.version>
@@ -76,7 +74,7 @@
         <checkstyle-plugin.version>3.1.2</checkstyle-plugin.version>
         <checkstyle.version>10.3</checkstyle.version>
         <download-plugin.version>1.2.0</download-plugin.version>
-        <jacoco-plugin.version>0.8.7</jacoco-plugin.version>
+        <jacoco-plugin.version>0.8.11</jacoco-plugin.version>
         <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
         <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
@@ -135,8 +133,8 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
         <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
+            <groupId>jakarta.annotation</groupId>
+            <artifactId>jakarta.annotation-api</artifactId>
         </dependency>
         <dependency>
             <groupId>javax.validation</groupId>
@@ -338,40 +336,18 @@
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>
-            <artifactId>simpleclient_vertx</artifactId>
+            <artifactId>simpleclient_vertx4</artifactId>
+            <version>${vertx.prometheus.version}</version>
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_dropwizard</artifactId>
+            <version>${vertx.prometheus.version}</version>
         </dependency>
         <dependency>
             <groupId>com.maxmind.geoip2</groupId>
             <artifactId>geoip2</artifactId>
             <version>${maxmind-client.version}</version>
-        </dependency>
-        <!--TODO: Remove this after bumping to new Spring Parent with safe log4j and logback -->
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>${logback.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-            <version>${logback.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-to-slf4j</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-api</artifactId>
         </dependency>
         <dependency>
             <groupId>com.zaxxer</groupId>
@@ -525,6 +501,18 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>json-path</artifactId>
+            <version>${restassured.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>xml-path</artifactId>
+            <version>${restassured.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
             <version>${bytebuddy.version}</version>
@@ -549,7 +537,7 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.hibernate</groupId>
+            <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-core</artifactId>
             <scope>test</scope>
         </dependency>
@@ -600,6 +588,11 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven-compiler-plugin.version}</version>
+                    <configuration>
+                        <compilerArgs>
+                            <arg>-parameters</arg>
+                        </compilerArgs>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
