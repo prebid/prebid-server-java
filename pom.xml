@@ -61,7 +61,6 @@
         <mockito.version>4.11.0</mockito.version>
         <assertj.version>3.24.2</assertj.version>
         <wiremock.version>2.35.1</wiremock.version>
-        <awaitility.version>4.2.0</awaitility.version>
         <jetty.version>9.4.53.v20231009</jetty.version>
         <restassured.version>4.4.0</restassured.version>
         <h2.version>2.2.220</h2.version>
@@ -69,7 +68,6 @@
         <groovy.version>3.0.14</groovy.version>
         <testcontainers.version>1.17.4</testcontainers.version>
         <mockserver.version>5.14.0</mockserver.version>
-        <aspectj.version>1.9.9.1</aspectj.version>
         <bytebuddy.version>1.12.14</bytebuddy.version>
 
         <!-- plugin versions -->
@@ -430,12 +428,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
-            <version>${awaitility.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
@@ -607,9 +599,10 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <systemPropertyVariables>
-                            <launchContainers>false</launchContainers>
+                            <launchContainers>true</launchContainers>
                         </systemPropertyVariables>
                         <skipTests>${skipUnitTests}</skipTests>
+                        <argLine>${surefire.jacoco.args}</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -779,18 +772,22 @@
                         <exclude>com/iab/openrtb/**</exclude>
                         <exclude>**/proto/**</exclude>
                         <exclude>**/model/**</exclude>
+                        <exclude>**/functional/**</exclude>
                         <exclude>org/prebid/server/spring/config/**</exclude>
                     </excludes>
                 </configuration>
                 <executions>
                     <execution>
-                        <id>prepare-agent</id>
+                        <id>before-unit-test-execution</id>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                        <configuration>
+                            <propertyName>surefire.jacoco.args</propertyName>
+                        </configuration>
                     </execution>
                     <execution>
-                        <id>report</id>
+                        <id>after-unit-test-execution</id>
                         <goals>
                             <goal>report</goal>
                         </goals>
@@ -905,13 +902,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <argLine>
-                        -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
-                    </argLine>
                     <systemPropertyVariables>
                         <mockserver.version>${mockserver.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
-                        <tests.max-container-count>2</tests.max-container-count>
+                        <tests.max-container-count>5</tests.max-container-count>
                         <tests.fixed-container-ports>false</tests.fixed-container-ports>
                     </systemPropertyVariables>
                 </configuration>
@@ -944,13 +938,6 @@
                         </configuration>
                     </execution>
                 </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.aspectj</groupId>
-                        <artifactId>aspectjweaver</artifactId>
-                        <version>${aspectj.version}</version>
-                    </dependency>
-                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
