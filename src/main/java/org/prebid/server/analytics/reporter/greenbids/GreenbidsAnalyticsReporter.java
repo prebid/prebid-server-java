@@ -12,6 +12,7 @@ import org.prebid.server.analytics.model.CookieSyncEvent;
 import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
+import org.prebid.server.analytics.reporter.greenbids.model.AdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.AnalyticsOptions;
 import org.prebid.server.analytics.reporter.greenbids.model.AuctionCacheManager;
 import org.prebid.server.analytics.reporter.greenbids.model.CachedAuction;
@@ -20,6 +21,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsPr
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBidder;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsConfig;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsEvent;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
@@ -96,6 +98,48 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
                 .isTimeout(event.getStatus() == 408)
                 .hasBid(event.getSuccess())
                 .build();
+    }
+
+    public void addBidResponseToMessage(CommonMessage commonMessage, GreenbidsBidder bidder) {
+        String adUnitCode = bidder.getAdUnitCode().toLowerCase();
+        Optional<AdUnit> adUnitOptional = commonMessage.getAdUnits().stream();
+    }
+
+    public CommonMessage createBidMessage(AuctionEvent auctionEvent) {
+        // ??? from which event extract list of adUnits? AuctionId? AuctionEndTimestamp???
+        AuctionContext auctionContext = auctionEvent.getAuctionContext();
+
+    }
+
+    // get bidder from event setuidEvent, NotificationEvent, CoolieSyncEvent
+    // get timeout status code from HttpResponseStatus  REQUEST_TIMEOUT 408
+
+    @Override
+    public <T> Future<Void> processEvent(T event) {
+        final GreenbidsEvent<?> greenbidsEvent;
+
+        if (event instanceof AmpEvent ampEvent) {
+            greenbidsEvent =  GreenbidsEvent.of("/openrtb2/amp", ampEvent.getBidResponse());
+        } else if (event instanceof AuctionEvent auctionEvent) {
+            greenbidsEvent =  GreenbidsEvent.of("/openrtb2/auction", auctionEvent.getBidResponse());
+            CommonMessage commonMessage = createBidMessage(auctionEvent);
+        } else if (event instanceof CookieSyncEvent cookieSyncEvent) {
+            greenbidsEvent = GreenbidsEvent.of("/cookie_sync", cookieSyncEvent.getBidderStatus());
+        } else if (event instanceof NotificationEvent notificationEvent) {
+            greenbidsEvent = GreenbidsEvent.of("/event", notificationEvent.getType() + notificationEvent.getBidId());
+        } else if (event instanceof SetuidEvent setuidEvent) {
+            greenbidsEvent = GreenbidsEvent.of(
+                    "/setuid",
+                    setuidEvent.getBidder() + ":" + setuidEvent.getUid() + ":" + setuidEvent.getSuccess()
+            );
+            GreenbidsBidder greenbidsBidder = serializeBidResponse(setuidEvent);
+        } else if (event instanceof VideoEvent videoEvent) {
+            greenbidsEvent = GreenbidsEvent.of("/openrtb2/video", videoEvent.getBidResponse());
+        } else {
+            greenbidsEvent = GreenbidsEvent.of("unknown", null);
+        }
+
+        return Future.succeededFuture();
     }
 
 
@@ -208,35 +252,5 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
             logger.error(message);
             throw new PreBidException(message);
         }
-    }
-
-    // get bidder from event setuidEvent, NotificationEvent, CoolieSyncEvent
-    // get timeout status code from HttpResponseStatus  REQUEST_TIMEOUT 408
-
-    @Override
-    public <T> Future<Void> processEvent(T event) {
-        final GreenbidsEvent<?> greenbidsEvent;
-
-        if (event instanceof AmpEvent ampEvent) {
-            greenbidsEvent =  GreenbidsEvent.of("/openrtb2/amp", ampEvent.getBidResponse());
-        } else if (event instanceof AuctionEvent auctionEvent) {
-            greenbidsEvent =  GreenbidsEvent.of("/openrtb2/auction", auctionEvent.getBidResponse());
-        } else if (event instanceof CookieSyncEvent cookieSyncEvent) {
-            greenbidsEvent = GreenbidsEvent.of("/cookie_sync", cookieSyncEvent.getBidderStatus());
-        } else if (event instanceof NotificationEvent notificationEvent) {
-            greenbidsEvent = GreenbidsEvent.of("/event", notificationEvent.getType() + notificationEvent.getBidId());
-        } else if (event instanceof SetuidEvent setuidEvent) {
-            greenbidsEvent = GreenbidsEvent.of(
-                    "/setuid",
-                    setuidEvent.getBidder() + ":" + setuidEvent.getUid() + ":" + setuidEvent.getSuccess()
-            );
-            GreenbidsBidder greenbidsBidder = serializeBidResponse(setuidEvent);
-        } else if (event instanceof VideoEvent videoEvent) {
-            greenbidsEvent = GreenbidsEvent.of("/openrtb2/video", videoEvent.getBidResponse());
-        } else {
-            greenbidsEvent = GreenbidsEvent.of("unknown", null);
-        }
-
-        return Future.succeededFuture();
     }
 }

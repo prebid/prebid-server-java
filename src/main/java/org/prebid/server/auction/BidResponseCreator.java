@@ -1354,7 +1354,7 @@ public class BidResponseCreator {
 
             final Request nativeRequest;
             try {
-                nativeRequest = mapper.mapper().readValue(nativeImp.getRequest(), Request.class);
+                nativeRequest = mapper.mapper().readValue(nativeImp.getRequest(), ыRequest.class);
             } catch (JsonProcessingException e) {
                 throw new PreBidException(e.getMessage());
             }
