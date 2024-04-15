@@ -1,8 +1,9 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import io.vertx.core.json.JsonArray;
 import io.vertx.ext.sql.ResultSet;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
@@ -125,9 +126,9 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      * Note: mapper should never throws exception in case of using
      * {@link org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient}.
      */
-    private <T> T mapToModelOrError(ResultSet result, Function<JsonArray, T> mapper) {
-        return result != null && CollectionUtils.isNotEmpty(result.getResults())
-                ? mapper.apply(result.getResults().get(0))
+    private <T> T mapToModelOrError(RowSet<Row> rowSet, Function<Row, T> mapper) {
+        return rowSet != null && rowSet.iterator().hasNext()
+                ? mapper.apply(rowSet.iterator().next())
                 : null;
     }
 

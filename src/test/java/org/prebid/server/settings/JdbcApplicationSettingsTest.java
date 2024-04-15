@@ -3,10 +3,10 @@ package org.prebid.server.settings;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.jdbcclient.JDBCPool;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -497,7 +497,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Async async = context.async();
         storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
-                    singletonList("Error occurred while mapping stored request data")));
+                    singletonList("Error occurred while mapping stored request data: some columns are missing")));
             async.complete();
         }));
     }
@@ -522,7 +522,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final Async async = context.async();
         storedRequestResultFuture.onComplete(context.asyncAssertSuccess(storedRequestResult -> {
             assertThat(storedRequestResult).isEqualTo(StoredDataResult.of(emptyMap(), emptyMap(),
-                    singletonList("Error occurred while mapping stored request data")));
+                    singletonList("Error occurred while mapping stored request data: some columns are missing")));
             async.complete();
         }));
     }
@@ -660,12 +660,13 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     }
 
     private JdbcClient jdbcClient() {
-        return new BasicJdbcClient(vertx, JDBCClient.createShared(vertx,
+        final JDBCPool pool = JDBCPool.pool(vertx,
                 new JsonObject()
                         .put("jdbcUrl", JDBC_URL)
                         .put("driver_class", "org.h2.Driver")
                         .put("max_pool_size", 10)
-                        .put("provider_class", "io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider")),
-                metrics, clock);
+                        .put("provider_class", "io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider"));
+
+        return new BasicJdbcClient(vertx, pool, metrics, clock);
     }
 }

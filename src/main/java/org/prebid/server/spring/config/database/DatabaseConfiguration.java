@@ -1,8 +1,12 @@
 package org.prebid.server.spring.config.database;
 
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.mysqlclient.MySQLBuilder;
+import io.vertx.mysqlclient.MySQLConnectOptions;
+import io.vertx.pgclient.PgBuilder;
+import io.vertx.pgclient.PgConnectOptions;
+import io.vertx.sqlclient.Pool;
+import io.vertx.sqlclient.PoolOptions;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.spring.config.database.model.ConnectionPoolSettings;
 import org.prebid.server.spring.config.database.model.DatabaseAddress;
@@ -11,7 +15,6 @@ import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.jdbc.BasicJdbcClient;
 import org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient;
-import org.prebid.server.vertx.jdbc.JdbcClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -21,47 +24,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.Clock;
+import java.util.concurrent.TimeUnit;
 
 @Configuration
 @ConditionalOnExpression("'${settings.database.type}' == 'postgres' or '${settings.database.type}' == 'mysql'")
 public class DatabaseConfiguration {
-
-    @Bean
-    @ConditionalOnProperty(name = "settings.database.type", havingValue = "postgres")
-    DatabaseUrlFactory postgresUrlFactory() {
-        return "jdbc:postgresql://%s:%d/%s?ssl=false&socketTimeout=1&tcpKeepAlive=true"::formatted;
-    }
-
-    @Bean
-    @ConditionalOnProperty(name = "settings.database.type", havingValue = "mysql")
-    DatabaseUrlFactory mySqlUrlFactory() {
-        return "jdbc:mysql://%s:%d/%s?useSSL=false&socketTimeout=1000&tcpKeepAlive=true"::formatted;
-    }
-
-    @Bean
-    @ConditionalOnProperty(name = "settings.database.provider-class", havingValue = "hikari")
-    ConnectionPoolConfigurationFactory hikariConfigurationFactory() {
-        return (url, connectionPoolSettings) -> new JsonObject()
-                .put("jdbcUrl", url + "&allowPublicKeyRetrieval=true")
-                .put("username", connectionPoolSettings.getUser())
-                .put("password", connectionPoolSettings.getPassword())
-                .put("minimumIdle", connectionPoolSettings.getPoolSize())
-                .put("maximumPoolSize", connectionPoolSettings.getPoolSize())
-                .put("provider_class", "io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider");
-    }
-
-    @Bean
-    @ConditionalOnProperty(name = "settings.database.provider-class", havingValue = "c3p0")
-    ConnectionPoolConfigurationFactory c3p0ConfigurationFactory() {
-        return (url, connectionPoolSettings) -> new JsonObject()
-                .put("url", url)
-                .put("user", connectionPoolSettings.getUser())
-                .put("password", connectionPoolSettings.getPassword())
-                .put("initial_pool_size", connectionPoolSettings.getPoolSize())
-                .put("min_pool_size", connectionPoolSettings.getPoolSize())
-                .put("max_pool_size", connectionPoolSettings.getPoolSize())
-                .put("provider_class", "io.vertx.ext.jdbc.spi.impl.C3P0DataSourceProvider");
-    }
 
     @Bean
     DatabaseAddress databaseAddress(DatabaseConfigurationProperties databaseConfigurationProperties) {
@@ -81,31 +48,66 @@ public class DatabaseConfiguration {
     }
 
     @Bean
-    JDBCClient vertxJdbcClient(Vertx vertx,
-                               DatabaseAddress databaseAddress,
-                               ConnectionPoolSettings connectionPoolSettings,
-                               DatabaseUrlFactory urlFactory,
-                               ConnectionPoolConfigurationFactory configurationFactory) {
-
-        final String databaseUrl = urlFactory.createUrl(
-                databaseAddress.getHost(), databaseAddress.getPort(), databaseAddress.getDatabaseName());
-
-        final JsonObject connectionPoolConfigurationProperties = configurationFactory.create(
-                databaseUrl, connectionPoolSettings);
-        final JsonObject databaseConfigurationProperties = new JsonObject()
-                .put("driver_class", connectionPoolSettings.getDatabaseType().jdbcDriver);
-        databaseConfigurationProperties.mergeIn(connectionPoolConfigurationProperties);
-
-        return JDBCClient.createShared(vertx, databaseConfigurationProperties);
+    @ConfigurationProperties(prefix = "settings.database")
+    @Validated
+    public DatabaseConfigurationProperties databaseConfigurationProperties() {
+        return new DatabaseConfigurationProperties();
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "false",
-            matchIfMissing = true)
-    BasicJdbcClient basicJdbcClient(
-            Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner) {
+    @ConditionalOnProperty(name = "settings.database.type", havingValue = "mysql")
+    Pool mysqlConnectionPool(Vertx vertx,
+                             DatabaseAddress databaseAddress,
+                             ConnectionPoolSettings connectionPoolSettings) {
 
-        return createBasicJdbcClient(vertx, vertxJdbcClient, metrics, clock, contextRunner);
+        final MySQLConnectOptions sqlConnectOptions = new MySQLConnectOptions()
+                .setHost(databaseAddress.getHost())
+                .setPort(databaseAddress.getPort())
+                .setDatabase(databaseAddress.getDatabaseName())
+                .setUser(connectionPoolSettings.getUser())
+                .setPassword(connectionPoolSettings.getPassword())
+                .setSsl(false)
+                .setTcpKeepAlive(true)
+                .setIdleTimeout(1)
+                .setIdleTimeoutUnit(TimeUnit.SECONDS);
+
+        final PoolOptions poolOptions = new PoolOptions()
+                .setMaxSize(connectionPoolSettings.getPoolSize());
+
+        return MySQLBuilder
+                .pool()
+                .with(poolOptions)
+                .connectingTo(sqlConnectOptions)
+                .using(vertx)
+                .build();
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "settings.database.type", havingValue = "postgres")
+    Pool postgresConnectionPool(Vertx vertx,
+                                DatabaseAddress databaseAddress,
+                                ConnectionPoolSettings connectionPoolSettings) {
+
+        final PgConnectOptions sqlConnectOptions = new PgConnectOptions()
+                .setHost(databaseAddress.getHost())
+                .setPort(databaseAddress.getPort())
+                .setDatabase(databaseAddress.getDatabaseName())
+                .setUser(connectionPoolSettings.getUser())
+                .setPassword(connectionPoolSettings.getPassword())
+                .setSsl(false)
+                .setTcpKeepAlive(true)
+                .setIdleTimeout(1)
+                .setIdleTimeoutUnit(TimeUnit.SECONDS);
+
+        final PoolOptions poolOptions = new PoolOptions()
+                .setMaxSize(connectionPoolSettings.getPoolSize());
+
+        return PgBuilder
+                .pool()
+                .with(poolOptions)
+                .connectingTo(sqlConnectOptions)
+                .using(vertx)
+                .build();
     }
 
     @Bean
@@ -116,34 +118,48 @@ public class DatabaseConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "false",
+            matchIfMissing = true)
+    BasicJdbcClient basicJdbcClient(Vertx vertx,
+                                    Pool pool,
+                                    Metrics metrics,
+                                    Clock clock,
+                                    ContextRunner contextRunner) {
+
+        return createBasicJdbcClient(vertx, pool, metrics, clock, contextRunner);
+    }
+
+    @Bean
     @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "true")
-    CircuitBreakerSecuredJdbcClient circuitBreakerSecuredJdbcClient(
+    CircuitBreakerSecuredJdbcClient circuitBreakerSecuredAsyncDatabaseClient(
             Vertx vertx,
-            JDBCClient vertxJdbcClient,
+            Pool pool,
             Metrics metrics,
             Clock clock,
             ContextRunner contextRunner,
             @Qualifier("databaseCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties) {
 
-        final JdbcClient jdbcClient = createBasicJdbcClient(vertx, vertxJdbcClient, metrics, clock, contextRunner);
-        return new CircuitBreakerSecuredJdbcClient(vertx, jdbcClient, metrics,
-                circuitBreakerProperties.getOpeningThreshold(), circuitBreakerProperties.getOpeningIntervalMs(),
-                circuitBreakerProperties.getClosingIntervalMs(), clock);
+        final BasicJdbcClient jdbcClient = createBasicJdbcClient(vertx, pool, metrics, clock, contextRunner);
+        return new CircuitBreakerSecuredJdbcClient(
+                vertx,
+                jdbcClient,
+                metrics,
+                circuitBreakerProperties.getOpeningThreshold(),
+                circuitBreakerProperties.getOpeningIntervalMs(),
+                circuitBreakerProperties.getClosingIntervalMs(),
+                clock);
     }
 
-    private static BasicJdbcClient createBasicJdbcClient(
-            Vertx vertx, JDBCClient vertxJdbcClient, Metrics metrics, Clock clock, ContextRunner contextRunner) {
-        final BasicJdbcClient basicJdbcClient = new BasicJdbcClient(vertx, vertxJdbcClient, metrics, clock);
+    private static BasicJdbcClient createBasicJdbcClient(Vertx vertx,
+                                                         Pool pool,
+                                                         Metrics metrics,
+                                                         Clock clock,
+                                                         ContextRunner contextRunner) {
+
+        final BasicJdbcClient basicJdbcClient = new BasicJdbcClient(vertx, pool, metrics, clock);
 
         contextRunner.<Void>runBlocking(promise -> basicJdbcClient.initialize().onComplete(promise));
 
         return basicJdbcClient;
-    }
-
-    @Bean
-    @ConfigurationProperties(prefix = "settings.database")
-    @Validated
-    public DatabaseConfigurationProperties databaseConfigurationProperties() {
-        return new DatabaseConfigurationProperties();
     }
 }
