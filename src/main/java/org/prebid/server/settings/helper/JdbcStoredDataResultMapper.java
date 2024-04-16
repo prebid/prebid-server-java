@@ -85,7 +85,7 @@ public class JdbcStoredDataResultMapper {
                 try {
                     fetchedAccountId = row.getString(0);
                     id = row.getString(1);
-                    data = row.getString(2);
+                    data = ObjectUtil.getIfNotNull(row.getValue(2), Object::toString);
                     typeAsString = ObjectUtil.getIfNotNull(row.getValue(3), Object::toString);
                 } catch (ClassCastException e) {
                     final String message = "Error occurred while mapping stored request data";
