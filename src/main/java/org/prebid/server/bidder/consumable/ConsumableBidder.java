@@ -6,9 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.base.Strings;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -74,17 +72,22 @@ public class ConsumableBidder implements Bidder<BidRequest> {
                     errors.add(BidderError.badInput(e.getMessage()));
                 }
             }
-            httpRequests.add(BidderUtil.defaultRequest(modifyBidRequest(bidRequest, imps), resolveHeaders(),
-                    this.endpointUrl + SITE_URI_PATH, mapper));
+            final BidRequest modRequest = modifyBidRequest(bidRequest, imps);
+            final String finalUrl = this.endpointUrl + SITE_URI_PATH;
+            httpRequests.add(BidderUtil.defaultRequest(modRequest, resolveHeaders(), finalUrl, mapper));
+            if (imps.isEmpty()) {
+                return Result.withErrors(errors);
+            }
         } else if (bidRequest.getApp() != null) {
             for (Imp imp : bidRequest.getImp()) {
                 try {
                     final ExtImpConsumable impExt = parseImpExt(imp);
 
                     if (!Strings.isNullOrEmpty(impExt.getPlacementId())) {
-                        httpRequests.add(BidderUtil.defaultRequest(modifyBidRequest(bidRequest,
-                                Collections.singletonList(modifyImp(imp, impExt))), resolveHeaders(),
-                                this.endpointUrl + APP_URI_PATH + impExt.getPlacementId(), mapper));
+                        final Imp modImp = modifyImp(imp, impExt);
+                        final BidRequest modRequest = modifyBidRequest(bidRequest, Collections.singletonList(modImp));
+                        final String finalUrl = this.endpointUrl + APP_URI_PATH + impExt.getPlacementId();
+                        httpRequests.add(BidderUtil.defaultRequest(modRequest, resolveHeaders(), finalUrl, mapper));
                     }
                 } catch (PreBidException e) {
                     errors.add(BidderError.badInput(e.getMessage()));
@@ -92,22 +95,7 @@ public class ConsumableBidder implements Bidder<BidRequest> {
             }
         }
 
-        if (imps.isEmpty()) {
-            return Result.withErrors(errors);
-        }
         return Result.of(httpRequests, errors);
-    }
-
-    @Override
-    public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        try {
-            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final List<BidderError> bidderErrors = new ArrayList<>();
-            return CompositeBidderResponse.builder().bids(extractConsumableBids(bidRequest, bidResponse, bidderErrors))
-                    .errors(bidderErrors).build();
-        } catch (DecodeException e) {
-            return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
-        }
     }
 
     private ExtImpConsumable parseImpExt(Imp imp) {
@@ -145,30 +133,36 @@ public class ConsumableBidder implements Bidder<BidRequest> {
         return UpdateResult.updated(updatedExt);
     }
 
-    private UpdateResult<Banner> modifyImpBanner(Banner banner) {
-        if (banner == null) {
-            return UpdateResult.unaltered(null);
-        }
-
-        final List<Format> formats = banner.getFormat();
-        final Integer w = banner.getW();
-        final Integer h = banner.getH();
-
-        if (CollectionUtils.isEmpty(formats) && h != null && w != null) {
-            final List<Format> newFormats = Collections.singletonList(Format.builder().w(w).h(h).build());
-            final Banner modifiedBanner = banner.toBuilder().format(newFormats).build();
-            return UpdateResult.updated(modifiedBanner);
-        } else if (formats.size() == 1) {
-            final Format format = formats.get(0);
-            final Banner modifiedBanner = banner.toBuilder().w(format.getW()).h(format.getH()).build();
-            return UpdateResult.updated(modifiedBanner);
-        }
-
-        return UpdateResult.unaltered(banner);
-    }
-
     private BidRequest modifyBidRequest(BidRequest bidRequest, List<Imp> imps) {
         return bidRequest.toBuilder().imp(imps).build();
+    }
+
+    private static MultiMap resolveHeaders() {
+        return HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
+    }
+
+    @Override
+    @Deprecated(since = "Not used, since Bidder.makeBidderResponse(...) was overridden.")
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        return Result.withError(BidderError.generic("Invalid method call"));
+    }
+
+    @Override
+    public CompositeBidderResponse makeBidderResponse(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        try {
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final List<BidderError> bidderErrors = new ArrayList<>();
+            return CompositeBidderResponse.builder().bids(extractConsumableBids(bidRequest, bidResponse, bidderErrors))
+                    .errors(bidderErrors).build();
+        } catch (DecodeException e) {
+            return CompositeBidderResponse.withError(BidderError.badServerResponse(e.getMessage()));
+        }
+    }
+
+    private List<BidderBid> extractConsumableBids(BidRequest bidRequest, BidResponse bidResponse,
+                                                  List<BidderError> bidderErrors) {
+        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid()) ? Collections.emptyList()
+                : bidsFromResponse(bidResponse, bidRequest, bidderErrors);
     }
 
     private List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest, List<BidderError> errors) {
@@ -186,28 +180,9 @@ public class ConsumableBidder implements Bidder<BidRequest> {
             return null;
         }
 
-        final Bid updatedBid = switch (bidType) {
-            case video -> updateBidWithVideoAttributes(bid);
-            default -> bid;
-        };
+        final Bid updatedBid = (bidType.equals(BidType.video))?updateBidWithVideoAttributes(bid):bid;
 
         return BidderBid.of(updatedBid, bidType, bidResponse.getCur());
-    }
-
-    private Bid updateBidWithVideoAttributes(Bid bid) {
-        final ObjectNode bidExt = bid.getExt();
-        final ExtBidPrebid extPrebid = bidExt != null ? parseBidExt(bidExt) : ExtBidPrebid.builder()
-                .video(ExtBidPrebidVideo.of(null, null)).build();
-        final ExtBidPrebidVideo extVideo = extPrebid != null ? extPrebid.getVideo() : null;
-        final Bid updatedBid;
-        if (extVideo != null) {
-            final Bid.BidBuilder bidBuilder = bid.toBuilder();
-            bidBuilder.ext(resolveBidExt(bid.getDur()));
-            updatedBid = bidBuilder.build();
-        } else {
-            updatedBid = bid;
-        }
-        return updatedBid;
     }
 
     private static BidType getBidType(Bid bid, List<Imp> imps) {
@@ -249,6 +224,20 @@ public class ConsumableBidder implements Bidder<BidRequest> {
         throw new PreBidException("Unmatched impression id " + impId);
     }
 
+    private Bid updateBidWithVideoAttributes(Bid bid) {
+        final ObjectNode bidExt = bid.getExt();
+        final ExtBidPrebid extPrebid = bidExt != null ? parseBidExt(bidExt) : ExtBidPrebid.builder()
+                .video(ExtBidPrebidVideo.of(null, null)).build();
+        final ExtBidPrebidVideo extVideo = extPrebid != null ? extPrebid.getVideo() : null;
+        final Bid updatedBid;
+        if (extVideo != null) {
+            updatedBid = bid.toBuilder().ext(resolveBidExt(bid.getDur())).build();
+        } else {
+            updatedBid = bid;
+        }
+        return updatedBid;
+    }
+
     private ExtBidPrebid parseBidExt(ObjectNode bidExt) {
         try {
             return mapper.mapper().treeToValue(bidExt, ExtBidPrebid.class);
@@ -262,19 +251,4 @@ public class ConsumableBidder implements Bidder<BidRequest> {
                 .of(duration, null)).build());
     }
 
-    private List<BidderBid> extractConsumableBids(BidRequest bidRequest, BidResponse bidResponse,
-                                                  List<BidderError> bidderErrors) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid()) ? Collections.emptyList()
-                : bidsFromResponse(bidResponse, bidRequest, bidderErrors);
-    }
-
-    @Override
-    @Deprecated(since = "Not used, since Bidder.makeBidderResponse(...) was overridden.")
-    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        return Result.withError(BidderError.generic("Invalid method call"));
-    }
-
-    private static MultiMap resolveHeaders() {
-        return HttpUtil.headers().add(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
-    }
 }

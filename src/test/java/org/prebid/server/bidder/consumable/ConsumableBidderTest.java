@@ -6,7 +6,6 @@ import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
@@ -42,7 +41,6 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
