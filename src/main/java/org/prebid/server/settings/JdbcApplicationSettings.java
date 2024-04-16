@@ -3,6 +3,7 @@ package org.prebid.server.settings;
 import io.vertx.core.Future;
 import io.vertx.ext.sql.ResultSet;
 import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.RowSet;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -15,6 +16,7 @@ import org.prebid.server.settings.helper.JdbcStoredResponseResultMapper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
+import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.vertx.jdbc.JdbcClient;
 
 import java.util.ArrayList;
@@ -110,7 +112,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         return jdbcClient.executeQuery(
                         selectAccountQuery,
                         Collections.singletonList(accountId),
-                        result -> mapToModelOrError(result, row -> toAccount(row.getString(0))),
+                        result -> mapToModelOrError(result, this::toAccount),
                         timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
     }
@@ -127,8 +129,9 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      * {@link org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient}.
      */
     private <T> T mapToModelOrError(RowSet<Row> rowSet, Function<Row, T> mapper) {
-        return rowSet != null && rowSet.iterator().hasNext()
-                ? mapper.apply(rowSet.iterator().next())
+        final RowIterator<Row> rowIterator = rowSet != null ? rowSet.iterator() : null;
+        return rowIterator != null && rowIterator.hasNext()
+                ? mapper.apply(rowIterator.next())
                 : null;
     }
 
@@ -142,7 +145,8 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                 : Future.failedFuture(new PreBidException("%s not found: %s".formatted(errorPrefix, id)));
     }
 
-    private Account toAccount(String source) {
+    private Account toAccount(Row row) {
+        final String source = ObjectUtil.getIfNotNull(row.getValue(0), Object::toString);
         try {
             return source != null ? mapper.decodeValue(source, Account.class) : null;
         } catch (DecodeException e) {
