@@ -8,4 +8,6 @@ public class ExtImpRise {
     String publisherId;
 
     String org;
+
+   String placementId;
 }
