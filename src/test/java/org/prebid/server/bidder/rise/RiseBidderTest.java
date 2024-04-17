@@ -80,7 +80,7 @@ public class RiseBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder().id("123")
                         .banner(Banner.builder().build())
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of(null, null))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of(null, null, null))))
                         .build()))
                 .build();
 
@@ -104,7 +104,7 @@ public class RiseBidderTest extends VertxTest {
                         .id("123")
                         .banner(Banner.builder().build())
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of("  testPublisherId  ", null))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of("  testPublisherId  ", null, null))))
                         .build()))
                 .build();
 
@@ -127,7 +127,7 @@ public class RiseBidderTest extends VertxTest {
                         .id("123")
                         .banner(Banner.builder().build())
                         .video(Video.builder().build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of(null, " testOrg  "))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of(null, " testOrg  ", null))))
                         .build()))
                 .build();
 
@@ -265,7 +265,7 @@ public class RiseBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder().id("123"))
                 .banner(Banner.builder().build())
                 .video(Video.builder().build())
-                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of("testPublisherId", null))))
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpRise.of("testPublisherId", null, null))))
                 .build();
     }
 
