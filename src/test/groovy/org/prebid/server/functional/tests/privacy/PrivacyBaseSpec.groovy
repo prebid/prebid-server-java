@@ -19,6 +19,8 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DistributionChannel
 import org.prebid.server.functional.model.request.auction.Geo
+import org.prebid.server.functional.model.request.auction.GeoExt
+import org.prebid.server.functional.model.request.auction.GeoExtGeoProvider
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
@@ -30,6 +32,7 @@ import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.GppConsent
 import org.prebid.server.functional.util.privacy.gpp.UspNatV1Consent
+import org.prebid.server.functional.util.privacy.model.State
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -38,6 +41,7 @@ import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
 import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.getDefaultVendorListResponse
+import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_2
 import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
@@ -50,6 +54,7 @@ import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionTy
 import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.REQUIRE_LEGITIMATE_INTEREST
 import static org.prebid.server.functional.util.privacy.TcfConsent.RestrictionType.UNDEFINED
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
+import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 
 abstract class PrivacyBaseSpec extends BaseSpec {
 
@@ -112,10 +117,26 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
     protected static BidRequest getBidRequestWithGeo(DistributionChannel channel = SITE) {
         BidRequest.getDefaultBidRequest(channel).tap {
-            device = new Device(ip: "43.77.114.227", ipv6: "af47:892b:3e98:b49a:a747:bda4:a6c8:aee2",
-                    geo: new Geo(lat: PBSUtils.getRandomDecimal(0, 90), lon: PBSUtils.getRandomDecimal(0, 90)))
+            device = new Device(
+                    ip: "43.77.114.227",
+                    ipv6: "af47:892b:3e98:b49a:a747:bda4:a6c8:aee2",
+                    geo: new Geo(
+                            lat: PBSUtils.getRandomDecimal(0, 90),
+                            lon: PBSUtils.getRandomDecimal(0, 90),
+                            country: USA,
+                            region: ALABAMA,
+                            utcoffset: PBSUtils.randomNumber,
+                            metro: PBSUtils.randomString,
+                            city: PBSUtils.randomString,
+                            zip: PBSUtils.randomString,
+                            accuracy: PBSUtils.randomNumber,
+                            ipservice: PBSUtils.randomNumber,
+                            ext: new GeoExt(geoProvider: new GeoExtGeoProvider()),
+                    ))
             user = User.defaultUser.tap {
-                geo = new Geo(lat: PBSUtils.getRandomDecimal(0, 90), lon: PBSUtils.getRandomDecimal(0, 90))
+                geo = new Geo(
+                        lat: PBSUtils.getRandomDecimal(0, 90),
+                        lon: PBSUtils.getRandomDecimal(0, 90))
             }
         }
     }
