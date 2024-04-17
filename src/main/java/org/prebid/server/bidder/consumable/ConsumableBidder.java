@@ -6,8 +6,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.base.Strings;
+import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -31,6 +33,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -60,41 +63,29 @@ public class ConsumableBidder implements Bidder<BidRequest> {
         final List<Imp> imps = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
-        if (bidRequest.getSite() != null) {
-            for (Imp imp : bidRequest.getImp()) {
-                try {
-                    final ExtImpConsumable impExt = parseImpExt(imp);
-
-                    if (impExt.getSiteId() != 0 && impExt.getNetworkId() != 0 && impExt.getUnitId() != 0) {
-                        imps.add(modifyImp(imp, impExt));
-                    }
-                } catch (PreBidException e) {
-                    errors.add(BidderError.badInput(e.getMessage()));
+        String placementId = null;
+        for (Imp imp : bidRequest.getImp()) {
+            try {
+                final ExtImpConsumable impExt = parseImpExt(imp);
+                if (!isImpValid(bidRequest.getSite(), bidRequest.getApp(), impExt)) {
+                    continue;
                 }
-            }
-            final BidRequest modRequest = modifyBidRequest(bidRequest, imps);
-            final String finalUrl = this.endpointUrl + SITE_URI_PATH;
-            httpRequests.add(BidderUtil.defaultRequest(modRequest, resolveHeaders(), finalUrl, mapper));
-            if (imps.isEmpty()) {
-                return Result.withErrors(errors);
-            }
-        } else if (bidRequest.getApp() != null) {
-            for (Imp imp : bidRequest.getImp()) {
-                try {
-                    final ExtImpConsumable impExt = parseImpExt(imp);
-
-                    if (!Strings.isNullOrEmpty(impExt.getPlacementId())) {
-                        final Imp modImp = modifyImp(imp, impExt);
-                        final BidRequest modRequest = modifyBidRequest(bidRequest, Collections.singletonList(modImp));
-                        final String finalUrl = this.endpointUrl + APP_URI_PATH + impExt.getPlacementId();
-                        httpRequests.add(BidderUtil.defaultRequest(modRequest, resolveHeaders(), finalUrl, mapper));
-                    }
-                } catch (PreBidException e) {
-                    errors.add(BidderError.badInput(e.getMessage()));
+                if (Strings.isNullOrEmpty(placementId) && !Strings.isNullOrEmpty(impExt.getPlacementId())) {
+                    placementId = impExt.getPlacementId();
                 }
+
+                imps.add(modifyImp(imp, impExt));
+
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
             }
         }
-
+        if (imps.isEmpty()) {
+            return Result.withErrors(errors);
+        }
+        final BidRequest modRequest = modifyBidRequest(bidRequest, imps);
+        final String finalUrl = constructUri(placementId);
+        httpRequests.add(BidderUtil.defaultRequest(modRequest, resolveHeaders(), finalUrl, mapper));
         return Result.of(httpRequests, errors);
     }
 
@@ -104,6 +95,12 @@ public class ConsumableBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage());
         }
+    }
+
+    private boolean isImpValid(Site site, App app, ExtImpConsumable impExt) {
+        return ((app != null && !Strings.isNullOrEmpty(impExt.getPlacementId()))
+                || (site != null && impExt.getSiteId() != 0 && impExt.getNetworkId() != 0 && impExt.getUnitId() != 0));
+
     }
 
     private Imp modifyImp(Imp imp, ExtImpConsumable impExt) {
@@ -135,6 +132,11 @@ public class ConsumableBidder implements Bidder<BidRequest> {
 
     private BidRequest modifyBidRequest(BidRequest bidRequest, List<Imp> imps) {
         return bidRequest.toBuilder().imp(imps).build();
+    }
+
+    private String constructUri(String placementId) {
+        final String uri = Strings.isNullOrEmpty(placementId) ? SITE_URI_PATH : (APP_URI_PATH + placementId);
+        return this.endpointUrl + uri;
     }
 
     private static MultiMap resolveHeaders() {
