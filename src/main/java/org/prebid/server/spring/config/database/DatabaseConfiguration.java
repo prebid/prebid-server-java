@@ -8,6 +8,9 @@ import io.vertx.pgclient.PgConnectOptions;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.PoolOptions;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.settings.helper.ParametrizedQueryHelper;
+import org.prebid.server.settings.helper.ParametrizedQueryMySqlHelper;
+import org.prebid.server.settings.helper.ParametrizedQueryPostgresHelper;
 import org.prebid.server.spring.config.database.model.ConnectionPoolSettings;
 import org.prebid.server.spring.config.database.model.DatabaseAddress;
 import org.prebid.server.spring.config.database.properties.DatabaseConfigurationProperties;
@@ -52,6 +55,18 @@ public class DatabaseConfiguration {
     @Validated
     public DatabaseConfigurationProperties databaseConfigurationProperties() {
         return new DatabaseConfigurationProperties();
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "settings.database.type", havingValue = "mysql")
+    ParametrizedQueryHelper mysqlParametrizedQueryHelper() {
+        return new ParametrizedQueryMySqlHelper();
+    }
+
+    @Bean
+    @ConditionalOnProperty(name = "settings.database.type", havingValue = "postgres")
+    ParametrizedQueryHelper postgresParametrizedQueryHelper() {
+        return new ParametrizedQueryPostgresHelper();
     }
 
     @Bean

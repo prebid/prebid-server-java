@@ -23,6 +23,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
+import org.prebid.server.settings.helper.ParametrizedQueryMySqlHelper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -209,6 +210,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcClient(),
                 jacksonMapper,
+                new ParametrizedQueryMySqlHelper(),
                 SELECT_ACCOUNT_QUERY,
                 SELECT_QUERY,
                 SELECT_QUERY,
@@ -342,6 +344,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcClient(),
                 jacksonMapper,
+                new ParametrizedQueryMySqlHelper(),
                 SELECT_ACCOUNT_QUERY,
                 SELECT_UNION_QUERY,
                 SELECT_UNION_QUERY,
@@ -375,6 +378,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcClient(),
                 jacksonMapper,
+                new ParametrizedQueryMySqlHelper(),
                 SELECT_ACCOUNT_QUERY,
                 SELECT_UNION_QUERY,
                 SELECT_UNION_QUERY,
@@ -408,6 +412,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcClient(),
                 jacksonMapper,
+                new ParametrizedQueryMySqlHelper(),
                 SELECT_ACCOUNT_QUERY,
                 SELECT_UNION_QUERY,
                 SELECT_UNION_QUERY,
@@ -483,6 +488,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcClient(),
                 jacksonMapper,
+                new ParametrizedQueryMySqlHelper(),
                 SELECT_ACCOUNT_QUERY,
                 SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
                 SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
@@ -508,6 +514,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcClient(),
                 jacksonMapper,
+                new ParametrizedQueryMySqlHelper(),
                 SELECT_ACCOUNT_QUERY,
                 SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
                 SELECT_FROM_ONE_COLUMN_TABLE_QUERY,
@@ -614,6 +621,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         jdbcApplicationSettings = new JdbcApplicationSettings(
                 jdbcClient(),
                 jacksonMapper,
+                new ParametrizedQueryMySqlHelper(),
                 SELECT_ACCOUNT_QUERY,
                 SELECT_QUERY,
                 SELECT_QUERY,

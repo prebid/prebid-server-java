@@ -13,6 +13,7 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.settings.helper.JdbcStoredDataResultMapper;
 import org.prebid.server.settings.helper.JdbcStoredResponseResultMapper;
+import org.prebid.server.settings.helper.ParametrizedQueryHelper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
@@ -26,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -39,14 +39,9 @@ import java.util.stream.IntStream;
  */
 public class JdbcApplicationSettings implements ApplicationSettings {
 
-    private static final String ACCOUNT_ID_PLACEHOLDER = "%ACCOUNT_ID%";
-    private static final String REQUEST_ID_PLACEHOLDER = "%REQUEST_ID_LIST%";
-    private static final String IMP_ID_PLACEHOLDER = "%IMP_ID_LIST%";
-    private static final String RESPONSE_ID_PLACEHOLDER = "%RESPONSE_ID_LIST%";
-    private static final String QUERY_PARAM_PLACEHOLDER = "?";
-
     private final JdbcClient jdbcClient;
     private final JacksonMapper mapper;
+    private final ParametrizedQueryHelper parametrizedQueryHelper;
 
     /**
      * Query to select account by ids.
@@ -89,6 +84,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
     public JdbcApplicationSettings(JdbcClient jdbcClient,
                                    JacksonMapper mapper,
+                                   ParametrizedQueryHelper parametrizedQueryHelper,
                                    String selectAccountQuery,
                                    String selectStoredRequestsQuery,
                                    String selectAmpStoredRequestsQuery,
@@ -96,8 +92,9 @@ public class JdbcApplicationSettings implements ApplicationSettings {
 
         this.jdbcClient = Objects.requireNonNull(jdbcClient);
         this.mapper = Objects.requireNonNull(mapper);
-        this.selectAccountQuery = Objects.requireNonNull(selectAccountQuery)
-                .replace(ACCOUNT_ID_PLACEHOLDER, QUERY_PARAM_PLACEHOLDER);
+        this.parametrizedQueryHelper = Objects.requireNonNull(parametrizedQueryHelper);
+        this.selectAccountQuery = parametrizedQueryHelper.replaceAccountIdPlaceholder(
+                Objects.requireNonNull(selectAccountQuery));
         this.selectStoredRequestsQuery = Objects.requireNonNull(selectStoredRequestsQuery);
         this.selectAmpStoredRequestsQuery = Objects.requireNonNull(selectAmpStoredRequestsQuery);
         this.selectStoredResponsesQuery = Objects.requireNonNull(selectStoredResponsesQuery);
@@ -190,11 +187,15 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
-        final String queryResolvedWithParameters = selectStoredResponsesQuery.replaceAll(RESPONSE_ID_PLACEHOLDER,
-                parameterHolders(responseIds.size()));
+        final String queryResolvedWithParameters = parametrizedQueryHelper.replaceStoredResponseIdPlaceholders(
+                selectStoredResponsesQuery,
+                responseIds.size());
 
         final List<Object> idsQueryParameters = new ArrayList<>();
-        IntStream.rangeClosed(1, StringUtils.countMatches(selectStoredResponsesQuery, RESPONSE_ID_PLACEHOLDER))
+        final int responseIdPlaceholderCount = StringUtils.countMatches(
+                selectStoredResponsesQuery,
+                ParametrizedQueryHelper.RESPONSE_ID_PLACEHOLDER);
+        IntStream.rangeClosed(1, responseIdPlaceholderCount)
                 .forEach(i -> idsQueryParameters.addAll(responseIds));
 
         return jdbcClient.executeQuery(queryResolvedWithParameters, idsQueryParameters,
@@ -213,38 +214,21 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                     StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
         } else {
             final List<Object> idsQueryParameters = new ArrayList<>();
-            IntStream.rangeClosed(1, StringUtils.countMatches(query, REQUEST_ID_PLACEHOLDER))
+            IntStream.rangeClosed(1, StringUtils.countMatches(query, ParametrizedQueryHelper.REQUEST_ID_PLACEHOLDER))
                     .forEach(i -> idsQueryParameters.addAll(requestIds));
-            IntStream.rangeClosed(1, StringUtils.countMatches(query, IMP_ID_PLACEHOLDER))
+            IntStream.rangeClosed(1, StringUtils.countMatches(query, ParametrizedQueryHelper.IMP_ID_PLACEHOLDER))
                     .forEach(i -> idsQueryParameters.addAll(impIds));
 
-            final String parametrizedQuery = createParametrizedQuery(query, requestIds.size(), impIds.size());
+            final String parametrizedQuery = parametrizedQueryHelper.replaceRequestAndImpIdPlaceholders(
+                    query,
+                    requestIds.size(),
+                    impIds.size());
+
             future = jdbcClient.executeQuery(parametrizedQuery, idsQueryParameters,
                     result -> JdbcStoredDataResultMapper.map(result, accountId, requestIds, impIds),
                     timeout);
         }
 
         return future;
-    }
-
-    /**
-     * Creates parametrized query from query and variable templates, by replacing templateVariable
-     * with appropriate number of "?" placeholders.
-     */
-    private static String createParametrizedQuery(String query, int requestIdsSize, int impIdsSize) {
-        return query
-                .replace(REQUEST_ID_PLACEHOLDER, parameterHolders(requestIdsSize))
-                .replace(IMP_ID_PLACEHOLDER, parameterHolders(impIdsSize));
-    }
-
-    /**
-     * Returns string for parametrized placeholder.
-     */
-    private static String parameterHolders(int paramsSize) {
-        return paramsSize == 0
-                ? "NULL"
-                : IntStream.range(0, paramsSize)
-                .mapToObj(i -> QUERY_PARAM_PLACEHOLDER)
-                .collect(Collectors.joining(","));
     }
 }
