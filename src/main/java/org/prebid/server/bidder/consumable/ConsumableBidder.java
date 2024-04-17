@@ -33,7 +33,6 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
-import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -98,8 +97,8 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     }
 
     private boolean isImpValid(Site site, App app, ExtImpConsumable impExt) {
-        return ((app != null && !Strings.isNullOrEmpty(impExt.getPlacementId()))
-                || (site != null && impExt.getSiteId() != 0 && impExt.getNetworkId() != 0 && impExt.getUnitId() != 0));
+        return (app != null && !Strings.isNullOrEmpty(impExt.getPlacementId()))
+                || (site != null && impExt.getSiteId() != 0 && impExt.getNetworkId() != 0 && impExt.getUnitId() != 0);
 
     }
 
@@ -162,29 +161,54 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> extractConsumableBids(BidRequest bidRequest, BidResponse bidResponse,
-                                                  List<BidderError> bidderErrors) {
-        return bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid()) ? Collections.emptyList()
-                : bidsFromResponse(bidResponse, bidRequest, bidderErrors);
-    }
+                                                  List<BidderError> errors) {
+        if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
+            return Collections.emptyList();
+        }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest, List<BidderError> errors) {
-        return bidResponse.getSeatbid().stream().filter(Objects::nonNull).map(SeatBid::getBid).filter(Objects::nonNull)
-                .flatMap(Collection::stream).map(bid -> toBidderBid(bid, bidRequest, bidResponse, errors))
-                .filter(Objects::nonNull).toList();
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
+                .map(bid -> toBidderBid(bid, bidRequest, bidResponse, errors))
+                .filter(Objects::nonNull)
+                .toList();
+
     }
 
     private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
+        final ExtBidPrebid prebidExt;
         final BidType bidType;
         try {
+            prebidExt = parseBidExt(bid);
             bidType = getBidType(bid, bidRequest.getImp());
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
             return null;
         }
 
-        final Bid updatedBid = (bidType.equals(BidType.video))?updateBidWithVideoAttributes(bid):bid;
+        return BidderBid.builder()
+                .bid(bid)
+                .type(bidType)
+                .bidCurrency(bidResponse.getCur())
+                .videoInfo(makeVideoInfo(bid))
+                .build();
+    }
 
-        return BidderBid.of(updatedBid, bidType, bidResponse.getCur());
+    private ExtBidPrebid parseBidExt(Bid bid) {
+        final Optional<Bid> optionalBid = Optional.ofNullable(bid);
+
+        final ObjectNode bidExt = optionalBid
+                .map(Bid::getExt)
+                .orElse(mapper.mapper().valueToTree(ExtBidPrebid.builder().build()));
+
+        try {
+            return mapper.mapper().treeToValue(bidExt, ExtBidPrebid.class);
+        } catch (IllegalArgumentException | JsonProcessingException e) {
+            throw new PreBidException(e.getMessage());
+        }
     }
 
     private static BidType getBidType(Bid bid, List<Imp> imps) {
@@ -226,31 +250,12 @@ public class ConsumableBidder implements Bidder<BidRequest> {
         throw new PreBidException("Unmatched impression id " + impId);
     }
 
-    private Bid updateBidWithVideoAttributes(Bid bid) {
-        final ObjectNode bidExt = bid.getExt();
-        final ExtBidPrebid extPrebid = bidExt != null ? parseBidExt(bidExt) : ExtBidPrebid.builder()
-                .video(ExtBidPrebidVideo.of(null, null)).build();
-        final ExtBidPrebidVideo extVideo = extPrebid != null ? extPrebid.getVideo() : null;
-        final Bid updatedBid;
-        if (extVideo != null) {
-            updatedBid = bid.toBuilder().ext(resolveBidExt(bid.getDur())).build();
-        } else {
-            updatedBid = bid;
-        }
-        return updatedBid;
-    }
+    private static ExtBidPrebidVideo makeVideoInfo(Bid bid) {
 
-    private ExtBidPrebid parseBidExt(ObjectNode bidExt) {
-        try {
-            return mapper.mapper().treeToValue(bidExt, ExtBidPrebid.class);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
-    }
+        final int duration = Optional.ofNullable(bid)
+                .map(Bid::getDur)
+                .orElse(0);
 
-    private ObjectNode resolveBidExt(Integer duration) {
-        return mapper.mapper().valueToTree(ExtBidPrebid.builder().video(ExtBidPrebidVideo
-                .of(duration, null)).build());
+        return ExtBidPrebidVideo.of(duration, null);
     }
-
 }
