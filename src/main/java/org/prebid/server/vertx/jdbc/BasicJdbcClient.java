@@ -1,7 +1,6 @@
 package org.prebid.server.vertx.jdbc;
 
 import io.vertx.core.Future;
-import io.vertx.ext.jdbc.JDBCClient;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
@@ -20,7 +19,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
 /**
- * Wrapper over {@link JDBCClient} that supports setting query timeout in milliseconds.
+ * Wrapper over {@link Pool} that supports setting query timeout in milliseconds.
  */
 public class BasicJdbcClient implements JdbcClient {
 

@@ -1,7 +1,6 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import io.vertx.ext.sql.ResultSet;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.RowSet;
@@ -120,7 +119,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     * Transforms the first row of {@link ResultSet} to required object or returns null.
+     * Transforms the first row of {@link RowSet<Row>} to required object or returns null.
      * <p>
      * Note: mapper should never throws exception in case of using
      * {@link org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient}.

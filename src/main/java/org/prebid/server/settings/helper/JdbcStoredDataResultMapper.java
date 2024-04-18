@@ -1,6 +1,5 @@
 package org.prebid.server.settings.helper;
 
-import io.vertx.ext.sql.ResultSet;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.RowSet;
@@ -21,7 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Utility class for mapping {@link ResultSet} to {@link StoredDataResult}.
+ * Utility class for mapping {@link RowSet<Row>} to {@link StoredDataResult}.
  */
 public class JdbcStoredDataResultMapper {
 
@@ -31,7 +30,7 @@ public class JdbcStoredDataResultMapper {
     }
 
     /**
-     * Maps {@link ResultSet} to {@link StoredDataResult} and creates an error for each missing ID and add it to result.
+     * Maps {@link RowSet} to {@link StoredDataResult} and creates an error for each missing ID and add it to result.
      *
      * @param rowSet     - incoming Row Set representing a result of SQL query
      * @param accountId  - an account ID extracted from request
@@ -122,7 +121,7 @@ public class JdbcStoredDataResultMapper {
     /**
      * Overloaded method for cases when no specific IDs are required, e.g. fetching all records.
      *
-     * @param resultSet - incoming {@link ResultSet} representing a result of SQL query.
+     * @param resultSet - incoming {@link RowSet<Row>} representing a result of SQL query.
      * @return - a {@link StoredDataResult} object.
      */
     public static StoredDataResult map(RowSet<Row> resultSet) {
