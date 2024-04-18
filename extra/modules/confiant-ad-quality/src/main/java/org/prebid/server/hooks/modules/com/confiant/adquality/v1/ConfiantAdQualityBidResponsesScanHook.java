@@ -81,7 +81,7 @@ public class ConfiantAdQualityBidResponsesScanHook implements AllProcessedBidRes
         final boolean disallowTransmitGeo = !auctionContext.getActivityInfrastructure()
                 .isAllowed(Activity.TRANSMIT_GEO, activityInvocationPayload);
 
-        final User maskedUser = userFpdActivityMask.maskUser(bidRequest.getUser(), true, true, disallowTransmitGeo);
+        final User maskedUser = userFpdActivityMask.maskUser(bidRequest.getUser(), true, true);
         final Device maskedDevice = userFpdActivityMask.maskDevice(bidRequest.getDevice(), true, disallowTransmitGeo);
 
         return bidRequest.toBuilder()
