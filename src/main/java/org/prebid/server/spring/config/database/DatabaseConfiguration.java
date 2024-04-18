@@ -135,13 +135,9 @@ public class DatabaseConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "false",
             matchIfMissing = true)
-    BasicJdbcClient basicJdbcClient(Vertx vertx,
-                                    Pool pool,
-                                    Metrics metrics,
-                                    Clock clock,
-                                    ContextRunner contextRunner) {
+    BasicJdbcClient basicJdbcClient(Pool pool, Metrics metrics, Clock clock, ContextRunner contextRunner) {
 
-        return createBasicJdbcClient(vertx, pool, metrics, clock, contextRunner);
+        return createBasicJdbcClient(pool, metrics, clock, contextRunner);
     }
 
     @Bean
@@ -154,7 +150,7 @@ public class DatabaseConfiguration {
             ContextRunner contextRunner,
             @Qualifier("databaseCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties) {
 
-        final BasicJdbcClient jdbcClient = createBasicJdbcClient(vertx, pool, metrics, clock, contextRunner);
+        final BasicJdbcClient jdbcClient = createBasicJdbcClient(pool, metrics, clock, contextRunner);
         return new CircuitBreakerSecuredJdbcClient(
                 vertx,
                 jdbcClient,
@@ -165,13 +161,12 @@ public class DatabaseConfiguration {
                 clock);
     }
 
-    private static BasicJdbcClient createBasicJdbcClient(Vertx vertx,
-                                                         Pool pool,
+    private static BasicJdbcClient createBasicJdbcClient(Pool pool,
                                                          Metrics metrics,
                                                          Clock clock,
                                                          ContextRunner contextRunner) {
 
-        final BasicJdbcClient basicJdbcClient = new BasicJdbcClient(vertx, pool, metrics, clock);
+        final BasicJdbcClient basicJdbcClient = new BasicJdbcClient(pool, metrics, clock);
 
         contextRunner.<Void>runBlocking(promise -> basicJdbcClient.initialize().onComplete(promise));
 

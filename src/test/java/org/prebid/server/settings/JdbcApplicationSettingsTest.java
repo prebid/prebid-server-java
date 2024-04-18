@@ -668,13 +668,14 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     }
 
     private JdbcClient jdbcClient() {
-        final JDBCPool pool = JDBCPool.pool(vertx,
+        final JDBCPool pool = JDBCPool.pool(
+                vertx,
                 new JsonObject()
                         .put("jdbcUrl", JDBC_URL)
                         .put("driver_class", "org.h2.Driver")
                         .put("max_pool_size", 10)
                         .put("provider_class", "io.vertx.ext.jdbc.spi.impl.HikariCPDataSourceProvider"));
 
-        return new BasicJdbcClient(vertx, pool, metrics, clock);
+        return new BasicJdbcClient(pool, metrics, clock);
     }
 }

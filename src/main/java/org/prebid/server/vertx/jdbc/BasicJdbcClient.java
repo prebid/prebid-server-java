@@ -1,11 +1,7 @@
 package org.prebid.server.vertx.jdbc;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
 import io.vertx.ext.jdbc.JDBCClient;
-import io.vertx.ext.sql.ResultSet;
 import io.vertx.sqlclient.Pool;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
@@ -19,6 +15,7 @@ import org.prebid.server.metric.Metrics;
 import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
@@ -29,13 +26,11 @@ public class BasicJdbcClient implements JdbcClient {
 
     private static final Logger logger = LoggerFactory.getLogger(BasicJdbcClient.class);
 
-    private final Vertx vertx;
     private final Pool pool;
     private final Metrics metrics;
     private final Clock clock;
 
-    public BasicJdbcClient(Vertx vertx, Pool pool, Metrics metrics, Clock clock) {
-        this.vertx = Objects.requireNonNull(vertx);
+    public BasicJdbcClient(Pool pool, Metrics metrics, Clock clock) {
         this.pool = Objects.requireNonNull(pool);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -48,9 +43,7 @@ public class BasicJdbcClient implements JdbcClient {
      * Must be called on Vertx event loop thread.
      */
     public Future<Void> initialize() {
-        final Promise<SqlConnection> connectionPromise = Promise.promise();
-        pool.getConnection(connectionPromise);
-        return connectionPromise.future()
+        return pool.getConnection()
                 .recover(BasicJdbcClient::logConnectionError)
                 .mapEmpty();
     }
@@ -66,31 +59,22 @@ public class BasicJdbcClient implements JdbcClient {
             return Future.failedFuture(timeoutException());
         }
         final long startTime = clock.millis();
-        final Promise<RowSet<Row>> queryResultPromise = Promise.promise();
 
-        // timeout implementation is inspired by this answer:
-        // https://groups.google.com/d/msg/vertx/eSf3AQagGGU/K7pztnjLc_EJ
-        final long timerId = vertx.setTimer(remainingTimeout, id -> timedOutResult(queryResultPromise, startTime));
-
-        final Promise<SqlConnection> connectionPromise = Promise.promise();
-        pool.getConnection(connectionPromise);
-        connectionPromise.future()
+        return pool.getConnection()
                 .recover(BasicJdbcClient::logConnectionError)
                 .compose(connection -> makeQuery(connection, query, params))
-                .onComplete(result -> handleResult(result, queryResultPromise, timerId, startTime));
-
-        return queryResultPromise.future().map(mapper);
+                .timeout(remainingTimeout, TimeUnit.MILLISECONDS)
+                .recover(this::handleFailure)
+                .onComplete(result -> metrics.updateDatabaseQueryTimeMetric(clock.millis() - startTime))
+                .map(mapper);
     }
 
-    /**
-     * Fails result {@link Promise} with timeout exception.
-     */
-    private void timedOutResult(Promise<RowSet<Row>> queryResultPromise, long startTime) {
-        // no need for synchronization since timer is fired on the same event loop thread
-        if (!queryResultPromise.future().isComplete()) {
-            metrics.updateDatabaseQueryTimeMetric(clock.millis() - startTime);
-            queryResultPromise.fail(timeoutException());
+    private Future<RowSet<Row>> handleFailure(Throwable throwable) {
+        if (throwable instanceof TimeoutException) {
+            return Future.failedFuture(timeoutException());
         }
+
+        return Future.failedFuture(throwable);
     }
 
     private static Future<SqlConnection> logConnectionError(Throwable exception) {
@@ -102,29 +86,7 @@ public class BasicJdbcClient implements JdbcClient {
      * Performs query to DB.
      */
     private static Future<RowSet<Row>> makeQuery(SqlConnection connection, String query, List<Object> params) {
-        final Promise<RowSet<Row>> resultSetPromise = Promise.promise();
-        connection.preparedQuery(query).execute(Tuple.tuple(params), ar -> {
-            connection.close();
-            resultSetPromise.handle(ar);
-        });
-        return resultSetPromise.future();
-    }
-
-    /**
-     * Propagates responded {@link ResultSet} (or failure) to result {@link Promise}.
-     */
-    private void handleResult(AsyncResult<RowSet<Row>> result,
-                              Promise<RowSet<Row>> queryResultPromise,
-                              long timerId,
-                              long startTime) {
-
-        vertx.cancelTimer(timerId);
-
-        // check is to avoid harmless exception if timeout exceeds before successful result becomes ready
-        if (!queryResultPromise.future().isComplete()) {
-            metrics.updateDatabaseQueryTimeMetric(clock.millis() - startTime);
-            queryResultPromise.handle(result);
-        }
+        return connection.preparedQuery(query).execute(Tuple.tuple(params)).onComplete(ignored -> connection.close());
     }
 
     private static TimeoutException timeoutException() {
