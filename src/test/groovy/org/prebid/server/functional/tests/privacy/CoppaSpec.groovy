@@ -220,7 +220,7 @@ class CoppaSpec extends PrivacyBaseSpec {
         when: "PBS processes auction request"
         def bidResponse = prebidServerService.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request should contain same ip and ipv6 as requested"
+        then: "Bidder request should contain same ip as requested"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequests.device.ip == bidRequest.device.ip
         assert bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
