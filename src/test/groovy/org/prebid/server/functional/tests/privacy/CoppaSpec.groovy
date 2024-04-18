@@ -1,8 +1,14 @@
 package org.prebid.server.functional.tests.privacy
 
+import org.prebid.server.functional.model.AccountStatus
+import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AccountCoppaConfig
+import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.response.auction.ErrorType
+import org.prebid.server.functional.util.PBSUtils
 import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
@@ -143,15 +149,28 @@ class CoppaSpec extends PrivacyBaseSpec {
         }
     }
 
-    def "PBS auction should masking ip and ipv6 and emit warning when coppa = 1 and trace=#trace were passed"() {
-        given: "Default bid request with regs.coppa = 1"
+    def "PBS auction should masking ip and ipv6 and emit warning when coppa = 1 and coppaHostConfig=#coppaPbsConfigEnabled or coppaAccountEnabled=#coppaAccountEnabled were passed"() {
+        given: "PBS config with coppa"
+        def prebidServerService = pbsServiceFactory.getService(["privacy.coppa.enabled": coppaPbsConfigEnabled as String])
+
+        and: "Default bid request with regs.coppa = 1 and account"
+        def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
             regs.coppa = 1
             ext.prebid.trace = trace
+            setAccountId(accountId)
         }
 
+        and: "Flush metrics"
+        flushMetrics(prebidServerService)
+
+        and: "Create and insert account into DB with coppa"
+        def privacyConfig = new AccountPrivacyConfig(coppa: new AccountCoppaConfig(enabled: coppaAccountEnabled))
+        def account = new Account(uuid: accountId, config: new AccountConfig(status: AccountStatus.ACTIVE, privacy: privacyConfig))
+        accountDao.save(account)
+
         when: "PBS processes auction request"
-        def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
+        def bidResponse = prebidServerService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain masked ip and ipv6"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
@@ -160,24 +179,43 @@ class CoppaSpec extends PrivacyBaseSpec {
         assert bidderRequests.device.ip != bidRequest.device.ip
         assert bidderRequests.device.ipv6 != bidRequest.device.ipv6
 
+        and: "Coppa metric value is incremented"
+        def metrics = prebidServerService.sendCollectedMetricsRequest()
+        assert metrics["privacy.coppa"] == 1
+
         and: "Should contain warning"
         assert bidResponse.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
         assert bidResponse.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
                 ["IP address being rounded due to COPPA flag"]
 
         where:
-        trace << [BASIC, VERBOSE]
+        coppaPbsConfigEnabled | coppaAccountEnabled | trace
+        true                  | true                | BASIC
+        true                  | null                | BASIC
+        null                  | true                | BASIC
+        false                 | true                | BASIC
+        null                  | null                | BASIC
+        true                  | true                | VERBOSE
+        true                  | null                | VERBOSE
+        null                  | true                | VERBOSE
+        false                 | true                | VERBOSE
+        null                  | null                | VERBOSE
     }
 
-    def "PBS auction should skip masking ip and ipv6 and emit warning when coppa=#coppa and privacy.coppa.enabled=false and trace=#trace were passed"() {
-        given: "PBS config with coppa enable"
-        def prebidServerService = pbsServiceFactory.getService(["privacy.coppa.enabled": "false"])
+    def "PBS auction should skip masking ip and ipv6 and emit warning when coppa=#coppa and privacy.coppa.enabled=#coppaPbsConfigEnabled and trace=#trace were passed"() {
+        given: "PBS config with coppa enable: false"
+        def prebidServerService = pbsServiceFactory.getService(["privacy.coppa.enabled": coppaPbsConfigEnabled as String])
 
         and: "Default bid request with regs.coppa=#coppa and trace"
+        def accountId = PBSUtils.randomNumber as String
         def bidRequest = bidRequestWithGeo.tap {
             regs.coppa = coppa
             ext.prebid.trace = trace
+            setAccountId(accountId)
         }
+
+        and: "Flush metrics"
+        flushMetrics(prebidServerService)
 
         when: "PBS processes auction request"
         def bidResponse = prebidServerService.sendAuctionRequest(bidRequest)
@@ -185,7 +223,16 @@ class CoppaSpec extends PrivacyBaseSpec {
         then: "Bidder request should contain same ip and ipv6 as requested"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequests.device.ip == bidRequest.device.ip
-        assert bidderRequests.device.ipv6 == bidRequest.device.ipv6
+        assert bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
+
+        and: "Create and insert account into DB with coppa"
+        def privacyConfig = new AccountPrivacyConfig(coppa: new AccountCoppaConfig(enabled: coppaAccountEnabled))
+        def account = new Account(uuid: accountId, config: new AccountConfig(status: AccountStatus.ACTIVE, privacy: privacyConfig))
+        accountDao.save(account)
+
+        and: "Coppa metric value isn't incremented"
+        def metrics = prebidServerService.sendCollectedMetricsRequest()
+        assert !metrics["privacy.coppa"]
 
         and: "Should contain warning"
         assert bidResponse.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
@@ -193,10 +240,14 @@ class CoppaSpec extends PrivacyBaseSpec {
                 ["IP address rounding skipped in COPPA environment due to the feature being disabled."]
 
         where:
-        coppa | trace
-        0     | VERBOSE
-        1     | BASIC
-        1     | VERBOSE
-        0     | BASIC
+        coppaAccountEnabled | coppaPbsConfigEnabled | coppa | trace
+        false               | false                 | 0     | VERBOSE
+        false               | false                 | 1     | VERBOSE
+        false               | true                  | 1     | BASIC
+        false               | true                  | 0     | BASIC
+        false               | false                 | 0     | BASIC
+        false               | true                  | 1     | VERBOSE
+        null                | false                 | 0     | VERBOSE
+        false               | null                  | 1     | BASIC
     }
 }
