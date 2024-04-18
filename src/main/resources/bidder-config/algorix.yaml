@@ -1,6 +1,6 @@
 adapters:
   algorix:
-    endpoint: https://{HOST}.svr-algorix.com/rtb/sa?sid={SID}&token={TOKEN}
+    endpoint: https://{{HOST}}.svr-algorix.com/rtb/sa?sid={{SID}}&token={{TOKEN}}
     meta-info:
       maintainer-email: prebid@algorix.co
       app-media-types:
