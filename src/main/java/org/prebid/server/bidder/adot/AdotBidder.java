@@ -39,7 +39,7 @@ public class AdotBidder implements Bidder<BidRequest> {
     private static final List<BidType> ALLOWED_BID_TYPES = Arrays.asList(BidType.banner, BidType.video,
             BidType.xNative);
     private static final String PRICE_MACRO = "${AUCTION_PRICE}";
-    private static final String PUBLISHER_MACRO = "{PUBLISHER_PATH}";
+    private static final String PUBLISHER_MACRO = "{{PUBLISHER_PATH}}";
     private static final TypeReference<ExtPrebid<?, ExtImpAdot>> ADOT_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
