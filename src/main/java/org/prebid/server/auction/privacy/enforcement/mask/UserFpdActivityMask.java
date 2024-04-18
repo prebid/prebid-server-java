@@ -14,16 +14,11 @@ public class UserFpdActivityMask {
         this.userFpdTcfMask = Objects.requireNonNull(userFpdTcfMask);
     }
 
-    public User maskUser(User user,
-                         boolean disallowTransmitUfpd,
-                         boolean disallowTransmitEids,
-                         boolean disallowTransmitGeo) {
-
+    public User maskUser(User user, boolean disallowTransmitUfpd, boolean disallowTransmitEids) {
         return userFpdTcfMask.maskUser(
                 user,
                 disallowTransmitUfpd,
                 disallowTransmitEids,
-                disallowTransmitGeo,
                 Collections.emptySet());
     }
 
