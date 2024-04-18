@@ -262,12 +262,12 @@ public class MedianetBidderTest extends VertxTest {
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bid))
                         .build()))
-                .ext(MedianetBidResponseExt.of(InterestGroupAuctionIntent.builder()
+                .ext(MedianetBidResponseExt.of(List.of(InterestGroupAuctionIntent.builder()
                         .igs(List.of(InterestGroupAuctionSeller.builder()
                                 .impId(bid.getImpid())
                                 .config(mapper.createObjectNode().put("someKey", "someValue"))
                                 .build()))
-                        .build()))
+                        .build())))
                 .build();
     }
 
@@ -275,12 +275,12 @@ public class MedianetBidderTest extends VertxTest {
         return MedianetBidResponse.builder()
                 .cur("USD")
                 .seatbid(emptyList())
-                .ext(MedianetBidResponseExt.of(InterestGroupAuctionIntent.builder()
+                .ext(MedianetBidResponseExt.of(List.of(InterestGroupAuctionIntent.builder()
                         .igs(List.of(InterestGroupAuctionSeller.builder()
                                 .impId(impId)
                                 .config(mapper.createObjectNode().put("someKey", "someValue"))
                                 .build()))
-                        .build()))
+                        .build())))
                 .build();
     }
 

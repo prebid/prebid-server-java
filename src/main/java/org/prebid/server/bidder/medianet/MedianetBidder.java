@@ -152,9 +152,10 @@ public class MedianetBidder implements Bidder<BidRequest> {
         return Optional.ofNullable(bidResponse)
                 .map(MedianetBidResponse::getExt)
                 .map(MedianetBidResponseExt::getIgi)
-                .map(InterestGroupAuctionIntent::getIgs)
                 .orElse(Collections.emptyList())
                 .stream()
+                .map(InterestGroupAuctionIntent::getIgs)
+                .flatMap(Collection::stream)
                 .map(e -> FledgeAuctionConfig.builder().impId(e.getImpId()).config(e.getConfig()).build())
                 .toList();
     }
