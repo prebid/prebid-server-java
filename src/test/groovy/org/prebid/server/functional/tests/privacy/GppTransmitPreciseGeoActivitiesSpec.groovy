@@ -555,7 +555,10 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
             it.setAccountId(accountId)
             it.regs.gppSid = [USP_V1.intValue]
             it.ext.prebid.trace = VERBOSE
-            it.device.geo = null
+            it.device.geo.tap {
+                country = null
+                region = null
+            }
         }
 
         and: "Setup condition"
@@ -563,7 +566,7 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
             it.componentType = null
             it.componentName = [PBSUtils.randomString]
             it.gppSid = [USP_V1.intValue]
-            it.geo = ["$USA.ISOAlpha3".toString()]
+            it.geo = [USA.ISOAlpha3]
         }
 
         and: "Set activity"
@@ -588,9 +591,10 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
             bidderRequests.device.ipv6 == "af47:892b:3e98:b49a::"
             bidderRequests.device.geo.lat == bidRequest.device.geo.lat
             bidderRequests.device.geo.lon == bidRequest.device.geo.lon
-            bidderRequests.device.geo.country == bidRequest.device.geo.country
-            bidderRequests.device.geo.region == bidRequest.device.geo.region
             bidderRequests.device.geo.utcoffset == bidRequest.device.geo.utcoffset
+
+            !bidderRequests.device.geo.country
+            !bidderRequests.device.geo.region
 
             bidderRequests.device.geo.metro == bidRequest.device.geo.metro
             bidderRequests.device.geo.city == bidRequest.device.geo.city
@@ -616,6 +620,10 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
             it.setAccountId(accountId)
             it.regs.gppSid = null
             it.ext.prebid.trace = VERBOSE
+            it.device.geo.tap {
+                country = geoCountry
+                region = geoRegion
+            }
         }
 
         and: "Setup activity"
@@ -671,10 +679,10 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
 
         where:
-        deviceGeo                                           | conditionGeo
-        new Geo(country: USA)                               | [USA.ISOAlpha3]
-        new Geo(country: USA, region: ALABAMA.abbreviation) | [USA.withState(ALABAMA)]
-        new Geo(country: USA, region: ALABAMA.abbreviation) | [CAN.withState(ONTARIO), USA.withState(ALABAMA)]
+        geoCountry | geoRegion            | conditionGeo
+        USA        | null                 | [USA.ISOAlpha3]
+        USA        | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
+        USA        | ALABAMA.abbreviation | [CAN.withState(ONTARIO), USA.withState(ALABAMA)]
     }
 
     def "PBS auction should process rule when regs.ext.gpc doesn't intersection with condition.gpc"() {

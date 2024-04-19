@@ -190,6 +190,12 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         def geo = bidRequest.device.geo.clone()
         geo.lat = PBSUtils.roundDecimal(bidRequest.device.geo.lat as BigDecimal, precision)
         geo.lon = PBSUtils.roundDecimal(bidRequest.device.geo.lon as BigDecimal, precision)
+        geo.accuracy = null
+        geo.zip = null
+        geo.metro = null
+        geo.city = null
+        geo.ext = null
+        geo.ipservice = null
         geo
     }
 
