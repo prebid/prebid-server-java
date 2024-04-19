@@ -32,7 +32,6 @@ import org.prebid.server.functional.util.privacy.ConsentString
 import org.prebid.server.functional.util.privacy.TcfConsent
 import org.prebid.server.functional.util.privacy.gpp.GppConsent
 import org.prebid.server.functional.util.privacy.gpp.UspNatV1Consent
-import org.prebid.server.functional.util.privacy.model.State
 import spock.lang.Shared
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
