@@ -1,10 +1,8 @@
 package org.prebid.server.bidder.consumable;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.databind.node.TextNode;
 import com.google.common.base.Strings;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
@@ -25,11 +23,9 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.consumable.ExtImpConsumable;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -53,7 +49,7 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     private final String endpointUrl;
 
     public ConsumableBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = endpointUrl;
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -73,7 +69,7 @@ public class ConsumableBidder implements Bidder<BidRequest> {
                     placementId = impExt.getPlacementId();
                 }
 
-                imps.add(modifyImp(imp, impExt));
+                imps.add(imp);
 
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -100,33 +96,6 @@ public class ConsumableBidder implements Bidder<BidRequest> {
         return (app != null && !Strings.isNullOrEmpty(impExt.getPlacementId()))
                 || (site != null && impExt.getSiteId() != 0 && impExt.getNetworkId() != 0 && impExt.getUnitId() != 0);
 
-    }
-
-    private Imp modifyImp(Imp imp, ExtImpConsumable impExt) {
-        final UpdateResult<ObjectNode> impExtUpdateResult = modifyImpExt(imp, impExt);
-
-        return imp;
-    }
-
-    private UpdateResult<ObjectNode> modifyImpExt(Imp imp, ExtImpConsumable extImpConsumable) {
-        final Integer siteId = extImpConsumable.getSiteId();
-        final String unitName = extImpConsumable.getUnitName();
-        final Integer unitId = extImpConsumable.getUnitId();
-        final Integer networkId = extImpConsumable.getNetworkId();
-        final String placementId = extImpConsumable.getPlacementId();
-        final ObjectNode impExt = imp.getExt();
-
-        final ObjectNode updatedExt = impExt.deepCopy();
-        if (Strings.isNullOrEmpty(placementId)) {
-            updatedExt.set("siteId", TextNode.valueOf(Integer.toString(siteId)));
-            updatedExt.set("unitName", TextNode.valueOf(unitName));
-            updatedExt.set("unitId", TextNode.valueOf(Integer.toString(unitId)));
-            updatedExt.set("networkId", TextNode.valueOf(Integer.toString(networkId)));
-        } else {
-            updatedExt.set("placementId", TextNode.valueOf(placementId));
-        }
-
-        return UpdateResult.updated(updatedExt);
     }
 
     private BidRequest modifyBidRequest(BidRequest bidRequest, List<Imp> imps) {
@@ -179,10 +148,8 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     }
 
     private BidderBid toBidderBid(Bid bid, BidRequest bidRequest, BidResponse bidResponse, List<BidderError> errors) {
-        final ExtBidPrebid prebidExt;
         final BidType bidType;
         try {
-            prebidExt = parseBidExt(bid);
             bidType = getBidType(bid, bidRequest.getImp());
         } catch (PreBidException e) {
             errors.add(BidderError.badServerResponse(e.getMessage()));
@@ -197,22 +164,9 @@ public class ConsumableBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private ExtBidPrebid parseBidExt(Bid bid) {
-        final Optional<Bid> optionalBid = Optional.ofNullable(bid);
-
-        final ObjectNode bidExt = optionalBid
-                .map(Bid::getExt)
-                .orElse(mapper.mapper().valueToTree(ExtBidPrebid.builder().build()));
-
-        try {
-            return mapper.mapper().treeToValue(bidExt, ExtBidPrebid.class);
-        } catch (IllegalArgumentException | JsonProcessingException e) {
-            throw new PreBidException(e.getMessage());
-        }
-    }
-
     private static BidType getBidType(Bid bid, List<Imp> imps) {
-        return getBidTypeFromMtype(bid.getMtype()).or(() -> getBidTypeFromExtPrebidType(bid.getExt()))
+        return getBidTypeFromMtype(bid.getMtype())
+                .or(() -> getBidTypeFromExtPrebidType(bid.getExt()))
                 .orElseGet(() -> getBidTypeFromImp(imps, bid.getImpid()));
     }
 
@@ -229,7 +183,9 @@ public class ConsumableBidder implements Bidder<BidRequest> {
     }
 
     private static Optional<BidType> getBidTypeFromExtPrebidType(ObjectNode bidExt) {
-        return Optional.ofNullable(bidExt).map(ext -> ext.get("prebid")).map(prebid -> prebid.get("type"))
+        return Optional.ofNullable(bidExt)
+                .map(ext -> ext.get("prebid"))
+                .map(prebid -> prebid.get("type"))
                 .map(JsonNode::asText).map(BidType::fromString);
     }
 

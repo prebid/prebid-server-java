@@ -84,11 +84,41 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldHaveCorrectURIForSiteRequest() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenSiteBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly(ENDPOINT_URL + ConsumableBidder.SITE_URI_PATH);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldHaveCorrectURIForAppRequest() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenAppBidRequest(identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly(ENDPOINT_URL + ConsumableBidder.APP_URI_PATH + "0421008445828ceb46f496700a5fa65e");
+    }
+
+    @Test
     public void makeBidderResponseShouldReturnBidderBidWithNoErrors() throws JsonProcessingException {
         // given
         final BidRequest bidRequest = givenSiteBidRequest(identity());
         final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
-                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
@@ -150,9 +180,10 @@ public class ConsumableBidderTest extends VertxTest {
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors()).hasSize(1).first().satisfies(error -> {
+            assertThat(error.getMessage()).startsWith("Failed to decode: Unrecognized token");
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_server_response);
+        });
         assertThat(result.getBids()).isEmpty();
     }
 
@@ -192,8 +223,7 @@ public class ConsumableBidderTest extends VertxTest {
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
@@ -213,8 +243,7 @@ public class ConsumableBidderTest extends VertxTest {
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("123")));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
@@ -234,8 +263,7 @@ public class ConsumableBidderTest extends VertxTest {
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("489"))));
+                givenBidResponse(bidBuilder -> bidBuilder.impid("489")));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
@@ -254,12 +282,11 @@ public class ConsumableBidderTest extends VertxTest {
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(
-                                bidBuilder -> bidBuilder
-                                        .impid("123")
-                                        .dur(1)
-                                        .mtype(2))));
+                givenBidResponse(
+                        bidBuilder -> bidBuilder
+                                .impid("123")
+                                .dur(1)
+                                .mtype(2)));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
@@ -285,11 +312,10 @@ public class ConsumableBidderTest extends VertxTest {
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(
-                                bidBuilder -> bidBuilder
-                                        .impid("123")
-                                        .mtype(1))));
+                givenBidResponse(
+                        bidBuilder -> bidBuilder
+                                .impid("123")
+                                .mtype(1)));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
@@ -314,11 +340,10 @@ public class ConsumableBidderTest extends VertxTest {
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(
-                                bidBuilder -> bidBuilder
-                                        .impid("123")
-                                        .mtype(2))));
+                givenBidResponse(
+                        bidBuilder -> bidBuilder
+                                .impid("123")
+                                .mtype(2)));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
@@ -343,11 +368,10 @@ public class ConsumableBidderTest extends VertxTest {
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(
-                                bidBuilder -> bidBuilder
-                                        .impid("123")
-                                        .mtype(3))));
+                givenBidResponse(
+                        bidBuilder -> bidBuilder
+                                .impid("123")
+                                .mtype(3)));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
@@ -372,12 +396,11 @@ public class ConsumableBidderTest extends VertxTest {
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
-                mapper.writeValueAsString(
-                        givenBidResponse(
-                                bidBuilder -> bidBuilder
-                                        .impid("123")
-                                        .ext(mapper.createObjectNode()
-                                                .set("prebid", mapper.createObjectNode().put("type", "video"))))));
+                givenBidResponse(
+                        bidBuilder -> bidBuilder
+                                .impid("123")
+                                .ext(mapper.createObjectNode()
+                                        .set("prebid", mapper.createObjectNode().put("type", "video")))));
 
         // when
         final CompositeBidderResponse result = target.makeBidderResponse(httpCall, bidRequest);
@@ -391,7 +414,7 @@ public class ConsumableBidderTest extends VertxTest {
 
     private static BidRequest givenSiteBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
         return givenSiteBidRequest(bidRequestBuilder -> bidRequestBuilder.site(Site.builder()
-                .page("http://www.some.com/page-where-ad-will-be-shown").domain("www.some.com").build()),
+                        .page("http://www.some.com/page-where-ad-will-be-shown").domain("www.some.com").build()),
                 List.of(impCustomizers));
     }
 
@@ -400,10 +423,10 @@ public class ConsumableBidderTest extends VertxTest {
             List<UnaryOperator<Imp.ImpBuilder>> impCustomizers) {
 
         return bidRequestCustomizer.apply(
-                        BidRequest.builder()
-                                .imp(impCustomizers.stream()
-                                        .map(ConsumableBidderTest::givenSiteImp)
-                                        .toList())).build();
+                BidRequest.builder()
+                        .imp(impCustomizers.stream()
+                                .map(ConsumableBidderTest::givenSiteImp)
+                                .toList())).build();
     }
 
     private static BidRequest givenAppBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
@@ -441,14 +464,15 @@ public class ConsumableBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
+    private static String givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer)
+            throws JsonProcessingException {
+        return mapper.writeValueAsString(BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()
                                 .ext(mapper.valueToTree(ExtBidPrebid.builder().build()))).build()))
                         .build()))
-                .build();
+                .build());
     }
 
     private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
