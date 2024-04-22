@@ -12,6 +12,11 @@ adapters:
     enabled: true
 metrics:
   prefix: prebid
+analytics:
+  log:
+    enabled: true
+  greenbids:
+    enabled: true
 cache:
   scheme: http
   host: localhost

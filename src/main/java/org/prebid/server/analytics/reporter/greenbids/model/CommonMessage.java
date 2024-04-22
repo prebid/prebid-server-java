@@ -6,15 +6,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CommonMessage {
-    private final String version;
-    private final String auctionId;
-    private final String referrer;
-    private final double sampling;
-    private final String prebid;
-    private final String greenbidsId;
-    private final String pbuid;
-    private final String billingId;
-    private final List<AdUnit> adUnits;
+    public String version;
+    public String auctionId;
+    public String referrer;
+    public double sampling;
+    public String prebid;
+    public String greenbidsId;
+    public String pbuid;
+    public String billingId;
+    public List<AdUnit> adUnits;
 
     public CommonMessage(
         String auctionId,

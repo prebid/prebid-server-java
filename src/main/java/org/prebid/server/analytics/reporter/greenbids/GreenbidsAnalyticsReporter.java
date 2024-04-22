@@ -8,43 +8,22 @@ import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.analytics.AnalyticsReporter;
-import org.prebid.server.analytics.model.AmpEvent;
-import org.prebid.server.analytics.model.AuctionEvent;
-import org.prebid.server.analytics.model.CookieSyncEvent;
-import org.prebid.server.analytics.model.NotificationEvent;
-import org.prebid.server.analytics.model.SetuidEvent;
-import org.prebid.server.analytics.model.VideoEvent;
-import org.prebid.server.analytics.reporter.greenbids.model.AdUnit;
-import org.prebid.server.analytics.reporter.greenbids.model.AuctionCacheManager;
-import org.prebid.server.analytics.reporter.greenbids.model.CachedAuction;
-import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBidder;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsConfig;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsEvent;
+import org.prebid.server.analytics.model.*;
+import org.prebid.server.analytics.reporter.greenbids.model.*;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.exception.PreBidException;
-import org.prebid.server.json.DecodeException;
+import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
-import org.prebid.server.util.HttpUtil;
-import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Random;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.UUID.randomUUID;
 
-public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializable {
+public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
     private static final Logger logger = LoggerFactory.getLogger(GreenbidsAnalyticsReporter.class.getName());
     private static final Random random = new Random();
@@ -118,44 +97,57 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
             Map<String, Bid> seatsWithBids,
             Map<String, NonBid> seatsWithNonBids
     ) {
-        // Map[ImpId, List[GreenbidsBidder]]
-        //String adUnitCode = bidder.getAdUnitCode().toLowerCase();
-        //Optional<AdUnit> adUnitOptional = commonMessage.getAdUnits().stream();
-        //Map<String, List<GreenbidsBidder>> bidderMap = bids.stream()
-        //Map<Imp, List<GreenbidsBidder>> impBidderMap = new HashMap<>();
-
         // Map[ImpId, Imp]
         Map<String, Imp> impMap = imps.stream()
                 .collect(Collectors.toMap(Imp::getId, Function.identity()));
 
         // Map[Imp, List<GreenbidsBidder>>]
-        List<AdUnit> adUnits = new ArrayList<>();
+        //List<AdUnit> adUnits = new ArrayList<>();
 
-        seatsWithBids.
+        List<AdUnit> adUnits = imps.stream().map(imp -> {
+            List<GreenbidsBidder> bidders = new ArrayList<>();
 
+            // filter bidders in imp
+            Map<String, Bid> seatsWithBidsForImp = seatsWithBids.entrySet().stream()
+                    .filter(entry -> entry.getValue().getImpid().equals(imp.getId()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-        // process bids
-        for (Bid bid: bids) {
-            Imp imp = impMap.get(bid.getImpid());
+            // filter non bidders in imp
+            Map<String, NonBid> seatsWithNonBidsForImp = seatsWithNonBids.entrySet().stream()
+                    .filter(entry -> entry.getValue().getImpId().equals(imp.getId()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
-            if (imp != null) {
-                impBidderMap.computeIfAbsent(imp, k -> new ArrayList<>())
-                    .add(
-                            GreenbidsBidder.builder()
-                                    .bidder(bid.getId())
-                                    .hasBid(bid != null)
-                                    .isTimeout(bid.getStatus() == 408)
-                    );
-            }
+            seatsWithBidsForImp.forEach((seat, bid) -> {
+                GreenbidsBidder bidder = GreenbidsBidder.builder()
+                        .bidder(seat)
+                        .isTimeout(false)
+                        .hasBid(bid != null)
+                        .build();
+                bidders.add(bidder);
+            });
 
-            GreenbidsBidder greenbidsBidder = serializeBidResponse(bid);
-            impBidderMap.computeIfAbsent(imp, k -> new ArrayList<>()).add(greenbidsBidder);
-        }
+            seatsWithNonBidsForImp.forEach((seat, nonBid) -> {
+                GreenbidsBidder bidder = GreenbidsBidder.builder()
+                        .bidder(seat)
+                        .isTimeout(nonBid.getStatusCode().code == BidRejectionReason.TIMED_OUT.code)
+                        .hasBid(false)
+                        .build();
+                bidders.add(bidder);
+            });
+
+            return AdUnit.builder()
+                    .code(imp.getId())
+                    .bidders(bidders)
+                    .build();
+        }).toList();
+
+        commonMessage.adUnits = adUnits;
+
+        return commonMessage;
     }
 
     public CommonMessage createBidMessage(
-            AuctionEvent auctionEvent,
-            NotificationEvent notificationEvent
+            AuctionEvent auctionEvent
     ){
         // ??? from which event extract list of adUnits? AuctionId? AuctionEndTimestamp???
         AuctionContext auctionContext = auctionEvent.getAuctionContext();
@@ -195,14 +187,13 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
                 );
 
         CommonMessage commonMessage = createCommonMessage(auctionId, auctionEvent);
-        CommonMessage commonMessageWithBids = addBidResponseToMessage(
+
+        return addBidResponseToMessage(
                 commonMessage,
                 imps,
                 seatsWithBids,
                 seatsWithNonBids
         );
-
-        return commonMessage;
     }
 
     // get bidder from event setuidEvent, NotificationEvent, CoolieSyncEvent
@@ -213,7 +204,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
         final GreenbidsEvent<?> greenbidsEvent;
 
         AuctionEvent auctionEventGlobal = AuctionEvent.builder().build();
-        NotificationEvent  notificationEventGlobal = NotificationEvent.builder().build();
+        //NotificationEvent  notificationEventGlobal = NotificationEvent.builder().build();
 
         if (event instanceof AmpEvent ampEvent) {
             greenbidsEvent =  GreenbidsEvent.of("/openrtb2/amp", ampEvent.getBidResponse());
@@ -224,7 +215,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
             greenbidsEvent = GreenbidsEvent.of("/cookie_sync", cookieSyncEvent.getBidderStatus());
         } else if (event instanceof NotificationEvent notificationEvent) {
             greenbidsEvent = GreenbidsEvent.of("/event", notificationEvent.getType() + notificationEvent.getBidId());
-            notificationEventGlobal = notificationEvent;
+            //notificationEventGlobal = notificationEvent;
         } else if (event instanceof SetuidEvent setuidEvent) {
             greenbidsEvent = GreenbidsEvent.of(
                     "/setuid",
@@ -242,14 +233,14 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
 
         AuctionContext auctionContext = auctionEventGlobal.getAuctionContext();
         String auctionId = auctionContext.getBidRequest().getId();
-        Boolean isSampled = isSampled(greenbidsConfig.getGreenbidsSampling(), greenbidsId);
+        boolean isSampled = isSampled(greenbidsConfig.getGreenbidsSampling(), greenbidsId);
 
         AuctionCacheManager auctionCacheManager = new AuctionCacheManager();
         this.cachedAuction = auctionCacheManager.getCachedAuction(auctionId);
         this.cachedAuction.isSampled = isSampled;
         this.cachedAuction.greenbidsId = greenbidsId;
 
-        CommonMessage commonMessage = createBidMessage(auctionEventGlobal, notificationEventGlobal);
+        CommonMessage commonMessage = createBidMessage(auctionEventGlobal);
 
         return Future.succeededFuture();
     }
@@ -328,42 +319,5 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
     @Override
     public String name() {
         return "greenbids";
-    }
-
-    @Override
-    public void initialize() {
-        vertx.setPeriodic(configurationRefreshDelay, id -> fetchRemoteConfig());
-        fetchRemoteConfig();
-    }
-
-    private void fetchRemoteConfig() {
-        logger.info("[greenbids] Updating config: {0}", greenbidsConfig);
-        httpClient.get(ANALYTICS_SERVER, timeout)
-                .map(this::ProcessRemoteConfigurationResponse)
-                .onComplete(this::handleConfigResponse);
-    }
-
-    private GreenbidsConfig ProcessRemoteConfigurationResponse(HttpClientResponse response) {
-        final int statusCode = response.getStatusCode();
-        if (statusCode!= 200) {
-            throw new PreBidException("[greenbids] Failed to fetch config, reason: HTTP status code " + statusCode);
-        }
-        final String body = response.getBody();
-        try {
-            return jacksonMapper.decodeValue(body, GreenbidsConfig.class);
-        } catch (DecodeException e) {
-            throw new PreBidException(
-                    "[greenbids] Failed to fetch config, reason: failed to parse response: " + body, e);
-        }
-    }
-
-    private String makeEventHandlerEndpoint() {
-        try {
-            return HttpUtil.validateUrl(ANALYTICS_SERVER);
-        } catch (IllegalArgumentException e) {
-            final String message = "[greenbids] Failed to create event report url";
-            logger.error(message);
-            throw new PreBidException(message);
-        }
     }
 }
