@@ -5,7 +5,7 @@ import org.prebid.server.functional.util.privacy.gpp.data.UsNationalSensitiveDat
 
 class UsNatV1Consent extends GppConsent {
 
-    private static final Section SECTION = Section.USP_NAT_V1
+    private static final Section SECTION = Section.US_NAT_V1
 
     protected UsNatV1Consent(Section section, Map<String, Object> fieldValues) {
         super(section, fieldValues)
@@ -19,7 +19,7 @@ class UsNatV1Consent extends GppConsent {
     static class Builder extends GppConsent.Builder {
 
         Builder() {
-            super(GppConsent.Section.USP_NAT_V1)
+            super(SECTION)
         }
 
         Builder setVersion(Integer version) {

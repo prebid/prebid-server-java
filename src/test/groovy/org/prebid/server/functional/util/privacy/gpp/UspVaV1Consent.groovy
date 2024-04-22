@@ -5,7 +5,7 @@ import org.prebid.server.functional.util.privacy.gpp.data.UsVirginiaSensitiveDat
 
 class UsVaV1Consent extends GppConsent {
 
-    private static final Section SECTION = Section.USP_VA_V1
+    private static final Section SECTION = Section.US_VA_V1
 
     protected UsVaV1Consent(Section section, Map<String, Object> fieldValues) {
         super(section, fieldValues)

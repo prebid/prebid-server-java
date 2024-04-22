@@ -5,7 +5,7 @@ import org.prebid.server.functional.util.privacy.gpp.data.UsUtahSensitiveData
 
 class UsUtV1Consent extends GppConsent {
 
-    private static final Section SECTION = Section.USP_UT_V1
+    private static final Section SECTION = Section.US_UT_V1
 
     protected UsUtV1Consent(Section section, Map<String, Object> fieldValues) {
         super(section, fieldValues)
@@ -19,7 +19,7 @@ class UsUtV1Consent extends GppConsent {
     static class Builder extends GppConsent.Builder {
 
         Builder() {
-            super(GppConsent.Section.USP_UT_V1)
+            super(SECTION)
         }
 
         Builder setVersion(Integer version) {

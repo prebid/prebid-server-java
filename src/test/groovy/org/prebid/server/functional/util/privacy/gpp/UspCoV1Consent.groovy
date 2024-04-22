@@ -5,7 +5,7 @@ import org.prebid.server.functional.util.privacy.gpp.data.UsColoradoSensitiveDat
 
 class UsCoV1Consent extends GppConsent {
 
-    private static final Section SECTION = Section.USP_CO_V1
+    private static final Section SECTION = Section.US_CO_V1
 
     protected UsCoV1Consent(Section section, Map<String, Object> fieldValues) {
         super(section, fieldValues)
@@ -13,7 +13,7 @@ class UsCoV1Consent extends GppConsent {
 
     @Override
     protected String encodeSection() {
-        gppModel.encodeSection(Section.USP_CO_V1.name)
+        gppModel.encodeSection(SECTION.name)
     }
 
     static class Builder extends GppConsent.Builder {

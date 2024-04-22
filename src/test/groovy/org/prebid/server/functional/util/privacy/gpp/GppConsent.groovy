@@ -64,12 +64,12 @@ abstract class GppConsent implements ConsentString {
 
         TCF_EU_V2(TcfEuV2.NAME, TcfEuV2.VERSION),  //2
         USP_V1(UspV1.NAME, UspV1.VERSION),         //6
-        USP_NAT_V1(UsNatV1.NAME, UsNatV1.VERSION), //7
-        USP_CA_V1(UsCaV1.NAME, UsCaV1.VERSION),    //8
-        USP_VA_V1(UsVaV1.NAME, UsVaV1.VERSION),    //9
-        USP_CO_V1(UsCoV1.NAME, UsCoV1.VERSION),    //10
-        USP_UT_V1(UsUtV1.NAME, UsUtV1.VERSION),    //11
-        USP_CT_V1(UsCtV1.NAME, UsCtV1.VERSION),    //12
+        US_NAT_V1(UsNatV1.NAME, UsNatV1.VERSION),  //7
+        US_CA_V1(UsCaV1.NAME, UsCaV1.VERSION),     //8
+        US_VA_V1(UsVaV1.NAME, UsVaV1.VERSION),     //9
+        US_CO_V1(UsCoV1.NAME, UsCoV1.VERSION),     //10
+        US_UT_V1(UsUtV1.NAME, UsUtV1.VERSION),     //11
+        US_CT_V1(UsCtV1.NAME, UsCtV1.VERSION),     //12
 
         final String name
         final int version

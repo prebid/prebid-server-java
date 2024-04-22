@@ -5,7 +5,7 @@ import org.prebid.server.functional.util.privacy.gpp.data.UsConnecticutSensitive
 
 class UsCtV1Consent extends GppConsent {
 
-    private static final Section SECTION = Section.USP_CT_V1
+    private static final Section SECTION = Section.US_CT_V1
 
     protected UsCtV1Consent(Section section, Map<String, Object> fieldValues) {
         super(section, fieldValues)
