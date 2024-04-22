@@ -15,7 +15,7 @@ import org.prebid.server.functional.model.response.auction.And
 import org.prebid.server.functional.model.response.auction.GeoCode
 import org.prebid.server.functional.model.response.auction.RuleConfiguration
 import org.prebid.server.functional.util.PBSUtils
-import org.prebid.server.functional.util.privacy.gpp.UspNatV1Consent
+import org.prebid.server.functional.util.privacy.gpp.UsNatV1Consent
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
@@ -300,7 +300,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
             device = new Device(geo: new Geo(country: USA, region: ALABAMA.abbreviation))
             regs.ext.gpc = PBSUtils.randomString
             regs.gppSid = [USP_CA_V1.intValue]
-            regs.gpp = new UspNatV1Consent.Builder().setGpc(true).build()
+            regs.gpp = new UsNatV1Consent.Builder().setGpc(true).build()
             setAccountId(accountId)
         }
 
@@ -404,4 +404,3 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
         activityInfrastructures[new IntRange(true, firstIndex, lastIndex)]
     }
 }
-
