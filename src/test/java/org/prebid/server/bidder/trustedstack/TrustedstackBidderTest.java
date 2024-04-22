@@ -116,16 +116,10 @@ public class TrustedstackBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnCorrespondingMtypesAndAdTypes() throws JsonProcessingException {
+    public void makeBidsShouldReturnBannerMtypeAndAdType() throws JsonProcessingException {
         final List<Bid> bids = new ArrayList<>();
-        final Bid bid1 = Bid.builder().impid("imp_id").mtype(1).build();
-        final Bid bid2 = Bid.builder().impid("imp_id").mtype(2).build();
-        final Bid bid3 = Bid.builder().impid("imp_id").mtype(3).build();
-        final Bid bid4 = Bid.builder().impid("imp_id").mtype(4).build();
-        bids.add(bid1);
-        bids.add(bid2);
-        bids.add(bid3);
-        bids.add(bid4);
+        final Bid bid = Bid.builder().impid("imp_id").mtype(1).build();
+        bids.add(bid);
 
         // given
         final BidderCall<BidRequest> httpCall = sampleHttpCall(
@@ -137,12 +131,68 @@ public class TrustedstackBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(4);
-        final BidderBid bannerBid = BidderBid.of(bid1, banner, "USD");
-        final BidderBid videoBid = BidderBid.of(bid2, video, "USD");
-        final BidderBid audioBid = BidderBid.of(bid3, audio, "USD");
-        final BidderBid xNativeBid = BidderBid.of(bid4, xNative, "USD");
-        assertThat(result.getValue()).containsExactlyInAnyOrder(bannerBid, videoBid, audioBid, xNativeBid);
+        final BidderBid bannerBid = BidderBid.of(bid, banner, "USD");
+        assertThat(result.getValue()).containsExactlyInAnyOrder(bannerBid);
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoMtypeAndAdType() throws JsonProcessingException {
+        final List<Bid> bids = new ArrayList<>();
+        final Bid bid = Bid.builder().impid("imp_id").mtype(2).build();
+        bids.add(bid);
+
+        // given
+        final BidderCall<BidRequest> httpCall = sampleHttpCall(
+                givenBidRequest(),
+                mapper.writeValueAsString(sampleMultiFormatBidResponse(bids)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final BidderBid videoBid = BidderBid.of(bid, video, "USD");
+        assertThat(result.getValue()).containsExactlyInAnyOrder(videoBid);
+    }
+
+    @Test
+    public void makeBidsShouldReturnAudioMtypeAndAdType() throws JsonProcessingException {
+        final List<Bid> bids = new ArrayList<>();
+        final Bid bid = Bid.builder().impid("imp_id").mtype(3).build();
+        bids.add(bid);
+
+        // given
+        final BidderCall<BidRequest> httpCall = sampleHttpCall(
+                givenBidRequest(),
+                mapper.writeValueAsString(sampleMultiFormatBidResponse(bids)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final BidderBid audioBid = BidderBid.of(bid, audio, "USD");
+        assertThat(result.getValue()).containsExactlyInAnyOrder(audioBid);
+    }
+
+    @Test
+    public void makeBidsShouldReturnNativeMtypeAndAdType() throws JsonProcessingException {
+        final List<Bid> bids = new ArrayList<>();
+        final Bid bid = Bid.builder().impid("imp_id").mtype(4).build();
+        bids.add(bid);
+
+        // given
+        final BidderCall<BidRequest> httpCall = sampleHttpCall(
+                givenBidRequest(),
+                mapper.writeValueAsString(sampleMultiFormatBidResponse(bids)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final BidderBid xNativeBid = BidderBid.of(bid, xNative, "USD");
+        assertThat(result.getValue()).containsExactlyInAnyOrder(xNativeBid);
     }
 
     @Test
