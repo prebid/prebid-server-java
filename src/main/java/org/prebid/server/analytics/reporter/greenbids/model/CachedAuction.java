@@ -3,10 +3,10 @@ package org.prebid.server.analytics.reporter.greenbids.model;
 import java.util.ArrayList;
 
 public class CachedAuction {
-    ArrayList<Object> timeoutBids;
-    String greenbidsId;
-    String billingId;
-    Boolean isSampled;
+    public ArrayList<Object> timeoutBids;
+    public String greenbidsId;
+    public String billingId;
+    public Boolean isSampled;
 
     public CachedAuction() {
         this.timeoutBids = new ArrayList<>();

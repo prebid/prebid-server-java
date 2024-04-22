@@ -18,7 +18,6 @@ public class CommonMessage {
 
     public CommonMessage(
         String auctionId,
-        //AnalyticsOptions analyticsOptions,
         AuctionEvent event,
         double samplingRate,
         CachedAuction cachedAuction

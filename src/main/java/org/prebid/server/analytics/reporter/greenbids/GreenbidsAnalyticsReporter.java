@@ -1,6 +1,8 @@
 package org.prebid.server.analytics.reporter.greenbids;
 
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
@@ -13,7 +15,6 @@ import org.prebid.server.analytics.model.NotificationEvent;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.model.VideoEvent;
 import org.prebid.server.analytics.reporter.greenbids.model.AdUnit;
-import org.prebid.server.analytics.reporter.greenbids.model.AnalyticsOptions;
 import org.prebid.server.analytics.reporter.greenbids.model.AuctionCacheManager;
 import org.prebid.server.analytics.reporter.greenbids.model.CachedAuction;
 import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
@@ -25,20 +26,29 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.http.HttpClient;
 import org.prebid.server.vertx.http.model.HttpClientResponse;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Random;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import static java.util.UUID.randomUUID;
 
 public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializable {
 
     private static final Logger logger = LoggerFactory.getLogger(GreenbidsAnalyticsReporter.class.getName());
     private static final Random random = new Random();
-    private AnalyticsOptions analyticsOptions = new AnalyticsOptions(); // TODO set event auction
+    //private AnalyticsOptions analyticsOptions = new AnalyticsOptions(); // TODO set event auction
     private static final String ANALYTICS_SERVER = "https://a.greenbids.ai";
 
     public String pbuid;
@@ -54,6 +64,9 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
     private final HttpClient httpClient;
     private final long timeout;
     private final JacksonMapper jacksonMapper;
+
+    private CachedAuction cachedAuction;
+
 
 
 
@@ -77,21 +90,20 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
         this.httpClient = Objects.requireNonNull(httpClient);
         this.timeout = Objects.requireNonNull(greenbidsAnalyticsProperties.getTimeoutMs());
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
+        this.cachedAuction = null;
     }
 
 
-    public <T> CommonMessage createCommonMessage(String auctiondId, T event) throws Exception {
-        AuctionCacheManager auctionCacheManager = new AuctionCacheManager();
-        CachedAuction cachedAuction = auctionCacheManager.getCachedAuction(auctiondId);
-
+    public CommonMessage createCommonMessage(String auctiondId, AuctionEvent event) {
         return new CommonMessage(
                 auctiondId,
-                getAuctionEvent(event).orElseThrow(() -> new Exception("AuctionEvent not found")),
+                event,
                 greenbidsSampling,
-                cachedAuction
+                this.cachedAuction
         );
     }
 
+    // TO CHANGE METHOD
     public GreenbidsBidder serializeBidResponse(SetuidEvent  event) {
         return GreenbidsBidder.builder()
                 .bidder(event.getBidder())
@@ -100,33 +112,119 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
                 .build();
     }
 
-    public void addBidResponseToMessage(CommonMessage commonMessage, GreenbidsBidder bidder) {
-        String adUnitCode = bidder.getAdUnitCode().toLowerCase();
-        Optional<AdUnit> adUnitOptional = commonMessage.getAdUnits().stream();
+    public CommonMessage addBidResponseToMessage(
+            CommonMessage commonMessage,
+            List<Imp> imps,
+            Map<String, Bid> seatsWithBids,
+            Map<String, NonBid> seatsWithNonBids
+    ) {
+        // Map[ImpId, List[GreenbidsBidder]]
+        //String adUnitCode = bidder.getAdUnitCode().toLowerCase();
+        //Optional<AdUnit> adUnitOptional = commonMessage.getAdUnits().stream();
+        //Map<String, List<GreenbidsBidder>> bidderMap = bids.stream()
+        //Map<Imp, List<GreenbidsBidder>> impBidderMap = new HashMap<>();
+
+        // Map[ImpId, Imp]
+        Map<String, Imp> impMap = imps.stream()
+                .collect(Collectors.toMap(Imp::getId, Function.identity()));
+
+        // Map[Imp, List<GreenbidsBidder>>]
+        List<AdUnit> adUnits = new ArrayList<>();
+
+        seatsWithBids.
+
+
+        // process bids
+        for (Bid bid: bids) {
+            Imp imp = impMap.get(bid.getImpid());
+
+            if (imp != null) {
+                impBidderMap.computeIfAbsent(imp, k -> new ArrayList<>())
+                    .add(
+                            GreenbidsBidder.builder()
+                                    .bidder(bid.getId())
+                                    .hasBid(bid != null)
+                                    .isTimeout(bid.getStatus() == 408)
+                    );
+            }
+
+            GreenbidsBidder greenbidsBidder = serializeBidResponse(bid);
+            impBidderMap.computeIfAbsent(imp, k -> new ArrayList<>()).add(greenbidsBidder);
+        }
     }
 
-    public CommonMessage createBidMessage(AuctionEvent auctionEvent) {
+    public CommonMessage createBidMessage(
+            AuctionEvent auctionEvent,
+            NotificationEvent notificationEvent
+    ){
         // ??? from which event extract list of adUnits? AuctionId? AuctionEndTimestamp???
         AuctionContext auctionContext = auctionEvent.getAuctionContext();
 
+        // get auctionId
+        String auctionId = auctionContext.getBidRequest().getId();
+
+        // get adunits
+        List<Imp> imps = auctionContext.getBidRequest().getImp();
+
+        // get auction timestamp
+        Long auctionTimestamp = auctionContext.getBidRequest().getExt().getPrebid().getAuctiontimestamp();
+        Long auctionElapsed = System.currentTimeMillis() - auctionTimestamp;
+
+        // get bids
+        Map<String, Bid> seatsWithBids = auctionEvent.getBidResponse().getSeatbid()
+                .stream()
+                .filter(seatBid -> !seatBid.getBid().isEmpty())
+                .collect(
+                        Collectors.toMap(
+                                SeatBid::getSeat,
+                                seatBid -> seatBid.getBid().get(0),
+                                (existing, replacement) -> existing
+                        )
+                );
+
+        // get timeoutBids + nonBids
+        Map<String, NonBid> seatsWithNonBids = auctionContext.getBidResponse().getExt().getSeatnonbid()
+                .stream()
+                .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
+                .collect(
+                        Collectors.toMap(
+                                SeatNonBid::getSeat,
+                                seatNonBid -> seatNonBid.getNonBid().get(0),
+                                (existing, replacement) -> existing
+                        )
+                );
+
+        CommonMessage commonMessage = createCommonMessage(auctionId, auctionEvent);
+        CommonMessage commonMessageWithBids = addBidResponseToMessage(
+                commonMessage,
+                imps,
+                seatsWithBids,
+                seatsWithNonBids
+        );
+
+        return commonMessage;
     }
 
     // get bidder from event setuidEvent, NotificationEvent, CoolieSyncEvent
     // get timeout status code from HttpResponseStatus  REQUEST_TIMEOUT 408
 
     @Override
-    public <T> Future<Void> processEvent(T event) {
+    public <T> Future<Void> processEvent(T event){
         final GreenbidsEvent<?> greenbidsEvent;
+
+        AuctionEvent auctionEventGlobal = AuctionEvent.builder().build();
+        NotificationEvent  notificationEventGlobal = NotificationEvent.builder().build();
 
         if (event instanceof AmpEvent ampEvent) {
             greenbidsEvent =  GreenbidsEvent.of("/openrtb2/amp", ampEvent.getBidResponse());
         } else if (event instanceof AuctionEvent auctionEvent) {
             greenbidsEvent =  GreenbidsEvent.of("/openrtb2/auction", auctionEvent.getBidResponse());
-            CommonMessage commonMessage = createBidMessage(auctionEvent);
+            auctionEventGlobal = auctionEvent;
         } else if (event instanceof CookieSyncEvent cookieSyncEvent) {
             greenbidsEvent = GreenbidsEvent.of("/cookie_sync", cookieSyncEvent.getBidderStatus());
         } else if (event instanceof NotificationEvent notificationEvent) {
             greenbidsEvent = GreenbidsEvent.of("/event", notificationEvent.getType() + notificationEvent.getBidId());
+            notificationEventGlobal = notificationEvent;
         } else if (event instanceof SetuidEvent setuidEvent) {
             greenbidsEvent = GreenbidsEvent.of(
                     "/setuid",
@@ -139,11 +237,26 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
             greenbidsEvent = GreenbidsEvent.of("unknown", null);
         }
 
+        // generate greenbidsId
+        String greenbidsId = randomUUID().toString();
+
+        AuctionContext auctionContext = auctionEventGlobal.getAuctionContext();
+        String auctionId = auctionContext.getBidRequest().getId();
+        Boolean isSampled = isSampled(greenbidsConfig.getGreenbidsSampling(), greenbidsId);
+
+        AuctionCacheManager auctionCacheManager = new AuctionCacheManager();
+        this.cachedAuction = auctionCacheManager.getCachedAuction(auctionId);
+        this.cachedAuction.isSampled = isSampled;
+        this.cachedAuction.greenbidsId = greenbidsId;
+
+        CommonMessage commonMessage = createBidMessage(auctionEventGlobal, notificationEventGlobal);
+
         return Future.succeededFuture();
     }
 
 
     // Attempts to extract an AuctionEvent from a generic event object.
+    /*
     public <T> Optional<AuctionEvent> getAuctionEvent(T event) {
         if (event instanceof AuctionEvent auctionEvent) {
             return Optional.of(auctionEvent);
@@ -151,13 +264,13 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
             return Optional.empty();
         }
     }
+     */
 
 
     // sample auction by computing the hash from greenbidsId
-    public static boolean isSampled(
-            String greenbidsId,
+    public boolean isSampled(
             double samplingRate,
-            double exploratorySamplingSplit
+            String greenbidsId
     ) {
         // Check if the sampling rate is within the valid range (0-1)
         if (samplingRate < 0 || samplingRate > 1) {
@@ -166,8 +279,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter, Initializa
         }
 
         // Calculate the exploratory and throttled sampling rates based on the sampling rate and exploratory sampling split
-        double exploratorySamplingRate = samplingRate * exploratorySamplingSplit;
-        double throttledSamplingRate  = samplingRate * (1.0 - exploratorySamplingSplit);
+        double exploratorySamplingRate = samplingRate * this.exploratorySamplingSplit;
+        double throttledSamplingRate  = samplingRate * (1.0 - this.exploratorySamplingSplit);
 
         // Calculate the hash of the last 4 characters of the greenbidsId
         long hashInt = Math.abs(greenbidsId.hashCode());
