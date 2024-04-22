@@ -20,8 +20,8 @@ import org.prebid.server.functional.util.privacy.gpp.UsNatV1Consent
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
-import static org.prebid.server.functional.model.request.GppSectionId.USP_CA_V1
-import static org.prebid.server.functional.model.request.GppSectionId.USP_CO_V1
+import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
+import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.FETCH_BIDS
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_TID
@@ -193,14 +193,14 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
             ext.prebid.trace = VERBOSE
             device = new Device(geo: new Geo(country: USA, region: ALABAMA.abbreviation))
             regs.ext.gpc = PBSUtils.randomString
-            regs.gppSid = [USP_CA_V1.intValue]
+            regs.gppSid = [US_CA_V1.intValue]
             setAccountId(accountId)
         }
 
         and: "Set up activities"
         def gpc = PBSUtils.randomString
         def condition = Condition.baseCondition.tap {
-            it.gppSid = [USP_CO_V1.intValue]
+            it.gppSid = [US_CO_V1.intValue]
             it.gpc = gpc
             it.geo = [CAN.withState(ARIZONA)]
         }
@@ -299,7 +299,7 @@ class ActivityTraceLogSpec extends PrivacyBaseSpec {
             ext.prebid.trace = VERBOSE
             device = new Device(geo: new Geo(country: USA, region: ALABAMA.abbreviation))
             regs.ext.gpc = PBSUtils.randomString
-            regs.gppSid = [USP_CA_V1.intValue]
+            regs.gppSid = [US_CA_V1.intValue]
             regs.gpp = new UsNatV1Consent.Builder().setGpc(true).build()
             setAccountId(accountId)
         }
