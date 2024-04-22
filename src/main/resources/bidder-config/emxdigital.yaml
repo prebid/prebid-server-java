@@ -4,6 +4,10 @@ adapters:
     aliases:
       cadent_aperture_mx:
         enabled: false
+        # CadentAperture only operates in North America
+        geoscope:
+          - USA
+          - CAN
     meta-info:
       maintainer-email: contactaperturemx@cadent.tv
       app-media-types:
