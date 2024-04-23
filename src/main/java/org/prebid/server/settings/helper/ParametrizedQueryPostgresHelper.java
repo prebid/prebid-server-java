@@ -1,11 +1,14 @@
 package org.prebid.server.settings.helper;
 
-import org.apache.commons.lang3.StringUtils;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class ParametrizedQueryPostgresHelper implements ParametrizedQueryHelper {
+
+    private static final Pattern PLACEHOLDER_PATTERN =
+            Pattern.compile("(%s)|(%s)".formatted(REQUEST_ID_PLACEHOLDER, IMP_ID_PLACEHOLDER));
 
     @Override
     public String replaceAccountIdPlaceholder(String query) {
@@ -19,22 +22,17 @@ public class ParametrizedQueryPostgresHelper implements ParametrizedQueryHelper 
 
     @Override
     public String replaceRequestAndImpIdPlaceholders(String query, int requestIdNumber, int impIdNumber) {
-        final int requestIdCount = StringUtils.countMatches(query, REQUEST_ID_PLACEHOLDER);
-        final int impIdCount = StringUtils.countMatches(query, IMP_ID_PLACEHOLDER);
+        final Matcher matcher = PLACEHOLDER_PATTERN.matcher(query);
 
-        int start = 0;
-        String resultQuery = query;
-        for (int i = 0; i < requestIdCount; i++) {
-            resultQuery = resultQuery.replaceFirst(REQUEST_ID_PLACEHOLDER, parameterHolders(requestIdNumber, start));
-            start += requestIdNumber;
+        int i = 0;
+        final StringBuilder queryBuilder = new StringBuilder();
+        while (matcher.find()) {
+            final int paramsNumber = matcher.group(1) != null ? requestIdNumber : impIdNumber;
+            matcher.appendReplacement(queryBuilder, parameterHolders(paramsNumber, i));
+            i += paramsNumber;
         }
-
-        for (int i = 0; i < impIdCount; i++) {
-            resultQuery = resultQuery.replaceFirst(IMP_ID_PLACEHOLDER, parameterHolders(impIdNumber, start));
-            start += impIdNumber;
-        }
-
-        return resultQuery;
+        matcher.appendTail(queryBuilder);
+        return queryBuilder.toString();
     }
 
     private static String parameterHolders(int paramsSize, int start) {
