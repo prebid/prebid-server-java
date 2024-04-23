@@ -442,6 +442,44 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         ]
     }
 
+    def "PBS cookie sync call when privacy module contain some part of disallow logic which violates GPP validation should exclude bidders URLs"() {
+        given: "Cookie sync request with link to account"
+        def accountId = PBSUtils.randomString
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.gppSid = US_NAT_V1.value
+            it.account = accountId
+            it.gpp = disallowGppLogic
+        }
+
+        and: "Activities set for cookie sync with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with cookie sync and privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        def response = activityPbsService.sendCookieSyncRequest(cookieSyncRequest)
+
+        then: "Response should not contain any URLs for bidders"
+        assert !response.bidderStatus.userSync.url
+
+        where:
+        disallowGppLogic << [
+                'DBABLA~BAAgAAAAAAA.QA',
+                'DBABLA~BAAIAAAAAAA.QA',
+                'DBABLA~BAAIAAAAAAA.QA',
+                'DBABLA~BAACAAAAAAA.QA'
+        ]
+    }
+
     def "PBS cookie sync call when request have different gpp consent but match and rejecting should exclude bidders URLs"() {
         given: "Cookie sync request with link to account"
         def accountId = PBSUtils.randomString
@@ -1241,6 +1279,49 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
                         .setMspaServiceProviderMode(2)
                         .setMspaOptOutOptionMode(1)
                         .build()
+        ]
+    }
+
+    def "PBS setuid request when privacy module contain some part of disallow logic which violates GPP validation should reject bidders with status code invalidStatusCode"() {
+        given: "Cookie sync SetuidRequest with accountId"
+        def accountId = PBSUtils.randomString
+        def setuidRequest = SetuidRequest.defaultSetuidRequest.tap {
+            it.account = accountId
+            it.gppSid = US_NAT_V1.value
+            it.gpp = disallowGppLogic
+        }
+
+        and: "UIDS Cookie"
+        def uidsCookie = UidsCookie.defaultUidsCookie
+
+        and: "Activities set for cookie sync with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with cookie sync and allow activities setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request"
+        activityPbsService.sendSetUidRequest(setuidRequest, uidsCookie)
+
+        then: "Request should fail with error"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == INVALID_STATUS_CODE
+        assert exception.responseBody == INVALID_STATUS_MESSAGE
+
+        where:
+        disallowGppLogic << [
+                'DBABLA~BAAgAAAAAAA.QA',
+                'DBABLA~BAAIAAAAAAA.QA',
+                'DBABLA~BAAIAAAAAAA.QA',
+                'DBABLA~BAACAAAAAAA.QA'
         ]
     }
 

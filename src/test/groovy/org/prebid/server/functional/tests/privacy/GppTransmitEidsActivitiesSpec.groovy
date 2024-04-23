@@ -803,6 +803,47 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         ]
     }
 
+    def "PBS auction call when privacy module contain some part of disallow logic which violates GPP validation should remove EIDS fields in request"() {
+        given: "Default Generic BidRequests with EIDS fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = disallowGppLogic
+        }
+
+        and: "Activities set for transmitEIDS with rejecting privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(genericBidRequest)
+
+        then: "Generic bidder request should have empty EIDS fields"
+        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
+        verifyAll {
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user?.ext?.eids
+        }
+        where:
+        disallowGppLogic << [
+                'DBABLA~BAAgAAAAAAA.QA',
+                'DBABLA~BCAAAAAAAAA.QA',
+                'DBABLA~BAAEAAAAAAA.QA',
+                'DBABLA~BAAIAAAAAAA.QA',
+                'DBABLA~BAAIAAAAAAA.QA'
+        ]
+    }
+
     def "PBS auction call when request have different gpp consent but match and rejecting should remove EIDS fields in request"() {
         given: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
@@ -1740,6 +1781,56 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
                         accountInfo: 2,
                         communicationContents: 2
                 )).build()
+        ]
+    }
+
+    def "PBS amp call when privacy module contain some part of disallow logic which violates GPP validation should remove EIDS fields in request"() {
+        given: "Default Generic BidRequest with EIDS fields field and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = US_NAT_V1.value
+            it.consentString = disallowGppLogic
+            it.consentType = GPP
+        }
+
+        and: "Activities set for transmitEIDS with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Generic bidder request should have empty EIDS fields"
+        def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        verifyAll {
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user?.ext?.eids
+        }
+        where:
+        disallowGppLogic << [
+                'DBABLA~BAAgAAAAAAA.QA',
+                'DBABLA~BCAAAAAAAAA.QA',
+                'DBABLA~BAAEAAAAAAA.QA',
+                'DBABLA~BAAIAAAAAAA.QA',
+                'DBABLA~BAAIAAAAAAA.QA'
         ]
     }
 

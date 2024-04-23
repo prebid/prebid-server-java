@@ -1006,6 +1006,60 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         ]
     }
 
+    def "PBS auction call when privacy module contain some part of disallow logic which violates GPP validation should remove UFPD fields in request"() {
+        given: "Default Generic BidRequests with UFPD fields and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def genericBidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+            regs.gppSid = [US_NAT_V1.intValue]
+            regs.gpp = disallowGppLogic
+        }
+
+        and: "Activities set for transmitUfpd with rejecting privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        when: "PBS processes auction requests"
+        activityPbsService.sendAuctionRequest(genericBidRequest)
+
+        then: "Generic bidder request should have empty UFPD fields"
+        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
+        verifyAll {
+            !genericBidderRequest.device.didsha1
+            !genericBidderRequest.device.didmd5
+            !genericBidderRequest.device.dpidsha1
+            !genericBidderRequest.device.ifa
+            !genericBidderRequest.device.macsha1
+            !genericBidderRequest.device.macmd5
+            !genericBidderRequest.device.dpidmd5
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
+        }
+
+        where:
+        disallowGppLogic << [
+                'DBABLA~BAAgAAAAAAA.QA',
+                'DBABLA~BCAAAAAAAAA.QA',
+                'DBABLA~BAAEAAAAAAA.QA',
+                'DBABLA~BAAIAAAAAAA.QA',
+                'DBABLA~BAAIAAAAAAA.QA'
+        ]
+    }
+
     def "PBS auction call when request have different gpp consent but match and rejecting should remove UFPD fields in request"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
@@ -2166,6 +2220,69 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
                         communicationContents: 2
                 )).build()
         ]
+    }
+
+    def "PBS amp call when privacy module contain some part of disallow logic which violates GPP validation should remove UFPD fields in request"() {
+        given: "Default Generic BidRequest with UFPD fields field and account id"
+        def accountId = PBSUtils.randomNumber as String
+        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+
+        and: "amp request with link to account"
+        def ampRequest = AmpRequest.defaultAmpRequest.tap {
+            it.account = accountId
+            it.gppSid = US_NAT_V1.value
+            it.consentString = disallowGppLogic
+            it.consentType = GPP
+        }
+
+        and: "Activities set for transmitUfpd with allowing privacy regulation"
+        def rule = new ActivityRule().tap {
+            it.privacyRegulation = [IAB_US_GENERAL]
+        }
+
+        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([rule]))
+
+        and: "Account gpp configuration"
+        def accountGppConfig = new AccountGppConfig(code: IAB_US_GENERAL, enabled: true)
+
+        and: "Existed account with privacy regulation setup"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppConfig])
+        accountDao.save(account)
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        when: "PBS processes amp request"
+        activityPbsService.sendAmpRequest(ampRequest)
+
+        then: "Generic bidder request should have empty UFPD fields"
+        def genericBidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        verifyAll {
+            !genericBidderRequest.device.didsha1
+            !genericBidderRequest.device.didmd5
+            !genericBidderRequest.device.dpidsha1
+            !genericBidderRequest.device.ifa
+            !genericBidderRequest.device.macsha1
+            !genericBidderRequest.device.macmd5
+            !genericBidderRequest.device.dpidmd5
+            !genericBidderRequest.user.id
+            !genericBidderRequest.user.buyeruid
+            !genericBidderRequest.user.yob
+            !genericBidderRequest.user.gender
+            !genericBidderRequest.user.eids
+            !genericBidderRequest.user.data
+            !genericBidderRequest.user.ext
+        }
+
+        where:
+        disallowGppLogic << [
+                'DBABLA~BAAgAAAAAAA.QA',
+                'DBABLA~BCAAAAAAAAA.QA',
+                'DBABLA~BAAEAAAAAAA.QA',
+                'DBABLA~BAAIAAAAAAA.QA',
+                'DBABLA~BAAIAAAAAAA.QA'
+            ]
     }
 
     def "PBS amp call when request have different gpp consent but match and rejecting should remove UFPD fields in request"() {
