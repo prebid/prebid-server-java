@@ -10,9 +10,13 @@ import org.prebid.server.functional.repository.dao.AccountDao
 import org.prebid.server.functional.repository.dao.StoredImpDao
 import org.prebid.server.functional.repository.dao.StoredRequestDao
 import org.prebid.server.functional.repository.dao.StoredResponseDao
-import org.testcontainers.containers.MySQLContainer
+import org.testcontainers.containers.JdbcDatabaseContainer
+import org.testcontainers.containers.PostgreSQLContainer
 
 class HibernateRepositoryService {
+
+    private static final String MY_SQL_DIALECT = "org.hibernate.dialect.MySQLDialect"
+    private static final String POSTGRES_SQL_DIALECT = "org.hibernate.dialect.PostgreSQLDialect"
 
     EntityManagerUtil entityManagerUtil
     AccountDao accountDao
@@ -20,12 +24,18 @@ class HibernateRepositoryService {
     StoredRequestDao storedRequestDao
     StoredResponseDao storedResponseDao
 
-    HibernateRepositoryService(MySQLContainer container) {
+    HibernateRepositoryService(JdbcDatabaseContainer container) {
         def jdbcUrl = container.jdbcUrl
         def user = container.username
         def pass = container.password
         def driver = container.driverClassName
-        SessionFactory sessionFactory = configureHibernate(jdbcUrl, user, pass, driver)
+        def dialect = MY_SQL_DIALECT
+
+        if (container instanceof PostgreSQLContainer) {
+            dialect = POSTGRES_SQL_DIALECT
+        }
+
+        SessionFactory sessionFactory = configureHibernate(jdbcUrl, dialect, user, pass, driver)
         entityManagerUtil = new EntityManagerUtil(sessionFactory)
 
         accountDao = new AccountDao(entityManagerUtil)
@@ -34,10 +44,14 @@ class HibernateRepositoryService {
         storedResponseDao = new StoredResponseDao(entityManagerUtil)
     }
 
-    private static SessionFactory configureHibernate(String jdbcUrl, String user, String pass, String driver) {
+    private static SessionFactory configureHibernate(String jdbcUrl,
+                                                     String dialect,
+                                                     String user,
+                                                     String pass,
+                                                     String driver) {
         def properties = new Properties()
         properties.setProperty("hibernate.connection.url", jdbcUrl)
-        properties.setProperty("hibernate.dialect", "org.hibernate.dialect.MySQLDialect")
+        properties.setProperty("hibernate.dialect", dialect)
         properties.setProperty("hibernate.connection.username", user)
         properties.setProperty("hibernate.connection.password", pass)
         properties.setProperty("hibernate.connection.driver_class", driver)

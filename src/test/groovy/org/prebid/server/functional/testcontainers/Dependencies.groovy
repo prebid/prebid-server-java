@@ -4,6 +4,7 @@ import org.prebid.server.functional.testcontainers.container.NetworkServiceConta
 import org.prebid.server.functional.util.SystemProperties
 import org.testcontainers.containers.MySQLContainer
 import org.testcontainers.containers.Network
+import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.lifecycle.Startables
 
 import static org.prebid.server.functional.util.SystemProperties.MOCKSERVER_VERSION
@@ -20,7 +21,14 @@ class Dependencies {
             .withDatabaseName("prebid")
             .withUsername("prebid")
             .withPassword("prebid")
-            .withInitScript("org/prebid/server/functional/db_schema.sql")
+            .withInitScript("org/prebid/server/functional/db_mysql_schema.sql")
+            .withNetwork(network)
+
+    static final PostgreSQLContainer postgresqlContainer = new PostgreSQLContainer<>("postgres:12.0")
+            .withDatabaseName("prebid")
+            .withUsername("prebid")
+            .withPassword("prebid")
+            .withInitScript("org/prebid/server/functional/db_psql_schema.sql")
             .withNetwork(network)
 
     static final NetworkServiceContainer networkServiceContainer = new NetworkServiceContainer(MOCKSERVER_VERSION)
