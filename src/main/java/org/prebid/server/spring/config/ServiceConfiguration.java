@@ -1117,8 +1117,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    DsaEnforcer dsaEnforcer() {
-        return new DsaEnforcer();
+    DsaEnforcer dsaEnforcer(JacksonMapper mapper) {
+        return new DsaEnforcer(mapper);
     }
 
     private static List<String> splitToList(String listAsString) {
