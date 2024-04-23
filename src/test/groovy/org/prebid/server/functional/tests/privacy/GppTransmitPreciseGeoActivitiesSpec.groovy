@@ -40,6 +40,7 @@ import static org.prebid.server.functional.model.config.LogicalRestrictedRule.Lo
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_BELOW_13
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_FROM_13_TO_16
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.GPC
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.PERSONAL_DATA_CONSENTS
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_ACCOUNT_INFO
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_BIOMETRIC_ID
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_CITIZENSHIP_STATUS
@@ -849,13 +850,17 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         where:
         disallowGppLogic << [
                 SIMPLE_GPC_DISALLOW_LOGIC,
-                new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build(),
                 new UsNatV1Consent.Builder().setSensitiveDataProcessingOptOutNotice(2).build(),
-                new UsNatV1Consent.Builder().setSensitiveDataLimitUseNotice(2).build(),
                 new UsNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 1).build(),
                 new UsNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2).build(),
                 new UsNatV1Consent.Builder().setKnownChildSensitiveDataConsents(1, 0).build(),
                 new UsNatV1Consent.Builder().setPersonalDataConsents(2).build(),
+                new UsNatV1Consent.Builder()
+                        .setSensitiveDataLimitUseNotice(2)
+                        .setMspaServiceProviderMode(2)
+                        .setMspaOptOutOptionMode(1)
+                        .build(),
                 new UsNatV1Consent.Builder()
                         .setSensitiveDataLimitUseNotice(0)
                         .setSensitiveDataProcessing(new UsNationalSensitiveData(
@@ -913,13 +918,13 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         }
 
         where:
-        gppConsent                                                         | gppSid
-        new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).build() | US_NAT_V1
-        new UsCaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_CA_V1
-        new UsVaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_VA_V1
-        new UsCoV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_CO_V1
-        new UsUtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_UT_V1
-        new UsCtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_CT_V1
+        gppConsent                                                                                    | gppSid
+        new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_NAT_V1
+        new UsCaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CA_V1
+        new UsVaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_VA_V1
+        new UsCoV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CO_V1
+        new UsUtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_UT_V1
+        new UsCtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CT_V1
     }
 
     def "PBS auction call when privacy modules contain allowing settings should not round lat/lon data"() {
@@ -1177,14 +1182,14 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         }
 
         where:
-        gppConsent                                               | valueRules
-        new UsNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(false).build()       | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                    new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                    new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        gppConsent                                                      | valueRules
+        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
+        new UsNatV1Consent.Builder().setGpc(false).build()              | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
+        new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                           new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                           new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
     }
 
     def "PBS auction call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
@@ -1825,13 +1830,17 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         where:
         disallowGppLogic << [
                 SIMPLE_GPC_DISALLOW_LOGIC,
-                new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
+                new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build(),
                 new UsNatV1Consent.Builder().setSensitiveDataProcessingOptOutNotice(2).build(),
-                new UsNatV1Consent.Builder().setSensitiveDataLimitUseNotice(2).build(),
                 new UsNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 1).build(),
                 new UsNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2).build(),
                 new UsNatV1Consent.Builder().setKnownChildSensitiveDataConsents(1, 0).build(),
                 new UsNatV1Consent.Builder().setPersonalDataConsents(2).build(),
+                new UsNatV1Consent.Builder()
+                        .setSensitiveDataLimitUseNotice(2)
+                        .setMspaServiceProviderMode(2)
+                        .setMspaOptOutOptionMode(1)
+                        .build(),
                 new UsNatV1Consent.Builder()
                         .setSensitiveDataLimitUseNotice(0)
                         .setSensitiveDataProcessing(new UsNationalSensitiveData(
@@ -1897,13 +1906,13 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         }
 
         where:
-        gppConsent                                                         | gppSid
-        new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).build() | US_NAT_V1
-        new UsCaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_CA_V1
-        new UsVaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_VA_V1
-        new UsCoV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_CO_V1
-        new UsUtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_UT_V1
-        new UsCtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_CT_V1
+        gppConsent                                                                                    | gppSid
+        new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_NAT_V1
+        new UsCaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CA_V1
+        new UsVaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_VA_V1
+        new UsCoV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CO_V1
+        new UsUtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_UT_V1
+        new UsCtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CT_V1
     }
 
     def "PBS amp call when privacy modules contain allowing settings should not round lat/lon data"() {
@@ -2213,14 +2222,14 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         }
 
         where:
-        gppConsent                                               | valueRules
-        new UsNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(false).build()       | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                    new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                    new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        gppConsent                                                      | valueRules
+        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
+        new UsNatV1Consent.Builder().setGpc(false).build()              | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
+        new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                           new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                           new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
     }
 
     def "PBS amp call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {

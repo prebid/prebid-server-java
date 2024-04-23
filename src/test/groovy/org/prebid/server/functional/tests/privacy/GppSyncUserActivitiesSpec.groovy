@@ -43,6 +43,7 @@ import static org.prebid.server.functional.model.config.LogicalRestrictedRule.Lo
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_BELOW_13
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.CHILD_CONSENTS_FROM_13_TO_16
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.GPC
+import static org.prebid.server.functional.model.config.UsNationalPrivacySection.PERSONAL_DATA_CONSENTS
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_ACCOUNT_INFO
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_BIOMETRIC_ID
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_CITIZENSHIP_STATUS
@@ -401,22 +402,43 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         where:
         disallowGppLogic << [
                 SIMPLE_GPC_DISALLOW_LOGIC,
-                new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UsNatV1Consent.Builder().setSaleOptOut(1).build(),
-                new UsNatV1Consent.Builder().setSaleOptOutNotice(2).build(),
-                new UsNatV1Consent.Builder().setSaleOptOutNotice(0).setSaleOptOut(2).build(),
-                new UsNatV1Consent.Builder().setSharingNotice(2).build(),
-                new UsNatV1Consent.Builder().setSharingOptOutNotice(2).build(),
-                new UsNatV1Consent.Builder().setSharingOptOutNotice(0).setSharingOptOut(2).build(),
-                new UsNatV1Consent.Builder().setSharingNotice(0).setSharingOptOut(2).build(),
-                new UsNatV1Consent.Builder().setSharingOptOut(1).build(),
-                new UsNatV1Consent.Builder().setTargetedAdvertisingOptOutNotice(2).build(),
-                new UsNatV1Consent.Builder().setTargetedAdvertisingOptOut(1).build(),
-                new UsNatV1Consent.Builder().setTargetedAdvertisingOptOutNotice(0).setTargetedAdvertisingOptOut(2).build(),
+                new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build(),
+                new UsNatV1Consent.Builder().setSaleOptOut(1).setSaleOptOutNotice(1).setMspaServiceProviderMode(2).setMspaOptOutOptionMode(1).build(),
+                new UsNatV1Consent.Builder().setSaleOptOutNotice(2).setSaleOptOut(1).setMspaServiceProviderMode(2).setMspaOptOutOptionMode(1).build(),
                 new UsNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 1).build(),
                 new UsNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2).build(),
                 new UsNatV1Consent.Builder().setKnownChildSensitiveDataConsents(1, 0).build(),
-                new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+                new UsNatV1Consent.Builder().setPersonalDataConsents(2).build(),
+                new UsNatV1Consent.Builder()
+                        .setSharingNotice(2)
+                        .setSharingOptOutNotice(1)
+                        .setSharingOptOut(1)
+                        .setMspaServiceProviderMode(1)
+                        .setMspaServiceProviderMode(2)
+                        .setMspaOptOutOptionMode(1)
+                        .build(),
+                new UsNatV1Consent.Builder()
+                        .setSharingOptOutNotice(2)
+                        .setSharingOptOut(1)
+                        .setSharingNotice(1)
+                        .setMspaServiceProviderMode(2)
+                        .setMspaOptOutOptionMode(1)
+                        .build(),
+                new UsNatV1Consent.Builder()
+                        .setTargetedAdvertisingOptOutNotice(2)
+                        .setSaleOptOut(1)
+                        .setSaleOptOutNotice(1)
+                        .setMspaServiceProviderMode(2)
+                        .setMspaOptOutOptionMode(1)
+                        .build(),
+                new UsNatV1Consent.Builder()
+                        .setTargetedAdvertisingOptOut(1)
+                        .setTargetedAdvertisingOptOutNotice(1)
+                        .setSaleOptOut(1)
+                        .setSaleOptOutNotice(1)
+                        .setMspaServiceProviderMode(2)
+                        .setMspaOptOutOptionMode(1)
+                        .build()
         ]
     }
 
@@ -450,13 +472,13 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert !response.bidderStatus.userSync.url
 
         where:
-        gppConsent                                                         | gppSid
-        new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).build() | US_NAT_V1
-        new UsCaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_CA_V1
-        new UsVaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_VA_V1
-        new UsCoV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_CO_V1
-        new UsUtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_UT_V1
-        new UsCtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_CT_V1
+        gppConsent                                                                                    | gppSid
+        new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_NAT_V1
+        new UsCaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CA_V1
+        new UsVaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_VA_V1
+        new UsCoV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CO_V1
+        new UsUtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_UT_V1
+        new UsCtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CT_V1
     }
 
     def "PBS cookie sync call when privacy modules contain allowing settings should include proper responded with bidders URLs"() {
@@ -669,14 +691,14 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert !response.bidderStatus.userSync.url
 
         where:
-        gppConsent                                               | valueRules
-        new UsNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(false).build()       | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                    new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                    new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        gppConsent                                                      | valueRules
+        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
+        new UsNatV1Consent.Builder().setGpc(false).build()              | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
+        new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                           new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                           new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
     }
 
     def "PBS cookie sync call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
@@ -1182,22 +1204,43 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         where:
         disallowGppLogic << [
                 SIMPLE_GPC_DISALLOW_LOGIC,
-                new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).build(),
-                new UsNatV1Consent.Builder().setSaleOptOut(1).build(),
-                new UsNatV1Consent.Builder().setSaleOptOutNotice(2).build(),
-                new UsNatV1Consent.Builder().setSaleOptOutNotice(0).setSaleOptOut(2).build(),
-                new UsNatV1Consent.Builder().setSharingNotice(2).build(),
-                new UsNatV1Consent.Builder().setSharingOptOutNotice(2).build(),
-                new UsNatV1Consent.Builder().setSharingOptOutNotice(0).setSharingOptOut(2).build(),
-                new UsNatV1Consent.Builder().setSharingNotice(0).setSharingOptOut(2).build(),
-                new UsNatV1Consent.Builder().setSharingOptOut(1).build(),
-                new UsNatV1Consent.Builder().setTargetedAdvertisingOptOutNotice(2).build(),
-                new UsNatV1Consent.Builder().setTargetedAdvertisingOptOut(1).build(),
-                new UsNatV1Consent.Builder().setTargetedAdvertisingOptOutNotice(0).setTargetedAdvertisingOptOut(2).build(),
+                new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build(),
+                new UsNatV1Consent.Builder().setSaleOptOut(1).setSaleOptOutNotice(1).setMspaServiceProviderMode(2).setMspaOptOutOptionMode(1).build(),
+                new UsNatV1Consent.Builder().setSaleOptOutNotice(2).setSaleOptOut(1).setMspaServiceProviderMode(2).setMspaOptOutOptionMode(1).build(),
                 new UsNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 1).build(),
                 new UsNatV1Consent.Builder().setKnownChildSensitiveDataConsents(0, 2).build(),
                 new UsNatV1Consent.Builder().setKnownChildSensitiveDataConsents(1, 0).build(),
-                new UsNatV1Consent.Builder().setPersonalDataConsents(2).build()
+                new UsNatV1Consent.Builder().setPersonalDataConsents(2).build(),
+                new UsNatV1Consent.Builder()
+                        .setSharingNotice(2)
+                        .setSharingOptOutNotice(1)
+                        .setSharingOptOut(1)
+                        .setMspaServiceProviderMode(1)
+                        .setMspaServiceProviderMode(2)
+                        .setMspaOptOutOptionMode(1)
+                        .build(),
+                new UsNatV1Consent.Builder()
+                        .setSharingOptOutNotice(2)
+                        .setSharingOptOut(1)
+                        .setSharingNotice(1)
+                        .setMspaServiceProviderMode(2)
+                        .setMspaOptOutOptionMode(1)
+                        .build(),
+                new UsNatV1Consent.Builder()
+                        .setTargetedAdvertisingOptOutNotice(2)
+                        .setSaleOptOut(1)
+                        .setSaleOptOutNotice(1)
+                        .setMspaServiceProviderMode(2)
+                        .setMspaOptOutOptionMode(1)
+                        .build(),
+                new UsNatV1Consent.Builder()
+                        .setTargetedAdvertisingOptOut(1)
+                        .setTargetedAdvertisingOptOutNotice(1)
+                        .setSaleOptOut(1)
+                        .setSaleOptOutNotice(1)
+                        .setMspaServiceProviderMode(2)
+                        .setMspaOptOutOptionMode(1)
+                        .build()
         ]
     }
 
@@ -1236,13 +1279,13 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert exception.responseBody == INVALID_STATUS_MESSAGE
 
         where:
-        gppConsent                                                         | gppSid
-        new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).build() | US_NAT_V1
-        new UsCaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_CA_V1
-        new UsVaV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_VA_V1
-        new UsCoV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_CO_V1
-        new UsUtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_UT_V1
-        new UsCtV1Consent.Builder().setMspaServiceProviderMode(1).build()  | US_CT_V1
+        gppConsent                                                                                    | gppSid
+        new UsNatV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build() | US_NAT_V1
+        new UsCaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CA_V1
+        new UsVaV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_VA_V1
+        new UsCoV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CO_V1
+        new UsUtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_UT_V1
+        new UsCtV1Consent.Builder().setMspaServiceProviderMode(1).setMspaOptOutOptionMode(2).build()  | US_CT_V1
     }
 
     def "PBS setuid request when privacy modules contain allowing settings should respond with valid bidders UIDs cookies"() {
@@ -1477,14 +1520,14 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert exception.responseBody == INVALID_STATUS_MESSAGE
 
         where:
-        gppConsent                                               | valueRules
-        new UsNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(false).build()       | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
-        new UsNatV1Consent.Builder().setGpc(true).build()        | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                    new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
-        new UsNatV1Consent.Builder().setSharingNotice(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                    new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        gppConsent                                                      | valueRules
+        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED)]
+        new UsNatV1Consent.Builder().setGpc(false).build()              | [new InequalityValueRule(GPC, NOTICE_PROVIDED)]
+        new UsNatV1Consent.Builder().setGpc(true).build()               | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                           new EqualityValueRule(SHARING_NOTICE, NOTICE_NOT_PROVIDED)]
+        new UsNatV1Consent.Builder().setPersonalDataConsents(2).build() | [new EqualityValueRule(GPC, NOTICE_PROVIDED),
+                                                                           new EqualityValueRule(PERSONAL_DATA_CONSENTS, NOTICE_NOT_PROVIDED)]
     }
 
     def "PBS setuid call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
