@@ -29,11 +29,7 @@ class HibernateRepositoryService {
         def user = container.username
         def pass = container.password
         def driver = container.driverClassName
-        def dialect = MY_SQL_DIALECT
-
-        if (container instanceof PostgreSQLContainer) {
-            dialect = POSTGRES_SQL_DIALECT
-        }
+        def dialect = container instanceof PostgreSQLContainer ? POSTGRES_SQL_DIALECT : MY_SQL_DIALECT
 
         SessionFactory sessionFactory = configureHibernate(jdbcUrl, dialect, user, pass, driver)
         entityManagerUtil = new EntityManagerUtil(sessionFactory)
