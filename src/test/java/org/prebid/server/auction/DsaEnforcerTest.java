@@ -99,7 +99,7 @@ public class DsaEnforcerTest extends VertxTest {
 
         // then
         final BidderSeatBid expectedSeatBid = BidderSeatBid.builder()
-                .warnings(List.of(BidderError.invalidBid("Bid \"bid_id\" has invalid DSA")))
+                .warnings(List.of(BidderError.invalidBid("Bid \"bid_id\": DSA behalf exceeds limit of 100 chars")))
                 .bids(emptyList())
                 .build();
         final AuctionParticipation expectedParticipation = AuctionParticipation.builder()
@@ -132,7 +132,7 @@ public class DsaEnforcerTest extends VertxTest {
 
         // then
         final BidderSeatBid expectedSeatBid = BidderSeatBid.builder()
-                .warnings(List.of(BidderError.invalidBid("Bid \"bid_id\" has invalid DSA")))
+                .warnings(List.of(BidderError.invalidBid("Bid \"bid_id\": DSA paid exceeds limit of 100 chars")))
                 .bids(emptyList())
                 .build();
         final AuctionParticipation expectedParticipation = AuctionParticipation.builder()
@@ -328,7 +328,7 @@ public class DsaEnforcerTest extends VertxTest {
 
         // then
         final BidderSeatBid expectedSeatBid = BidderSeatBid.builder()
-                .warnings(List.of(BidderError.invalidBid("Bid \"bid_id\" has invalid DSA")))
+                .warnings(List.of(BidderError.invalidBid("Bid \"bid_id\": DSA object missing when required")))
                 .bids(emptyList())
                 .build();
         final AuctionParticipation expectedParticipation = AuctionParticipation.builder()
@@ -362,7 +362,7 @@ public class DsaEnforcerTest extends VertxTest {
 
         // then
         final BidderSeatBid expectedSeatBid = BidderSeatBid.builder()
-                .warnings(List.of(BidderError.invalidBid("Bid \"bid_id\" has invalid DSA")))
+                .warnings(List.of(BidderError.invalidBid("Bid \"bid_id\": DSA paid exceeds limit of 100 chars")))
                 .bids(emptyList())
                 .build();
         final AuctionParticipation expectedParticipation = AuctionParticipation.builder()
@@ -396,7 +396,7 @@ public class DsaEnforcerTest extends VertxTest {
 
         // then
         final BidderSeatBid expectedSeatBid = BidderSeatBid.builder()
-                .warnings(List.of(BidderError.invalidBid("Bid \"bid_id\" has invalid DSA")))
+                .warnings(List.of(BidderError.invalidBid("Bid \"bid_id\": DSA behalf exceeds limit of 100 chars")))
                 .bids(emptyList())
                 .build();
         final AuctionParticipation expectedParticipation = AuctionParticipation.builder()
@@ -430,7 +430,8 @@ public class DsaEnforcerTest extends VertxTest {
 
         // then
         final BidderSeatBid expectedSeatBid = BidderSeatBid.builder()
-                .warnings(List.of(BidderError.invalidBid("Bid \"bid_id\" has invalid DSA")))
+                .warnings(List.of(
+                        BidderError.invalidBid("Bid \"bid_id\": DSA publisher and buyer both signal will render")))
                 .bids(emptyList())
                 .build();
         final AuctionParticipation expectedParticipation = AuctionParticipation.builder()
@@ -464,7 +465,8 @@ public class DsaEnforcerTest extends VertxTest {
 
         // then
         final BidderSeatBid expectedSeatBid = BidderSeatBid.builder()
-                .warnings(List.of(BidderError.invalidBid("Bid \"bid_id\" has invalid DSA")))
+                .warnings(List.of(
+                        BidderError.invalidBid("Bid \"bid_id\": DSA publisher and buyer both signal will not render")))
                 .bids(emptyList())
                 .build();
         final AuctionParticipation expectedParticipation = AuctionParticipation.builder()
@@ -497,7 +499,8 @@ public class DsaEnforcerTest extends VertxTest {
 
         // then
         final BidderSeatBid expectedSeatBid = BidderSeatBid.builder()
-                .warnings(List.of(BidderError.invalidBid("Bid \"bid_id\" has invalid DSA")))
+                .warnings(List.of(
+                        BidderError.invalidBid("Bid \"bid_id\": DSA publisher and buyer both signal will not render")))
                 .bids(emptyList())
                 .build();
         final AuctionParticipation expectedParticipation = AuctionParticipation.builder()
