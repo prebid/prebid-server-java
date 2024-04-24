@@ -55,7 +55,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
             throw new IllegalArgumentException("ttl and size must be positive");
         }
         if (jitter < 0 || jitter >= ttl) {
-            throw new IllegalArgumentException("jitter must be in range: [0:ttl)");
+            throw new IllegalArgumentException("jitter must match the inequality: 0 <= jitter < ttl");
         }
 
         this.delegate = Objects.requireNonNull(delegate);

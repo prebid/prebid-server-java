@@ -282,7 +282,7 @@ public class SettingsConfiguration {
                     metrics,
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
-                    cacheProperties.getJitter());
+                    cacheProperties.getJitterSeconds());
         }
     }
 
@@ -307,7 +307,7 @@ public class SettingsConfiguration {
             return new SettingsCache(
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
-                    cacheProperties.getJitter());
+                    cacheProperties.getJitterSeconds());
         }
 
         @Bean
@@ -316,7 +316,7 @@ public class SettingsConfiguration {
             return new SettingsCache(
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
-                    cacheProperties.getJitter());
+                    cacheProperties.getJitterSeconds());
         }
 
         @Bean
@@ -325,7 +325,7 @@ public class SettingsConfiguration {
             return new SettingsCache(
                     cacheProperties.getTtlSeconds(),
                     cacheProperties.getCacheSize(),
-                    cacheProperties.getJitter());
+                    cacheProperties.getJitterSeconds());
         }
     }
 
@@ -344,6 +344,6 @@ public class SettingsConfiguration {
         @Min(1)
         private Integer cacheSize;
         @Min(0)
-        private int jitter;
+        private int jitterSeconds;
     }
 }
