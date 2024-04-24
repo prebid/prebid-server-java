@@ -1,0 +1,21 @@
+hooks:
+  modules:
+    fiftyone-devicedetection:
+      account-filter:
+        allow-list: [] # list of strings
+      data-file:
+        path: ~ # string, REQUIRED, download the sample from https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash
+        make-temp-copy: ~ # boolean
+        update:
+          auto: ~ # boolean
+          on-startup: ~ # boolean
+          url: ~ # string
+          license-key: ~ # string
+          watch-file-system: ~ # boolean
+          polling-interval: ~ # int, seconds
+      performance:
+        profile: ~ # string, 1 of [LowMemory,MaxPerformance,HighPerformance,Balanced,BalancedTemp]
+        concurrency: ~ # int
+        difference: ~ # int
+        allow-unmatched: ~ # boolean
+        drift: ~ # int
