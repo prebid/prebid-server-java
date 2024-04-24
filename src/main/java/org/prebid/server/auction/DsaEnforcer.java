@@ -12,6 +12,7 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.DsaPublisherRender;
 import org.prebid.server.proto.openrtb.ext.request.DsaRequired;
@@ -63,12 +64,14 @@ public class DsaEnforcer {
                     .map(this::getDsaResponse)
                     .orElse(null);
 
-            final boolean isValid = isDsaValidationRequired(bidRequest)
-                    ? isDsaValid(bidRequest, dsaResponse)
-                    : dsaResponse == null || isDsaFieldsLengthValid(dsaResponse);
-
-            if (!isValid) {
-                warnings.add(BidderError.invalidBid("Bid \"%s\" has invalid DSA".formatted(bid.getId())));
+            try {
+                if (isDsaValidationRequired(bidRequest)) {
+                    validateDsa(bidRequest, dsaResponse);
+                } else {
+                    validateFieldLength(dsaResponse);
+                }
+            } catch (PreBidException e) {
+                warnings.add(BidderError.invalidBid("Bid \"%s\": %s".formatted(bid.getId(), e.getMessage())));
                 rejectionTracker.reject(bid.getImpid(), BidRejectionReason.REJECTED_BY_DSA_PRIVACY);
                 updatedBidderBids.remove(bidderBid);
             }
@@ -94,10 +97,12 @@ public class DsaEnforcer {
                 .orElse(false);
     }
 
-    private static boolean isDsaValid(BidRequest bidRequest, ExtBidDsa dsaResponse) {
-        if (dsaResponse == null || !isDsaFieldsLengthValid(dsaResponse)) {
-            return false;
+    private static void validateDsa(BidRequest bidRequest, ExtBidDsa dsaResponse) {
+        if (dsaResponse == null) {
+            throw new PreBidException("DSA object missing when required");
         }
+
+        validateFieldLength(dsaResponse);
 
         final Integer adRender = dsaResponse.getAdRender();
         final Integer pubRender = Optional.ofNullable(bidRequest.getRegs())
@@ -107,24 +112,31 @@ public class DsaEnforcer {
                 .orElse(null);
 
         if (pubRender == null) {
-            return true;
+            return;
         }
 
         if (pubRender.equals(DsaPublisherRender.WILL_RENDER.getValue())
                 && adRender != null && adRender.equals(DsaAdvertiserRender.WILL_RENDER.getValue())) {
-            return false;
+            throw new PreBidException("DSA publisher and buyer both signal will render");
         }
 
         if (pubRender.equals(DsaPublisherRender.NOT_RENDER.getValue())
                 && (adRender == null || adRender.equals(DsaAdvertiserRender.NOT_RENDER.getValue()))) {
-            return false;
+            throw new PreBidException("DSA publisher and buyer both signal will not render");
         }
-
-        return true;
     }
 
-    private static boolean isDsaFieldsLengthValid(ExtBidDsa dsaResponse) {
-        return hasValidLength(dsaResponse.getBehalf()) && hasValidLength(dsaResponse.getPaid());
+    private static void validateFieldLength(ExtBidDsa dsaResponse) {
+        if (dsaResponse == null) {
+            return;
+        }
+
+        if (!hasValidLength(dsaResponse.getBehalf())) {
+            throw new PreBidException("DSA behalf exceeds limit of 100 chars");
+        }
+        if (!hasValidLength(dsaResponse.getPaid())) {
+            throw new PreBidException("DSA paid exceeds limit of 100 chars");
+        }
     }
 
     private static boolean hasValidLength(String value) {
