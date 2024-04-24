@@ -21,6 +21,7 @@ import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
 import org.prebid.server.settings.JdbcApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
+import org.prebid.server.settings.helper.ParametrizedQueryHelper;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
 import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
 import org.prebid.server.spring.config.database.DatabaseConfiguration;
@@ -77,12 +78,14 @@ public class SettingsConfiguration {
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
                 @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
                 @Value("${settings.database.stored-responses-query}") String storedResponsesQuery,
+                ParametrizedQueryHelper parametrizedQueryHelper,
                 JdbcClient jdbcClient,
                 JacksonMapper jacksonMapper) {
 
             return new JdbcApplicationSettings(
                     jdbcClient,
                     jacksonMapper,
+                    parametrizedQueryHelper,
                     accountQuery,
                     storedRequestsQuery,
                     ampStoredRequestsQuery,

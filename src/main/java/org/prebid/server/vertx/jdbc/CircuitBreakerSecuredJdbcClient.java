@@ -2,7 +2,8 @@ package org.prebid.server.vertx.jdbc;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.ext.sql.ResultSet;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowSet;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.log.ConditionalLogger;
 import org.prebid.server.log.Logger;
@@ -57,7 +58,7 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
     @Override
     public <T> Future<T> executeQuery(String query,
                                       List<Object> params,
-                                      Function<ResultSet, T> mapper,
+                                      Function<RowSet<Row>, T> mapper,
                                       Timeout timeout) {
 
         return breaker.execute(promise -> jdbcClient.executeQuery(query, params, mapper, timeout).onComplete(promise));

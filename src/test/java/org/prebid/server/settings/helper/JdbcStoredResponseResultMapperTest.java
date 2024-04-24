@@ -1,7 +1,10 @@
 package org.prebid.server.settings.helper;
 
-import io.vertx.core.json.JsonArray;
-import io.vertx.ext.sql.ResultSet;
+import io.vertx.core.json.JsonObject;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowIterator;
+import io.vertx.sqlclient.RowSet;
+import lombok.Value;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -10,15 +13,17 @@ import org.mockito.junit.MockitoRule;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.util.AbstractMap;
-import java.util.HashSet;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.Set;
+import java.util.stream.IntStream;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 
 public class JdbcStoredResponseResultMapperTest {
 
@@ -26,15 +31,15 @@ public class JdbcStoredResponseResultMapperTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private ResultSet resultSet;
+    private RowSet<Row> rowSet;
 
     @Test
-    public void mapShouldReturnEmptyStoredResponseResultWithErrorWhenResultSetIsEmpty() {
+    public void mapShouldReturnEmptyStoredResponseResultWithErrorWhenRowSetIsEmpty() {
         // given
-        given(resultSet.getResults()).willReturn(emptyList());
+        givenRowSet();
 
         // when
-        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(resultSet, emptySet());
+        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(rowSet, emptySet());
 
         // then
         assertThat(result.getIdToStoredResponses()).isEmpty();
@@ -43,12 +48,12 @@ public class JdbcStoredResponseResultMapperTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResponseResultWithErrorWhenResultSetHasLessColumns() {
+    public void mapShouldReturnEmptyStoredResponseResultWithErrorWhenRowSetHasLessColumns() {
         // given
-        given(resultSet.getResults()).willReturn(singletonList(new JsonArray(singletonList("id1"))));
+        givenRowSet(givenRow("id1"));
 
         // when
-        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(resultSet, emptySet());
+        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(rowSet, emptySet());
 
         // then
         assertThat(result.getIdToStoredResponses()).isEmpty();
@@ -59,11 +64,10 @@ public class JdbcStoredResponseResultMapperTest {
     @Test
     public void mapShouldReturnStoredResponseResultWithErrorForMissingID() {
         // given
-        given(resultSet.getResults()).willReturn(singletonList(new JsonArray(asList("id1", "data"))));
+        givenRowSet(givenRow("id1", "data"));
 
         // when
-        final StoredResponseDataResult result = JdbcStoredResponseResultMapper
-                .map(resultSet, new HashSet<>(asList("id1", "id2")));
+        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(rowSet, Set.of("id1", "id2"));
 
         // then
         assertThat(result.getIdToStoredResponses()).hasSize(1)
@@ -73,12 +77,12 @@ public class JdbcStoredResponseResultMapperTest {
     }
 
     @Test
-    public void mapShouldReturnEmptyStoredResponseResultWithErrorWhenResultSetHasEmptyResultForGivenIDs() {
+    public void mapShouldReturnEmptyStoredResponseResultWithErrorWhenRowSetHasEmptyResultForGivenIDs() {
         // given
-        given(resultSet.getResults()).willReturn(emptyList());
+        givenRowSet();
 
         // when
-        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(resultSet, singleton("id"));
+        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(rowSet, singleton("id"));
 
         // then
         assertThat(result.getIdToStoredResponses()).isEmpty();
@@ -89,17 +93,43 @@ public class JdbcStoredResponseResultMapperTest {
     @Test
     public void mapShouldReturnFilledStoredResponseResultWithoutErrors() {
         // given
-        given(resultSet.getResults()).willReturn(asList(
-                new JsonArray(asList("id1", "data1")),
-                new JsonArray(asList("id2", "data2"))));
+        givenRowSet(givenRow("id1", "data1"), givenRow("id2", "data2"));
 
         // when
-        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(resultSet,
-                new HashSet<>(asList("id1", "id2")));
+        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(rowSet, Set.of("id1", "id2"));
 
         // then
         assertThat(result.getIdToStoredResponses()).hasSize(2)
                 .contains(new AbstractMap.SimpleEntry<>("id1", "data1"), new AbstractMap.SimpleEntry<>("id2", "data2"));
         assertThat(result.getErrors()).isEmpty();
+    }
+
+    private void givenRowSet(Row... rows) {
+        given(rowSet.iterator()).willReturn(CustomRowIterator.of(Arrays.asList(rows).iterator()));
+    }
+
+    private Row givenRow(Object... values) {
+        final Row row = mock(Row.class);
+        given(row.getString(anyInt())).willAnswer(invocation -> values[(Integer) invocation.getArgument(0)]);
+        final JsonObject json = new JsonObject();
+        IntStream.range(0, values.length).forEach(i -> json.put(String.valueOf(i), values[i]));
+        given(row.toJson()).willReturn(json);
+        return row;
+    }
+
+    @Value(staticConstructor = "of")
+    private static class CustomRowIterator implements RowIterator<Row> {
+
+        Iterator<Row> delegate;
+
+        @Override
+        public boolean hasNext() {
+            return delegate.hasNext();
+        }
+
+        @Override
+        public Row next() {
+            return delegate.next();
+        }
     }
 }

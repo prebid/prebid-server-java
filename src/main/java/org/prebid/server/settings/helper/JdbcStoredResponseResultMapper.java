@@ -1,8 +1,8 @@
 package org.prebid.server.settings.helper;
 
-import io.vertx.core.json.JsonArray;
-import io.vertx.ext.sql.ResultSet;
-import org.apache.commons.collections4.CollectionUtils;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowIterator;
+import io.vertx.sqlclient.RowSet;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 
 import java.util.ArrayList;
@@ -17,25 +17,28 @@ public class JdbcStoredResponseResultMapper {
     private JdbcStoredResponseResultMapper() {
     }
 
-    public static StoredResponseDataResult map(ResultSet resultSet, Set<String> responseIds) {
+    public static StoredResponseDataResult map(RowSet<Row> rowSet, Set<String> responseIds) {
         final Map<String, String> storedIdToResponse = new HashMap<>(responseIds.size());
         final List<String> errors = new ArrayList<>();
 
-        if (resultSet == null || CollectionUtils.isEmpty(resultSet.getResults())) {
+        final RowIterator<Row> rowIterator = rowSet != null ? rowSet.iterator() : null;
+        if (rowIterator == null || !rowIterator.hasNext()) {
             handleEmptyResultError(responseIds, errors);
-        } else {
-            try {
-                for (JsonArray result : resultSet.getResults()) {
-                    storedIdToResponse.put(result.getString(0), result.getString(1));
-                }
-            } catch (IndexOutOfBoundsException e) {
+            return StoredResponseDataResult.of(storedIdToResponse, errors);
+        }
+
+        while (rowIterator.hasNext()) {
+            final Row row = rowIterator.next();
+            if (row.toJson().size() < 2) {
                 errors.add("Result set column number is less than expected");
                 return StoredResponseDataResult.of(Collections.emptyMap(), errors);
             }
-            errors.addAll(responseIds.stream().filter(id -> !storedIdToResponse.containsKey(id))
-                    .map(id -> "No stored response found for id: " + id)
-                    .toList());
+            storedIdToResponse.put(row.getString(0), row.getString(1));
         }
+
+        errors.addAll(responseIds.stream().filter(id -> !storedIdToResponse.containsKey(id))
+                .map(id -> "No stored response found for id: " + id)
+                .toList());
 
         return StoredResponseDataResult.of(storedIdToResponse, errors);
     }
