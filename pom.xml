@@ -45,7 +45,7 @@
         <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
         <vertx.prometheus.version>0.16.0</vertx.prometheus.version>
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
-        <iabtcf.version>2.0.7</iabtcf.version>
+        <iabtcf.version>2.0.10</iabtcf.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
         <hikari.version>5.0.1</hikari.version>
         <gpp-encoder.version>3.0.10</gpp-encoder.version>
