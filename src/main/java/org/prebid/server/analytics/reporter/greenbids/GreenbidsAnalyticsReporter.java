@@ -8,17 +8,30 @@ import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.analytics.AnalyticsReporter;
-import org.prebid.server.analytics.model.*;
-import org.prebid.server.analytics.reporter.greenbids.model.*;
+import org.prebid.server.analytics.model.AmpEvent;
+import org.prebid.server.analytics.model.AuctionEvent;
+import org.prebid.server.analytics.model.SetuidEvent;
+import org.prebid.server.analytics.reporter.greenbids.model.AdUnit;
+import org.prebid.server.analytics.reporter.greenbids.model.AuctionCacheManager;
+import org.prebid.server.analytics.reporter.greenbids.model.CachedAuction;
+import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBidder;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsConfig;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsEvent;
+import org.prebid.server.analytics.reporter.greenbids.model.HttpUtil;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
-import org.prebid.server.vertx.http.HttpClient;
 
-import java.util.*;
-import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Random;
 import java.util.stream.Collectors;
 
 import static java.util.UUID.randomUUID;
@@ -28,7 +41,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     private static final Logger logger = LoggerFactory.getLogger(GreenbidsAnalyticsReporter.class.getName());
     private static final Random random = new Random();
     //private AnalyticsOptions analyticsOptions = new AnalyticsOptions(); // TODO set event auction
-    private static final String ANALYTICS_SERVER = "https://a.greenbids.ai";
+    private static final String ANALYTICS_SERVER = "https://a.greenbids.ai/";
 
     public String pbuid;
     public Double greenbidsSampling;
@@ -37,12 +50,12 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     //private final Map<EventType, GreenbidsEventHandler> eventHandlers;
     //private static final String  CONFIG_URL_SUFFIX = "/bootstrap?scopeId=";
 
-    private final long configurationRefreshDelay;
+    //private final long configurationRefreshDelay;
     private final Vertx vertx;
     private GreenbidsConfig greenbidsConfig;
-    private final HttpClient httpClient;
-    private final long timeout;
-    private final JacksonMapper jacksonMapper;
+    //private final HttpClient httpClient;
+    //private final long timeout;
+    //private final JacksonMapper jacksonMapper;
 
     private CachedAuction cachedAuction;
 
@@ -52,23 +65,23 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     // constructor
     public GreenbidsAnalyticsReporter(
             GreenbidsAnalyticsProperties greenbidsAnalyticsProperties,
-            HttpClient httpClient,
-            JacksonMapper jacksonMapper,
+            //HttpClient httpClient,
+            //JacksonMapper jacksonMapper,
             Vertx vertx
     ) {
         this.pbuid = Objects.requireNonNull(greenbidsAnalyticsProperties.getPbuid());
         this.greenbidsSampling = greenbidsAnalyticsProperties.getGreenbidsSampling();
-        this.exploratorySamplingSplit = greenbidsAnalyticsProperties.getExploratorySamplingSplit();
-        this.configurationRefreshDelay = Objects.requireNonNull(greenbidsAnalyticsProperties.getConfigurationRefreshDelayMs());
+        this.exploratorySamplingSplit = 0.9;
+
         this.vertx = Objects.requireNonNull(vertx);
         this.greenbidsConfig = GreenbidsConfig.of(
                 greenbidsAnalyticsProperties.getPbuid(),
-                greenbidsAnalyticsProperties.getGreenbidsSampling(),
-                greenbidsAnalyticsProperties.getExploratorySamplingSplit()
+                greenbidsAnalyticsProperties.getGreenbidsSampling()
+                //greenbidsAnalyticsProperties.getExploratorySamplingSplit()
         );
-        this.httpClient = Objects.requireNonNull(httpClient);
-        this.timeout = Objects.requireNonNull(greenbidsAnalyticsProperties.getTimeoutMs());
-        this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
+        //this.httpClient = Objects.requireNonNull(httpClient);
+        //this.timeout = Objects.requireNonNull(greenbidsAnalyticsProperties.getTimeoutMs());
+        //this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
         this.cachedAuction = null;
     }
 
@@ -97,14 +110,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             Map<String, Bid> seatsWithBids,
             Map<String, NonBid> seatsWithNonBids
     ) {
-        // Map[ImpId, Imp]
-        Map<String, Imp> impMap = imps.stream()
-                .collect(Collectors.toMap(Imp::getId, Function.identity()));
-
-        // Map[Imp, List<GreenbidsBidder>>]
-        //List<AdUnit> adUnits = new ArrayList<>();
-
-        List<AdUnit> adUnits = imps.stream().map(imp -> {
+        commonMessage.adUnits = imps.stream().map(imp -> {
             List<GreenbidsBidder> bidders = new ArrayList<>();
 
             // filter bidders in imp
@@ -135,13 +141,33 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 bidders.add(bidder);
             });
 
+            System.out.println(
+                    "[TEST] GreenbidsAnalyticsReporter/addBidResponseToMessage " +
+                            "\n   commonMessage: " + commonMessage +
+                            "\n   imp: " + imp +
+                            "\n   seatsWithBidsForImp: " + seatsWithBidsForImp +
+                            "\n   seatsWithNonBidsForImp: " + seatsWithNonBidsForImp +
+                            "\n   bidders: " + bidders
+            );
+
             return AdUnit.builder()
                     .code(imp.getId())
                     .bidders(bidders)
                     .build();
         }).toList();
 
-        commonMessage.adUnits = adUnits;
+        System.out.println(
+                "[TEST] GreenbidsAnalyticsReporter/addBidResponseToMessageV2/ " +
+                        "\n   commonMessage: " + commonMessage +
+                        "\n   version: " + commonMessage.version +
+                        "\n   auctionId: " + commonMessage.auctionId +
+                        "\n   referrer: " + commonMessage.referrer +
+                        "\n   sampling: " + commonMessage.sampling +
+                        "\n   greenbidsId: " + commonMessage.greenbidsId +
+                        "\n   pbuid: " + commonMessage.pbuid +
+                        "\n   billingId: " + commonMessage.billingId +
+                        "\n   adUnits: " + commonMessage.adUnits
+        );
 
         return commonMessage;
     }
@@ -160,10 +186,11 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         // get auction timestamp
         Long auctionTimestamp = auctionContext.getBidRequest().getExt().getPrebid().getAuctiontimestamp();
-        Long auctionElapsed = System.currentTimeMillis() - auctionTimestamp;
+        long auctionElapsed = auctionTimestamp != null ? System.currentTimeMillis() - auctionTimestamp : 0L;
 
         // get bids
-        Map<String, Bid> seatsWithBids = auctionEvent.getBidResponse().getSeatbid()
+        Map<String, Bid> seatsWithBids = Optional.ofNullable(auctionEvent.getBidResponse().getSeatbid())
+                .orElseGet(Collections::emptyList)
                 .stream()
                 .filter(seatBid -> !seatBid.getBid().isEmpty())
                 .collect(
@@ -175,7 +202,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 );
 
         // get timeoutBids + nonBids
-        Map<String, NonBid> seatsWithNonBids = auctionContext.getBidResponse().getExt().getSeatnonbid()
+        Map<String, NonBid> seatsWithNonBids = Optional.ofNullable(auctionContext.getBidResponse().getExt().getSeatnonbid())
+                .orElseGet(Collections::emptyList)
                 .stream()
                 .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
                 .collect(
@@ -185,6 +213,16 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                                 (existing, replacement) -> existing
                         )
                 );
+
+        System.out.println(
+                "[TEST] GreenbidsAnalyticsReporter/createBidMessage " +
+                        "\n   auctionId: " + auctionId +
+                        "\n   imps: " + imps +
+                        "\n   auctionTimestamp: " + auctionTimestamp +
+                        "\n   auctionElapsed: " + auctionElapsed +
+                        "\n   seatsWithBids: " + seatsWithBids +
+                        "\n   seatsWithNonBids: " + seatsWithNonBids
+        );
 
         CommonMessage commonMessage = createCommonMessage(auctionId, auctionEvent);
 
@@ -211,19 +249,6 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         } else if (event instanceof AuctionEvent auctionEvent) {
             greenbidsEvent =  GreenbidsEvent.of("/openrtb2/auction", auctionEvent.getBidResponse());
             auctionEventGlobal = auctionEvent;
-        } else if (event instanceof CookieSyncEvent cookieSyncEvent) {
-            greenbidsEvent = GreenbidsEvent.of("/cookie_sync", cookieSyncEvent.getBidderStatus());
-        } else if (event instanceof NotificationEvent notificationEvent) {
-            greenbidsEvent = GreenbidsEvent.of("/event", notificationEvent.getType() + notificationEvent.getBidId());
-            //notificationEventGlobal = notificationEvent;
-        } else if (event instanceof SetuidEvent setuidEvent) {
-            greenbidsEvent = GreenbidsEvent.of(
-                    "/setuid",
-                    setuidEvent.getBidder() + ":" + setuidEvent.getUid() + ":" + setuidEvent.getSuccess()
-            );
-            GreenbidsBidder greenbidsBidder = serializeBidResponse(setuidEvent);
-        } else if (event instanceof VideoEvent videoEvent) {
-            greenbidsEvent = GreenbidsEvent.of("/openrtb2/video", videoEvent.getBidResponse());
         } else {
             greenbidsEvent = GreenbidsEvent.of("unknown", null);
         }
@@ -235,12 +260,29 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         String auctionId = auctionContext.getBidRequest().getId();
         boolean isSampled = isSampled(greenbidsConfig.getGreenbidsSampling(), greenbidsId);
 
+        System.out.println(
+                "[TEST] GreenbidsAnalyticsReporter/processEvent " +
+                        "\n   greenbidsId: " + greenbidsId +
+                        "\n   auctionId: " + auctionId +
+                        "\n   isSampled: " + isSampled
+        );
+
         AuctionCacheManager auctionCacheManager = new AuctionCacheManager();
         this.cachedAuction = auctionCacheManager.getCachedAuction(auctionId);
         this.cachedAuction.isSampled = isSampled;
         this.cachedAuction.greenbidsId = greenbidsId;
 
         CommonMessage commonMessage = createBidMessage(auctionEventGlobal);
+
+        // String commonMessageJson = JsonUtil.toJson(commonMessage);
+        String commonMessageJson = "{\"version\":\"1.0.0\",\"auctionId\":\"be567369-0c80-49e7-a7b5-aaaf8c426cd1\",\"referrer\":\"https://www.leparisien.fr/faits-divers/des-affrontements-entre-clans-qui-se-donnent-rendez-vous-la-reunion-debordee-par-les-combats-de-rue-18-04-2024-PVXC3BR5GZAKNEDUYCQQACUYBQ.php\",\"prebid\":\"7.54.2\",\"pbuid\":\"lelp-pbuid\",\"adUnits\":[{\"code\":\"/144148308/le-parisien_responsive/faits-divers/faits-divers/article/banniere-1\",\"mediaTypes\":{\"banner\":{\"sizes\":[[320,50]]}},\"bidders\":[{\"bidder\":\"appnexus\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"triplelift\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"criteo\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"ix\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"gravity-apn\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"mediasquare\",\"isTimeout\":false,\"hasBid\":false}]}],\"auctionElapsed\":373}";
+
+        System.out.println(
+                "[TEST] GreenbidsAnalyticsReporter/processEventV2 " +
+                        "\n   commonMessageJson: " + commonMessageJson
+        );
+
+        HttpUtil.sendJson(commonMessageJson, ANALYTICS_SERVER);
 
         return Future.succeededFuture();
     }
@@ -282,8 +324,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         if (isPrimarySampled) {
             return true;
         }
-        boolean isExtraSampled = hashInt >= (1 - throttledSamplingRate) * 0xFFFF;
-        return isExtraSampled;
+        return hashInt >= (1 - throttledSamplingRate) * 0xFFFF;
     }
 
 

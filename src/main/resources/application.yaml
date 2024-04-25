@@ -293,5 +293,8 @@ analytics:
       size-bytes: 2097152
       count: 100
       report-ttl-ms: 900000
+  greenbids:
+    pbuid: change-me
+    greenbids-sampling: 0.9
 price-floors:
   enabled: false

@@ -24,7 +24,7 @@ public class CommonMessage {
     ) {
         this.version = "2.2.0";
         this.auctionId = auctionId;
-        this.referrer = event.getAuctionContext().getBidRequest().getSite().getRef();
+        this.referrer = event.getAuctionContext().getBidRequest().getSite().getPage();
         this.sampling = samplingRate;
         this.prebid = "$prebid.version$"; // TODO: to fix
         this.greenbidsId = cachedAuction.greenbidsId;
