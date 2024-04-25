@@ -24,7 +24,7 @@ class Dependencies {
             .withInitScript("org/prebid/server/functional/db_mysql_schema.sql")
             .withNetwork(network)
 
-    static final PostgreSQLContainer postgresqlContainer = new PostgreSQLContainer<>("postgres:16.0")
+    static final PostgreSQLContainer postgresqlContainer = new PostgreSQLContainer<>("postgres:12.18")
             .withDatabaseName("prebid")
             .withUsername("prebid")
             .withPassword("prebid")
