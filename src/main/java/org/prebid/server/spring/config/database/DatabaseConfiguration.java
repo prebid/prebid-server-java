@@ -45,6 +45,7 @@ public class DatabaseConfiguration {
     ConnectionPoolSettings connectionPoolSettings(DatabaseConfigurationProperties databaseConfigurationProperties) {
         return ConnectionPoolSettings.of(
                 databaseConfigurationProperties.getPoolSize(),
+                databaseConfigurationProperties.getIdleConnectionTimeout(),
                 databaseConfigurationProperties.getUser(),
                 databaseConfigurationProperties.getPassword(),
                 databaseConfigurationProperties.getType());
@@ -83,7 +84,8 @@ public class DatabaseConfiguration {
                 .setPassword(connectionPoolSettings.getPassword())
                 .setSsl(false)
                 .setTcpKeepAlive(true)
-                .setIdleTimeout(1)
+                .setCachePreparedStatements(true)
+                .setIdleTimeout(connectionPoolSettings.getIdleTimeout())
                 .setIdleTimeoutUnit(TimeUnit.SECONDS);
 
         final PoolOptions poolOptions = new PoolOptions()
@@ -111,7 +113,8 @@ public class DatabaseConfiguration {
                 .setPassword(connectionPoolSettings.getPassword())
                 .setSsl(false)
                 .setTcpKeepAlive(true)
-                .setIdleTimeout(1)
+                .setCachePreparedStatements(true)
+                .setIdleTimeout(connectionPoolSettings.getIdleTimeout())
                 .setIdleTimeoutUnit(TimeUnit.SECONDS);
 
         final PoolOptions poolOptions = new PoolOptions()

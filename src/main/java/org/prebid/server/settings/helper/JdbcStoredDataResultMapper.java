@@ -82,8 +82,8 @@ public class JdbcStoredDataResultMapper {
                 final String data;
                 final String typeAsString;
                 try {
-                    fetchedAccountId = row.getString(0);
-                    id = row.getString(1);
+                    fetchedAccountId = ObjectUtil.getIfNotNull(row.getValue(0), Object::toString);
+                    id = ObjectUtil.getIfNotNull(row.getValue(1), Object::toString);
                     data = ObjectUtil.getIfNotNull(row.getValue(2), Object::toString);
                     typeAsString = ObjectUtil.getIfNotNull(row.getValue(3), Object::toString);
                 } catch (ClassCastException e) {

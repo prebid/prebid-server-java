@@ -4,6 +4,7 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowIterator;
 import io.vertx.sqlclient.RowSet;
 import org.prebid.server.settings.model.StoredResponseDataResult;
+import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,7 +34,9 @@ public class JdbcStoredResponseResultMapper {
                 errors.add("Result set column number is less than expected");
                 return StoredResponseDataResult.of(Collections.emptyMap(), errors);
             }
-            storedIdToResponse.put(row.getString(0), row.getString(1));
+            final String key = ObjectUtil.getIfNotNull(row.getValue(0), Object::toString);
+            final String value = ObjectUtil.getIfNotNull(row.getValue(1), Object::toString);
+            storedIdToResponse.put(key, value);
         }
 
         errors.addAll(responseIds.stream().filter(id -> !storedIdToResponse.containsKey(id))

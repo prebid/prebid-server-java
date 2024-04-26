@@ -294,8 +294,9 @@ For database data source available next options:
 - `settings.database.user` - database user.
 - `settings.database.password` - database password.
 - `settings.database.pool-size` - set the initial/min/max pool size of database connections.
+- `settings.database.idle-connection-timeout` - Set the idle timeout, time unit is seconds. Zero means don't timeout. This determines if a connection will timeout and be closed and get back to the pool if no data is received nor sent within the timeout.
 - `settings.database.account-query` - the SQL query to fetch account.
-- `settings.database.provider-class` - type of connection pool to be used: `hikari` or `c3p0`.
+- `settings.database.provider-class` - type of connection pool to be used: `hikari` or `c3p0`, deprecated.
 - `settings.database.stored-requests-query` - the SQL query to fetch stored requests.
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
 - `settings.database.stored-responses-query` - the SQL query to fetch stored responses.

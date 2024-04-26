@@ -110,7 +110,7 @@ public class JdbcStoredResponseResultMapperTest {
 
     private Row givenRow(Object... values) {
         final Row row = mock(Row.class);
-        given(row.getString(anyInt())).willAnswer(invocation -> values[(Integer) invocation.getArgument(0)]);
+        given(row.getValue(anyInt())).willAnswer(invocation -> values[(Integer) invocation.getArgument(0)]);
         final JsonObject json = new JsonObject();
         IntStream.range(0, values.length).forEach(i -> json.put(String.valueOf(i), values[i]));
         given(row.toJson()).willReturn(json);
