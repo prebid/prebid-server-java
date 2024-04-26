@@ -7,5 +7,4 @@ public enum DatabaseType {
 
     postgres,
     mysql;
-
 }
