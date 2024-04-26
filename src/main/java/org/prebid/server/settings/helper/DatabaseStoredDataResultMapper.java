@@ -10,6 +10,7 @@ import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.model.StoredItem;
 import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.vertx.database.CircuitBreakerSecuredDatabaseClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -22,11 +23,11 @@ import java.util.Set;
 /**
  * Utility class for mapping {@link RowSet<Row>} to {@link StoredDataResult}.
  */
-public class JdbcStoredDataResultMapper {
+public class DatabaseStoredDataResultMapper {
 
-    private static final Logger logger = LoggerFactory.getLogger(JdbcStoredDataResultMapper.class);
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseStoredDataResultMapper.class);
 
-    private JdbcStoredDataResultMapper() {
+    private DatabaseStoredDataResultMapper() {
     }
 
     /**
@@ -39,7 +40,7 @@ public class JdbcStoredDataResultMapper {
      * @return - a {@link StoredDataResult} object
      * <p>
      * Note: mapper should never throws exception in case of using
-     * {@link org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient}.
+     * {@link CircuitBreakerSecuredDatabaseClient}.
      */
     public static StoredDataResult map(RowSet<Row> rowSet,
                                        String accountId,
@@ -82,8 +83,8 @@ public class JdbcStoredDataResultMapper {
                 final String data;
                 final String typeAsString;
                 try {
-                    fetchedAccountId = row.getString(0);
-                    id = row.getString(1);
+                    fetchedAccountId = ObjectUtil.getIfNotNull(row.getValue(0), Object::toString);
+                    id = ObjectUtil.getIfNotNull(row.getValue(1), Object::toString);
                     data = ObjectUtil.getIfNotNull(row.getValue(2), Object::toString);
                     typeAsString = ObjectUtil.getIfNotNull(row.getValue(3), Object::toString);
                 } catch (ClassCastException e) {

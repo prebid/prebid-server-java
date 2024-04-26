@@ -96,7 +96,7 @@ LIMIT 1
          "settings.database.user"          : mysql.username,
          "settings.database.password"      : mysql.password,
          "settings.database.pool-size"     : "2", // setting 2 here to leave some slack for the PBS
-         "settings.database.provider-class": "hikari"
+         "settings.database.idle-connection-timeout": "300"
         ].asImmutable()
     }
 
@@ -108,7 +108,7 @@ LIMIT 1
          "settings.database.user"          : postgres.username,
          "settings.database.password"      : postgres.password,
          "settings.database.pool-size"     : "2", // setting 2 here to leave some slack for the PBS
-         "settings.database.provider-class": "hikari"
+         "settings.database.idle-connection-timeout": "300"
         ].asImmutable()
     }
 

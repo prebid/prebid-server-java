@@ -11,10 +11,10 @@ import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.CacheNotificationListener;
-import org.prebid.server.settings.helper.JdbcStoredDataResultMapper;
+import org.prebid.server.settings.helper.DatabaseStoredDataResultMapper;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.vertx.Initializable;
-import org.prebid.server.vertx.jdbc.JdbcClient;
+import org.prebid.server.vertx.database.DatabaseClient;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -42,9 +42,9 @@ import java.util.stream.Collectors;
  * If data is not empty, depending on TYPE, it should be put to corresponding map with ID as a key and DATA as value.
  * </p>
  */
-public class JdbcPeriodicRefreshService implements Initializable {
+public class DatabasePeriodicRefreshService implements Initializable {
 
-    private static final Logger logger = LoggerFactory.getLogger(JdbcPeriodicRefreshService.class);
+    private static final Logger logger = LoggerFactory.getLogger(DatabasePeriodicRefreshService.class);
 
     /**
      * Example of initialize query:
@@ -71,24 +71,24 @@ public class JdbcPeriodicRefreshService implements Initializable {
     private final MetricName cacheType;
     private final CacheNotificationListener cacheNotificationListener;
     private final Vertx vertx;
-    private final JdbcClient jdbcClient;
+    private final DatabaseClient databaseClient;
     private final TimeoutFactory timeoutFactory;
     private final Metrics metrics;
     private final Clock clock;
 
     private Instant lastUpdate;
 
-    public JdbcPeriodicRefreshService(String initQuery,
-                                      String updateQuery,
-                                      long refreshPeriod,
-                                      long timeout,
-                                      MetricName cacheType,
-                                      CacheNotificationListener cacheNotificationListener,
-                                      Vertx vertx,
-                                      JdbcClient jdbcClient,
-                                      TimeoutFactory timeoutFactory,
-                                      Metrics metrics,
-                                      Clock clock) {
+    public DatabasePeriodicRefreshService(String initQuery,
+                                          String updateQuery,
+                                          long refreshPeriod,
+                                          long timeout,
+                                          MetricName cacheType,
+                                          CacheNotificationListener cacheNotificationListener,
+                                          Vertx vertx,
+                                          DatabaseClient databaseClient,
+                                          TimeoutFactory timeoutFactory,
+                                          Metrics metrics,
+                                          Clock clock) {
 
         this.initQuery = Objects.requireNonNull(StringUtils.stripToNull(initQuery));
         this.updateQuery = Objects.requireNonNull(StringUtils.stripToNull(updateQuery));
@@ -97,7 +97,7 @@ public class JdbcPeriodicRefreshService implements Initializable {
         this.cacheType = Objects.requireNonNull(cacheType);
         this.cacheNotificationListener = Objects.requireNonNull(cacheNotificationListener);
         this.vertx = Objects.requireNonNull(vertx);
-        this.jdbcClient = Objects.requireNonNull(jdbcClient);
+        this.databaseClient = Objects.requireNonNull(databaseClient);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -115,10 +115,10 @@ public class JdbcPeriodicRefreshService implements Initializable {
     private void getAll() {
         final long startTime = clock.millis();
 
-        jdbcClient.executeQuery(
+        databaseClient.executeQuery(
                         initQuery,
                         Collections.emptyList(),
-                        JdbcStoredDataResultMapper::map,
+                        DatabaseStoredDataResultMapper::map,
                         createTimeout())
                 .map(storedDataResult ->
                         handleResult(storedDataResult, Instant.now(clock), startTime, MetricName.initialize))
@@ -139,7 +139,7 @@ public class JdbcPeriodicRefreshService implements Initializable {
     }
 
     private Future<Void> handleFailure(Throwable exception, long startTime, MetricName refreshType) {
-        logger.warn("Error occurred while request to jdbc refresh service", exception);
+        logger.warn("Error occurred while request to database refresh service", exception);
 
         metrics.updateSettingsCacheRefreshTime(cacheType, refreshType, clock.millis() - startTime);
         metrics.updateSettingsCacheRefreshErrorMetric(cacheType, refreshType);
@@ -151,10 +151,10 @@ public class JdbcPeriodicRefreshService implements Initializable {
         final Instant updateTime = Instant.now(clock);
         final long startTime = clock.millis();
 
-        jdbcClient.executeQuery(
+        databaseClient.executeQuery(
                         updateQuery,
                         Collections.singletonList(Date.from(lastUpdate)),
-                        JdbcStoredDataResultMapper::map,
+                        DatabaseStoredDataResultMapper::map,
                         createTimeout())
                 .map(storedDataResult ->
                         handleResult(invalidate(storedDataResult), updateTime, startTime, MetricName.update))

@@ -10,14 +10,15 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.settings.helper.JdbcStoredDataResultMapper;
-import org.prebid.server.settings.helper.JdbcStoredResponseResultMapper;
+import org.prebid.server.settings.helper.DatabaseStoredDataResultMapper;
+import org.prebid.server.settings.helper.DatabaseStoredResponseResultMapper;
 import org.prebid.server.settings.helper.ParametrizedQueryHelper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.util.ObjectUtil;
-import org.prebid.server.vertx.jdbc.JdbcClient;
+import org.prebid.server.vertx.database.CircuitBreakerSecuredDatabaseClient;
+import org.prebid.server.vertx.database.DatabaseClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,12 +34,12 @@ import java.util.stream.IntStream;
  * <p>
  * Reads an application settings from the database source.
  * <p>
- * In order to enable caching and reduce latency for read operations {@link JdbcApplicationSettings}
+ * In order to enable caching and reduce latency for read operations {@link DatabaseApplicationSettings}
  * can be decorated by {@link CachingApplicationSettings}.
  */
-public class JdbcApplicationSettings implements ApplicationSettings {
+public class DatabaseApplicationSettings implements ApplicationSettings {
 
-    private final JdbcClient jdbcClient;
+    private final DatabaseClient databaseClient;
     private final JacksonMapper mapper;
     private final ParametrizedQueryHelper parametrizedQueryHelper;
 
@@ -81,15 +82,15 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      */
     private final String selectStoredResponsesQuery;
 
-    public JdbcApplicationSettings(JdbcClient jdbcClient,
-                                   JacksonMapper mapper,
-                                   ParametrizedQueryHelper parametrizedQueryHelper,
-                                   String selectAccountQuery,
-                                   String selectStoredRequestsQuery,
-                                   String selectAmpStoredRequestsQuery,
-                                   String selectStoredResponsesQuery) {
+    public DatabaseApplicationSettings(DatabaseClient databaseClient,
+                                       JacksonMapper mapper,
+                                       ParametrizedQueryHelper parametrizedQueryHelper,
+                                       String selectAccountQuery,
+                                       String selectStoredRequestsQuery,
+                                       String selectAmpStoredRequestsQuery,
+                                       String selectStoredResponsesQuery) {
 
-        this.jdbcClient = Objects.requireNonNull(jdbcClient);
+        this.databaseClient = Objects.requireNonNull(databaseClient);
         this.mapper = Objects.requireNonNull(mapper);
         this.parametrizedQueryHelper = Objects.requireNonNull(parametrizedQueryHelper);
         this.selectAccountQuery = parametrizedQueryHelper.replaceAccountIdPlaceholder(
@@ -105,7 +106,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
-        return jdbcClient.executeQuery(
+        return databaseClient.executeQuery(
                         selectAccountQuery,
                         Collections.singletonList(accountId),
                         result -> mapToModelOrError(result, this::toAccount),
@@ -122,7 +123,7 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      * Transforms the first row of {@link RowSet<Row>} to required object or returns null.
      * <p>
      * Note: mapper should never throws exception in case of using
-     * {@link org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient}.
+     * {@link CircuitBreakerSecuredDatabaseClient}.
      */
     private <T> T mapToModelOrError(RowSet<Row> rowSet, Function<Row, T> mapper) {
         final RowIterator<Row> rowIterator = rowSet != null ? rowSet.iterator() : null;
@@ -197,8 +198,8 @@ public class JdbcApplicationSettings implements ApplicationSettings {
         IntStream.rangeClosed(1, responseIdPlaceholderCount)
                 .forEach(i -> idsQueryParameters.addAll(responseIds));
 
-        return jdbcClient.executeQuery(queryResolvedWithParameters, idsQueryParameters,
-                result -> JdbcStoredResponseResultMapper.map(result, responseIds), timeout);
+        return databaseClient.executeQuery(queryResolvedWithParameters, idsQueryParameters,
+                result -> DatabaseStoredResponseResultMapper.map(result, responseIds), timeout);
     }
 
     /**
@@ -223,8 +224,8 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                     requestIds.size(),
                     impIds.size());
 
-            future = jdbcClient.executeQuery(parametrizedQuery, idsQueryParameters,
-                    result -> JdbcStoredDataResultMapper.map(result, accountId, requestIds, impIds),
+            future = databaseClient.executeQuery(parametrizedQuery, idsQueryParameters,
+                    result -> DatabaseStoredDataResultMapper.map(result, accountId, requestIds, impIds),
                     timeout);
         }
 

@@ -294,8 +294,8 @@ For database data source available next options:
 - `settings.database.user` - database user.
 - `settings.database.password` - database password.
 - `settings.database.pool-size` - set the initial/min/max pool size of database connections.
+- `settings.database.idle-connection-timeout` - Set the idle timeout, time unit is seconds. Zero means don't timeout. This determines if a connection will timeout and be closed and get back to the pool if no data is received nor sent within the timeout.
 - `settings.database.account-query` - the SQL query to fetch account.
-- `settings.database.provider-class` - type of connection pool to be used: `hikari` or `c3p0`.
 - `settings.database.stored-requests-query` - the SQL query to fetch stored requests.
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
 - `settings.database.stored-responses-query` - the SQL query to fetch stored responses.
@@ -346,14 +346,14 @@ available: `/cache/invalidate?account={accountId}` which remove account from the
 - `settings.in-memory-cache.http-update.amp-endpoint` - the url to fetch AMP stored request updates.
 - `settings.in-memory-cache.http-update.refresh-rate` - refresh period in ms for stored request updates.
 - `settings.in-memory-cache.http-update.timeout` - timeout for obtaining stored request updates.
-- `settings.in-memory-cache.jdbc-update.init-query` - initial query for fetching all stored requests at the startup.
-- `settings.in-memory-cache.jdbc-update.update-query` - a query for periodical update of stored requests, that should
+- `settings.in-memory-cache.database-update.init-query` - initial query for fetching all stored requests at the startup.
+- `settings.in-memory-cache.database-update.update-query` - a query for periodical update of stored requests, that should
 contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
-- `settings.in-memory-cache.jdbc-update.amp-init-query` - initial query for fetching all AMP stored requests at the startup.
-- `settings.in-memory-cache.jdbc-update.amp-update-query` - a query for periodical update of AMP stored requests, that should
+- `settings.in-memory-cache.database-update.amp-init-query` - initial query for fetching all AMP stored requests at the startup.
+- `settings.in-memory-cache.database-update.amp-update-query` - a query for periodical update of AMP stored requests, that should
 contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
-- `settings.in-memory-cache.jdbc-update.refresh-rate` - refresh period in ms for stored request updates.
-- `settings.in-memory-cache.jdbc-update.timeout` - timeout for obtaining stored request updates.
+- `settings.in-memory-cache.database-update.refresh-rate` - refresh period in ms for stored request updates.
+- `settings.in-memory-cache.database-update.timeout` - timeout for obtaining stored request updates.
 
 For targeting available next options:
 - `settings.targeting.truncate-attr-chars` - set the max length for names of targeting keywords (0 means no truncation).

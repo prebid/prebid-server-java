@@ -1,4 +1,4 @@
-package org.prebid.server.vertx.jdbc;
+package org.prebid.server.vertx.database;
 
 import io.vertx.core.Future;
 import io.vertx.sqlclient.Row;
@@ -9,10 +9,10 @@ import java.util.List;
 import java.util.function.Function;
 
 /**
- * Interface for asynchronous interaction with database over JDBC API.
+ * Interface for asynchronous interaction with database over database API.
  */
 @FunctionalInterface
-public interface JdbcClient {
+public interface DatabaseClient {
 
     /**
      * Executes query with parameters and returns {@link Future<T>} eventually holding result mapped to a model

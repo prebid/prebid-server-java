@@ -17,7 +17,7 @@ import org.prebid.server.settings.helper.ParametrizedQueryHelper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
-import org.prebid.server.vertx.jdbc.JdbcClient;
+import org.prebid.server.vertx.database.DatabaseClient;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -35,7 +35,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 @RunWith(VertxUnitRunner.class)
-public class JdbcApplicationSettingsTest extends VertxTest {
+public class DatabaseApplicationSettingsTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -57,9 +57,9 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     private ParametrizedQueryHelper parametrizedQueryHelper;
 
     @Mock
-    private JdbcClient jdbcClient;
+    private DatabaseClient databaseClient;
 
-    private JdbcApplicationSettings target;
+    private DatabaseApplicationSettings target;
 
     private Timeout timeout;
 
@@ -67,8 +67,8 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void setUp() {
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(5000L);
         given(parametrizedQueryHelper.replaceAccountIdPlaceholder(SELECT_ACCOUNT_QUERY)).willReturn("query");
-        target = new JdbcApplicationSettings(
-                jdbcClient,
+        target = new DatabaseApplicationSettings(
+                databaseClient,
                 jacksonMapper,
                 parametrizedQueryHelper,
                 SELECT_ACCOUNT_QUERY,
@@ -81,7 +81,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     public void getAccountByIdShouldReturnAccountWithAllFieldsPopulated() {
         // given
         final Account givenAccount = Account.builder().build();
-        given(jdbcClient.executeQuery(
+        given(databaseClient.executeQuery(
                 eq("query"),
                 eq(List.of("1001")),
                 any(),
@@ -99,7 +99,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
     @Test
     public void getAccountByIdShouldFailIfAccountNotFound() {
         // given
-        given(jdbcClient.executeQuery(
+        given(databaseClient.executeQuery(
                 eq("query"),
                 eq(List.of("non-existing")),
                 any(),
@@ -124,7 +124,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 Map.of("1", "value1", "2", "value2"),
                 Map.of("4", "value4", "5", "value5"),
                 emptyList());
-        given(jdbcClient.executeQuery(eq("query"), eq(List.of("1", "2", "4", "5")), any(), eq(timeout)))
+        given(databaseClient.executeQuery(eq("query"), eq(List.of("1", "2", "4", "5")), any(), eq(timeout)))
                 .willReturn(Future.succeededFuture(givenStoredDataResult));
 
         // when
@@ -146,7 +146,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 Map.of("1", "value1", "2", "value2"),
                 Map.of(),
                 emptyList());
-        given(jdbcClient.executeQuery(eq("query"), eq(List.of("1", "2")), any(), eq(timeout)))
+        given(databaseClient.executeQuery(eq("query"), eq(List.of("1", "2")), any(), eq(timeout)))
                 .willReturn(Future.succeededFuture(givenStoredDataResult));
 
         // when
@@ -168,7 +168,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 Map.of("1", "value1", "2", "value2"),
                 Map.of("4", "value4", "5", "value5"),
                 emptyList());
-        given(jdbcClient.executeQuery(eq("query"), eq(List.of("1", "2", "4", "5")), any(), eq(timeout)))
+        given(databaseClient.executeQuery(eq("query"), eq(List.of("1", "2", "4", "5")), any(), eq(timeout)))
                 .willReturn(Future.succeededFuture(givenStoredDataResult));
 
         // when
@@ -190,7 +190,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 Map.of("1", "value1"),
                 Map.of(),
                 List.of("No stored request found for id: 3"));
-        given(jdbcClient.executeQuery(eq("query"), eq(List.of("1", "3")), any(), eq(timeout)))
+        given(databaseClient.executeQuery(eq("query"), eq(List.of("1", "3")), any(), eq(timeout)))
                 .willReturn(Future.succeededFuture(givenStoredDataResult));
 
         // when
@@ -212,7 +212,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 Map.of("1", "value1"),
                 Map.of(),
                 List.of("No stored request found for id: 3"));
-        given(jdbcClient.executeQuery(eq("query"), eq(List.of("1", "3")), any(), eq(timeout)))
+        given(databaseClient.executeQuery(eq("query"), eq(List.of("1", "3")), any(), eq(timeout)))
                 .willReturn(Future.succeededFuture(givenStoredDataResult));
 
         // when
@@ -234,7 +234,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
                 Map.of("1", "value1"),
                 Map.of(),
                 List.of("No stored request found for id: 3"));
-        given(jdbcClient.executeQuery(eq("query"), eq(List.of("1", "3")), any(), eq(timeout)))
+        given(databaseClient.executeQuery(eq("query"), eq(List.of("1", "3")), any(), eq(timeout)))
                 .willReturn(Future.succeededFuture(givenStoredDataResult));
 
         // when
@@ -255,7 +255,7 @@ public class JdbcApplicationSettingsTest extends VertxTest {
         final StoredResponseDataResult givenStoredResponseResult = StoredResponseDataResult.of(
                 Map.of("1", "response1"),
                 List.of("No stored response found for id: 2"));
-        given(jdbcClient.executeQuery(eq("query"), eq(List.of("1", "2")), any(), eq(timeout)))
+        given(databaseClient.executeQuery(eq("query"), eq(List.of("1", "2")), any(), eq(timeout)))
                 .willReturn(Future.succeededFuture(givenStoredResponseResult));
 
         // when

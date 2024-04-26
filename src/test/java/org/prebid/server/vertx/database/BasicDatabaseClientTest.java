@@ -1,4 +1,4 @@
-package org.prebid.server.vertx.jdbc;
+package org.prebid.server.vertx.database;
 
 import io.vertx.core.Future;
 import io.vertx.sqlclient.Pool;
@@ -39,7 +39,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
-public class BasicJdbcClientTest {
+public class BasicDatabaseClientTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -50,7 +50,7 @@ public class BasicJdbcClientTest {
     private Metrics metrics;
 
     private Clock clock;
-    private BasicJdbcClient target;
+    private BasicDatabaseClient target;
 
     private Timeout timeout;
 
@@ -59,14 +59,14 @@ public class BasicJdbcClientTest {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500L);
 
-        target = new BasicJdbcClient(pool, metrics, clock);
+        target = new BasicDatabaseClient(pool, metrics, clock);
     }
 
     @Test
     public void creationShouldFailOnNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new BasicJdbcClient(null, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new BasicJdbcClient(pool, null, null));
-        assertThatNullPointerException().isThrownBy(() -> new BasicJdbcClient(pool, metrics, null));
+        assertThatNullPointerException().isThrownBy(() -> new BasicDatabaseClient(null, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new BasicDatabaseClient(pool, null, null));
+        assertThatNullPointerException().isThrownBy(() -> new BasicDatabaseClient(pool, metrics, null));
     }
 
     @Test

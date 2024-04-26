@@ -1,4 +1,4 @@
-package org.prebid.server.vertx.jdbc;
+package org.prebid.server.vertx.database;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -36,7 +36,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @RunWith(VertxUnitRunner.class)
-public class CircuitBreakerSecuredJdbcClientTest {
+public class CircuitBreakerSecuredDatabaseClientTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -45,11 +45,11 @@ public class CircuitBreakerSecuredJdbcClientTest {
 
     private Clock clock;
     @Mock
-    private JdbcClient wrappedJdbcClient;
+    private DatabaseClient wrappedDatabaseClient;
     @Mock
     private Metrics metrics;
 
-    private CircuitBreakerSecuredJdbcClient target;
+    private CircuitBreakerSecuredDatabaseClient target;
 
     private Timeout timeout;
 
@@ -59,7 +59,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500L);
 
-        target = new CircuitBreakerSecuredJdbcClient(vertx, wrappedJdbcClient, metrics, 1, 100L, 200L, clock);
+        target = new CircuitBreakerSecuredDatabaseClient(vertx, wrappedDatabaseClient, metrics, 1, 100L, 200L, clock);
     }
 
     @After
@@ -112,7 +112,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         future.onComplete(context.asyncAssertFailure(throwable -> {
             assertThat(throwable).isInstanceOf(RuntimeException.class).hasMessage("open circuit");
 
-            verify(wrappedJdbcClient)
+            verify(wrappedDatabaseClient)
                     .executeQuery(any(), any(), any(), any()); // invoked only on 1 call
         }));
     }
@@ -136,7 +136,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         future.onComplete(context.asyncAssertFailure(exception -> {
             assertThat(exception).isInstanceOf(RuntimeException.class).hasMessage("exception1");
 
-            verify(wrappedJdbcClient, times(2))
+            verify(wrappedDatabaseClient, times(2))
                     .executeQuery(any(), any(), any(), any()); // invoked only on 1 & 3 calls
         }));
     }
@@ -165,7 +165,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         future.onComplete(context.asyncAssertSuccess(result -> {
             assertThat(result).isEqualTo("value");
 
-            verify(wrappedJdbcClient, times(2))
+            verify(wrappedDatabaseClient, times(2))
                     .executeQuery(any(), any(), any(), any()); // invoked only on 1 & 3 calls
         }));
     }
@@ -173,7 +173,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
     @Test
     public void executeQueryShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
         // given
-        target = new CircuitBreakerSecuredJdbcClient(vertx, wrappedJdbcClient, metrics, 2, 100L, 200L, clock);
+        target = new CircuitBreakerSecuredDatabaseClient(vertx, wrappedDatabaseClient, metrics, 2, 100L, 200L, clock);
 
         givenExecuteQueryReturning(asList(
                 Future.failedFuture(new RuntimeException("exception1")),
@@ -194,7 +194,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
         future2.onComplete(context.asyncAssertFailure(exception ->
                 assertThat(exception).isInstanceOf(RuntimeException.class).hasMessage("exception2")));
 
-        verify(wrappedJdbcClient, times(2))
+        verify(wrappedDatabaseClient, times(2))
                 .executeQuery(any(), any(), any(), any());
     }
 
@@ -248,7 +248,7 @@ public class CircuitBreakerSecuredJdbcClientTest {
     @SuppressWarnings("unchecked")
     private <T> void givenExecuteQueryReturning(List<Future<T>> results) {
         BDDMockito.BDDMyOngoingStubbing<Future<Object>> given =
-                given(wrappedJdbcClient.executeQuery(any(), any(), any(), any()));
+                given(wrappedDatabaseClient.executeQuery(any(), any(), any(), any()));
         for (Future<T> result : results) {
             given = given.willReturn((Future<Object>) result);
         }
