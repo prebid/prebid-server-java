@@ -1,6 +1,6 @@
 package org.prebid.server.activity.infrastructure.creator.rule;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.payload.impl.ActivityInvocationPayloadImpl;
 import org.prebid.server.activity.infrastructure.rule.Rule;

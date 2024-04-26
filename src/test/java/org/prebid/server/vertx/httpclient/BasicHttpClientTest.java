@@ -11,14 +11,13 @@ import io.vertx.core.http.RequestOptions;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -37,11 +36,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 @RunWith(VertxUnitRunner.class)
 public class BasicHttpClientTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Vertx vertx;
@@ -54,7 +51,7 @@ public class BasicHttpClientTest {
     @Mock
     private HttpClientResponse httpClientResponse;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(wrappedHttpClient.request(any())).willReturn(Future.succeededFuture(httpClientRequest));
         given(httpClientRequest.send()).willReturn(Future.succeededFuture(httpClientResponse));

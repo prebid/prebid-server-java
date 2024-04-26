@@ -5,16 +5,15 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
@@ -35,11 +34,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 @RunWith(VertxUnitRunner.class)
 public class CircuitBreakerSecuredDatabaseClientTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private Vertx vertx;
 
@@ -53,7 +50,7 @@ public class CircuitBreakerSecuredDatabaseClientTest {
 
     private Timeout timeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -62,7 +59,7 @@ public class CircuitBreakerSecuredDatabaseClientTest {
         target = new CircuitBreakerSecuredDatabaseClient(vertx, wrappedDatabaseClient, metrics, 1, 100L, 200L, clock);
     }
 
-    @After
+    @AfterEach
     public void tearDown(TestContext context) {
         vertx.close(context.asyncAssertSuccess());
     }

@@ -6,12 +6,11 @@ import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
@@ -43,17 +42,16 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class TcfEnforcementTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private TcfDefinerService tcfDefinerService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private UserFpdTcfMask userFpdTcfMask;
     @Mock
     private BidderCatalog bidderCatalog;
@@ -62,10 +60,10 @@ public class TcfEnforcementTest {
 
     private TcfEnforcement target;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderAliases aliases;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(userFpdTcfMask.maskUser(any(), anyBoolean(), anyBoolean(), anySet()))
                 .willAnswer(invocation -> invocation.getArgument(0));

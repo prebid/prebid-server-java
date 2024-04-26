@@ -12,7 +12,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.gamma.model.GammaBid;
 import org.prebid.server.bidder.gamma.model.GammaBidResponse;
@@ -376,4 +376,3 @@ public class GammaBidderTest extends VertxTest {
                 null);
     }
 }
-

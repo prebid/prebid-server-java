@@ -2,12 +2,13 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AccountSetting
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.config.AccountSetting
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.util.PBSUtils
+
 import java.time.Instant
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE

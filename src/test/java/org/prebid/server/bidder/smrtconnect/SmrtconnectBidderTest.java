@@ -6,8 +6,8 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -37,7 +37,7 @@ public class SmrtconnectBidderTest extends VertxTest {
 
     private SmrtconnectBidder smrtconnectBidder;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         smrtconnectBidder = new SmrtconnectBidder(ENDPOINT_URL, jacksonMapper);
     }

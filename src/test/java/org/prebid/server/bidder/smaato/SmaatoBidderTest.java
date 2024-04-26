@@ -18,12 +18,11 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.ObjectUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.bidder.model.BidderBid;
@@ -62,19 +61,17 @@ import static org.mockito.Mockito.when;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
+@ExtendWith(MockitoExtension.class)
 public class SmaatoBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Clock clock;
 
     private SmaatoBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new SmaatoBidder(ENDPOINT_URL, jacksonMapper, clock);
     }

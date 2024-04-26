@@ -1,12 +1,11 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -41,10 +40,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class CachingApplicationSettingsTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private ApplicationSettings delegateSettings;
@@ -55,7 +52,7 @@ public class CachingApplicationSettingsTest {
 
     private Timeout timeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500L);
 

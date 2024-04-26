@@ -7,13 +7,12 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -21,11 +20,9 @@ import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 @RunWith(VertxUnitRunner.class)
 public class CircuitBreakerTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private Vertx vertx;
 
@@ -33,14 +30,14 @@ public class CircuitBreakerTest {
 
     private CircuitBreaker circuitBreaker;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         circuitBreaker = new CircuitBreaker("name", vertx, 1, 100L, 200L, clock);
     }
 
-    @After
+    @AfterEach
     public void tearDown(TestContext context) {
         vertx.close(context.asyncAssertSuccess());
     }

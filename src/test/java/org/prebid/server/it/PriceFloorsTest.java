@@ -1,20 +1,17 @@
 package org.prebid.server.it;
 
-import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.json.JSONException;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.util.IntegrationTestsUtil;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 
@@ -23,7 +20,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,7 +29,6 @@ import static org.prebid.server.util.IntegrationTestsUtil.jsonFrom;
 import static org.prebid.server.util.IntegrationTestsUtil.responseFor;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@RunWith(SpringRunner.class)
 @TestPropertySource(
         value = {"test-application.properties"},
         properties = {"price-floors.enabled=true", "server.http.port=8050", "admin.port=0"}
@@ -48,22 +44,22 @@ public class PriceFloorsTest extends VertxTest {
 
     private static final RequestSpecification SPEC = IntegrationTest.spec(APP_PORT);
 
-    @ClassRule
-    public static final WireMockClassRule WIRE_MOCK_RULE = new WireMockClassRule(options().port(WIREMOCK_PORT));
+    @RegisterExtension
+    public static final WireMockExtension WIRE_MOCK_RULE = WireMockExtension.newInstance()
+            .options(wireMockConfig()
+                    .port(WIREMOCK_PORT))
+            .build();
 
-    @BeforeClass
-    public static void setUp() throws IOException {
+    @Test
+    public void openrtb2AuctionShouldApplyPriceFloorsForTheGenericBidder() throws IOException, JSONException {
+        // given
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/periodic-update"))
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/floors-provider"))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/floors/provided-floors.json"))));
-    }
 
-    @Test
-    public void openrtb2AuctionShouldApplyPriceFloorsForTheGenericBidder() throws IOException, JSONException {
-        // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/generic-exchange"))
                 .inScenario(PRICE_FLOORS)
                 .whenScenarioStateIs(STARTED)
