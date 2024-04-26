@@ -1,10 +1,9 @@
 package org.prebid.server.auction;
 
 import com.iab.openrtb.response.Bid;
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;
 import org.prebid.server.proto.openrtb.ext.request.ExtPriceGranularity;
 
@@ -20,10 +19,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
+@ExtendWith(MockitoExtension.class)
 public class TargetingKeywordsCreatorTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
     private final String defaultKeyPrefix = "hb";
 
     @Test

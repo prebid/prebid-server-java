@@ -31,14 +31,13 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.MapUtils;
-import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
@@ -190,6 +189,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyList;
 import static org.mockito.Mockito.doAnswer;
@@ -205,75 +205,73 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
+@ExtendWith(MockitoExtension.class)
 public class ExchangeServiceTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private StoredResponseProcessor storedResponseProcessor;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private PrivacyEnforcementService privacyEnforcementService;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private FpdResolver fpdResolver;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private SupplyChainResolver supplyChainResolver;
 
     @Mock
     private DebugResolver debugResolver;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private MediaTypeProcessor mediaTypeProcessor;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private UidUpdater uidUpdater;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private TimeoutResolver timeoutResolver;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private TimeoutFactory timeoutFactory;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpBidderRequester httpBidderRequester;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ResponseBidValidator responseBidValidator;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private CurrencyConversionService currencyService;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidResponseCreator bidResponseCreator;
 
     @Spy
     private BidResponsePostProcessor.NoOpBidResponsePostProcessor bidResponsePostProcessor;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private HookStageExecutor hookStageExecutor;
 
     @Mock
     private HttpInteractionLogger httpInteractionLogger;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private PriceFloorAdjuster priceFloorAdjuster;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private PriceFloorEnforcer priceFloorEnforcer;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private DsaEnforcer dsaEnforcer;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidAdjustmentFactorResolver bidAdjustmentFactorResolver;
 
     @Mock
@@ -285,10 +283,10 @@ public class ExchangeServiceTest extends VertxTest {
     @Mock
     private Timeout timeout;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private CriteriaLogManager criteriaLogManager;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ActivityInfrastructure activityInfrastructure;
 
     private Clock clock;

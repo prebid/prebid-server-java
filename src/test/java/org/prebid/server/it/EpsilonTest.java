@@ -16,7 +16,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 
-@RunWith(SpringRunner.class)
 public class EpsilonTest extends IntegrationTest {
 
     private static final String EPSILON = "epsilon";

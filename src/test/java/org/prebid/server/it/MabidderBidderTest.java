@@ -13,7 +13,6 @@ import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 
-@RunWith(SpringRunner.class)
 public class MabidderBidderTest extends IntegrationTest {
 
     @Test

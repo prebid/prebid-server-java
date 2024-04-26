@@ -10,10 +10,9 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -37,13 +36,11 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 
+@ExtendWith(MockitoExtension.class)
 public class ImdsBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://pbs.endpoint.com/{{AccountID}}?src={{SourceId}}&adapter=imds";
     private static final String PREBID_VERSION = "pbs-java/0.1.2";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private final ImdsBidder target = new ImdsBidder(ENDPOINT_URL, PREBID_VERSION, jacksonMapper);
 

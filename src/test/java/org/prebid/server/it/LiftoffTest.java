@@ -12,7 +12,6 @@ import java.io.IOException;
 
 import static java.util.Collections.singletonList;
 
-@RunWith(SpringRunner.class)
 public class LiftoffTest extends IntegrationTest {
 
     @Test

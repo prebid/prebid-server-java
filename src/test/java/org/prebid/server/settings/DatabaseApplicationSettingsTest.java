@@ -2,13 +2,12 @@ package org.prebid.server.settings;
 
 import io.vertx.core.Future;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -34,11 +33,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 @RunWith(VertxUnitRunner.class)
 public class DatabaseApplicationSettingsTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private static final String SELECT_ACCOUNT_QUERY =
             "SELECT config FROM accounts_account where uuid = %ACCOUNT_ID% LIMIT 1";

@@ -5,11 +5,10 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.model.UidsCookieUpdateResult;
@@ -34,6 +33,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class UidsCookieServiceTest extends VertxTest {
 
     private static final String HOST_COOKIE_DOMAIN = "cookie-domain";
@@ -44,9 +44,6 @@ public class UidsCookieServiceTest extends VertxTest {
     private static final String ADNXS = "adnxs";
     // Zero means size checking is disabled
     private static final int MAX_COOKIE_SIZE_BYTES = 0;
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private RoutingContext routingContext;

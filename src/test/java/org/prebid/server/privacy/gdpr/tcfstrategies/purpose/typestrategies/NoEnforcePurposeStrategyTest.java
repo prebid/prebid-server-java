@@ -3,11 +3,10 @@ package org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies;
 import com.iabtcf.decoder.TCString;
 import com.iabtcf.utils.IntIterable;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
@@ -25,12 +24,10 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 public class NoEnforcePurposeStrategyTest {
 
     private static final PurposeCode PURPOSE_CODE = PurposeCode.ONE;
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private NoEnforcePurposeStrategy target;
 

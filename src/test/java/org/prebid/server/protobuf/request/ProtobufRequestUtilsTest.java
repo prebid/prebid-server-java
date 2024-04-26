@@ -36,11 +36,10 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
 import com.iabtechlab.openrtb.v2.OpenRtb;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.openrtb.v2.OpenRtbTest;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
@@ -65,10 +64,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 public class ProtobufRequestUtilsTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private ProtobufMapper<Segment, OpenRtb.BidRequest.Data.Segment> segmentMapper;

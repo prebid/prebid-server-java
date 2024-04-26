@@ -2,22 +2,19 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 
 import com.iabtcf.decoder.TCString;
 import com.iabtcf.encoder.TCStringEncoder;
-import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 public class VersionedVendorListServiceTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private VersionedVendorListService versionedVendorListService;
 

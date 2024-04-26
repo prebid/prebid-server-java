@@ -2,12 +2,11 @@ package org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature;
 
 import com.iabtcf.decoder.TCString;
 import com.iabtcf.utils.IntIterable;
-import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.settings.model.SpecialFeature;
@@ -23,12 +22,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class SpecialFeaturesOneStrategyTest {
 
     private static final int SPECIAL_FEATURE_ID = 1;
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private SpecialFeaturesOneStrategy target;
 

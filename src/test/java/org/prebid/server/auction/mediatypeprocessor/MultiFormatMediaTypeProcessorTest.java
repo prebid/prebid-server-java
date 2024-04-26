@@ -8,12 +8,11 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
@@ -44,12 +43,10 @@ import static org.prebid.server.spring.config.bidder.model.MediaType.BANNER;
 import static org.prebid.server.spring.config.bidder.model.MediaType.NATIVE;
 import static org.prebid.server.spring.config.bidder.model.MediaType.VIDEO;
 
+@ExtendWith(MockitoExtension.class)
 public class MultiFormatMediaTypeProcessorTest extends VertxTest {
 
     private static final String BIDDER = "bidder";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private BidderCatalog bidderCatalog;

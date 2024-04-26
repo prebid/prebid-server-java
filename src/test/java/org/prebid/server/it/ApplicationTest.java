@@ -64,7 +64,6 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.within;
 
-@RunWith(SpringRunner.class)
 public class ApplicationTest extends IntegrationTest {
 
     private static final String APPNEXUS = "appnexus";

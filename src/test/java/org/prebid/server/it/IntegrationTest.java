@@ -5,7 +5,7 @@ import com.github.tomakehurst.wiremock.common.FileSource;
 import com.github.tomakehurst.wiremock.extension.Parameters;
 import com.github.tomakehurst.wiremock.extension.ResponseTransformer;
 import com.github.tomakehurst.wiremock.http.Request;
-import com.github.tomakehurst.wiremock.junit.WireMockClassRule;
+import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.restassured.builder.RequestSpecBuilder;
 import io.restassured.config.ObjectMapperConfig;
 import io.restassured.config.RestAssuredConfig;
@@ -16,9 +16,9 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
-import org.junit.ClassRule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
@@ -48,7 +48,7 @@ import java.util.regex.Pattern;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.prebid.server.util.IntegrationTestsUtil.replaceBidderRelatedStaticInfo;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
@@ -62,12 +62,14 @@ public abstract class IntegrationTest extends VertxTest {
             Pattern.compile(".*([0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z).*");
 
     @SuppressWarnings("unchecked")
-    @ClassRule
-    public static final WireMockClassRule WIRE_MOCK_RULE = new WireMockClassRule(options()
-            .port(WIREMOCK_PORT)
-            .gzipDisabled(true)
-            .jettyStopTimeout(5000L)
-            .extensions(IntegrationTest.CacheResponseTransformer.class));
+    @RegisterExtension
+    public static final WireMockExtension WIRE_MOCK_RULE = WireMockExtension.newInstance()
+            .options(wireMockConfig()
+                    .port(WIREMOCK_PORT)
+                    .gzipDisabled(true)
+                    .jettyStopTimeout(5000L)
+                    .extensions(IntegrationTest.CacheResponseTransformer.class))
+            .build();
 
     protected static final RequestSpecification SPEC = spec(APP_PORT);
     private static final String HOST_AND_PORT = "localhost:" + WIREMOCK_PORT;

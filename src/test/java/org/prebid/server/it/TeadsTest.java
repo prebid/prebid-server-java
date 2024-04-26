@@ -15,7 +15,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
-@RunWith(SpringRunner.class)
 public class TeadsTest extends IntegrationTest {
 
     @Test

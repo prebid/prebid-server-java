@@ -18,7 +18,6 @@ import static java.util.Collections.singletonList;
 /**
  * Algorix Test in org.prebid.server.it
  */
-@RunWith(SpringRunner.class)
 public class AlgorixTest extends IntegrationTest {
 
     @Test

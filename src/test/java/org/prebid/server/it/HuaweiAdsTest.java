@@ -15,7 +15,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 
-@RunWith(SpringRunner.class)
 public class HuaweiAdsTest extends IntegrationTest {
 
     private static final String BID_REQUEST = "test-huaweiads-bid-request.json";

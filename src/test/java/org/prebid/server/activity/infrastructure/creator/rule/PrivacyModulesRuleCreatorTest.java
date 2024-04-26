@@ -2,9 +2,9 @@ package org.prebid.server.activity.infrastructure.creator.rule;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.activity.infrastructure.creator.ActivityControllerCreationContext;
 import org.prebid.server.activity.infrastructure.creator.PrivacyModuleCreationContext;
 import org.prebid.server.activity.infrastructure.creator.privacy.PrivacyModuleCreator;
@@ -23,10 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 public class PrivacyModulesRuleCreatorTest {
-
-    @org.junit.Rule
-    public final MockitoRule rule = MockitoJUnit.rule();
 
     @Mock
     private PrivacyModuleCreator privacyModuleCreator;

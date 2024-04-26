@@ -1,15 +1,15 @@
 package org.prebid.server.bidder.huaweiads;
 
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
+@ExtendWith(MockitoExtension.class)
 public class HuaweiEndpointResolverTest {
 
     private static final String ENDPOINT_URL = "https://test-url.org/";
@@ -17,9 +17,6 @@ public class HuaweiEndpointResolverTest {
     private static final String EUROPEAN_ENDPOINT_URL = "https://test-url.org/europe";
     private static final String RUSSIAN_ENDPOINT_URL = "https://test-url.orc/russia";
     private static final String ASIAN_ENDPOINT_URL = "https://test-url.org/asian";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private HuaweiEndpointResolver target;
 

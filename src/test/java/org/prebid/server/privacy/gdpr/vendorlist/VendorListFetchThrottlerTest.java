@@ -1,10 +1,9 @@
 package org.prebid.server.privacy.gdpr.vendorlist;
 
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.execution.retry.ExponentialBackoffRetryPolicy;
 import org.prebid.server.execution.retry.NonRetryable;
 import org.prebid.server.execution.retry.RetryPolicy;
@@ -12,14 +11,12 @@ import org.prebid.server.execution.retry.RetryPolicy;
 import java.time.Clock;
 import java.time.Instant;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 public class VendorListFetchThrottlerTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Clock clock;

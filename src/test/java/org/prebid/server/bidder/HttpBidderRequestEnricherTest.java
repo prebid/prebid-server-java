@@ -4,11 +4,10 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.MultiMap;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
@@ -24,16 +23,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class HttpBidderRequestEnricherTest {
 
     private static final String BIDDER_NAME = "bidderName";
 
     private static final String BIDDER_ALIAS_NAME = "bidderAliasName";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private PrebidVersionProvider prebidVersionProvider;
@@ -41,7 +39,7 @@ public class HttpBidderRequestEnricherTest {
     @Mock
     private BidderAliases bidderAliases;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
 
     private HttpBidderRequestEnricher target;

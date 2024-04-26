@@ -17,7 +17,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
-@RunWith(SpringRunner.class)
 public class IxTest extends IntegrationTest {
 
     @Autowired

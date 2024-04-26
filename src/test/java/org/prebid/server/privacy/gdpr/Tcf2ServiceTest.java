@@ -2,12 +2,11 @@ package org.prebid.server.privacy.gdpr;
 
 import com.iabtcf.decoder.TCString;
 import io.vertx.core.Future;
-import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
@@ -57,10 +56,8 @@ import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.ONE;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.SEVEN;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.TWO;
 
+@ExtendWith(MockitoExtension.class)
 public class Tcf2ServiceTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private BidderCatalog bidderCatalog;

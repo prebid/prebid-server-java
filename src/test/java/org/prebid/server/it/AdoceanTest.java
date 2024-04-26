@@ -14,7 +14,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static java.util.Collections.singletonList;
 
-@RunWith(SpringRunner.class)
 public class AdoceanTest extends IntegrationTest {
 
     @Test

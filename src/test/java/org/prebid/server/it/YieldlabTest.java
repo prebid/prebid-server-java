@@ -17,7 +17,6 @@ import java.io.IOException;
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static java.util.Collections.singletonList;
 
-@RunWith(SpringRunner.class)
 public class YieldlabTest extends IntegrationTest {
 
     @Test

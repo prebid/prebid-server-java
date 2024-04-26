@@ -20,7 +20,6 @@ import static io.restassured.RestAssured.given;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.empty;
 
-@RunWith(SpringRunner.class)
 public class HooksTest extends IntegrationTest {
 
     private static final String RUBICON = "rubicon";

@@ -13,7 +13,6 @@ import java.io.IOException;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static java.util.Collections.singletonList;
 
-@RunWith(SpringRunner.class)
 public class AdheseTest extends IntegrationTest {
 
     @Test

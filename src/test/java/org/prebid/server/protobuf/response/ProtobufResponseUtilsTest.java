@@ -16,12 +16,11 @@ import com.iab.openrtb.response.SeatBid;
 import com.iab.openrtb.response.TitleObject;
 import com.iab.openrtb.response.VideoObject;
 import com.iabtechlab.openrtb.v2.OpenRtb;
-import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.openrtb.v2.OpenRtbTest;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -35,10 +34,8 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 public class ProtobufResponseUtilsTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private ProtobufMapper<OpenRtb.NativeResponse.Asset.Title, TitleObject> titleMapper;

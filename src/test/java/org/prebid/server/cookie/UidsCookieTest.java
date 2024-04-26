@@ -1,9 +1,8 @@
 package org.prebid.server.cookie;
 
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cookie.model.UidWithExpiry;
 import org.prebid.server.cookie.proto.Uids;
@@ -16,13 +15,11 @@ import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+@ExtendWith(MockitoExtension.class)
 public class UidsCookieTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
     private static final String ADNXS = "adnxs";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Test
     public void creationShouldFailOnNullArguments() {

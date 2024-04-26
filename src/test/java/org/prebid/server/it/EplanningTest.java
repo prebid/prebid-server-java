@@ -14,7 +14,6 @@ import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
-@RunWith(SpringRunner.class)
 public class EplanningTest extends IntegrationTest {
 
     @Test

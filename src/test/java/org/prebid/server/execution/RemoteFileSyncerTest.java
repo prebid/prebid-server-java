@@ -12,12 +12,11 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
-import org.junit.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
@@ -33,6 +32,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -43,6 +43,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class RemoteFileSyncerTest extends VertxTest {
 
     private static final long TIMEOUT = 10000;
@@ -55,18 +56,16 @@ public class RemoteFileSyncerTest extends VertxTest {
     private static final String TMP_FILE_PATH = String.join(File.separator, "tmp", "fake", "path", "to", "file.pdf");
     private static final String DIR_PATH = String.join(File.separator, "fake", "path", "to");
     private static final Long FILE_SIZE = 2131242L;
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
     @Mock
     private Vertx vertx;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private FileSystem fileSystem;
 
     @Mock
     private HttpClient httpClient;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private RemoteFileProcessor remoteFileProcessor;
     @Mock
     private AsyncFile asyncFile;

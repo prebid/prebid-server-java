@@ -8,11 +8,10 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.Rule;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
@@ -51,15 +50,13 @@ import static org.prebid.server.assertion.FutureAssertion.assertThat;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.ONE;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.TWO;
 
+@ExtendWith(MockitoExtension.class)
 public class VendorListServiceTest extends VertxTest {
 
     private static final String CACHE_DIR = "/cache/dir";
     private static final long REFRESH_MISSING_LIST_PERIOD_MS = 3600000L;
     private static final String FALLBACK_VENDOR_LIST_PATH = "fallback.json";
     private static final String GENERATION_VERSION = "v0";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Vertx vertx;
