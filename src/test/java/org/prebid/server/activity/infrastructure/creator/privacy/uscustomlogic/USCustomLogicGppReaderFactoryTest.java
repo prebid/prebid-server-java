@@ -1,6 +1,6 @@
 package org.prebid.server.activity.infrastructure.creator.privacy.uscustomlogic;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.activity.infrastructure.privacy.PrivacySection;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.reader.USCaliforniaGppReader;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.reader.USColoradoGppReader;

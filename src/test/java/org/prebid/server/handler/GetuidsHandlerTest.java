@@ -3,9 +3,9 @@ package org.prebid.server.handler;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -44,7 +44,7 @@ public class GetuidsHandlerTest extends VertxTest {
     @Mock
     private HttpServerResponse httpServerResponse;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(routingContext.request()).willReturn(httpServerRequest);
         given(routingContext.response()).willReturn(httpServerResponse);

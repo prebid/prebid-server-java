@@ -9,9 +9,9 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import io.vertx.core.Future;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -57,7 +57,7 @@ public class Ortb2BlockingBidderRequestHookTest {
 
     private Ortb2BlockingBidderRequestHook hook;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(bidderCatalog.bidderInfoByName(anyString()))
                 .willReturn(bidderInfo(OrtbVersion.ORTB_2_5));

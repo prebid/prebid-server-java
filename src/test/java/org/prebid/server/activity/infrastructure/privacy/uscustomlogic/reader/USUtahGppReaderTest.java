@@ -2,9 +2,9 @@ package org.prebid.server.activity.infrastructure.privacy.uscustomlogic.reader;
 
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.section.UspUtV1;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -29,7 +29,7 @@ public class USUtahGppReaderTest {
 
     private USUtahGppReader gppReader;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(gppModel.getUspUtV1Section()).willReturn(uspUtV1);
 

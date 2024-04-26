@@ -2,9 +2,9 @@ package org.prebid.server.auction.gpp;
 
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.error.EncodingException;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -36,7 +36,7 @@ public class SetuidGppServiceTest {
 
     private SetuidGppService target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new SetuidGppService(gppService);
     }

@@ -4,9 +4,9 @@ import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.SocketAddress;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
@@ -54,7 +54,7 @@ public class CookieSyncPrivacyContextFactoryTest extends VertxTest {
     @Mock
     private Timeout timeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new CookieSyncPrivacyContextFactory(
                 privacyExtractor,

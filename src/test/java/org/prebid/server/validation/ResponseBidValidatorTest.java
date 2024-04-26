@@ -6,9 +6,9 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -54,7 +54,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Mock
     private BidderAliases bidderAliases;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new ResponseBidValidator(enforce, enforce, metrics, 0.01);
 

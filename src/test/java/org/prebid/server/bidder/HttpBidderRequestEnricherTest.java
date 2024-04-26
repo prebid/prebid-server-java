@@ -3,9 +3,9 @@ package org.prebid.server.bidder;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -46,7 +46,7 @@ public class HttpBidderRequestEnricherTest {
 
     private HttpBidderRequestEnricher target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(prebidVersionProvider.getNameVersionRecord()).willReturn("pbs-java/1.00");
         given(bidderCatalog.bidderInfoByName(anyString())).willReturn(null);

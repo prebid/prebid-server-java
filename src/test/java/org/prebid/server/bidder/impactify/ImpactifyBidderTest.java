@@ -14,9 +14,9 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -57,7 +57,7 @@ public class ImpactifyBidderTest extends VertxTest {
 
     private ImpactifyBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new ImpactifyBidder("https://test.endpoint.com", jacksonMapper, currencyConversionService);
     }

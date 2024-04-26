@@ -5,9 +5,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.util.AsciiString;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -41,7 +41,7 @@ public class CurrencyRatesHandlerTest extends VertxTest {
 
     private CurrencyRatesHandler currencyRatesHandler;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         currencyRatesHandler = new CurrencyRatesHandler(currencyConversionService, "/endpoint", jacksonMapper);
 

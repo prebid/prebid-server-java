@@ -3,9 +3,9 @@ package org.prebid.server.auction.gpp.processor.uspv1;
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.error.EncodingException;
 import com.iab.gpp.encoder.section.UspV1;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -30,7 +30,7 @@ public class UspV1ContextProcessorTest {
     @Mock
     private GppModel gppModel;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(gppModel.hasSection(UspV1.ID)).willReturn(false);
 

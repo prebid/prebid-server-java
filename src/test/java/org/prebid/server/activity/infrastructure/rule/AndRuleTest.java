@@ -3,8 +3,8 @@ package org.prebid.server.activity.infrastructure.rule;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -33,7 +33,7 @@ public class AndRuleTest extends VertxTest {
     @Mock
     private Rule abstainRule;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(allowRule.proceed(any())).willReturn(Rule.Result.ALLOW);
         given(disallowRule.proceed(any())).willReturn(Rule.Result.DISALLOW);

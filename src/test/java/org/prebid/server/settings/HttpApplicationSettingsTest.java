@@ -2,9 +2,9 @@ package org.prebid.server.settings;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -64,7 +64,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     private Timeout timeout;
     private Timeout expiredTimeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
                 VIDEO_ENDPOINT, CATEGORY_ENDPOINT);

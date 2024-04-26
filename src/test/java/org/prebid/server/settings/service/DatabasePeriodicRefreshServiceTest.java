@@ -4,9 +4,9 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -56,7 +56,7 @@ public class DatabasePeriodicRefreshServiceTest {
     private final Map<String, String> expectedRequests = singletonMap("id1", "value1");
     private final Map<String, String> expectedImps = singletonMap("id2", "value2");
 
-    @Before
+    @BeforeEach
     public void setUp() {
         final StoredDataResult initialResult = StoredDataResult.of(singletonMap("id1", "value1"),
                 singletonMap("id2", "value2"), emptyList());

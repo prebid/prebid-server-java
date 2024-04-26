@@ -6,9 +6,9 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -69,7 +69,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
 
     private CurrencyConversionService currencyService;
 
-    @Before
+    @BeforeEach
     public void setUp() throws JsonProcessingException {
         final Map<String, Map<String, BigDecimal>> currencyRates = new HashMap<>();
         currencyRates.put(GBP, singletonMap(EUR, BigDecimal.valueOf(1.3)));

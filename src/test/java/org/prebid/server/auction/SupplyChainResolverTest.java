@@ -4,8 +4,8 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.SupplyChainNode;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -19,7 +19,7 @@ public class SupplyChainResolverTest extends VertxTest {
 
     private SupplyChainResolver supplyChainResolver;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         supplyChainResolver = SupplyChainResolver.create(null, jacksonMapper);
     }

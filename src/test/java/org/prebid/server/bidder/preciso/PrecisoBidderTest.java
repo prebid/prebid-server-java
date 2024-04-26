@@ -7,9 +7,9 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -50,7 +50,7 @@ public class PrecisoBidderTest extends VertxTest {
 
     private PrecisoBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new PrecisoBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
     }

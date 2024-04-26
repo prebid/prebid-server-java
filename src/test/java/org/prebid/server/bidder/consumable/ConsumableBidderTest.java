@@ -12,7 +12,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.consumable.model.ConsumableBidGdpr;
 import org.prebid.server.bidder.consumable.model.ConsumableBidRequest;

@@ -3,7 +3,7 @@ package org.prebid.server.settings.model.activity.rule.resolver;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.settings.model.activity.rule.AccountActivityGeoRuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;

@@ -11,9 +11,9 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import org.assertj.core.api.Condition;
 import org.assertj.core.api.SoftAssertions;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
@@ -54,7 +54,7 @@ public class MetricsTest {
 
     private Metrics metrics;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         metricRegistry = new MetricRegistry();
         given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);

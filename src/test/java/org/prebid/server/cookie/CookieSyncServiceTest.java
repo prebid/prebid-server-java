@@ -2,9 +2,9 @@ package org.prebid.server.cookie;
 
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -92,7 +92,7 @@ public class CookieSyncServiceTest extends VertxTest {
 
     private CookieSyncService target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(uidsCookie.allowsSync()).willReturn(true);
         given(hostVendorTcfDefinerService.isAllowedForHostVendorId(any()))

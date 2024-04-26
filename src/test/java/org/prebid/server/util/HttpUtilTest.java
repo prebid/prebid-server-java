@@ -5,9 +5,9 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -40,7 +40,7 @@ public class HttpUtilTest {
     @Mock
     private HttpServerResponse httpResponse;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(routingContext.response()).willReturn(httpResponse);
     }

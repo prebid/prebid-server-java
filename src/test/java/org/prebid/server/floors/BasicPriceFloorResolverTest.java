@@ -14,9 +14,9 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -68,7 +68,7 @@ public class BasicPriceFloorResolverTest extends VertxTest {
 
     private BasicPriceFloorResolver priceFloorResolver;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         priceFloorResolver = new BasicPriceFloorResolver(
                 currencyConversionService,

@@ -4,9 +4,9 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
 import io.vertx.core.Future;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -52,7 +52,7 @@ public class GeoLocationServiceWrapperTest extends VertxTest {
 
     private GeoLocationServiceWrapper target;
 
-    @Before
+    @BeforeEach
     public void before() {
         target = new GeoLocationServiceWrapper(geoLocationService, resolver, metrics);
     }

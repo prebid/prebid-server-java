@@ -2,9 +2,9 @@ package org.prebid.server.privacy.gdpr.vendorlist;
 
 import com.iabtcf.decoder.TCString;
 import com.iabtcf.encoder.TCStringEncoder;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -26,7 +26,7 @@ public class VersionedVendorListServiceTest {
     @Mock
     private VendorListService vendorListServiceV3;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         versionedVendorListService = new VersionedVendorListService(vendorListServiceV2, vendorListServiceV3);
     }

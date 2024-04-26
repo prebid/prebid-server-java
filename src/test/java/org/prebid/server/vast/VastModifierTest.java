@@ -2,9 +2,9 @@ package org.prebid.server.vast;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -49,7 +49,7 @@ public class VastModifierTest {
 
     private VastModifier target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(eventsService.vastUrlTracking(any(), any(), any(), any()))
                 .willReturn(VAST_URL_TRACKING);

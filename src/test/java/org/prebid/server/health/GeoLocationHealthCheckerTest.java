@@ -3,9 +3,9 @@ package org.prebid.server.health;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -43,7 +43,7 @@ public class GeoLocationHealthCheckerTest {
 
     private GeoLocationHealthChecker geoLocationHealthChecker;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);

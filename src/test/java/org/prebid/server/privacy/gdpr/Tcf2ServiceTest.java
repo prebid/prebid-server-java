@@ -2,9 +2,9 @@ package org.prebid.server.privacy.gdpr;
 
 import com.iabtcf.decoder.TCString;
 import io.vertx.core.Future;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -103,7 +103,7 @@ public class Tcf2ServiceTest extends VertxTest {
     private List<PurposeStrategy> purposeStrategies;
     private List<SpecialFeaturesStrategy> specialFeaturesStrategies;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(vendorListService.forConsent(any())).willReturn(Future.succeededFuture(emptyMap()));
 

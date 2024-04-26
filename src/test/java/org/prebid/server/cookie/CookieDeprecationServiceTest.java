@@ -7,9 +7,9 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -44,7 +44,7 @@ public class CookieDeprecationServiceTest extends VertxTest {
 
     private final CookieDeprecationService target = new CookieDeprecationService();
 
-    @Before
+    @BeforeEach
     public void before() {
         given(routingContext.cookieMap()).willReturn(Map.of());
     }

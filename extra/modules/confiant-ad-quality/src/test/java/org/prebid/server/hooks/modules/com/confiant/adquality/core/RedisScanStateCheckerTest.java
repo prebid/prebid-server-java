@@ -2,9 +2,9 @@ package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -23,7 +23,7 @@ public class RedisScanStateCheckerTest {
 
     private RedisScanStateChecker scanStateChecker;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         scanStateChecker = new RedisScanStateChecker(bidsScanner, 1000L, Vertx.vertx());
     }

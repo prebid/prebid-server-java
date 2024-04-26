@@ -1,7 +1,7 @@
 package org.prebid.server.health;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 
@@ -11,7 +11,7 @@ public class HealthMonitorTest {
 
     private HealthMonitor healthMonitor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         healthMonitor = new HealthMonitor();
     }

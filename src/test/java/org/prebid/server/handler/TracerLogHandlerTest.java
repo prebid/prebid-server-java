@@ -4,9 +4,9 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -37,7 +37,7 @@ public class TracerLogHandlerTest extends VertxTest {
 
     private TracerLogHandler tracerLogHandler;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         tracerLogHandler = new TracerLogHandler(criteriaManager);
         given(routingContext.response()).willReturn(httpResponse);

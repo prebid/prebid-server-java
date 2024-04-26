@@ -11,9 +11,9 @@ import io.vertx.core.http.RequestOptions;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -54,7 +54,7 @@ public class BasicHttpClientTest {
     @Mock
     private HttpClientResponse httpClientResponse;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(wrappedHttpClient.request(any())).willReturn(Future.succeededFuture(httpClientRequest));
         given(httpClientRequest.send()).willReturn(Future.succeededFuture(httpClientResponse));

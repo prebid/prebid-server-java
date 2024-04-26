@@ -1,7 +1,7 @@
 package org.prebid.server.activity.infrastructure.creator;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -28,7 +28,7 @@ public class ActivityRuleFactoryTest {
 
     private ActivityRuleFactory target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(ruleCreator1.relatedConfigurationClass()).willReturn(Integer.class);
         given(ruleCreator2.relatedConfigurationClass()).willReturn(String.class);

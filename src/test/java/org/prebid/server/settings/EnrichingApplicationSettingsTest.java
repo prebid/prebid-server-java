@@ -1,9 +1,9 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -47,7 +47,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     @Mock
     private Timeout timeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(priceFloorsConfigResolver.resolve(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
         given(activitiesConfigResolver.resolve(any())).willAnswer(invocation -> invocation.getArgument(0));

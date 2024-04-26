@@ -2,9 +2,9 @@ package org.prebid.server.hooks.modules.pb.richmedia.filter.v1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Future;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -61,7 +61,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
 
     private PbRichmediaFilterAllProcessedBidResponsesHook target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new PbRichmediaFilterAllProcessedBidResponsesHook(ObjectMapperProvider.mapper(), mraidFilter, configResolver);
         when(configResolver.resolve(any())).thenReturn(PbRichMediaFilterProperties.of(true, "pattern"));

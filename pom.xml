@@ -26,7 +26,6 @@
         <dockerfileName>Dockerfile</dockerfileName>
 
         <!-- dependencies versions -->
-        <spring.boot.version>3.2.3</spring.boot.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
         <commons.version>3.14.0</commons.version>
         <commons.collections.version>4.4</commons.collections.version>
@@ -52,9 +51,7 @@
         <json-logic.version>1.0.7</json-logic.version>
 
         <!-- test dependencies versions -->
-        <junit.version>4.13.2</junit.version>
-        <junit-jupiter.version>5.10.2</junit-jupiter.version>
-        <mockito.version>4.11.0</mockito.version>
+<!--        <junit-jupiter.version>5.10.2</junit-jupiter.version>-->
         <assertj.version>3.24.2</assertj.version>
         <wiremock.version>2.35.1</wiremock.version>
         <awaitility.version>4.2.0</awaitility.version>
@@ -63,10 +60,8 @@
         <h2.version>2.2.220</h2.version>
         <spock.version>2.4-M2-groovy-4.0</spock.version>
         <groovy.version>4.0.15</groovy.version>
-        <testcontainers.version>1.17.4</testcontainers.version>
         <mockserver.version>5.14.0</mockserver.version>
         <aspectj.version>1.9.9.1</aspectj.version>
-        <bytebuddy.version>1.12.14</bytebuddy.version>
 
         <!-- plugin versions -->
         <checkstyle-plugin.version>3.1.2</checkstyle-plugin.version>
@@ -86,40 +81,6 @@
         <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring.boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.google.code.gson</groupId>
-                <artifactId>gson</artifactId>
-            </dependency>
-            <dependency>
-                <groupId>commons-codec</groupId>
-                <artifactId>commons-codec</artifactId>
-                <scope>compile</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpcore</artifactId>
-                <scope>compile</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.rabbitmq</groupId>
-                <artifactId>amqp-client</artifactId>
-            </dependency>
-            <dependency>
-                <groupId>org.jboss.logging</groupId>
-                <artifactId>jboss-logging</artifactId>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <dependencies>
         <dependency>
@@ -372,31 +333,6 @@
             <artifactId>json-logic-java</artifactId>
             <version>${json-logic.version}</version>
         </dependency>
-        <!-- Test -->
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.vintage</groupId>
-            <artifactId>junit-vintage-engine</artifactId>
-            <version>${junit-jupiter.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-core</artifactId>
-            <version>${mockito.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-junit-jupiter</artifactId>
-            <version>${mockito.version}</version>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
@@ -407,11 +343,6 @@
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
             <version>${awaitility.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -511,12 +442,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy</artifactId>
-            <version>${bytebuddy.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.spockframework</groupId>
             <artifactId>spock-core</artifactId>
             <version>${spock.version}</version>
@@ -561,19 +486,16 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mockserver</artifactId>
-            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mysql</artifactId>
-            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

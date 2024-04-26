@@ -3,9 +3,9 @@ package org.prebid.server.handler;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -35,7 +35,7 @@ public class AccountCacheInvalidationHandlerTest extends VertxTest {
     @Mock
     private HttpServerResponse httpResponse;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         handler = new AccountCacheInvalidationHandler(cachingApplicationSettings, "/endpoint");
 

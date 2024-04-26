@@ -8,9 +8,9 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -58,7 +58,7 @@ public class MultiFormatMediaTypeProcessorTest extends VertxTest {
 
     private MultiFormatMediaTypeProcessor target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new MultiFormatMediaTypeProcessor(bidderCatalog);
         when(bidderAliases.resolveBidder(anyString())).thenAnswer(invocation -> invocation.getArgument(0));

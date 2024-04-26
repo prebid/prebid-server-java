@@ -6,9 +6,9 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -67,7 +67,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
 
     private final RedisParser redisParser = new RedisParser(new ObjectMapper());
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new ConfiantAdQualityBidResponsesScanHook(bidsScanner, List.of(), userFpdActivityMask);
     }

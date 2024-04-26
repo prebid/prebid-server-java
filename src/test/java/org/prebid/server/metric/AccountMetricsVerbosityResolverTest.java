@@ -1,7 +1,7 @@
 package org.prebid.server.metric;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountMetricsConfig;
@@ -13,7 +13,7 @@ public class AccountMetricsVerbosityResolverTest {
 
     private AccountMetricsVerbosityResolver verbosity;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         verbosity = new AccountMetricsVerbosityResolver(AccountMetricsVerbosityLevel.none, singletonList("1"),
                 singletonList("2"));

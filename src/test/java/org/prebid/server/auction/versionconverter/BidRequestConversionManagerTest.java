@@ -1,9 +1,9 @@
 package org.prebid.server.auction.versionconverter;
 
 import com.iab.openrtb.request.BidRequest;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -23,7 +23,7 @@ public class BidRequestConversionManagerTest extends VertxTest {
 
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(ortbVersionConverterFactory.getConverter(eq(OrtbVersion.ORTB_2_6), eq(OrtbVersion.ORTB_2_5)))
                 .willReturn(bidRequest -> bidRequest.toBuilder().id("2.5").build());

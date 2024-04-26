@@ -15,9 +15,9 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -96,7 +96,7 @@ public class VideoRequestFactoryTest extends VertxTest {
     @Mock
     private DebugResolver debugResolver;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.video)))
                 .willReturn(AuctionContext.builder().build());

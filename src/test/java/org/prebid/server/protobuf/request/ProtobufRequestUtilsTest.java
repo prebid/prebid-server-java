@@ -35,9 +35,9 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
 import com.iabtechlab.openrtb.v2.OpenRtb;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -157,7 +157,7 @@ public class ProtobufRequestUtilsTest extends VertxTest {
     @Mock
     private ProtobufMapper<Regs, OpenRtb.BidRequest.Regs> regsMapper;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(segmentMapper.map(givenSegment())).willReturn(givenProtobufSegment());
         given(formatMapper.map(givenFormat())).willReturn(givenProtobufFormat());

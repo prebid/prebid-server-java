@@ -2,7 +2,7 @@ package org.prebid.server.it;
 
 import io.restassured.response.Response;
 import org.json.JSONException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.model.Endpoint;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -36,4 +36,3 @@ public class UndertoneTest extends IntegrationTest {
     }
 
 }
-

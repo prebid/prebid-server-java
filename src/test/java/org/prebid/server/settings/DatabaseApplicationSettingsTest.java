@@ -2,9 +2,9 @@ package org.prebid.server.settings;
 
 import io.vertx.core.Future;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -63,7 +63,7 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
 
     private Timeout timeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(5000L);
         given(parametrizedQueryHelper.replaceAccountIdPlaceholder(SELECT_ACCOUNT_QUERY)).willReturn("query");

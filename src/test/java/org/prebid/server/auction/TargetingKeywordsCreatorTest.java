@@ -2,7 +2,7 @@ package org.prebid.server.auction;
 
 import com.iab.openrtb.response.Bid;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.proto.openrtb.ext.request.ExtGranularityRange;

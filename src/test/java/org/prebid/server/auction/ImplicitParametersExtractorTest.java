@@ -2,9 +2,9 @@ package org.prebid.server.auction;
 
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixList;
 import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.exception.PreBidException;
@@ -24,7 +24,7 @@ public class ImplicitParametersExtractorTest {
 
     private ImplicitParametersExtractor extractor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         extractor = new ImplicitParametersExtractor(psl);
     }

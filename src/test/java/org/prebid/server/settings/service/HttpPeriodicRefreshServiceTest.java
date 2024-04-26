@@ -5,9 +5,9 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -54,7 +54,7 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
     private final Map<String, String> expectedRequests = singletonMap("id1", "{\"field1\":\"field-value1\"}");
     private final Map<String, String> expectedImps = singletonMap("id2", "{\"field2\":\"field-value2\"}");
 
-    @Before
+    @BeforeEach
     public void setUp() throws JsonProcessingException {
 
         final HttpClientResponse initialResponse = HttpClientResponse.of(200, null,

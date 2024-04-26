@@ -3,8 +3,8 @@ package org.prebid.server.activity.infrastructure.creator.privacy.uscustomlogic;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.github.jamsesso.jsonlogic.ast.JsonLogicBoolean;
 import io.github.jamsesso.jsonlogic.evaluator.JsonLogicEvaluationException;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -58,7 +58,7 @@ public class USCustomLogicModuleCreatorTest extends VertxTest {
 
     private USCustomLogicModuleCreator target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(gppReaderFactory.forSection(anyInt(), anyBoolean(), any()))
                 .willReturn(new USNationalGppReader(null));

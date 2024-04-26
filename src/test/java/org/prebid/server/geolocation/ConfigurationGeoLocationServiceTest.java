@@ -3,7 +3,7 @@ package org.prebid.server.geolocation;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;

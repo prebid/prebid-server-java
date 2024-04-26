@@ -1,9 +1,9 @@
 package org.prebid.server.validation;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -56,7 +56,7 @@ public class BidderParamValidatorTest extends VertxTest {
 
     private BidderParamValidator bidderParamValidator;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(bidderCatalog.names()).willReturn(new HashSet<>(asList(
                 RUBICON,

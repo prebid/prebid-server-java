@@ -1,6 +1,6 @@
 package org.prebid.server.it;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.VertxTest;
 import org.springframework.boot.test.context.SpringBootTest;

@@ -1,8 +1,8 @@
 package org.prebid.server.floors;
 
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -31,7 +31,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
 
     private PriceFloorsConfigResolver target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new PriceFloorsConfigResolver(metrics);
     }

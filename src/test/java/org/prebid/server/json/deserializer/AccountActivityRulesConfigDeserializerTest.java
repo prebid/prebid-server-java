@@ -6,9 +6,9 @@ import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -41,7 +41,7 @@ public class AccountActivityRulesConfigDeserializerTest {
     @Mock
     private ObjectCodec codec;
 
-    @Before
+    @BeforeEach
     public void setUp() throws IOException {
         target = new AccountActivityRulesConfigDeserializer();
     }

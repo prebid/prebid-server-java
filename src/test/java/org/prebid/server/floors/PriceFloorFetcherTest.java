@@ -5,9 +5,9 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -72,7 +72,7 @@ public class PriceFloorFetcherTest extends VertxTest {
 
     private PriceFloorFetcher priceFloorFetcher;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         debugProperties = new PriceFloorDebugProperties();
         priceFloorFetcher = new PriceFloorFetcher(

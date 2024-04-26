@@ -5,9 +5,9 @@ import com.iab.gpp.encoder.error.EncodingException;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -43,7 +43,7 @@ public class AmpGppServiceTest {
 
     private AmpGppService ampGppService;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         ampGppService = new AmpGppService(gppService);
     }

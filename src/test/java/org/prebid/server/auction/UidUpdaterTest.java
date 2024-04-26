@@ -4,9 +4,9 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.User;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -54,7 +54,7 @@ public class UidUpdaterTest extends VertxTest {
     @Mock
     BidderAliases bidderAliases;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         uidUpdater = new UidUpdater(HOST_COOKIE_FAMILY, bidderCatalog, uidsCookieService);
 

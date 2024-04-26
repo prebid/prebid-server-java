@@ -14,9 +14,9 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.assertj.core.api.Assertions;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -101,7 +101,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
     private Device defaultDevice;
     private Network defaultNetwork;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new HuaweiAdsBidder(
                 jacksonMapper,

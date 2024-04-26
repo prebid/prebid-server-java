@@ -1,8 +1,8 @@
 package org.prebid.server.bidder.huaweiads;
 
 import com.iab.openrtb.request.Content;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.bidder.huaweiads.model.request.App;
 import org.prebid.server.bidder.huaweiads.model.request.PkgNameConvert;
 import org.prebid.server.exception.PreBidException;
@@ -17,7 +17,7 @@ public class HuaweiAppBuilderTest {
 
     private HuaweiAppBuilder target;
 
-    @Before
+    @BeforeEach
     public void before() {
         target = new HuaweiAppBuilder(Collections.emptyList());
     }

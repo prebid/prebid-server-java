@@ -1,8 +1,8 @@
 package org.prebid.server.events;
 
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.proto.openrtb.ext.response.Events;
@@ -16,7 +16,7 @@ public class EventsServiceTest {
 
     private EventsService eventsService;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         eventsService = new EventsService("http://external-url");
     }

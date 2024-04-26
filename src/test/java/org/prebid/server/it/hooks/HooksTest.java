@@ -2,7 +2,7 @@ package org.prebid.server.it.hooks;
 
 import io.restassured.response.Response;
 import org.json.JSONException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.it.IntegrationTest;
 import org.skyscreamer.jsonassert.JSONAssert;

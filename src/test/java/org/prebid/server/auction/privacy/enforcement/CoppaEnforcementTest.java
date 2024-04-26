@@ -3,9 +3,9 @@ package org.prebid.server.auction.privacy.enforcement;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -36,7 +36,7 @@ public class CoppaEnforcementTest {
 
     private CoppaEnforcement target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new CoppaEnforcement(userFpdCoppaMask, metrics);
     }

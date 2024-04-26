@@ -5,9 +5,9 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -45,7 +45,7 @@ public class HttpInteractionLoggerTest extends VertxTest {
 
     private HttpInteractionLogger target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new HttpInteractionLogger(jacksonMapper);
         given(routingContext.getBodyAsString()).willReturn("{}");

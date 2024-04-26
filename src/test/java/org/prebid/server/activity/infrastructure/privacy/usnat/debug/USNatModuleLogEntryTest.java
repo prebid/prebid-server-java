@@ -2,7 +2,7 @@ package org.prebid.server.activity.infrastructure.privacy.usnat.debug;
 
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.gpp.encoder.GppModel;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;

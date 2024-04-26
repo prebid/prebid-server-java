@@ -1,7 +1,7 @@
 package org.prebid.server.activity.infrastructure.creator.rule;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -33,7 +33,7 @@ public class PrivacyModulesRuleCreatorTest {
 
     private PrivacyModulesRuleCreator target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(privacyModuleCreator.qualifier()).willReturn(PrivacyModuleQualifier.US_NAT);
 

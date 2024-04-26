@@ -3,9 +3,9 @@ package org.prebid.server.json.deserializer;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -33,7 +33,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
     @Mock
     private DeserializationContext context;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         commaSeparatedStringAsListOfIntegersDeserializer = new CommaSeparatedStringAsListOfIntegersDeserializer();
     }

@@ -2,9 +2,9 @@ package org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature;
 
 import com.iabtcf.decoder.TCString;
 import com.iabtcf.utils.IntIterable;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -37,7 +37,7 @@ public class SpecialFeaturesOneStrategyTest {
     @Mock
     private IntIterable specialFeatureOptIns;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(tcString.getSpecialFeatureOptIns()).willReturn(specialFeatureOptIns);
         given(specialFeatureOptIns.contains(anyInt())).willReturn(false);

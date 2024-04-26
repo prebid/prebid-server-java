@@ -19,8 +19,8 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.assertj.core.groups.Tuple;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -50,7 +50,7 @@ public class SilverPushBidderTest extends VertxTest {
 
     private SilverPushBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new SilverPushBidder(ENDPOINT_URL, jacksonMapper);
     }

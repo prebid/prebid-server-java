@@ -2,9 +2,9 @@ package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
 
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.section.UspCoV1;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -29,7 +29,7 @@ public class USMappedColoradoGppReaderTest {
 
     private USMappedColoradoGppReader gppReader;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(gppModel.getUspCoV1Section()).willReturn(uspCoV1);
 

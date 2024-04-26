@@ -4,9 +4,9 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.User;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -33,7 +33,7 @@ public class UserFpdTcfMaskTest extends VertxTest {
 
     private UserFpdTcfMask target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new UserFpdTcfMask(ipAddressHelper);
     }

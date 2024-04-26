@@ -3,9 +3,9 @@ package org.prebid.server.floors;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -45,7 +45,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
 
     private BasicPriceFloorAdjuster basicPriceFloorAdjuster;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(floorAdjustmentFactorResolver.resolve(anySet(), any(), any())).willReturn(BigDecimal.ONE);
 

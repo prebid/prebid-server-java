@@ -18,9 +18,9 @@ import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import org.assertj.core.api.AssertionsForClassTypes;
 import org.jetbrains.annotations.NotNull;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -77,7 +77,7 @@ public class SharethroughBidderTest extends VertxTest {
 
     private SharethroughBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new SharethroughBidder(ENDPOINT_URL,
                 currencyConversionService,

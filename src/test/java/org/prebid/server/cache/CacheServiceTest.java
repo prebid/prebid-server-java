@@ -8,9 +8,9 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -105,7 +105,7 @@ public class CacheServiceTest extends VertxTest {
 
     private Timeout expiredTimeout;
 
-    @Before
+    @BeforeEach
     public void setUp() throws MalformedURLException, JsonProcessingException {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 

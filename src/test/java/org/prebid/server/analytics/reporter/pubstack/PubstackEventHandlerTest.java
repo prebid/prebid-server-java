@@ -4,9 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -50,7 +50,7 @@ public class PubstackEventHandlerTest extends VertxTest {
 
     private PubstackEventHandler pubstackEventHandler;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(vertx.setTimer(anyLong(), any())).willReturn(1L, 2L);
         final PubstackAnalyticsProperties properties = PubstackAnalyticsProperties.builder()

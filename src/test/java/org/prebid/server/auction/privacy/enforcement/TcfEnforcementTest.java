@@ -6,9 +6,9 @@ import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.User;
 import io.vertx.core.Future;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -65,7 +65,7 @@ public class TcfEnforcementTest {
     @Mock
     private BidderAliases aliases;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(userFpdTcfMask.maskUser(any(), anyBoolean(), anyBoolean(), anyBoolean(), anySet()))
                 .willAnswer(invocation -> invocation.getArgument(0));

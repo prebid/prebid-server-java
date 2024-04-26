@@ -16,9 +16,9 @@ import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
-import org.junit.After;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
@@ -76,7 +76,7 @@ public abstract class IntegrationTest extends VertxTest {
     private static final String USER_SERVICE_PATH = "/user-data-details";
     private static final String USER_SERVICE_ENDPOINT = "http://" + HOST_AND_PORT + USER_SERVICE_PATH;
 
-    @BeforeClass
+    @BeforeAll
     public static void setUp() throws IOException {
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/periodic-update"))
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
@@ -84,7 +84,7 @@ public abstract class IntegrationTest extends VertxTest {
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
     }
 
-    @After
+    @AfterEach
     public void resetWireMock() {
         WIRE_MOCK_RULE.resetAll();
     }

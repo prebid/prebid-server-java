@@ -11,9 +11,9 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -78,7 +78,7 @@ public class StoredRequestProcessorTest extends VertxTest {
 
     private StoredRequestProcessor storedRequestProcessor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(idGenerator.generateId()).willReturn("generated-stored-id");
 

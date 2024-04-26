@@ -4,9 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -57,7 +57,7 @@ public class UidsCookieServiceTest extends VertxTest {
 
     private UidsCookieService uidsCookieService;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         uidsCookieService = new UidsCookieService(
                 "trp_optout",

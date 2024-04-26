@@ -5,10 +5,10 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.After;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.BDDMockito;
@@ -45,7 +45,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
 
     private CircuitBreakerSecuredGeoLocationService geoLocationService;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -53,7 +53,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
                 100L, 200L, clock);
     }
 
-    @After
+    @AfterEach
     public void tearDown(TestContext context) {
         vertx.close(context.asyncAssertSuccess());
     }

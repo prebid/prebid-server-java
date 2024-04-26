@@ -14,10 +14,10 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import lombok.Value;
 import lombok.experimental.NonFinal;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -121,14 +121,14 @@ public class HookStageExecutorTest extends VertxTest {
     private Vertx vertx;
     private Clock clock;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
         clock = Clock.systemUTC();
         timeoutFactory = new TimeoutFactory(Clock.fixed(clock.instant(), ZoneOffset.UTC));
     }
 
-    @After
+    @AfterEach
     public void tearDown(TestContext context) {
         vertx.close(context.asyncAssertSuccess());
     }

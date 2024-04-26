@@ -19,7 +19,7 @@ import io.restassured.specification.RequestSpecification;
 import org.apache.commons.collections4.CollectionUtils;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.cookie.model.CookieSyncStatus;

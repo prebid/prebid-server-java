@@ -2,7 +2,7 @@ package org.prebid.server.activity.infrastructure.privacy.usnat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;

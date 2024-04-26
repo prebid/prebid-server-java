@@ -1,7 +1,7 @@
 package org.prebid.server.activity.infrastructure.creator.privacy.usnat;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -38,7 +38,7 @@ public class USNatModuleCreatorTest {
 
     private USNatModuleCreator target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(gppReaderFactory.forSection(anyInt(), any())).willReturn(new USNationalGppReader(null));
 

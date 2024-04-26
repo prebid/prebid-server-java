@@ -1,9 +1,9 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
@@ -24,7 +24,7 @@ public class UpdatableMetricsTest {
     private MetricRegistry metricRegistry;
     private UpdatableMetrics updatableMetrics;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         metricRegistry = new MetricRegistry();
         updatableMetrics = givenUpdatableMetricsWith(CounterType.counter);

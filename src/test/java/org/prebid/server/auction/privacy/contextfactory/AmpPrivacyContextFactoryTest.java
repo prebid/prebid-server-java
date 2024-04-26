@@ -5,9 +5,9 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -57,7 +57,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
 
     private AmpPrivacyContextFactory target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new AmpPrivacyContextFactory(
                 privacyExtractor,

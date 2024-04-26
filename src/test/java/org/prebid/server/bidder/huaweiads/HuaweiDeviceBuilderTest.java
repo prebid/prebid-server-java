@@ -2,9 +2,9 @@ package org.prebid.server.bidder.huaweiads;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.User;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -31,7 +31,7 @@ public class HuaweiDeviceBuilderTest extends VertxTest {
 
     private HuaweiDeviceBuilder target;
 
-    @Before
+    @BeforeEach
     public void before() {
         target = new HuaweiDeviceBuilder(jacksonMapper, clientTimeFormatter);
         given(clientTimeFormatter.now()).willReturn("clientTimeNow");

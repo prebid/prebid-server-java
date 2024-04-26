@@ -3,9 +3,9 @@ package org.prebid.server.auction.gpp.processor.tcfeuv2;
 import com.iab.gpp.encoder.GppModel;
 import com.iab.gpp.encoder.error.EncodingException;
 import com.iab.gpp.encoder.section.TcfEuV2;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -29,7 +29,7 @@ public class TcfEuV2ContextProcessorTest {
     @Mock
     private GppModel gppModel;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(gppModel.hasSection(TcfEuV2.ID)).willReturn(false);
 

@@ -13,9 +13,9 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
@@ -102,7 +102,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     private Timeout timeout;
     private Timeout expiredTimeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(bidderErrorNotifier.processTimeout(any(), any())).will(invocation -> invocation.getArgument(0));
         given(routingContext.request()).willReturn(httpServerRequest);

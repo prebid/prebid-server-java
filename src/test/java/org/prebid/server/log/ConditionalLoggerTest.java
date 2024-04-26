@@ -4,10 +4,10 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -33,13 +33,13 @@ public class ConditionalLoggerTest {
 
     private ConditionalLogger conditionalLogger;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
         conditionalLogger = new ConditionalLogger(logger);
     }
 
-    @After
+    @AfterEach
     public void tearDown(TestContext context) {
         vertx.close(context.asyncAssertSuccess());
     }

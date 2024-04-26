@@ -37,9 +37,9 @@ import io.vertx.core.http.HttpMethod;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.assertj.core.groups.Tuple;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -159,7 +159,7 @@ public class RubiconBidderTest extends VertxTest {
 
     private RubiconBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new RubiconBidder(ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, false,
                 currencyConversionService, priceFloorResolver, jacksonMapper);

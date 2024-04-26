@@ -4,9 +4,9 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.sqlclient.Pool;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -40,7 +40,7 @@ public class DatabaseHealthCheckerTest {
 
     private DatabaseHealthChecker target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new DatabaseHealthChecker(vertx, pool, TEST_REFRESH_PERIOD);
     }

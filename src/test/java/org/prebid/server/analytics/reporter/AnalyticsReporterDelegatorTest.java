@@ -12,9 +12,9 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
@@ -85,7 +85,7 @@ public class AnalyticsReporterDelegatorTest {
     @Mock
     private ActivityInfrastructure activityInfrastructure;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         firstReporter = mock(AnalyticsReporter.class);
         given(firstReporter.vendorId()).willReturn(FIRST_REPORTER_ID);

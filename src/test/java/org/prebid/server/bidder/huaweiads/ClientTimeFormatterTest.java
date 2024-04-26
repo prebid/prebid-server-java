@@ -1,8 +1,8 @@
 package org.prebid.server.bidder.huaweiads;
 
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -26,7 +26,7 @@ public class ClientTimeFormatterTest {
 
     private ClientTimeFormatter target;
 
-    @Before
+    @BeforeEach
     public void before() {
         target = new ClientTimeFormatter(clock);
         given(clock.instant()).willReturn(Instant.ofEpochMilli(FEB_24_2022_04_00_05));

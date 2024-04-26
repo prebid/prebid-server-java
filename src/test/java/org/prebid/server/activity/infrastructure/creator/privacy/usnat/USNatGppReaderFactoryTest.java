@@ -1,6 +1,6 @@
 package org.prebid.server.activity.infrastructure.creator.privacy.usnat;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.activity.infrastructure.privacy.PrivacySection;
 import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USMappedCaliforniaGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USMappedColoradoGppReader;

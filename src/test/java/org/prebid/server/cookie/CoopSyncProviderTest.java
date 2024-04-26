@@ -1,8 +1,8 @@
 package org.prebid.server.cookie;
 
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -37,7 +37,7 @@ public class CoopSyncProviderTest {
 
     private CoopSyncProvider target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new CoopSyncProvider(bidderCatalog, prioritizedCoopSyncProvider, false);
     }

@@ -10,9 +10,9 @@ import com.codahale.metrics.Timer;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -53,7 +53,7 @@ public class CollectedMetricsHandlerTest extends VertxTest {
     @Mock
     private CollectedMetricsHandler metricsHandler;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         metricsHandler = new CollectedMetricsHandler(metricRegistry, jacksonMapper, "/endpoint");
 

@@ -5,9 +5,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.exc.MismatchedInputException;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -34,7 +34,7 @@ public class IntegerFlagDeserializerTest {
     @Mock
     private DeserializationContext deserializationContext;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         integerFlagDeserializer = new IntegerFlagDeserializer();
     }

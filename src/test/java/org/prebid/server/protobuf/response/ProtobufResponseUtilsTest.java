@@ -16,9 +16,9 @@ import com.iab.openrtb.response.SeatBid;
 import com.iab.openrtb.response.TitleObject;
 import com.iab.openrtb.response.VideoObject;
 import com.iabtechlab.openrtb.v2.OpenRtb;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -73,7 +73,7 @@ public class ProtobufResponseUtilsTest extends VertxTest {
     @Mock
     private ProtobufMapper<OpenRtb.BidResponse.SeatBid, SeatBid> seatBidMapper;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(titleMapper.map(givenProtobufNativeTitle())).willReturn(givenNativeTitle());
         given(dataMapper.map(givenProtobufNativeData())).willReturn(givenNativeData());

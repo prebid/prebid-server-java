@@ -1,6 +1,6 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.inner;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;

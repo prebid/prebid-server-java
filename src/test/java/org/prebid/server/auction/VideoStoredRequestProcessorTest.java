@@ -16,9 +16,9 @@ import com.iab.openrtb.request.video.Podconfig;
 import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -83,7 +83,7 @@ public class VideoStoredRequestProcessorTest extends VertxTest {
 
     private VideoStoredRequestProcessor target;
 
-    @Before
+    @BeforeEach
     public void setUp() throws JsonProcessingException {
         given(fileSystem.readFileBlocking(anyString()))
                 .willReturn(Buffer.buffer(mapper.writeValueAsString(BidRequest.builder().at(1).build())));

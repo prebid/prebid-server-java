@@ -1,9 +1,9 @@
 package org.prebid.server.privacy.gdpr.tcfstrategies.purpose;
 
 import com.iabtcf.decoder.TCString;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -52,7 +52,7 @@ public class Purpose02StrategyTest {
     @Mock
     private TCString tcString;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new Purpose02Strategy(
                 fullEnforcePurposeStrategy,

@@ -12,9 +12,9 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpHeaders;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -82,7 +82,7 @@ public class RemoteFileSyncerTest extends VertxTest {
 
     private RemoteFileSyncer remoteFileSyncer;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(vertx.fileSystem()).thenReturn(fileSystem);
         remoteFileSyncer = new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,

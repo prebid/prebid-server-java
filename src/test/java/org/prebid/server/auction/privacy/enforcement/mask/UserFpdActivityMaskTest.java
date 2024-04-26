@@ -2,9 +2,9 @@ package org.prebid.server.auction.privacy.enforcement.mask;
 
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.User;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -24,7 +24,7 @@ public class UserFpdActivityMaskTest {
 
     private UserFpdActivityMask target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new UserFpdActivityMask(userFpdTcfMask);
     }

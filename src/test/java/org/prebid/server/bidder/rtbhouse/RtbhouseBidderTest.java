@@ -2,16 +2,16 @@ package org.prebid.server.bidder.rtbhouse;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -53,7 +53,7 @@ public class RtbhouseBidderTest extends VertxTest {
 
     private RtbhouseBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new RtbhouseBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
     }

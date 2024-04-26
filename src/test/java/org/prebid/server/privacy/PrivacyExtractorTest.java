@@ -4,9 +4,9 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
 import io.vertx.core.http.HttpServerRequest;
-import org.junit.Before;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
@@ -32,7 +32,7 @@ public class PrivacyExtractorTest extends VertxTest {
 
     private PrivacyExtractor privacyExtractor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         privacyExtractor = new PrivacyExtractor();
     }

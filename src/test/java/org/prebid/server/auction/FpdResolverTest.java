@@ -9,9 +9,9 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import org.junit.Before;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
@@ -35,7 +35,7 @@ public class FpdResolverTest extends VertxTest {
 
     private FpdResolver target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new FpdResolver(jacksonMapper, new JsonMerger(jacksonMapper));
     }
