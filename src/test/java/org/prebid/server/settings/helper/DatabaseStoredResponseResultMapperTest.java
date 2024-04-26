@@ -25,7 +25,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
-public class JdbcStoredResponseResultMapperTest {
+public class DatabaseStoredResponseResultMapperTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -39,7 +39,7 @@ public class JdbcStoredResponseResultMapperTest {
         givenRowSet();
 
         // when
-        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(rowSet, emptySet());
+        final StoredResponseDataResult result = DatabaseStoredResponseResultMapper.map(rowSet, emptySet());
 
         // then
         assertThat(result.getIdToStoredResponses()).isEmpty();
@@ -53,7 +53,7 @@ public class JdbcStoredResponseResultMapperTest {
         givenRowSet(givenRow("id1"));
 
         // when
-        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(rowSet, emptySet());
+        final StoredResponseDataResult result = DatabaseStoredResponseResultMapper.map(rowSet, emptySet());
 
         // then
         assertThat(result.getIdToStoredResponses()).isEmpty();
@@ -67,7 +67,7 @@ public class JdbcStoredResponseResultMapperTest {
         givenRowSet(givenRow("id1", "data"));
 
         // when
-        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(rowSet, Set.of("id1", "id2"));
+        final StoredResponseDataResult result = DatabaseStoredResponseResultMapper.map(rowSet, Set.of("id1", "id2"));
 
         // then
         assertThat(result.getIdToStoredResponses()).hasSize(1)
@@ -82,7 +82,7 @@ public class JdbcStoredResponseResultMapperTest {
         givenRowSet();
 
         // when
-        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(rowSet, singleton("id"));
+        final StoredResponseDataResult result = DatabaseStoredResponseResultMapper.map(rowSet, singleton("id"));
 
         // then
         assertThat(result.getIdToStoredResponses()).isEmpty();
@@ -96,7 +96,7 @@ public class JdbcStoredResponseResultMapperTest {
         givenRowSet(givenRow("id1", "data1"), givenRow("id2", "data2"));
 
         // when
-        final StoredResponseDataResult result = JdbcStoredResponseResultMapper.map(rowSet, Set.of("id1", "id2"));
+        final StoredResponseDataResult result = DatabaseStoredResponseResultMapper.map(rowSet, Set.of("id1", "id2"));
 
         // then
         assertThat(result.getIdToStoredResponses()).hasSize(2)

@@ -13,9 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class JdbcStoredResponseResultMapper {
+public class DatabaseStoredResponseResultMapper {
 
-    private JdbcStoredResponseResultMapper() {
+    private DatabaseStoredResponseResultMapper() {
     }
 
     public static StoredResponseDataResult map(RowSet<Row> rowSet, Set<String> responseIds) {

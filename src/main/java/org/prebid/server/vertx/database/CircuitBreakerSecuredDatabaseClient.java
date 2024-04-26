@@ -1,4 +1,4 @@
-package org.prebid.server.vertx.jdbc;
+package org.prebid.server.vertx.database;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -18,26 +18,26 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
- * JDBC Client wrapped by {@link CircuitBreaker} to achieve robust operating.
+ * Database Client wrapped by {@link CircuitBreaker} to achieve robust operating.
  */
-public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
+public class CircuitBreakerSecuredDatabaseClient implements DatabaseClient {
 
-    private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredJdbcClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(CircuitBreakerSecuredDatabaseClient.class);
     private static final ConditionalLogger conditionalLogger = new ConditionalLogger(logger);
     private static final int LOG_PERIOD_SECONDS = 5;
 
-    private final JdbcClient jdbcClient;
+    private final DatabaseClient databaseClient;
     private final CircuitBreaker breaker;
 
-    public CircuitBreakerSecuredJdbcClient(Vertx vertx,
-                                           JdbcClient jdbcClient,
-                                           Metrics metrics,
-                                           int openingThreshold,
-                                           long openingIntervalMs,
-                                           long closingIntervalMs,
-                                           Clock clock) {
+    public CircuitBreakerSecuredDatabaseClient(Vertx vertx,
+                                               DatabaseClient databaseClient,
+                                               Metrics metrics,
+                                               int openingThreshold,
+                                               long openingIntervalMs,
+                                               long closingIntervalMs,
+                                               Clock clock) {
 
-        this.jdbcClient = Objects.requireNonNull(jdbcClient);
+        this.databaseClient = Objects.requireNonNull(databaseClient);
 
         breaker = new CircuitBreaker(
                 "db_cb",
@@ -52,7 +52,7 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
 
         metrics.createDatabaseCircuitBreakerGauge(breaker::isOpen);
 
-        logger.info("Initialized JDBC client with Circuit Breaker");
+        logger.info("Initialized database client with Circuit Breaker");
     }
 
     @Override
@@ -61,7 +61,8 @@ public class CircuitBreakerSecuredJdbcClient implements JdbcClient {
                                       Function<RowSet<Row>, T> mapper,
                                       Timeout timeout) {
 
-        return breaker.execute(promise -> jdbcClient.executeQuery(query, params, mapper, timeout).onComplete(promise));
+        return breaker.execute(
+                promise -> databaseClient.executeQuery(query, params, mapper, timeout).onComplete(promise));
     }
 
     private void circuitOpened() {

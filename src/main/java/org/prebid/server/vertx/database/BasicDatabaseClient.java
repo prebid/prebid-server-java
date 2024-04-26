@@ -1,4 +1,4 @@
-package org.prebid.server.vertx.jdbc;
+package org.prebid.server.vertx.database;
 
 import io.vertx.core.Future;
 import io.vertx.sqlclient.Pool;
@@ -21,15 +21,15 @@ import java.util.function.Function;
 /**
  * Wrapper over {@link Pool} that supports setting query timeout in milliseconds.
  */
-public class BasicJdbcClient implements JdbcClient {
+public class BasicDatabaseClient implements DatabaseClient {
 
-    private static final Logger logger = LoggerFactory.getLogger(BasicJdbcClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(BasicDatabaseClient.class);
 
     private final Pool pool;
     private final Metrics metrics;
     private final Clock clock;
 
-    public BasicJdbcClient(Pool pool, Metrics metrics, Clock clock) {
+    public BasicDatabaseClient(Pool pool, Metrics metrics, Clock clock) {
         this.pool = Objects.requireNonNull(pool);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -43,7 +43,7 @@ public class BasicJdbcClient implements JdbcClient {
      */
     public Future<Void> initialize() {
         return pool.getConnection()
-                .recover(BasicJdbcClient::logConnectionError)
+                .recover(BasicDatabaseClient::logConnectionError)
                 .mapEmpty();
     }
 
@@ -60,7 +60,7 @@ public class BasicJdbcClient implements JdbcClient {
         final long startTime = clock.millis();
 
         return pool.getConnection()
-                .recover(BasicJdbcClient::logConnectionError)
+                .recover(BasicDatabaseClient::logConnectionError)
                 .compose(connection -> makeQuery(connection, query, params))
                 .timeout(remainingTimeout, TimeUnit.MILLISECONDS)
                 .recover(this::handleFailure)

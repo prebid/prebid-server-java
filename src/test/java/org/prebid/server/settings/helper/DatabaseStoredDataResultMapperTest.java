@@ -24,7 +24,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
 
-public class JdbcStoredDataResultMapperTest {
+public class DatabaseStoredDataResultMapperTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -38,7 +38,7 @@ public class JdbcStoredDataResultMapperTest {
         givenRowSet();
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(rowSet, null, emptySet(), emptySet());
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet, null, emptySet(), emptySet());
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -53,7 +53,7 @@ public class JdbcStoredDataResultMapperTest {
         givenRowSet();
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 null,
                 singleton("reqId"),
@@ -72,7 +72,7 @@ public class JdbcStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data"));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "accountId",
                 singleton("reqId"),
@@ -91,7 +91,7 @@ public class JdbcStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data", 123));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "accountId",
                 singleton("reqId"),
@@ -112,7 +112,7 @@ public class JdbcStoredDataResultMapperTest {
                 givenRow("accountId", "id1", "data2", "invalid"));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "accountId",
                 singleton("id1"),
@@ -131,7 +131,7 @@ public class JdbcStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data1", "request"));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "accountId",
                 singleton("id1"),
@@ -153,7 +153,7 @@ public class JdbcStoredDataResultMapperTest {
                 givenRow("accountId", "id2", "data2", "imp"));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "otherAccountId",
                 singleton("id1"),
@@ -176,7 +176,7 @@ public class JdbcStoredDataResultMapperTest {
                 givenRow("accountId2", "id1", "data2", "request"));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 null,
                 singleton("id1"),
@@ -199,7 +199,7 @@ public class JdbcStoredDataResultMapperTest {
                 givenRow("accountId2", "id2", "data-otherAccountId", "imp"));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "otherAccountId",
                 singleton("id1"),
@@ -224,7 +224,7 @@ public class JdbcStoredDataResultMapperTest {
                 givenRow("otherAccountId", "id2", "data-otherAccountId", "imp"));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(
                 rowSet,
                 "accountId",
                 singleton("id1"),
@@ -244,7 +244,7 @@ public class JdbcStoredDataResultMapperTest {
         givenRowSet();
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(rowSet);
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -261,7 +261,7 @@ public class JdbcStoredDataResultMapperTest {
                 givenRow("accountId", "id2", "data2", "invalid"));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(rowSet);
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).hasSize(1)
@@ -276,7 +276,7 @@ public class JdbcStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data"));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(rowSet);
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -291,7 +291,7 @@ public class JdbcStoredDataResultMapperTest {
         givenRowSet(givenRow("accountId", "id1", "data", 123));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(rowSet);
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).isEmpty();
@@ -307,7 +307,7 @@ public class JdbcStoredDataResultMapperTest {
                 givenRow("accountId", "id2", "data2", "imp"));
 
         // when
-        final StoredDataResult result = JdbcStoredDataResultMapper.map(rowSet);
+        final StoredDataResult result = DatabaseStoredDataResultMapper.map(rowSet);
 
         // then
         assertThat(result.getStoredIdToRequest()).hasSize(1)

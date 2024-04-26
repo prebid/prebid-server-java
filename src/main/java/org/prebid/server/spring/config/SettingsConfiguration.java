@@ -19,14 +19,14 @@ import org.prebid.server.settings.CompositeApplicationSettings;
 import org.prebid.server.settings.EnrichingApplicationSettings;
 import org.prebid.server.settings.FileApplicationSettings;
 import org.prebid.server.settings.HttpApplicationSettings;
-import org.prebid.server.settings.JdbcApplicationSettings;
+import org.prebid.server.settings.DatabaseApplicationSettings;
 import org.prebid.server.settings.SettingsCache;
 import org.prebid.server.settings.helper.ParametrizedQueryHelper;
 import org.prebid.server.settings.service.HttpPeriodicRefreshService;
-import org.prebid.server.settings.service.JdbcPeriodicRefreshService;
+import org.prebid.server.settings.service.DatabasePeriodicRefreshService;
 import org.prebid.server.spring.config.database.DatabaseConfiguration;
 import org.prebid.server.vertx.httpclient.HttpClient;
-import org.prebid.server.vertx.jdbc.JdbcClient;
+import org.prebid.server.vertx.database.DatabaseClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -73,17 +73,17 @@ public class SettingsConfiguration {
     static class DatabaseSettingsConfiguration {
 
         @Bean
-        JdbcApplicationSettings jdbcApplicationSettings(
+        DatabaseApplicationSettings databaseApplicationSettings(
                 @Value("${settings.database.account-query}") String accountQuery,
                 @Value("${settings.database.stored-requests-query}") String storedRequestsQuery,
                 @Value("${settings.database.amp-stored-requests-query}") String ampStoredRequestsQuery,
                 @Value("${settings.database.stored-responses-query}") String storedResponsesQuery,
                 ParametrizedQueryHelper parametrizedQueryHelper,
-                JdbcClient jdbcClient,
+                DatabaseClient databaseClient,
                 JacksonMapper jacksonMapper) {
 
-            return new JdbcApplicationSettings(
-                    jdbcClient,
+            return new DatabaseApplicationSettings(
+                    databaseClient,
                     jacksonMapper,
                     parametrizedQueryHelper,
                     accountQuery,
@@ -151,21 +151,21 @@ public class SettingsConfiguration {
 
     @Configuration
     @ConditionalOnProperty(
-            prefix = "settings.in-memory-cache.jdbc-update",
+            prefix = "settings.in-memory-cache.database-update",
             name = {"refresh-rate", "timeout", "init-query", "update-query", "amp-init-query", "amp-update-query"})
-    static class JdbcPeriodicRefreshServiceConfiguration {
+    static class DatabasePeriodicRefreshServiceConfiguration {
 
-        @Value("${settings.in-memory-cache.jdbc-update.refresh-rate}")
+        @Value("${settings.in-memory-cache.database-update.refresh-rate}")
         long refreshPeriod;
 
-        @Value("${settings.in-memory-cache.jdbc-update.timeout}")
+        @Value("${settings.in-memory-cache.database-update.timeout}")
         long timeout;
 
         @Autowired
         Vertx vertx;
 
         @Autowired
-        JdbcClient jdbcClient;
+        DatabaseClient databaseClient;
 
         @Autowired
         TimeoutFactory timeoutFactory;
@@ -177,12 +177,12 @@ public class SettingsConfiguration {
         Clock clock;
 
         @Bean
-        public JdbcPeriodicRefreshService jdbcPeriodicRefreshService(
+        public DatabasePeriodicRefreshService databasePeriodicRefreshService(
                 @Qualifier("settingsCache") SettingsCache settingsCache,
-                @Value("${settings.in-memory-cache.jdbc-update.init-query}") String initQuery,
-                @Value("${settings.in-memory-cache.jdbc-update.update-query}") String updateQuery) {
+                @Value("${settings.in-memory-cache.database-update.init-query}") String initQuery,
+                @Value("${settings.in-memory-cache.database-update.update-query}") String updateQuery) {
 
-            return new JdbcPeriodicRefreshService(
+            return new DatabasePeriodicRefreshService(
                     initQuery,
                     updateQuery,
                     refreshPeriod,
@@ -190,19 +190,19 @@ public class SettingsConfiguration {
                     MetricName.stored_request,
                     settingsCache,
                     vertx,
-                    jdbcClient,
+                    databaseClient,
                     timeoutFactory,
                     metrics,
                     clock);
         }
 
         @Bean
-        public JdbcPeriodicRefreshService ampJdbcPeriodicRefreshService(
+        public DatabasePeriodicRefreshService ampDatabasePeriodicRefreshService(
                 @Qualifier("ampSettingsCache") SettingsCache ampSettingsCache,
-                @Value("${settings.in-memory-cache.jdbc-update.amp-init-query}") String ampInitQuery,
-                @Value("${settings.in-memory-cache.jdbc-update.amp-update-query}") String ampUpdateQuery) {
+                @Value("${settings.in-memory-cache.database-update.amp-init-query}") String ampInitQuery,
+                @Value("${settings.in-memory-cache.database-update.amp-update-query}") String ampUpdateQuery) {
 
-            return new JdbcPeriodicRefreshService(
+            return new DatabasePeriodicRefreshService(
                     ampInitQuery,
                     ampUpdateQuery,
                     refreshPeriod,
@@ -210,7 +210,7 @@ public class SettingsConfiguration {
                     MetricName.amp_stored_request,
                     ampSettingsCache,
                     vertx,
-                    jdbcClient,
+                    databaseClient,
                     timeoutFactory,
                     metrics,
                     clock);
@@ -226,12 +226,12 @@ public class SettingsConfiguration {
         @Bean
         CompositeApplicationSettings compositeApplicationSettings(
                 @Autowired(required = false) FileApplicationSettings fileApplicationSettings,
-                @Autowired(required = false) JdbcApplicationSettings jdbcApplicationSettings,
+                @Autowired(required = false) DatabaseApplicationSettings databaseApplicationSettings,
                 @Autowired(required = false) HttpApplicationSettings httpApplicationSettings) {
 
             final List<ApplicationSettings> applicationSettingsList =
                     Stream.of(fileApplicationSettings,
-                                    jdbcApplicationSettings,
+                                    databaseApplicationSettings,
                                     httpApplicationSettings)
                             .filter(Objects::nonNull)
                             .toList();
