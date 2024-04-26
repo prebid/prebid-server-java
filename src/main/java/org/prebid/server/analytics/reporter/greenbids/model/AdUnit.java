@@ -12,8 +12,8 @@ public class AdUnit {
     @JsonProperty("code")
     String code;
 
-    //@JsonProperty("mediaTypes")
-    //MediaTypes mediaTypes;
+    @JsonProperty("mediaTypes")
+    MediaTypes mediaTypes;
 
     @JsonProperty("bidders")
     List<GreenbidsBidder> bidders;

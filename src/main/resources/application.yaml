@@ -294,7 +294,7 @@ analytics:
       count: 100
       report-ttl-ms: 900000
   greenbids:
-    pbuid: change-me
+    pbuid: PBUID_FROM_GREENBIDS
     greenbids-sampling: 0.9
 price-floors:
   enabled: false

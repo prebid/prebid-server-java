@@ -1,6 +1,8 @@
 package org.prebid.server.analytics.reporter.greenbids.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Video;
 import lombok.Builder;
 import lombok.Value;
 
@@ -8,5 +10,11 @@ import lombok.Value;
 @Value
 public class MediaTypes {
     @JsonProperty("banner")
-    Banner banner;
+    ExtBanner banner;
+
+    @JsonProperty("video")
+    Video video;
+
+    @JsonProperty("native")
+    Native nativeObject;
 }

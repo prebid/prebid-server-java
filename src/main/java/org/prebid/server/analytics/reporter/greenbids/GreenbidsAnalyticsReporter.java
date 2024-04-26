@@ -1,6 +1,9 @@
 package org.prebid.server.analytics.reporter.greenbids;
 
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
@@ -15,17 +18,21 @@ import org.prebid.server.analytics.reporter.greenbids.model.AdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.AuctionCacheManager;
 import org.prebid.server.analytics.reporter.greenbids.model.CachedAuction;
 import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
+import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBidder;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsConfig;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsEvent;
 import org.prebid.server.analytics.reporter.greenbids.model.HttpUtil;
+import org.prebid.server.analytics.reporter.greenbids.model.JsonUtil;
+import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -86,12 +93,13 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     }
 
 
-    public CommonMessage createCommonMessage(String auctiondId, AuctionEvent event) {
+    public CommonMessage createCommonMessage(String auctiondId, AuctionEvent event, Long auctionElapsed) {
         return new CommonMessage(
                 auctiondId,
                 event,
-                greenbidsSampling,
-                this.cachedAuction
+                greenbidsConfig,
+                cachedAuction,
+                auctionElapsed
         );
     }
 
@@ -111,6 +119,28 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             Map<String, NonBid> seatsWithNonBids
     ) {
         commonMessage.adUnits = imps.stream().map(imp -> {
+
+            // extract media types
+            Banner banner = imp.getBanner();
+            Video video = imp.getVideo();
+            Native nativeObject = imp.getXNative();
+
+            Integer width = banner.getFormat().get(0).getW();
+            Integer height = banner.getFormat().get(0).getH();
+
+            ExtBanner extBanner = ExtBanner.builder()
+                    .sizes(width != null && height != null ? Arrays.asList(Arrays.asList(width, height), Arrays.asList(width, height)) : null)
+                    .pos(banner.getPos())
+                    .name(banner.getId())
+                    .build();
+
+            MediaTypes mediaTypes = MediaTypes.builder()
+                    .banner(extBanner)
+                    .video(video)
+                    .nativeObject(nativeObject)
+                    .build();
+
+            // extract bidders;
             List<GreenbidsBidder> bidders = new ArrayList<>();
 
             // filter bidders in imp
@@ -147,11 +177,14 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                             "\n   imp: " + imp +
                             "\n   seatsWithBidsForImp: " + seatsWithBidsForImp +
                             "\n   seatsWithNonBidsForImp: " + seatsWithNonBidsForImp +
-                            "\n   bidders: " + bidders
+                            "\n   bidders: " + bidders +
+                            "\n   mediaTypes: " + mediaTypes
+
             );
 
             return AdUnit.builder()
                     .code(imp.getId())
+                    .mediaTypes(mediaTypes)
                     .bidders(bidders)
                     .build();
         }).toList();
@@ -166,7 +199,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         "\n   greenbidsId: " + commonMessage.greenbidsId +
                         "\n   pbuid: " + commonMessage.pbuid +
                         "\n   billingId: " + commonMessage.billingId +
-                        "\n   adUnits: " + commonMessage.adUnits
+                        "\n   adUnits: " + commonMessage.adUnits +
+                        "\n   auctionElapsed: " + commonMessage.auctionElapsed
         );
 
         return commonMessage;
@@ -224,7 +258,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         "\n   seatsWithNonBids: " + seatsWithNonBids
         );
 
-        CommonMessage commonMessage = createCommonMessage(auctionId, auctionEvent);
+        CommonMessage commonMessage = createCommonMessage(auctionId, auctionEvent, auctionElapsed);
 
         return addBidResponseToMessage(
                 commonMessage,
@@ -274,8 +308,14 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         CommonMessage commonMessage = createBidMessage(auctionEventGlobal);
 
-        // String commonMessageJson = JsonUtil.toJson(commonMessage);
-        String commonMessageJson = "{\"version\":\"1.0.0\",\"auctionId\":\"be567369-0c80-49e7-a7b5-aaaf8c426cd1\",\"referrer\":\"https://www.leparisien.fr/faits-divers/des-affrontements-entre-clans-qui-se-donnent-rendez-vous-la-reunion-debordee-par-les-combats-de-rue-18-04-2024-PVXC3BR5GZAKNEDUYCQQACUYBQ.php\",\"prebid\":\"7.54.2\",\"pbuid\":\"lelp-pbuid\",\"adUnits\":[{\"code\":\"/144148308/le-parisien_responsive/faits-divers/faits-divers/article/banniere-1\",\"mediaTypes\":{\"banner\":{\"sizes\":[[320,50]]}},\"bidders\":[{\"bidder\":\"appnexus\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"triplelift\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"criteo\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"ix\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"gravity-apn\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"mediasquare\",\"isTimeout\":false,\"hasBid\":false}]}],\"auctionElapsed\":373}";
+        String commonMessageJson = null;
+
+        try {
+            commonMessageJson = JsonUtil.toJson(commonMessage);
+            //commonMessageJson = "{\"version\":\"1.0.0\",\"auctionId\":\"be567369-0c80-49e7-a7b5-aaaf8c426cd1\",\"referrer\":\"https://www.leparisien.fr/faits-divers/des-affrontements-entre-clans-qui-se-donnent-rendez-vous-la-reunion-debordee-par-les-combats-de-rue-18-04-2024-PVXC3BR5GZAKNEDUYCQQACUYBQ.php\",\"prebid\":\"7.54.2\",\"pbuid\":\"lelp-pbuid\",\"adUnits\":[{\"code\":\"/144148308/le-parisien_responsive/faits-divers/faits-divers/article/banniere-1\",\"mediaTypes\":{\"banner\":{\"sizes\":[[320,50]]}},\"bidders\":[{\"bidder\":\"appnexus\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"triplelift\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"criteo\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"ix\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"gravity-apn\",\"isTimeout\":false,\"hasBid\":false},{\"bidder\":\"mediasquare\",\"isTimeout\":false,\"hasBid\":false}]}],\"auctionElapsed\":373}";
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         System.out.println(
                 "[TEST] GreenbidsAnalyticsReporter/processEventV2 " +
