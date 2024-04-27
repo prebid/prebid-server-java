@@ -65,6 +65,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anySet;
 import static org.mockito.Mockito.never;
@@ -77,19 +78,19 @@ public class SetuidHandlerTest extends VertxTest {
     private static final String FACEBOOK = "audienceNetwork";
     private static final String ADNXS = "adnxs";
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private UidsCookieService uidsCookieService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ApplicationSettings applicationSettings;
     @Mock
     private BidderCatalog bidderCatalog;
-    @Mock
+    @Mock(strictness = LENIENT)
     private SetuidPrivacyContextFactory setuidPrivacyContextFactory;
-    @Mock
+    @Mock(strictness = LENIENT)
     private SetuidGppService gppService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ActivityInfrastructureCreator activityInfrastructureCreator;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HostVendorTcfDefinerService tcfDefinerService;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
@@ -97,13 +98,13 @@ public class SetuidHandlerTest extends VertxTest {
     private Metrics metrics;
 
     private SetuidHandler setuidHandler;
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest httpRequest;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerResponse httpResponse;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ActivityInfrastructure activityInfrastructure;
 
     private TcfContext tcfContext;

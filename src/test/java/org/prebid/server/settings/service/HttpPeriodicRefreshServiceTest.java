@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -42,7 +43,7 @@ public class HttpPeriodicRefreshServiceTest extends VertxTest {
 
     @Mock
     private CacheNotificationListener cacheNotificationListener;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpClient httpClient;
     @Mock
     private Vertx vertx;

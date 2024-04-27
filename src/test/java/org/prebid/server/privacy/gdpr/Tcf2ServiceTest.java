@@ -45,6 +45,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -73,9 +74,9 @@ public class Tcf2ServiceTest extends VertxTest {
     private PurposeStrategy purposeStrategySeven;
     @Mock
     private SpecialFeaturesStrategy specialFeaturesStrategyOne;
-    @Mock
+    @Mock(strictness = LENIENT)
     private TCString tcString;
-    @Mock
+    @Mock(strictness = LENIENT)
     private VendorIdResolver vendorIdResolver;
 
     private Tcf2Service target;

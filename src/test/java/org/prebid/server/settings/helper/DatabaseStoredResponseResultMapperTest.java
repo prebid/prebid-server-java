@@ -23,6 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
+import static org.mockito.quality.Strictness.LENIENT;
 
 @ExtendWith(MockitoExtension.class)
 public class DatabaseStoredResponseResultMapperTest {
@@ -106,7 +108,7 @@ public class DatabaseStoredResponseResultMapperTest {
     }
 
     private Row givenRow(Object... values) {
-        final Row row = mock(Row.class);
+        final Row row = mock(Row.class, withSettings().strictness(LENIENT));
         given(row.getValue(anyInt())).willAnswer(invocation -> values[(Integer) invocation.getArgument(0)]);
         final JsonObject json = new JsonObject();
         IntStream.range(0, values.length).forEach(i -> json.put(String.valueOf(i), values[i]));

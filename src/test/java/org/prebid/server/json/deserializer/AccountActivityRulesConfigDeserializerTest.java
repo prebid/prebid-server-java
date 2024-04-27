@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doThrow;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,7 +32,7 @@ public class AccountActivityRulesConfigDeserializerTest {
 
     private AccountActivityRulesConfigDeserializer target;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private JsonParser parser;
     @Mock
     private DeserializationContext context;

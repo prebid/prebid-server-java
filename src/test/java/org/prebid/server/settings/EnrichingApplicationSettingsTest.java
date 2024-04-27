@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -32,9 +33,9 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
 
     @Mock
     private ApplicationSettings delegate;
-    @Mock
+    @Mock(strictness = LENIENT)
     private PriceFloorsConfigResolver priceFloorsConfigResolver;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ActivitiesConfigResolver activitiesConfigResolver;
 
     private final JsonMerger jsonMerger = new JsonMerger(jacksonMapper);

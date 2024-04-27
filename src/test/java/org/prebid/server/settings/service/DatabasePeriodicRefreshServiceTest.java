@@ -32,6 +32,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -43,7 +44,7 @@ public class DatabasePeriodicRefreshServiceTest {
     private CacheNotificationListener cacheNotificationListener;
     @Mock
     private Vertx vertx;
-    @Mock
+    @Mock(strictness = LENIENT)
     private DatabaseClient databaseClient;
     private final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
     private final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);

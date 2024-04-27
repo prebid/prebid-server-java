@@ -23,6 +23,8 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.withSettings;
+import static org.mockito.quality.Strictness.LENIENT;
 
 @ExtendWith(MockitoExtension.class)
 public class PrivacyExtractorTest extends VertxTest {
@@ -225,7 +227,7 @@ public class PrivacyExtractorTest extends VertxTest {
     @Test
     public void shouldThrowExceptionOnInvalidGppSid() {
         // given
-        final HttpServerRequest request = mock(HttpServerRequest.class);
+        final HttpServerRequest request = mock(HttpServerRequest.class, withSettings().strictness(LENIENT));
         given(request.getParam(eq("gpp_sid"))).willReturn("1-2");
 
         // when and then

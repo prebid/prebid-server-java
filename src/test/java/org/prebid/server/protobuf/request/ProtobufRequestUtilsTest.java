@@ -63,95 +63,96 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 
 @ExtendWith(MockitoExtension.class)
 public class ProtobufRequestUtilsTest extends VertxTest {
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Segment, OpenRtb.BidRequest.Data.Segment> segmentMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Format, OpenRtb.BidRequest.Imp.Banner.Format> formatMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Deal, OpenRtb.BidRequest.Imp.Pmp.Deal> dealMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Producer, OpenRtb.BidRequest.Producer> producerMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Data, OpenRtb.BidRequest.Data> dataMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Content, OpenRtb.BidRequest.Content> contentMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Publisher, OpenRtb.BidRequest.Publisher> publisherMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Site, OpenRtb.BidRequest.Site> siteMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Geo, OpenRtb.BidRequest.Geo> geoMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Banner, OpenRtb.BidRequest.Imp.Banner> bannerMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<TitleObject, OpenRtb.NativeRequest.Asset.Title> nativeTitleMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<ImageObject, OpenRtb.NativeRequest.Asset.Image> nativeImageMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<VideoObject, OpenRtb.BidRequest.Imp.Video> nativeVideoMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<DataObject, OpenRtb.NativeRequest.Asset.Data> nativeDataMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Metric, OpenRtb.BidRequest.Imp.Metric> metricMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Video, OpenRtb.BidRequest.Imp.Video> videoMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Audio, OpenRtb.BidRequest.Imp.Audio> audioMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Pmp, OpenRtb.BidRequest.Imp.Pmp> pmpMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Asset, OpenRtb.NativeRequest.Asset> assetMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<EventTracker, OpenRtb.NativeRequest.EventTrackers> eventTrackerMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Request, OpenRtb.NativeRequest> nativeRequestMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<String, OpenRtb.NativeRequest> stringNativeRequestMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Native, OpenRtb.BidRequest.Imp.Native> nativeMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Imp, OpenRtb.BidRequest.Imp> impMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<App, OpenRtb.BidRequest.App> appMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Device, OpenRtb.BidRequest.Device> deviceMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<User, OpenRtb.BidRequest.User> userMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Source, OpenRtb.BidRequest.Source> sourceMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<Regs, OpenRtb.BidRequest.Regs> regsMapper;
 
     @BeforeEach

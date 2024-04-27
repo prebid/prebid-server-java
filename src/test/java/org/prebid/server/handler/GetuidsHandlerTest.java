@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,11 +35,11 @@ public class GetuidsHandlerTest extends VertxTest {
     private UidsCookieService uidsCookieService;
 
     private GetuidsHandler getuidsHandler;
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
     @Mock
     private HttpServerRequest httpServerRequest;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerResponse httpServerResponse;
 
     @BeforeEach

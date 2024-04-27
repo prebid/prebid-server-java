@@ -80,6 +80,7 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.willReturn;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -107,11 +108,11 @@ public class AmpHandlerTest extends VertxTest {
     private AmpHandler ampHandler;
     @Mock
     private RoutingContext routingContext;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest httpRequest;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerResponse httpResponse;
-    @Mock
+    @Mock(strictness = LENIENT)
     private UidsCookie uidsCookie;
     @Mock
     private PrebidVersionProvider prebidVersionProvider;

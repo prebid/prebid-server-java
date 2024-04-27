@@ -22,6 +22,7 @@ import static java.util.Collections.singletonMap;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -32,7 +33,7 @@ public class SettingsCacheNotificationHandlerTest extends VertxTest {
     private CacheNotificationListener cacheNotificationListener;
 
     private SettingsCacheNotificationHandler handler;
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
     @Mock
     private HttpServerRequest httpRequest;

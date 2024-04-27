@@ -23,6 +23,7 @@ import static java.util.Collections.singleton;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,9 +38,9 @@ public class VastModifierTest {
     private static final String BID_NURL = "nurl1";
     private static final long AUCTION_TIMESTAMP = 1000L;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
-    @Mock
+    @Mock(strictness = LENIENT)
     private EventsService eventsService;
     @Mock
     private Metrics metrics;

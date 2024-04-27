@@ -23,6 +23,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 
 @ExtendWith(MockitoExtension.class)
 public class PurposeTwoBasicEnforcePurposeStrategyTest {
@@ -31,13 +32,13 @@ public class PurposeTwoBasicEnforcePurposeStrategyTest {
 
     private PurposeTwoBasicEnforcePurposeStrategy target;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private TCString tcString;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IntIterable allowedVendors;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IntIterable allowedVendorsLI;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IntIterable purposesConsent;
     @Mock
     private IntIterable purposesLI;

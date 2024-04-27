@@ -41,6 +41,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -53,7 +54,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     private static final String VIDEO_ENDPOINT = "http://video-stored-requests";
     private static final String CATEGORY_ENDPOINT = "http://category-requests";
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpClient httpClient;
 
     private HttpApplicationSettings httpApplicationSettings;

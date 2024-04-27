@@ -19,6 +19,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -29,9 +30,9 @@ public class SpecialFeaturesOneStrategyTest {
 
     private SpecialFeaturesOneStrategy target;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private TCString tcString;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IntIterable specialFeatureOptIns;
 
     @BeforeEach

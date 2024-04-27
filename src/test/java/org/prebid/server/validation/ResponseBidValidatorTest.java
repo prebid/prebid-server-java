@@ -32,6 +32,7 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.settings.model.BidValidationEnforcement.enforce;
 import static org.prebid.server.settings.model.BidValidationEnforcement.skip;
@@ -48,7 +49,7 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     private ResponseBidValidator target;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderAliases bidderAliases;
 
     @BeforeEach

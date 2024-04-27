@@ -33,41 +33,42 @@ import java.util.function.UnaryOperator;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 
 @ExtendWith(MockitoExtension.class)
 public class ProtobufResponseUtilsTest extends VertxTest {
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.Asset.Title, TitleObject> titleMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.Asset.Data, DataObject> dataMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.Asset.Video, VideoObject> videoMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.Asset.Image, ImageObject> imageMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.Link, Link> linkMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.Asset, Asset> assetMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.EventTracker, EventTracker> eventTrackerMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse, Response> nativeResponseMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse, String> nativeResponseStringMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.BidResponse.SeatBid.Bid, Bid> bidMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.BidResponse.SeatBid, SeatBid> seatBidMapper;
 
     @BeforeEach

@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -46,7 +47,7 @@ public class MetricsTest {
     private static final String ANALYTIC_CODE = "analyticCode";
 
     private MetricRegistry metricRegistry;
-    @Mock
+    @Mock(strictness = LENIENT)
     private AccountMetricsVerbosityResolver accountMetricsVerbosityResolver;
 
     private Metrics metrics;
@@ -54,7 +55,7 @@ public class MetricsTest {
     @BeforeEach
     public void setUp() {
         metricRegistry = new MetricRegistry();
-        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
+         given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
 
         metrics = new Metrics(metricRegistry, CounterType.counter, accountMetricsVerbosityResolver);
     }

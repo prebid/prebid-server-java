@@ -43,6 +43,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -62,13 +63,13 @@ public class VendorListServiceTest extends VertxTest {
     private Vertx vertx;
     @Mock
     private FileSystem fileSystem;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpClient httpClient;
     @Mock
     private Metrics metrics;
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
-    @Mock
+    @Mock(strictness = LENIENT)
     private VendorListFetchThrottler fetchThrottler;
 
     private VendorListService target;

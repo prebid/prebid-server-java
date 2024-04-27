@@ -64,6 +64,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -75,19 +76,19 @@ public class CookieSyncHandlerTest extends VertxTest {
     private final TimeoutFactory timeoutFactory =
             new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private UidsCookieService uidsCookieService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private CookieSyncGppService cookieSyncGppProcessor;
     @Mock
     private CookieDeprecationService cookieDeprecationService;
     @Mock
     private ActivityInfrastructureCreator activityInfrastructureCreator;
-    @Mock
+    @Mock(strictness = LENIENT)
     private CookieSyncService cookieSyncService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ApplicationSettings applicationSettings;
-    @Mock
+    @Mock(strictness = LENIENT)
     private CookieSyncPrivacyContextFactory cookieSyncPrivacyContextFactory;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
@@ -95,7 +96,7 @@ public class CookieSyncHandlerTest extends VertxTest {
     private Metrics metrics;
     @Mock
     private RoutingContext routingContext;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerResponse httpResponse;
 
     private CookieSyncHandler target;
