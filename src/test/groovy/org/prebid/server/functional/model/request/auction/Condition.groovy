@@ -2,7 +2,6 @@ package org.prebid.server.functional.model.request.auction
 
 import groovy.transform.ToString
 import org.prebid.server.functional.model.bidder.BidderName
-import org.prebid.server.functional.model.request.GppSectionId
 
 @ToString(includeNames = true, ignoreNulls = true)
 class Condition {

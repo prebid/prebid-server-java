@@ -4,13 +4,14 @@ import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.ActivityConfig
 import org.prebid.server.functional.model.config.EqualityValueRule
+import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.config.InequalityValueRule
 import org.prebid.server.functional.model.config.LogicalRestrictedRule
-import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.config.PurposeEid
 import org.prebid.server.functional.model.db.StoredRequest
+import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
@@ -23,7 +24,6 @@ import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.request.auction.UserExtData
-import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.UspCaV1Consent
@@ -40,6 +40,7 @@ import java.time.Instant
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.DataActivity.CONSENT
 import static org.prebid.server.functional.model.config.DataActivity.NOTICE_NOT_PROVIDED
 import static org.prebid.server.functional.model.config.DataActivity.NOTICE_PROVIDED
@@ -62,15 +63,14 @@ import static org.prebid.server.functional.model.config.UsNationalPrivacySection
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_RACIAL_ETHNIC_ORIGIN
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SENSITIVE_DATA_RELIGIOUS_BELIEFS
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CO_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CT_V1
+import static org.prebid.server.functional.model.request.GppSectionId.USP_NAT_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_UT_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
-import static org.prebid.server.functional.model.request.GppSectionId.USP_NAT_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_VA_V1
 import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD

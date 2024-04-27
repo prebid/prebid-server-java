@@ -3,9 +3,9 @@ package org.prebid.server.functional.tests.privacy
 import org.prebid.server.functional.model.config.AccountGppConfig
 import org.prebid.server.functional.model.config.ActivityConfig
 import org.prebid.server.functional.model.config.EqualityValueRule
+import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.config.InequalityValueRule
 import org.prebid.server.functional.model.config.LogicalRestrictedRule
-import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
@@ -63,7 +63,11 @@ import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_VA_V1
 import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
-import static org.prebid.server.functional.model.request.auction.PrivacyModule.*
+import static org.prebid.server.functional.model.request.auction.PrivacyModule.ALL
+import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_ALL
+import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_TFC_EU
+import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
+import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ONTARIO

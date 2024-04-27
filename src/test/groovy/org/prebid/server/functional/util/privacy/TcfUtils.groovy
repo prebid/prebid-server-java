@@ -5,7 +5,6 @@ import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.config.PurposeEid
 import org.prebid.server.functional.model.privacy.EnforcementRequirement
 
-import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2

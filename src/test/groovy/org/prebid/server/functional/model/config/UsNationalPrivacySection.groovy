@@ -2,7 +2,6 @@ package org.prebid.server.functional.model.config
 
 import com.fasterxml.jackson.annotation.JsonValue
 import com.iab.gpp.encoder.field.UspNatV1Field
-import org.prebid.server.functional.util.PBSUtils
 
 enum UsNationalPrivacySection {
 

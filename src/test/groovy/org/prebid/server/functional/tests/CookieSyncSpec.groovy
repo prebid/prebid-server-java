@@ -27,12 +27,12 @@ import org.prebid.server.functional.util.privacy.TcfConsent
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
+import static org.prebid.server.functional.model.bidder.BidderName.AAX
 import static org.prebid.server.functional.model.bidder.BidderName.ACEEX
 import static org.prebid.server.functional.model.bidder.BidderName.ACUITYADS
 import static org.prebid.server.functional.model.bidder.BidderName.ADKERNEL
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.APPNEXUS
-import static org.prebid.server.functional.model.bidder.BidderName.AAX
 import static org.prebid.server.functional.model.bidder.BidderName.BOGUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.bidder.BidderName.OPENX

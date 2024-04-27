@@ -8,9 +8,9 @@ import org.prebid.server.functional.model.config.AccountPrivacyConfig
 import org.prebid.server.functional.model.config.AccountSetting
 import org.prebid.server.functional.model.config.ActivityConfig
 import org.prebid.server.functional.model.config.EqualityValueRule
+import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.config.InequalityValueRule
 import org.prebid.server.functional.model.config.LogicalRestrictedRule
-import org.prebid.server.functional.model.config.GppModuleConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
@@ -60,20 +60,20 @@ import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CO_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_CT_V1
+import static org.prebid.server.functional.model.request.GppSectionId.USP_NAT_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_UT_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
-import static org.prebid.server.functional.model.request.GppSectionId.USP_NAT_V1
 import static org.prebid.server.functional.model.request.GppSectionId.USP_VA_V1
 import static org.prebid.server.functional.model.request.auction.ActivityType.SYNC_USER
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.ALL
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_ALL
+import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_TFC_EU
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
+import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
 import static org.prebid.server.functional.model.request.auction.PublicCountryIp.USA_IP
-import static org.prebid.server.functional.util.privacy.model.State.MANITOBA
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ALASKA
-import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_TFC_EU
-import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_GENERAL
+import static org.prebid.server.functional.util.privacy.model.State.MANITOBA
 
 class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 

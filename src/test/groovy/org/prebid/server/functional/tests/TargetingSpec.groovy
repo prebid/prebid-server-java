@@ -21,8 +21,8 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.util.PBSUtils
 
 import java.math.RoundingMode
-
 import java.nio.charset.StandardCharsets
+
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.response.auction.ErrorType.TARGETING
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
