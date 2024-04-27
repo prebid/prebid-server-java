@@ -1,11 +1,9 @@
 package org.prebid.server.it;
 
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
 import org.prebid.server.VertxTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringRunner;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 // This will create new application context, so used ports must be changed (0 means random available local port).

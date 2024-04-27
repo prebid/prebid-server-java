@@ -78,6 +78,7 @@ import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 @ExtendWith(MockitoExtension.class)
 public class HuaweiAdsBidderTest extends VertxTest {
+
     @Mock(strictness = LENIENT)
     private HuaweiAdSlotBuilder adSlotBuilder;
     @Mock(strictness = LENIENT)

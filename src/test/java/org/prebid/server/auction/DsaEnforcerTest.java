@@ -29,6 +29,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
 public class DsaEnforcerTest extends VertxTest {
+
     private final DsaEnforcer target = new DsaEnforcer();
     @Mock
     private BidRejectionTracker bidRejectionTracker;

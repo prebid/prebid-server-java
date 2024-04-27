@@ -55,7 +55,7 @@ public class MetricsTest {
     @BeforeEach
     public void setUp() {
         metricRegistry = new MetricRegistry();
-         given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
+        given(accountMetricsVerbosityResolver.forAccount(any())).willReturn(AccountMetricsVerbosityLevel.detailed);
 
         metrics = new Metrics(metricRegistry, CounterType.counter, accountMetricsVerbosityResolver);
     }

@@ -20,7 +20,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.hamcrest.Matchers;
 import org.json.JSONException;
 import org.junit.jupiter.api.Test;
-import org.junit.runner.RunWith;
 import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.cookie.model.CookieSyncStatus;
 import org.prebid.server.cookie.proto.Uids;
@@ -31,7 +30,6 @@ import org.prebid.server.proto.response.UsersyncInfo;
 import org.prebid.server.util.ResourceUtil;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.File;
 import java.io.IOException;

@@ -5,9 +5,9 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacySection;
 import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USMappedCaliforniaGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USMappedColoradoGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USMappedConnecticutGppReader;
-import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USNationalGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USMappedUtahGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USMappedVirginiaGppReader;
+import org.prebid.server.activity.infrastructure.privacy.usnat.reader.USNationalGppReader;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

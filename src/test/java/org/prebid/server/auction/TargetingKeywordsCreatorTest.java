@@ -21,6 +21,7 @@ import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
 public class TargetingKeywordsCreatorTest {
+
     private final String defaultKeyPrefix = "hb";
 
     @Test
