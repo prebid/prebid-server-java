@@ -1,7 +1,6 @@
 package org.prebid.server.hooks.modules.pb.richmedia.filter.core;
 
 import com.iab.openrtb.response.Bid;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
