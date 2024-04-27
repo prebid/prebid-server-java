@@ -51,14 +51,13 @@
         <json-logic.version>1.0.7</json-logic.version>
 
         <!-- test dependencies versions -->
-        <assertj.version>3.24.2</assertj.version>
         <wiremock.version>3.5.4</wiremock.version>
         <awaitility.version>4.2.0</awaitility.version>
         <restassured.version>5.4.0</restassured.version>
         <h2.version>2.2.220</h2.version>
         <spock.version>2.4-M2-groovy-4.0</spock.version>
         <groovy.version>4.0.15</groovy.version>
-        <mockserver.version>5.14.0</mockserver.version>
+        <mockserver.version>5.15.0</mockserver.version>
         <aspectj.version>1.9.9.1</aspectj.version>
 
         <!-- plugin versions -->
@@ -330,12 +329,6 @@
             <groupId>io.github.jamsesso</groupId>
             <artifactId>json-logic-java</artifactId>
             <version>${json-logic.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <version>${assertj.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.awaitility</groupId>
