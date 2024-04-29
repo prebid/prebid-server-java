@@ -11,7 +11,7 @@ Other available metrics not mentioned here can found at
 
 where:
 - `[IP]` should be equal to IP address of bound network interface on cluster node for Prebid Server (for example: `0.0.0.0`)
-- `[PORT]` should be equal to `http.port` configuration property
+- `[PORT]` should be equal to `server.http.port` configuration property
 
 ### HTTP client metrics
 - `vertx.http.clients.connections.{min,max,mean,p95,p99}` - how long connections live
