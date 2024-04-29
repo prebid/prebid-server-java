@@ -112,6 +112,64 @@ Minimal sample (only required):
         path: "51Degrees-LiteV4.1.hash" # string, REQUIRED, download the sample from https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash or Enterprise from https://51degrees.com/pricing
 ```
 
+## Running the demo
+
+1. Build the server bundle JAR as described in [[Build Project](../../../docs/build.md#build-project)], e.g.
+
+```bash
+mvn clean package --file extra/pom.xml
+```
+
+2. Download `51Degrees-LiteV4.1.hash` from [[GitHub](https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash)] and put it in the project root directory.
+
+3. Start server bundle JAR as described in [[Running project](../../../docs/run.md#running-project)], e.g.
+
+```bash
+java -jar target/prebid-server-bundle.jar --spring.config.additional-location=sample/prebid-config-with-51d-dd.yaml
+```
+
+4. Run sample request against the server as described in [[requests/README](../../../sample/requests/README.txt)], e.g.
+
+```bash
+curl http://localhost:8080/openrtb2/auction --data @extra/modules/fiftyone-devicedetection/sample-requests/data.json
+```
+
+5. See the `device` object be enriched
+
+```diff
+                 "device": {
+-                    "ua": "Mozilla/5.0 (Linux; Android 11; SM-G998W) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Mobile Safari/537.36"
++                    "ua": "Mozilla/5.0 (Linux; Android 11; SM-G998W) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Mobile Safari/537.36",
++                    "os": "Android",
++                    "osv": "11.0",
++                    "h": 3200,
++                    "w": 1440,
++                    "ext": {
++                        "fiftyonedegrees_deviceId": "110698-102757-105219-0"
++                    }
+                 },
+```
+
+[[Enterprise](https://51degrees.com/pricing)] files can provide even more information:
+
+```diff
+                 "device": {
+                     "ua": "Mozilla/5.0 (Linux; Android 11; SM-G998W) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Mobile Safari/537.36",
++                    "devicetype": 1,
++                    "make": "Samsung",
++                    "model": "SM-G998W",
+                     "os": "Android",
+                     "osv": "11.0",
+                     "h": 3200,
+                     "w": 1440,
++                    "ppi": 516,
++                    "pxratio": 3.44,
+                     "ext": {
+-                        "fiftyonedegrees_deviceId": "110698-102757-105219-0"
++                        "fiftyonedegrees_deviceId": "110698-102757-105219-18092"
+                     }
+```
+
 ## Maintainer contacts
 
 Any suggestions or questions can be directed to [support@51degrees.com](support@51degrees.com) e-mail.
