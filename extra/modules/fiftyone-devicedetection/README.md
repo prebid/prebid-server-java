@@ -1,10 +1,12 @@
 # Overview
 
-51Degrees module enriches an incoming OpenRTB request with the device data using [51Degrees Device Detection](https://51degrees.com/documentation/4.4/_device_detection__overview.html).   51Degrees detects and sets the following fields of the device object: `make`, `model`, `os`, `osv`, `h`, `w`, `ppi`, `pixelratio` - interested bidders may use these fields as needed.  In addition the module sets `device.ext.fiftyonedegrees_deviceId` to a permanent device ID which may be used with a 51Degrees data file to look up over 250 properties on the backend.
+51Degrees module enriches an incoming OpenRTB request [51Degrees Device Data](https://51degrees.com/documentation/_device_detection__overview.html).
+
+51Degrees module sets the following fields of the device object: `make`, `model`, `os`, `osv`, `h`, `w`, `ppi`, `pixelratio` - interested bidder adapters may use these fields as needed.  In addition the module sets `device.ext.fiftyonedegrees_deviceId` to a permanent device ID which can be rapidly looked up in on premise data exposing over 250 properties including the device age, chip set, codec support, and price, operating system and app/browser versions, age, and embedded features.
 
 ## Setup
 
-The 51Degrees module operates using a data file. You can get started with a free Lite data file that can be downloaded here: [https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash](https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash).  The Lite file is capable of detecting limited device information, so if you need in-depth device data, please contact 51Degrees to obtain a paid license: [https://51degrees.com/contact-us](https://51degrees.com/contact-us?ContactReason=Free%20Trial).
+The 51Degrees module operates using a data file. You can get started with a free Lite data file that can be downloaded here: [https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash](https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash).  The Lite file is capable of detecting limited device information, so if you need in-depth device data, please contact 51Degrees to obtain a license: [https://51degrees.com/contact-us](https://51degrees.com/contact-us?ContactReason=Free%20Trial).
 
 Put the data file in a file system location writable by the user that is running the Prebid Server module and specify that directory location in the configuration parameters. The location needs to be writable if you would like to enable [automatic data file updates](https://51degrees.com/documentation/_features__automatic_datafile_updates.html).
 
@@ -72,19 +74,19 @@ And configure
 - `performance`
   - `profile` - _(string)_ - Set the performance profile for the device detection engine. Must be one of: LowMemory, MaxPerformance, HighPerformance, Balanced, BalancedTemp. Defaults to balanced.
   - `concurrency` - _(int)_ - Set the expected number of concurrent operations using the engine. This sets the concurrency of the internal caches to avoid excessive locking. Default: 10.
-  - `difference` - _(int)_ - Set the maximum difference to allow when processing HTTP headers. The meaning of difference depends on the Device Detection API being used. The difference is the difference in hash value between the hash that was found, and the hash that is being searched for. By default this is 0.
+  - `difference` - _(int)_ - Set the maximum difference to allow when processing HTTP headers. The meaning of difference depends on the Device Detection API being used. The difference is the difference in hash value between the hash that was found, and the hash that is being searched for. By default this is 0. For more information see [51Degrees documentation](https://51degrees.com/documentation/_device_detection__hash.html).
   - `allow-unmatched` - _(boolean)_ - If set to false, a non-matching User-Agent will result in properties without set values.
   If set to true, a non-matching User-Agent will cause the 'default profiles' to be returned. This means that properties will always have values (i.e. no need to check .hasValue) but some may be inaccurate. By default, this is false.
-  - `drift` - _(int)_ - Set the maximum drift to allow when matching hashes. If the drift is exceeded, the result is considered invalid and values will not be returned. By default this is 0.
+  - `drift` - _(int)_ - Set the maximum drift to allow when matching hashes. If the drift is exceeded, the result is considered invalid and values will not be returned. By default this is 0. For more information see [51Degrees documentation](https://51degrees.com/documentation/_device_detection__hash.html).
 
 ```yaml
 hooks:
   modules:
     fiftyone-devicedetection:
       account-filter:
-        allow-list: [] # list of strings
+        allow-list: [] # list of strings, account ids for enabled publishers, or empty for all
       data-file:
-        path: ~ # string, REQUIRED
+        path: ~ # string, REQUIRED, download the sample from https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash or Enterprise from https://51degrees.com/pricing
         make-temp-copy: ~ # boolean
         update:
           auto: ~ # boolean
@@ -94,7 +96,7 @@ hooks:
           watch-file-system: ~ # boolean
           polling-interval: ~ # int, seconds
       performance:
-        profile: ~ # string, 1 of [LowMemory,MaxPerformance,HighPerformance,Balanced,BalancedTemp]
+        profile: ~ # string, one of [LowMemory,MaxPerformance,HighPerformance,Balanced,BalancedTemp]
         concurrency: ~ # int
         difference: ~ # int
         allow-unmatched: ~ # boolean
@@ -107,11 +109,11 @@ Minimal sample (only required):
   modules:
     fiftyone-devicedetection:
       data-file:
-        path: "../device-detection-cxx/device-detection-data/51Degrees-LiteV4.1.hash" # REQUIRED, download the sample from https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash
+        path: "51Degrees-LiteV4.1.hash" # string, REQUIRED, download the sample from https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash or Enterprise from https://51degrees.com/pricing
 ```
 
 ## Maintainer contacts
 
-Any suggestions or questions can be directed to [engineering@51degrees.com](engineering@51degrees.com) e-mail.
+Any suggestions or questions can be directed to [support@51degrees.com](support@51degrees.com) e-mail.
 
 Or just open new [issue](https://github.com/prebid/prebid-server-java/issues/new) or [pull request](https://github.com/prebid/prebid-server-java/pulls) in this repository.

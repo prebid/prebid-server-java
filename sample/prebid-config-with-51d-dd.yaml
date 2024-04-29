@@ -82,7 +82,7 @@ hooks:
       account-filter:
         allow-list: [] # list of strings
       data-file:
-        path: "C:/Projects/Work/_hashes/active/TAC-HashV41.hash" # REQUIRED, download the sample from https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash
+        path: "51Degrees-LiteV4.1.hash" # string, REQUIRED, download the sample from https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash or Enterprise from https://51degrees.com/pricing
         make-temp-copy: ~ # boolean
         update:
           auto: ~ # boolean
@@ -92,7 +92,7 @@ hooks:
           watch-file-system: ~ # boolean
           polling-interval: ~ # int, seconds
       performance:
-        profile: ~ # string, 1 of [LowMemory,MaxPerformance,HighPerformance,Balanced,BalancedTemp]
+        profile: ~ # string, one of [LowMemory,MaxPerformance,HighPerformance,Balanced,BalancedTemp]
         concurrency: ~ # int
         difference: ~ # int
         allow-unmatched: ~ # boolean
