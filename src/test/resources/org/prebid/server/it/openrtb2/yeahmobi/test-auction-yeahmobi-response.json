@@ -1,21 +1,20 @@
 {
-  "id": "request_id",
+  "id": "test-request-id",
   "seatbid": [
     {
       "bid": [
         {
-          "id": "bid_id",
-          "impid": "imp_id",
-          "price": 0.01,
-          "adm": "<b>hi</b>",
-          "cid": "cid",
-          "crid": "crid",
+          "id": "8400d766-58b3-47d4-80d7-6658b337d403",
+          "impid": "test-imp-id",
+          "adm": "{\"ver\":\"1.2\"}",
+          "price": 1.2,
+          "cid": "1",
+          "crid": "1",
           "ext": {
-            "format": "BANNER",
             "prebid": {
-              "type": "banner"
+              "type": "native"
             },
-            "origbidcpm": 0.01
+            "origbidcpm": 1.2
           }
         }
       ],
@@ -29,7 +28,7 @@
       "yeahmobi": "{{ yeahmobi.response_time_ms }}"
     },
     "prebid": {
-      "auctiontimestamp": 0
+      "auctiontimestamp": 1000
     },
     "tmaxrequest": 5000
   }

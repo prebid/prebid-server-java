@@ -365,7 +365,7 @@ public class ConsumableBidderTest extends VertxTest {
 
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .imp(singletonList(givenImp(impCustomizer)))
-                        .regs(Regs.builder().ext(ExtRegs.of(1, null, null)).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(1, null, null, null)).build())
                         .user(User.builder()
                                 .ext(ExtUser.builder().consent("consent").build())
                                 .build()))

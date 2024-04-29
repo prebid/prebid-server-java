@@ -1,0 +1,53 @@
+{
+  "app": {
+    "lang": "zh",
+    "country": "PT",
+    "name": "Huawei name",
+    "pkgname": "com.example.pkgname1",
+    "version": "9.1.0.301"
+  },
+  "multislot": [
+    {
+      "adtype": 8,
+      "slotid": "m8x9x3rzff",
+      "test": 1,
+      "format": [
+        {
+          "w": 300,
+          "h": 250
+        }
+      ],
+      "w": 300,
+      "h": 250
+    }
+  ],
+  "device": {
+    "height": 1920,
+    "language": "en",
+    "oaid": "oaid",
+    "os": "android",
+    "type": 4,
+    "ip" : "193.168.244.1",
+    "localeCountry": "PT",
+    "pxratio": 23.01,
+    "width": 1080,
+    "clientTime": "2018-11-02 16:34:07.981+1300",
+    "gaid": "gaid",
+    "useragent": "useragent",
+    "version": "10.0.0",
+    "maker": "huawei",
+    "model": "COL-TEST",
+    "belongCountry": "PT"
+  },
+  "geo": {
+  },
+  "network": {
+    "type": 0,
+    "cellInfo" : [ ]
+  },
+  "regs": {
+    "coppa": 0
+  },
+  "version": "3.4",
+  "clientAdRequestId": "test-req-id"
+}

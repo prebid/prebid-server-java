@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.privacy
 
+import org.mockserver.model.Delay
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.request.auction.DistributionChannel
@@ -31,7 +32,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default gdpr BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         def bidRequest = getGdprBidRequest(validConsentString)
@@ -102,7 +103,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString)
 
@@ -125,7 +126,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString)
 
@@ -148,7 +149,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString)
 
@@ -172,7 +173,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString)
 
@@ -196,7 +197,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         given: "BidRequest with channel: #requestChannel, gdpr"
         def validConsentString = new TcfConsent.Builder()
                 .setPurposesLITransparency(BASIC_ADS)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
         def bidRequest = getGdprBidRequest(validConsentString).tap {
             ext.prebid.channel = new Channel().tap {
@@ -262,7 +263,7 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
                 .setPurposesLITransparency(BASIC_ADS)
                 .setTcfPolicyVersion(tcfPolicyVersion.value)
                 .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
-                .addVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
                 .build()
 
         and: "Bid request"
@@ -275,14 +276,15 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Used vendor list have proper specification version of GVL"
-        def properVendorListPath = "/app/prebid-server/data/vendorlist-v${tcfPolicyVersion.vendorListVersion}/${tcfPolicyVersion.vendorListVersion}.json"
+        def properVendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
         PBSUtils.waitUntil { privacyPbsService.isFileExist(properVendorListPath) }
         def vendorList = privacyPbsService.getValueFromContainer(properVendorListPath, VendorListConsent.class)
-        assert vendorList.vendorListVersion == tcfPolicyVersion.vendorListVersion
+        assert vendorList.tcfPolicyVersion == tcfPolicyVersion.vendorListVersion
 
         and: "Logs should contain proper vendor list version"
         def logs = privacyPbsService.getLogsByTime(startTime)
-        assert getLogsByText(logs, "Created new TCF 2 vendor list for version ${tcfPolicyVersion.vendorListVersion}")
+        assert getLogsByText(logs, "Created new TCF 2 vendor list for version " +
+                "v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion}")
 
         cleanup: "Stop container with default request"
         serverContainer.stop()
@@ -311,5 +313,58 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.code == [999]
         assert response.ext?.warnings[ErrorType.PREBID]*.message ==
                 ["Parsing consent string: ${tcfConsent} failed. TCF policy version ${invalidTcfPolicyVersion} is not supported" as String]
+    }
+
+    def "PBS auction should emit the same error without a second GVL list request if a retry is too soon for the exponential-backoff"() {
+        given: "Test start time"
+        def startTime = Instant.now()
+
+        and: "Tcf consent setup"
+        def tcfConsent = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .setTcfPolicyVersion(tcfPolicyVersion.value)
+                .setVendorListVersion(tcfPolicyVersion.vendorListVersion)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "Bid request"
+        def bidRequest = getGdprBidRequest(tcfConsent)
+
+        and: "Reset valid vendor list response"
+        vendorListResponse.reset()
+
+        and: "Set vendor list response with delay"
+        vendorListResponse.setResponse(tcfPolicyVersion, Delay.seconds(EXPONENTIAL_BACKOFF_MAX_DELAY + 3))
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Used vendor list have proper specification version of GVL"
+        def properVendorListPath = VENDOR_LIST_PATH.replace("{VendorVersion}", tcfPolicyVersion.vendorListVersion.toString())
+        assert !privacyPbsService.isFileExist(properVendorListPath)
+
+        and: "Logs should contain proper vendor list version"
+        def logs = privacyPbsService.getLogsByTime(startTime)
+        def tcfError = "TCF 2 vendor list for version v${tcfPolicyVersion.vendorListVersion}.${tcfPolicyVersion.vendorListVersion} not found, started downloading."
+        assert getLogsByText(logs, tcfError)
+
+        and: "Second start for fetch second round of logs"
+        def secondStartTime = Instant.now()
+
+        when: "PBS processes amp request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't fetch vendor list"
+        assert !privacyPbsService.isFileExist(properVendorListPath)
+
+        and: "Logs should contain proper vendor list version"
+        def logsSecond = privacyPbsService.getLogsByTime(secondStartTime)
+        assert getLogsByText(logsSecond, tcfError)
+
+        and: "Reset vendor list response"
+        vendorListResponse.reset()
+
+        where:
+        tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
     }
 }

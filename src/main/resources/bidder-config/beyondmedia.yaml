@@ -1,0 +1,18 @@
+adapters:
+  beyondmedia:
+    endpoint: http://backend.andbeyond.media/pserver
+    aliases:
+      andbeyondmedia:
+        endpoint: http://backend.andbeyond.media/pserver
+    meta-info:
+      maintainer-email: sysengg@andbeyond.media
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

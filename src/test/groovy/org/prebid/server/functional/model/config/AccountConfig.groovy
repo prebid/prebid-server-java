@@ -19,6 +19,7 @@ class AccountConfig {
     AccountMetricsConfig metrics
     AccountCookieSyncConfig cookieSync
     AccountHooksConfiguration hooks
+    AccountSetting settings
 
     static getDefaultAccountConfig() {
         new AccountConfig(status: AccountStatus.ACTIVE)

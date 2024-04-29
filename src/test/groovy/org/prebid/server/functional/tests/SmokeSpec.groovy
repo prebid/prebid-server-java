@@ -73,7 +73,7 @@ class SmokeSpec extends BaseSpec {
 
         then: "Response should contain bidder uids"
         assert response.buyeruids?.size() == uidsCookie.tempUIDs.size()
-        assert response.buyeruids.every { bidder, uid -> uidsCookie.tempUIDs[bidderNameByString(bidder)].uid == uid }
+        assert response.buyeruids["generic"] == uidsCookie.tempUIDs[GENERIC].uid
     }
 
     def "PBS should return tracking pixel on event request"() {
@@ -129,14 +129,6 @@ class SmokeSpec extends BaseSpec {
 
         then: "Response should contain bidders params"
         assert response.parameters.size() > 0
-    }
-
-    def "PBS should return currency rates"() {
-        when: "PBS processes bidders params request"
-        def response = defaultPbsService.sendCurrencyRatesRequest()
-
-        then: "Response should contain bidders params"
-        assert response.rates?.size() > 0
     }
 
     def "PBS should return empty body on httpinteraction request"() {

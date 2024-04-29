@@ -1,0 +1,15 @@
+adapters:
+  iqx:
+    endpoint: http://rtb.iqzone.com?pid={{SourceId}}&host={{Host}}&pbs=1
+    meta-info:
+      maintainer-email: adops@iqzone.com
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors:
+      vendor-id: 0

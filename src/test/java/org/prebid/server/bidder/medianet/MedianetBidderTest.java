@@ -3,6 +3,7 @@ package org.prebid.server.bidder.medianet;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -16,13 +17,17 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class MedianetBidderTest extends VertxTest {
 
@@ -110,12 +115,103 @@ public class MedianetBidderTest extends VertxTest {
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
     }
 
+    @Test
+    public void makeBidsShouldReturnCorrespondingMtypesAndAdTypes() throws JsonProcessingException {
+        final List<Bid> bids = new ArrayList<>();
+        final Bid bid1 = Bid.builder().impid("imp_id").mtype(1).build();
+        final Bid bid2 = Bid.builder().impid("imp_id").mtype(2).build();
+        final Bid bid3 = Bid.builder().impid("imp_id").mtype(3).build();
+        final Bid bid4 = Bid.builder().impid("imp_id").mtype(4).build();
+        bids.add(bid1);
+        bids.add(bid2);
+        bids.add(bid3);
+        bids.add(bid4);
+
+        // given
+        final BidderCall<BidRequest> httpCall = sampleHttpCall(
+                givenBidRequest(),
+                mapper.writeValueAsString(sampleMultiFormatBidResponse(bids)));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(4);
+        final BidderBid bannerBid = BidderBid.of(bid1, banner, "USD");
+        final BidderBid videoBid = BidderBid.of(bid2, video, "USD");
+        final BidderBid audioBid = BidderBid.of(bid3, audio, "USD");
+        final BidderBid xNativeBid = BidderBid.of(bid4, xNative, "USD");
+        assertThat(result.getValue()).containsExactlyInAnyOrder(bannerBid, videoBid, audioBid, xNativeBid);
+    }
+
+    @Test
+    public void makeBidsShouldReturnAdTypeAccordingToImpressionIfMtypeIsAbsent() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = sampleHttpCall(
+                givenVideoBidRequest(),
+                mapper.writeValueAsString(sampleBidResponse(bidBuilder -> bidBuilder.impid("imp_id"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        final BidderBid videoBid = BidderBid.of(Bid.builder().impid("imp_id").build(), video, "USD");
+        assertThat(result.getValue()).containsExactly(videoBid);
+    }
+
+    @Test
+    public void makeBidsShouldReturnBannerAdTypeIfMtypeIsAbsentAndIfNoImpressionIdMatches()
+            throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = sampleHttpCall(
+                givenVideoBidRequest(),
+                mapper.writeValueAsString(sampleBidResponse(bidBuilder -> bidBuilder.impid("imp_id2"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+        final BidderBid bannerBid = BidderBid.of(Bid.builder().impid("imp_id2").build(), banner, "USD");
+        assertThat(result.getValue()).containsExactly(bannerBid);
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorIfMtypeIsWrong() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = sampleHttpCall(
+                givenVideoBidRequest(),
+                mapper.writeValueAsString(sampleBidResponse(bidBuilder -> bidBuilder.impid("imp_id").mtype(5))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getValue()).isEmpty();
+        final BidderError error = BidderError.badServerResponse("Unable to fetch mediaType: imp_id");
+        assertThat(result.getErrors()).containsExactly(error);
+    }
+
     private static BidResponse sampleBidResponse(Function<Bid.BidBuilder,
             Bid.BidBuilder> bidCustomizer) {
         return BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder()
                         .bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
+                        .build()))
+                .build();
+    }
+
+    private static BidResponse sampleMultiFormatBidResponse(List<Bid> bids) {
+        return BidResponse.builder()
+                .cur("USD")
+                .seatbid(singletonList(SeatBid.builder()
+                        .bid(bids)
                         .build()))
                 .build();
     }
@@ -132,6 +228,17 @@ public class MedianetBidderTest extends VertxTest {
                 .id("request_id")
                 .imp(singletonList(Imp.builder()
                         .id("imp_id")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
+                        .build()))
+                .build();
+    }
+
+    private static BidRequest givenVideoBidRequest() {
+        return BidRequest.builder()
+                .id("request_id")
+                .imp(singletonList(Imp.builder()
+                        .id("imp_id")
+                        .video(Video.builder().build())
                         .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createObjectNode())))
                         .build()))
                 .build();

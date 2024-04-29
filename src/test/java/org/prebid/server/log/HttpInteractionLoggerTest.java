@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.logging.Logger;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -44,15 +43,15 @@ public class HttpInteractionLoggerTest extends VertxTest {
     @Mock
     private HttpServerRequest serverRequest;
 
-    private HttpInteractionLogger testingInstance;
+    private HttpInteractionLogger target;
 
     @Before
     public void setUp() {
-        testingInstance = new HttpInteractionLogger(jacksonMapper);
+        target = new HttpInteractionLogger(jacksonMapper);
         given(routingContext.getBodyAsString()).willReturn("{}");
         given(routingContext.request()).willReturn(serverRequest);
         given(serverRequest.uri()).willReturn("example.com");
-        ReflectionTestUtils.setField(testingInstance, "logger", logger);
+        ReflectionTestUtils.setField(target, "logger", logger);
     }
 
     @Test
@@ -63,12 +62,12 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, "responseBody");
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, "responseBody");
 
         // then
         verify(logger)
-                .info("Requested URL: \"{0}\", request body: \"{1}\", response status: \"{2}\", response body: \"{3}\"",
+                .info("Requested URL: \"{}\", request body: \"{}\", response status: \"{}\", response body: \"{}\"",
                         "example.com",
                         "{}",
                         200,
@@ -83,9 +82,9 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
-        testingInstance.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
+        target.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
 
         // then
         verify(logger).info(anyString(), anyString(), anyString(), any(), any());
@@ -99,8 +98,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
 
         // then
         verifyNoInteractions(logger);
@@ -113,9 +112,9 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, 501, null, null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
-        testingInstance.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 501, null);
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
+        target.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 501, null);
 
         // then
         verify(logger).info(anyString(), anyString(), anyString(), eq(501), any());
@@ -129,8 +128,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(HttpLogSpec.Endpoint.auction, null, null, null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
 
         // then
         verify(logger).info(anyString(), anyString(), anyString(), any(), any());
@@ -143,8 +142,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(HttpLogSpec.Endpoint.amp, null, null, null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
 
         // then
         verifyNoInteractions(logger);
@@ -162,8 +161,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
 
         // then
         verify(logger).info(anyString(), anyString(), eq("{\"param\":\"value\"}"), any(), any());
@@ -178,8 +177,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Auction(givenAuctionContext, routingContext, 200, null);
 
         // then
         verify(logger).info(anyString(), anyString(), eq("Not parseable JSON passed: {"), any(), any());
@@ -193,12 +192,12 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, "responseBody");
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, "responseBody");
 
         // then
         verify(logger)
-                .info("Requested URL: \"{0}\", response status: \"{1}\", response body: \"{2}\"",
+                .info("Requested URL: \"{}\", response status: \"{}\", response body: \"{}\"",
                         "example.com",
                         200,
                         "responseBody");
@@ -212,9 +211,9 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
-        testingInstance.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
+        target.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
 
         // then
         verify(logger).info(anyString(), anyString(), any(), any());
@@ -228,8 +227,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
 
         // then
         verifyNoInteractions(logger);
@@ -242,9 +241,9 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, 501, null, null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
-        testingInstance.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 501, null);
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
+        target.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 501, null);
 
         // then
         verify(logger).info(anyString(), anyString(), eq(501), any());
@@ -258,8 +257,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(HttpLogSpec.Endpoint.amp, null, null, null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
 
         // then
         verify(logger).info(anyString(), anyString(), any(), any());
@@ -272,8 +271,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(HttpLogSpec.Endpoint.auction, null, null, null, 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
+        target.setSpec(givenSpec);
+        target.maybeLogOpenrtb2Amp(givenAuctionContext, routingContext, 200, null);
 
         // then
         verifyNoInteractions(logger);
@@ -288,11 +287,11 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", "bidderName", 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
+        target.setSpec(givenSpec);
+        target.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
 
         // then
-        verify(logger).info("Request body to {0}: \"{1}\"", "bidderName", "{}");
+        verify(logger).info("Request body to {}: \"{}\"", "bidderName", "{}");
     }
 
     @Test
@@ -304,9 +303,9 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", "bidderName", 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
-        testingInstance.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
+        target.setSpec(givenSpec);
+        target.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
+        target.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
 
         // then
         verify(logger).info(anyString(), anyString(), anyString());
@@ -321,8 +320,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", "bidderName", 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
+        target.setSpec(givenSpec);
+        target.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
 
         // then
         verify(logger).info(anyString(), anyString(), anyString());
@@ -337,8 +336,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(null, null, "123", "anotherBidder", 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
+        target.setSpec(givenSpec);
+        target.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
 
         // then
         verifyNoInteractions(logger);
@@ -355,8 +354,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(HttpLogSpec.Endpoint.auction, null, null, "bidderName", 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
+        target.setSpec(givenSpec);
+        target.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
 
         // then
         verify(logger).info(anyString(), anyString(), anyString());
@@ -373,8 +372,26 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(HttpLogSpec.Endpoint.auction, null, null, "bidderName", 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
+        target.setSpec(givenSpec);
+        target.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
+
+        // then
+        verify(logger).info(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    public void maybeLogBidderRequestShouldLogIfRequestTypeIsOpenrtb2doohAndSpecEndpointIsAuction() {
+        // given
+        final AuctionContext givenAuctionContext = givenAuctionContext(identity())
+                .toBuilder()
+                .requestTypeMetric(MetricName.openrtb2dooh)
+                .build();
+        final BidderRequest givenBidderRequest = givenBidderRequest(identity());
+        final HttpLogSpec givenSpec = HttpLogSpec.of(HttpLogSpec.Endpoint.auction, null, null, "bidderName", 1);
+
+        // when
+        target.setSpec(givenSpec);
+        target.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
 
         // then
         verify(logger).info(anyString(), anyString(), anyString());
@@ -391,8 +408,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(HttpLogSpec.Endpoint.amp, null, null, "bidderName", 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
+        target.setSpec(givenSpec);
+        target.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
 
         // then
         verify(logger).info(anyString(), anyString(), anyString());
@@ -414,8 +431,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(HttpLogSpec.Endpoint.amp, null, null, "bidderName", 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
+        target.setSpec(givenSpec);
+        target.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
 
         // then
         verify(logger).info(anyString(),
@@ -436,8 +453,8 @@ public class HttpInteractionLoggerTest extends VertxTest {
         final HttpLogSpec givenSpec = HttpLogSpec.of(HttpLogSpec.Endpoint.amp, null, null, "bidderName", 1);
 
         // when
-        testingInstance.setSpec(givenSpec);
-        testingInstance.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
+        target.setSpec(givenSpec);
+        target.maybeLogBidderRequest(givenAuctionContext, givenBidderRequest);
 
         // then
         verify(logger).info(anyString(), anyString(), anyString());

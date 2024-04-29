@@ -28,6 +28,11 @@ class PBSUtils implements ObjectMapperWrapper {
         value == excludedValue ? getRandomNumberWithExclusion(excludedValue, min, max) : value
     }
 
+    static int getRandomNumberWithExclusion(List<Integer> excludedValues, int min = 0, int max = MAX_VALUE) {
+        def value = getRandomNumber(min, max)
+        excludedValues.contains(value) ? getRandomNumberWithExclusion(excludedValues, min, max) : value
+    }
+
     static int getRandomNegativeNumber(int min = MIN_VALUE + 1, int max = 0) {
         getRandomNumber(max, min * -1) * -1
     }
@@ -53,7 +58,7 @@ class PBSUtils implements ObjectMapperWrapper {
         roundDecimal(getRandomDecimal(floorMin, floorMax), 2)
     }
 
-    static def randomizeCase(String string) {
+    static def getRandomCase(String string) {
         string.toCharArray().collect {
             def number = getRandomNumber(0, 1)
             if (number == 0) {

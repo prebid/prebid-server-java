@@ -11,6 +11,7 @@
           "adid": "adid001",
           "cid": "cid001",
           "crid": "crid001",
+          "mtype": 1,
           "ext": {
             "prebid": {
               "type": "banner"

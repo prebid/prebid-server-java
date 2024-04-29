@@ -35,7 +35,9 @@ public class ActivitiesMetrics extends UpdatableMetrics {
             case CALL_BIDDER -> "fetch_bids";
             case MODIFY_UFDP -> "enrich_ufpd";
             case TRANSMIT_UFPD -> "transmit_ufpd";
+            case TRANSMIT_EIDS -> "transmit_eids";
             case TRANSMIT_GEO -> "transmit_precise_geo";
+            case TRANSMIT_TID -> "transmit_tid";
             case REPORT_ANALYTICS -> "report_analytics";
         } + ".";
     }

@@ -4,16 +4,20 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.BidderInfo;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
@@ -21,7 +25,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class BidderDetailsHandler implements Handler<RoutingContext> {
+public class BidderDetailsHandler implements ApplicationResource {
 
     private static final String BIDDER_NAME_PARAM = "bidderName";
     private static final String ALL_PARAM_VALUE = "all";
@@ -50,7 +54,11 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
 
         return Stream.of(nameToInfo, allToInfos)
                 .flatMap(map -> map.entrySet().stream())
-                .collect(Collectors.toMap(Map.Entry::getKey, map -> mapper.encodeToString(map.getValue())));
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        map -> mapper.encodeToString(map.getValue()),
+                        (first, second) -> second,
+                        CaseInsensitiveMap::new));
     }
 
     private ObjectNode bidderNode(BidderCatalog bidderCatalog, String name) {
@@ -63,15 +71,22 @@ public class BidderDetailsHandler implements Handler<RoutingContext> {
     }
 
     @Override
+    public List<HttpEndpoint> endpoints() {
+        return Collections.singletonList(
+                HttpEndpoint.of(HttpMethod.GET, "%s/:%s".formatted(Endpoint.info_bidders.value(), BIDDER_NAME_PARAM)));
+    }
+
+    @Override
     public void handle(RoutingContext routingContext) {
         final String bidderName = routingContext.request().getParam(BIDDER_NAME_PARAM);
         final String endpoint = "%s/%s".formatted(Endpoint.info_bidders.value(), bidderName);
 
-        if (bidderInfos.containsKey(bidderName)) {
+        final String bidderInfo = bidderInfos.get(bidderName);
+        if (bidderInfo != null) {
             HttpUtil.executeSafely(routingContext, endpoint,
                     response -> response
                             .putHeader(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                            .end(bidderInfos.get(bidderName)));
+                            .end(bidderInfo));
         } else {
             HttpUtil.executeSafely(routingContext, endpoint,
                     response -> response

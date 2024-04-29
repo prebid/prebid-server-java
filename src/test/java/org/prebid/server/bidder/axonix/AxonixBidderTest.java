@@ -20,7 +20,6 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.axonix.ExtImpAxonix;
-import org.prebid.server.proto.openrtb.ext.request.between.ExtImpBetween;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -243,7 +242,7 @@ public class AxonixBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().w(23).h(25).build())
-                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of("127.0.0.1", "pubId")))))
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpAxonix.of("supplyId")))))
                 .build();
     }
 

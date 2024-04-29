@@ -2,7 +2,9 @@ package org.prebid.server.functional.model.request.auction
 
 import groovy.transform.ToString
 
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_TID
 import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
 import static org.prebid.server.functional.model.request.auction.ActivityType.REPORT_ANALYTICS
 import static org.prebid.server.functional.model.request.auction.ActivityType.ENRICH_UFPD
@@ -17,7 +19,9 @@ class AllowActivities {
     Activity enrichUfpd
     Activity reportAnalytics
     Activity transmitUfpd
+    Activity transmitEids
     Activity transmitPreciseGeo
+    Activity transmitTid
 
     static AllowActivities getDefaultAllowActivities(ActivityType activityType, Activity activity) {
         new AllowActivities().tap {
@@ -28,12 +32,16 @@ class AllowActivities {
                     return fetchBids = activity
                 case ENRICH_UFPD:
                     return enrichUfpd = activity
+                case TRANSMIT_EIDS:
+                    return transmitEids = activity
                 case REPORT_ANALYTICS:
                     return reportAnalytics = activity
                 case TRANSMIT_UFPD:
                     return transmitUfpd = activity
                 case TRANSMIT_PRECISE_GEO:
                     return transmitPreciseGeo = activity
+                case TRANSMIT_TID:
+                    return transmitTid = activity
             }
         }
     }

@@ -1,0 +1,12 @@
+adapters:
+  yearxero:
+    endpoint: https://prebid.yearxero.com/openrtb26
+    meta-info:
+      maintainer-email: prebid@yearxero.com
+      app-media-types:
+      site-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      vendor-id: 0

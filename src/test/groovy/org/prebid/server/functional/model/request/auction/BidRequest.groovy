@@ -6,7 +6,9 @@ import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
 
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
+import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
+import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO
 import static org.prebid.server.functional.model.response.auction.MediaType.VIDEO
 
 @EqualsAndHashCode
@@ -45,6 +47,10 @@ class BidRequest {
         getDefaultRequest(channel, Imp.getDefaultImpression(VIDEO))
     }
 
+    static BidRequest getDefaultAudioRequest(DistributionChannel channel = SITE) {
+        getDefaultRequest(channel, Imp.getDefaultImpression(AUDIO))
+    }
+
     static BidRequest getDefaultStoredRequest() {
         getDefaultBidRequest().tap {
             site = null
@@ -63,6 +69,9 @@ class BidRequest {
             }
             if (channel == APP) {
                 app = App.defaultApp
+            }
+            if (channel == DOOH) {
+                dooh = Dooh.defaultDooh
             }
         }
     }
@@ -85,14 +94,19 @@ class BidRequest {
     }
 
     @JsonIgnore
+    List<DistributionChannel> getRequestDistributionChannels() {
+        [app, dooh, site].collectMany { it != null ? [DistributionChannel.findByValue(it.class.simpleName)] : [] }
+    }
+
+    @JsonIgnore
     String getAccountId() {
-        site?.publisher?.id ?: app?.publisher?.id
+        app?.publisher?.id ?: dooh?.publisher?.id ?: site?.publisher?.id
     }
 
     @JsonIgnore
     void setAccountId(String accountId) {
-        if ((!site && !app) || (site && app)) {
-            throw new IllegalStateException("Either site or app should be defined")
+        if ((!dooh && !site && !app) || (site && app) || (dooh && site) || (app && dooh)) {
+            throw new IllegalStateException("Either site, app or dooh should be defined")
         }
 
         if (site) {
@@ -100,11 +114,16 @@ class BidRequest {
                 site.publisher = new Publisher()
             }
             site.publisher.id = accountId
-        } else {
+        } else if (app) {
             if (!app.publisher) {
                 app.publisher = new Publisher()
             }
             app.publisher.id = accountId
+        } else {
+            if (!dooh.publisher) {
+                dooh.publisher = new Publisher()
+            }
+            dooh.publisher.id = accountId
         }
     }
 

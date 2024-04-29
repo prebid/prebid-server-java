@@ -1,10 +1,10 @@
 package org.prebid.server.auction.model;
 
 import com.iab.openrtb.response.Bid;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.MapUtil;
 
 import java.util.Collection;

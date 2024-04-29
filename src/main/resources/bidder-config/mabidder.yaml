@@ -1,0 +1,12 @@
+adapters:
+  mabidder:
+    endpoint: https://prebid.ecdrsvc.com/pbs
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: lmprebidadapter@loblaw.ca
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 0

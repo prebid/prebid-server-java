@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>1.130.0-SNAPSHOT</version>
+        <version>3.0.0-SNAPSHOT</version>
         <relativePath>../../extra/pom.xml</relativePath>
     </parent>
 
@@ -19,25 +19,21 @@
     <modules>
         <module>ortb2-blocking</module>
         <module>confiant-ad-quality</module>
+        <module>pb-richmedia-filter</module>
     </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.version>17</java.version>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
-
-        <prebid-server.version>1.130.0-SNAPSHOT</prebid-server.version>
-
-        <lombok.version>1.18.22</lombok.version>
 
         <junit-bom.version>5.9.0</junit-bom.version>
         <assertj.version>3.23.1</assertj.version>
         <junit.version>4.13.2</junit.version>
         <mockito.version>4.7.0</mockito.version>
 
-        <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
+        <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
     </properties>
 
@@ -46,7 +42,7 @@
             <dependency>
                 <groupId>org.prebid</groupId>
                 <artifactId>prebid-server</artifactId>
-                <version>${prebid-server.version}</version>
+                <version>3.0.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>org.projectlombok</groupId>
@@ -82,11 +78,6 @@
         <dependency>
             <groupId>org.prebid</groupId>
             <artifactId>prebid-server</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.vintage</groupId>

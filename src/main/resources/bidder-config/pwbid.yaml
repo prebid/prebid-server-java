@@ -1,6 +1,6 @@
 adapters:
   pwbid:
-    endpoint: https://bid.pubwise.io/prebid
+    endpoint: https://bidder.east2.pubwise.io/bid/pubwisedirect
     meta-info:
       maintainer-email: info@pubwise.io
       app-media-types:

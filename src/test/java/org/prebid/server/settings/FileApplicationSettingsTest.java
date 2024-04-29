@@ -112,7 +112,8 @@ public class FileApplicationSettingsTest extends VertxTest {
                         + "amp: true,"
                         + "web: true,"
                         + "video: true,"
-                        + "app: true"
+                        + "app: true,"
+                        + "dooh: true"
                         + "},"
                         + "purposes: {"
                         + "p1: {enforce-purpose: basic,enforce-vendors: false,vendor-exceptions: [rubicon, appnexus]},"
@@ -156,23 +157,25 @@ public class FileApplicationSettingsTest extends VertxTest {
                         .bidValidations(AccountBidValidationConfig.of(BidValidationEnforcement.enforce))
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .privacy(AccountPrivacyConfig.of(
-                        AccountGdprConfig.builder()
+                .privacy(AccountPrivacyConfig.builder()
+                        .gdpr(AccountGdprConfig.builder()
                                 .enabled(true)
-                                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true))
+                                .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                                 .purposes(Purposes.builder()
-                                        .p1(Purpose.of(EnforcePurpose.basic, false, asList("rubicon", "appnexus")))
-                                        .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx")))
+                                        .p1(Purpose.of(
+                                                EnforcePurpose.basic,
+                                                false,
+                                                asList("rubicon", "appnexus"),
+                                                null))
+                                        .p2(Purpose.of(EnforcePurpose.full, true, singletonList("openx"), null))
                                         .build())
                                 .specialFeatures(SpecialFeatures.builder()
                                         .sf1(SpecialFeature.of(true, asList("rubicon", "appnexus")))
                                         .sf2(SpecialFeature.of(false, singletonList("openx")))
                                         .build())
                                 .purposeOneTreatmentInterpretation(PurposeOneTreatmentInterpretation.accessAllowed)
-                                .build(),
-                        null,
-                        null,
-                        null))
+                                .build())
+                        .build())
                 .analytics(AccountAnalyticsConfig.of(
                         expectedEventsConfig,
                         singletonMap(

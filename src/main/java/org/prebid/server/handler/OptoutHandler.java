@@ -2,24 +2,27 @@ package org.prebid.server.handler;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
 import io.vertx.core.http.Cookie;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.optout.model.RecaptchaResponse;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 import java.util.Objects;
 
-public class OptoutHandler implements Handler<RoutingContext> {
+public class OptoutHandler implements ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(OptoutHandler.class);
 
@@ -39,6 +42,13 @@ public class OptoutHandler implements Handler<RoutingContext> {
         this.optoutRedirectUrl = Objects.requireNonNull(optoutRedirectUrl);
         this.optoutUrl = Objects.requireNonNull(optoutUrl);
         this.optinUrl = Objects.requireNonNull(optinUrl);
+    }
+
+    @Override
+    public List<HttpEndpoint> endpoints() {
+        return List.of(
+                HttpEndpoint.of(HttpMethod.GET, Endpoint.optout.value()),
+                HttpEndpoint.of(HttpMethod.POST, Endpoint.optout.value()));
     }
 
     @Override

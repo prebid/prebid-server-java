@@ -1,8 +1,8 @@
 package com.iab.openrtb.request;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.request.ExtDooh;
 
 import java.util.List;
 
@@ -12,7 +12,7 @@ import java.util.List;
  * At a minimum, it is useful to provide id and/or venuetypeid, but this is not strictly required.
  */
 @Value
-@Builder
+@Builder(toBuilder = true)
 public class Dooh {
 
     /**
@@ -59,5 +59,5 @@ public class Dooh {
     /**
      * Placeholder for exchange-specific extensions to OpenRTB.
      */
-    JsonNode ext;
+    ExtDooh ext;
 }

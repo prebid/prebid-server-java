@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.stroeercore;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -84,8 +85,8 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
     }
 
     private static void validateImp(Imp imp) {
-        if (imp.getBanner() == null) {
-            throw new PreBidException("Expected banner impression");
+        if (imp.getBanner() == null && imp.getVideo() == null) {
+            throw new PreBidException("Expected banner or video impression");
         }
     }
 
@@ -137,36 +138,55 @@ public class StroeerCoreBidder implements Bidder<BidRequest> {
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final String body = httpCall.getResponse().getBody();
-            final StroeerCoreBidResponse response = mapper.decodeValue(body, StroeerCoreBidResponse.class);
-            return Result.withValues(extractBids(response));
+            final StroeerCoreBidResponse bidResponse = mapper.decodeValue(body, StroeerCoreBidResponse.class);
+            return Result.withValues(extractBids(httpCall.getRequest().getPayload(), bidResponse));
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(StroeerCoreBidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidRequest bidRequest, StroeerCoreBidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getBids())) {
             return Collections.emptyList();
         }
 
         return bidResponse.getBids().stream()
                 .filter(Objects::nonNull)
-                .map(StroeerCoreBidder::toBidderBid)
+                .map(stroeerCoreBid -> toBidderBid(bidRequest, stroeerCoreBid))
                 .toList();
     }
 
-    private static BidderBid toBidderBid(StroeerCoreBid stroeercoreBid) {
+    private BidderBid toBidderBid(BidRequest bidRequest, StroeerCoreBid stroeercoreBid) {
+        final ObjectNode bidExt = stroeercoreBid.getDsa() != null
+                ? mapper.mapper().createObjectNode().set("dsa", stroeercoreBid.getDsa())
+                : null;
+
         return BidderBid.of(
                 Bid.builder()
                         .id(stroeercoreBid.getId())
-                        .impid(stroeercoreBid.getBidId())
+                        .impid(stroeercoreBid.getImpId())
                         .w(stroeercoreBid.getWidth())
                         .h(stroeercoreBid.getHeight())
                         .price(stroeercoreBid.getCpm())
                         .adm(stroeercoreBid.getAdMarkup())
                         .crid(stroeercoreBid.getCreativeId())
+                        .ext(bidExt)
                         .build(),
-                BidType.banner,
+                getBidType(stroeercoreBid.getImpId(), bidRequest.getImp()),
                 BIDDER_CURRENCY);
+    }
+
+    private static BidType getBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
+                }
+            }
+        }
+
+        return BidType.banner;
     }
 }

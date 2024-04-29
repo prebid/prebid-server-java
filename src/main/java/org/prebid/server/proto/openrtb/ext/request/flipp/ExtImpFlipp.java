@@ -25,9 +25,6 @@ public class ExtImpFlipp {
     @JsonProperty("userKey")
     String userKey;
 
-    @JsonProperty("ip")
-    String ip;
-
     @JsonProperty("options")
     ExtImpFlippOptions options;
 }

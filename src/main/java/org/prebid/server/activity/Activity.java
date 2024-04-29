@@ -16,8 +16,14 @@ public enum Activity {
     @JsonProperty("transmitUfpd")
     TRANSMIT_UFPD,
 
+    @JsonProperty("transmitEids")
+    TRANSMIT_EIDS,
+
     @JsonProperty("transmitPreciseGeo")
     TRANSMIT_GEO,
+
+    @JsonProperty("transmitTid")
+    TRANSMIT_TID,
 
     @JsonProperty("reportAnalytics")
     REPORT_ANALYTICS

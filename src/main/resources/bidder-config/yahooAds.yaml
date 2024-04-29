@@ -3,14 +3,11 @@ adapters:
     endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
     ortb-version: "2.6"
     aliases:
-      yssp:
-        endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
-      yahoossp:
-        endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
-      yahooAdvertising:
-        endpoint: https://s2shb.ssp.yahoo.com/admax/bid/partners/PBS
+      yssp: ~
+      yahoossp: ~
+      yahooAdvertising: ~
     meta-info:
-      maintainer-email: hb-fe-tech@yahooinc.com
+      maintainer-email: prebid-tech-team@yahooinc.com
       app-media-types:
         - banner
         - video
