@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.junit.Before;
 import org.junit.Rule;
@@ -21,8 +22,8 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.math.BigDecimal;
 import java.time.Clock;
@@ -206,7 +207,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 BigDecimal.ONE, givenBidRequestWithCurrencies(null, false), EUR, GBP);
 
         // then
-        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.770));
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.769));
     }
 
     @Test
@@ -220,7 +221,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                 givenBidRequestWithCurrencies(requestConversionRates, true), EUR, GBP);
 
         // then
-        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.770));
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.769));
     }
 
     @Test
@@ -249,6 +250,36 @@ public class CurrencyConversionServiceTest extends VertxTest {
 
         // then
         assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(5));
+    }
+
+    @Test
+    public void convertCurrencyShouldUseCrossRateIfOtherRatesAreNotAvailable() {
+        // given
+        final Map<String, Map<String, BigDecimal>> requestConversionRates = new HashMap<>();
+        requestConversionRates.put(USD, Map.of(GBP, BigDecimal.valueOf(2),
+                EUR, BigDecimal.valueOf(0.5)));
+
+        // when
+        final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE,
+                givenBidRequestWithCurrencies(requestConversionRates, false), GBP, EUR);
+
+        // then
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(0.25));
+    }
+
+    @Test
+    public void convertCurrencyShouldUseCrossRateIfOtherRatesAreNotAvailableReversed() {
+        // given
+        final Map<String, Map<String, BigDecimal>> requestConversionRates = new HashMap<>();
+        requestConversionRates.put(USD, Map.of(GBP, BigDecimal.valueOf(2),
+                EUR, BigDecimal.valueOf(0.5)));
+
+        // when
+        final BigDecimal price = currencyService.convertCurrency(BigDecimal.ONE,
+                givenBidRequestWithCurrencies(requestConversionRates, false), EUR, GBP);
+
+        // then
+        assertThat(price).isEqualByComparingTo(BigDecimal.valueOf(4));
     }
 
     @Test
@@ -369,7 +400,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
                         clock,
                         jacksonMapper));
 
-        currencyService.initialize();
+        currencyService.initialize(Promise.promise());
 
         return currencyService;
     }

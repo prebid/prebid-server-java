@@ -1,8 +1,11 @@
 adapters:
   emxdigital:
     endpoint: https://hb.emxdgt.com
+    aliases:
+      cadent_aperture_mx:
+        enabled: false
     meta-info:
-      maintainer-email: adops@emxdigital.com
+      maintainer-email: contactaperturemx@cadent.tv
       app-media-types:
         - banner
         - video

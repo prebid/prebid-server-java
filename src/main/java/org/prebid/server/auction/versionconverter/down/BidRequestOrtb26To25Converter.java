@@ -23,6 +23,7 @@ import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConverter
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
@@ -124,6 +125,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 modifiedAudio,
                 imp.getSsai(),
                 imp.getQty(),
+                imp.getDt(),
                 imp.getRefresh(),
                 modifiedImpExt)
 
@@ -133,6 +135,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 .rwdd(null)
                 .ssai(null)
                 .qty(null)
+                .dt(null)
                 .refresh(null)
                 .ext(modifiedImpExt != null ? modifiedImpExt : impExt)
                 .build()
@@ -152,8 +155,7 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 video.getPodseq(),
                 video.getRqddurs(),
                 video.getSlotinpod(),
-                video.getMincpmpersec(),
-                video.getPlcmt())
+                video.getMincpmpersec())
 
                 ? video.toBuilder()
                 .maxseq(null)
@@ -163,7 +165,6 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
                 .rqddurs(null)
                 .slotinpod(null)
                 .mincpmpersec(null)
-                .plcmt(null)
                 .build()
 
                 : null;
@@ -420,7 +421,8 @@ public class BidRequestOrtb26To25Converter implements BidRequestOrtbVersionConve
 
         final ExtRegs originalExtRegs = regs.getExt();
         final String gpc = originalExtRegs != null ? originalExtRegs.getGpc() : null;
-        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy, gpc);
+        final ExtRegsDsa dsa = originalExtRegs != null ? originalExtRegs.getDsa() : null;
+        final ExtRegs extRegs = ExtRegs.of(gdpr, usPrivacy, gpc, dsa);
         copyProperties(originalExtRegs, extRegs);
 
         return regs.toBuilder()

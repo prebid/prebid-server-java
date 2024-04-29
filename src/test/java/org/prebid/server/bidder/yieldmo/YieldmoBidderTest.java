@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.yieldmo;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
@@ -199,7 +201,7 @@ public class YieldmoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnVideoBidByDefault() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidExtHasNoMediaType() throws JsonProcessingException {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 BidRequest.builder()
@@ -213,8 +215,7 @@ public class YieldmoBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+        assertThat(result.getValue()).isEmpty();
     }
 
     @Test
@@ -225,7 +226,7 @@ public class YieldmoBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().banner(Banner.builder().build()).id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(toObjectNode("banner")))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -233,7 +234,8 @@ public class YieldmoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), banner, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").ext(toObjectNode("banner")).build(),
+                        banner, "USD"));
     }
 
     @Test
@@ -244,7 +246,7 @@ public class YieldmoBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().video(Video.builder().build()).id("123").build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.impid("123").ext(toObjectNode("video")))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -252,7 +254,8 @@ public class YieldmoBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
-                .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), video, "USD"));
+                .containsExactly(BidderBid.of(Bid.builder().impid("123").ext(toObjectNode("video")).build(),
+                        video, "USD"));
     }
 
     private static BidRequest givenBidRequest(
@@ -290,5 +293,12 @@ public class YieldmoBidderTest extends VertxTest {
                 HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
                 HttpResponse.of(200, null, body),
                 null);
+    }
+
+    private ObjectNode toObjectNode(String mediaType) {
+        final ObjectMapper mapper = new ObjectMapper();
+        final ObjectNode root = mapper.createObjectNode();
+        root.set("mediatype", mapper.convertValue(mediaType, JsonNode.class));
+        return root;
     }
 }

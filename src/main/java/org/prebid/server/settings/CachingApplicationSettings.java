@@ -1,11 +1,11 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.helper.StoredDataFetcher;
@@ -72,7 +72,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
         return getFromCacheOrDelegate(
                 accountCache,
                 accountToErrorCache,
-                accountId,
+                StringUtils.isBlank(accountId) ? StringUtils.EMPTY : accountId,
                 timeout,
                 delegate::getAccountById,
                 event -> metrics.updateSettingsCacheEventMetric(MetricName.account, event));
@@ -243,7 +243,7 @@ public class CachingApplicationSettings implements ApplicationSettings {
 
     public void invalidateAccountCache(String accountId) {
         accountCache.remove(accountId);
-        logger.debug("Account with id {0} was invalidated", accountId);
+        logger.debug("Account with id {} was invalidated", accountId);
     }
 
     public void invalidateAllAccountCache() {

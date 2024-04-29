@@ -1,12 +1,17 @@
 package org.prebid.server.functional.tests.privacy
 
 import org.prebid.server.functional.model.UidsCookie
+import org.prebid.server.functional.model.config.AccountCcpaConfig
+import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGppConfig
+import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.config.AccountSetting
 import org.prebid.server.functional.model.config.ActivityConfig
 import org.prebid.server.functional.model.config.EqualityValueRule
 import org.prebid.server.functional.model.config.InequalityValueRule
 import org.prebid.server.functional.model.config.LogicalRestrictedRule
-import org.prebid.server.functional.model.config.ModuleConfig
+import org.prebid.server.functional.model.config.GppModuleConfig
+import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
@@ -63,6 +68,7 @@ import static org.prebid.server.functional.model.request.auction.ActivityType.SY
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.ALL
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_ALL
 import static org.prebid.server.functional.model.request.auction.PrivacyModule.IAB_US_CUSTOM_LOGIC
+import static org.prebid.server.functional.model.request.auction.PublicCountryIp.USA_IP
 import static org.prebid.server.functional.util.privacy.model.State.MANITOBA
 import static org.prebid.server.functional.util.privacy.model.State.ALABAMA
 import static org.prebid.server.functional.util.privacy.model.State.ALASKA
@@ -75,13 +81,15 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
     private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${SYNC_USER.metricValue}.disallowed.count"
     private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${SYNC_USER.metricValue}.disallowed.count"
     private static final String ALERT_GENERAL = "alerts.general"
+    private static final String GEO_LOCATION_REQUESTS = "geolocation_requests"
+    private static final String GEO_LOCATION_SUCCESSFUL = "geolocation_successful"
 
     private final static int INVALID_STATUS_CODE = 451
     private final static String INVALID_STATUS_MESSAGE = "Unavailable For Legal Reasons."
 
     private static final Map<String, String> GEO_LOCATION = ["geolocation.enabled"                           : "true",
                                                              "geolocation.type"                              : "configuration",
-                                                             "geolocation.configurations.[0].address-pattern": "209."]
+                                                             "geolocation.configurations.[0].address-pattern": USA_IP.v4]
 
     def "PBS cookie sync call when bidder allowed in activities should include proper responded with bidders URLs and update processed metrics"() {
         given: "Cookie sync request with link to account"
@@ -481,7 +489,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         where:
         accountGppConfig << [
                 new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
-                new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: true)
+                new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [USP_NAT_V1]), enabled: true)
         ]
     }
 
@@ -535,8 +543,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: false)
-        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: []), enabled: true)
+        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [USP_NAT_V1]), enabled: false)
+        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: []), enabled: true)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -606,7 +614,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], accountLogic))
+            it.config = GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], accountLogic))
         }
 
         and: "Existed account with privacy regulation setup"
@@ -647,7 +655,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], accountLogic))
+            it.config = GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], accountLogic))
         }
 
         and: "Existed account with privacy regulation setup"
@@ -692,7 +700,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], restrictedRule), [USP_NAT_V1], false)
+            it.config = GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], restrictedRule), [USP_NAT_V1], false)
         }
 
         and: "Flush metrics"
@@ -738,7 +746,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
+            it.config = GppModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
         }
 
         and: "Existed account with privacy regulation setup"
@@ -1270,7 +1278,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         where:
         accountGppConfig << [
                 new AccountGppConfig(code: IAB_US_GENERAL, enabled: false),
-                new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: true),
+                new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [USP_NAT_V1]), enabled: true),
 
         ]
     }
@@ -1331,8 +1339,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([ruleUsGeneric]))
 
         and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: [USP_NAT_V1]), enabled: false)
-        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new ModuleConfig(skipSids: []), enabled: true)
+        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [USP_NAT_V1]), enabled: false)
+        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: []), enabled: true)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -1385,7 +1393,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert response.responseBody
     }
 
-
     def "PBS setuid call when privacy regulation don't match custom requirement should respond with required UIDs cookies"() {
         given: "Cookie sync SetuidRequest with accountId"
         def accountId = PBSUtils.randomNumber as String
@@ -1410,7 +1417,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], accountLogic))
+            it.config = GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], accountLogic))
         }
 
         and: "Existed account with privacy regulation setup"
@@ -1454,7 +1461,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], accountLogic))
+            it.config = GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], accountLogic))
         }
 
         and: "Existed account with privacy regulation setup"
@@ -1504,7 +1511,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], restrictedRule), [USP_NAT_V1], false)
+            it.config = GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([SYNC_USER], restrictedRule), [USP_NAT_V1], false)
         }
 
         and: "Flush metrics"
@@ -1553,7 +1560,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = ModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
+            it.config = GppModuleConfig.getDefaultModuleConfig(activityConfig, [gppSid], true)
         }
 
         and: "Existed account with privacy regulation setup"
@@ -1684,12 +1691,12 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
 
         where:
-        countyConfig | regionConfig          | conditionGeo
-        null         | null                  | ["$USA.value".toString()]
-        USA.value    | ALABAMA.abbreviation  | null
-        CAN.value    | ALASKA.abbreviation   | [USA.withState(ALABAMA)]
-        null         | MANITOBA.abbreviation | [USA.withState(ALABAMA)]
-        CAN.value    | null                  | [USA.withState(ALABAMA)]
+        countyConfig  | regionConfig          | conditionGeo
+        null          | null                  | ["$USA.ISOAlpha3".toString()]
+        USA.ISOAlpha3 | ALABAMA.abbreviation  | null
+        CAN.ISOAlpha3 | ALASKA.abbreviation   | [USA.withState(ALABAMA)]
+        null          | MANITOBA.abbreviation | [USA.withState(ALABAMA)]
+        CAN.ISOAlpha3 | null                  | [USA.withState(ALABAMA)]
     }
 
     def "PBS setuid should process rule when geo doesn't intersection"() {
@@ -1740,11 +1747,11 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
 
         where:
-        countyConfig | regionConfig          | conditionGeo
-        null         | null                  | [USA.value]
-        CAN.value    | ALASKA.abbreviation   | [USA.withState(ALABAMA)]
-        null         | MANITOBA.abbreviation | [USA.withState(ALABAMA)]
-        CAN.value    | null                  | [USA.withState(ALABAMA)]
+        countyConfig  | regionConfig          | conditionGeo
+        null          | null                  | [USA.ISOAlpha3]
+        CAN.ISOAlpha3 | ALASKA.abbreviation   | [USA.withState(ALABAMA)]
+        null          | MANITOBA.abbreviation | [USA.withState(ALABAMA)]
+        CAN.ISOAlpha3 | null                  | [USA.withState(ALABAMA)]
     }
 
     def "PBS cookie sync should disallowed rule when device.geo intersection"() {
@@ -1793,9 +1800,9 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
 
         where:
-        countyConfig | regionConfig         | conditionGeo
-        USA.value    | null                 | [USA.value]
-        USA.value    | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
+        countyConfig  | regionConfig         | conditionGeo
+        USA.ISOAlpha3 | null                 | [USA.ISOAlpha3]
+        USA.ISOAlpha3 | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
     }
 
     def "PBS setuid should disallowed rule when device.geo intersection"() {
@@ -1843,8 +1850,60 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         assert exception.responseBody == INVALID_STATUS_MESSAGE
 
         where:
-        countyConfig | regionConfig         | conditionGeo
-        USA.value    | null                 | [USA.value]
-        USA.value    | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
+        countyConfig  | regionConfig         | conditionGeo
+        USA.ISOAlpha3 | null                 | [USA.ISOAlpha3]
+        USA.ISOAlpha3 | ALABAMA.abbreviation | [USA.withState(ALABAMA)]
+    }
+
+    def "PBS cookie sync should fetch geo once when gpp sync user and account require geo look up"() {
+        given: "Pbs config with geo location"
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GEO_LOCATION +
+                ["geolocation.configurations.[0].geo-info.country": USA.ISOAlpha3,
+                 "geolocation.configurations.[0].geo-info.region" : ALABAMA.abbreviation])
+
+        and: "Cookie sync request with account connection"
+        def accountId = PBSUtils.randomNumber as String
+        def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
+            it.account = accountId
+            it.gppSid = null
+            it.gdpr = null
+        }
+
+        and: "Setup condition"
+        def condition = Condition.baseCondition.tap {
+            it.componentType = null
+            it.componentName = null
+            it.gppSid = null
+            it.geo = [USA.withState(ALABAMA)]
+        }
+
+        and: "Set activity"
+        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
+        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
+
+        and: "Flush metrics"
+        flushMetrics(prebidServerService)
+
+        and: "Set up account for allow activities"
+        def privacy = new AccountPrivacyConfig(ccpa: new AccountCcpaConfig(enabled: true), allowActivities: activities)
+        def accountConfig = new AccountConfig(privacy: privacy, settings: new AccountSetting(geoLookup: true))
+        def account = new Account(uuid: accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes cookie sync request with header"
+        def response = prebidServerService
+                .sendCookieSyncRequest(cookieSyncRequest, ["X-Forwarded-For": USA_IP.v4])
+
+        then: "Response should not contain any URLs for bidders"
+        assert !response.bidderStatus.userSync.url
+
+        and: "Metrics for disallowed activities should be updated"
+        def metrics = prebidServerService.sendCollectedMetricsRequest()
+        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
+        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+
+        and: "Metrics processed across activities should be updated"
+        assert metrics[GEO_LOCATION_REQUESTS] == 1
+        assert metrics[GEO_LOCATION_SUCCESSFUL] == 1
     }
 }

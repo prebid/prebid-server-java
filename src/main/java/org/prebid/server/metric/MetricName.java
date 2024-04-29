@@ -41,6 +41,7 @@ public enum MetricName {
     // request types,
     openrtb2web("openrtb2-web"),
     openrtb2app("openrtb2-app"),
+    openrtb2dooh("openrtb2-dooh"),
     amp,
     video,
     cookiesync,
@@ -85,6 +86,7 @@ public enum MetricName {
     sizedout,
 
     // tcf
+    userfpd_masked,
     userid_removed,
     geo_masked,
     request_blocked,
@@ -118,6 +120,7 @@ public enum MetricName {
     rejected_by_invalid_account("rejected.invalid-account"),
     rejected_by_invalid_stored_impr("rejected.invalid-stored-impr"),
     rejected_by_invalid_stored_request("rejected.invalid-stored-request"),
+    rejected_by_account_fetch_failed("rejected.account-fetch-failed"),
 
     // currency rates
     stale,
@@ -143,32 +146,6 @@ public enum MetricName {
 
     // price-floors
     price_floors("price-floors"),
-
-    // win notifications
-    win_notifications,
-    win_requests,
-    win_request_preparation_failed,
-    win_request_time,
-    win_request_failed,
-    win_request_successful,
-
-    // user details
-    user_details_requests,
-    user_details_request_preparation_failed,
-    user_details_request_time,
-    user_details_request_failed,
-    user_details_request_successful,
-
-    // pg
-    planner_lineitems_received,
-    planner_requests,
-    planner_request_failed,
-    planner_request_successful,
-    planner_request_time,
-    delivery_requests,
-    delivery_request_failed,
-    delivery_request_successful,
-    delivery_request_time,
 
     // activity
     disallowed_count("disallowed.count"),

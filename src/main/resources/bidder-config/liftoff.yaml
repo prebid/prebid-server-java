@@ -1,0 +1,13 @@
+adapters:
+  liftoff:
+    endpoint: https://rtb.ads.vungle.com/bid/t/c770f32
+    modifying-vast-xml-allowed: true
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: vxssp@liftoff.io
+      app-media-types:
+        - video
+      site-media-types:
+        - video
+      supported-vendors:
+      vendor-id: 0

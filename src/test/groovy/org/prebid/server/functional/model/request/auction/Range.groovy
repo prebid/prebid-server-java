@@ -5,6 +5,6 @@ import groovy.transform.ToString
 @ToString(includeNames = true, ignoreNulls = true)
 class Range {
 
-    Integer max
+    BigDecimal max
     BigDecimal increment
 }

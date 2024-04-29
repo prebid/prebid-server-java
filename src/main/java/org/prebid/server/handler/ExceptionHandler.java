@@ -1,9 +1,9 @@
 package org.prebid.server.handler;
 
 import io.vertx.core.Handler;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 
 import java.io.IOException;
@@ -26,7 +26,7 @@ public class ExceptionHandler implements Handler<Throwable> {
     @Override
     public void handle(Throwable exception) {
         if (shouldLogException(exception)) {
-            logger.warn("Generic error handler: {0}, cause: {1}",
+            logger.warn("Generic error handler: {}, cause: {}",
                     errorMessageFrom(exception), errorMessageFrom(exception.getCause()));
         }
         metrics.updateConnectionAcceptErrors();

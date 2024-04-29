@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Yeahmobi Adapter Params",
   "description": "A schema which validates params accepted by the Yeahmobi adapter",
-
   "type": "object",
   "properties": {
     "pubId": {

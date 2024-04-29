@@ -10,7 +10,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
-import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -22,8 +21,7 @@ public class AxisTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromAxis() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/axis-exchange/intgrn"))
-                .withQueryParam("token", equalTo("tokenA"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/axis-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/axis/test-axis-bid-request.json")))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/axis/test-axis-bid-response.json"))));
 

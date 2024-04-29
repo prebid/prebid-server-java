@@ -1,7 +1,6 @@
 package org.prebid.server.log;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
-import io.vertx.core.logging.Logger;
 import org.apache.commons.lang3.ObjectUtils;
 
 import java.time.Instant;
@@ -86,6 +85,12 @@ public class ConditionalLogger {
 
     public void debug(String message, long duration, TimeUnit unit) {
         log(message, duration, unit, logger -> logger.debug(message));
+    }
+
+    public void debug(String message, double samplingRate) {
+        if (samplingRate >= 1.0d || ThreadLocalRandom.current().nextDouble() < samplingRate) {
+            logger.debug(message);
+        }
     }
 
     public void warn(String message, int limit) {

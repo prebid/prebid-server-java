@@ -1,11 +1,9 @@
 package org.prebid.server.proto.openrtb.ext.request.yeahmobi;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.AllArgsConstructor;
 import lombok.Value;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class ExtImpYeahmobi {
 
     @JsonProperty("pubId")
@@ -13,4 +11,5 @@ public class ExtImpYeahmobi {
 
     @JsonProperty("zoneId")
     String zoneId;
+
 }

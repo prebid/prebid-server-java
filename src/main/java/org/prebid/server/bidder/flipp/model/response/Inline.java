@@ -11,7 +11,7 @@ import java.util.List;
 public class Inline {
 
     @JsonProperty("adId")
-    Integer adId;
+    int adId;
 
     @JsonProperty("advertiserId")
     Integer advertiserId;
@@ -26,7 +26,7 @@ public class Inline {
     List<Content> contents;
 
     @JsonProperty("creativeId")
-    Integer creativeId;
+    int creativeId;
 
     @JsonProperty("flightId")
     Integer flightId;

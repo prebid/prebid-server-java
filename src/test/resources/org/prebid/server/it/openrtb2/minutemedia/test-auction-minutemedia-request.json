@@ -1,0 +1,94 @@
+{
+  "id": "request_id",
+  "imp": [
+    {
+      "id": "banner_imp_id",
+      "banner": {
+        "format": [
+          {
+            "w": 300,
+            "h": 250
+          }
+        ]
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "minutemedia": {
+              "org": "123",
+              "path": "mvo",
+              "zone": "1r"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "video_imp_id",
+      "video": {
+        "mimes": [
+          "video/mp4"
+        ],
+        "minduration": 1,
+        "maxduration": 2,
+        "protocols": [
+          1,
+          2,
+          5
+        ],
+        "w": 1020,
+        "h": 780,
+        "startdelay": 1,
+        "placement": 1,
+        "playbackmethod": [
+          2
+        ],
+        "delivery": [
+          1
+        ],
+        "api": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "ext": {
+        "prebid": {
+          "bidder": {
+            "minutemedia": {
+              "org": "123",
+              "path": "mvo",
+              "zone": "1r"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "site": {
+    "id": "999",
+    "cat": [
+      "IAB3-1"
+    ],
+    "domain": "www.foobar.com",
+    "page": "http://www.foobar.com/1234.html ",
+    "publisher": {
+      "id": "111",
+      "name": "foobar.com",
+      "cat": [
+        "IAB3-1"
+      ],
+      "domain": "foobar.com"
+    }
+  },
+  "device": {
+    "ua": "Fake Test User Agent/6.0",
+    "ip": "123.45.67.89"
+  },
+  "regs": {
+    "ext": {
+      "gdpr": 0
+    }
+  }
+}

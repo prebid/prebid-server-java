@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue
 
 enum ChannelType {
 
-    WEB, PBJS, AMP, APP, VIDEO
+    WEB, PBJS, AMP, APP, VIDEO, DOOH
 
     @JsonValue
     String getValue() {

@@ -7,8 +7,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -35,6 +33,8 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.identity.UUIDIdGenerator;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -43,8 +43,8 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.vast.VastModifier;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -64,7 +64,7 @@ import java.util.stream.Stream;
 /**
  * Client stores values in Prebid Cache.
  * <p>
- * For more info, see https://github.com/prebid/prebid-cache project.
+ * For more info, see <a href="https://github.com/prebid/prebid-cache">Prebid Cache</a> project.
  */
 public class CacheService {
 
@@ -185,7 +185,7 @@ public class CacheService {
     private Future<BidCacheResponse> failResponse(Throwable exception, String accountId, long startTime) {
         metrics.updateCacheRequestFailedTime(accountId, clock.millis() - startTime);
 
-        logger.warn("Error occurred while interacting with cache service: {0}", exception.getMessage());
+        logger.warn("Error occurred while interacting with cache service: {}", exception.getMessage());
         logger.debug("Error occurred while interacting with cache service", exception);
 
         return Future.failedFuture(exception);
@@ -361,7 +361,7 @@ public class CacheService {
             cachedCreatives.add(makeDebugCacheCreative(cachedDebugLog, hbCacheId, videoCacheTtl));
         }
 
-        final long remainingTimeout = auctionContext.getTimeout().remaining();
+        final long remainingTimeout = auctionContext.getTimeoutContext().getTimeout().remaining();
         if (remainingTimeout <= 0) {
             return Future.succeededFuture(CacheServiceResult.of(null, new TimeoutException("Timeout has been exceeded"),
                     Collections.emptyMap()));
@@ -423,7 +423,7 @@ public class CacheService {
                                                    CacheHttpRequest request,
                                                    long startTime) {
 
-        logger.warn("Error occurred while interacting with cache service: {0}", exception.getMessage());
+        logger.warn("Error occurred while interacting with cache service: {}", exception.getMessage());
         logger.debug("Error occurred while interacting with cache service", exception);
 
         metrics.updateCacheRequestFailedTime(accountId, clock.millis() - startTime);
@@ -471,12 +471,11 @@ public class CacheService {
         final Bid bid = bidInfo.getBid();
         final ObjectNode bidObjectNode = mapper.mapper().valueToTree(bid);
 
-        final String eventUrl =
-                generateWinUrl(bidInfo.getBidId(),
-                        bidInfo.getBidder(),
-                        accountId,
-                        eventsContext,
-                        bidInfo.getLineItemId());
+        final String eventUrl = generateWinUrl(
+                bidInfo.getBidId(),
+                bidInfo.getBidder(),
+                accountId,
+                eventsContext);
         if (eventUrl != null) {
             bidObjectNode.put(BID_WURL_ATTRIBUTE, eventUrl);
         }
@@ -521,24 +520,16 @@ public class CacheService {
     private String generateWinUrl(String bidId,
                                   String bidder,
                                   String accountId,
-                                  EventsContext eventsContext,
-                                  String lineItemId) {
+                                  EventsContext eventsContext) {
 
-        if (!eventsContext.isEnabledForAccount()) {
-            return null;
-        }
-
-        if (eventsContext.isEnabledForRequest() || StringUtils.isNotBlank(lineItemId)) {
-            return eventsService.winUrl(
-                    bidId,
-                    bidder,
-                    accountId,
-                    lineItemId,
-                    eventsContext.isEnabledForRequest(),
-                    eventsContext);
-        }
-
-        return null;
+        return eventsContext.isEnabledForAccount() && eventsContext.isEnabledForRequest()
+                ? eventsService.winUrl(
+                bidId,
+                bidder,
+                accountId,
+                true,
+                eventsContext)
+                : null;
     }
 
     /**

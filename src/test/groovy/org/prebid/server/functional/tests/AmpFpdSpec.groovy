@@ -3,7 +3,6 @@ package org.prebid.server.functional.tests
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.amp.AmpRequest
-import org.prebid.server.functional.model.request.amp.Targeting
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.BidderConfig
 import org.prebid.server.functional.model.request.auction.BidderConfigOrtb
@@ -17,13 +16,13 @@ import org.prebid.server.functional.model.request.auction.ImpExtContextDataAdSer
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.service.PrebidServerException
-import org.prebid.server.functional.util.HttpUtil
 import org.prebid.server.functional.util.PBSUtils
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
 import static org.prebid.server.functional.model.bidder.BidderName.BOGUS
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
 
 class AmpFpdSpec extends BaseSpec {
@@ -112,64 +111,6 @@ class AmpFpdSpec extends BaseSpec {
         assert ampStoredRequest.user.data[0].name == bidderRequest.user.data[0].name
     }
 
-    def "PBS should populate all FPD via targeting when targeting is present"() {
-        given: "Init targeting"
-        def targeting = new Targeting().tap {
-            site = Site.configFPDSite
-            user = User.configFPDUser
-            keywords = [PBSUtils.randomString]
-            bidders = [GENERIC]
-        }
-
-        and: "Encode targeting to String"
-        def encodeTargeting = HttpUtil.encodeUrl(encode(targeting))
-
-        and: "AMP request"
-        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString, targeting: encodeTargeting)
-
-        and: "Stored request with FPD fields"
-        def ampStoredRequest = BidRequest.getDefaultBidRequest(SITE).tap {
-            site = new Site(page: PBSUtils.randomString)
-            user = new User(keywords: PBSUtils.randomString)
-        }
-
-        and: "Stored request in DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should contain FPD field from the stored request"
-        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        verifyAll(bidderRequest) {
-            targeting.site.name == site.name
-            targeting.site.domain == site.domain
-            targeting.site.cat == site.cat
-            targeting.site.sectionCat == site.sectionCat
-            targeting.site.pageCat == site.pageCat
-            targeting.site.page == site.page
-            targeting.site.ref == site.ref
-            targeting.site.search == site.search
-            targeting.site.keywords == site.keywords
-            targeting.site.ext.data.language == site.ext.data.language
-
-            targeting.user.yob == user.yob
-            targeting.user.gender == user.gender
-            targeting.user.keywords == user.keywords
-            targeting.user.ext.data.keywords == user.ext.data.keywords
-            targeting.user.ext.data.buyeruid == user.ext.data.buyeruid
-            targeting.user.ext.data.buyeruids == user.ext.data.buyeruids
-        }
-
-        and: "Bidder request shouldn't contain imp[0].ext.rp"
-        bidderRequest.each {
-            verifyAll(it) {
-                !imp[0].ext.rp
-            }
-        }
-    }
-
     def "PBS should emit error when targeting field is invalid"() {
         given: "AMP request with invalid targeting"
         def invalidTargeting = "InvalidTargeting"
@@ -213,64 +154,6 @@ class AmpFpdSpec extends BaseSpec {
         def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
         assert ampStoredRequest.site.page == bidderRequest.site.page
         assert ampStoredRequest.site.keywords == bidderRequest.site.keywords
-    }
-
-    def "PBS should take precedence target from request when stored request contain site/user"() {
-        given: "Init targeting"
-        def targeting = new Targeting().tap {
-            site = Site.configFPDSite
-            user = User.configFPDUser
-            keywords = [PBSUtils.randomString]
-            bidders = [GENERIC]
-        }
-
-        and: "Encode targeting to String"
-        def encodeTargeting = HttpUtil.encodeUrl(encode(targeting))
-
-        and: "Amp request"
-        def ampRequest = new AmpRequest(tagId: PBSUtils.randomString, targeting: encodeTargeting)
-
-        and: "Stored request with FPD fields"
-        def ampStoredRequest = BidRequest.getDefaultBidRequest(SITE).tap {
-            site = Site.rootFPDSite
-            user = User.rootFPDUser
-        }
-
-        and: "Save stored request in DB"
-        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
-        storedRequestDao.save(storedRequest)
-
-        when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
-
-        then: "Bidder request should contain FPD field from the targeting"
-        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
-        verifyAll(bidderRequest) {
-            targeting.site.name == site.name
-            targeting.site.domain == site.domain
-            targeting.site.cat == site.cat
-            targeting.site.sectionCat == site.sectionCat
-            targeting.site.pageCat == site.pageCat
-            targeting.site.page == site.page
-            targeting.site.ref == site.ref
-            targeting.site.search == site.search
-            targeting.site.keywords == site.keywords
-            targeting.site.ext.data.language == site.ext.data.language
-
-            targeting.user.yob == user.yob
-            targeting.user.gender == user.gender
-            targeting.user.keywords == user.keywords
-            targeting.user.ext.data.keywords == user.ext.data.keywords
-            targeting.user.ext.data.buyeruid == user.ext.data.buyeruid
-            targeting.user.ext.data.buyeruids == user.ext.data.buyeruids
-        }
-
-        and: "Bidder request shouldn't contain imp[0].ext.rp"
-        bidderRequest.each {
-            verifyAll(it) {
-                !imp[0].ext.rp
-            }
-        }
     }
 
     def "PBS should populate FPD via bidder config when config.ortb2 is present"() {
@@ -452,8 +335,8 @@ class AmpFpdSpec extends BaseSpec {
 
         def ampStoredRequest = BidRequest.getDefaultBidRequest(SITE).tap {
             ext.prebid.tap {
-                data = new ExtRequestPrebidData(bidders: [GENERIC.value])
-                bidderConfig = [new ExtPrebidBidderConfig(bidders: [GENERIC], config: new BidderConfig(
+                data = new ExtRequestPrebidData(bidders: [extRequestPrebidDataBidder])
+                bidderConfig = [new ExtPrebidBidderConfig(bidders: [prebidBidderConfigBidder], config: new BidderConfig(
                         ortb2: new BidderConfigOrtb(site: Site.configFPDSite, user: User.configFPDUser)))]
             }
         }
@@ -494,6 +377,11 @@ class AmpFpdSpec extends BaseSpec {
                 !imp[0].ext.rp
             }
         }
+
+        where:
+        extRequestPrebidDataBidder | prebidBidderConfigBidder
+        GENERIC.value              | GENERIC_CAMEL_CASE
+        GENERIC_CAMEL_CASE.value   | GENERIC
     }
 
     def "PBS shouldn't send certain FPD data when allowed in bidder config and bidder was not defined in bidders section"() {

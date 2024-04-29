@@ -1,0 +1,178 @@
+{
+  "ctrlSwitchs": "0",
+  "multiad": [
+    {
+      "adtype": 3,
+      "content": [
+        {
+          "contentid": "58022259",
+          "creativetype": 106,
+          "endtime": 1621344684645,
+          "interactiontype": 1,
+          "landingTitle": 1,
+          "metaData": {
+            "adSign": "2",
+            "apkInfo": {
+              "appIcon": "https://icon.png",
+              "appName": "%E6%89%8B%E6%9C%BA%E6%B7%98%E5%AE%9D",
+              "fileSize": 118902470,
+              "packageName": "com.demo.package",
+              "permPromptForCard": "0",
+              "popNotify": 1,
+              "popUpAfterInstallNew": 1,
+              "priorInstallWay": "2",
+              "sha256": "sha256",
+              "url": "https://test/apkurl",
+              "versionCode": "284",
+              "versionName": "9.6.1.9"
+            },
+            "appId": "101219405",
+            "appPromotionChannel": "401721412",
+            "clickUrl": "https://ads.huawei.com/usermgtportal/home/index.html#/",
+            "cta": "%e5%ae%89%e8%a3%85",
+            "duration": 6038,
+            "icon": [
+              {
+                "checkSha256Flag": 1,
+                "fileSize": 10797,
+                "height": 160,
+                "imageType": "img",
+                "sha256": "042479eccbda9a8d7d3aa3da73c42486854407835623a30ffff875cb578242d0",
+                "url": "https://icon1.png",
+                "width": 160
+              },
+              {
+                "checkSha256Flag": 1,
+                "fileSize": 10797,
+                "height": 320,
+                "imageType": "img",
+                "sha256": "042479eccbda9a8d7d3aa3da73c42486854407835623a30ffff875cb578242d0",
+                "url": "https://icon2.png",
+                "width": 160
+              }
+            ],
+            "imageInfo": [
+              {
+                "checkSha256Flag": 0,
+                "height": 350,
+                "imageType": "img",
+                "sha256": "8baa56fdb2702b9fb044d95b328936160cd245764375cdb25a4ab504f4ae2e19",
+                "url": "http://image1.jpg",
+                "width": 400
+              },
+              {
+                "checkSha256Flag": 0,
+                "height": 300,
+                "imageType": "img",
+                "sha256": "8baa56fdb2702b9fb044d95b328936160cd245764375cdb25a4ab504f4ae2e19",
+                "url": "http://image2.jpg",
+                "width": 400
+              },
+              {
+                "checkSha256Flag": 0,
+                "height": 300,
+                "imageType": "img",
+                "sha256": "8baa56fdb2702b9fb044d95b328936160cd245764375cdb25a4ab504f4ae2e19",
+                "url": "http://image3.jpg",
+                "width": 400
+              }
+            ],
+            "label": "%E6%89%8B%E6%9C%BA%E6%B7%98%E5%AE%9D",
+            "landingPageType": "3",
+            "marketAppId": "C101219405",
+            "title": "%2Ftest%2F",
+            "description": "this is a test ad"
+          },
+          "monitor": [
+            {
+              "eventType": "click",
+              "url": [
+                "http://test/click"
+              ]
+            },
+            {
+              "eventType": "imp",
+              "url": [
+                "http://test/imp"
+              ]
+            },
+            {
+              "eventType": "download",
+              "url": [
+                "http://test/download"
+              ]
+            },
+            {
+              "eventType": "install",
+              "url": [
+                "http://test/install"
+              ]
+            },
+            {
+              "eventType": "downloadstart",
+              "url": [
+                "http://test/downloadstart"
+              ]
+            },
+            {
+              "eventType": "userclose",
+              "url": [
+                "http://test/userclose"
+              ]
+            },
+            {
+              "eventType": "playStart",
+              "url": [
+                "http://test/playStart"
+              ]
+            },
+            {
+              "eventType": "playEnd",
+              "url": [
+                "http://test/playEnd"
+              ]
+            },
+            {
+              "eventType": "playResume",
+              "url": [
+                "http://test/playResume"
+              ]
+            },
+            {
+              "eventType": "playPause",
+              "url": [
+                "http://test/playPause"
+              ]
+            },
+            {
+              "eventType": "appOpen",
+              "url": [
+                "http://test/appOpen"
+              ]
+            }
+          ],
+          "paramfromserver": {
+            "a": "1||test",
+            "sig": "",
+            "t": "99990101235959"
+          },
+          "price": 2.8,
+          "starttime": 1620230400000,
+          "taskid": "48016632"
+        }
+      ],
+      "retcode30": 200,
+      "slotid": "u42ohmaufh"
+    }
+  ],
+  "noReportAdTypeEventList": [
+    {
+      "adType": 3,
+      "eventTypeList": [
+        "installFail"
+      ]
+    }
+  ],
+  "retcode": 200,
+  "totalCacheSize": 300
+}

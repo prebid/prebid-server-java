@@ -62,13 +62,12 @@ public class SovrnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMaxAndMinDurationZero() {
+    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMaxDurationZero() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .video(Video.builder()
                         .mimes(List.of())
                         .maxduration(0)
-                        .minduration(0)
                         .build()));
 
         // when
@@ -83,13 +82,12 @@ public class SovrnBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMaxAndMinDurationIsEmpty() {
+    public void makeHttpRequestsShouldSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMaxDurationEmpty() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
                 .video(Video.builder()
                         .mimes(List.of())
                         .maxduration(null)
-                        .minduration(null)
                         .build()));
 
         // when
@@ -101,6 +99,50 @@ public class SovrnBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMinDurationZero() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .video(Video.builder()
+                        .mimes(List.of())
+                        .maxduration(10)
+                        .minduration(0)
+                        .protocols(List.of())
+                        .build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .isNotEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldNotSkipImpAndAddErrorIfRequestContainsVideoAndVideoHasMinDurationEmpty() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder
+                .video(Video.builder()
+                        .mimes(List.of())
+                        .maxduration(10)
+                        .minduration(null)
+                        .protocols(List.of())
+                        .build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .isNotEmpty();
     }
 
     @Test
@@ -485,7 +527,7 @@ public class SovrnBidderTest extends VertxTest {
         return bidRequestCustomizer.apply(BidRequest.builder()
                         .imp(singletonList(givenImp(impCustomizer)))
                         .user(User.builder().ext(ExtUser.builder().consent("consent").build()).build())
-                        .regs(Regs.builder().ext(ExtRegs.of(1, null, null)).build()))
+                        .regs(Regs.builder().ext(ExtRegs.of(1, null, null, null)).build()))
                 .build();
     }
 

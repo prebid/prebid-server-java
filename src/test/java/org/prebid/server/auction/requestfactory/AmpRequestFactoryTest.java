@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
@@ -26,13 +27,14 @@ import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.FpdResolver;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.debug.DebugContext;
-import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
+import org.prebid.server.auction.privacy.contextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.geolocation.model.GeoInfo;
@@ -56,7 +58,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCache;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheBids;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidCacheVastxml;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidChannel;
-import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidData;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
 import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
@@ -116,6 +117,8 @@ public class AmpRequestFactoryTest extends VertxTest {
     private AmpPrivacyContextFactory ampPrivacyContextFactory;
     @Mock
     private DebugResolver debugResolver;
+    @Mock
+    private GeoLocationServiceWrapper geoLocationServiceWrapper;
 
     private AmpRequestFactory target;
 
@@ -152,7 +155,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(ortb2RequestFactory.restoreResultFromRejection(any()))
                 .willAnswer(invocation -> Future.failedFuture((Throwable) invocation.getArgument(0)));
         given(ortb2RequestFactory.enrichWithPriceFloors(any())).willAnswer(invocation -> invocation.getArgument(0));
-        given(ortb2RequestFactory.updateTimeout(any(), anyLong())).willAnswer(invocation -> invocation.getArgument(0));
+        given(ortb2RequestFactory.updateTimeout(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(fpdResolver.resolveApp(any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
@@ -161,14 +164,13 @@ public class AmpRequestFactoryTest extends VertxTest {
         given(fpdResolver.resolveUser(any(), any()))
                 .willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
         given(fpdResolver.resolveImpExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock.getArgument(0));
-        given(fpdResolver.resolveBidRequestExt(any(), any())).willAnswer(invocationOnMock -> invocationOnMock
-                .getArgument(0));
-        given(ortb2RequestFactory.populateUserAdditionalInfo(any()))
-                .willAnswer(invocationOnMock -> Future.succeededFuture(invocationOnMock.getArgument(0)));
         given(ortb2RequestFactory.activityInfrastructureFrom(any()))
                 .willReturn(Future.succeededFuture());
+        given(geoLocationServiceWrapper.lookup(any()))
+                .willReturn(Future.succeededFuture(GeoInfo.builder().vendor("vendor").build()));
 
         given(debugResolver.debugContextFrom(any())).willReturn(DebugContext.of(true, true, null));
+
         final PrivacyContext defaultPrivacyContext = PrivacyContext.of(
                 Privacy.builder()
                         .gdpr("0")
@@ -191,7 +193,8 @@ public class AmpRequestFactoryTest extends VertxTest {
                 fpdResolver,
                 ampPrivacyContextFactory,
                 debugResolver,
-                jacksonMapper);
+                jacksonMapper,
+                geoLocationServiceWrapper);
     }
 
     @Test
@@ -255,6 +258,22 @@ public class AmpRequestFactoryTest extends VertxTest {
         assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
         assertThat(((InvalidRequestException) future.cause()).getMessages())
                 .hasSize(1).containsOnly("request.app must not exist in AMP stored requests.");
+    }
+
+    @Test
+    public void shouldReturnFailedFutureIfStoredBidRequestHasDooh() {
+        // given
+        final Imp imp = Imp.builder().build();
+        givenBidRequest(builder -> builder.dooh(Dooh.builder().build()), imp);
+
+        // when
+        final Future<?> future = target.fromRequest(routingContext, 0L);
+
+        // then
+        assertThat(future.failed()).isTrue();
+        assertThat(future.cause()).isInstanceOf(InvalidRequestException.class);
+        assertThat(((InvalidRequestException) future.cause()).getMessages())
+                .hasSize(1).containsOnly("request.dooh must not exist in AMP stored requests.");
     }
 
     @Test
@@ -1238,30 +1257,6 @@ public class AmpRequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnBidRequestWithExtPrebidDataBiddersUpdatedByFpdResolver() throws JsonProcessingException {
-        // given
-        routingContext.queryParams()
-                .add("targeting", mapper.writeValueAsString(
-                        Targeting.of(Arrays.asList("appnexus", "rubicon"), null, null)));
-
-        given(fpdResolver.resolveBidRequestExt(any(), any()))
-                .willReturn(ExtRequest.of(ExtRequestPrebid.builder()
-                        .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"), null)).build()));
-
-        givenBidRequest();
-
-        // when
-        final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
-
-        // then
-        verify(fpdResolver).resolveBidRequestExt(any(), any());
-        assertThat(request)
-                .extracting(BidRequest::getExt)
-                .isEqualTo(ExtRequest.of(ExtRequestPrebid.builder()
-                        .data(ExtRequestPrebidData.of(Arrays.asList("appnexus", "rubicon"), null)).build()));
-    }
-
-    @Test
     public void shouldReturnBidRequestImpExtContextDataWithTargetingAttributes() throws JsonProcessingException {
         // given
         routingContext.queryParams()
@@ -1278,7 +1273,6 @@ public class AmpRequestFactoryTest extends VertxTest {
         final BidRequest request = target.fromRequest(routingContext, 0L).result().getBidRequest();
 
         // then
-        verify(fpdResolver).resolveBidRequestExt(any(), any());
         assertThat(singletonList(request))
                 .flatExtracting(BidRequest::getImp)
                 .containsOnly(Imp.builder().secure(1).ext(mapper.createObjectNode().set("context",
@@ -1502,7 +1496,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs()).isEqualTo(Regs.builder()
-                .ext(ExtRegs.of(null, null, "1"))
+                .ext(ExtRegs.of(null, null, "1", null))
                 .build());
     }
 
@@ -1579,8 +1573,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                         .build(),
                 TcfContext.builder().geoInfo(geoInfo).build());
 
-        given(ampPrivacyContextFactory.contextFrom(any()))
-                .willReturn(Future.succeededFuture(privacyContext));
+        given(ampPrivacyContextFactory.contextFrom(any())).willReturn(Future.succeededFuture(privacyContext));
 
         // when
         final AuctionContext result = target.fromRequest(routingContext, 0L).result();
@@ -1676,7 +1669,7 @@ public class AmpRequestFactoryTest extends VertxTest {
         // given
         givenBidRequest();
 
-        given(ortb2RequestFactory.updateTimeout(any(), anyLong()))
+        given(ortb2RequestFactory.updateTimeout(any()))
                 .willAnswer(invocation -> {
                     final AuctionContext auctionContext = invocation.getArgument(0);
                     return auctionContext.with(auctionContext.getBidRequest().toBuilder().tmax(10000L).build());
@@ -1714,11 +1707,15 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(ortb2ImplicitParametersResolver.resolve(any(), any(), any(), anyBoolean())).willAnswer(
                 answerWithFirstArgument());
-        given(ortb2RequestFactory.validateRequest(any(), any()))
+        given(ortb2RequestFactory.validateRequest(any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture((BidRequest) invocation.getArgument(0)));
 
         given(ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(any()))
-                .willAnswer(invocation -> ((AuctionContext) invocation.getArgument(0)).getBidRequest());
+                .willAnswer(invocation -> Future.succeededFuture(((AuctionContext) invocation.getArgument(0))
+                        .getBidRequest()));
+        given(ortb2RequestFactory.enrichBidRequestWithGeolocationData(any()))
+                .willAnswer(invocation -> Future.succeededFuture(((AuctionContext) invocation.getArgument(0))
+                        .getBidRequest()));
         given(ortb2RequestFactory.executeProcessedAuctionRequestHooks(any()))
                 .willAnswer(invocation -> Future.succeededFuture(
                         ((AuctionContext) invocation.getArgument(0)).getBidRequest()));

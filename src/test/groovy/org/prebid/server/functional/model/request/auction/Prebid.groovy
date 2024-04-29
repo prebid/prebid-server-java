@@ -32,6 +32,11 @@ class Prebid {
     ExtPrebidFloors floors
     Map passThrough
     Events events
+    Boolean createTids
+    Sdk sdk
+    List<AdServerTargeting> adServerTargeting
+    BidderControls bidderControls
+    PrebidModulesConfig modules
 
     static class Channel {
 

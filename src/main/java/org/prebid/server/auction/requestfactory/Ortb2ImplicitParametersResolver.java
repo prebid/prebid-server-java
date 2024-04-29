@@ -6,16 +6,20 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Data;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Publisher;
+import com.iab.openrtb.request.Segment;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import com.iab.openrtb.request.User;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.SetUtils;
+import org.apache.commons.collections4.keyvalue.MultiKey;
+import org.apache.commons.collections4.map.MultiKeyMap;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
@@ -23,15 +27,20 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.PriceGranularity;
+import org.prebid.server.auction.SecBrowsingTopicsResolver;
 import org.prebid.server.auction.TimeoutResolver;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.auction.model.IpAddress;
+import org.prebid.server.auction.model.SecBrowsingTopic;
 import org.prebid.server.exception.BlacklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -49,6 +58,7 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Currency;
 import java.util.HashSet;
@@ -58,6 +68,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -68,6 +79,7 @@ public class Ortb2ImplicitParametersResolver {
     public static final String WEB_CHANNEL = "web";
     public static final String APP_CHANNEL = "app";
     public static final String AMP_CHANNEL = "amp";
+    public static final String DOOH_CHANNEL = "dooh";
 
     private static final String PREBID_EXT = "prebid";
     private static final String BIDDER_EXT = "bidder";
@@ -85,6 +97,7 @@ public class Ortb2ImplicitParametersResolver {
     private final TimeoutResolver timeoutResolver;
     private final IpAddressHelper ipAddressHelper;
     private final IdGenerator tidGenerator;
+    private final SecBrowsingTopicsResolver topicsResolver;
     private final JsonMerger jsonMerger;
     private final JacksonMapper mapper;
 
@@ -99,6 +112,7 @@ public class Ortb2ImplicitParametersResolver {
                                            TimeoutResolver timeoutResolver,
                                            IpAddressHelper ipAddressHelper,
                                            IdGenerator tidGenerator,
+                                           SecBrowsingTopicsResolver topicsResolver,
                                            JsonMerger jsonMerger,
                                            JacksonMapper mapper) {
 
@@ -111,6 +125,7 @@ public class Ortb2ImplicitParametersResolver {
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
         this.ipAddressHelper = Objects.requireNonNull(ipAddressHelper);
         this.tidGenerator = Objects.requireNonNull(tidGenerator);
+        this.topicsResolver = Objects.requireNonNull(topicsResolver);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -134,17 +149,21 @@ public class Ortb2ImplicitParametersResolver {
      * Note: {@link TimeoutResolver} used here as argument because this method is utilized in AMP processing.
      */
     public BidRequest resolve(BidRequest bidRequest,
-                              HttpRequestContext httpRequest,
+                              AuctionContext auctionContext,
                               String endpoint,
                               boolean hasStoredBidRequest) {
 
         checkBlacklistedApp(bidRequest);
 
+        final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
+
         final Device device = bidRequest.getDevice();
         final Device populatedDevice = populateDevice(device, bidRequest.getApp(), httpRequest);
 
         final Site site = bidRequest.getSite();
-        final Site populatedSite = bidRequest.getApp() != null ? null : populateSite(site, httpRequest);
+        final Site populatedSite = bidRequest.getApp() != null || bidRequest.getDooh() != null
+                ? null
+                : populateSite(site, httpRequest);
 
         final List<Imp> populatedImps = populateImps(
                 bidRequest,
@@ -168,6 +187,13 @@ public class Ortb2ImplicitParametersResolver {
         final Source source = bidRequest.getSource();
         final Source populatedSource = populateSource(source, populatedExt, hasStoredBidRequest);
 
+        final User user = bidRequest.getUser();
+        final User populatedUser = populateUser(
+                user,
+                httpRequest.getHeaders(),
+                auctionContext.getDebugContext().isDebugEnabled(),
+                auctionContext.getDebugWarnings());
+
         return bidRequest.toBuilder()
                 .device(populatedDevice != null ? populatedDevice : device)
                 .site(populatedSite != null ? populatedSite : site)
@@ -175,8 +201,9 @@ public class Ortb2ImplicitParametersResolver {
                 .at(resolvedAt != null ? resolvedAt : at)
                 .cur(resolvedCurrencies != null ? resolvedCurrencies : cur)
                 .tmax(resolvedTmax != null ? resolvedTmax : tmax)
-                .ext(populatedExt)
                 .source(populatedSource != null ? populatedSource : source)
+                .user(populatedUser != null ? populatedUser : user)
+                .ext(populatedExt)
                 .build();
     }
 
@@ -257,7 +284,7 @@ public class Ortb2ImplicitParametersResolver {
         return ipAddress != null && ipAddress.getVersion() == version ? ipAddress.getIp() : null;
     }
 
-    private IpAddress findIpFromRequest(HttpRequestContext request) {
+    public IpAddress findIpFromRequest(HttpRequestContext request) {
         final CaseInsensitiveMultiMap headers = request.getHeaders();
         final String remoteHost = request.getRemoteHost();
         final List<String> requestIps = paramsExtractor.ipFrom(headers, remoteHost);
@@ -413,7 +440,7 @@ public class Ortb2ImplicitParametersResolver {
         try {
             return paramsExtractor.domainFrom(url);
         } catch (PreBidException e) {
-            logger.warn("Error occurred while populating bid request: {0}", e.getMessage());
+            logger.warn("Error occurred while populating bid request: {}", e.getMessage());
             return null;
         }
     }
@@ -475,6 +502,131 @@ public class Ortb2ImplicitParametersResolver {
         } catch (IllegalArgumentException e) {
             return null;
         }
+    }
+
+    private User populateUser(User user, CaseInsensitiveMultiMap headers, boolean debugEnabled, List<String> warnings) {
+        final List<Data> data = user != null ? user.getData() : null;
+        final List<Data> populatedData = populateUserData(data, headers, debugEnabled, warnings);
+
+        return populatedData != null
+                ? Optional.ofNullable(user)
+                .map(User::toBuilder)
+                .orElseGet(User::builder)
+                .data(populatedData)
+                .build()
+                : null;
+    }
+
+    private List<Data> populateUserData(List<Data> userData,
+                                        CaseInsensitiveMultiMap headers,
+                                        boolean debugEnabled,
+                                        List<String> warnings) {
+
+        final List<SecBrowsingTopic> topics = topicsResolver.resolve(headers, debugEnabled, warnings);
+        if (topics.isEmpty()) {
+            return null;
+        }
+
+        final List<Data> updatedUserData = new ArrayList<>();
+        final MultiKeyMap<Object, Data> domainSegTaxSegClassToData =
+                CollectionUtils.emptyIfNull(userData).stream()
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toMap(
+                                Ortb2ImplicitParametersResolver::multiKeyForData,
+                                Function.identity(),
+                                (first, second) -> {
+                                    updatedUserData.add(second);
+                                    return first;
+                                },
+                                MultiKeyMap::new));
+
+        for (SecBrowsingTopic topic : topics) {
+            final String topicDomain = topic.getDomain();
+            final int topicTaxonomy = topicTaxonomy(topic.getTaxonomyVersion());
+            final String topicModelVersion = topic.getModelVersion();
+
+            final Data data = domainSegTaxSegClassToData.get(topicDomain, topicTaxonomy, topicModelVersion);
+            if (data == null) {
+                domainSegTaxSegClassToData.put(
+                        topicDomain,
+                        topicTaxonomy,
+                        topicModelVersion,
+                        createDataForTopic(topic));
+
+                continue;
+            }
+
+            final List<Segment> segments = data.getSegment();
+            final Set<String> newSegmentsIds = newSegmentsIds(segments, topic.getSegments());
+            if (!newSegmentsIds.isEmpty()) {
+                domainSegTaxSegClassToData.put(
+                        topicDomain,
+                        topicTaxonomy,
+                        topicModelVersion,
+                        data.toBuilder()
+                                .segment(addNewSegmentsWithIds(segments, newSegmentsIds))
+                                .build());
+            }
+        }
+
+        updatedUserData.addAll(domainSegTaxSegClassToData.values());
+        return updatedUserData;
+    }
+
+    private static MultiKey<Object> multiKeyForData(Data data) {
+        final ObjectNode ext = data.getExt();
+
+        final String domain = data.getName();
+
+        final JsonNode segTaxNode = ext != null ? ext.get("segtax") : null;
+        final Integer segTax = segTaxNode != null && segTaxNode.isNumber() ? segTaxNode.intValue() : null;
+
+        final JsonNode segClassNode = ext != null ? ext.get("segclass") : null;
+        final String segClass = segClassNode != null && segClassNode.isTextual() ? segClassNode.textValue() : null;
+
+        return new MultiKey<>(domain, segTax, segClass);
+    }
+
+    private static int topicTaxonomy(int taxonomyVersion) {
+        return 600 + taxonomyVersion - 1;
+    }
+
+    private Data createDataForTopic(SecBrowsingTopic topic) {
+        final ObjectNode ext = mapper.mapper().createObjectNode();
+        ext.put("segtax", topicTaxonomy(topic.getTaxonomyVersion()));
+        ext.put("segclass", topic.getModelVersion());
+
+        return Data.builder()
+                .name(topic.getDomain())
+                .segment(topic.getSegments().stream()
+                        .map(Ortb2ImplicitParametersResolver::segmentWithId)
+                        .toList())
+                .ext(ext)
+                .build();
+    }
+
+    private static Segment segmentWithId(String id) {
+        return Segment.builder().id(id).build();
+    }
+
+    private static Set<String> newSegmentsIds(List<Segment> segments, Set<String> newIds) {
+        return CollectionUtils.isNotEmpty(segments)
+                ? SetUtils.difference(
+                newIds,
+                CollectionUtils.emptyIfNull(segments).stream()
+                        .filter(Objects::nonNull)
+                        .map(Segment::getId)
+                        .collect(Collectors.toSet()))
+                : newIds;
+    }
+
+    private static List<Segment> addNewSegmentsWithIds(List<Segment> segments, Set<String> newIds) {
+        final List<Segment> updatedSegments = new ArrayList<>(segments);
+        newIds.stream()
+                .map(Ortb2ImplicitParametersResolver::segmentWithId)
+                .forEach(updatedSegments::add);
+
+        return updatedSegments;
     }
 
     private List<Imp> populateImps(BidRequest bidRequest,
@@ -738,6 +890,8 @@ public class Ortb2ImplicitParametersResolver {
             return ExtRequestPrebidChannel.of(APP_CHANNEL);
         } else if (bidRequest.getSite() != null) {
             return ExtRequestPrebidChannel.of(WEB_CHANNEL);
+        } else if (bidRequest.getDooh() != null) {
+            return ExtRequestPrebidChannel.of(DOOH_CHANNEL);
         }
 
         return null;

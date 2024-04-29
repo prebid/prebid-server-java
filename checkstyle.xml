@@ -8,7 +8,9 @@
 
     <module name="NewlineAtEndOfFile"/>
     <module name="Translation"/>
-    <module name="FileLength"/>
+    <module name="FileLength">
+        <property name="max" value="2024"/>
+    </module>
     <module name="FileTabCharacter"/>
     <module name="RegexpSingleline">
         <property name="format" value="\s+$"/>
@@ -73,7 +75,7 @@
         </module>
         <module name="ImportOrder">
             <property name="option" value="bottom"/>
-            <property name="groups" value="*,/^java/"/>
+            <property name="groups" value="*,/^java|^jakarta/"/>
             <property name="ordered" value="false"/>
             <property name="separated" value="true"/>
             <property name="caseSensitive" value="true"/>

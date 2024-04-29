@@ -255,6 +255,12 @@ public class Video {
     List<Integer> companiontype;
 
     /**
+     * An array of objects (Section 3.2.35)
+     * indicating the floor prices for video creatives of various durations that the buyer may bid with.
+     */
+    List<DurFloor> durfloors;
+
+    /**
      * Placeholder for exchange-specific extensions to OpenRTB.
      */
     ObjectNode ext;

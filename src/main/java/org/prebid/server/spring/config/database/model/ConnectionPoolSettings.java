@@ -7,6 +7,8 @@ public class ConnectionPoolSettings {
 
     Integer poolSize;
 
+    Integer idleTimeout;
+
     String user;
 
     String password;

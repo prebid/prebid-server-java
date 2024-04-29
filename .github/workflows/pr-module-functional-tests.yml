@@ -1,0 +1,36 @@
+name: Module functional tests
+
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '.github/**'
+    branches:
+      - master
+  release:
+    types:
+      - created
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java: [ 21 ]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          cache: 'maven'
+          java-version: ${{ matrix.java }}
+
+      - name: Build with Maven
+        run: mvn package -DskipUnitTests=true --file extra/pom.xml
+
+      - name: Run module tests
+        run: mvn -B verify -DskipUnitTests=true -DskipFunctionalTests=true -DskipModuleFunctionalTests=false -Dtests.max-container-count=5 -DdockerfileName=Dockerfile-modules --file extra/pom.xml

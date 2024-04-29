@@ -7,7 +7,7 @@ import lombok.Value;
 @Value
 public class AppnexusBidExtAppnexus {
 
-    Integer bidAdType;
+    int bidAdType;
 
     Integer brandId;
 
@@ -15,5 +15,5 @@ public class AppnexusBidExtAppnexus {
 
     AppnexusBidExtCreative creativeInfo;
 
-    Integer dealPriority;
+    int dealPriority;
 }
