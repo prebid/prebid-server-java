@@ -5,13 +5,13 @@ public enum DsaAdvertiserRender {
     NOT_RENDER(0),
     WILL_RENDER(1);
 
-    private final Integer value;
+    private final int value;
 
-    DsaAdvertiserRender(final Integer value) {
+    DsaAdvertiserRender(final int value) {
         this.value = value;
     }
 
-    public Integer getValue() {
+    public int getValue() {
         return value;
     }
 }

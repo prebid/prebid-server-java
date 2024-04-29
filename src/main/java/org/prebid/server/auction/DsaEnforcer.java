@@ -65,10 +65,9 @@ public class DsaEnforcer {
                     .orElse(null);
 
             try {
+                validateFieldLength(dsaResponse);
                 if (isDsaValidationRequired(bidRequest)) {
                     validateDsa(bidRequest, dsaResponse);
-                } else {
-                    validateFieldLength(dsaResponse);
                 }
             } catch (PreBidException e) {
                 warnings.add(BidderError.invalidBid("Bid \"%s\": %s".formatted(bid.getId(), e.getMessage())));
@@ -105,23 +104,19 @@ public class DsaEnforcer {
         validateFieldLength(dsaResponse);
 
         final Integer adRender = dsaResponse.getAdRender();
-        final Integer pubRender = Optional.ofNullable(bidRequest.getRegs())
-                .map(Regs::getExt)
-                .map(ExtRegs::getDsa)
-                .map(ExtRegsDsa::getPubRender)
-                .orElse(null);
+        final Integer pubRender = bidRequest.getRegs().getExt().getDsa().getPubRender();
 
         if (pubRender == null) {
             return;
         }
 
-        if (pubRender.equals(DsaPublisherRender.WILL_RENDER.getValue())
-                && adRender != null && adRender.equals(DsaAdvertiserRender.WILL_RENDER.getValue())) {
+        if (pubRender == DsaPublisherRender.WILL_RENDER.getValue()
+                && adRender != null && adRender == DsaAdvertiserRender.WILL_RENDER.getValue()) {
             throw new PreBidException("DSA publisher and buyer both signal will render");
         }
 
-        if (pubRender.equals(DsaPublisherRender.NOT_RENDER.getValue())
-                && (adRender == null || adRender.equals(DsaAdvertiserRender.NOT_RENDER.getValue()))) {
+        if (pubRender == DsaPublisherRender.NOT_RENDER.getValue()
+                && (adRender == null || adRender == DsaAdvertiserRender.NOT_RENDER.getValue())) {
             throw new PreBidException("DSA publisher and buyer both signal will not render");
         }
     }

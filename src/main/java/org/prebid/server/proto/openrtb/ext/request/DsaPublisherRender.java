@@ -6,13 +6,13 @@ public enum DsaPublisherRender {
     COULD_RENDER(1),
     WILL_RENDER(2);
 
-    private final Integer value;
+    private final int value;
 
-    DsaPublisherRender(final Integer value) {
+    DsaPublisherRender(final int value) {
         this.value = value;
     }
 
-    public Integer getValue() {
+    public int getValue() {
         return value;
     }
 }

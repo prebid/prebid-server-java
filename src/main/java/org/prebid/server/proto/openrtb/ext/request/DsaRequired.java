@@ -7,13 +7,13 @@ public enum DsaRequired {
     REQUIRED(2),
     REQUIRED_ONLINE_PLATFORM(3);
 
-    private final Integer value;
+    private final int value;
 
-    DsaRequired(final Integer value) {
+    DsaRequired(final int value) {
         this.value = value;
     }
 
-    public Integer getValue() {
+    public int getValue() {
         return value;
     }
 }
