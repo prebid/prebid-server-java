@@ -388,16 +388,16 @@ public class MetricsTest {
     public void updateRequestTypeMetricShouldIncrementMetric() {
         // when
         metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.ok);
-        metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.blacklisted_account);
-        metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.blacklisted_app);
+        metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.blocklisted_account);
+        metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.blocklisted_app);
         metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.err);
         metrics.updateRequestTypeMetric(MetricName.amp, MetricName.badinput);
         metrics.updateRequestTypeMetric(MetricName.amp, MetricName.networkerr);
 
         // then
         assertThat(metricRegistry.counter("requests.ok.openrtb2-web").getCount()).isOne();
-        assertThat(metricRegistry.counter("requests.blacklisted_account.openrtb2-web").getCount()).isOne();
-        assertThat(metricRegistry.counter("requests.blacklisted_app.openrtb2-app").getCount()).isOne();
+        assertThat(metricRegistry.counter("requests.blocklisted_account.openrtb2-web").getCount()).isOne();
+        assertThat(metricRegistry.counter("requests.blocklisted_app.openrtb2-app").getCount()).isOne();
         assertThat(metricRegistry.counter("requests.err.openrtb2-app").getCount()).isOne();
         assertThat(metricRegistry.counter("requests.badinput.amp").getCount()).isOne();
         assertThat(metricRegistry.counter("requests.networkerr.amp").getCount()).isOne();

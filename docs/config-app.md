@@ -75,8 +75,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `default-request.file.path` - path to a JSON file containing the default request
 
 ## Auction (OpenRTB)
-- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
-- `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
+- `auction.blocklisted-accounts` - comma separated list of blocklisted account IDs.
+- `auction.blocklisted-apps` - comma separated list of blocklisted applications IDs, requests from which should not be processed.
 - `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests. Deprecated.
 - `auction.biddertmax.min` - minimum operation timeout for OpenRTB Auction requests.
 - `auction.biddertmax.max` - maximum operation timeout for OpenRTB Auction requests.
@@ -104,7 +104,7 @@ Removes and downloads file again if depending service cant process probably corr
 
 ## Video
 - `auction.video.stored-required` - flag forces to merge with stored request
-- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
+- `auction.blocklisted-accounts` - comma separated list of blocklisted account IDs.
 - `video.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 - `auction.video.escape-log-cache-regex` - regex to remove from cache debug log xml.

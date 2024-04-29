@@ -59,7 +59,7 @@ public class VideoStoredRequestProcessor {
     private static final String DEFAULT_CURRENCY = "USD";
 
     private final boolean enforceStoredRequest;
-    private final List<String> blacklistedAccounts;
+    private final List<String> blocklistedAccounts;
     private final long defaultTimeout;
     private final String currency;
     private final BidRequest defaultBidRequest;
@@ -71,7 +71,7 @@ public class VideoStoredRequestProcessor {
     private final JsonMerger jsonMerger;
 
     public VideoStoredRequestProcessor(boolean enforceStoredRequest,
-                                       List<String> blacklistedAccounts,
+                                       List<String> blocklistedAccounts,
                                        long defaultTimeout,
                                        String adServerCurrency,
                                        String defaultBidRequestPath,
@@ -84,7 +84,7 @@ public class VideoStoredRequestProcessor {
                                        JsonMerger jsonMerger) {
 
         this.enforceStoredRequest = enforceStoredRequest;
-        this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
+        this.blocklistedAccounts = Objects.requireNonNull(blocklistedAccounts);
         this.defaultTimeout = defaultTimeout;
         this.currency = StringUtils.isBlank(adServerCurrency) ? DEFAULT_CURRENCY : adServerCurrency;
         this.defaultBidRequest = readBidRequest(
@@ -147,7 +147,7 @@ public class VideoStoredRequestProcessor {
                                                                 String storedBidRequestId) {
 
         final BidRequestVideo mergedStoredRequest = mergeBidRequest(videoRequest, storedBidRequestId, storedResult);
-        validator.validateStoredBidRequest(mergedStoredRequest, enforceStoredRequest, blacklistedAccounts);
+        validator.validateStoredBidRequest(mergedStoredRequest, enforceStoredRequest, blocklistedAccounts);
 
         final Podconfig podconfig = mergedStoredRequest.getPodconfig();
         final Video video = mergedStoredRequest.getVideo();

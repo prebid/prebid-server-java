@@ -28,8 +28,8 @@ import org.prebid.server.auction.model.Tuple2;
 import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.exception.BlacklistedAccountException;
-import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.BlocklistedAccountException;
+import org.prebid.server.exception.BlocklistedAppException;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
@@ -322,11 +322,12 @@ public class AmpHandler implements ApplicationResource {
 
                 status = HttpResponseStatus.UNAUTHORIZED;
                 body = message;
-            } else if (exception instanceof BlacklistedAppException
-                    || exception instanceof BlacklistedAccountException) {
-                metricRequestStatus = exception instanceof BlacklistedAccountException
-                        ? MetricName.blacklisted_account : MetricName.blacklisted_app;
-                final String message = "Blacklisted: " + exception.getMessage();
+            } else if (exception instanceof BlocklistedAppException
+                    || exception instanceof BlocklistedAccountException) {
+                metricRequestStatus = exception instanceof BlocklistedAccountException
+                        ? MetricName.blocklisted_account
+                        : MetricName.blocklisted_app;
+                final String message = "Blocklisted: " + exception.getMessage();
                 logger.debug(message);
 
                 errorMessages = Collections.singletonList(message);
