@@ -239,24 +239,10 @@ public class ServiceConfiguration {
     @Bean
     TimeoutResolver auctionTimeoutResolver(
             @Value("${auction.biddertmax.min}") long minTimeout,
-            @Value("${auction.max-timeout-ms:#{0}}") long maxTimeoutDeprecated,
             @Value("${auction.biddertmax.max:#{0}}") long maxTimeout,
             @Value("${auction.tmax-upstream-response-time}") long upstreamResponseTime) {
 
-        return new TimeoutResolver(
-                minTimeout,
-                resolveMaxTimeout(maxTimeoutDeprecated, maxTimeout),
-                upstreamResponseTime);
-    }
-
-    // TODO: Remove after transition period
-    private static long resolveMaxTimeout(long maxTimeoutDeprecated, long maxTimeout) {
-        if (maxTimeout != 0) {
-            return maxTimeout;
-        }
-
-        logger.warn("Usage of deprecated property: auction.max-timeout-ms. Use auction.biddertmax.max instead.");
-        return maxTimeoutDeprecated;
+        return new TimeoutResolver(minTimeout, maxTimeout, upstreamResponseTime);
     }
 
     @Bean
