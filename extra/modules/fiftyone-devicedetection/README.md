@@ -122,6 +122,10 @@ mvn clean package --file extra/pom.xml
 
 2. Download `51Degrees-LiteV4.1.hash` from [[GitHub](https://github.com/51Degrees/device-detection-data/blob/main/51Degrees-LiteV4.1.hash)] and put it in the project root directory.
 
+```bash
+curl -o 51Degrees-LiteV4.1.hash -L https://github.com/51Degrees/device-detection-data/raw/main/51Degrees-LiteV4.1.hash
+```
+
 3. Start server bundle JAR as described in [[Running project](../../../docs/run.md#running-project)], e.g.
 
 ```bash
