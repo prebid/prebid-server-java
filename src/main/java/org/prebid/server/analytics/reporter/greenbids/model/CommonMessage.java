@@ -1,6 +1,6 @@
 package org.prebid.server.analytics.reporter.greenbids.model;
 
-import org.prebid.server.analytics.model.AuctionEvent;
+import org.prebid.server.auction.model.AuctionContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,15 +18,14 @@ public class CommonMessage {
     public Long auctionElapsed;
 
     public CommonMessage(
-        String auctionId,
-        AuctionEvent event,
+        AuctionContext auctionContext,
         GreenbidsConfig greenbidsConfig,
         CachedAuction cachedAuction,
         Long auctionElapsed
     ) {
         this.version = "2.2.0";
-        this.auctionId = auctionId;
-        this.referrer = event.getAuctionContext().getBidRequest().getSite().getPage();
+        this.auctionId = auctionContext.getBidRequest().getId();
+        this.referrer = auctionContext.getBidRequest().getSite().getPage();
         this.sampling = greenbidsConfig.getGreenbidsSampling();
         this.prebid = "$prebid.version$"; // TODO: to fix
         this.greenbidsId = cachedAuction.greenbidsId;
