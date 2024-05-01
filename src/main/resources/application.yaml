@@ -166,6 +166,8 @@ settings:
   database:
     pool-size: 20
     idle-connection-timeout: 300
+    enable-prepared-statement-caching: false
+    max-prepared-statement-cache-size: 256
   targeting:
     truncate-attr-chars: 20
   default-account-config: >
