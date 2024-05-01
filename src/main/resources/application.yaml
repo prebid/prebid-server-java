@@ -114,7 +114,7 @@ auction:
     max: 5000
     percent: 100
   tmax-upstream-response-time: 30
-  stored-requests-timeout-ms: 50
+  stored-requests-timeout-ms: 100
   timeout-notification:
     timeout-ms: 200
     log-result: false
@@ -166,6 +166,8 @@ settings:
   database:
     pool-size: 20
     idle-connection-timeout: 300
+    enable-prepared-statement-caching: false
+    max-prepared-statement-cache-size: 256
   targeting:
     truncate-attr-chars: 20
   default-account-config: >
