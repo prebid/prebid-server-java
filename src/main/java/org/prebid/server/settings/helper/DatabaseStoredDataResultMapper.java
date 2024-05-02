@@ -1,14 +1,16 @@
 package org.prebid.server.settings.helper;
 
-import io.vertx.core.json.JsonArray;
-import io.vertx.ext.sql.ResultSet;
-import org.apache.commons.collections4.CollectionUtils;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowIterator;
+import io.vertx.sqlclient.RowSet;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredDataType;
 import org.prebid.server.settings.model.StoredItem;
+import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.vertx.database.CircuitBreakerSecuredDatabaseClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,34 +21,38 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Utility class for mapping {@link ResultSet} to {@link StoredDataResult}.
+ * Utility class for mapping {@link RowSet<Row>} to {@link StoredDataResult}.
  */
-public class JdbcStoredDataResultMapper {
+public class DatabaseStoredDataResultMapper {
 
-    private static final Logger logger = LoggerFactory.getLogger(JdbcStoredDataResultMapper.class);
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseStoredDataResultMapper.class);
 
-    private JdbcStoredDataResultMapper() {
+    private DatabaseStoredDataResultMapper() {
     }
 
     /**
-     * Maps {@link ResultSet} to {@link StoredDataResult} and creates an error for each missing ID and add it to result.
+     * Maps {@link RowSet} to {@link StoredDataResult} and creates an error for each missing ID and add it to result.
      *
-     * @param resultSet  - incoming Result Set representing a result of SQL query
+     * @param rowSet     - incoming Row Set representing a result of SQL query
      * @param accountId  - an account ID extracted from request
      * @param requestIds - a specified set of stored requests' IDs. Adds error for each ID missing in result set
      * @param impIds     - a specified set of stored imps' IDs. Adds error for each ID missing in result set
      * @return - a {@link StoredDataResult} object
      * <p>
      * Note: mapper should never throws exception in case of using
-     * {@link org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient}.
+     * {@link CircuitBreakerSecuredDatabaseClient}.
      */
-    public static StoredDataResult map(ResultSet resultSet, String accountId, Set<String> requestIds,
+    public static StoredDataResult map(RowSet<Row> rowSet,
+                                       String accountId,
+                                       Set<String> requestIds,
                                        Set<String> impIds) {
         final Map<String, String> storedIdToRequest;
         final Map<String, String> storedIdToImp;
         final List<String> errors = new ArrayList<>();
 
-        if (resultSet == null || CollectionUtils.isEmpty(resultSet.getResults())) {
+        final RowIterator<Row> rowIterator = rowSet != null ? rowSet.iterator() : null;
+
+        if (rowIterator == null || !rowIterator.hasNext()) {
             storedIdToRequest = Collections.emptyMap();
             storedIdToImp = Collections.emptyMap();
 
@@ -64,17 +70,24 @@ public class JdbcStoredDataResultMapper {
             final Map<String, Set<StoredItem>> requestIdToStoredItems = new HashMap<>();
             final Map<String, Set<StoredItem>> impIdToStoredItems = new HashMap<>();
 
-            for (JsonArray result : resultSet.getResults()) {
+            while (rowIterator.hasNext()) {
+                final Row row = rowIterator.next();
+                if (row.toJson().size() < 4) {
+                    final String message = "Error occurred while mapping stored request data: some columns are missing";
+                    logger.error(message);
+                    errors.add(message);
+                    return StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), errors);
+                }
                 final String fetchedAccountId;
                 final String id;
                 final String data;
                 final String typeAsString;
                 try {
-                    fetchedAccountId = result.getString(0);
-                    id = result.getString(1);
-                    data = result.getString(2);
-                    typeAsString = result.getString(3);
-                } catch (IndexOutOfBoundsException | ClassCastException e) {
+                    fetchedAccountId = ObjectUtil.getIfNotNull(row.getValue(0), Object::toString);
+                    id = ObjectUtil.getIfNotNull(row.getValue(1), Object::toString);
+                    data = ObjectUtil.getIfNotNull(row.getValue(2), Object::toString);
+                    typeAsString = ObjectUtil.getIfNotNull(row.getValue(3), Object::toString);
+                } catch (ClassCastException e) {
                     final String message = "Error occurred while mapping stored request data";
                     logger.error(message, e);
                     errors.add(message);
@@ -109,10 +122,10 @@ public class JdbcStoredDataResultMapper {
     /**
      * Overloaded method for cases when no specific IDs are required, e.g. fetching all records.
      *
-     * @param resultSet - incoming {@link ResultSet} representing a result of SQL query.
+     * @param resultSet - incoming {@link RowSet<Row>} representing a result of SQL query.
      * @return - a {@link StoredDataResult} object.
      */
-    public static StoredDataResult map(ResultSet resultSet) {
+    public static StoredDataResult map(RowSet<Row> resultSet) {
         return map(resultSet, null, Collections.emptySet(), Collections.emptySet());
     }
 
