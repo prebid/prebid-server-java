@@ -340,6 +340,7 @@ See [application settings](application-settings.md) for full reference of availa
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
 - `settings.in-memory-cache.cache-size` - the size of LRU cache.
+- `settings.in-memory-cache.jitter-seconds` - jitter (in seconds) for `settings.in-memory-cache.ttl-seconds` parameter.
 - `settings.in-memory-cache.notification-endpoints-enabled` - if equals to `true` two additional endpoints will be
 available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and [/storedrequests/amp](endpoints/storedrequests/amp.md).
 - `settings.in-memory-cache.account-invalidation-enabled` - if equals to `true` additional admin protected endpoints will be
