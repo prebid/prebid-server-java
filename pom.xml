@@ -26,7 +26,6 @@
         <dockerfileName>Dockerfile</dockerfileName>
 
         <!-- dependencies versions -->
-        <spring.boot.version>3.2.3</spring.boot.version>
         <validation-api.version>2.0.1.Final</validation-api.version>
         <commons.version>3.14.0</commons.version>
         <commons.collections.version>4.4</commons.collections.version>

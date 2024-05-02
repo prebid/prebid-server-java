@@ -20,6 +20,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
+        <spring.boot.version>3.2.3</spring.boot.version>
         <vertx.version>4.5.5</vertx.version>
         <lombok.version>1.18.30</lombok.version>
         <maven-release-plugin.version>3.0.0-M6</maven-release-plugin.version>
