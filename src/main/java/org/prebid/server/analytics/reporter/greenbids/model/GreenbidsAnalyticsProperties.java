@@ -11,13 +11,4 @@ public class GreenbidsAnalyticsProperties {
     Double exploratorySamplingSplit;
     Long configurationRefreshDelayMs;
     Long timeoutMs;
-
-    /*
-    String endpoint;
-    String scopeId;
-    Boolean enabled;
-    Integer sizeBytes;
-    Integer count;
-    Long reportTtlMs;
-     */
 }

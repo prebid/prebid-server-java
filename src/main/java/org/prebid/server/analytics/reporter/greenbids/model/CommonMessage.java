@@ -20,17 +20,18 @@ public class CommonMessage {
     public CommonMessage(
         AuctionContext auctionContext,
         GreenbidsConfig greenbidsConfig,
-        CachedAuction cachedAuction,
-        Long auctionElapsed
+        Long auctionElapsed,
+        String greenbidsId,
+        String billingId
     ) {
         this.version = "2.2.0";
         this.auctionId = auctionContext.getBidRequest().getId();
         this.referrer = auctionContext.getBidRequest().getSite().getPage();
         this.sampling = greenbidsConfig.getGreenbidsSampling();
         this.prebid = "$prebid.version$"; // TODO: to fix
-        this.greenbidsId = cachedAuction.greenbidsId;
+        this.greenbidsId = greenbidsId;
         this.pbuid = greenbidsConfig.getPbuid();
-        this.billingId = cachedAuction.billingId;
+        this.billingId = greenbidsId;
         this.adUnits = new ArrayList<>();
         this.auctionElapsed = auctionElapsed;
     }
