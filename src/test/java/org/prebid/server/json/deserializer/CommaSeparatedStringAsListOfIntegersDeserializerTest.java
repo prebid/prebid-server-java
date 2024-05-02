@@ -3,7 +3,6 @@ package org.prebid.server.json.deserializer;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
-import com.mchange.util.AssertException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,7 +43,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
         // given
         given(parser.getCurrentToken()).willReturn(JsonToken.VALUE_FALSE);
         given(parser.getCurrentName()).willReturn("FIELD");
-        doThrow(AssertException.class)
+        doThrow(RuntimeException.class)
                 .when(context)
                 .reportWrongTokenException(
                         eq(JsonToken.class),
@@ -54,7 +53,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
                                 Expected comma-separated string."""));
 
         // when and then
-        assertThatExceptionOfType(AssertException.class)
+        assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> commaSeparatedStringAsListOfIntegersDeserializer.deserialize(parser, context));
     }
 
@@ -64,7 +63,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
         given(parser.getCurrentToken()).willReturn(JsonToken.VALUE_STRING);
         given(parser.getValueAsString()).willReturn(null);
         given(parser.getCurrentName()).willReturn("FIELD");
-        doThrow(AssertException.class)
+        doThrow(RuntimeException.class)
                 .when(context)
                 .reportWrongTokenException(
                         eq(JsonToken.class),
@@ -74,7 +73,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
                                 Expected comma-separated string."""));
 
         // when and then
-        assertThatExceptionOfType(AssertException.class)
+        assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> commaSeparatedStringAsListOfIntegersDeserializer.deserialize(parser, context));
     }
 
@@ -84,7 +83,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
         given(parser.getCurrentToken()).willReturn(JsonToken.VALUE_STRING);
         given(parser.getValueAsString()).willReturn("invalid");
         given(parser.getCurrentName()).willReturn("FIELD");
-        doThrow(AssertException.class)
+        doThrow(RuntimeException.class)
                 .when(context)
                 .reportPropertyInputMismatch(
                         eq(JsonToken.class),
@@ -94,7 +93,7 @@ public class CommaSeparatedStringAsListOfIntegersDeserializerTest {
                                 NumberFormatException"""));
 
         // when and then
-        assertThatExceptionOfType(AssertException.class)
+        assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> commaSeparatedStringAsListOfIntegersDeserializer.deserialize(parser, context));
     }
 

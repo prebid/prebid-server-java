@@ -1,13 +1,14 @@
 package org.prebid.server.spring.config;
 
+import com.codahale.metrics.ScheduledReporter;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.vertx.ContextRunner;
 import org.prebid.server.vertx.Initializable;
 import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.verticles.VerticleDefinition;
+import org.prebid.server.vertx.verticles.server.DaemonVerticle;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.event.ContextRefreshedEvent;
-import org.springframework.context.event.EventListener;
 
 import java.util.List;
 
@@ -27,17 +28,10 @@ import java.util.List;
 @Configuration
 public class InitializationConfiguration {
 
-    @Autowired
-    private ContextRunner contextRunner;
+    @Bean
+    VerticleDefinition daemonVerticleDefinition(@Autowired(required = false) List<Initializable> initializables,
+                                                @Autowired(required = false) List<ScheduledReporter> reporters) {
 
-    @Autowired
-    private List<Initializable> initializables;
-
-    @EventListener(ContextRefreshedEvent.class)
-    public void initializeServices() {
-        contextRunner.runBlocking(promise -> {
-            initializables.forEach(Initializable::initialize);
-            promise.complete();
-        });
+        return VerticleDefinition.ofSingleInstance(() -> new DaemonVerticle(initializables, reporters));
     }
 }

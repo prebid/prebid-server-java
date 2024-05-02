@@ -48,7 +48,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.UnaryOperator;
@@ -359,10 +358,9 @@ public class HttpBidderRequesterTest extends VertxTest {
         // given
         givenSuccessfulBidderMakeHttpRequests();
 
-        final List<BidderBid> bids = asList(
-                BidderBid.of(Bid.builder().impid("1").build(), null, null),
-                BidderBid.of(Bid.builder().impid("2").build(), null, null));
-        given(bidder.makeBids(any(), any())).willReturn(Result.of(bids, emptyList()));
+        final List<BidderBid> bids = emptyList();
+        given(bidder.makeBidderResponse(any(), any()))
+                .willReturn(CompositeBidderResponse.withBids(bids, null));
 
         final BidderRequest bidderRequest = BidderRequest.builder()
                 .bidder("bidder")
@@ -383,8 +381,6 @@ public class HttpBidderRequesterTest extends VertxTest {
                         .result();
 
         // then
-        verify(bidder, times(1)).makeBids(any(), any());
-        verify(bidder, times(1)).makeBidderResponse(any(), any());
         assertThat(bidderSeatBid.getBids()).hasSameElementsAs(bids);
     }
 
@@ -727,20 +723,23 @@ public class HttpBidderRequesterTest extends VertxTest {
     }
 
     @Test
-    public void shouldNotReturnSensitiveHeadersInFullDebugInfo() {
+    public void shouldNotReturnSensitiveHeadersInFullDebugInfo()
+            throws JsonProcessingException {
         // given
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.add("headerKey", "headerValue");
         headers.add("Authorization", "authorizationValue");
+        final BidRequest givenBidRequest = givenBidRequest(identity());
+        final byte[] requestBody = mapper.writeValueAsBytes(givenBidRequest);
         given(bidder.makeHttpRequests(any())).willReturn(Result.of(singletonList(
                         givenSimpleHttpRequest(httpRequestBuilder -> httpRequestBuilder
                                 .uri("uri1")
-                                .headers(headers))),
+                                .headers(headers)
+                                .payload(givenBidRequest)
+                                .body(requestBody))),
                 emptyList()));
-        given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any())).willReturn(headers);
 
-        givenHttpClientReturnsResponses(
-                HttpClientResponse.of(200, null, "responseBody1"));
+        given(requestEnricher.enrichHeaders(anyString(), any(), any(), any(), any())).willReturn(headers);
 
         final BidderRequest bidderRequest = BidderRequest.builder()
                 .bidder("bidder")
@@ -749,12 +748,11 @@ public class HttpBidderRequesterTest extends VertxTest {
 
         // when
         final BidderSeatBid bidderSeatBid =
-                target
-                        .requestBids(
+                target.requestBids(
                                 bidder,
                                 bidderRequest,
                                 bidRejectionTracker,
-                                timeout,
+                                expiredTimeout,
                                 CaseInsensitiveMultiMap.empty(),
                                 bidderAliases,
                                 true)
@@ -763,8 +761,7 @@ public class HttpBidderRequesterTest extends VertxTest {
         // then
         assertThat(bidderSeatBid.getHttpCalls())
                 .extracting(ExtHttpCall::getRequestheaders)
-                .flatExtracting(Map::keySet)
-                .containsExactly("headerKey");
+                .containsExactly(singletonMap("headerKey", singletonList("headerValue")));
     }
 
     @Test

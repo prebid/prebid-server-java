@@ -2,6 +2,7 @@ package org.prebid.server.settings.service;
 
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.junit.Before;
 import org.junit.Rule;
@@ -15,7 +16,7 @@ import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.settings.CacheNotificationListener;
 import org.prebid.server.settings.model.StoredDataResult;
-import org.prebid.server.vertx.jdbc.JdbcClient;
+import org.prebid.server.vertx.database.DatabaseClient;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -36,7 +37,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-public class JdbcPeriodicRefreshServiceTest {
+public class DatabasePeriodicRefreshServiceTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -46,7 +47,7 @@ public class JdbcPeriodicRefreshServiceTest {
     @Mock
     private Vertx vertx;
     @Mock
-    private JdbcClient jdbcClient;
+    private DatabaseClient databaseClient;
     private final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
     private final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
     @Mock
@@ -62,9 +63,9 @@ public class JdbcPeriodicRefreshServiceTest {
         final StoredDataResult updateResult = StoredDataResult.of(singletonMap("id1", "null"),
                 singletonMap("id2", "changed_value"), emptyList());
 
-        given(jdbcClient.executeQuery(eq("init_query"), anyList(), any(), any()))
+        given(databaseClient.executeQuery(eq("init_query"), anyList(), any(), any()))
                 .willReturn(Future.succeededFuture(initialResult));
-        given(jdbcClient.executeQuery(eq("update_query"), anyList(), any(), any()))
+        given(databaseClient.executeQuery(eq("update_query"), anyList(), any(), any()))
                 .willReturn(Future.succeededFuture(updateResult));
     }
 
@@ -102,8 +103,8 @@ public class JdbcPeriodicRefreshServiceTest {
         createAndInitService(1000);
 
         // then
-        verify(jdbcClient).executeQuery(eq("init_query"), eq(emptyList()), any(), any());
-        verify(jdbcClient, times(2)).executeQuery(eq("update_query"), anyList(), any(), any());
+        verify(databaseClient).executeQuery(eq("init_query"), eq(emptyList()), any(), any());
+        verify(databaseClient, times(2)).executeQuery(eq("update_query"), anyList(), any(), any());
     }
 
     @Test
@@ -113,7 +114,7 @@ public class JdbcPeriodicRefreshServiceTest {
 
         // then
         verify(vertx, never()).setPeriodic(anyLong(), any());
-        verify(jdbcClient).executeQuery(anyString(), anyList(), any(), any());
+        verify(databaseClient).executeQuery(anyString(), anyList(), any(), any());
     }
 
     @Test
@@ -129,7 +130,7 @@ public class JdbcPeriodicRefreshServiceTest {
     @Test
     public void shouldUpdateTimerAndErrorMetric() {
         // given
-        given(jdbcClient.executeQuery(eq("init_query"), anyList(), any(), any()))
+        given(databaseClient.executeQuery(eq("init_query"), anyList(), any(), any()))
                 .willReturn(Future.failedFuture("Query error"));
 
         // when
@@ -144,7 +145,7 @@ public class JdbcPeriodicRefreshServiceTest {
 
     private void createAndInitService(long refresh) {
 
-        final JdbcPeriodicRefreshService jdbcPeriodicRefreshService = new JdbcPeriodicRefreshService(
+        final DatabasePeriodicRefreshService databasePeriodicRefreshService = new DatabasePeriodicRefreshService(
                 "init_query",
                 "update_query",
                 refresh,
@@ -152,12 +153,12 @@ public class JdbcPeriodicRefreshServiceTest {
                 MetricName.stored_request,
                 cacheNotificationListener,
                 vertx,
-                jdbcClient,
+                databaseClient,
                 timeoutFactory,
                 metrics,
                 clock);
 
-        jdbcPeriodicRefreshService.initialize();
+        databasePeriodicRefreshService.initialize(Promise.promise());
     }
 
     @SuppressWarnings("unchecked")

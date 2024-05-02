@@ -7,8 +7,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.BidderAliases;
@@ -28,6 +26,8 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
@@ -159,7 +159,7 @@ public class HttpBidderRequester {
         if (httpRequests.size() > 1) {
             logger.warn("""
                             More than one request was created for stored response, when only single stored response \
-                            per bidder is supported for the moment. Request to real {0} bidder will be performed.""",
+                            per bidder is supported for the moment. Request to real {} bidder will be performed.""",
                     bidder);
             return false;
         }
@@ -239,9 +239,9 @@ public class HttpBidderRequester {
      * Produces {@link Future} with {@link BidderCall} containing request and error description.
      */
     private static <T> Future<BidderCall<T>> failResponse(Throwable exception, HttpRequest<T> httpRequest) {
-        logger.warn("Error occurred while sending HTTP request to a bidder url: {0} with message: {1}",
+        logger.warn("Error occurred while sending HTTP request to a bidder url: {} with message: {}",
                 httpRequest.getUri(), exception.getMessage());
-        logger.debug("Error occurred while sending HTTP request to a bidder url: {0}",
+        logger.debug("Error occurred while sending HTTP request to a bidder url: {}",
                 exception, httpRequest.getUri());
 
         final BidderError.Type errorType =

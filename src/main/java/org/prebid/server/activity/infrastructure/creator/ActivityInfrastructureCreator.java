@@ -1,7 +1,5 @@
 package org.prebid.server.activity.infrastructure.creator;
 
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.ActivityController;
@@ -11,6 +9,8 @@ import org.prebid.server.activity.infrastructure.privacy.PrivacyModuleQualifier;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;

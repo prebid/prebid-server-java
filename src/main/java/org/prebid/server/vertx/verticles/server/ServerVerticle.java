@@ -5,12 +5,12 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Promise;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.Router;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.handler.ExceptionHandler;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 
 import java.util.Objects;
 
@@ -62,7 +62,7 @@ public class ServerVerticle extends AbstractVerticle {
         if (result.succeeded()) {
             startPromise.tryComplete();
             logger.info(
-                    "Successfully started {0} instance on address: {1}, thread: {2}",
+                    "Successfully started {} instance on address: {}, thread: {}",
                     name,
                     address,
                     Thread.currentThread().getName());

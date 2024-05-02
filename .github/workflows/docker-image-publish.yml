@@ -19,7 +19,7 @@ jobs:
       packages: write
     strategy:
       matrix:
-        java: [ 17 ]
+        java: [ 21 ]
         dockerfile-path: [Dockerfile, extra/Dockerfile]
         include:
           - dockerfile-path: Dockerfile

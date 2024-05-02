@@ -56,8 +56,8 @@ public class CachedDebugLogTest extends VertxTest {
                 <Log>
                 <Request></Request>
                 <Response></Response>
-                <Headers>header1: value1
-                header2: value2
+                <Headers>header1=value1
+                header2=value2
                 </Headers>
                 </Log>""");
     }
@@ -254,7 +254,7 @@ public class CachedDebugLogTest extends VertxTest {
                 Errors:
                 error1
                 error2</Response>
-                <Headers>headerkey: headervalue
+                <Headers>headerkey=headervalue
                 </Headers>
                 </Log>""");
     }
@@ -284,7 +284,7 @@ public class CachedDebugLogTest extends VertxTest {
                 Errors:
                 error1
                 error2</Response>
-                <Headers>headerkey: headervalue
+                <Headers>headerkey=headervalue
                 </Headers>
                 </Log>""");
     }
@@ -316,7 +316,7 @@ public class CachedDebugLogTest extends VertxTest {
                 Errors:
                 <error1>
                 <error2></Response>
-                <Headers><headerkey>: <headervalue>
+                <Headers><headerkey>=<headervalue>
                 </Headers>
                 </Log>""");
     }

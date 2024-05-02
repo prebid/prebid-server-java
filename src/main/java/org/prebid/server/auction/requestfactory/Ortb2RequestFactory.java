@@ -10,8 +10,6 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
@@ -43,6 +41,8 @@ import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -496,7 +496,7 @@ public class Ortb2RequestFactory {
             UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
         } else {
             metrics.updateAccountRequestRejectedByFailedFetch(accountId);
-            logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
+            logger.warn("Error occurred while fetching account: {}", exception.getMessage());
             logger.debug("Error occurred while fetching account", exception);
         }
 

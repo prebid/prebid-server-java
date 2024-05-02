@@ -10,8 +10,6 @@ import io.netty.channel.ConnectTimeoutException;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
@@ -31,6 +29,8 @@ import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
@@ -126,8 +126,8 @@ public class AnalyticsReporterDelegator {
             }
         } else {
             final Throwable privacyEnforcementException = privacyEnforcementMapResult.cause();
-            logger.error("Analytics TCF enforcement check failed for consentString: {0} and "
-                            + "delegates with vendorIds {1}", privacyEnforcementException,
+            logger.error("Analytics TCF enforcement check failed for consentString: {} and "
+                            + "delegates with vendorIds {}", privacyEnforcementException,
                     tcfContext.getConsentString(), delegates);
         }
     }

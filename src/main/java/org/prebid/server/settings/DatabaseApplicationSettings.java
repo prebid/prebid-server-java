@@ -1,20 +1,24 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import io.vertx.core.json.JsonArray;
-import io.vertx.ext.sql.ResultSet;
+import io.vertx.sqlclient.Row;
+import io.vertx.sqlclient.RowIterator;
+import io.vertx.sqlclient.RowSet;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.settings.helper.JdbcStoredDataResultMapper;
-import org.prebid.server.settings.helper.JdbcStoredResponseResultMapper;
+import org.prebid.server.settings.helper.DatabaseStoredDataResultMapper;
+import org.prebid.server.settings.helper.DatabaseStoredResponseResultMapper;
+import org.prebid.server.settings.helper.ParametrizedQueryHelper;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
-import org.prebid.server.vertx.jdbc.JdbcClient;
+import org.prebid.server.util.ObjectUtil;
+import org.prebid.server.vertx.database.CircuitBreakerSecuredDatabaseClient;
+import org.prebid.server.vertx.database.DatabaseClient;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -31,19 +34,14 @@ import java.util.stream.IntStream;
  * <p>
  * Reads an application settings from the database source.
  * <p>
- * In order to enable caching and reduce latency for read operations {@link JdbcApplicationSettings}
+ * In order to enable caching and reduce latency for read operations {@link DatabaseApplicationSettings}
  * can be decorated by {@link CachingApplicationSettings}.
  */
-public class JdbcApplicationSettings implements ApplicationSettings {
+public class DatabaseApplicationSettings implements ApplicationSettings {
 
-    private static final String ACCOUNT_ID_PLACEHOLDER = "%ACCOUNT_ID%";
-    private static final String REQUEST_ID_PLACEHOLDER = "%REQUEST_ID_LIST%";
-    private static final String IMP_ID_PLACEHOLDER = "%IMP_ID_LIST%";
-    private static final String RESPONSE_ID_PLACEHOLDER = "%RESPONSE_ID_LIST%";
-    private static final String QUERY_PARAM_PLACEHOLDER = "?";
-
-    private final JdbcClient jdbcClient;
+    private final DatabaseClient databaseClient;
     private final JacksonMapper mapper;
+    private final ParametrizedQueryHelper parametrizedQueryHelper;
 
     /**
      * Query to select account by ids.
@@ -84,17 +82,19 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      */
     private final String selectStoredResponsesQuery;
 
-    public JdbcApplicationSettings(JdbcClient jdbcClient,
-                                   JacksonMapper mapper,
-                                   String selectAccountQuery,
-                                   String selectStoredRequestsQuery,
-                                   String selectAmpStoredRequestsQuery,
-                                   String selectStoredResponsesQuery) {
+    public DatabaseApplicationSettings(DatabaseClient databaseClient,
+                                       JacksonMapper mapper,
+                                       ParametrizedQueryHelper parametrizedQueryHelper,
+                                       String selectAccountQuery,
+                                       String selectStoredRequestsQuery,
+                                       String selectAmpStoredRequestsQuery,
+                                       String selectStoredResponsesQuery) {
 
-        this.jdbcClient = Objects.requireNonNull(jdbcClient);
+        this.databaseClient = Objects.requireNonNull(databaseClient);
         this.mapper = Objects.requireNonNull(mapper);
-        this.selectAccountQuery = Objects.requireNonNull(selectAccountQuery)
-                .replace(ACCOUNT_ID_PLACEHOLDER, QUERY_PARAM_PLACEHOLDER);
+        this.parametrizedQueryHelper = Objects.requireNonNull(parametrizedQueryHelper);
+        this.selectAccountQuery = parametrizedQueryHelper.replaceAccountIdPlaceholder(
+                Objects.requireNonNull(selectAccountQuery));
         this.selectStoredRequestsQuery = Objects.requireNonNull(selectStoredRequestsQuery);
         this.selectAmpStoredRequestsQuery = Objects.requireNonNull(selectAmpStoredRequestsQuery);
         this.selectStoredResponsesQuery = Objects.requireNonNull(selectStoredResponsesQuery);
@@ -106,10 +106,10 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<Account> getAccountById(String accountId, Timeout timeout) {
-        return jdbcClient.executeQuery(
+        return databaseClient.executeQuery(
                         selectAccountQuery,
                         Collections.singletonList(accountId),
-                        result -> mapToModelOrError(result, row -> toAccount(row.getString(0))),
+                        result -> mapToModelOrError(result, this::toAccount),
                         timeout)
                 .compose(result -> failedIfNull(result, accountId, "Account"));
     }
@@ -120,14 +120,15 @@ public class JdbcApplicationSettings implements ApplicationSettings {
     }
 
     /**
-     * Transforms the first row of {@link ResultSet} to required object or returns null.
+     * Transforms the first row of {@link RowSet<Row>} to required object or returns null.
      * <p>
      * Note: mapper should never throws exception in case of using
-     * {@link org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient}.
+     * {@link CircuitBreakerSecuredDatabaseClient}.
      */
-    private <T> T mapToModelOrError(ResultSet result, Function<JsonArray, T> mapper) {
-        return result != null && CollectionUtils.isNotEmpty(result.getResults())
-                ? mapper.apply(result.getResults().get(0))
+    private <T> T mapToModelOrError(RowSet<Row> rowSet, Function<Row, T> mapper) {
+        final RowIterator<Row> rowIterator = rowSet != null ? rowSet.iterator() : null;
+        return rowIterator != null && rowIterator.hasNext()
+                ? mapper.apply(rowIterator.next())
                 : null;
     }
 
@@ -141,7 +142,8 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                 : Future.failedFuture(new PreBidException("%s not found: %s".formatted(errorPrefix, id)));
     }
 
-    private Account toAccount(String source) {
+    private Account toAccount(Row row) {
+        final String source = ObjectUtil.getIfNotNull(row.getValue(0), Object::toString);
         try {
             return source != null ? mapper.decodeValue(source, Account.class) : null;
         } catch (DecodeException e) {
@@ -185,15 +187,19 @@ public class JdbcApplicationSettings implements ApplicationSettings {
      */
     @Override
     public Future<StoredResponseDataResult> getStoredResponses(Set<String> responseIds, Timeout timeout) {
-        final String queryResolvedWithParameters = selectStoredResponsesQuery.replaceAll(RESPONSE_ID_PLACEHOLDER,
-                parameterHolders(responseIds.size()));
+        final String queryResolvedWithParameters = parametrizedQueryHelper.replaceStoredResponseIdPlaceholders(
+                selectStoredResponsesQuery,
+                responseIds.size());
 
         final List<Object> idsQueryParameters = new ArrayList<>();
-        IntStream.rangeClosed(1, StringUtils.countMatches(selectStoredResponsesQuery, RESPONSE_ID_PLACEHOLDER))
+        final int responseIdPlaceholderCount = StringUtils.countMatches(
+                selectStoredResponsesQuery,
+                ParametrizedQueryHelper.RESPONSE_ID_PLACEHOLDER);
+        IntStream.rangeClosed(1, responseIdPlaceholderCount)
                 .forEach(i -> idsQueryParameters.addAll(responseIds));
 
-        return jdbcClient.executeQuery(queryResolvedWithParameters, idsQueryParameters,
-                result -> JdbcStoredResponseResultMapper.map(result, responseIds), timeout);
+        return databaseClient.executeQuery(queryResolvedWithParameters, idsQueryParameters,
+                result -> DatabaseStoredResponseResultMapper.map(result, responseIds), timeout);
     }
 
     /**
@@ -208,38 +214,21 @@ public class JdbcApplicationSettings implements ApplicationSettings {
                     StoredDataResult.of(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyList()));
         } else {
             final List<Object> idsQueryParameters = new ArrayList<>();
-            IntStream.rangeClosed(1, StringUtils.countMatches(query, REQUEST_ID_PLACEHOLDER))
+            IntStream.rangeClosed(1, StringUtils.countMatches(query, ParametrizedQueryHelper.REQUEST_ID_PLACEHOLDER))
                     .forEach(i -> idsQueryParameters.addAll(requestIds));
-            IntStream.rangeClosed(1, StringUtils.countMatches(query, IMP_ID_PLACEHOLDER))
+            IntStream.rangeClosed(1, StringUtils.countMatches(query, ParametrizedQueryHelper.IMP_ID_PLACEHOLDER))
                     .forEach(i -> idsQueryParameters.addAll(impIds));
 
-            final String parametrizedQuery = createParametrizedQuery(query, requestIds.size(), impIds.size());
-            future = jdbcClient.executeQuery(parametrizedQuery, idsQueryParameters,
-                    result -> JdbcStoredDataResultMapper.map(result, accountId, requestIds, impIds),
+            final String parametrizedQuery = parametrizedQueryHelper.replaceRequestAndImpIdPlaceholders(
+                    query,
+                    requestIds.size(),
+                    impIds.size());
+
+            future = databaseClient.executeQuery(parametrizedQuery, idsQueryParameters,
+                    result -> DatabaseStoredDataResultMapper.map(result, accountId, requestIds, impIds),
                     timeout);
         }
 
         return future;
-    }
-
-    /**
-     * Creates parametrized query from query and variable templates, by replacing templateVariable
-     * with appropriate number of "?" placeholders.
-     */
-    private static String createParametrizedQuery(String query, int requestIdsSize, int impIdsSize) {
-        return query
-                .replace(REQUEST_ID_PLACEHOLDER, parameterHolders(requestIdsSize))
-                .replace(IMP_ID_PLACEHOLDER, parameterHolders(impIdsSize));
-    }
-
-    /**
-     * Returns string for parametrized placeholder.
-     */
-    private static String parameterHolders(int paramsSize) {
-        return paramsSize == 0
-                ? "NULL"
-                : IntStream.range(0, paramsSize)
-                .mapToObj(i -> QUERY_PARAM_PLACEHOLDER)
-                .collect(Collectors.joining(","));
     }
 }
