@@ -11,6 +11,7 @@ enum BidRejectionReason {
     REJECTED_BY_MEDIA_TYPE(204),
     GENERAL(300),
     REJECTED_DUE_TO_PRICE_FLOOR(301),
+    REJECTED_DUE_TO_DSA(305),
     OTHER_ERROR(100)
 
     @JsonValue
