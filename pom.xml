@@ -604,7 +604,7 @@
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
                         <systemPropertyVariables>
-                            <launchContainers>true</launchContainers>
+                            <launchContainers>false</launchContainers>
                         </systemPropertyVariables>
                         <skipTests>${skipUnitTests}</skipTests>
                         <argLine>${surefire.jacoco.args}</argLine>
@@ -910,7 +910,7 @@
                     <systemPropertyVariables>
                         <mockserver.version>${mockserver.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
-                        <tests.max-container-count>5</tests.max-container-count>
+                        <tests.max-container-count>2</tests.max-container-count>
                         <tests.fixed-container-ports>false</tests.fixed-container-ports>
                     </systemPropertyVariables>
                 </configuration>
