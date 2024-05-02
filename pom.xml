@@ -50,6 +50,7 @@
         <protobuf.version>3.21.7</protobuf.version>
         <protoc.version>3.17.3</protoc.version>
         <json-logic.version>1.0.7</json-logic.version>
+        <scram.version>2.1</scram.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
@@ -182,6 +183,11 @@
             <groupId>io.vertx</groupId>
             <artifactId>vertx-auth-common</artifactId>
             <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ongres.scram</groupId>
+            <artifactId>client</artifactId>
+            <version>${scram.version}</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
