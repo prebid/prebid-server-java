@@ -15,6 +15,7 @@ import static org.prebid.server.analytics.reporter.greenbids.GreenbidsAuctionCon
 import static org.prebid.server.analytics.reporter.greenbids.GreenbidsAuctionContext.setupAuctionContextWithNoAdUnit;
 
 public class GreenbidsAnalyticsReporterTest {
+
     ObjectMapper mapper = ObjectMapperProvider.mapper();
     JacksonMapper jacksonMapper = new JacksonMapper(mapper);
     GreenbidsAnalyticsProperties greenbidsAnalyticsProperties = GreenbidsAnalyticsProperties.builder()
@@ -28,38 +29,39 @@ public class GreenbidsAnalyticsReporterTest {
     @Test
     public void shouldThrowExceptionWhenAdUnitsListIsEmpty() {
         // given
-        AuctionContext auctionContext = setupAuctionContextWithNoAdUnit();
+        final AuctionContext auctionContext = setupAuctionContextWithNoAdUnit();
 
         // when
-        GreenbidsAnalyticsReporter greenbidsAnalyticsReporter = new GreenbidsAnalyticsReporter(
+        final GreenbidsAnalyticsReporter greenbidsAnalyticsReporter = new GreenbidsAnalyticsReporter(
                 greenbidsAnalyticsProperties,
                 jacksonMapper
         );
 
         // then
-        Assertions.assertThrows(IllegalArgumentException.class, () -> {
-                    greenbidsAnalyticsReporter.createBidMessage(auctionContext, auctionContext.getBidResponse());
-                }, "AdUnits list should not be empty");
+        Assertions.assertThrows(
+                IllegalArgumentException.class,
+                () -> greenbidsAnalyticsReporter.createBidMessage(
+                        auctionContext,
+                        auctionContext.getBidResponse()
+                ),
+                "AdUnits list should not be empty"
+        );
 
     }
 
     @Test
     public void shouldConstructValidCommonMessage() {
         // given
-        AuctionContext auctionContext = setupAuctionContext();
+        final AuctionContext auctionContext = setupAuctionContext();
 
         // when
-        GreenbidsAnalyticsReporter greenbidsAnalyticsReporter = new GreenbidsAnalyticsReporter(
+        final GreenbidsAnalyticsReporter greenbidsAnalyticsReporter = new GreenbidsAnalyticsReporter(
                 greenbidsAnalyticsProperties,
                 jacksonMapper
         );
-        CommonMessage commonMessage = greenbidsAnalyticsReporter.createBidMessage(auctionContext, auctionContext.getBidResponse());
 
-        System.out.println(
-                "[TEST] GreenbidsAnalyticsReportertest/shouldConstructValidCommonMessage/ " +
-                        "\n   auctionContext: " + auctionContext +
-                        "\n   commonMessage: " + commonMessage
-        );
+        final CommonMessage commonMessage = greenbidsAnalyticsReporter
+                .createBidMessage(auctionContext, auctionContext.getBidResponse());
 
         // then
         assertThat(commonMessage).isNotNull();
@@ -67,9 +69,9 @@ public class GreenbidsAnalyticsReporterTest {
 
         for (AdUnit adUnit : commonMessage.adUnits) {
             assert adUnit.getBidders() != null;
-            boolean hasSeatWithBid = adUnit.getBidders().stream()
+            final boolean hasSeatWithBid = adUnit.getBidders().stream()
                     .anyMatch(bidder -> Boolean.TRUE.equals(bidder.getHasBid()));
-            boolean hasSeatWithNonBid = adUnit.getBidders().stream()
+            final boolean hasSeatWithNonBid = adUnit.getBidders().stream()
                     .anyMatch(bidder -> Boolean.FALSE.equals(bidder.getHasBid()));
 
             assertThat(hasSeatWithBid).isTrue();

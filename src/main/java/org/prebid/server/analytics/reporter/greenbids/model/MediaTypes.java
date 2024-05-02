@@ -9,6 +9,7 @@ import lombok.Value;
 @Builder(toBuilder = true)
 @Value
 public class MediaTypes {
+
     @JsonProperty("banner")
     ExtBanner banner;
 

@@ -18,18 +18,23 @@ import java.util.Collections;
 import java.util.Set;
 
 public class GreenbidsAuctionContext {
+
+    private GreenbidsAuctionContext() {
+        throw new UnsupportedOperationException("Utility class and cannot be instantiated");
+    }
+
     public static AuctionContext setupAuctionContext() {
         // bid request
-        Site site = Site.builder()
+        final Site site = Site.builder()
                 .domain("www.leparisien.fr")
                 .build();
 
-        Format format = Format.builder()
+        final Format format = Format.builder()
                 .w(320)
                 .h(50)
                 .build();
 
-        Imp imp = Imp.builder()
+        final Imp imp = Imp.builder()
                 .id("imp1")
                 .banner(
                         Banner.builder()
@@ -39,32 +44,32 @@ public class GreenbidsAuctionContext {
                 .tagid("tag1")
                 .build();
 
-        BidRequest bidRequest = BidRequest.builder()
+        final BidRequest bidRequest = BidRequest.builder()
                 .id("request1")
                 .imp(Collections.singletonList(imp))
                 .site(site)
                 .build();
 
         // bid response
-        Bid bid = Bid.builder()
+        final Bid bid = Bid.builder()
                 .id("bid1")
                 .impid("imp1")
                 .price(BigDecimal.valueOf(1.5))
                 .adm("<div>Ad Markup</div>")
                 .build();
 
-        SeatBid seatBidWithBid = SeatBid.builder()
+        final SeatBid seatBidWithBid = SeatBid.builder()
                 .bid(Collections.singletonList(bid))
                 .seat("seat1")
                 .build();
 
-        BidResponse bidResponse = BidResponse.builder()
+        final BidResponse bidResponse = BidResponse.builder()
                 .id("response1")
                 .seatbid(Collections.singletonList(seatBidWithBid))
                 .cur("USD")
                 .build();
 
-        BidRejectionTracker bidRejectionTracker = new BidRejectionTracker(
+        final BidRejectionTracker bidRejectionTracker = new BidRejectionTracker(
                 "seat2",
                 Set.of("imp1"),
                 1.0
@@ -87,15 +92,14 @@ public class GreenbidsAuctionContext {
 
     public static AuctionContext setupAuctionContextWithNoAdUnit() {
         // bid request
-        Site site = Site.builder()
+        final Site site = Site.builder()
                 .domain("www.leparisien.fr")
                 .build();
 
-        BidRequest bidRequest = BidRequest.builder()
+        final BidRequest bidRequest = BidRequest.builder()
                 .id("request1")
                 .site(site)
                 .build();
-
 
         return AuctionContext.builder()
                 .httpRequest(HttpRequestContext.builder().build())

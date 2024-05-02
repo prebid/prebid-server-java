@@ -13,12 +13,4 @@ public class GreenbidsConfig {
 
     @JsonProperty("greenbidsSampling")
     Double greenbidsSampling;
-
-    //@JsonProperty("exploratorySamplingSplit")
-    //Double exploratorySamplingSplit;
-
-    //@JsonProperty("scopeId")
-    //String scopeId;
-    //String endpoint;
-    //Map<EventType, Boolean> features;
 }

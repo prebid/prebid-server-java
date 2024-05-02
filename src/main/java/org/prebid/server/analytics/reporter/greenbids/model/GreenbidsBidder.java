@@ -7,6 +7,7 @@ import lombok.Value;
 @Builder(toBuilder = true)
 @Value
 public class GreenbidsBidder {
+
     @JsonProperty("bidder")
     String bidder;
     @JsonProperty("isTimeout")

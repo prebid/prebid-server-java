@@ -120,12 +120,9 @@ public class AnalyticsReporterDelegator {
                 // but to be sure lets use getOrDefault
                 final PrivacyEnforcementAction reporterPrivacyAction = privacyEnforcementActionMap
                         .getOrDefault(reporterVendorId, PrivacyEnforcementAction.restrictAll());
-
-                // TODO: remove comment (debug purpose only)
-                //if (!reporterPrivacyAction.isBlockAnalyticsReport()) {
-                //    vertx.runOnContext(ignored -> processEventByReporter(analyticsReporter, updatedEvent));
-                //}
-                vertx.runOnContext(ignored -> processEventByReporter(analyticsReporter, updatedEvent));
+                if (!reporterPrivacyAction.isBlockAnalyticsReport()) {
+                    vertx.runOnContext(ignored -> processEventByReporter(analyticsReporter, updatedEvent));
+                }
             }
         } else {
             final Throwable privacyEnforcementException = privacyEnforcementMapResult.cause();

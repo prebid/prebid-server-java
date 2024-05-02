@@ -6,6 +6,7 @@ import lombok.Value;
 @Builder
 @Value
 public class GreenbidsAnalyticsProperties {
+
     String pbuid;
     Double greenbidsSampling;
     Double exploratorySamplingSplit;

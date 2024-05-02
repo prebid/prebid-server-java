@@ -9,6 +9,7 @@ import java.util.List;
 @Builder(toBuilder = true)
 @Value
 public class ExtBanner {
+
     @JsonProperty("sizes")
     List<List<Integer>> sizes;
 
