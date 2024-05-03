@@ -7,6 +7,8 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Dooh
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.response.auction.BidResponse
+import org.prebid.server.functional.service.PrebidServerService
+import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.BASIC
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.DETAILED
@@ -82,12 +84,12 @@ class MetricsSpec extends BaseSpec {
 
         then: "account.<account-id>.* should be populated"
         def metrics = defaultPbsService.sendCollectedMetricsRequest()
-        assert metrics["account.${accountId}.adapter.generic.bids_received"     as String] == 1
-        assert metrics["account.${accountId}.adapter.generic.prices"            as String] == bidPrice
-        assert metrics["account.${accountId}.adapter.generic.request_time"      as String] == 1
-        assert metrics["account.${accountId}.adapter.generic.requests.gotbids"  as String] == 1
-        assert metrics["account.${accountId}.requests"                          as String] == 1
-        assert metrics["account.${accountId}.requests.type.openrtb2-web"        as String] == 1
+        assert metrics["account.${accountId}.adapter.generic.bids_received" as String] == 1
+        assert metrics["account.${accountId}.adapter.generic.prices" as String] == bidPrice
+        assert metrics["account.${accountId}.adapter.generic.request_time" as String] == 1
+        assert metrics["account.${accountId}.adapter.generic.requests.gotbids" as String] == 1
+        assert metrics["account.${accountId}.requests" as String] == 1
+        assert metrics["account.${accountId}.requests.type.openrtb2-web" as String] == 1
     }
 
     def "PBS should update hood metrics when bid request contains hood channel type and verbosity level is detailed"() {
@@ -114,7 +116,10 @@ class MetricsSpec extends BaseSpec {
     }
 
     def "PBS should ignore site distribution channel and update only dooh metrics when presented dooh and site in request"() {
-        given: "Default bid request with dooh and site"
+        given: "PBs config with strict-app-site-dooh=false"
+        def defaultPbsService = pbsServiceFactory.getService(["auction.strict-app-site-dooh": "false"])
+
+        and: "Default bid request with dooh and site"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             dooh = Dooh.defaultDooh
         }
@@ -147,7 +152,10 @@ class MetricsSpec extends BaseSpec {
     }
 
     def "PBS should ignore other distribution channel and update only app metrics when presented app ant other channels in request"() {
-        given: "Account in the DB"
+        given: "PBs config with strict-app-site-dooh=false"
+        def defaultPbsService = pbsServiceFactory.getService(["auction.strict-app-site-dooh": "false"])
+
+        and: "Account in the DB"
         def accountId = bidRequest.app.publisher.id
         def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: DETAILED))
         def account = new Account(uuid: accountId, config: accountMetricsConfig)
@@ -176,8 +184,8 @@ class MetricsSpec extends BaseSpec {
 
         where:
         bidRequest << [BidRequest.getDefaultBidRequest(APP).tap {
-                           it.dooh = Dooh.defaultDooh
-                       },
+            it.dooh = Dooh.defaultDooh
+        },
                        BidRequest.getDefaultBidRequest(APP).tap {
                            it.site = Site.defaultSite
                        },
