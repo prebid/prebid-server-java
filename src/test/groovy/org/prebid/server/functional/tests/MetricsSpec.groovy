@@ -7,8 +7,6 @@ import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Dooh
 import org.prebid.server.functional.model.request.auction.Site
 import org.prebid.server.functional.model.response.auction.BidResponse
-import org.prebid.server.functional.service.PrebidServerService
-import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.BASIC
 import static org.prebid.server.functional.model.config.AccountMetricsVerbosityLevel.DETAILED
@@ -183,12 +181,8 @@ class MetricsSpec extends BaseSpec {
         assert !metrics["account.${accountId}.requests.type.openrtb2-web" as String]
 
         where:
-        bidRequest << [BidRequest.getDefaultBidRequest(APP).tap {
-            it.dooh = Dooh.defaultDooh
-        },
-                       BidRequest.getDefaultBidRequest(APP).tap {
-                           it.site = Site.defaultSite
-                       },
+        bidRequest << [BidRequest.getDefaultBidRequest(APP).tap { it.dooh = Dooh.defaultDooh },
+                       BidRequest.getDefaultBidRequest(APP).tap { it.site = Site.defaultSite },
                        BidRequest.getDefaultBidRequest(APP).tap {
                            it.site = Site.defaultSite
                            it.dooh = Dooh.defaultDooh
