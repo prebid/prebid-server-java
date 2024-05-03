@@ -122,6 +122,9 @@ class MetricsSpec extends BaseSpec {
             dooh = Dooh.defaultDooh
         }
 
+        and: "Flush metric"
+        flushMetrics(defaultPbsService)
+
         and: "Account in the DB"
         def accountId = bidRequest.getAccountId()
         def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: DETAILED))
@@ -158,6 +161,9 @@ class MetricsSpec extends BaseSpec {
         def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: DETAILED))
         def account = new Account(uuid: accountId, config: accountMetricsConfig)
         accountDao.save(account)
+
+        and: "Flush metric"
+        flushMetrics(defaultPbsService)
 
         when: "Requesting PBS auction"
         defaultPbsService.sendAuctionRequest(bidRequest)
