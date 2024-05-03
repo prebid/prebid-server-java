@@ -13,7 +13,7 @@ adapters:
       vendor-id: 0
     usersync:
       cookie-family-name: cpmstar
-      redirect:
-        url: https://server.cpmstar.com/usersync.aspx?gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+      iframe:
+        url: https://server.cpmstar.com/usersync.aspx?ifr=1&gdpr={{gdpr}}&consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
         support-cors: false
         uid-macro: '$UID'
