@@ -73,8 +73,6 @@ public abstract class IntegrationTest extends VertxTest {
     private static final String HOST_AND_PORT = "localhost:" + WIREMOCK_PORT;
     private static final String CACHE_PATH = "/cache";
     private static final String CACHE_ENDPOINT = "http://" + HOST_AND_PORT + CACHE_PATH;
-    private static final String USER_SERVICE_PATH = "/user-data-details";
-    private static final String USER_SERVICE_ENDPOINT = "http://" + HOST_AND_PORT + USER_SERVICE_PATH;
 
     @BeforeClass
     public static void setUp() throws IOException {
@@ -252,7 +250,6 @@ public abstract class IntegrationTest extends VertxTest {
                 .replaceAll("\\{\\{ cache.resource_url }}", CACHE_ENDPOINT + "?uuid=")
                 .replaceAll("\\{\\{ cache.host }}", HOST_AND_PORT)
                 .replaceAll("\\{\\{ cache.path }}", CACHE_PATH)
-                .replaceAll("\\{\\{ userservice_uri }}", USER_SERVICE_ENDPOINT)
                 .replaceAll("\\{\\{ event.url }}", "http://localhost:8080/event?");
     }
 
