@@ -346,10 +346,10 @@ available: `/cache/invalidate?account={accountId}` which remove account from the
 - `settings.in-memory-cache.http-update.timeout` - timeout for obtaining stored request updates.
 - `settings.in-memory-cache.database-update.init-query` - initial query for fetching all stored requests at the startup.
 - `settings.in-memory-cache.database-update.update-query` - a query for periodical update of stored requests, that should
-contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
+contain 'WHERE last_updated > ?' for MySQL and 'WHERE last_updated > $1' for Postgresql to fetch only the records that were updated since previous check.
 - `settings.in-memory-cache.database-update.amp-init-query` - initial query for fetching all AMP stored requests at the startup.
 - `settings.in-memory-cache.database-update.amp-update-query` - a query for periodical update of AMP stored requests, that should
-contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
+contain 'WHERE last_updated > ?' for MySQL and 'WHERE last_updated > $1' for Postgresql to fetch only the records that were updated since previous check.
 - `settings.in-memory-cache.database-update.refresh-rate` - refresh period in ms for stored request updates.
 - `settings.in-memory-cache.database-update.timeout` - timeout for obtaining stored request updates.
 
