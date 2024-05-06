@@ -50,6 +50,7 @@
         <protobuf.version>3.21.7</protobuf.version>
         <protoc.version>3.17.3</protoc.version>
         <json-logic.version>1.0.7</json-logic.version>
+        <scram.version>2.1</scram.version>
 
         <!-- test dependencies versions -->
         <junit.version>4.13.2</junit.version>
@@ -57,7 +58,6 @@
         <mockito.version>4.11.0</mockito.version>
         <assertj.version>3.24.2</assertj.version>
         <wiremock.version>2.35.1</wiremock.version>
-        <awaitility.version>4.2.0</awaitility.version>
         <jetty.version>9.4.53.v20231009</jetty.version>
         <restassured.version>5.4.0</restassured.version>
         <h2.version>2.2.220</h2.version>
@@ -65,7 +65,6 @@
         <groovy.version>4.0.15</groovy.version>
         <testcontainers.version>1.17.4</testcontainers.version>
         <mockserver.version>5.14.0</mockserver.version>
-        <aspectj.version>1.9.9.1</aspectj.version>
         <bytebuddy.version>1.12.14</bytebuddy.version>
 
         <!-- plugin versions -->
@@ -127,10 +126,6 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
-        </dependency>
-        <dependency>
             <groupId>jakarta.annotation</groupId>
             <artifactId>jakarta.annotation-api</artifactId>
         </dependency>
@@ -182,6 +177,11 @@
             <groupId>io.vertx</groupId>
             <artifactId>vertx-auth-common</artifactId>
             <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ongres.scram</groupId>
+            <artifactId>client</artifactId>
+            <version>${scram.version}</version>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
@@ -404,12 +404,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
-            <version>${awaitility.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
@@ -613,6 +607,7 @@
                             <launchContainers>false</launchContainers>
                         </systemPropertyVariables>
                         <skipTests>${skipUnitTests}</skipTests>
+                        <argLine>${surefire.jacoco.args}</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -782,18 +777,22 @@
                         <exclude>com/iab/openrtb/**</exclude>
                         <exclude>**/proto/**</exclude>
                         <exclude>**/model/**</exclude>
+                        <exclude>**/functional/**</exclude>
                         <exclude>org/prebid/server/spring/config/**</exclude>
                     </excludes>
                 </configuration>
                 <executions>
                     <execution>
-                        <id>prepare-agent</id>
+                        <id>before-unit-test-execution</id>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                        <configuration>
+                            <propertyName>surefire.jacoco.args</propertyName>
+                        </configuration>
                     </execution>
                     <execution>
-                        <id>report</id>
+                        <id>after-unit-test-execution</id>
                         <goals>
                             <goal>report</goal>
                         </goals>
@@ -908,9 +907,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <argLine>
-                        -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
-                    </argLine>
                     <systemPropertyVariables>
                         <mockserver.version>${mockserver.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
@@ -947,13 +943,6 @@
                         </configuration>
                     </execution>
                 </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.aspectj</groupId>
-                        <artifactId>aspectjweaver</artifactId>
-                        <version>${aspectj.version}</version>
-                    </dependency>
-                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
