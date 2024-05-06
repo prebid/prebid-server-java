@@ -21,6 +21,11 @@ public class DatabaseConfigurationProperties {
     @NotNull
     @PositiveOrZero
     private Integer idleConnectionTimeout;
+    @NotNull
+    private Boolean enablePreparedStatementCaching;
+    @NotNull
+    @Min(1)
+    private Integer maxPreparedStatementCacheSize;
     @NotBlank
     private String host;
     @NotNull
@@ -32,4 +37,3 @@ public class DatabaseConfigurationProperties {
     @NotBlank
     private String password;
 }
-
