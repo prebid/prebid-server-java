@@ -204,11 +204,6 @@ Also, each bidder could have its own bidder-specific options.
 - `admin-endpoints.tracelog.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
 - `admin-endpoints.tracelog.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
-- `admin-endpoints.e2eadmin.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.e2eadmin.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.e2eadmin.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.e2eadmin.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
-
 - `admin-endpoints.collected-metrics.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.collected-metrics.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.collected-metrics.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
@@ -295,6 +290,8 @@ For database data source available next options:
 - `settings.database.password` - database password.
 - `settings.database.pool-size` - set the initial/min/max pool size of database connections.
 - `settings.database.idle-connection-timeout` - Set the idle timeout, time unit is seconds. Zero means don't timeout. This determines if a connection will timeout and be closed and get back to the pool if no data is received nor sent within the timeout.
+- `settings.database.enable-prepared-statement-caching` - Enable caching of the prepared statements so that they can be reused. Defaults to `false`. Please be vary of the DB server limitations as cache instances is per-database-connection.
+- `settings.database.max-prepared-statement-cache-size` - Set the maximum size of the prepared statement cache. Defaults to `256`. Has any effect only when `settings.database.enable-prepared-statement-caching` is set to `true`. Please note that the cache size is multiplied by `settings.database.pool-size`.  
 - `settings.database.account-query` - the SQL query to fetch account.
 - `settings.database.stored-requests-query` - the SQL query to fetch stored requests.
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
@@ -338,6 +335,7 @@ See [application settings](application-settings.md) for full reference of availa
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
 - `settings.in-memory-cache.cache-size` - the size of LRU cache.
+- `settings.in-memory-cache.jitter-seconds` - jitter (in seconds) for `settings.in-memory-cache.ttl-seconds` parameter.
 - `settings.in-memory-cache.notification-endpoints-enabled` - if equals to `true` two additional endpoints will be
 available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and [/storedrequests/amp](endpoints/storedrequests/amp.md).
 - `settings.in-memory-cache.account-invalidation-enabled` - if equals to `true` additional admin protected endpoints will be
@@ -348,10 +346,10 @@ available: `/cache/invalidate?account={accountId}` which remove account from the
 - `settings.in-memory-cache.http-update.timeout` - timeout for obtaining stored request updates.
 - `settings.in-memory-cache.database-update.init-query` - initial query for fetching all stored requests at the startup.
 - `settings.in-memory-cache.database-update.update-query` - a query for periodical update of stored requests, that should
-contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
+contain 'WHERE last_updated > ?' for MySQL and 'WHERE last_updated > $1' for Postgresql to fetch only the records that were updated since previous check.
 - `settings.in-memory-cache.database-update.amp-init-query` - initial query for fetching all AMP stored requests at the startup.
 - `settings.in-memory-cache.database-update.amp-update-query` - a query for periodical update of AMP stored requests, that should
-contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
+contain 'WHERE last_updated > ?' for MySQL and 'WHERE last_updated > $1' for Postgresql to fetch only the records that were updated since previous check.
 - `settings.in-memory-cache.database-update.refresh-rate` - refresh period in ms for stored request updates.
 - `settings.in-memory-cache.database-update.timeout` - timeout for obtaining stored request updates.
 
