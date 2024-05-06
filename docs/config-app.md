@@ -22,6 +22,10 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `server.jks-password` - password for the keystore (if ssl is enabled).
 
 ## HTTP Server
+- `server.max-headers-size` - set the maximum length of all headers, deprecated(use server.max-headers-size instead).
+- `server.ssl` - enable SSL/TLS support, deprecated(use server.ssl instead).
+- `server.jks-path` - path to the java keystore (if ssl is enabled), deprecated(use server.jks-path instead).
+- `server.jks-password` - password for the keystore (if ssl is enabled), deprecated(use server.jks-password instead).
 - `server.http.server-instances` - how many http server instances should be created.
   This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `server.http.enabled` - if set to `true` enables http server
