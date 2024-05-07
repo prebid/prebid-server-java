@@ -124,7 +124,6 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
             bidderRequests.user.geo.lon == bidRequest.user.geo.lon
         }
 
-
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
