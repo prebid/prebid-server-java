@@ -11,7 +11,7 @@ Other available metrics not mentioned here can found at
 
 where:
 - `[IP]` should be equal to IP address of bound network interface on cluster node for Prebid Server (for example: `0.0.0.0`)
-- `[PORT]` should be equal to `http.port` configuration property
+- `[PORT]` should be equal to `server.http.port` configuration property
 
 ### HTTP client metrics
 - `vertx.http.clients.connections.{min,max,mean,p95,p99}` - how long connections live
@@ -44,7 +44,7 @@ where `[DATASOURCE]` is a data source name, `DEFAULT_DS` by defaul.
 - `imps_video` - number of video impressions
 - `imps_native` - number of native impressions
 - `imps_audio` - number of audio impressions
-- `requests.(ok|badinput|err|networkerr|blacklisted_account|blacklisted_app).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
+- `requests.(ok|badinput|err|networkerr|blocklisted_account|blocklisted_app).(openrtb2-web|openrtb-app|amp|legacy)` - number of requests broken down by status and type
 - `bidder-cardinality.<cardinality>.requests` - number of requests targeting `<cardinality>` of bidders
 - `connection_accept_errors` - number of errors occurred while establishing HTTP connection
 - `db_query_time` - timer tracking how long did it take for database client to obtain the result for a query

@@ -1,6 +1,6 @@
 adapters:
   mgidX:
-    # We have the following regional endpoint domains: 'us-east-x' and 'eu'
+    # We have the following regional endpoint domains: 'us-east-x' and 'eu-x'
     # Please deploy this config in each of your datacenters with the appropriate regional subdomain
     endpoint: https://REGION.mgid.com/pserver
     meta-info:
