@@ -4,6 +4,79 @@ adapters:
     aliases:
       genericAlias:
         enabled: false
+      adrino:
+        enabled: false
+        endpoint: https://prd-prebid-bidder.adrino.io/openrtb/bid
+        meta-info:
+          maintainer-email: dev@adrino.pl
+          app-media-types:
+          site-media-types:
+            - native
+          supported-vendors:
+          vendor-id: 1072
+      ccx:
+        enabled: false
+        endpoint: https://delivery.clickonometrics.pl/ortb/prebid/bid
+        meta-info:
+          maintainer-email: it@clickonometrics.pl
+          site-media-types:
+            - banner
+            - video
+          vendor-id: 773
+        usersync:
+          enabled: true
+          cookie-family-name: ccx
+          redirect:
+            url: https://sync.clickonometrics.pl/prebid/set-cookie?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&cb={{redirect_url}}
+            support-cors: false
+            uid-macro: '${USER_ID}'
+      infytv:
+        enabled: false
+        endpoint: https://nxs.infy.tv/pbs/openrtb
+        meta-info:
+          maintainer-email: tech+hb@infy.tv
+          app-media-types:
+            - video
+          site-media-types:
+            - video
+          supported-vendors:
+          vendor-id: 0
+      loopme:
+        enabled: false
+        endpoint: http://prebid-eu.loopmertb.com
+        meta-info:
+          maintainer-email: support@loopme.com
+          app-media-types:
+            - banner
+            - video
+            - native
+          site-media-types:
+            - banner
+            - video
+            - native
+          supported-vendors:
+          vendor-id: 109
+      zeta-global-ssp:
+        enabled: false
+        endpoint: https://ssp.disqus.com/bid/prebid-server?sid=GET_SID_FROM_ZETA
+        endpoint-compression: gzip
+        meta-info:
+          maintainer-email: DL-Zeta-SSP@zetaglobal.com
+          app-media-types:
+            - banner
+            - video
+          site-media-types:
+            - banner
+            - video
+          supported-vendors:
+          vendor-id: 833
+        usersync:
+          enabled: true
+          cookie-family-name: zeta-global-ssp
+          redirect:
+            url: https://ssp.disqus.com/redirectuser?sid=GET_SID_FROM_ZETA&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&r={{redirect_url}}
+            uid-macro: 'BUYERUID'
+            support-cors: false
       blue:
         enabled: false
         endpoint: https://prebid-us-east-1.getblue.io/?src=prebid
