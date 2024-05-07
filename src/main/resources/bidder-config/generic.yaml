@@ -56,28 +56,6 @@ adapters:
             - native
           supported-vendors:
           vendor-id: 109
-      medianet:
-        enabled: false
-        endpoint: https://prebid-adapter.media.net/rtb/pb/prebids2s?src={{PREBID_SERVER_ENDPOINT}}
-        meta-info:
-          maintainer-email: prebid@media.net
-          app-media-types:
-            - banner
-            - video
-            - native
-          site-media-types:
-            - banner
-            - video
-            - native
-          supported-vendors:
-          vendor-id: 142
-        usersync:
-          enabled: true
-          cookie-family-name: medianet
-          redirect:
-            url: https://hbx.media.net/cksync.php?cs=1&type=pbs&ovsid=setstatuscode&redirect={{redirect_url}}
-            support-cors: false
-            uid-macro: '<vsid>'
       zeta-global-ssp:
         enabled: false
         endpoint: https://ssp.disqus.com/bid/prebid-server?sid=GET_SID_FROM_ZETA
