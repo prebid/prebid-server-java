@@ -1,58 +1,24 @@
 package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
-import com.iab.openrtb.response.Bid;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 import org.prebid.server.auction.model.BidderResponse;
-import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderSeatBid;
-import org.prebid.server.hooks.modules.com.confiant.adquality.model.BidScanResult;
-import org.prebid.server.hooks.modules.com.confiant.adquality.model.OperationResult;
-import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.hooks.modules.com.confiant.adquality.model.GroupByIssues;
+import org.prebid.server.hooks.modules.com.confiant.adquality.util.AdQualityModuleTestUtils;
 
-import java.math.BigDecimal;
-import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class BidsScanResultTest {
 
-    private final RedisParser redisParser = new RedisParser();
-
-    @Test
-    public void shouldNotHaveIssuesInTheResult() {
-        // given
-        final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\"}]]]";
-        final OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
-        final BidsScanResult bidsScanResult = new BidsScanResult(results);
-
-        // when
-        final boolean hasIssues = bidsScanResult.hasIssues();
-
-        // then
-        assertThat(hasIssues).isFalse();
-    }
-
-    @Test
-    public void shouldHaveIssuesInTheResult() {
-        // given
-        final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}]]]";
-        final OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
-        final BidsScanResult bidsScanResult = new BidsScanResult(results);
-
-        // when
-        final boolean hasIssues = bidsScanResult.hasIssues();
-
-        // then
-        assertThat(hasIssues).isTrue();
-    }
+    private final RedisParser redisParser = new RedisParser(new ObjectMapper());
 
     @Test
     public void shouldProperlyGetIssuesMessage() {
         // given
         final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}]]]";
-        final OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
-        final BidsScanResult bidsScanResult = new BidsScanResult(results);
+        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(redisResponse);
 
         // when
         final List<String> issues = bidsScanResult.getIssuesMessages();
@@ -66,8 +32,7 @@ public class BidsScanResultTest {
     public void shouldProperlyGetDebugMessage() {
         // given
         final String redisResponse = "invalid redis response";
-        final OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
-        final BidsScanResult bidsScanResult = new BidsScanResult(results);
+        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(redisResponse);
 
         // when
         final List<String> messages = bidsScanResult.getDebugMessages();
@@ -78,85 +43,38 @@ public class BidsScanResultTest {
     }
 
     @Test
-    public void shouldProperlyFilterInvalidBids() {
+    public void shouldProperlyGroupBiddersByIssues() {
         // given
         final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\", \"issues\": [{ \"value\": \"ads.deceivenetworks.net\", \"spec_name\": \"malicious_domain\", \"first_adinstance\": \"e91e8da982bb8b7f80100426\"}]}],[{\"tag_key\": \"key_b\", \"imp_id\": \"imp_b\"}]]]";
-        final OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
-        final BidsScanResult bidsScanResult = new BidsScanResult(results);
-
-        final BidderResponse br1 = BidderResponse.of("critio1", BidderSeatBid.builder()
-                .bids(Collections.singletonList(BidderBid.builder()
-                        .type(BidType.banner)
-                        .bid(Bid.builder()
-                                .id("13")
-                                .price(BigDecimal.valueOf(13))
-                                .impid("1")
-                                .adm("baba")
-                                .adomain(List.of("www.goog.com", "www.gumgum.com"))
-                                .build())
-                        .build()))
-                .build(), 11);
-
-        final BidderResponse br2 = BidderResponse.of("critio2", BidderSeatBid.builder()
-                .bids(Collections.singletonList(BidderBid.builder()
-                        .type(BidType.banner)
-                        .bid(Bid.builder()
-                                .id("12")
-                                .price(BigDecimal.valueOf(11))
-                                .impid("1")
-                                .adm("asas")
-                                .adomain(Collections.singletonList("www.yahoo.com"))
-                                .build())
-                        .build()))
-                .build(), 11);
+        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(redisResponse);
+        final BidderResponse br1 = AdQualityModuleTestUtils.getBidderResponse("critio1", "1", "11");
+        final BidderResponse br2 = AdQualityModuleTestUtils.getBidderResponse("critio2", "2", "12");
 
         // when
-        final List<BidderResponse> validResponses = bidsScanResult.filterValidResponses(List.of(br1, br2));
+        final GroupByIssues<BidderResponse> groupByIssues = bidsScanResult.toGroupByIssues(List.of(br1, br2));
 
         // then
-        assertThat(validResponses.size()).isEqualTo(1);
-        assertThat(validResponses.get(0).getBidder()).isEqualTo("critio2");
+        assertThat(groupByIssues.getWithIssues().size()).isEqualTo(1);
+        assertThat(groupByIssues.getWithIssues().get(0).getBidder()).isEqualTo("critio1");
+        assertThat(groupByIssues.getWithoutIssues().size()).isEqualTo(1);
+        assertThat(groupByIssues.getWithoutIssues().get(0).getBidder()).isEqualTo("critio2");
     }
 
     @Test
-    public void shouldProperlyFilterWhenNoInvalidBids() {
+    public void shouldProperlyGroupBiddersByIssuesWithoutIssues() {
         // given
         final String redisResponse = "[[[{\"tag_key\": \"key_a\", \"imp_id\": \"imp_a\"}],[{\"tag_key\": \"key_b\", \"imp_id\": \"imp_b\"}]]]";
-        final OperationResult<List<BidScanResult>> results = redisParser.parseBidsScanResult(redisResponse);
-        final BidsScanResult bidsScanResult = new BidsScanResult(results);
-
-        final BidderResponse br1 = BidderResponse.of("critio1", BidderSeatBid.builder()
-                .bids(Collections.singletonList(BidderBid.builder()
-                        .type(BidType.banner)
-                        .bid(Bid.builder()
-                                .id("13")
-                                .price(BigDecimal.valueOf(13))
-                                .impid("1")
-                                .adm("baba")
-                                .adomain(List.of("www.goog.com", "www.gumgum.com"))
-                                .build())
-                        .build()))
-                .build(), 11);
-
-        final BidderResponse br2 = BidderResponse.of("critio2", BidderSeatBid.builder()
-                .bids(Collections.singletonList(BidderBid.builder()
-                        .type(BidType.banner)
-                        .bid(Bid.builder()
-                                .id("12")
-                                .price(BigDecimal.valueOf(11))
-                                .impid("1")
-                                .adm("asas")
-                                .adomain(Collections.singletonList("www.yahoo.com"))
-                                .build())
-                        .build()))
-                .build(), 11);
+        final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(redisResponse);
+        final BidderResponse br1 = AdQualityModuleTestUtils.getBidderResponse("critio1", "1", "11");
+        final BidderResponse br2 = AdQualityModuleTestUtils.getBidderResponse("critio2", "2", "12");
 
         // when
-        final List<BidderResponse> validResponses = bidsScanResult.filterValidResponses(List.of(br1, br2));
+        final GroupByIssues<BidderResponse> groupByIssues = bidsScanResult.toGroupByIssues(List.of(br1, br2));
 
         // then
-        assertThat(validResponses.size()).isEqualTo(2);
-        assertThat(validResponses.get(0).getBidder()).isEqualTo("critio1");
-        assertThat(validResponses.get(1).getBidder()).isEqualTo("critio2");
+        assertThat(groupByIssues.getWithIssues().size()).isEqualTo(0);
+        assertThat(groupByIssues.getWithoutIssues().size()).isEqualTo(2);
+        assertThat(groupByIssues.getWithoutIssues().get(0).getBidder()).isEqualTo("critio1");
+        assertThat(groupByIssues.getWithoutIssues().get(1).getBidder()).isEqualTo("critio2");
     }
 }

@@ -9,10 +9,11 @@ import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.reporter.log.LogAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.PubstackAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
-import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -21,7 +22,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 
 @Configuration
@@ -29,18 +30,20 @@ public class AnalyticsConfiguration {
 
     @Bean
     AnalyticsReporterDelegator analyticsReporterDelegator(
-            @Autowired(required = false) List<AnalyticsReporter> delegates,
             Vertx vertx,
-            PrivacyEnforcementService privacyEnforcementService,
+            @Autowired(required = false) List<AnalyticsReporter> delegates,
+            TcfEnforcement tcfEnforcement,
+            UserFpdActivityMask userFpdActivityMask,
             Metrics metrics,
             @Value("${logging.sampling-rate:0.01}") double logSamplingRate) {
 
         return new AnalyticsReporterDelegator(
-                logSamplingRate,
-                ListUtils.emptyIfNull(delegates),
                 vertx,
-                privacyEnforcementService,
-                metrics);
+                ListUtils.emptyIfNull(delegates),
+                tcfEnforcement,
+                userFpdActivityMask,
+                metrics,
+                logSamplingRate);
     }
 
     @Bean

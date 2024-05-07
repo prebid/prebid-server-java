@@ -115,7 +115,8 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         final CFG aliasConfigProperties = configurationAsPropertiesObject(
                 entry.getValue(), configProperties.getSelfClass());
 
-        final CFG aliasMergedProperties = mergeConfigurations(aliasConfigProperties, configProperties);
+        final CFG aliasMergedProperties = updateAliasProperties(
+                mergeConfigurations(aliasConfigProperties, configProperties));
 
         validateCapabilities(alias, aliasMergedProperties, bidderName, configProperties);
 
@@ -156,6 +157,15 @@ public class BidderDepsAssembler<CFG extends BidderConfigurationProperties> {
         return configProperties.getEnabled()
                 ? bidderCreator.apply(configProperties)
                 : new DisabledBidder(ERROR_MESSAGE_TEMPLATE_FOR_DISABLED.formatted(bidderName));
+    }
+
+    private CFG updateAliasProperties(CFG aliasProperties) {
+        final UsersyncConfigurationProperties usersync = aliasProperties.getUsersync();
+        if (usersync != null && usersync.getEnabled() == null) {
+            usersync.setEnabled(true);
+        }
+
+        return aliasProperties;
     }
 
     private void validateCoreCapabilities(String bidderName, CFG coreConfiguration) {

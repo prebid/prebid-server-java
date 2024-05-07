@@ -54,6 +54,9 @@ Keep in mind following restrictions:
   to `sfN.enforce` value.
 - `privacy.gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
   Values: ignore, no-access-allowed, access-allowed.
+- `privacy.gdpr.purposes.p4.eid.require_consent` - if equals to `true`, transmitting EIDs require P4 legal basis unless excepted.
+- `privacy.gdpr.purposes.p4.eid.exceptions` - list of EID sources that are excepted from P4 enforcement and will be transmitted if any P2-P10 is consented.
+- `privacy.gdpr.purposes.p4.eid.activity_transition` - defaults to `true`. If `true` and transmitEids is not specified, but transmitUfpd is specified, then the logic of transmitUfpd is used. This is to avoid breaking changes to existing configurations. The default value of the flag will be changed in a future release. 
 - `metrics.verbosity-level` - defines verbosity level of metrics for this account, overrides `metrics.accounts` application settings configuration. 
 - `analytics.auction-events.<channel>` - defines which channels are supported by analytics for this account
 - `analytics.modules.<module-name>.*` - space for `module-name` analytics module specific configuration, may be of any shape
@@ -222,7 +225,8 @@ Here's an example YAML file containing account-specific settings:
       cookie-sync:
         default-limit: 5
         max-limit: 8
-        default-coop-sync: true
+        coop-sync:
+          default: true
 ```
 
 ## Setting Account Configuration in the Database
@@ -426,7 +430,9 @@ example:
   "cookie-sync": {
     "default-limit": 5,
     "max-limit": 8,
-    "default-coop-sync": true
+    "coop-sync": {
+      "default": true
+    }
   }
 }
 ```

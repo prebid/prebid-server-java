@@ -29,8 +29,6 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -80,6 +78,8 @@ import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.FlexibleExtension;
 import org.prebid.server.proto.openrtb.ext.request.ExtApp;
@@ -92,6 +92,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebidFloors;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidMultiBid;
@@ -1026,8 +1027,10 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static boolean isFullyPopulatedVideo(Video video) {
         // These are just recommended video fields for XAPI
-        return video.getMimes() != null && video.getProtocols() != null && video.getMaxduration() != null
-                && video.getLinearity() != null && video.getApi() != null;
+        return video.getMimes() != null
+                && video.getProtocols() != null
+                && video.getMaxduration() != null
+                && video.getLinearity() != null;
     }
 
     private static String referer(Site site) {
@@ -1514,7 +1517,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final ExtRegs originalExtRegs = regs.getExt();
         final String gpc = originalExtRegs != null ? originalExtRegs.getGpc() : null;
-        final ExtRegs extRegs = copyProperties(originalExtRegs, ExtRegs.of(gdpr, usPrivacy, gpc));
+        final ExtRegsDsa dsa = originalExtRegs != null ? originalExtRegs.getDsa() : null;
+        final ExtRegs extRegs = copyProperties(originalExtRegs, ExtRegs.of(gdpr, usPrivacy, gpc, dsa));
 
         return regs.toBuilder()
                 .gdpr(null)

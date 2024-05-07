@@ -9,4 +9,5 @@ import groovy.transform.ToString
 class AccountHooksConfiguration {
 
     ExecutionPlan executionPlan
+    PbsModulesConfig modules
 }

@@ -9,8 +9,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.FileSystemException;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import lombok.AllArgsConstructor;
 import lombok.Value;
 import org.apache.commons.collections4.MapUtils;
@@ -19,11 +17,13 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.Vendor;
 import org.prebid.server.privacy.gdpr.vendorlist.proto.VendorList;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.io.File;
 import java.io.IOException;
@@ -79,6 +79,7 @@ public class VendorListService {
 
     private final Map<Integer, Vendor> fallbackVendorList;
     private final Set<Integer> versionsToFallback;
+    private final VendorListFetchThrottler fetchThrottler;
 
     public VendorListService(double logSamplingRate,
                              String cacheDir,
@@ -92,7 +93,8 @@ public class VendorListService {
                              HttpClient httpClient,
                              Metrics metrics,
                              String generationVersion,
-                             JacksonMapper mapper) {
+                             JacksonMapper mapper,
+                             VendorListFetchThrottler fetchThrottler) {
 
         this.logSamplingRate = logSamplingRate;
         this.cacheDir = Objects.requireNonNull(cacheDir);
@@ -106,6 +108,7 @@ public class VendorListService {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.metrics = Objects.requireNonNull(metrics);
         this.mapper = Objects.requireNonNull(mapper);
+        this.fetchThrottler = Objects.requireNonNull(fetchThrottler);
 
         createAndCheckWritePermissionsFor(fileSystem, cacheDir);
         cache = Objects.requireNonNull(createCache(fileSystem, cacheDir));
@@ -149,9 +152,11 @@ public class VendorListService {
 
         metrics.updatePrivacyTcfVendorListMissingMetric(tcf);
 
-        logger.info("TCF {0} vendor list for version {1}.{2} not found, started downloading.",
-                tcf, generationVersion, version);
-        fetchNewVendorListFor(version);
+        if (fetchThrottler.registerFetchAttempt(version)) {
+            logger.info("TCF {} vendor list for version {}.{} not found, started downloading.",
+                    tcf, generationVersion, version);
+            fetchNewVendorListFor(version);
+        }
 
         return Future.failedFuture("TCF %d vendor list for version %s.%d not fetched yet, try again later."
                 .formatted(tcf, generationVersion, version));
@@ -305,6 +310,7 @@ public class VendorListService {
             throw new PreBidException("Fetched vendor list parsed but has invalid data: " + body);
         }
 
+        fetchThrottler.succeedFetchAttempt(version);
         return VendorListResult.of(version, body, vendorList);
     }
 
@@ -340,7 +346,7 @@ public class VendorListService {
 
         metrics.updatePrivacyTcfVendorListOkMetric(tcf);
 
-        logger.info("Created new TCF {0} vendor list for version {1}.{2}", tcf, generationVersion, version);
+        logger.info("Created new TCF {} vendor list for version {}.{}", tcf, generationVersion, version);
 
         stopUsingFallbackForVersion(version);
 

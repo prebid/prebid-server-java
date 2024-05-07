@@ -10,6 +10,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import java.io.IOException;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
@@ -22,6 +23,7 @@ public class SuntContentTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromSuntContent() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/suntContent-exchange"))
+                .withQueryParam("ssp", equalTo("pbs"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/suntContent/test-suntContent-bid-request.json")))
                 .willReturn(aResponse().withBody(

@@ -3,7 +3,7 @@
   "imp": [
     {
       "id": "imp_id",
-      "tagid" : "123",
+      "tagid" : "placement_reference_id",
       "secure": 1,
       "video": {
         "mimes": [
@@ -14,13 +14,13 @@
       },
       "ext": {
         "bidder" : {
-          "bid_token" : "123",
-          "app_store_id" : "123",
-          "placement_reference_id" : "123"
+          "bid_token" : "bid_token",
+          "app_store_id" : "app_store_id",
+          "placement_reference_id" : "placement_reference_id"
         },
         "vungle" : {
-          "app_store_id" : "123",
-          "placement_reference_id" : "123"
+          "app_store_id" : "app_store_id",
+          "placement_reference_id" : "placement_reference_id"
         }
       }
     }
@@ -28,15 +28,8 @@
   "source": {
     "tid": "${json-unit.any-string}"
   },
-  "site": {
-    "domain": "www.example.com",
-    "page": "http://www.example.com",
-    "publisher": {
-      "domain": "example.com"
-    },
-    "ext": {
-      "amp": 0
-    }
+  "app": {
+    "id": "app_store_id"
   },
   "device": {
     "ua": "userAgent",

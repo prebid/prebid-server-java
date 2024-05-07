@@ -294,7 +294,7 @@ public class LunamediaBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getSite)
-                .containsExactly(Site.builder().publisher(null).domain("").build());
+                .containsExactly(Site.builder().publisher(null).domain("some domain").build());
     }
 
     @Test

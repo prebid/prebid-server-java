@@ -1,6 +1,7 @@
 package org.prebid.server.functional.testcontainers
 
 import org.testcontainers.containers.MySQLContainer
+import org.testcontainers.containers.PostgreSQLContainer
 
 import static org.prebid.server.functional.testcontainers.Dependencies.networkServiceContainer
 import static org.prebid.server.functional.testcontainers.container.PrebidServerContainer.ADMIN_ENDPOINT_PASSWORD
@@ -95,7 +96,19 @@ LIMIT 1
          "settings.database.user"          : mysql.username,
          "settings.database.password"      : mysql.password,
          "settings.database.pool-size"     : "2", // setting 2 here to leave some slack for the PBS
-         "settings.database.provider-class": "hikari"
+         "settings.database.idle-connection-timeout": "300"
+        ].asImmutable()
+    }
+
+    static Map<String, String> getPostgreSqlConfig(PostgreSQLContainer postgres = Dependencies.postgresqlContainer) {
+        ["settings.database.type"          : "postgres",
+         "settings.database.host"          : postgres.getNetworkAliases().get(0),
+         "settings.database.port"          : postgres.exposedPorts.get(0) as String,
+         "settings.database.dbname"        : postgres.databaseName,
+         "settings.database.user"          : postgres.username,
+         "settings.database.password"      : postgres.password,
+         "settings.database.pool-size"     : "2", // setting 2 here to leave some slack for the PBS
+         "settings.database.idle-connection-timeout": "300"
         ].asImmutable()
     }
 
@@ -116,8 +129,6 @@ LIMIT 1
          "adapters.generic.aliases.infytv.meta-info.site-media-types"         : "",
          "adapters.generic.aliases.loopme.meta-info.app-media-types"          : "",
          "adapters.generic.aliases.loopme.meta-info.site-media-types"         : "",
-         "adapters.generic.aliases.medianet.meta-info.app-media-types"        : "",
-         "adapters.generic.aliases.medianet.meta-info.site-media-types"       : "",
          "adapters.generic.aliases.zeta-global-ssp.meta-info.app-media-types" : "",
          "adapters.generic.aliases.zeta-global-ssp.meta-info.site-media-types": "",
          "adapters.generic.aliases.ccx.meta-info.app-media-types"             : "",

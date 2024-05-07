@@ -11,4 +11,5 @@ class PurposeConfig {
     PurposeEnforcement enforcePurpose
     Boolean enforceVendors
     List<String> vendorExceptions
+    PurposeEid eid
 }

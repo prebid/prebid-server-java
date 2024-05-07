@@ -25,9 +25,10 @@ public class Account {
 
     AccountHooksConfiguration hooks;
 
+    AccountSettings settings;
+
     public static Account empty(String id) {
-        return Account.builder()
-                .id(id)
-                .build();
+        return Account.builder().id(id).build();
     }
+
 }

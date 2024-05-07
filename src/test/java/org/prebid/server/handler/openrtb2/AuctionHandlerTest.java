@@ -10,6 +10,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,6 +23,7 @@ import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.auction.ExchangeService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.BlacklistedAccountException;
@@ -161,7 +163,11 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        assertThat(captureAuctionContext().getTimeout().remaining()).isEqualTo(2000L);
+        assertThat(captureAuctionContext())
+                .extracting(AuctionContext::getTimeoutContext)
+                .extracting(TimeoutContext::getTimeout)
+                .extracting(Timeout::remaining)
+                .isEqualTo(2000L);
     }
 
     @Test
@@ -187,6 +193,28 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
+    public void shouldAddObserveBrowsingTopicsResponseHeader() {
+        // given
+        httpRequest.headers().add(HttpUtil.SEC_BROWSING_TOPICS_HEADER, "");
+
+        given(auctionRequestFactory.fromRequest(any(), anyLong()))
+                .willReturn(Future.succeededFuture(givenAuctionContext(identity())));
+
+        given(exchangeService.holdAuction(any()))
+                .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
+                        .bidResponse(BidResponse.builder().build())
+                        .build()));
+
+        // when
+        auctionHandler.handle(routingContext);
+
+        // then
+        assertThat(httpResponse.headers())
+                .extracting(Map.Entry::getKey, Map.Entry::getValue)
+                .contains(tuple("Observe-Browsing-Topics", "?1"));
+    }
+
+    @Test
     public void shouldComputeTimeoutBasedOnRequestProcessingStartTime() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
@@ -201,7 +229,12 @@ public class AuctionHandlerTest extends VertxTest {
         auctionHandler.handle(routingContext);
 
         // then
-        assertThat(captureAuctionContext().getTimeout().remaining()).isLessThanOrEqualTo(1950L);
+        assertThat(captureAuctionContext())
+                .extracting(AuctionContext::getTimeoutContext)
+                .extracting(TimeoutContext::getTimeout)
+                .extracting(Timeout::remaining)
+                .asInstanceOf(InstanceOfAssertFactories.LONG)
+                .isLessThanOrEqualTo(1950L);
     }
 
     @Test
@@ -362,8 +395,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         final BidResponse bidResponse = BidResponse.builder()
                 .ext(ExtBidResponse.builder()
-                        .debug(ExtResponseDebug.of(null, resolvedRequest,
-                                null, null))
+                        .debug(ExtResponseDebug.of(null, resolvedRequest, null))
                         .build())
                 .build();
         final AuctionContext auctionContext = AuctionContext.builder()
@@ -751,7 +783,7 @@ public class AuctionHandlerTest extends VertxTest {
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .requestTypeMetric(MetricName.openrtb2web)
-                .timeout(this.timeout);
+                .timeoutContext(TimeoutContext.of(0, timeout, 0));
 
         return auctionContextCustomizer.apply(auctionContextBuilder)
                 .build();

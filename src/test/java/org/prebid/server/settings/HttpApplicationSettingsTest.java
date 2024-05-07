@@ -20,8 +20,8 @@ import org.prebid.server.settings.model.StoredDataResult;
 import org.prebid.server.settings.model.StoredResponseDataResult;
 import org.prebid.server.settings.proto.response.HttpAccountsResponse;
 import org.prebid.server.settings.proto.response.HttpFetcherResponse;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -107,7 +107,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .priceGranularity("testPriceGranularity")
                         .build())
-                .privacy(AccountPrivacyConfig.of(null, null, null, null))
+                .privacy(AccountPrivacyConfig.builder().build())
                 .build();
         final HttpAccountsResponse response = HttpAccountsResponse.of(Collections.singletonMap("someId", account));
         givenHttpClientReturnsResponse(200, mapper.writeValueAsString(response));

@@ -7,5 +7,7 @@ adapters:
       maintainer-email: vxssp@liftoff.io
       app-media-types:
         - video
+      site-media-types:
+        - video
       supported-vendors:
       vendor-id: 0

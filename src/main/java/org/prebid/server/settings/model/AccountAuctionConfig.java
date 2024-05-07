@@ -41,4 +41,7 @@ public class AccountAuctionConfig {
 
     @JsonProperty("preferredmediatype")
     Map<String, MediaType> preferredMediaTypes;
+
+    @JsonProperty("privacysandbox")
+    AccountPrivacySandboxConfig privacySandbox;
 }

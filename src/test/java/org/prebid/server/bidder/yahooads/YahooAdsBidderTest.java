@@ -30,6 +30,7 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
+import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.yahooads.ExtImpYahooAds;
 
 import java.util.List;
@@ -420,13 +421,14 @@ public class YahooAdsBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldRemoveTheOpenRTB26Regs() {
         // given
+        final ExtRegsDsa dsa = ExtRegsDsa.of(2, 2, 3, emptyList());
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .gdpr(1)
                         .usPrivacy("1YNN")
                         .gpp("gppconsent")
                         .gppSid(List.of(6))
-                        .ext(ExtRegs.of(null, null, "1"))
+                        .ext(ExtRegs.of(null, null, "1", dsa))
                         .build()).device(Device.builder().ua("UA").build()));
 
         // when
@@ -443,6 +445,7 @@ public class YahooAdsBidderTest extends VertxTest {
         assertThat(regs.getExt().getGdpr()).isEqualTo(1);
         assertThat(regs.getExt().getUsPrivacy()).isEqualTo("1YNN");
         assertThat(regs.getExt().getGpc()).isEqualTo("1");
+        assertThat(regs.getExt().getDsa()).isEqualTo(dsa);
         assertThat(regs.getExt().getProperty("gpp").asText()).isEqualTo("gppconsent");
         assertThat(regs.getExt().getProperty("gpp_sid").get(0).asText()).isEqualTo("6");
     }
@@ -453,7 +456,7 @@ public class YahooAdsBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity(),
                 requestBuilder -> requestBuilder.regs(Regs.builder()
                         .gdpr(1)
-                        .ext(ExtRegs.of(0, "1YNN", null))
+                        .ext(ExtRegs.of(0, "1YNN", null, null))
                         .build()).device(Device.builder().ua("UA").build()));
 
         // when
@@ -466,6 +469,7 @@ public class YahooAdsBidderTest extends VertxTest {
         assertThat(regs.getUsPrivacy()).isNull();
         assertThat(regs.getExt().getGdpr()).isEqualTo(1);
         assertThat(regs.getExt().getUsPrivacy()).isEqualTo("1YNN");
+        assertThat(regs.getExt().getDsa()).isNull();
     }
 
     private static BidRequest givenBidRequest(
