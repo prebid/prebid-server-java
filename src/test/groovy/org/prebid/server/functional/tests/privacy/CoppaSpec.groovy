@@ -213,31 +213,37 @@ class CoppaSpec extends PrivacyBaseSpec {
             bidderRequest.device.geo.country == bidRequest.device.geo.country
             bidderRequest.device.geo.region == bidRequest.device.geo.region
             bidderRequest.device.geo.utcoffset == bidRequest.device.geo.utcoffset
+        }
 
-            !bidderRequest.device.didsha1
-            !bidderRequest.device.didmd5
-            !bidderRequest.device.dpidsha1
-            !bidderRequest.device.ifa
-            !bidderRequest.device.macsha1
-            !bidderRequest.device.macmd5
-            !bidderRequest.device.dpidmd5
-            !bidderRequest.device.geo.metro
-            !bidderRequest.device.geo.city
-            !bidderRequest.device.geo.zip
-            !bidderRequest.device.geo.accuracy
-            !bidderRequest.device.geo.ipservice
-            !bidderRequest.device.geo.ext
+        and: "Bidder request should mask device personal data"
+        verifyAll (bidderRequest.device) {
+            !didsha1
+            !didmd5
+            !dpidsha1
+            !ifa
+            !macsha1
+            !macmd5
+            !dpidmd5
+            !geo.metro
+            !geo.city
+            !geo.zip
+            !geo.accuracy
+            !geo.ipservice
+            !geo.ext
+        }
 
-            !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
-            !bidderRequest.user.yob
-            !bidderRequest.user.gender
-            !bidderRequest.user.eids
-            !bidderRequest.user.data
-            !bidderRequest.user.geo
-            !bidderRequest.user.ext
-            !bidderRequest?.user?.eids
-            !bidderRequest.user?.ext?.eids
+        and: "Bidder request should mask user personal data"
+        verifyAll (bidderRequest.user) {
+            !id
+            !buyeruid
+            !yob
+            !gender
+            !eids
+            !data
+            !geo
+            !ext
+            !eids
+            !ext?.eids
         }
     }
 
@@ -316,36 +322,42 @@ class CoppaSpec extends PrivacyBaseSpec {
             bidderRequest.device.geo.country == ampStoredRequest.device.geo.country
             bidderRequest.device.geo.region == ampStoredRequest.device.geo.region
             bidderRequest.device.geo.utcoffset == ampStoredRequest.device.geo.utcoffset
+        }
 
-            !bidderRequest.device.didsha1
-            !bidderRequest.device.didmd5
-            !bidderRequest.device.dpidsha1
-            !bidderRequest.device.ifa
-            !bidderRequest.device.macsha1
-            !bidderRequest.device.macmd5
-            !bidderRequest.device.dpidmd5
-            !bidderRequest.device.geo.metro
-            !bidderRequest.device.geo.city
-            !bidderRequest.device.geo.zip
-            !bidderRequest.device.geo.accuracy
-            !bidderRequest.device.geo.ipservice
-            !bidderRequest.device.geo.ext
+        and: "Bidder request should mask device personal data"
+        verifyAll (bidderRequest.device) {
+            !didsha1
+            !didmd5
+            !dpidsha1
+            !ifa
+            !macsha1
+            !macmd5
+            !dpidmd5
+            !geo.metro
+            !geo.city
+            !geo.zip
+            !geo.accuracy
+            !geo.ipservice
+            !geo.ext
+        }
 
-            !bidderRequest.user.id
-            !bidderRequest.user.buyeruid
-            !bidderRequest.user.yob
-            !bidderRequest.user.gender
-            !bidderRequest.user.eids
-            !bidderRequest.user.data
-            !bidderRequest.user.geo
-            !bidderRequest.user.ext
-            !bidderRequest?.user?.eids
-            !bidderRequest.user?.ext?.eids
+        and: "Bidder request should mask user personal data"
+        verifyAll (bidderRequest.user) {
+            !id
+            !buyeruid
+            !yob
+            !gender
+            !eids
+            !data
+            !geo
+            !ext
+            !eids
+            !ext?.eids
         }
     }
 
     private static BidRequest getBidRequestWithPersonalData() {
-        bidRequestWithGeo.tap {
+        getBidRequestWithGeo().tap {
             setAccountId(accountId)
             ext.prebid.trace = VERBOSE
             device.tap {
