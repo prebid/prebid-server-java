@@ -102,8 +102,8 @@ adapter-defaults:
     allow: true
 auction:
   ad-server-currency: USD
-  blacklisted-accounts:
-  blacklisted-apps:
+  blocklisted-accounts:
+  blocklisted-apps:
   biddertmax:
     min: 50
     max: 5000
