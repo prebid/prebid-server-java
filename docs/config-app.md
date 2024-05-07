@@ -22,10 +22,10 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `server.jks-password` - password for the keystore (if ssl is enabled).
 
 ## HTTP Server
-- `http.max-headers-size` - set the maximum length of all headers, deprecated(use server.max-headers-size instead).
-- `http.ssl` - enable SSL/TLS support, deprecated(use server.ssl instead).
-- `http.jks-path` - path to the java keystore (if ssl is enabled), deprecated(use server.jks-path instead).
-- `http.jks-password` - password for the keystore (if ssl is enabled), deprecated(use server.jks-password instead).
+- `server.max-headers-size` - set the maximum length of all headers, deprecated(use server.max-headers-size instead).
+- `server.ssl` - enable SSL/TLS support, deprecated(use server.ssl instead).
+- `server.jks-path` - path to the java keystore (if ssl is enabled), deprecated(use server.jks-path instead).
+- `server.jks-password` - password for the keystore (if ssl is enabled), deprecated(use server.jks-password instead).
 - `server.http.server-instances` - how many http server instances should be created.
   This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `server.http.enabled` - if set to `true` enables http server
@@ -75,8 +75,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `default-request.file.path` - path to a JSON file containing the default request
 
 ## Auction (OpenRTB)
-- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
-- `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
+- `auction.blocklisted-accounts` - comma separated list of blocklisted account IDs.
+- `auction.blocklisted-apps` - comma separated list of blocklisted applications IDs, requests from which should not be processed.
 - `auction.biddertmax.min` - minimum operation timeout for OpenRTB Auction requests.
 - `auction.biddertmax.max` - maximum operation timeout for OpenRTB Auction requests.
 - `auction.biddertmax.percent` - adjustment factor for `request.tmax` for bidders.
@@ -103,7 +103,7 @@ Removes and downloads file again if depending service cant process probably corr
 
 ## Video
 - `auction.video.stored-required` - flag forces to merge with stored request
-- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
+- `auction.blocklisted-accounts` - comma separated list of blocklisted account IDs.
 - `video.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 - `auction.video.escape-log-cache-regex` - regex to remove from cache debug log xml.

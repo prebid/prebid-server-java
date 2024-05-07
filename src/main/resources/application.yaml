@@ -102,8 +102,8 @@ adapter-defaults:
     allow: true
 auction:
   ad-server-currency: USD
-  blacklisted-accounts:
-  blacklisted-apps:
+  blocklisted-accounts:
+  blocklisted-apps:
   biddertmax:
     min: 50
     max: 5000
@@ -125,7 +125,7 @@ auction:
     secure-markup: skip
   host-schain-node:
   category-mapping-enabled: false
-  strict-app-site-dooh: false
+  strict-app-site-dooh: true
 video:
   stored-request-required: false
   stored-requests-timeout-ms: 90

@@ -263,7 +263,7 @@ public class ServiceConfiguration {
             @Value("${auction.cache.only-winning-bids}") boolean cacheOnlyWinningBids,
             @Value("${settings.generate-storedrequest-bidrequest-id}") boolean generateBidRequestId,
             @Value("${auction.ad-server-currency}") String adServerCurrency,
-            @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
+            @Value("${auction.blocklisted-apps}") String blocklistedAppsString,
             @Value("${external-url}") String externalUrl,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${datacenter-region}") String datacenterRegion,
@@ -279,7 +279,7 @@ public class ServiceConfiguration {
                 cacheOnlyWinningBids,
                 generateBidRequestId,
                 adServerCurrency,
-                splitToList(blacklistedAppsString),
+                splitToList(blocklistedAppsString),
                 externalUrl,
                 hostVendorId,
                 datacenterRegion,
@@ -342,7 +342,7 @@ public class ServiceConfiguration {
     @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
-            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            @Value("${auction.blocklisted-accounts}") String blocklistedAccountsString,
             UidsCookieService uidsCookieService,
             ActivityInfrastructureCreator activityInfrastructureCreator,
             RequestValidator requestValidator,
@@ -356,12 +356,12 @@ public class ServiceConfiguration {
             PriceFloorProcessor priceFloorProcessor,
             Metrics metrics) {
 
-        final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
+        final List<String> blocklistedAccounts = splitToList(blocklistedAccountsString);
 
         return new Ortb2RequestFactory(
                 timeoutAdjustmentFactor,
                 logSamplingRate,
-                blacklistedAccounts,
+                blocklistedAccounts,
                 uidsCookieService,
                 activityInfrastructureCreator,
                 requestValidator,
@@ -491,7 +491,7 @@ public class ServiceConfiguration {
     @Bean
     VideoStoredRequestProcessor videoStoredRequestProcessor(
             @Value("${video.stored-request-required}") boolean enforceStoredRequest,
-            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            @Value("${auction.blocklisted-accounts}") String blocklistedAccountsString,
             @Value("${video.stored-requests-timeout-ms}") long defaultTimeoutMs,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             @Value("${default-request.file.path:#{null}}") String defaultBidRequestPath,
@@ -505,7 +505,7 @@ public class ServiceConfiguration {
 
         return new VideoStoredRequestProcessor(
                 enforceStoredRequest,
-                splitToList(blacklistedAccountsString),
+                splitToList(blocklistedAccountsString),
                 defaultTimeoutMs,
                 adServerCurrency,
                 defaultBidRequestPath,
