@@ -1,10 +1,11 @@
 package org.prebid.server.geolocation;
 
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
+@ExtendWith(VertxExtension.class)
 @RunWith(VertxUnitRunner.class)
 public class CircuitBreakerSecuredGeoLocationServiceTest {
 
@@ -51,18 +53,18 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     }
 
     @AfterEach
-    public void tearDown(TestContext context) {
-        vertx.close(context.asyncAssertSuccess());
+    public void tearDown(VertxTestContext context) {
+        vertx.close(context.succeedingThenComplete());
     }
 
     @Test
-    public void lookupShouldSucceedsIfCircuitIsClosedAndWrappedGeoLocationSucceeds(TestContext context) {
+    public void lookupShouldSucceedsIfCircuitIsClosedAndWrappedGeoLocationSucceeds() {
         // given
         givenWrappedGeoLocationReturning(
                 Future.succeededFuture(GeoInfo.builder().vendor("vendor").country("country").build()));
 
         // when
-        final Future<GeoInfo> future = doLookup(context);
+        final Future<GeoInfo> future = doLookup();
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -72,12 +74,12 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     }
 
     @Test
-    public void lookupShouldFailsIfCircuitIsClosedButWrappedGeoLocationFails(TestContext context) {
+    public void lookupShouldFailsIfCircuitIsClosedButWrappedGeoLocationFails() {
         // given
         givenWrappedGeoLocationReturning(Future.failedFuture(new RuntimeException("exception")));
 
         // when
-        final Future<GeoInfo> future = doLookup(context);
+        final Future<GeoInfo> future = doLookup();
 
         // then
         assertThat(future.failed()).isTrue();
@@ -87,13 +89,13 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     }
 
     @Test
-    public void lookupShouldFailsIfCircuitIsOpened(TestContext context) {
+    public void lookupShouldFailsIfCircuitIsOpened() {
         // given
         givenWrappedGeoLocationReturning(Future.failedFuture(new RuntimeException("exception")));
 
         // when
-        doLookup(context); // 1 call
-        final Future<?> future = doLookup(context); // 2 call
+        doLookup(); // 1 call
+        final Future<?> future = doLookup(); // 2 call
 
         // then
         assertThat(future.failed()).isTrue();
@@ -103,15 +105,15 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     }
 
     @Test
-    public void lookupShouldFailsIfCircuitIsHalfOpenedButWrappedGeoLocationFails(TestContext context) {
+    public void lookupShouldFailsIfCircuitIsHalfOpenedButWrappedGeoLocationFails() {
         // given
         givenWrappedGeoLocationReturning(Future.failedFuture(new RuntimeException("exception")));
 
         // when
-        doLookup(context); // 1 call
-        doLookup(context); // 2 call
-        doWaitForClosingInterval(context);
-        final Future<?> future = doLookup(context); // 3 call
+        doLookup(); // 1 call
+        doLookup(); // 2 call
+        doWaitForClosingInterval();
+        final Future<?> future = doLookup(); // 3 call
 
         // then
         assertThat(future.failed()).isTrue();
@@ -121,17 +123,17 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     }
 
     @Test
-    public void lookupShouldSucceedsIfCircuitIsHalfOpenedAndWrappedGeoLocationSucceeds(TestContext context) {
+    public void lookupShouldSucceedsIfCircuitIsHalfOpenedAndWrappedGeoLocationSucceeds() {
         // given
         givenWrappedGeoLocationReturning(
                 Future.failedFuture(new RuntimeException("exception")),
                 Future.succeededFuture(GeoInfo.builder().vendor("vendor").country("country").build()));
 
         // when
-        doLookup(context); // 1 call
-        doLookup(context); // 2 call
-        doWaitForClosingInterval(context);
-        final Future<GeoInfo> future = doLookup(context); // 3 call
+        doLookup(); // 1 call
+        doLookup(); // 2 call
+        doWaitForClosingInterval();
+        final Future<GeoInfo> future = doLookup(); // 3 call
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -141,7 +143,7 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     }
 
     @Test
-    public void lookupShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
+    public void lookupShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds() {
         // given
         geoLocationService = new CircuitBreakerSecuredGeoLocationService(vertx, wrappedGeoLocationService, metrics, 2,
                 100L, 200L, clock);
@@ -151,9 +153,9 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
                 Future.failedFuture(new RuntimeException("exception2")));
 
         // when
-        final Future<?> future1 = doLookup(context); // 1 call
-        doWaitForOpeningInterval(context);
-        final Future<?> future2 = doLookup(context); // 2 call
+        final Future<?> future1 = doLookup(); // 1 call
+        doWaitForOpeningInterval();
+        final Future<?> future2 = doLookup(); // 2 call
 
         // then
         verify(wrappedGeoLocationService, times(2)).lookup(any(), any());
@@ -166,12 +168,12 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     }
 
     @Test
-    public void circuitBreakerGaugeShouldReportOpenedWhenCircuitOpen(TestContext context) {
+    public void circuitBreakerGaugeShouldReportOpenedWhenCircuitOpen() {
         // given
         givenWrappedGeoLocationReturning(Future.failedFuture(new RuntimeException("exception")));
 
         // when
-        doLookup(context);
+        doLookup();
 
         // then
         final ArgumentCaptor<BooleanSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(BooleanSupplier.class);
@@ -182,16 +184,16 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
     }
 
     @Test
-    public void circuitBreakerGaugeShouldReportClosedWhenCircuitClosed(TestContext context) {
+    public void circuitBreakerGaugeShouldReportClosedWhenCircuitClosed() {
         // given
         givenWrappedGeoLocationReturning(
                 Future.failedFuture(new RuntimeException("exception")),
                 Future.succeededFuture(GeoInfo.builder().vendor("vendor").country("country").build()));
 
         // when
-        doLookup(context); // 1 call
-        doWaitForClosingInterval(context);
-        doLookup(context); // 2 call
+        doLookup(); // 1 call
+        doWaitForClosingInterval();
+        doLookup(); // 2 call
 
         // then
         final ArgumentCaptor<BooleanSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(BooleanSupplier.class);
@@ -210,27 +212,27 @@ public class CircuitBreakerSecuredGeoLocationServiceTest {
         }
     }
 
-    private Future<GeoInfo> doLookup(TestContext context) {
-        final Async async = context.async();
+    private Future<GeoInfo> doLookup() {
+        final Promise<?> promise = Promise.promise();
 
         final Future<GeoInfo> future = geoLocationService.lookup(null, null);
-        future.onComplete(ar -> async.complete());
+        future.onComplete(ar -> promise.complete());
 
-        async.await();
+        promise.future().toCompletionStage().toCompletableFuture().join();
         return future;
     }
 
-    private void doWaitForOpeningInterval(TestContext context) {
-        doWait(context, 150L);
+    private void doWaitForOpeningInterval() {
+        doWait(150L);
     }
 
-    private void doWaitForClosingInterval(TestContext context) {
-        doWait(context, 250L);
+    private void doWaitForClosingInterval() {
+        doWait(250L);
     }
 
-    private void doWait(TestContext context, long timeout) {
-        final Async async = context.async();
-        vertx.setTimer(timeout, id -> async.complete());
-        async.await();
+    private void doWait(long timeout) {
+        final Promise<?> promise = Promise.promise();
+        vertx.setTimer(timeout, id -> promise.complete());
+        promise.future().toCompletionStage().toCompletableFuture().join();
     }
 }
