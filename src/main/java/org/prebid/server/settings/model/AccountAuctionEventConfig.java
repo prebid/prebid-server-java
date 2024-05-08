@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import lombok.Builder;
 import lombok.Value;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -23,14 +22,6 @@ public class AccountAuctionEventConfig {
 
     @JsonAnySetter
     public void addEvent(String key, Boolean value) {
-        events.put(resolveKey(key), value);
-    }
-
-    private static String resolveKey(String key) {
-        if (StringUtils.equalsIgnoreCase("pbjs", key)) {
-            return "web";
-        }
-
-        return key;
+        events.put(key, value);
     }
 }

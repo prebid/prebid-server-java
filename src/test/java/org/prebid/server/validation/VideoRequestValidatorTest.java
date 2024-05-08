@@ -123,7 +123,7 @@ public class VideoRequestValidatorTest {
     }
 
     @Test
-    public void validateStoredBidRequestShouldThrowExceptionWhenAppHaveBlacklistedAccount() {
+    public void validateStoredBidRequestShouldThrowExceptionWhenAppHaveBlocklistedAccount() {
         // given
         final BidRequestVideo requestVideo = givenBidRequestVideo(
                 requestBuilder -> requestBuilder.site(null).app(App.builder().id("BAD").build()),

@@ -74,6 +74,8 @@ public final class HttpUtil {
     public static final CharSequence SEC_CH_UA = HttpHeaders.createOptimized("Sec-CH-UA");
     public static final CharSequence SEC_CH_UA_MOBILE = HttpHeaders.createOptimized("Sec-CH-UA-Mobile");
     public static final CharSequence SEC_CH_UA_PLATFORM = HttpHeaders.createOptimized("Sec-CH-UA-Platform");
+    public static final String MACROS_OPEN = "{{";
+    public static final String MACROS_CLOSE = "}}";
 
     private HttpUtil() {
     }
@@ -82,11 +84,20 @@ public final class HttpUtil {
      * Checks the input string for using as URL.
      */
     public static String validateUrl(String url) {
+        if (containsMacrosses(url)) {
+            return url;
+        }
+
         try {
             return new URL(url).toString();
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL supplied is not valid: " + url, e);
         }
+    }
+
+    // TODO: We need our own way to work with url macrosses
+    private static boolean containsMacrosses(String url) {
+        return StringUtils.contains(url, MACROS_OPEN) && StringUtils.contains(url, MACROS_CLOSE);
     }
 
     /**
