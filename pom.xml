@@ -46,7 +46,7 @@
         <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
         <iabtcf.version>2.0.10</iabtcf.version>
         <maxmind-client.version>2.12.0</maxmind-client.version>
-        <gpp-encoder.version>3.0.10</gpp-encoder.version>
+        <gpp-encoder.version>3.2.0</gpp-encoder.version>
         <protobuf.version>3.21.7</protobuf.version>
         <protoc.version>3.17.3</protoc.version>
         <json-logic.version>1.0.7</json-logic.version>
