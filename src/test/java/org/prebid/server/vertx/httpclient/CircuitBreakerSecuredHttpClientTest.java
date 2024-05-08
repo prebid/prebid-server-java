@@ -36,7 +36,6 @@ import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(VertxExtension.class)
-
 public class CircuitBreakerSecuredHttpClientTest {
 
     private Vertx vertx;

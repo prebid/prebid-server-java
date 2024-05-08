@@ -29,7 +29,6 @@ import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(VertxExtension.class)
-
 public class CircuitBreakerSecuredGeoLocationServiceTest {
 
     private Vertx vertx;

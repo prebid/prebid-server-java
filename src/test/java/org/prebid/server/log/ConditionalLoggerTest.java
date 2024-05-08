@@ -20,7 +20,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(VertxExtension.class)
-
 public class ConditionalLoggerTest {
 
     @Mock

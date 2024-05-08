@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(VertxExtension.class)
-
 public class CircuitBreakerTest {
 
     private Vertx vertx;

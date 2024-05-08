@@ -110,7 +110,6 @@ import static org.prebid.server.hooks.v1.PayloadUpdate.identity;
 
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(VertxExtension.class)
-
 public class HookStageExecutorTest extends VertxTest {
 
     @Mock(strictness = LENIENT)
