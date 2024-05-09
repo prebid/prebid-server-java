@@ -1,14 +1,13 @@
 package org.prebid.server.log;
 
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -20,7 +19,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 @ExtendWith(MockitoExtension.class)
-@RunWith(VertxUnitRunner.class)
+@ExtendWith(VertxExtension.class)
 public class ConditionalLoggerTest {
 
     @Mock
@@ -37,8 +36,8 @@ public class ConditionalLoggerTest {
     }
 
     @AfterEach
-    public void tearDown(TestContext context) {
-        vertx.close(context.asyncAssertSuccess());
+    public void tearDown(VertxTestContext context) {
+        vertx.close(context.succeedingThenComplete());
     }
 
     @Test
@@ -80,11 +79,11 @@ public class ConditionalLoggerTest {
     }
 
     @Test
-    public void infoShouldCallLoggerWithExpectedTimeout(TestContext context) {
+    public void infoShouldCallLoggerWithExpectedTimeout() {
         // when
         for (int i = 0; i < 5; i++) {
             conditionalLogger.info("Log Message", 200, TimeUnit.MILLISECONDS);
-            doWait(context, 100);
+            doWait(100);
         }
 
         // then
@@ -92,23 +91,23 @@ public class ConditionalLoggerTest {
     }
 
     @Test
-    public void infoShouldCallLoggerBySpecifiedKeyWithExpectedTimeout(TestContext context) {
+    public void infoShouldCallLoggerBySpecifiedKeyWithExpectedTimeout() {
         // given
         conditionalLogger = new ConditionalLogger("key1", logger);
 
         // when
         for (int i = 0; i < 5; i++) {
             conditionalLogger.info("Log Message" + i, 200, TimeUnit.MILLISECONDS);
-            doWait(context, 100);
+            doWait(100);
         }
 
         // then
         verify(logger, times(2)).info(argThat(o -> o.toString().startsWith("Log Message")));
     }
 
-    private void doWait(TestContext context, long timeout) {
-        final Async async = context.async();
-        vertx.setTimer(timeout, id -> async.complete());
-        async.await();
+    private void doWait(long timeout) {
+        final Promise<?> promise = Promise.promise();
+        vertx.setTimer(timeout, id -> promise.complete());
+        promise.future().toCompletionStage().toCompletableFuture().join();
     }
 }

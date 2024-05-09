@@ -8,13 +8,11 @@ import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.RequestOptions;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -34,19 +32,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
-@RunWith(VertxUnitRunner.class)
+@ExtendWith(VertxExtension.class)
 public class BasicHttpClientTest {
 
     @Mock
     private Vertx vertx;
-    @Mock
+    @Mock(strictness = LENIENT)
     private io.vertx.core.http.HttpClient wrappedHttpClient;
 
     private BasicHttpClient httpClient;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpClientRequest httpClientRequest;
     @Mock
     private HttpClientResponse httpClientResponse;
@@ -144,47 +143,43 @@ public class BasicHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailIfHttpRequestTimedOut(TestContext context) {
+    public void requestShouldFailIfHttpRequestTimedOut(Vertx vertx, VertxTestContext context) {
         // given
-        final Vertx vertx = Vertx.vertx();
         final BasicHttpClient httpClient = new BasicHttpClient(vertx, vertx.createHttpClient());
         final int serverPort = 7777;
 
         startServer(serverPort, 2000L, 0L);
 
         // when
-        final Async async = context.async();
         final Future<?> future = httpClient.get("http://localhost:" + serverPort, 1000L);
-        future.onComplete(ar -> async.complete());
-        async.await();
 
         // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause())
-                .isInstanceOf(TimeoutException.class)
-                .hasMessageStartingWith("Timeout period of 1000ms has been exceeded");
+        future.onComplete(context.failing(e -> {
+            assertThat(e)
+                    .isInstanceOf(TimeoutException.class)
+                    .hasMessageStartingWith("Timeout period of 1000ms has been exceeded");
+            context.completeNow();
+        }));
     }
 
     @Test
-    public void requestShouldFailIfHttpResponseTimedOut(TestContext context) {
+    public void requestShouldFailIfHttpResponseTimedOut(Vertx vertx, VertxTestContext context) {
         // given
-        final Vertx vertx = Vertx.vertx();
         final BasicHttpClient httpClient = new BasicHttpClient(vertx, vertx.createHttpClient());
         final int serverPort = 8888;
 
         startServer(serverPort, 0L, 2000L);
 
         // when
-        final Async async = context.async();
         final Future<?> future = httpClient.get("http://localhost:" + serverPort, 1000L);
-        future.onComplete(ar -> async.complete());
-        async.await();
 
         // then
-        assertThat(future.failed()).isTrue();
-        assertThat(future.cause())
-                .isInstanceOf(TimeoutException.class)
-                .hasMessage("Timeout period of 1000ms has been exceeded");
+        future.onComplete(context.failing(e -> {
+            assertThat(e)
+                    .isInstanceOf(TimeoutException.class)
+                    .hasMessage("Timeout period of 1000ms has been exceeded");
+            context.completeNow();
+        }));
     }
 
     /**

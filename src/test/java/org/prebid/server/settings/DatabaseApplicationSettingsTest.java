@@ -1,11 +1,9 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
@@ -34,7 +32,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
-@RunWith(VertxUnitRunner.class)
+
 public class DatabaseApplicationSettingsTest extends VertxTest {
 
     private static final String SELECT_ACCOUNT_QUERY =
