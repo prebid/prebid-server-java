@@ -247,10 +247,6 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         if (seatBids == null) {
             return Collections.emptyList();
         }
-
-        if (seatBids.isEmpty()) {
-            throw new PreBidException("Invalid SeatBids count: 0");
-        }
         return bidsFromResponse(bidResponse, bidRequest.getImp());
     }
 
