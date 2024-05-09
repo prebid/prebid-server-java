@@ -27,11 +27,12 @@ import java.util.Objects;
 
 public class TrustedstackBidder implements Bidder<BidRequest> {
 
+    private static final String EXTERNAL_URL_MACRO = "{{PREBID_SERVER_ENDPOINT}}";
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
-    public TrustedstackBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+    public TrustedstackBidder(String endpointUrl, String externalUrl, JacksonMapper mapper) {
+        this.endpointUrl = HttpUtil.validateUrl(resolveEndpoint(endpointUrl, externalUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -118,5 +119,9 @@ public class TrustedstackBidder implements Bidder<BidRequest> {
         }
 
         return BidType.banner;
+    }
+
+    private String resolveEndpoint(String endpointUrl, String externalUrl) {
+        return Objects.requireNonNull(endpointUrl).replace(EXTERNAL_URL_MACRO, HttpUtil.encodeUrl(externalUrl));
     }
 }
