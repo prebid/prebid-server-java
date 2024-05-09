@@ -331,7 +331,7 @@ public class YahooAdsBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).isEmpty();
     }
-    
+
     @Test
     public void makeBidsShouldReturnErrorWhenBidImpIdIsNotPresent() throws JsonProcessingException {
         // given
