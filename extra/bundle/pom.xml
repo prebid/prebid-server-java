@@ -14,14 +14,6 @@
     <name>prebid-server-bundle</name>
     <description>Creates bundle (fat jar) with PBS-Core and other submodules listed as dependency</description>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
-        <spring.boot.version>2.5.6</spring.boot.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.prebid</groupId>
