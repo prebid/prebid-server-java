@@ -579,7 +579,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.buyeruid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
-            !bidderRequest.user.eids
             !bidderRequest.user.geo
             !bidderRequest.user.data
             !bidderRequest.user.ext
@@ -703,7 +702,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.buyeruid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
-            !bidderRequest.user.eids
             !bidderRequest.user.geo
             !bidderRequest.user.data
             !bidderRequest.user.ext
@@ -821,7 +819,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.buyeruid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
-            !bidderRequest.user.eids
             !bidderRequest.user.geo
             !bidderRequest.user.data
             !bidderRequest.user.ext
@@ -3048,8 +3045,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
-            !genericBidderRequest.user.geo
-            !genericBidderRequest.user.ext
+            !bidderRequest.user.geo
+            !bidderRequest.user.ext
         }
 
         and: "Eids fields should have original data"
