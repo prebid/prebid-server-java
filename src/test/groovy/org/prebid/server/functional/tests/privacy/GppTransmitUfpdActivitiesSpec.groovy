@@ -127,6 +127,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo == bidRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
         }
 
@@ -174,6 +175,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
+            !bidderRequest.user.ext
 
             and: "Generic bidder request should have data in EIDS fields"
             assert bidderRequest.user.eids == bidRequest.user.eids
@@ -218,6 +221,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -293,6 +297,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo == bidRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
         }
 
@@ -335,6 +340,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -386,6 +392,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo == bidRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
         }
 
@@ -446,7 +453,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.buyeruid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
+            !bidderRequest.user.geo
             !bidderRequest.user.data
+            !bidderRequest.user.ext
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -505,6 +514,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo == bidRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
         }
 
@@ -569,7 +579,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.buyeruid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
+            !bidderRequest.user.eids
+            !bidderRequest.user.geo
             !bidderRequest.user.data
+            !bidderRequest.user.ext
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -632,6 +645,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo == bidRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
         }
 
@@ -689,7 +703,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.buyeruid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
+            !bidderRequest.user.eids
+            !bidderRequest.user.geo
             !bidderRequest.user.data
+            !bidderRequest.user.ext
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -747,6 +764,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo.zip == bidRequest.user.geo.zip
             bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
         }
 
@@ -803,7 +821,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.buyeruid
             !bidderRequest.user.yob
             !bidderRequest.user.gender
+            !bidderRequest.user.eids
+            !bidderRequest.user.geo
             !bidderRequest.user.data
+            !bidderRequest.user.ext
         }
 
         and: "Generic bidder request should have data in EIDS fields"
@@ -856,6 +877,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -906,6 +928,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -1132,6 +1155,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -1187,6 +1211,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo == bidRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
         }
 
@@ -1242,6 +1267,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo == bidRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
         }
 
@@ -1296,6 +1322,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo == bidRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
         }
 
@@ -1381,6 +1408,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == bidRequest.user.yob
             bidderRequest.user.gender == bidRequest.user.gender
             bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo == bidRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
         }
 
@@ -1439,6 +1467,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -1547,6 +1576,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -1668,6 +1698,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
+            bidderRequest.user.geo == ampStoredRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
         }
 
@@ -1722,6 +1753,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -1775,6 +1807,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -1868,6 +1901,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
+            bidderRequest.user.geo == ampStoredRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
         }
 
@@ -1919,6 +1953,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -1976,6 +2011,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -2037,6 +2073,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
+            bidderRequest.user.geo == ampStoredRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
         }
 
@@ -2097,6 +2134,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -2156,6 +2194,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -2400,6 +2439,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -2463,6 +2503,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
+            bidderRequest.user.geo == ampStoredRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
         }
 
@@ -2526,6 +2567,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
+            bidderRequest.user.geo == ampStoredRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
         }
 
@@ -2589,6 +2631,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
+            bidderRequest.user.geo == ampStoredRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
         }
 
@@ -2692,6 +2735,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             bidderRequest.user.yob == ampStoredRequest.user.yob
             bidderRequest.user.gender == ampStoredRequest.user.gender
             bidderRequest.user.data == ampStoredRequest.user.data
+            bidderRequest.user.geo == ampStoredRequest.user.geo
             bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
         }
 
@@ -2759,6 +2803,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -2887,6 +2932,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !bidderRequest.user.geo
             !bidderRequest.user.ext
         }
 
@@ -3002,6 +3048,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             !bidderRequest.user.yob
             !bidderRequest.user.gender
             !bidderRequest.user.data
+            !genericBidderRequest.user.geo
+            !genericBidderRequest.user.ext
         }
 
         and: "Eids fields should have original data"
@@ -3034,6 +3082,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
             it.user.buyeruid = PBSUtils.randomString
             it.user.yob = PBSUtils.randomNumber
             it.user.gender = PBSUtils.randomString
+            it.user.geo = Geo.FPDGeo
             it.user.ext = new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString))
         }
     }

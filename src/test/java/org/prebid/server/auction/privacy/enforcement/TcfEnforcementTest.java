@@ -67,7 +67,7 @@ public class TcfEnforcementTest {
 
     @Before
     public void setUp() {
-        given(userFpdTcfMask.maskUser(any(), anyBoolean(), anyBoolean(), anyBoolean(), anySet()))
+        given(userFpdTcfMask.maskUser(any(), anyBoolean(), anyBoolean(), anySet()))
                 .willAnswer(invocation -> invocation.getArgument(0));
         given(userFpdTcfMask.maskDevice(any(), anyBoolean(), anyBoolean(), anyBoolean()))
                 .willAnswer(invocation -> invocation.getArgument(0));
@@ -276,7 +276,7 @@ public class TcfEnforcementTest {
         final User maskedUser = User.builder().id("maskedUser").build();
         final Device maskedDevice = Device.builder().ip("maskedDevice").build();
 
-        given(userFpdTcfMask.maskUser(any(), eq(true), eq(true), eq(true), eq(singleton("eidException"))))
+        given(userFpdTcfMask.maskUser(any(), eq(true), eq(true), eq(singleton("eidException"))))
                 .willReturn(maskedUser);
         given(userFpdTcfMask.maskDevice(any(), eq(true), eq(true), eq(true)))
                 .willReturn(maskedDevice);
@@ -333,7 +333,7 @@ public class TcfEnforcementTest {
         final User maskedUser = User.builder().id("maskedUser").build();
         final Device maskedDevice = Device.builder().ip("maskedDevice").build();
 
-        given(userFpdTcfMask.maskUser(any(), eq(true), eq(true), eq(true), eq(singleton("eidException"))))
+        given(userFpdTcfMask.maskUser(any(), eq(true), eq(true), eq(singleton("eidException"))))
                 .willReturn(maskedUser);
         given(userFpdTcfMask.maskDevice(any(), eq(true), eq(true), eq(true)))
                 .willReturn(maskedDevice);
