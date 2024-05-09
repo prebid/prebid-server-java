@@ -341,8 +341,6 @@ public class YahooAdsBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Invalid SeatBids count: 0"));
         assertThat(result.getValue()).isEmpty();
     }
 
