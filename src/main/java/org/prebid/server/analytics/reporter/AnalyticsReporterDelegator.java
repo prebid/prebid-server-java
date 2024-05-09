@@ -238,7 +238,7 @@ public class AnalyticsReporterDelegator {
         final boolean disallowTransmitGeo = !isAllowedActivity(infrastructure, Activity.TRANSMIT_GEO, payload);
 
         final User user = bidRequest != null ? bidRequest.getUser() : null;
-        final User resolvedUser = mask.maskUser(user, disallowTransmitUfpd, disallowTransmitEids, disallowTransmitGeo);
+        final User resolvedUser = mask.maskUser(user, disallowTransmitUfpd, disallowTransmitEids);
 
         final Device device = bidRequest != null ? bidRequest.getDevice() : null;
         final Device resolvedDevice = mask.maskDevice(device, disallowTransmitUfpd, disallowTransmitGeo);

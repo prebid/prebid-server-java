@@ -194,7 +194,7 @@ public class TcfEnforcement {
         final boolean maskUserIds = privacyEnforcementAction.isRemoveUserIds() || isLmtEnabled;
         final boolean maskGeo = privacyEnforcementAction.isMaskGeo() || isLmtEnabled;
         final Set<String> eidExceptions = privacyEnforcementAction.getEidExceptions();
-        final User maskedUser = userFpdTcfMask.maskUser(user, maskUserFpd, maskUserIds, maskGeo, eidExceptions);
+        final User maskedUser = userFpdTcfMask.maskUser(user, maskUserFpd, maskUserIds, eidExceptions);
 
         final boolean maskIp = privacyEnforcementAction.isMaskDeviceIp() || isLmtEnabled;
         final boolean maskDeviceInfo = privacyEnforcementAction.isMaskDeviceInfo() || isLmtEnabled;
