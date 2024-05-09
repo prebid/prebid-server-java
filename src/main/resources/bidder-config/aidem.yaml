@@ -1,6 +1,6 @@
 adapters:
   aidem:
-    endpoint: https://zero.aidemsrv.com/ortb/v2.6/bid/request
+    endpoint: https://zero.aidemsrv.com/ortb/v2.6/bid/request?billing_id={{PublisherId}}
     modifyingVastXmlAllowed: true
     meta-info:
       maintainer-email: prebid@aidem.com

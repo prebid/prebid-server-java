@@ -2,8 +2,8 @@ package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.BidScanResult;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisError;
 
@@ -41,7 +41,7 @@ public class RedisParser {
             } catch (JsonProcessingException errorParse) {
                 message = String.format("Error during parse redis response: %s", redisResponse);
             }
-            logger.info(message);
+            logger.warn(message);
             return BidsScanResult.builder()
                     .bidScanResults(Collections.emptyList())
                     .debugMessages(List.of(message))

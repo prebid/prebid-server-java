@@ -1,8 +1,15 @@
 adapters:
   emxdigital:
     endpoint: https://hb.emxdgt.com
+    aliases:
+      cadent_aperture_mx:
+        enabled: false
+        # CadentAperture only operates in North America
+        geoscope:
+          - USA
+          - CAN
     meta-info:
-      maintainer-email: adops@emxdigital.com
+      maintainer-email: contactaperturemx@cadent.tv
       app-media-types:
         - banner
         - video

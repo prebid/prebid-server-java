@@ -3,10 +3,8 @@ package org.prebid.server.validation;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Deal;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Pmp;
 import com.iab.openrtb.response.Bid;
 import org.junit.Before;
 import org.junit.Rule;
@@ -20,8 +18,6 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
-import org.prebid.server.proto.openrtb.ext.request.ExtDeal;
-import org.prebid.server.proto.openrtb.ext.request.ExtDealLine;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
@@ -29,7 +25,6 @@ import org.prebid.server.settings.model.AccountBidValidationConfig;
 import org.prebid.server.validation.model.ValidationResult;
 
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
@@ -37,7 +32,6 @@ import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.settings.model.BidValidationEnforcement.enforce;
@@ -55,14 +49,14 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Mock
     private Metrics metrics;
 
-    private ResponseBidValidator responseBidValidator;
+    private ResponseBidValidator target;
 
     @Mock
     private BidderAliases bidderAliases;
 
     @Before
     public void setUp() {
-        responseBidValidator = new ResponseBidValidator(enforce, enforce, metrics, jacksonMapper, true, 0.01);
+        target = new ResponseBidValidator(enforce, enforce, metrics, 0.01);
 
         given(bidderAliases.resolveBidder(anyString())).willReturn(BIDDER_NAME);
     }
@@ -70,7 +64,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailedIfBidderBidCurrencyIsIncorrect() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(BidType.banner, "invalid", identity()),
                 BIDDER_NAME,
                 givenAuctionContext(),
@@ -83,7 +77,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailIfMissingBid() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 BidderBid.of(null, null, "USD"), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
@@ -93,7 +87,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailIfBidHasNoId() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.id(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
@@ -103,7 +97,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailIfBidHasNoImpId() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.impid(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
@@ -113,7 +107,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldSuccessForDealZeroPriceBid() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenVideoBid(builder -> builder.price(BigDecimal.valueOf(0)).dealid("dealId")),
                 BIDDER_NAME,
                 givenAuctionContext(),
@@ -126,7 +120,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailIfBidHasNoCrid() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.crid(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
@@ -136,7 +130,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailIfBannerBidHasNoWidthAndHeight() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.w(null).h(null)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
@@ -150,7 +144,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailIfBannerBidWidthIsGreaterThanImposedByImp() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.w(150).h(150)), BIDDER_NAME, givenAuctionContext(), bidderAliases);
 
         // then
@@ -164,7 +158,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailIfBannerBidHeightIsGreaterThanImposedByImp() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.w(50).h(250)),
                 BIDDER_NAME,
                 givenAuctionContext(),
@@ -181,7 +175,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfNonBannerBidHasAnySize() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(BidType.video, builder -> builder.w(3).h(3)),
                 BIDDER_NAME,
                 givenAuctionContext(),
@@ -198,7 +192,7 @@ public class ResponseBidValidatorTest extends VertxTest {
                 .ext(mapper.createObjectNode()
                         .set("prebid", mapper.createObjectNode())));
 
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(BidType.video, builder -> builder.w(3).h(3)),
                 BIDDER_NAME,
                 givenAuctionContext(bidRequest),
@@ -211,7 +205,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfBannerBidHasInvalidSizeButAccountDoesNotEnforceValidation() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.w(150).h(150)),
                 BIDDER_NAME,
                 givenAuctionContext(
@@ -227,7 +221,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailIfBidHasNoCorrespondingImp() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.impid("nonExistentsImpid")),
                 BIDDER_NAME,
                 givenAuctionContext(),
@@ -241,7 +235,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailIfBidHasInsecureMarkerInCreativeInSecureContext() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
@@ -258,7 +252,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailIfBidHasInsecureEncodedMarkerInCreativeInSecureContext() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.adm("<tag>http%3A//site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
@@ -275,7 +269,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailIfBidHasNoSecureMarkersInCreativeInSecureContext() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.adm("<tag>//site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
@@ -292,7 +286,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfBidHasInsecureCreativeInInsecureContext() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
                 givenAuctionContext(),
@@ -305,7 +299,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldFailedIfVideoBidHasNoNurlAndAdm() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(BidType.video, builder -> builder.adm(null).nurl(null)),
                 BIDDER_NAME,
                 givenAuctionContext(),
@@ -320,7 +314,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessfulResultForValidVideoBidWithNurl() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(BidType.video, builder -> builder.adm(null)),
                 BIDDER_NAME,
                 givenAuctionContext(),
@@ -333,7 +327,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessfulResultForValidVideoBidWithAdm() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(BidType.video, builder -> builder.nurl(null)),
                 BIDDER_NAME,
                 givenAuctionContext(),
@@ -346,7 +340,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessfulResultForValidBid() {
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(identity()),
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
@@ -359,10 +353,10 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfBannerSizeValidationNotEnabled() {
         // given
-        responseBidValidator = new ResponseBidValidator(skip, enforce, metrics, jacksonMapper, true, 0.01);
+        target = new ResponseBidValidator(skip, enforce, metrics, 0.01);
 
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(identity()),
                 BIDDER_NAME,
                 givenAuctionContext(),
@@ -375,10 +369,10 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessWithWarningIfBannerSizeEnforcementIsWarn() {
         // given
-        responseBidValidator = new ResponseBidValidator(warn, enforce, metrics, jacksonMapper, true, 0.01);
+        target = new ResponseBidValidator(warn, enforce, metrics, 0.01);
 
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.w(null).h(null)),
                 BIDDER_NAME,
                 givenAuctionContext(),
@@ -396,10 +390,10 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessIfSecureMarkupValidationNotEnabled() {
         // given
-        responseBidValidator = new ResponseBidValidator(enforce, skip, metrics, jacksonMapper, true, 0.01);
+        target = new ResponseBidValidator(enforce, skip, metrics, 0.01);
 
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
@@ -412,10 +406,10 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldReturnSuccessWithWarningIfSecureMarkupEnforcementIsWarn() {
         // given
-        responseBidValidator = new ResponseBidValidator(enforce, warn, metrics, jacksonMapper, true, 0.01);
+        target = new ResponseBidValidator(enforce, warn, metrics, 0.01);
 
         // when
-        final ValidationResult result = responseBidValidator.validate(
+        final ValidationResult result = target.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
@@ -433,7 +427,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldIncrementSizeValidationErrMetrics() {
         // when
-        responseBidValidator.validate(
+        target.validate(
                 givenBid(builder -> builder.w(150).h(200)),
                 BIDDER_NAME,
                 givenAuctionContext(),
@@ -446,10 +440,10 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldIncrementSizeValidationWarnMetrics() {
         // given
-        responseBidValidator = new ResponseBidValidator(warn, warn, metrics, jacksonMapper, true, 0.01);
+        target = new ResponseBidValidator(warn, warn, metrics, 0.01);
 
         // when
-        responseBidValidator.validate(
+        target.validate(
                 givenBid(builder -> builder.w(150).h(200)),
                 BIDDER_NAME,
                 givenAuctionContext(),
@@ -462,7 +456,7 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldIncrementSecureValidationErrMetrics() {
         // when
-        responseBidValidator.validate(
+        target.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
@@ -475,10 +469,10 @@ public class ResponseBidValidatorTest extends VertxTest {
     @Test
     public void validateShouldIncrementSecureValidationWarnMetrics() {
         // given
-        responseBidValidator = new ResponseBidValidator(warn, warn, metrics, jacksonMapper, true, 0.01);
+        target = new ResponseBidValidator(warn, warn, metrics, 0.01);
 
         // when
-        responseBidValidator.validate(
+        target.validate(
                 givenBid(builder -> builder.adm("<tag>http://site.com/creative.jpg</tag>")),
                 BIDDER_NAME,
                 givenAuctionContext(givenBidRequest(builder -> builder.secure(1))),
@@ -486,189 +480,6 @@ public class ResponseBidValidatorTest extends VertxTest {
 
         // then
         verify(metrics).updateSecureValidationMetrics(BIDDER_NAME, ACCOUNT_ID, MetricName.warn);
-    }
-
-    @Test
-    public void validateShouldReturnSuccessfulResultForValidNonDealBid() {
-        final ValidationResult result = responseBidValidator.validate(
-                givenVideoBid(identity()),
-                BIDDER_NAME,
-                givenAuctionContext(),
-                bidderAliases);
-
-        assertThat(result.hasErrors()).isFalse();
-    }
-
-    @Test
-    public void validateShouldFailIfBidHasNoDealid() {
-        final ValidationResult result = responseBidValidator.validate(
-                givenVideoBid(identity()),
-                BIDDER_NAME,
-                givenAuctionContext(givenRequest(identity())),
-                bidderAliases);
-
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Bid \"bidId1\" missing required field 'dealid'");
-    }
-
-    @Test
-    public void validateShouldSuccessIfBidHasDealidAndImpHasNoDeals() {
-        final ValidationResult result = responseBidValidator.validate(
-                givenVideoBid(bid -> bid.dealid("dealId1")),
-                BIDDER_NAME,
-                givenAuctionContext(givenRequest(identity())),
-                bidderAliases);
-
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getWarnings()).isEmpty();
-    }
-
-    @Test
-    public void validateShouldWarnIfBidHasDealidMissingInImp() {
-        given(bidderAliases.isSame(eq(BIDDER_NAME), eq(BIDDER_NAME))).willReturn(true);
-
-        final ValidationResult result = responseBidValidator.validate(
-                givenVideoBid(bid -> bid.dealid("dealId1")),
-                BIDDER_NAME,
-                givenAuctionContext(givenRequest(imp -> imp.pmp(pmp(asList(
-                        deal(builder -> builder
-                                .id("dealId2")
-                                .ext(mapper.valueToTree(ExtDeal.of(
-                                        ExtDealLine.of(null, null, null, BIDDER_NAME))))),
-                        deal(builder -> builder
-                                .id("dealId3")
-                                .ext(mapper.valueToTree(ExtDeal.of(
-                                        ExtDealLine.of(null, null, null, BIDDER_NAME))))),
-                        deal(builder -> builder
-                                .id("dealId4")
-                                .ext(mapper.valueToTree(ExtDeal.of(
-                                        ExtDealLine.of(null, null, null, "anotherBidder")))))))))),
-                bidderAliases);
-
-        assertThat(result.getWarnings()).hasSize(1)
-                .containsOnly("WARNING: Bid \"bidId1\" has 'dealid' not present in corresponding imp in request."
-                        + " 'dealid' in bid: 'dealId1', deal Ids in imp: 'dealId2,dealId3'");
-    }
-
-    @Test
-    public void validateShouldFailIfBidIsBannerAndImpHasNoBanner() {
-        responseBidValidator = new ResponseBidValidator(skip, enforce, metrics, jacksonMapper, true, 0.01);
-
-        final ValidationResult result = responseBidValidator.validate(
-                givenBid(bid -> bid.dealid("dealId1")),
-                BIDDER_NAME,
-                givenAuctionContext(givenRequest(imp -> imp
-                        .pmp(pmp(singletonList(deal(builder -> builder.id("dealId1"))))))),
-                bidderAliases);
-
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Bid \"bidId1\" has banner media type but corresponding imp in request is missing "
-                        + "'banner' object");
-    }
-
-    @Test
-    public void validateShouldFailIfBidIsBannerAndSizeHasNoMatchInBannerFormats() {
-        final ValidationResult result = responseBidValidator.validate(
-                givenBid(bid -> bid.dealid("dealId1").w(300).h(400)),
-                BIDDER_NAME,
-                givenAuctionContext(givenRequest(imp -> imp
-                        .pmp(pmp(singletonList(deal(builder -> builder.id("dealId1")))))
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(400).h(500).build()))
-                                .build()))),
-                bidderAliases);
-
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Bid \"bidId1\" has 'w' and 'h' not supported by corresponding imp in request. Bid "
-                        + "dimensions: '300x400', formats in imp: '400x500'");
-    }
-
-    @Test
-    public void validateShouldFailIfBidIsBannerAndSizeHasNoMatchInLineItem() {
-        final ValidationResult result = responseBidValidator.validate(
-                givenBid(bid -> bid.dealid("dealId1").w(300).h(400)),
-                BIDDER_NAME,
-                givenAuctionContext(givenRequest(imp -> imp
-                        .pmp(pmp(singletonList(deal(builder -> builder
-                                .id("dealId1")
-                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId", null,
-                                        singletonList(Format.builder().w(500).h(600).build()), null))))))))
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(400).build()))
-                                .build()))),
-                bidderAliases);
-
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Bid \"bidId1\" has 'w' and 'h' not matched to Line Item. Bid dimensions: '300x400', "
-                        + "Line Item sizes: '500x600'");
-    }
-
-    @Test
-    public void validateShouldFailIfBidIsBannerAndMatchingLineItemDoesNotHaveSizes() {
-        final ValidationResult result = responseBidValidator.validate(
-                givenBid(bid -> bid.dealid("dealId1").w(300).h(400)),
-                BIDDER_NAME,
-                givenAuctionContext(givenRequest(imp -> imp
-                        .pmp(pmp(singletonList(deal(builder -> builder
-                                .id("dealId1")
-                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of("lineItemId", null,
-                                        null, null))))))))
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(400).build()))
-                                .build()))),
-                bidderAliases);
-
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("Line item sizes were not found for bidId bidId1 and dealId dealId1");
-    }
-
-    @Test
-    public void validateShouldSuccessIfBidIsBannerAndSizeHasNoMatchInLineItemForNonPgDeal() {
-        final ValidationResult result = responseBidValidator.validate(
-                givenBid(bid -> bid.dealid("dealId1").w(300).h(400)),
-                BIDDER_NAME,
-                givenAuctionContext(givenRequest(imp -> imp
-                        .pmp(pmp(singletonList(deal(builder -> builder
-                                .id("dealId1")
-                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of(null, null,
-                                        singletonList(Format.builder().w(500).h(600).build()), null))))))))
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(400).build()))
-                                .build()))),
-                bidderAliases);
-
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getWarnings()).isEmpty();
-    }
-
-    @Test
-    public void validateShouldReturnSuccessfulResultForValidDealNonBannerBid() {
-        final ValidationResult result = responseBidValidator.validate(
-                givenVideoBid(bid -> bid.dealid("dealId1")),
-                BIDDER_NAME,
-                givenAuctionContext(givenRequest(imp -> imp.pmp(pmp(singletonList(
-                        deal(builder -> builder.id("dealId1"))))))),
-                bidderAliases);
-
-        assertThat(result.hasErrors()).isFalse();
-    }
-
-    @Test
-    public void validateShouldReturnSuccessfulResultForValidDealBannerBid() {
-        final ValidationResult result = responseBidValidator.validate(
-                givenBid(bid -> bid.dealid("dealId1").w(300).h(400)),
-                BIDDER_NAME,
-                givenAuctionContext(givenRequest(imp -> imp
-                        .pmp(pmp(singletonList(deal(builder -> builder
-                                .id("dealId1")
-                                .ext(mapper.valueToTree(ExtDeal.of(ExtDealLine.of(null, null,
-                                        singletonList(Format.builder().w(300).h(400).build()), null))))))))
-                        .banner(Banner.builder()
-                                .format(singletonList(Format.builder().w(300).h(400).build()))
-                                .build()))),
-                bidderAliases);
-
-        assertThat(result.hasErrors()).isFalse();
     }
 
     private BidRequest givenRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
@@ -684,14 +495,6 @@ public class ResponseBidValidatorTest extends VertxTest {
         final Imp imp = impCustomizer.apply(impBuilder).build();
 
         return BidRequest.builder().imp(singletonList(imp)).build();
-    }
-
-    private static Pmp pmp(List<Deal> deals) {
-        return Pmp.builder().deals(deals).build();
-    }
-
-    private static Deal deal(UnaryOperator<Deal.DealBuilder> dealCustomizer) {
-        return dealCustomizer.apply(Deal.builder()).build();
     }
 
     private static BidderBid givenVideoBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {

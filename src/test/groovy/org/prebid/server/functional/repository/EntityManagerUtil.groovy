@@ -1,6 +1,6 @@
 package org.prebid.server.functional.repository
 
-import javax.persistence.EntityManager
+import jakarta.persistence.EntityManager
 import org.hibernate.SessionFactory
 
 import java.util.function.Consumer

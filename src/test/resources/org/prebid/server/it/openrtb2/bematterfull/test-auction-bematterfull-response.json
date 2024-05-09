@@ -1,0 +1,34 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 4.7,
+          "adm": "adm6",
+          "crid": "crid6",
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            },
+            "origbidcpm": 4.7
+          }
+        }
+      ],
+      "seat": "bematterfull",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "bematterfull": "{{ bematterfull.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

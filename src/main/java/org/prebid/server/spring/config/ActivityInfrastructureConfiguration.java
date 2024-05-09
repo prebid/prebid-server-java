@@ -14,6 +14,7 @@ import org.prebid.server.activity.infrastructure.creator.rule.RuleCreator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonLogic;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.settings.model.GdprConfig;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -87,9 +88,10 @@ public class ActivityInfrastructureConfiguration {
 
     @Bean
     ActivityInfrastructureCreator activityInfrastructureCreator(ActivityRuleFactory activityRuleFactory,
+                                                                GdprConfig gdprConfig,
                                                                 Metrics metrics,
                                                                 JacksonMapper jacksonMapper) {
 
-        return new ActivityInfrastructureCreator(activityRuleFactory, metrics, jacksonMapper);
+        return new ActivityInfrastructureCreator(activityRuleFactory, gdprConfig, metrics, jacksonMapper);
     }
 }

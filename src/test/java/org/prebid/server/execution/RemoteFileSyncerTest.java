@@ -2,9 +2,9 @@ package org.prebid.server.execution;
 
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.AsyncFile;
+import io.vertx.core.file.CopyOptions;
 import io.vertx.core.file.FileProps;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.file.FileSystemException;
@@ -33,7 +33,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -86,31 +85,31 @@ public class RemoteFileSyncerTest extends VertxTest {
     @Before
     public void setUp() {
         when(vertx.fileSystem()).thenReturn(fileSystem);
-        remoteFileSyncer = new RemoteFileSyncer(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+        remoteFileSyncer = new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
                 TIMEOUT, 0, httpClient, vertx);
     }
 
     @Test
     public void shouldThrowNullPointerExceptionWhenIllegalArgumentsWhenNullArguments() {
         assertThatNullPointerException().isThrownBy(
-                () -> new RemoteFileSyncer(SOURCE_URL, null, TMP_FILE_PATH, RETRY_POLICY, TIMEOUT,
+                () -> new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, null, TMP_FILE_PATH, RETRY_POLICY, TIMEOUT,
                         UPDATE_INTERVAL, httpClient, vertx));
         assertThatNullPointerException().isThrownBy(
-                () -> new RemoteFileSyncer(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+                () -> new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
                         TIMEOUT, UPDATE_INTERVAL, null, vertx));
         assertThatNullPointerException().isThrownBy(
-                () -> new RemoteFileSyncer(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+                () -> new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
                         TIMEOUT, UPDATE_INTERVAL, httpClient, null));
     }
 
     @Test
     public void shouldThrowIllegalArgumentExceptionWhenIllegalArguments() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new RemoteFileSyncer(null, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+                () -> new RemoteFileSyncer(remoteFileProcessor, null, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
                         TIMEOUT, UPDATE_INTERVAL, httpClient, vertx));
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new RemoteFileSyncer("bad url", FILE_PATH, TMP_FILE_PATH, RETRY_POLICY, TIMEOUT,
-                        UPDATE_INTERVAL, httpClient, vertx));
+                () -> new RemoteFileSyncer(remoteFileProcessor, "bad url", FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+                        TIMEOUT, UPDATE_INTERVAL, httpClient, vertx));
     }
 
     @Test
@@ -120,7 +119,7 @@ public class RemoteFileSyncerTest extends VertxTest {
         when(fileSystem.existsBlocking(eq(DIR_PATH))).thenReturn(false);
 
         // when
-        new RemoteFileSyncer(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY, TIMEOUT,
+        new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY, TIMEOUT,
                 UPDATE_INTERVAL, httpClient, vertx);
 
         // then
@@ -137,7 +136,7 @@ public class RemoteFileSyncerTest extends VertxTest {
         when(fileProps.isDirectory()).thenReturn(false);
 
         // when
-        new RemoteFileSyncer(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY, TIMEOUT,
+        new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY, TIMEOUT,
                 UPDATE_INTERVAL, httpClient, vertx);
 
         // then
@@ -152,205 +151,187 @@ public class RemoteFileSyncerTest extends VertxTest {
         when(fileSystem.propsBlocking(eq(DIR_PATH))).thenThrow(FileSystemException.class);
 
         // when and then
-        assertThatThrownBy(() -> new RemoteFileSyncer(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY, TIMEOUT,
-                UPDATE_INTERVAL, httpClient, vertx))
+        assertThatThrownBy(() -> new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH,
+                RETRY_POLICY, TIMEOUT, UPDATE_INTERVAL, httpClient, vertx))
                 .isInstanceOf(PreBidException.class);
     }
 
     @Test
     public void syncForFilepathShouldNotTriggerServiceWhenCantCheckIfUsableFileExist() {
         // given
-        given(fileSystem.exists(anyString(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture(new RuntimeException())));
+        given(fileSystem.exists(anyString()))
+                .willReturn(Future.failedFuture(new RuntimeException()));
 
         // when
-        remoteFileSyncer.sync(remoteFileProcessor);
+        remoteFileSyncer.sync();
 
         // then
-        verify(fileSystem).exists(eq(FILE_PATH), any());
+        verify(fileSystem).exists(eq(FILE_PATH));
         verifyNoInteractions(remoteFileProcessor);
-        verifyNoInteractions(httpClient);
-    }
-
-    @Test
-    public void syncForFilepathShouldRetryWhenRemoteFileProcessorIsFailed() {
-        // given
-        given(remoteFileProcessor.setDataPath(FILE_PATH))
-                .willReturn(Future.failedFuture("Bad db file"));
-
-        given(fileSystem.exists(any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(true)))
-                // Mock removal of file
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(false)));
-
-        // when
-        remoteFileSyncer.sync(remoteFileProcessor);
-
-        // then
-        verify(fileSystem, times(2)).exists(eq(FILE_PATH), any());
-        verify(remoteFileProcessor).setDataPath(FILE_PATH);
-        verify(fileSystem).open(eq(TMP_FILE_PATH), any(), any());
         verifyNoInteractions(httpClient);
     }
 
     @Test
     public void syncForFilepathShouldNotUpdateWhenHeadRequestReturnInvalidHead() {
         // given
-        remoteFileSyncer = new RemoteFileSyncer(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+        remoteFileSyncer = new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
                 TIMEOUT, UPDATE_INTERVAL, httpClient, vertx);
 
         givenTriggerUpdate();
 
-        given(httpClientResponse.getHeader(any(CharSequence.class))).willReturn("notnumber");
+        given(httpClient.request(any()))
+                .willReturn(Future.succeededFuture(httpClientRequest));
+        given(httpClientRequest.send())
+                .willReturn(Future.succeededFuture(httpClientResponse));
+        given(httpClientResponse.getHeader(HttpHeaders.CONTENT_LENGTH))
+                .willReturn("notnumber");
 
         // when
-        remoteFileSyncer.sync(remoteFileProcessor);
+        remoteFileSyncer.sync();
 
         // then
-        verify(fileSystem, times(2)).exists(eq(FILE_PATH), any());
-        verify(httpClient).headAbs(eq(SOURCE_URL), any());
+        verify(fileSystem, times(2)).exists(eq(FILE_PATH));
+        verify(httpClient).request(any());
         verify(remoteFileProcessor).setDataPath(any());
         verify(fileSystem, never()).move(eq(TMP_FILE_PATH), eq(FILE_PATH), any(), any());
-        verify(vertx, times(2)).setTimer(eq(UPDATE_INTERVAL), any());
+        verify(vertx).setPeriodic(eq(UPDATE_INTERVAL), any());
         verifyNoMoreInteractions(httpClient);
     }
 
     @Test
     public void syncForFilepathShouldNotUpdateWhenPropsIsFailed() {
         // given
-        remoteFileSyncer = new RemoteFileSyncer(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+        remoteFileSyncer = new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
                 TIMEOUT, UPDATE_INTERVAL, httpClient, vertx);
 
         givenTriggerUpdate();
 
+        given(httpClient.request(any()))
+                .willReturn(Future.succeededFuture(httpClientRequest));
+        given(httpClientRequest.send())
+                .willReturn(Future.succeededFuture(httpClientResponse));
         given(httpClientResponse.getHeader(any(CharSequence.class))).willReturn(FILE_SIZE.toString());
 
-        given(fileSystem.props(anyString(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture(new IllegalArgumentException("ERROR"))));
+        given(fileSystem.props(anyString()))
+                .willReturn(Future.failedFuture(new IllegalArgumentException("ERROR")));
 
         // when
-        remoteFileSyncer.sync(remoteFileProcessor);
+        remoteFileSyncer.sync();
 
         // then
-        verify(fileSystem, times(2)).exists(eq(FILE_PATH), any());
-        verify(httpClient).headAbs(eq(SOURCE_URL), any());
+        verify(fileSystem, times(2)).exists(eq(FILE_PATH));
+        verify(httpClient).request(any());
         verify(httpClientResponse).getHeader(eq(HttpHeaders.CONTENT_LENGTH));
-        verify(fileSystem).props(eq(FILE_PATH), any());
+        verify(fileSystem).props(eq(FILE_PATH));
         verify(remoteFileProcessor).setDataPath(any());
-        verify(fileSystem, never()).move(eq(TMP_FILE_PATH), eq(FILE_PATH), any(), any());
-        verify(vertx, times(2)).setTimer(eq(UPDATE_INTERVAL), any());
+        verify(fileSystem, never()).move(eq(TMP_FILE_PATH), eq(FILE_PATH), any(CopyOptions.class));
+        verify(vertx).setPeriodic(eq(UPDATE_INTERVAL), any());
         verifyNoMoreInteractions(httpClient);
     }
 
     @Test
     public void syncForFilepathShouldNotUpdateServiceWhenSizeEqualsContentLength() {
         // given
-        remoteFileSyncer = new RemoteFileSyncer(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+        remoteFileSyncer = new RemoteFileSyncer(remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
                 TIMEOUT, UPDATE_INTERVAL, httpClient, vertx);
 
         givenTriggerUpdate();
 
+        given(httpClient.request(any()))
+                .willReturn(Future.succeededFuture(httpClientRequest));
+        given(httpClientRequest.send())
+                .willReturn(Future.succeededFuture(httpClientResponse));
         given(httpClientResponse.getHeader(any(CharSequence.class))).willReturn(FILE_SIZE.toString());
 
-        given(fileSystem.props(anyString(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(fileProps)));
+        given(fileSystem.props(anyString()))
+                .willReturn(Future.succeededFuture(fileProps));
 
         doReturn(FILE_SIZE).when(fileProps).size();
 
         // when
-        remoteFileSyncer.sync(remoteFileProcessor);
+        remoteFileSyncer.sync();
 
         // then
-        verify(fileSystem, times(2)).exists(eq(FILE_PATH), any());
-        verify(httpClient).headAbs(eq(SOURCE_URL), any());
+        verify(fileSystem, times(2)).exists(eq(FILE_PATH));
+        verify(httpClient).request(any());
         verify(httpClientResponse).getHeader(eq(HttpHeaders.CONTENT_LENGTH));
-        verify(fileSystem).props(eq(FILE_PATH), any());
+        verify(fileSystem).props(eq(FILE_PATH));
         verify(remoteFileProcessor).setDataPath(any());
-        verify(fileSystem, never()).move(eq(TMP_FILE_PATH), eq(FILE_PATH), any(), any());
-        verify(vertx, times(2)).setTimer(eq(UPDATE_INTERVAL), any());
+        verify(fileSystem, never()).move(eq(TMP_FILE_PATH), eq(FILE_PATH), any(CopyOptions.class));
+        verify(vertx).setPeriodic(eq(UPDATE_INTERVAL), any());
         verifyNoMoreInteractions(httpClient);
     }
 
     @Test
     public void syncForFilepathShouldUpdateServiceWhenSizeNotEqualsContentLength() {
         // given
-        remoteFileSyncer = new RemoteFileSyncer(SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
+        remoteFileSyncer = new RemoteFileSyncer(
+                remoteFileProcessor, SOURCE_URL, FILE_PATH, TMP_FILE_PATH, RETRY_POLICY,
                 TIMEOUT, UPDATE_INTERVAL, httpClient, vertx);
 
         givenTriggerUpdate();
 
+        given(httpClient.request(any()))
+                .willReturn(Future.succeededFuture(httpClientRequest));
+        given(httpClientRequest.send())
+                .willReturn(Future.succeededFuture(httpClientResponse));
+        given(httpClientResponse.pipeTo(any())).willReturn(Future.succeededFuture());
         given(httpClientResponse.getHeader(any(CharSequence.class))).willReturn(FILE_SIZE.toString());
 
-        given(fileSystem.props(anyString(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(fileProps)));
+        given(fileSystem.props(anyString()))
+                .willReturn(Future.succeededFuture(fileProps));
 
-        doAnswer(invocation -> {
-            invocation.getArgument(1, Promise.class).complete();
-            return null;
-        }).when(fileSystem).delete(anyString(), any());
+        given(fileSystem.delete(anyString()))
+                .willReturn(Future.succeededFuture());
 
         doReturn(123L).when(fileProps).size();
 
-        // Download
-        final long timerId = 22L;
-        when(vertx.setTimer(eq(TIMEOUT), any())).thenReturn(timerId);
-        when(asyncFile.flush()).thenReturn(asyncFile);
+        given(fileSystem.open(anyString(), any()))
+                .willReturn(Future.succeededFuture(asyncFile));
 
-        given(fileSystem.open(anyString(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(asyncFile), 2));
+        given(fileSystem.move(anyString(), any(), any(CopyOptions.class)))
+                .willReturn(Future.succeededFuture());
 
-        given(httpClient.getAbs(any(), any()))
-                .willAnswer(withReturnObjectAndPassObjectToHandler(httpClientResponse, httpClientRequest, 1));
-
-        given(httpClientResponse.endHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(null, 0));
-
-        doAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(), 0))
-                .when(asyncFile).close(any());
-
-        given(fileSystem.move(anyString(), any(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(), 3));
+        given(remoteFileProcessor.setDataPath(anyString())).willReturn(Future.succeededFuture());
 
         // when
-        remoteFileSyncer.sync(remoteFileProcessor);
+        remoteFileSyncer.sync();
 
         // then
-        verify(httpClient).headAbs(eq(SOURCE_URL), any());
+        verify(httpClient, times(2)).request(any());
         verify(httpClientResponse).getHeader(eq(HttpHeaders.CONTENT_LENGTH));
-        verify(fileSystem).props(eq(FILE_PATH), any());
+        verify(fileSystem).props(eq(FILE_PATH));
 
         // Download
-        verify(fileSystem).open(eq(TMP_FILE_PATH), any(), any());
-        verify(vertx).setTimer(eq(TIMEOUT), any());
-        verify(httpClient).getAbs(eq(SOURCE_URL), any());
-        verify(httpClientResponse).endHandler(any());
-        verify(asyncFile).close(any());
-        verify(vertx).cancelTimer(timerId);
+        verify(fileSystem).open(eq(TMP_FILE_PATH), any());
+        verify(asyncFile).close();
 
         verify(remoteFileProcessor, times(2)).setDataPath(any());
-        verify(vertx, times(2)).setTimer(eq(UPDATE_INTERVAL), any());
-        verify(fileSystem).move(eq(TMP_FILE_PATH), eq(FILE_PATH), any(), any());
+        verify(vertx).setPeriodic(eq(UPDATE_INTERVAL), any());
+        verify(fileSystem).move(eq(TMP_FILE_PATH), eq(FILE_PATH), any(CopyOptions.class));
         verifyNoMoreInteractions(httpClient);
     }
 
     @Test
     public void syncForFilepathShouldRetryAfterFailedDownload() {
         // given
-        given(fileSystem.exists(any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(false)));
+        given(fileSystem.exists(any()))
+                .willReturn(Future.succeededFuture(false));
 
-        given(fileSystem.open(any(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture(new RuntimeException()), 2));
+        given(fileSystem.open(any(), any()))
+                .willReturn(Future.failedFuture(new RuntimeException()));
+        given(fileSystem.delete(any()))
+                .willReturn(Future.succeededFuture());
 
         given(vertx.setTimer(eq(RETRY_INTERVAL), any()))
                 .willAnswer(withReturnObjectAndPassObjectToHandler(0L, 10L, 1));
 
         // when
-        remoteFileSyncer.sync(remoteFileProcessor);
+        remoteFileSyncer.sync();
 
         // then
         verify(vertx, times(RETRY_COUNT)).setTimer(eq(RETRY_INTERVAL), any());
-        verify(fileSystem, times(RETRY_COUNT + 1)).open(eq(TMP_FILE_PATH), any(), any());
+        verify(fileSystem, times(RETRY_COUNT + 1)).open(eq(TMP_FILE_PATH), any());
 
         verifyNoInteractions(httpClient);
         verifyNoInteractions(remoteFileProcessor);
@@ -359,12 +340,13 @@ public class RemoteFileSyncerTest extends VertxTest {
     @Test
     public void syncForFilepathShouldRetryWhenFileOpeningFailed() {
         // then
-        given(fileSystem.exists(any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(false)))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(true)));
+        given(fileSystem.exists(any()))
+                .willReturn(Future.succeededFuture(false));
 
-        given(fileSystem.open(any(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.failedFuture(new RuntimeException()), 2));
+        given(fileSystem.open(any(), any()))
+                .willReturn(Future.failedFuture(new RuntimeException()));
+        given(fileSystem.delete(any()))
+                .willReturn(Future.succeededFuture());
 
         given(vertx.setTimer(eq(RETRY_INTERVAL), any()))
                 .willAnswer(withReturnObjectAndPassObjectToHandler(0L, 10L, 1));
@@ -376,11 +358,11 @@ public class RemoteFileSyncerTest extends VertxTest {
         given(remoteFileProcessor.setDataPath(anyString())).willReturn(Future.succeededFuture());
 
         // when
-        remoteFileSyncer.sync(remoteFileProcessor);
+        remoteFileSyncer.sync();
 
         // then
         verify(vertx, times(RETRY_COUNT)).setTimer(eq(RETRY_INTERVAL), any());
-        verify(fileSystem, times(RETRY_COUNT + 1)).delete(eq(TMP_FILE_PATH), any());
+        verify(fileSystem, times(RETRY_COUNT + 1)).delete(eq(TMP_FILE_PATH));
 
         verifyNoInteractions(httpClient);
         verifyNoInteractions(remoteFileProcessor);
@@ -389,42 +371,33 @@ public class RemoteFileSyncerTest extends VertxTest {
     @Test
     public void syncForFilepathShouldDownloadFilesAndNotUpdateWhenUpdatePeriodIsNotSet() {
         // given
-        final long timerId = 22L;
-        when(vertx.setTimer(eq(TIMEOUT), any())).thenReturn(timerId);
-        when(asyncFile.flush()).thenReturn(asyncFile);
-
         given(remoteFileProcessor.setDataPath(anyString())).willReturn(Future.succeededFuture());
 
-        given(fileSystem.exists(anyString(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(false)));
+        given(fileSystem.exists(anyString()))
+                .willReturn(Future.succeededFuture(false));
 
-        given(fileSystem.open(anyString(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(asyncFile), 2));
+        given(fileSystem.open(any(), any()))
+                .willReturn(Future.succeededFuture(asyncFile));
 
-        given(httpClient.getAbs(any(), any()))
-                .willAnswer(withReturnObjectAndPassObjectToHandler(httpClientResponse, httpClientRequest, 1));
+        given(httpClient.request(any()))
+                .willReturn(Future.succeededFuture(httpClientRequest));
+        given(httpClientRequest.send())
+                .willReturn(Future.succeededFuture(httpClientResponse));
+        given(httpClientResponse.pipeTo(asyncFile))
+                .willReturn(Future.succeededFuture());
 
-        given(httpClientResponse.endHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(null, 0));
-
-        doAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(), 0))
-                .when(asyncFile).close(any());
-
-        given(fileSystem.move(anyString(), any(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(), 3));
+        given(fileSystem.move(anyString(), anyString(), any(CopyOptions.class)))
+                .willReturn(Future.succeededFuture());
 
         // when
-        remoteFileSyncer.sync(remoteFileProcessor);
+        remoteFileSyncer.sync();
 
         // then
-        verify(fileSystem).open(eq(TMP_FILE_PATH), any(), any());
-        verify(vertx).setTimer(eq(TIMEOUT), any());
-        verify(httpClient).getAbs(eq(SOURCE_URL), any());
-        verify(httpClientResponse).endHandler(any());
-        verify(asyncFile).close(any());
-        verify(vertx).cancelTimer(timerId);
+        verify(fileSystem).open(eq(TMP_FILE_PATH), any());
+        verify(httpClient).request(any());
+        verify(asyncFile).close();
         verify(remoteFileProcessor).setDataPath(any());
-        verify(fileSystem).move(eq(TMP_FILE_PATH), eq(FILE_PATH), any(), any());
+        verify(fileSystem).move(eq(TMP_FILE_PATH), eq(FILE_PATH), any(CopyOptions.class));
         verify(vertx, never()).setTimer(eq(UPDATE_INTERVAL), any());
         verifyNoMoreInteractions(httpClient);
     }
@@ -432,54 +405,48 @@ public class RemoteFileSyncerTest extends VertxTest {
     @Test
     public void syncForFilepathShouldRetryWhenTimeoutIsReached() {
         // given
-        given(fileSystem.exists(anyString(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(false)))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(true)));
+        given(fileSystem.exists(anyString()))
+                .willReturn(Future.succeededFuture(false));
 
-        given(fileSystem.open(anyString(), any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(asyncFile), 2));
+        given(fileSystem.open(anyString(), any()))
+                .willReturn(Future.succeededFuture(asyncFile));
 
         given(vertx.setTimer(eq(RETRY_INTERVAL), any()))
                 .willAnswer(withReturnObjectAndPassObjectToHandler(0L, 10L, 1));
 
-        given(fileSystem.delete(any(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture()));
+        given(fileSystem.delete(any()))
+                .willReturn(Future.succeededFuture());
 
-        given(httpClient.getAbs(any(), any()))
-                .willAnswer(withReturnObjectAndPassObjectToHandler(httpClientResponse, httpClientRequest, 1));
-
-        given(vertx.setTimer(eq(TIMEOUT), any()))
-                .willAnswer(withReturnObjectAndPassObjectToHandler(null, 22L, 1));
+        given(httpClient.request(any()))
+                .willReturn(Future.succeededFuture(httpClientRequest));
+        given(httpClientRequest.send())
+                .willReturn(Future.succeededFuture(httpClientResponse));
+        given(httpClientResponse.pipeTo(asyncFile))
+                .willReturn(Future.failedFuture("Timeout"));
 
         // when
-        remoteFileSyncer.sync(remoteFileProcessor);
+        remoteFileSyncer.sync();
 
         // then
         verify(vertx, times(RETRY_COUNT)).setTimer(eq(RETRY_INTERVAL), any());
-        verify(fileSystem, times(RETRY_COUNT + 1)).open(eq(TMP_FILE_PATH), any(), any());
+        verify(fileSystem, times(RETRY_COUNT + 1)).open(eq(TMP_FILE_PATH), any());
 
         // Response handled
-        verify(httpClient, times(RETRY_COUNT + 1)).getAbs(eq(SOURCE_URL), any());
-        verify(vertx, times(RETRY_COUNT + 1)).setTimer(eq(TIMEOUT), any());
+        verify(httpClient, times(RETRY_COUNT + 1)).request(any());
         verify(asyncFile, times(RETRY_COUNT + 1)).close();
 
         verifyNoInteractions(remoteFileProcessor);
     }
 
     private void givenTriggerUpdate() {
-        given(fileSystem.exists(anyString(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Future.succeededFuture(true)));
+        given(fileSystem.exists(anyString()))
+                .willReturn(Future.succeededFuture(true));
 
         given(remoteFileProcessor.setDataPath(anyString())).willReturn(Future.succeededFuture());
 
-        given(vertx.setTimer(eq(UPDATE_INTERVAL), any()))
+        given(vertx.setPeriodic(eq(UPDATE_INTERVAL), any()))
                 .willAnswer(withReturnObjectAndPassObjectToHandler(123L, 123L, 1))
                 .willReturn(123L);
-
-        given(httpClient.headAbs(anyString(), any()))
-                .willAnswer(withReturnObjectAndPassObjectToHandler(httpClientResponse, httpClientRequest, 1));
-
-        given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
     }
 
     @SuppressWarnings("unchecked")
@@ -504,4 +471,3 @@ public class RemoteFileSyncerTest extends VertxTest {
         };
     }
 }
-

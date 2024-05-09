@@ -21,8 +21,8 @@ import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.analytics.model.SetuidEvent;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.gpp.SetuidGppService;
+import org.prebid.server.auction.privacy.contextfactory.SetuidPrivacyContextFactory;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
@@ -87,7 +87,7 @@ public class SetuidHandlerTest extends VertxTest {
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
-    private PrivacyEnforcementService privacyEnforcementService;
+    private SetuidPrivacyContextFactory setuidPrivacyContextFactory;
     @Mock
     private SetuidGppService gppService;
     @Mock
@@ -117,7 +117,7 @@ public class SetuidHandlerTest extends VertxTest {
                 PrivacyEnforcementAction.allowAll());
 
         tcfContext = TcfContext.builder().inGdprScope(false).build();
-        given(privacyEnforcementService.contextFromSetuidRequest(any(), any(), any()))
+        given(setuidPrivacyContextFactory.contextFrom(any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(null, tcfContext)));
         given(gppService.contextFrom(any())).willReturn(Future.succeededFuture());
         given(gppService.updateSetuidContext(any()))
@@ -151,6 +151,9 @@ public class SetuidHandlerTest extends VertxTest {
         given(activityInfrastructure.isAllowed(any(), any()))
                 .willReturn(true);
 
+        given(applicationSettings.getAccountById(any(), any()))
+                .willReturn(Future.succeededFuture(Account.builder().build()));
+
         final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
         setuidHandler = new SetuidHandler(
@@ -158,7 +161,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -230,7 +233,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .willReturn(new UidsCookie(Uids.builder().uids(emptyMap()).build(), jacksonMapper));
 
         tcfContext = TcfContext.builder().inGdprScope(true).consentValid(false).build();
-        given(privacyEnforcementService.contextFromSetuidRequest(any(), any(), any()))
+        given(setuidPrivacyContextFactory.contextFrom(any(), any(), any()))
                 .willReturn(Future.succeededFuture(PrivacyContext.of(null, tcfContext)));
 
         // when
@@ -394,7 +397,7 @@ public class SetuidHandlerTest extends VertxTest {
                 .enabledForRequestType(EnabledForRequestType.of(true, true, true, true, true))
                 .build();
         final Account account = Account.builder()
-                .privacy(AccountPrivacyConfig.of(accountGdprConfig, null, null, null))
+                .privacy(AccountPrivacyConfig.builder().gdpr(accountGdprConfig).build())
                 .build();
         final Future<Account> accountFuture = Future.succeededFuture(account);
         given(applicationSettings.getAccountById(any(), any())).willReturn(accountFuture);
@@ -404,7 +407,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(applicationSettings).getAccountById(eq("accId"), any());
-        verify(privacyEnforcementService).contextFromSetuidRequest(any(), eq(account), any());
+        verify(setuidPrivacyContextFactory).contextFrom(any(), eq(account), any());
     }
 
     @Test
@@ -426,7 +429,7 @@ public class SetuidHandlerTest extends VertxTest {
 
         // then
         verify(applicationSettings).getAccountById(eq("accId"), any());
-        verify(privacyEnforcementService).contextFromSetuidRequest(any(), eq(Account.empty("accId")), any());
+        verify(setuidPrivacyContextFactory).contextFrom(any(), eq(Account.empty("accId")), any());
     }
 
     @Test
@@ -507,7 +510,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -551,7 +554,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -594,7 +597,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -687,7 +690,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,
@@ -790,7 +793,7 @@ public class SetuidHandlerTest extends VertxTest {
                 uidsCookieService,
                 applicationSettings,
                 bidderCatalog,
-                privacyEnforcementService,
+                setuidPrivacyContextFactory,
                 gppService,
                 activityInfrastructureCreator,
                 tcfDefinerService,

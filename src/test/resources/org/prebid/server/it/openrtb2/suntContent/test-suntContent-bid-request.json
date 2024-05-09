@@ -8,6 +8,7 @@
         "w": 300,
         "h": 250
       },
+      "tagid": "someAdUnitId",
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {

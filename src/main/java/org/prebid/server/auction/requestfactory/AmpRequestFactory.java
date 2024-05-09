@@ -19,6 +19,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.DebugResolver;
 import org.prebid.server.auction.FpdResolver;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.OrtbTypesResolver;
 import org.prebid.server.auction.PriceGranularity;
@@ -26,7 +27,7 @@ import org.prebid.server.auction.StoredRequestProcessor;
 import org.prebid.server.auction.gpp.AmpGppService;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.ConsentType;
-import org.prebid.server.auction.privacycontextfactory.AmpPrivacyContextFactory;
+import org.prebid.server.auction.privacy.contextfactory.AmpPrivacyContextFactory;
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
@@ -96,6 +97,7 @@ public class AmpRequestFactory {
     private final AmpPrivacyContextFactory ampPrivacyContextFactory;
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
+    private final GeoLocationServiceWrapper geoLocationServiceWrapper;
 
     public AmpRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                              StoredRequestProcessor storedRequestProcessor,
@@ -107,7 +109,8 @@ public class AmpRequestFactory {
                              FpdResolver fpdResolver,
                              AmpPrivacyContextFactory ampPrivacyContextFactory,
                              DebugResolver debugResolver,
-                             JacksonMapper mapper) {
+                             JacksonMapper mapper,
+                             GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -120,6 +123,7 @@ public class AmpRequestFactory {
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.ampPrivacyContextFactory = Objects.requireNonNull(ampPrivacyContextFactory);
         this.mapper = Objects.requireNonNull(mapper);
+        this.geoLocationServiceWrapper = Objects.requireNonNull(geoLocationServiceWrapper);
     }
 
     /**
@@ -142,6 +146,12 @@ public class AmpRequestFactory {
 
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
+                .compose(auctionContext -> geoLocationServiceWrapper.lookup(auctionContext)
+                        .map(auctionContext::with))
+
+                .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithGeolocationData(auctionContext)
+                        .map(auctionContext::with))
+
                 .compose(auctionContext -> gppService.contextFrom(auctionContext)
                         .map(auctionContext::with))
 
@@ -154,17 +164,15 @@ public class AmpRequestFactory {
                 .compose(auctionContext -> ampPrivacyContextFactory.contextFrom(auctionContext)
                         .map(auctionContext::with))
 
-                .map(auctionContext -> auctionContext.with(
-                        ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)))
+                .compose(auctionContext -> ortb2RequestFactory.enrichBidRequestWithAccountAndPrivacyData(auctionContext)
+                        .map(auctionContext::with))
 
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
-                .compose(ortb2RequestFactory::populateUserAdditionalInfo)
-
                 .map(ortb2RequestFactory::enrichWithPriceFloors)
 
-                .map(auctionContext -> ortb2RequestFactory.updateTimeout(auctionContext, startTime))
+                .map(ortb2RequestFactory::updateTimeout)
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
     }
@@ -289,7 +297,7 @@ public class AmpRequestFactory {
                 .usPrivacy(usPrivacy)
                 .gppSid(gppSid)
                 .gpp(gpp)
-                .ext(gpc != null ? ExtRegs.of(null, null, gpc) : null)
+                .ext(gpc != null ? ExtRegs.of(null, null, gpc, null) : null)
                 .build()
                 : null;
     }
@@ -394,11 +402,7 @@ public class AmpRequestFactory {
                 .map(bidRequest -> validateStoredBidRequest(storedRequestId, bidRequest))
                 .map(this::fillExplicitParameters)
                 .map(bidRequest -> overrideParameters(bidRequest, httpRequest, auctionContext.getPrebidErrors()))
-                .map(bidRequest -> paramsResolver.resolve(
-                        bidRequest,
-                        httpRequest,
-                        ENDPOINT,
-                        true))
+                .map(bidRequest -> paramsResolver.resolve(bidRequest, auctionContext, ENDPOINT, true))
                 .compose(resolvedBidRequest -> ortb2RequestFactory.validateRequest(
                         resolvedBidRequest,
                         auctionContext.getHttpRequest(),

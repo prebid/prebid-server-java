@@ -199,7 +199,7 @@ public class GeoRuleTest extends VertxTest {
         final ActivityInvocationPayload payload = BidRequestActivityInvocationPayload.of(
                 null,
                 BidRequest.builder()
-                        .regs(Regs.builder().ext(ExtRegs.of(null, null, "2")).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null, "2", null)).build())
                         .build());
 
         // when
@@ -216,7 +216,7 @@ public class GeoRuleTest extends VertxTest {
         final ActivityInvocationPayload payload = BidRequestActivityInvocationPayload.of(
                 null,
                 BidRequest.builder()
-                        .regs(Regs.builder().ext(ExtRegs.of(null, null, "1")).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null, "1", null)).build())
                         .build());
 
         // when
@@ -240,7 +240,7 @@ public class GeoRuleTest extends VertxTest {
                 ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, "bidder"),
                 BidRequest.builder()
                         .device(Device.builder().geo(Geo.builder().country("country").region("region").build()).build())
-                        .regs(Regs.builder().ext(ExtRegs.of(null, null, "2")).build())
+                        .regs(Regs.builder().ext(ExtRegs.of(null, null, "2", null)).build())
                         .build());
 
         // when

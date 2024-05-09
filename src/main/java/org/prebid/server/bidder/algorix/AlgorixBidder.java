@@ -46,9 +46,9 @@ public class AlgorixBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String URL_REGION_MACRO = "{HOST}";
-    private static final String URL_SID_MACRO = "{SID}";
-    private static final String URL_TOKEN_MACRO = "{TOKEN}";
+    private static final String URL_REGION_MACRO = "{{HOST}}";
+    private static final String URL_SID_MACRO = "{{SID}}";
+    private static final String URL_TOKEN_MACRO = "{{TOKEN}}";
 
     private static final int FIRST_INDEX = 0;
 
