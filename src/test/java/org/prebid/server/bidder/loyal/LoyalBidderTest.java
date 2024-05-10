@@ -5,7 +5,6 @@ import org.prebid.server.VertxTest;
 
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
-
 public class LoyalBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.com/test?param={{PlacementId}}";

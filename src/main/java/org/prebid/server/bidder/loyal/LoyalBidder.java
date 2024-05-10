@@ -45,13 +45,13 @@ public class LoyalBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        List<BidderError> errors = new ArrayList<>();
-        List<HttpRequest<BidRequest>> requests = new ArrayList<>();
+        final List<BidderError> errors = new ArrayList<>();
+        final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
             try {
-                ExtImpLoyal ext = parseImpExt(imp);
-                HttpRequest<BidRequest> httpRequest = createHttpRequest(ext, request);
+                final ExtImpLoyal ext = parseImpExt(imp);
+                final HttpRequest<BidRequest> httpRequest = createHttpRequest(ext, request);
                 requests.add(httpRequest);
             } catch (Exception e) {
                 errors.add(BidderError.badInput("Failed to parse the ExtImpLoyal object: " + e.getMessage()));
@@ -76,10 +76,10 @@ public class LoyalBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createHttpRequest(ExtImpLoyal ext, BidRequest request) {
-        String url = endpointUrl
+        final String url = endpointUrl
                 .replace(PLACEMENT_ID_MACRO, ext.getPlacementId())
                 .replace(ENDPOINT_ID_MACRO, ext.getEndpointId());
-        BidRequest outgoingRequest = request.toBuilder().build();
+        final BidRequest outgoingRequest = request.toBuilder().build();
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
@@ -92,7 +92,7 @@ public class LoyalBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
-            BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
+            final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
