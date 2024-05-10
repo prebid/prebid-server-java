@@ -1,16 +1,13 @@
 package org.prebid.server.it;
 
-import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.json.JSONException;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.RegisterExtension;
-import org.prebid.server.VertxTest;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.util.IntegrationTestsUtil;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.TestPropertySource;
 
 import java.io.IOException;
@@ -20,20 +17,12 @@ import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
-import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static com.github.tomakehurst.wiremock.stubbing.Scenario.STARTED;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.prebid.server.util.IntegrationTestsUtil.assertJsonEquals;
-import static org.prebid.server.util.IntegrationTestsUtil.jsonFrom;
-import static org.prebid.server.util.IntegrationTestsUtil.responseFor;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@TestPropertySource(
-        value = {"test-application.properties"},
-        properties = {"price-floors.enabled=true", "server.http.port=8050", "admin.port=0"}
-)
-public class PriceFloorsTest extends VertxTest {
+@TestPropertySource(properties = {"price-floors.enabled=true", "server.http.port=8050", "admin.port=0"})
+public class PriceFloorsTest extends IntegrationTest {
 
     private static final int APP_PORT = 8050;
     private static final int WIREMOCK_PORT = 8090;
@@ -44,19 +33,17 @@ public class PriceFloorsTest extends VertxTest {
 
     private static final RequestSpecification SPEC = IntegrationTest.spec(APP_PORT);
 
-    @RegisterExtension
-    public static final WireMockExtension WIRE_MOCK_RULE = WireMockExtension.newInstance()
-            .options(wireMockConfig()
-                    .port(WIREMOCK_PORT))
-            .build();
-
-    @Test
-    public void openrtb2AuctionShouldApplyPriceFloorsForTheGenericBidder() throws IOException, JSONException {
-        // given
+    @BeforeAll
+    public static void setUpJunk() throws IOException {
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/periodic-update"))
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
                 .willReturn(aResponse().withBody(jsonFrom("currency/latest.json"))));
+    }
+
+    @Test
+    public void openrtb2AuctionShouldApplyPriceFloorsForTheGenericBidder() throws IOException, JSONException {
+        // given
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/floors-provider"))
                 .willReturn(aResponse().withBody(jsonFrom("openrtb2/floors/provided-floors.json"))));
 
@@ -68,13 +55,13 @@ public class PriceFloorsTest extends VertxTest {
                 .willSetStateTo(FLOORS_FROM_REQUEST));
 
         // when
-        final Response firstResponse = responseFor(
+        final Response firstResponse = IntegrationTestsUtil.responseFor(
                 "openrtb2/floors/floors-test-auction-request-1.json",
                 Endpoint.openrtb2_auction,
                 SPEC);
 
         // then
-        assertJsonEquals(
+        IntegrationTestsUtil.assertJsonEquals(
                 "openrtb2/floors/floors-test-auction-response.json",
                 firstResponse,
                 singletonList("generic"),
@@ -89,14 +76,14 @@ public class PriceFloorsTest extends VertxTest {
                 .willSetStateTo(FLOORS_FROM_PROVIDER));
 
         // when
-        final Response secondResponse = responseFor(
+        final Response secondResponse = IntegrationTestsUtil.responseFor(
                 "openrtb2/floors/floors-test-auction-request-2.json",
                 Endpoint.openrtb2_auction,
                 SPEC);
 
         // then
         assertThat(stubMapping.getNewScenarioState()).isEqualTo(FLOORS_FROM_PROVIDER);
-        assertJsonEquals(
+        IntegrationTestsUtil.assertJsonEquals(
                 "openrtb2/floors/floors-test-auction-response.json",
                 secondResponse,
                 singletonList("generic"),

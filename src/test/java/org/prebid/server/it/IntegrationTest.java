@@ -17,7 +17,7 @@ import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONException;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
@@ -76,8 +76,8 @@ public abstract class IntegrationTest extends VertxTest {
     private static final String CACHE_PATH = "/cache";
     private static final String CACHE_ENDPOINT = "http://" + HOST_AND_PORT + CACHE_PATH;
 
-    @BeforeAll
-    public static void setUp() throws IOException {
+    @BeforeEach
+    public void setUp() throws IOException {
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/periodic-update"))
                 .willReturn(aResponse().withBody(jsonFrom("storedrequests/test-periodic-refresh.json"))));
         WIRE_MOCK_RULE.stubFor(get(urlPathEqualTo("/currency-rates"))
