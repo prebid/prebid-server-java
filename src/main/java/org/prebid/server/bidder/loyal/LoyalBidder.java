@@ -7,6 +7,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -17,6 +18,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.adf.ExtImpAdf;
 import org.prebid.server.proto.openrtb.ext.request.loyal.ExtImpLoyal;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -76,9 +78,13 @@ public class LoyalBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createHttpRequest(ExtImpLoyal ext, BidRequest request) {
-        final String url = endpointUrl
-                .replace(PLACEMENT_ID_MACRO, ext.getPlacementId())
-                .replace(ENDPOINT_ID_MACRO, ext.getEndpointId());
+        String url = null;
+        if (StringUtils.isNotBlank(ext.getPlacementId())) {
+            url = endpointUrl.replace(PLACEMENT_ID_MACRO, ext.getPlacementId());
+        }
+        if (StringUtils.isNotBlank(ext.getEndpointId())) {
+            url = endpointUrl.replace(ENDPOINT_ID_MACRO, ext.getEndpointId());
+        }
         final BidRequest outgoingRequest = request.toBuilder().build();
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)

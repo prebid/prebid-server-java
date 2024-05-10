@@ -17,14 +17,14 @@
           }
         }
       ],
-      "seat": "generic",
+      "seat": "loyal",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "generic": "{{ generic.response_time_ms }}"
+      "loyal": "{{ loyal.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 0

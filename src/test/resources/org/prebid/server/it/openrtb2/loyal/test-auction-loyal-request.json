@@ -9,8 +9,7 @@
       },
       "ext": {
         "loyal": {
-          "placementId": "testPlacementId",
-          "endpointId": "testEndpointId"
+          "placementId": "testPlacementId"
         }
       }
     }

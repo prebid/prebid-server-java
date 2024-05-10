@@ -1,7 +1,7 @@
 adapters:
   loyal:
-    enabled: true
-    endpoint: "https://us-east-1.loyal.app/pserver"
+    enabled: false
+    endpoint: "https://us-east-1.loyal.app/pserver?p={{PlacementId}}&e={{EndpointId}}"
     pbs-enforces-gdpr: false
     pbs-enforces-ccpa: false
     modifying-vast-xml-allowed: false
