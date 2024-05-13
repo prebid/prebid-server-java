@@ -27,7 +27,7 @@ enum NoBidResponse {
     EXCHANGE_SPECIFIC_VALUES(500)
 
     @JsonValue
-    Integer nbr
+    final Integer nbr
 
     NoBidResponse(Integer nbr) {
         this.nbr = nbr
