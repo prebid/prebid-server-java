@@ -142,6 +142,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class RubiconBidderTest extends VertxTest {
 
+    private static final String BIDDER_NAME = "bidderName";
     private static final String ENDPOINT_URL = "http://rubiconproject.com/exchange.json?tk_xint=prebid";
     private static final String USERNAME = "username";
     private static final String PASSWORD = "password";
@@ -161,14 +162,14 @@ public class RubiconBidderTest extends VertxTest {
 
     @Before
     public void setUp() {
-        target = new RubiconBidder(ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, false,
+        target = new RubiconBidder(BIDDER_NAME, ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, false,
                 currencyConversionService, priceFloorResolver, jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new RubiconBidder("invalid_url", USERNAME, PASSWORD, SUPPORTED_VENDORS, false,
+                () -> new RubiconBidder(BIDDER_NAME, "invalid_url", USERNAME, PASSWORD, SUPPORTED_VENDORS, false,
                         currencyConversionService, priceFloorResolver, jacksonMapper));
     }
 
@@ -3100,7 +3101,7 @@ public class RubiconBidderTest extends VertxTest {
         final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "JPY");
         when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
                 .thenReturn(BigDecimal.ONE);
-        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
         final JsonNode impFloorsNode = mapper.valueToTree(ExtImpPrebidFloors.of(
                 null, null, null, BigDecimal.TEN, "CUR"));
         final ObjectNode givenImpExt = mapper.createObjectNode();
@@ -3122,7 +3123,7 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        verify(priceFloorResolver).resolve(any(), any(), any(), eq(ImpMediaType.video), any(), any());
+        verify(priceFloorResolver).resolve(any(), any(), any(), eq(ImpMediaType.video), any(), any(), any());
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
@@ -3140,7 +3141,7 @@ public class RubiconBidderTest extends VertxTest {
         final PriceFloorResult priceFloorResult = PriceFloorResult.of("banner", BigDecimal.TEN, BigDecimal.TEN, "JPY");
         when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
                 .thenReturn(BigDecimal.ONE);
-        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
 
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -3157,7 +3158,7 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        verify(priceFloorResolver).resolve(any(), any(), any(), eq(ImpMediaType.banner), any(), any());
+        verify(priceFloorResolver).resolve(any(), any(), any(), eq(ImpMediaType.banner), any(), any(), any());
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
@@ -3175,7 +3176,7 @@ public class RubiconBidderTest extends VertxTest {
         final PriceFloorResult priceFloorResult = PriceFloorResult.of("native", BigDecimal.TEN, BigDecimal.TEN, "JPY");
         when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
                 .thenReturn(BigDecimal.ONE);
-        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
 
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -3192,7 +3193,7 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        verify(priceFloorResolver).resolve(any(), any(), any(), eq(ImpMediaType.xNative), any(), any());
+        verify(priceFloorResolver).resolve(any(), any(), any(), eq(ImpMediaType.xNative), any(), any(), any());
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
@@ -3210,7 +3211,7 @@ public class RubiconBidderTest extends VertxTest {
         final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, null);
         when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
                 .thenReturn(BigDecimal.ONE);
-        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
 
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
@@ -3245,7 +3246,7 @@ public class RubiconBidderTest extends VertxTest {
         // given
         final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "EUR");
 
-        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
         when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(BigDecimal.ONE);
 
         final BidRequest bidRequest = givenBidRequest(
@@ -3281,7 +3282,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeHttpRequestsShouldFillImpExtWithFloorsWhenBothVideoAndBanner() {
         // given
         final PriceFloorResult priceFloorResult = PriceFloorResult.of("video", BigDecimal.TEN, BigDecimal.TEN, "JPY");
-        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
+        when(priceFloorResolver.resolve(any(), any(), any(), any(), any(), any(), any())).thenReturn(priceFloorResult);
         when(currencyConversionService.convertCurrency(any(), any(), any(), any()))
                 .thenReturn(BigDecimal.ONE);
 
@@ -3807,7 +3808,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidWithRandomlyGeneratedId() throws JsonProcessingException {
         // given
         target = new RubiconBidder(
-                ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
+                BIDDER_NAME, ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
                 currencyConversionService, priceFloorResolver, jacksonMapper);
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
@@ -3833,7 +3834,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
         // given
         target = new RubiconBidder(
-                ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
+                BIDDER_NAME, ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
                 currencyConversionService, priceFloorResolver, jacksonMapper);
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),

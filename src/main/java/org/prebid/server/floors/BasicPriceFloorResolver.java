@@ -59,12 +59,12 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class BasicPriceFloorResolver implements PriceFloorResolver {
 
@@ -115,6 +115,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                                     Imp imp,
                                     ImpMediaType mediaType,
                                     Format format,
+                                    String bidder,
                                     List<String> warnings) {
 
         if (isPriceFloorsDisabledForRequest(bidRequest)) {
@@ -141,7 +142,7 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                 WILDCARD_CATCH_ALL,
                 ObjectUtils.defaultIfNull(schema.getDelimiter(), SCHEMA_DEFAULT_DELIMITER),
                 values.keySet());
-        final PrebidConfigParameters parameters = createParameters(schema, bidRequest, imp, mediaType, format);
+        final PrebidConfigParameters parameters = createParameters(schema, bidRequest, imp, mediaType, format, bidder);
 
         final String rule = matchingStrategy.match(source, parameters);
         final BigDecimal floorForRule = rule != null ? values.get(rule) : null;
@@ -189,21 +190,25 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
 
     private static <V> Map<String, V> keysToLowerCase(Map<String, V> map) {
         return map.entrySet().stream()
-                .collect(Collectors.toMap(entry -> entry.getKey().toLowerCase(), Map.Entry::getValue));
+                .collect(
+                        HashMap::new,
+                        (hashMap, entry) -> hashMap.put(entry.getKey().toLowerCase(), entry.getValue()),
+                        HashMap::putAll);
     }
 
     private PrebidConfigParameters createParameters(PriceFloorSchema schema,
                                                     BidRequest bidRequest,
                                                     Imp imp,
                                                     ImpMediaType mediaType,
-                                                    Format format) {
+                                                    Format format,
+                                                    String bidder) {
 
         final List<ImpMediaType> resolvedMediaTypes = mediaType != null
                 ? Collections.singletonList(mediaType)
                 : mediaTypesFromImp(imp);
 
         final List<PrebidConfigParameter> conditionsMatchers = schema.getFields().stream()
-                .map(field -> createParameter(field, bidRequest, imp, resolvedMediaTypes, format))
+                .map(field -> createParameter(field, bidRequest, imp, resolvedMediaTypes, format, bidder))
                 .toList();
 
         return SimpleParameters.of(conditionsMatchers);
@@ -240,7 +245,8 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
                                                   BidRequest bidRequest,
                                                   Imp imp,
                                                   List<ImpMediaType> mediaTypes,
-                                                  Format format) {
+                                                  Format format,
+                                                  String bidder) {
 
         return switch (field) {
             case siteDomain -> siteDomainFromRequest(bidRequest);
@@ -254,6 +260,8 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             case adUnitCode -> adUnitCodeFromImp(imp);
             case country -> countryFromRequest(bidRequest);
             case deviceType -> resolveDeviceTypeFromRequest(bidRequest);
+            //todo: do we need to check whether the imp contains the bidder?
+            case bidder -> SimpleDirectParameter.of(bidder);
         };
     }
 

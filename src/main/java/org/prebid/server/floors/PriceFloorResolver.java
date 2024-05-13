@@ -16,14 +16,16 @@ public interface PriceFloorResolver {
                              Imp imp,
                              ImpMediaType mediaType,
                              Format format,
+                             String bidder,
                              List<String> warnings);
 
     default PriceFloorResult resolve(BidRequest bidRequest,
                                      PriceFloorRules floorRules,
                                      Imp imp,
+                                     String bidder,
                                      List<String> warnings) {
 
-        return resolve(bidRequest, floorRules, imp, null, null, warnings);
+        return resolve(bidRequest, floorRules, imp, null, null, bidder, warnings);
     }
 
     static NoOpPriceFloorResolver noOp() {
@@ -38,6 +40,7 @@ public interface PriceFloorResolver {
                                         Imp imp,
                                         ImpMediaType mediaType,
                                         Format format,
+                                        String bidder,
                                         List<String> warnings) {
 
             return null;
