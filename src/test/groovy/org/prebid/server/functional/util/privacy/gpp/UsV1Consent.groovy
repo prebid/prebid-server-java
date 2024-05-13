@@ -2,9 +2,9 @@ package org.prebid.server.functional.util.privacy.gpp
 
 import com.iab.gpp.encoder.field.UspV1Field
 
-class UspV1Consent extends GppConsent {
+class UsV1Consent extends GppConsent {
 
-    protected UspV1Consent(Section section, Map<String, Object> fieldValues) {
+    protected UsV1Consent(Section section, Map<String, Object> fieldValues) {
         super(section, fieldValues)
     }
 
@@ -35,8 +35,8 @@ class UspV1Consent extends GppConsent {
         }
 
         @Override
-        UspV1Consent build() {
-            new UspV1Consent(section, fieldValues)
+        UsV1Consent build() {
+            new UsV1Consent(section, fieldValues)
         }
     }
 }

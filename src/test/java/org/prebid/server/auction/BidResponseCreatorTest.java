@@ -2652,8 +2652,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         ExtBidderError.of(3, "Failed to decode: Cannot deserialize value"
                                 + " of type `com.iab.openrtb.response.Response` from Array value "
                                 + "(token `JsonToken.START_ARRAY`)\n"
-                                + " at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION`"
-                                + " disabled); line: 1, column: 1]"))),
+                                + " at [Source: (String)\"[]\"; line: 1, column: 1]"))),
                 entry("cache", singletonList(ExtBidderError.of(999, "cacheError"))));
 
         assertThat(responseExt.getResponsetimemillis()).hasSize(2)
@@ -3151,7 +3150,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(error -> error.get(bidder1))
                 .extracting(extBidderErrors -> extBidderErrors.get(0))
                 .isEqualTo(ExtBidderError.of(3, "No content to map due to end-of-input\n"
-                        + " at [Source: REDACTED (`StreamReadFeature.INCLUDE_SOURCE_IN_LOCATION` disabled); line: 1]"));
+                        + " at [Source: (String)\"\"; line: 1, column: 0]"));
     }
 
     @Test

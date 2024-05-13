@@ -277,8 +277,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final Boolean transmitGeoIsAllowed = true;
         final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
                 "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
-        final User user = userFpdActivityMask.maskUser(
-                getUser(), true, true, !transmitGeoIsAllowed);
+        final User user = userFpdActivityMask.maskUser(getUser(), true, true);
         final Device device = userFpdActivityMask.maskDevice(
                 getDevice(), true, !transmitGeoIsAllowed);
 
@@ -306,8 +305,7 @@ public class ConfiantAdQualityBidResponsesScanHookTest {
         final Boolean transmitGeoIsAllowed = false;
         final BidsScanResult bidsScanResult = redisParser.parseBidsScanResult(
                 "[[[{\"tag_key\": \"tag\", \"issues\":[{\"spec_name\":\"malicious_domain\",\"value\":\"ads.deceivenetworks.net\",\"first_adinstance\":\"e91e8da982bb8b7f80100426\"}]}]]]");
-        final User user = userFpdActivityMask.maskUser(
-                getUser(), true, true, !transmitGeoIsAllowed);
+        final User user = userFpdActivityMask.maskUser(getUser(), true, true);
         final Device device = userFpdActivityMask.maskDevice(
                 getDevice(), true, !transmitGeoIsAllowed);
 

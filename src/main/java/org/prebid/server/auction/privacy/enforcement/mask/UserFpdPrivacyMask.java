@@ -8,6 +8,8 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -23,10 +25,9 @@ public abstract class UserFpdPrivacyMask {
     protected User maskUser(User user,
                             boolean maskUserFpd,
                             boolean maskEids,
-                            boolean maskGeo,
                             Set<String> eidExceptions) {
 
-        if (user == null || !(maskUserFpd || maskEids || maskGeo)) {
+        if (user == null || !(maskUserFpd || maskEids)) {
             return user;
         }
 
@@ -40,15 +41,12 @@ public abstract class UserFpdPrivacyMask {
                     .keywords(null)
                     .kwarray(null)
                     .data(null)
+                    .geo(null)
                     .ext(maskExtUser(user.getExt()));
         }
 
         if (maskEids) {
             userBuilder.eids(removeEids(user.getEids(), eidExceptions));
-        }
-
-        if (maskGeo) {
-            userBuilder.geo(maskNullableGeo(user.getGeo()));
         }
 
         return nullIfEmpty(userBuilder.build());
@@ -72,12 +70,6 @@ public abstract class UserFpdPrivacyMask {
 
         return clearedEids.isEmpty() ? null : clearedEids;
     }
-
-    private Geo maskNullableGeo(Geo geo) {
-        return geo != null ? nullIfEmpty(maskGeo(geo)) : null;
-    }
-
-    protected abstract Geo maskGeo(Geo geo);
 
     protected Device maskDevice(Device device, boolean maskIp, boolean maskGeo, boolean maskDeviceInfo) {
         if (device == null || !(maskIp || maskGeo || maskDeviceInfo)) {
@@ -103,6 +95,29 @@ public abstract class UserFpdPrivacyMask {
         }
 
         return deviceBuilder.build();
+    }
+
+    private static Geo maskNullableGeo(Geo geo) {
+        return geo != null ? nullIfEmpty(maskGeo(geo)) : null;
+    }
+
+    private static Geo maskGeo(Geo geo) {
+        return geo.toBuilder()
+                .lat(maskGeoCoordinate(geo.getLat()))
+                .lon(maskGeoCoordinate(geo.getLon()))
+                .metro(null)
+                .city(null)
+                .zip(null)
+                .accuracy(null)
+                .ipservice(null)
+                .ext(null)
+                .build();
+    }
+
+    private static Float maskGeoCoordinate(Float coordinate) {
+        return coordinate != null
+                ? BigDecimal.valueOf(coordinate).setScale(2, RoundingMode.HALF_UP).floatValue()
+                : null;
     }
 
     private static User nullIfEmpty(User user) {

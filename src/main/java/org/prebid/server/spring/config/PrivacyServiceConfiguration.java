@@ -355,13 +355,13 @@ public class PrivacyServiceConfiguration {
     }
 
     @Bean
-    UserFpdCcpaMask userFpdCcpaMask(IpAddressHelper ipAddressHelper) {
-        return new UserFpdCcpaMask(ipAddressHelper);
+    UserFpdCcpaMask userFpdCcpaMask(UserFpdActivityMask userFpdActivityMask) {
+        return new UserFpdCcpaMask(userFpdActivityMask);
     }
 
     @Bean
-    UserFpdCoppaMask userFpdCoppaMask(IpAddressHelper ipAddressHelper) {
-        return new UserFpdCoppaMask(ipAddressHelper);
+    UserFpdCoppaMask userFpdCoppaMask(UserFpdActivityMask userFpdActivityMask) {
+        return new UserFpdCoppaMask(userFpdActivityMask);
     }
 
     @Bean

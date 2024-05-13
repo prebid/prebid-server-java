@@ -21,14 +21,14 @@
           }
         }
       ],
-      "seat": "zeta-global-ssp",
+      "seat": "zeta_global_ssp",
       "group": 0
     }
   ],
   "cur": "USD",
   "ext": {
     "responsetimemillis": {
-      "zeta-global-ssp": "{{ zeta-global-ssp.response_time_ms }}"
+      "zeta_global_ssp": "{{ zeta_global_ssp.response_time_ms }}"
     },
     "prebid": {
       "auctiontimestamp": 1000

@@ -21,18 +21,18 @@ public class ZetaGlobalSspTest extends IntegrationTest {
     @Test
     public void openrtb2AuctionShouldRespondWithBidsFromZetaGlobalSsp() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/zeta-global-ssp-exchange"))
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/zeta_global_ssp-exchange"))
                 .withRequestBody(equalToJson(
-                        jsonFrom("openrtb2/zetaglobalssp/test-zeta-global-ssp-bid-request.json")))
+                        jsonFrom("openrtb2/zeta_global_ssp/test-zeta_global_ssp-bid-request.json")))
                 .willReturn(aResponse().withBody(
-                        jsonFrom("openrtb2/zetaglobalssp/test-zeta-global-ssp-bid-response.json"))));
+                        jsonFrom("openrtb2/zeta_global_ssp/test-zeta_global_ssp-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/zetaglobalssp/test-auction-zeta-global-ssp-request.json",
+        final Response response = responseFor("openrtb2/zeta_global_ssp/test-auction-zeta_global_ssp-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/zetaglobalssp/test-auction-zeta-global-ssp-response.json", response,
-                singletonList("zeta-global-ssp"));
+        assertJsonEquals("openrtb2/zeta_global_ssp/test-auction-zeta_global_ssp-response.json", response,
+                singletonList("zeta_global_ssp"));
     }
 }

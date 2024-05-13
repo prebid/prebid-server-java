@@ -141,7 +141,7 @@ public class ActivityInfrastructureCreatorTest {
     }
 
     @Test
-    public void parseShouldReturnImitatedTransmitEidsActivity() {
+    public void parseShouldReturnOriginalTransmitEidsActivity() {
         // given
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.builder()
@@ -158,17 +158,17 @@ public class ActivityInfrastructureCreatorTest {
 
         assertThat(controllers.get(Activity.CALL_BIDDER).isAllowed(null)).isEqualTo(true);
         assertThat(controllers.get(Activity.TRANSMIT_UFPD).isAllowed(null)).isEqualTo(false);
-        assertThat(controllers.get(Activity.TRANSMIT_EIDS).isAllowed(null)).isEqualTo(false);
+        assertThat(controllers.get(Activity.TRANSMIT_EIDS).isAllowed(null)).isEqualTo(true);
     }
 
     @Test
-    public void parseShouldReturnOriginalTransmitEidsActivity() {
+    public void parseShouldReturnImitatedTransmitEidsActivity() {
         // given
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.builder()
                         .gdpr(AccountGdprConfig.builder()
                                 .purposes(Purposes.builder()
-                                        .p4(Purpose.of(null, null, null, PurposeEid.of(false, false, null)))
+                                        .p4(Purpose.of(null, null, null, PurposeEid.of(true, false, null)))
                                         .build())
                                 .build())
                         .activities(Map.of(Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(false, null)))
@@ -184,6 +184,6 @@ public class ActivityInfrastructureCreatorTest {
 
         assertThat(controllers.get(Activity.CALL_BIDDER).isAllowed(null)).isEqualTo(true);
         assertThat(controllers.get(Activity.TRANSMIT_UFPD).isAllowed(null)).isEqualTo(false);
-        assertThat(controllers.get(Activity.TRANSMIT_EIDS).isAllowed(null)).isEqualTo(true);
+        assertThat(controllers.get(Activity.TRANSMIT_EIDS).isAllowed(null)).isEqualTo(false);
     }
 }
