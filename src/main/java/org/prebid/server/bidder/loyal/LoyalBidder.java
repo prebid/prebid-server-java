@@ -18,7 +18,6 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.adf.ExtImpAdf;
 import org.prebid.server.proto.openrtb.ext.request.loyal.ExtImpLoyal;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -41,7 +40,7 @@ public class LoyalBidder implements Bidder<BidRequest> {
     private final JacksonMapper mapper;
 
     public LoyalBidder(String endpointUrl, JacksonMapper mapper) {
-        this.endpointUrl = Objects.requireNonNull(endpointUrl);
+        this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -55,8 +54,8 @@ public class LoyalBidder implements Bidder<BidRequest> {
                 final ExtImpLoyal ext = parseImpExt(imp);
                 final HttpRequest<BidRequest> httpRequest = createHttpRequest(ext, request);
                 requests.add(httpRequest);
-            } catch (Exception e) {
-                errors.add(BidderError.badInput("Failed to parse the ExtImpLoyal object: " + e.getMessage()));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
@@ -78,12 +77,16 @@ public class LoyalBidder implements Bidder<BidRequest> {
     }
 
     private HttpRequest<BidRequest> createHttpRequest(ExtImpLoyal ext, BidRequest request) {
-        String url = null;
+        String url = endpointUrl;
         if (StringUtils.isNotBlank(ext.getPlacementId())) {
-            url = endpointUrl.replace(PLACEMENT_ID_MACRO, ext.getPlacementId());
+            url = url.replace(PLACEMENT_ID_MACRO, ext.getPlacementId());
+        } else {
+            url = url.replace("param={{PlacementId}}&", ""); // Remove the PlacementId part if not available
         }
         if (StringUtils.isNotBlank(ext.getEndpointId())) {
-            url = endpointUrl.replace(ENDPOINT_ID_MACRO, ext.getEndpointId());
+            url = url.replace(ENDPOINT_ID_MACRO, ext.getEndpointId());
+        } else {
+            url = url.replace("&param2={{EndpointId}}", ""); // Remove the EndpointId part if not available
         }
         final BidRequest outgoingRequest = request.toBuilder().build();
         return HttpRequest.<BidRequest>builder()
@@ -97,6 +100,10 @@ public class LoyalBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        if (httpCall.getResponse() == null || httpCall.getResponse().getBody() == null) {
+            return Result.withError(BidderError.badServerResponse("No response or empty body"));
+        }
+
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse));
