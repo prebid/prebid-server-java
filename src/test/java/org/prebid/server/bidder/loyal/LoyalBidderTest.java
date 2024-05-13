@@ -54,15 +54,19 @@ public class LoyalBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(results.getValue()).hasSize(1).first().satisfies(request -> assertThat(request.getBody()).isEqualTo(jacksonMapper.encodeToBytes(bidRequest))).satisfies(request -> assertThat(request.getPayload()).isEqualTo(bidRequest));
+        assertThat(results.getValue())
+                .hasSize(1)
+                .first().satisfies(request -> assertThat(request.getBody()).isEqualTo(jacksonMapper.encodeToBytes(bidRequest)))
+                .satisfies(request -> assertThat(request.getPayload()).isEqualTo(bidRequest));
         assertThat(results.getErrors()).isEmpty();
     }
-
 
     @Test
     public void makeHttpRequestsShouldReturnErrorsOfNotValidImps() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+        final BidRequest bidRequest =
+                givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
@@ -71,11 +75,11 @@ public class LoyalBidderTest extends VertxTest {
         assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing bidder ext in impression with id: 123"));
     }
 
-
     @Test
     public void shouldReplacePlacementIdMacro() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLoyal.of("placement123", null)))));
+        final BidRequest bidRequest =
+                givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLoyal.of("placement123", null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -83,13 +87,15 @@ public class LoyalBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("https://test.com/test?param=placement123");
+        assertThat(result.getValue()).extracting(HttpRequest::getUri)
+                .containsExactly("https://test.com/test?param=placement123");
     }
 
     @Test
     public void shouldReplaceEndpointIdMacro() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLoyal.of(null, "endpoint123")))));
+        final BidRequest bidRequest =
+                givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLoyal.of(null, "endpoint123")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -264,7 +270,6 @@ public class LoyalBidderTest extends VertxTest {
         assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Missing MType for bid: " + bid.getId()));
     }
 
-
     private static BidRequest givenBidRequest() {
         final Imp imp = Imp.builder().id("imp_id").ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLoyal.of("{{PlacementId}}", "endpointId")))).build();
         return BidRequest.builder().imp(List.of(imp)).build();
@@ -275,7 +280,6 @@ public class LoyalBidderTest extends VertxTest {
     }
 
     private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer, Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-
         return bidRequestCustomizer.apply(BidRequest.builder().imp(singletonList(givenImp(impCustomizer)))).build();
     }
 
