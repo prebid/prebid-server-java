@@ -38,7 +38,6 @@ public class GeoLocationServiceWrapper {
         this.metrics = Objects.requireNonNull(metrics);
     }
 
-    //todo: account settings will work as expected if the default account resolving refactoring is done
     public Future<GeoInfo> lookup(AuctionContext auctionContext) {
         final Account account = auctionContext.getAccount();
         final Device device = auctionContext.getBidRequest().getDevice();

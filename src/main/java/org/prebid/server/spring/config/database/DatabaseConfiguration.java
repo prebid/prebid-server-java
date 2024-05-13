@@ -16,8 +16,8 @@ import org.prebid.server.spring.config.database.model.DatabaseAddress;
 import org.prebid.server.spring.config.database.properties.DatabaseConfigurationProperties;
 import org.prebid.server.spring.config.model.CircuitBreakerProperties;
 import org.prebid.server.vertx.ContextRunner;
-import org.prebid.server.vertx.jdbc.BasicJdbcClient;
-import org.prebid.server.vertx.jdbc.CircuitBreakerSecuredJdbcClient;
+import org.prebid.server.vertx.database.BasicDatabaseClient;
+import org.prebid.server.vertx.database.CircuitBreakerSecuredDatabaseClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -45,6 +45,9 @@ public class DatabaseConfiguration {
     ConnectionPoolSettings connectionPoolSettings(DatabaseConfigurationProperties databaseConfigurationProperties) {
         return ConnectionPoolSettings.of(
                 databaseConfigurationProperties.getPoolSize(),
+                databaseConfigurationProperties.getIdleConnectionTimeout(),
+                databaseConfigurationProperties.getEnablePreparedStatementCaching(),
+                databaseConfigurationProperties.getMaxPreparedStatementCacheSize(),
                 databaseConfigurationProperties.getUser(),
                 databaseConfigurationProperties.getPassword(),
                 databaseConfigurationProperties.getType());
@@ -83,7 +86,9 @@ public class DatabaseConfiguration {
                 .setPassword(connectionPoolSettings.getPassword())
                 .setSsl(false)
                 .setTcpKeepAlive(true)
-                .setIdleTimeout(1)
+                .setCachePreparedStatements(connectionPoolSettings.getEnablePreparedStatementCaching())
+                .setPreparedStatementCacheMaxSize(connectionPoolSettings.getMaxPreparedStatementCacheSize())
+                .setIdleTimeout(connectionPoolSettings.getIdleTimeout())
                 .setIdleTimeoutUnit(TimeUnit.SECONDS);
 
         final PoolOptions poolOptions = new PoolOptions()
@@ -111,7 +116,9 @@ public class DatabaseConfiguration {
                 .setPassword(connectionPoolSettings.getPassword())
                 .setSsl(false)
                 .setTcpKeepAlive(true)
-                .setIdleTimeout(1)
+                .setCachePreparedStatements(connectionPoolSettings.getEnablePreparedStatementCaching())
+                .setPreparedStatementCacheMaxSize(connectionPoolSettings.getMaxPreparedStatementCacheSize())
+                .setIdleTimeout(connectionPoolSettings.getIdleTimeout())
                 .setIdleTimeoutUnit(TimeUnit.SECONDS);
 
         final PoolOptions poolOptions = new PoolOptions()
@@ -135,14 +142,14 @@ public class DatabaseConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "false",
             matchIfMissing = true)
-    BasicJdbcClient basicJdbcClient(Pool pool, Metrics metrics, Clock clock, ContextRunner contextRunner) {
+    BasicDatabaseClient basicDatabaseClient(Pool pool, Metrics metrics, Clock clock, ContextRunner contextRunner) {
 
-        return createBasicJdbcClient(pool, metrics, clock, contextRunner);
+        return createBasicDatabaseClient(pool, metrics, clock, contextRunner);
     }
 
     @Bean
     @ConditionalOnProperty(prefix = "settings.database.circuit-breaker", name = "enabled", havingValue = "true")
-    CircuitBreakerSecuredJdbcClient circuitBreakerSecuredAsyncDatabaseClient(
+    CircuitBreakerSecuredDatabaseClient circuitBreakerSecuredAsyncDatabaseClient(
             Vertx vertx,
             Pool pool,
             Metrics metrics,
@@ -150,10 +157,10 @@ public class DatabaseConfiguration {
             ContextRunner contextRunner,
             @Qualifier("databaseCircuitBreakerProperties") CircuitBreakerProperties circuitBreakerProperties) {
 
-        final BasicJdbcClient jdbcClient = createBasicJdbcClient(pool, metrics, clock, contextRunner);
-        return new CircuitBreakerSecuredJdbcClient(
+        final BasicDatabaseClient databaseClient = createBasicDatabaseClient(pool, metrics, clock, contextRunner);
+        return new CircuitBreakerSecuredDatabaseClient(
                 vertx,
-                jdbcClient,
+                databaseClient,
                 metrics,
                 circuitBreakerProperties.getOpeningThreshold(),
                 circuitBreakerProperties.getOpeningIntervalMs(),
@@ -161,15 +168,15 @@ public class DatabaseConfiguration {
                 clock);
     }
 
-    private static BasicJdbcClient createBasicJdbcClient(Pool pool,
-                                                         Metrics metrics,
-                                                         Clock clock,
-                                                         ContextRunner contextRunner) {
+    private static BasicDatabaseClient createBasicDatabaseClient(Pool pool,
+                                                                 Metrics metrics,
+                                                                 Clock clock,
+                                                                 ContextRunner contextRunner) {
 
-        final BasicJdbcClient basicJdbcClient = new BasicJdbcClient(pool, metrics, clock);
+        final BasicDatabaseClient basicDatabaseClient = new BasicDatabaseClient(pool, metrics, clock);
 
-        contextRunner.<Void>runBlocking(promise -> basicJdbcClient.initialize().onComplete(promise));
+        contextRunner.<Void>runBlocking(promise -> basicDatabaseClient.initialize().onComplete(promise));
 
-        return basicJdbcClient;
+        return basicDatabaseClient;
     }
 }

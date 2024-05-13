@@ -33,7 +33,7 @@ import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.cookie.UidsCookieService;
 import org.prebid.server.cookie.proto.Uids;
-import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlocklistedAccountException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -100,7 +100,7 @@ import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
 public class Ortb2RequestFactoryTest extends VertxTest {
 
-    private static final List<String> BLACKLISTED_ACCOUNTS = singletonList("bad_acc");
+    private static final List<String> BLOCKLISTED_ACCOUNTS = singletonList("bad_acc");
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -262,7 +262,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void fetchAccountShouldReturnFailedFutureWhenAccountIdIsBlacklisted() {
+    public void fetchAccountShouldReturnFailedFutureWhenAccountIdIsBlocklisted() {
         // given
         final BidRequest bidRequest = givenBidRequest(builder -> builder
                 .site(Site.builder()
@@ -279,8 +279,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause())
-                .isInstanceOf(BlacklistedAccountException.class)
-                .hasMessage("Prebid-server has blacklisted Account ID: bad_acc, please reach out to the prebid "
+                .isInstanceOf(BlocklistedAccountException.class)
+                .hasMessage("Prebid-server has blocklisted Account ID: bad_acc, please reach out to the prebid "
                         + "server host.");
     }
 
@@ -482,7 +482,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     }
 
     @Test
-    public void shouldFetchAccountFromStoredAndReturnFailedFutureWhenAccountIdIsBlacklisted() {
+    public void shouldFetchAccountFromStoredAndReturnFailedFutureWhenAccountIdIsBlocklisted() {
         // given
         final BidRequest receivedBidRequest = givenBidRequest(identity());
 
@@ -507,8 +507,8 @@ public class Ortb2RequestFactoryTest extends VertxTest {
 
         assertThat(result.failed()).isTrue();
         assertThat(result.cause())
-                .isInstanceOf(BlacklistedAccountException.class)
-                .hasMessage("Prebid-server has blacklisted Account ID: bad_acc, please reach out to the prebid "
+                .isInstanceOf(BlocklistedAccountException.class)
+                .hasMessage("Prebid-server has blocklisted Account ID: bad_acc, please reach out to the prebid "
                         + "server host.");
     }
 
@@ -1613,7 +1613,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
         target = new Ortb2RequestFactory(
                 timeoutAdjustmentFactor,
                 0.01,
-                BLACKLISTED_ACCOUNTS,
+                BLOCKLISTED_ACCOUNTS,
                 uidsCookieService,
                 activityInfrastructureCreator,
                 requestValidator,
