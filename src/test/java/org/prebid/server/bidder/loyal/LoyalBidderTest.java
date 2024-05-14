@@ -19,11 +19,12 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.between.ExtImpBetween;
 import org.prebid.server.proto.openrtb.ext.request.loyal.ExtImpLoyal;
-import org.prebid.server.util.HttpUtil;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
@@ -33,6 +34,10 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
+import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
+import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
+import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class LoyalBidderTest extends VertxTest {
 
@@ -60,6 +65,38 @@ public class LoyalBidderTest extends VertxTest {
                         .isEqualTo(jacksonMapper.encodeToBytes(bidRequest)))
                 .satisfies(request -> assertThat(request.getPayload()).isEqualTo(bidRequest));
         assertThat(results.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedImpIds() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(UnaryOperator.identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(results.getValue()).hasSize(1).first()
+                .satisfies(request -> assertThat(request.getImpIds()).isEqualTo(Set.of("123")));
+        assertThat(results.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(UnaryOperator.identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getHeaders)
+                .allSatisfy(headers -> {
+                    assertThat(headers.get(CONTENT_TYPE_HEADER)).isEqualTo(APPLICATION_JSON_CONTENT_TYPE);
+                    assertThat(headers.get(ACCEPT_HEADER)).isEqualTo(APPLICATION_JSON_VALUE);
+                });
+        assertThat(result.getErrors()).isEmpty();
     }
 
     @Test
@@ -109,23 +146,6 @@ public class LoyalBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
         assertThat(result.getValue()).extracting(HttpRequest::getUri).containsExactly("https://test.com/test?param2=endpoint123");
-    }
-
-    @Test
-    public void shouldHandleErrorResponse() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper
-                .valueToTree(ExtPrebid.of(null, ExtImpLoyal.of("placement123", "endpointId")))));
-        final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder().method(HttpMethod.POST).uri("https://test.com/test?param=placement123").body(jacksonMapper.encodeToBytes(bidRequest)).headers(HttpUtil.headers()).payload(bidRequest).build();
-        final BidderCall<BidRequest> httpCall = BidderCall.failedHttp(httpRequest, BidderError.badInput("Bad request"));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isNotEmpty();
-        assertThat(result.getErrors().get(0).getMessage()).isEqualTo("No response or empty body");
-        assertThat(result.getValue()).isEmpty();
     }
 
     @Test

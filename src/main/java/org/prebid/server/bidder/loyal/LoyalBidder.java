@@ -5,6 +5,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
+import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -20,12 +21,13 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.loyal.ExtImpLoyal;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class LoyalBidder implements Bidder<BidRequest> {
 
@@ -70,40 +72,31 @@ public class LoyalBidder implements Bidder<BidRequest> {
         final ExtImpLoyal extImpLoyal;
         try {
             extImpLoyal = mapper.mapper().convertValue(imp.getExt(), LOYAL_EXT_TYPE_REFERENCE).getBidder();
+            return extImpLoyal;
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
         }
-        return extImpLoyal;
     }
 
     private HttpRequest<BidRequest> createHttpRequest(ExtImpLoyal ext, BidRequest request) {
         String url = endpointUrl;
-        if (StringUtils.isNotBlank(ext.getPlacementId())) {
-            url = url.replace(PLACEMENT_ID_MACRO, ext.getPlacementId());
-        } else {
-            url = url.replace("param={{PlacementId}}&", ""); // Remove the PlacementId part if not available
-        }
-        if (StringUtils.isNotBlank(ext.getEndpointId())) {
-            url = url.replace(ENDPOINT_ID_MACRO, ext.getEndpointId());
-        } else {
-            url = url.replace("&param2={{EndpointId}}", ""); // Remove the EndpointId part if not available
-        }
+        url = StringUtils.isNotBlank(ext.getPlacementId())
+                ? url.replace(PLACEMENT_ID_MACRO, ext.getPlacementId()) : url.replace("param={{PlacementId}}&", "");
+        url = StringUtils.isNotBlank(ext.getEndpointId())
+                ? url.replace(ENDPOINT_ID_MACRO, ext.getEndpointId()) : url.replace("&param2={{EndpointId}}", "");
         final BidRequest outgoingRequest = request.toBuilder().build();
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
                 .body(mapper.encodeToBytes(outgoingRequest))
                 .headers(HttpUtil.headers())
+                .impIds(BidderUtil.impIds(outgoingRequest))
                 .payload(outgoingRequest)
                 .build();
     }
 
     @Override
-    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        if (httpCall.getResponse() == null || httpCall.getResponse().getBody() == null) {
-            return Result.withError(BidderError.badServerResponse("No response or empty body"));
-        }
-
+    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse));
@@ -116,9 +109,12 @@ public class LoyalBidder implements Bidder<BidRequest> {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             throw new PreBidException("Empty SeatBid array");
         }
-        return bidResponse.getSeatbid()
-                .stream()
-                .flatMap(seatBid -> Optional.ofNullable(seatBid.getBid()).orElse(List.of()).stream())
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur()))
                 .toList();
     }
