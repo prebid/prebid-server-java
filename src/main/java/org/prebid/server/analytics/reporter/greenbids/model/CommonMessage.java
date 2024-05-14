@@ -1,39 +1,42 @@
 package org.prebid.server.analytics.reporter.greenbids.model;
 
-import org.prebid.server.auction.model.AuctionContext;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Builder;
+import lombok.Value;
 
-import java.util.ArrayList;
 import java.util.List;
 
+@Builder(toBuilder = true)
+@Value
 public class CommonMessage {
 
-    public String version;
-    public String auctionId;
-    public String referrer;
-    public double sampling;
-    public String prebid;
-    public String greenbidsId;
-    public String pbuid;
-    public String billingId;
-    public List<AdUnit> adUnits;
-    public Long auctionElapsed;
+    @JsonProperty("version")
+    private final String version;
 
-    public CommonMessage(
-            AuctionContext auctionContext,
-            GreenbidsConfig greenbidsConfig,
-            Long auctionElapsed,
-            String greenbidsId,
-            String billingId
-    ) {
-        this.version = "2.2.0";
-        this.auctionId = auctionContext.getBidRequest().getId();
-        this.referrer = auctionContext.getBidRequest().getSite().getPage();
-        this.sampling = greenbidsConfig.getGreenbidsSampling();
-        this.prebid = "$prebid.version$"; // TODO: to fix
-        this.greenbidsId = greenbidsId;
-        this.pbuid = greenbidsConfig.getPbuid();
-        this.billingId = billingId;
-        this.adUnits = new ArrayList<>();
-        this.auctionElapsed = auctionElapsed;
-    }
+    @JsonProperty("auctionId")
+    private final String auctionId;
+
+    @JsonProperty("referrer")
+    private final String referrer;
+
+    @JsonProperty("sampling")
+    private final double sampling;
+
+    @JsonProperty("prebid")
+    private final String prebid;
+
+    @JsonProperty("greenbidsId")
+    private final String greenbidsId;
+
+    @JsonProperty("pbuid")
+    private final String pbuid;
+
+    @JsonProperty("billingId")
+    private final String billingId;
+
+    @JsonProperty("adUnits")
+    private final List<AdUnit> adUnits;
+
+    @JsonProperty("auctionElapsed")
+    private final Long auctionElapsed;
 }

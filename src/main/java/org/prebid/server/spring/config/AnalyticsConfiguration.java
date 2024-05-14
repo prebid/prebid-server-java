@@ -82,11 +82,19 @@ public class AnalyticsConfiguration {
 
             Double greenbidsSampling;
 
+            String analyticsServerVersion;
+
+            String analyticsServer;
+
+            Double exploratorySamplingSplit;
+
             public GreenbidsAnalyticsProperties toComponentProperties() {
                 return GreenbidsAnalyticsProperties.builder()
                        .pbuid(getPbuid())
                        .greenbidsSampling(getGreenbidsSampling())
-                        .exploratorySamplingSplit(0.9)
+                        .exploratorySamplingSplit(getExploratorySamplingSplit())
+                        .analyticsServerVersion(getAnalyticsServerVersion())
+                        .analyticsServer(getAnalyticsServer())
                        .build();
             }
         }

@@ -20,7 +20,6 @@ import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
 import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBidder;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsConfig;
 import org.prebid.server.analytics.reporter.greenbids.model.HttpUtil;
 import org.prebid.server.analytics.reporter.greenbids.model.JsonUtil;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
@@ -48,87 +47,153 @@ import java.util.UUID;
 
 public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
-    private static final String ANALYTICS_SERVER = "https://a.greenbids.ai/";
-    public String pbuid;
-    public Double greenbidsSampling;
-    public Double exploratorySamplingSplit;
-    private final GreenbidsConfig greenbidsConfig;
+    GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
     private final JacksonMapper jacksonMapper;
     public Boolean isSampled;
-    public String greenbidsId;
-    public String billingId;
+    public static String greenbidsId;
+    public static String billingId;
 
     public GreenbidsAnalyticsReporter(
             GreenbidsAnalyticsProperties greenbidsAnalyticsProperties,
             JacksonMapper jacksonMapper
     ) {
-        this.pbuid = Objects.requireNonNull(greenbidsAnalyticsProperties.getPbuid());
-        this.greenbidsSampling = greenbidsAnalyticsProperties.getGreenbidsSampling();
-        this.exploratorySamplingSplit = 0.9;
-        this.greenbidsConfig = GreenbidsConfig.of(
-                greenbidsAnalyticsProperties.getPbuid(),
-                greenbidsAnalyticsProperties.getGreenbidsSampling()
-        );
+        this.greenbidsAnalyticsProperties = greenbidsAnalyticsProperties;
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
-        this.isSampled = null;
-        this.greenbidsId = null;
-        this.billingId = null;
     }
 
-    public CommonMessage createCommonMessage(AuctionContext auctionContext, Long auctionElapsed) {
-        return new CommonMessage(
-                auctionContext,
-                greenbidsConfig,
-                auctionElapsed,
-                greenbidsId,
-                billingId
-        );
-    }
+    @Override
+    public <T> Future<Void> processEvent(T event) {
+        AuctionContext greenbidsAuctionContext = null;
+        BidResponse greenbidsBidResponse = null;
 
-    private String getGpid(ObjectNode impExt) {
-        return Optional.ofNullable(impExt)
-                .map(ext -> ext.get("prebid"))
-                .map(JsonNode::asText)
-                .orElse(null);
-    }
+        if (event instanceof AmpEvent ampEvent) {
+            greenbidsAuctionContext = ampEvent.getAuctionContext();
+            greenbidsBidResponse = ampEvent.getBidResponse();
+        } else if (event instanceof AuctionEvent auctionEvent) {
+            greenbidsAuctionContext = auctionEvent.getAuctionContext();
+            greenbidsBidResponse = auctionEvent.getBidResponse();
+        }
+        assert greenbidsBidResponse != null && greenbidsAuctionContext != null;
 
-    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
+        greenbidsId = UUID.randomUUID().toString();
+        billingId = UUID.randomUUID().toString();
+        isSampled = isSampled(greenbidsAnalyticsProperties.getGreenbidsSampling(), greenbidsId);
+
+        final CommonMessage commonMessage = createBidMessage(greenbidsAuctionContext, greenbidsBidResponse);
+
+        String commonMessageJson = null;
         try {
-            return jacksonMapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
-        } catch (JsonProcessingException e) {
-            throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
+            commonMessageJson = JsonUtil.toJson(commonMessage);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
+        HttpUtil.sendJson(commonMessageJson, greenbidsAnalyticsProperties.getAnalyticsServer());
+
+        return Future.succeededFuture();
     }
 
-    private String storedRequestId(ObjectNode impExt) {
-        return Optional.ofNullable(impExt)
-                .map(ext -> ext.get("prebid"))
-                .map(this::extImpPrebid)
-                .map(ExtImpPrebid::getStoredrequest)
-                .map(ExtStoredRequest::getId)
+    private boolean isSampled(
+            double samplingRate,
+            String greenbidsId
+    ) {
+        if (samplingRate < 0 || samplingRate > 1) {
+            throw new IllegalArgumentException("Warning: Sampling rate must be between 0 and 1");
+        }
+
+        final double exploratorySamplingRate = samplingRate
+                * greenbidsAnalyticsProperties.getExploratorySamplingSplit();
+        final double throttledSamplingRate = samplingRate
+                * (1.0 - greenbidsAnalyticsProperties.getExploratorySamplingSplit());
+
+        final long hashInt = Math.abs(greenbidsId.hashCode()) % 0x10000;
+
+        final boolean isPrimarySampled = hashInt < exploratorySamplingRate * 0xFFFF;
+        if (isPrimarySampled) {
+            return true;
+        }
+        return hashInt >= (1 - throttledSamplingRate) * 0xFFFF;
+    }
+
+    public CommonMessage createBidMessage(
+            AuctionContext auctionContext,
+            BidResponse bidResponse
+    ) {
+        final List<Imp> imps = auctionContext.getBidRequest().getImp();
+
+        if (imps == null || imps.isEmpty()) {
+            throw new IllegalArgumentException("imps is null or empty");
+        }
+
+        final Long auctionTimestamp = Optional.of(auctionContext.getBidRequest())
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAuctiontimestamp)
                 .orElse(null);
+
+        final long auctionElapsed = auctionTimestamp != null ? System.currentTimeMillis() - auctionTimestamp : 0L;
+
+        final Map<String, Bid> seatsWithBids = Optional.ofNullable(bidResponse.getSeatbid())
+                .orElseGet(Collections::emptyList)
+                .stream()
+                .filter(seatBid -> !seatBid.getBid().isEmpty())
+                .collect(
+                        Collectors.toMap(
+                                SeatBid::getSeat,
+                                seatBid -> seatBid.getBid().get(0),
+                                (existing, replacement) -> existing
+                        )
+                );
+
+        final List<SeatNonBid> seatNonBids = auctionContext.getBidRejectionTrackers().entrySet().stream()
+                .map(entry -> toSeatNonBid(entry.getKey(), entry.getValue()))
+                .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
+                .toList();
+
+        final Map<String, NonBid> seatsWithNonBids = Optional.of(seatNonBids)
+                .orElseGet(Collections::emptyList)
+                .stream()
+                .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
+                .collect(
+                        Collectors.toMap(
+                                SeatNonBid::getSeat,
+                                seatNonBid -> seatNonBid.getNonBid().get(0),
+                                (existing, replacement) -> existing
+                        )
+                );
+
+        final List<AdUnit> adUnitsWithBidResponses = extractAdUnitsWithBidResponses(
+                imps, seatsWithBids, seatsWithNonBids
+        );
+
+        return CommonMessage.builder()
+                .version(greenbidsAnalyticsProperties.getAnalyticsServerVersion())
+                .auctionId(auctionContext.getBidRequest().getId())
+                .referrer(auctionContext.getBidRequest().getSite().getPage())
+                .sampling(greenbidsAnalyticsProperties.getGreenbidsSampling())
+                .prebid("prebid.version")
+                .greenbidsId(greenbidsId)
+                .pbuid(greenbidsAnalyticsProperties.getPbuid())
+                .billingId(billingId)
+                .adUnits(adUnitsWithBidResponses)
+                .auctionElapsed(auctionElapsed)
+                .build();
     }
 
-    private String getAdUnitCode(Imp imp) {
-        final ObjectNode impExt = imp.getExt();
+    private static SeatNonBid toSeatNonBid(String bidder, BidRejectionTracker bidRejectionTracker) {
+        final List<NonBid> nonBids = bidRejectionTracker.getRejectionReasons().entrySet().stream()
+                .map(entry -> NonBid.of(entry.getKey(), entry.getValue()))
+                .toList();
 
-        final String adUnitCodeStoredRequestId = Optional.ofNullable(getGpid(impExt))
-                .orElseGet(() -> storedRequestId(impExt));
-
-        if (adUnitCodeStoredRequestId != null) {
-            return adUnitCodeStoredRequestId;
-        }
-
-        return imp.getId();
+        return SeatNonBid.of(bidder, nonBids);
     }
 
-    public CommonMessage addBidResponseToMessage(
-            CommonMessage commonMessage,
+    public List<AdUnit> extractAdUnitsWithBidResponses(
             List<Imp> imps,
             Map<String, Bid> seatsWithBids,
             Map<String, NonBid> seatsWithNonBids
     ) {
-        commonMessage.adUnits = imps.stream().map(imp -> {
+        return imps.stream().map(imp -> {
             final Banner banner = imp.getBanner();
             final Video video = imp.getVideo();
             final Native nativeObject = imp.getXNative();
@@ -189,126 +254,43 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                     .bidders(bidders)
                     .build();
         }).toList();
-
-        return commonMessage;
     }
 
-    private static SeatNonBid toSeatNonBid(String bidder, BidRejectionTracker bidRejectionTracker) {
-        final List<NonBid> nonBids = bidRejectionTracker.getRejectionReasons().entrySet().stream()
-                .map(entry -> NonBid.of(entry.getKey(), entry.getValue()))
-                .toList();
+    private String getAdUnitCode(Imp imp) {
+        final ObjectNode impExt = imp.getExt();
 
-        return SeatNonBid.of(bidder, nonBids);
-    }
+        final String adUnitCodeStoredRequestId = Optional.ofNullable(getGpid(impExt))
+                .orElseGet(() -> storedRequestId(impExt));
 
-    public CommonMessage createBidMessage(
-            AuctionContext auctionContext,
-            BidResponse bidResponse
-    ) {
-        final List<Imp> imps = auctionContext.getBidRequest().getImp();
-
-        if (imps == null || imps.isEmpty()) {
-            throw new IllegalArgumentException("imps is null or empty");
+        if (adUnitCodeStoredRequestId != null) {
+            return adUnitCodeStoredRequestId;
         }
 
-        final Long auctionTimestamp = Optional.of(auctionContext.getBidRequest())
-                .map(BidRequest::getExt)
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getAuctiontimestamp)
+        return imp.getId();
+    }
+
+    private static String getGpid(ObjectNode impExt) {
+        return Optional.ofNullable(impExt)
+                .map(ext -> ext.get("prebid"))
+                .map(JsonNode::asText)
                 .orElse(null);
-
-        final long auctionElapsed = auctionTimestamp != null ? System.currentTimeMillis() - auctionTimestamp : 0L;
-
-        final Map<String, Bid> seatsWithBids = Optional.ofNullable(bidResponse.getSeatbid())
-                .orElseGet(Collections::emptyList)
-                .stream()
-                .filter(seatBid -> !seatBid.getBid().isEmpty())
-                .collect(
-                        Collectors.toMap(
-                                SeatBid::getSeat,
-                                seatBid -> seatBid.getBid().get(0),
-                                (existing, replacement) -> existing
-                        )
-                );
-
-        final List<SeatNonBid> seatNonBids = auctionContext.getBidRejectionTrackers().entrySet().stream()
-                .map(entry -> toSeatNonBid(entry.getKey(), entry.getValue()))
-                .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
-                .toList();
-
-        final Map<String, NonBid> seatsWithNonBids = Optional.of(seatNonBids)
-                .orElseGet(Collections::emptyList)
-                .stream()
-                .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
-                .collect(
-                        Collectors.toMap(
-                                SeatNonBid::getSeat,
-                                seatNonBid -> seatNonBid.getNonBid().get(0),
-                                (existing, replacement) -> existing
-                        )
-                );
-
-        final CommonMessage commonMessage = createCommonMessage(auctionContext, auctionElapsed);
-
-        return addBidResponseToMessage(
-                commonMessage,
-                imps,
-                seatsWithBids,
-                seatsWithNonBids
-        );
     }
 
-    @Override
-    public <T> Future<Void> processEvent(T event) {
-        AuctionContext greenbidsAuctionContext = null;
-        BidResponse greenbidsBidResponse = null;
+    private String storedRequestId(ObjectNode impExt) {
+        return Optional.ofNullable(impExt)
+                .map(ext -> ext.get("prebid"))
+                .map(this::extImpPrebid)
+                .map(ExtImpPrebid::getStoredrequest)
+                .map(ExtStoredRequest::getId)
+                .orElse(null);
+    }
 
-        if (event instanceof AmpEvent ampEvent) {
-            greenbidsAuctionContext = ampEvent.getAuctionContext();
-            greenbidsBidResponse = ampEvent.getBidResponse();
-        } else if (event instanceof AuctionEvent auctionEvent) {
-            greenbidsAuctionContext = auctionEvent.getAuctionContext();
-            greenbidsBidResponse = auctionEvent.getBidResponse();
-        }
-        assert greenbidsBidResponse != null && greenbidsAuctionContext != null;
-
-        this.greenbidsId = UUID.randomUUID().toString();
-        this.billingId = UUID.randomUUID().toString();
-        this.isSampled = isSampled(greenbidsConfig.getGreenbidsSampling(), greenbidsId);
-
-        final CommonMessage commonMessage = createBidMessage(greenbidsAuctionContext, greenbidsBidResponse);
-
-        String commonMessageJson = null;
+    private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
         try {
-            commonMessageJson = JsonUtil.toJson(commonMessage);
-        } catch (Exception e) {
-            e.printStackTrace();
+            return jacksonMapper.mapper().treeToValue(extImpPrebid, ExtImpPrebid.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
         }
-
-        HttpUtil.sendJson(commonMessageJson, ANALYTICS_SERVER);
-
-        return Future.succeededFuture();
-    }
-
-    public boolean isSampled(
-            double samplingRate,
-            String greenbidsId
-    ) {
-        if (samplingRate < 0 || samplingRate > 1) {
-            throw new IllegalArgumentException("Warning: Sampling rate must be between 0 and 1");
-        }
-
-        final double exploratorySamplingRate = samplingRate * this.exploratorySamplingSplit;
-        final double throttledSamplingRate = samplingRate * (1.0 - this.exploratorySamplingSplit);
-
-        long hashInt = Math.abs(greenbidsId.hashCode());
-        hashInt = hashInt % 0x10000;
-
-        final boolean isPrimarySampled = hashInt < exploratorySamplingRate * 0xFFFF;
-        if (isPrimarySampled) {
-            return true;
-        }
-        return hashInt >= (1 - throttledSamplingRate) * 0xFFFF;
     }
 
     @Override

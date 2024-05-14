@@ -296,5 +296,8 @@ analytics:
   greenbids:
     pbuid: PBUID_FROM_GREENBIDS
     greenbids-sampling: 0.9
+    analytics-server-version: "2.2.0"
+    analytics-server: "https://a.greenbids.ai/"
+    exploratory-sampling-split: 0.9
 price-floors:
   enabled: false
