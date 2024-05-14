@@ -39,7 +39,7 @@ class OrtbConverterSpec extends BaseSpec {
     @Shared
     PrebidServerService prebidServerServiceWithElderOrtb = pbsServiceFactory.getService([(ORTB_PROPERTY_VERSION): "2.5"])
 
-    def "PBS shouldn't move regs to past location when adapter support ortb 2.6"() {
+    def "PBS should move regs.{gdpr,usPrivacy} to regs.ext.{gdrp,usPrivacy} when adapter support ortb 2.6"() {
         given: "Default bid request with regs object"
         def usPrivacyRandomString = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -51,11 +51,11 @@ class OrtbConverterSpec extends BaseSpec {
         when: "Requesting PBS auction with ortb 2.6"
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
-        then: "BidResponse should contain the same regs as on request"
+        then: "BidResponse should contain the same regs.ext.{gdpr,usPrivacy} as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            regs.usPrivacy == usPrivacyRandomString
-            regs.gdpr == 0
-            !regs.ext
+            regs.ext.usPrivacy == usPrivacyRandomString
+            regs.ext.gdpr == bidRequest.regs.gdpr
+            !regs
         }
     }
 
@@ -78,7 +78,7 @@ class OrtbConverterSpec extends BaseSpec {
         }
     }
 
-    def "PBS shouldn't move eids to past location when adapter support ortb 2.6"() {
+    def "PBS should move user.eids to user.ext.eids when adapter support ortb 2.6"() {
         given: "Default bid request with user.eids"
         def defaultEids = [Eid.defaultEid]
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -90,16 +90,16 @@ class OrtbConverterSpec extends BaseSpec {
         when: "Requesting PBS auction with ortb 2.6"
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
-        then: "BidResponse should contain the same user.eids as on request"
+        then: "BidResponse should contain user.ext.eids as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            user.eids.first().source == defaultEids.first().source
-            user.eids.first().uids.first().id == defaultEids.first().uids.first().id
-            user.eids.first().uids.first().atype == defaultEids.first().uids.first().atype
-            !user.ext
+            user.ext.eids.first().source == defaultEids.first().source
+            user.ext.eids.first().uids.first().id == defaultEids.first().uids.first().id
+            user.ext.eids.first().uids.first().atype == defaultEids.first().uids.first().atype
+            !user.eids
         }
     }
 
-    def "PBS shouldn't move consent to past location when adapter support ortb 2.6"() {
+    def "PBS should move consent to user.ext.consent when adapter support ortb 2.6"() {
         given: "Default bid request with user.consent"
         def consentRandomString = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -111,14 +111,14 @@ class OrtbConverterSpec extends BaseSpec {
         when: "Requesting PBS auction with ortb 2.6"
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
-        then: "BidResponse should contain the same user.consent as on request"
+        then: "BidResponse should contain the same user.ext.consent as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            user.consent == consentRandomString
-            !user.ext
+            user.ext.consent == consentRandomString
+            !user.consent
         }
     }
 
-    def "PBS shouldn't move schain to past location when adapter support ortb 2.6"() {
+    def "PBS should move source.schain to source.ext.schain when adapter support ortb 2.6"() {
         given: "Default bid request with source.schain"
         def defaultSource = Source.defaultSource
         def defaultSupplyChain = defaultSource.schain
@@ -129,17 +129,17 @@ class OrtbConverterSpec extends BaseSpec {
         when: "Requesting PBS auction with ortb 2.6"
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
-        then: "BidResponse should contain the same source.schain as on request"
+        then: "BidResponse should contain the same source.ext.schain as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            source.schain.ver == defaultSupplyChain.ver
-            source.schain.complete == defaultSupplyChain.complete
-            source.schain.nodes.first().asi == defaultSupplyChain.nodes.first().asi
-            source.schain.nodes.first().sid == defaultSupplyChain.nodes.first().sid
-            source.schain.nodes.first().rid == defaultSupplyChain.nodes.first().rid
-            source.schain.nodes.first().name == defaultSupplyChain.nodes.first().name
-            source.schain.nodes.first().domain == defaultSupplyChain.nodes.first().domain
-            source.schain.nodes.first().hp == defaultSupplyChain.nodes.first().hp
-            !source.ext
+            source.ext.schain.ver == defaultSupplyChain.ver
+            source.ext.schain.complete == defaultSupplyChain.complete
+            source.ext.schain.nodes.first().asi == defaultSupplyChain.nodes.first().asi
+            source.ext.schain.nodes.first().sid == defaultSupplyChain.nodes.first().sid
+            source.ext.schain.nodes.first().rid == defaultSupplyChain.nodes.first().rid
+            source.ext.schain.nodes.first().name == defaultSupplyChain.nodes.first().name
+            source.ext.schain.nodes.first().domain == defaultSupplyChain.nodes.first().domain
+            source.ext.schain.nodes.first().hp == defaultSupplyChain.nodes.first().hp
+            !source.schain
         }
     }
 
@@ -229,7 +229,7 @@ class OrtbConverterSpec extends BaseSpec {
         }
     }
 
-    def "PBS should move rewarded video to past location when adapter doesn't support ortb 2.6"() {
+    def "PBS should copy rewarded video to imp.ext.prebid.isRewardedInventory when adapter support ortb 2.6"() {
         given: "Default bid request with rwdd"
         def rwdRandomNumber = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -238,13 +238,13 @@ class OrtbConverterSpec extends BaseSpec {
             }
         }
 
-        when: "Requesting PBS auction with ortb 2.5"
-        prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
+        when: "Requesting PBS auction with ortb 2.6"
+        prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
-        then: "BidResponse should contain the same imp.rwdd as on request but should be in ext.prebid"
+        then: "BidResponse should contain the same imp.rwdd as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
             imp.first().ext.prebid.isRewardedInventory == rwdRandomNumber
-            !imp.first().rwdd
+            imp.first().rwdd
         }
     }
 
