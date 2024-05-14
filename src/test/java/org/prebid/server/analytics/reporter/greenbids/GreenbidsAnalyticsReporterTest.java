@@ -10,6 +10,8 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.ObjectMapperProvider;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.prebid.server.analytics.reporter.greenbids.GreenbidsAuctionContext.setupAuctionContext;
 import static org.prebid.server.analytics.reporter.greenbids.GreenbidsAuctionContext.setupAuctionContextWithNoAdUnit;
@@ -30,22 +32,23 @@ public class GreenbidsAnalyticsReporterTest {
     public void shouldThrowExceptionWhenAdUnitsListIsEmpty() {
         // given
         final AuctionContext auctionContext = setupAuctionContextWithNoAdUnit();
+        final String greenbidsId = UUID.randomUUID().toString();
+        final String billingId = UUID.randomUUID().toString();
 
         // when
         final GreenbidsAnalyticsReporter greenbidsAnalyticsReporter = new GreenbidsAnalyticsReporter(
                 greenbidsAnalyticsProperties,
-                jacksonMapper
-        );
+                jacksonMapper);
 
         // then
         Assertions.assertThrows(
                 IllegalArgumentException.class,
                 () -> greenbidsAnalyticsReporter.createBidMessage(
                         auctionContext,
-                        auctionContext.getBidResponse()
-                ),
-                "AdUnits list should not be empty"
-        );
+                        auctionContext.getBidResponse(),
+                        greenbidsId,
+                        billingId),
+                "AdUnits list should not be empty");
 
     }
 
@@ -53,15 +56,20 @@ public class GreenbidsAnalyticsReporterTest {
     public void shouldConstructValidCommonMessage() {
         // given
         final AuctionContext auctionContext = setupAuctionContext();
+        final String greenbidsId = UUID.randomUUID().toString();
+        final String billingId = UUID.randomUUID().toString();
 
         // when
         final GreenbidsAnalyticsReporter greenbidsAnalyticsReporter = new GreenbidsAnalyticsReporter(
                 greenbidsAnalyticsProperties,
-                jacksonMapper
-        );
+                jacksonMapper);
 
         final CommonMessage commonMessage = greenbidsAnalyticsReporter
-                .createBidMessage(auctionContext, auctionContext.getBidResponse());
+                .createBidMessage(
+                        auctionContext,
+                        auctionContext.getBidResponse(),
+                        greenbidsId,
+                        billingId);
 
         // then
         assertThat(commonMessage).isNotNull();

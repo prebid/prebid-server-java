@@ -2,7 +2,7 @@ package org.prebid.server.analytics.reporter.greenbids.model;
 
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
-import org.prebid.server.deals.PlannerService;
+import org.prebid.server.analytics.reporter.log.LogAnalyticsReporter;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,7 +17,7 @@ public class HttpUtil {
         throw new UnsupportedOperationException("Utility class and cannot be instantiated");
     }
 
-    private static final Logger logger = LoggerFactory.getLogger(PlannerService.class);
+    private static final Logger logger = LoggerFactory.getLogger(LogAnalyticsReporter.class);
 
     public static void sendJson(String json, String endpointUrl) {
         HttpURLConnection connection = null;

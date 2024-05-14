@@ -39,8 +39,7 @@ public class GreenbidsAuctionContext {
                 .banner(
                         Banner.builder()
                                 .format(Collections.singletonList(format))
-                                .build()
-                )
+                                .build())
                 .tagid("tag1")
                 .build();
 
@@ -72,8 +71,7 @@ public class GreenbidsAuctionContext {
         final BidRejectionTracker bidRejectionTracker = new BidRejectionTracker(
                 "seat2",
                 Set.of("imp1"),
-                1.0
-        );
+                1.0);
 
         bidRejectionTracker.reject("imp1", BidRejectionReason.NO_BID);
 
@@ -84,9 +82,7 @@ public class GreenbidsAuctionContext {
                 .bidRejectionTrackers(
                         Collections.singletonMap(
                                 "seat2",
-                                bidRejectionTracker
-                        )
-                )
+                                bidRejectionTracker))
                 .build();
     }
 
