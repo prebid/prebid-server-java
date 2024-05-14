@@ -56,7 +56,8 @@ public class LoyalBidderTest extends VertxTest {
         // then
         assertThat(results.getValue())
                 .hasSize(1)
-                .first().satisfies(request -> assertThat(request.getBody()).isEqualTo(jacksonMapper.encodeToBytes(bidRequest)))
+                .first().satisfies(request -> assertThat(request.getBody())
+                        .isEqualTo(jacksonMapper.encodeToBytes(bidRequest)))
                 .satisfies(request -> assertThat(request.getPayload()).isEqualTo(bidRequest));
         assertThat(results.getErrors()).isEmpty();
     }
@@ -65,21 +66,24 @@ public class LoyalBidderTest extends VertxTest {
     public void makeHttpRequestsShouldReturnErrorsOfNotValidImps() {
         // given
         final BidRequest bidRequest =
-                givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
+                givenBidRequest(impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, mapper.createArrayNode()))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Missing bidder ext in impression with id: 123"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badInput("Missing bidder ext in impression with id: 123"));
     }
 
     @Test
     public void shouldReplacePlacementIdMacro() {
         // given
         final BidRequest bidRequest =
-                givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLoyal.of("placement123", null)))));
+                givenBidRequest(impBuilder -> impBuilder
+                        .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLoyal.of("placement123", null)))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -95,7 +99,8 @@ public class LoyalBidderTest extends VertxTest {
     public void shouldReplaceEndpointIdMacro() {
         // given
         final BidRequest bidRequest =
-                givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLoyal.of(null, "endpoint123")))));
+                givenBidRequest(impBuilder -> impBuilder.ext(mapper
+                        .valueToTree(ExtPrebid.of(null, ExtImpLoyal.of(null, "endpoint123")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -109,7 +114,8 @@ public class LoyalBidderTest extends VertxTest {
     @Test
     public void shouldHandleErrorResponse() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLoyal.of("placement123", "endpointId")))));
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(mapper
+                .valueToTree(ExtPrebid.of(null, ExtImpLoyal.of("placement123", "endpointId")))));
         final HttpRequest<BidRequest> httpRequest = HttpRequest.<BidRequest>builder().method(HttpMethod.POST).uri("https://test.com/test?param=placement123").body(jacksonMapper.encodeToBytes(bidRequest)).headers(HttpUtil.headers()).payload(bidRequest).build();
         final BidderCall<BidRequest> httpCall = BidderCall.failedHttp(httpRequest, BidderError.badInput("Bad request"));
 
@@ -176,14 +182,17 @@ public class LoyalBidderTest extends VertxTest {
         final Bid audioBid = Bid.builder().impid("3").mtype(3).build();
         final Bid nativeBid = Bid.builder().impid("4").mtype(4).build();
 
-        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(bannerBid, videoBid, audioBid, nativeBid));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(),
+                givenBidResponse(bannerBid, videoBid, audioBid, nativeBid));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).containsExactly(BidderBid.of(bannerBid, banner, "USD"), BidderBid.of(videoBid, video, "USD"), BidderBid.of(audioBid, audio, "USD"), BidderBid.of(nativeBid, xNative, "USD"));
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.of(bannerBid, banner, "USD"), BidderBid.of(videoBid, video, "USD"), BidderBid
+                        .of(audioBid, audio, "USD"), BidderBid.of(nativeBid, xNative, "USD"));
     }
 
     @Test
@@ -255,7 +264,8 @@ public class LoyalBidderTest extends VertxTest {
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
         // then
-        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Unable to fetch mediaType 5 in multi-format: id"));
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Unable to fetch mediaType 5 in multi-format: id"));
     }
 
     @Test
@@ -267,19 +277,23 @@ public class LoyalBidderTest extends VertxTest {
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
         // then
-        assertThat(result.getErrors()).containsExactly(BidderError.badServerResponse("Missing MType for bid: " + bid.getId()));
-    }
-
-    private static BidRequest givenBidRequest() {
-        final Imp imp = Imp.builder().id("imp_id").ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLoyal.of("{{PlacementId}}", "endpointId")))).build();
-        return BidRequest.builder().imp(List.of(imp)).build();
+        assertThat(result.getErrors())
+                .containsExactly(BidderError.badServerResponse("Missing MType for bid: " + bid.getId()));
     }
 
     private static String givenBidResponse(Bid... bids) throws JsonProcessingException {
-        return mapper.writeValueAsString(BidResponse.builder().cur("USD").seatbid(bids.length == 0 ? Collections.emptyList() : List.of(SeatBid.builder().bid(List.of(bids)).build())).build());
+        return mapper.writeValueAsString(
+                BidResponse.builder()
+                        .cur("USD")
+                        .seatbid(bids.length == 0
+                                ? Collections.emptyList()
+                                : List.of(SeatBid.builder().bid(List.of(bids)).build()))
+                        .build());
     }
 
-    private static BidRequest givenBidRequest(Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer, Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
+    private static BidRequest givenBidRequest(
+            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
         return bidRequestCustomizer.apply(BidRequest.builder().imp(singletonList(givenImp(impCustomizer)))).build();
     }
 
@@ -287,11 +301,19 @@ public class LoyalBidderTest extends VertxTest {
         return givenBidRequest(identity(), impCustomizer);
     }
 
+    private static BidRequest givenBidRequest() {
+        final Imp imp = Imp.builder().id("imp_id")
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpLoyal.of("{{PlacementId}}", "endpointId")))).build();
+        return BidRequest.builder().imp(List.of(imp)).build();
+    }
+
     private static Imp givenImp(Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder().id("123").banner(Banner.builder().w(23).h(25).build()).ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId"))))).build();
+        return impCustomizer.apply(Imp.builder().id("123").banner(Banner.builder().w(23).h(25).build())
+                .ext(mapper.valueToTree(ExtPrebid.of(null, ExtImpBetween.of(null, "pubId"))))).build();
     }
 
     private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return BidderCall.succeededHttp(HttpRequest.<BidRequest>builder().payload(bidRequest).build(), HttpResponse.of(200, null, body), null);
+        return BidderCall.succeededHttp(HttpRequest.<BidRequest>builder()
+                .payload(bidRequest).build(), HttpResponse.of(200, null, body), null);
     }
 }
