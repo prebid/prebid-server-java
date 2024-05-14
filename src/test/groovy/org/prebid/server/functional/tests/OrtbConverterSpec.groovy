@@ -92,9 +92,7 @@ class OrtbConverterSpec extends BaseSpec {
 
         then: "BidResponse should contain user.ext.eids as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            user.ext.eids.first().source == defaultEids.first().source
-            user.ext.eids.first().uids.first().id == defaultEids.first().uids.first().id
-            user.ext.eids.first().uids.first().atype == defaultEids.first().uids.first().atype
+            user.ext.eids == defaultEids
             !user.eids
         }
     }
@@ -131,14 +129,7 @@ class OrtbConverterSpec extends BaseSpec {
 
         then: "BidResponse should contain the same source.ext.schain as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            source.ext.schain.ver == defaultSupplyChain.ver
-            source.ext.schain.complete == defaultSupplyChain.complete
-            source.ext.schain.nodes.first().asi == defaultSupplyChain.nodes.first().asi
-            source.ext.schain.nodes.first().sid == defaultSupplyChain.nodes.first().sid
-            source.ext.schain.nodes.first().rid == defaultSupplyChain.nodes.first().rid
-            source.ext.schain.nodes.first().name == defaultSupplyChain.nodes.first().name
-            source.ext.schain.nodes.first().domain == defaultSupplyChain.nodes.first().domain
-            source.ext.schain.nodes.first().hp == defaultSupplyChain.nodes.first().hp
+            source.ext.schain == defaultSupplyChain
             !source.schain
         }
     }
@@ -244,7 +235,7 @@ class OrtbConverterSpec extends BaseSpec {
         then: "BidResponse should contain the same imp.rwdd as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
             imp.first().ext.prebid.isRewardedInventory == rwdRandomNumber
-            imp.first().rwdd
+            imp.first().rwdd == rwdRandomNumber
         }
     }
 
