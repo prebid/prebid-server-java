@@ -124,7 +124,7 @@ public class ActivityInfrastructureCreator {
                 .or(() -> Optional.ofNullable(defaultPurpose4))
                 .map(Purpose::getEid)
                 .map(PurposeEid::getActivityTransition)
-                .orElse(true);
+                .orElse(false);
 
         return originalActivity -> originalActivity == Activity.TRANSMIT_EIDS && imitateTransmitEids
                 ? activityControllerCreator.apply(Activity.TRANSMIT_UFPD)

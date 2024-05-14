@@ -1,13 +1,13 @@
 package org.prebid.server.functional.util.privacy.gpp
 
-import com.iab.gpp.encoder.field.UspCtV1Field
+import com.iab.gpp.encoder.field.UsCtV1Field
 import org.prebid.server.functional.util.privacy.gpp.data.UsConnecticutSensitiveData
 
-class UspCtV1Consent extends GppConsent {
+class UsCtV1Consent extends GppConsent {
 
-    private static final Section SECTION = Section.USP_CT_V1
+    private static final Section SECTION = Section.US_CT_V1
 
-    protected UspCtV1Consent(Section section, Map<String, Object> fieldValues) {
+    protected UsCtV1Consent(Section section, Map<String, Object> fieldValues) {
         super(section, fieldValues)
     }
 
@@ -23,78 +23,78 @@ class UspCtV1Consent extends GppConsent {
         }
 
         Builder setVersion(Integer version) {
-            fieldValue(UspCtV1Field.VERSION, version)
+            fieldValue(UsCtV1Field.VERSION, version)
             this
         }
 
         Builder setSharingNotice(Integer sharingNotice) {
-            fieldValue(UspCtV1Field.SHARING_NOTICE, sharingNotice)
+            fieldValue(UsCtV1Field.SHARING_NOTICE, sharingNotice)
             this
         }
 
         Builder setSaleOptOutNotice(Integer saleOptOutNotice) {
-            fieldValue(UspCtV1Field.SALE_OPT_OUT_NOTICE, saleOptOutNotice)
+            fieldValue(UsCtV1Field.SALE_OPT_OUT_NOTICE, saleOptOutNotice)
             this
         }
 
         Builder setTargetedAdvertisingOptOutNotice(Integer targetedAdvertisingOptOutNotice) {
-            fieldValue(UspCtV1Field.TARGETED_ADVERTISING_OPT_OUT_NOTICE, targetedAdvertisingOptOutNotice)
+            fieldValue(UsCtV1Field.TARGETED_ADVERTISING_OPT_OUT_NOTICE, targetedAdvertisingOptOutNotice)
             this
         }
 
         Builder setSaleOptOut(Integer saleOptOut) {
-            fieldValue(UspCtV1Field.SALE_OPT_OUT, saleOptOut)
+            fieldValue(UsCtV1Field.SALE_OPT_OUT, saleOptOut)
             this
         }
 
         Builder setTargetedAdvertisingOptOut(Integer targetedAdvertisingOptOut) {
-            fieldValue(UspCtV1Field.TARGETED_ADVERTISING_OPT_OUT, targetedAdvertisingOptOut)
+            fieldValue(UsCtV1Field.TARGETED_ADVERTISING_OPT_OUT, targetedAdvertisingOptOut)
             this
         }
 
         Builder setSensitiveDataProcessing(UsConnecticutSensitiveData sensitiveDataProcessing) {
-            fieldValue(UspCtV1Field.SENSITIVE_DATA_PROCESSING, sensitiveDataProcessing.contentList)
+            fieldValue(UsCtV1Field.SENSITIVE_DATA_PROCESSING, sensitiveDataProcessing.contentList)
             this
         }
 
         Builder setKnownChildSensitiveDataConsents(Integer childFrom13to16, Integer childBlow13, Integer childFrom16to18) {
-            fieldValue(UspCtV1Field.KNOWN_CHILD_SENSITIVE_DATA_CONSENTS, [childFrom13to16, childBlow13, childFrom16to18])
+            fieldValue(UsCtV1Field.KNOWN_CHILD_SENSITIVE_DATA_CONSENTS, [childFrom13to16, childBlow13, childFrom16to18])
             this
         }
 
         Builder setMspaCoveredTransaction(Integer mspaCoveredTransaction) {
-            fieldValue(UspCtV1Field.MSPA_COVERED_TRANSACTION, mspaCoveredTransaction)
+            fieldValue(UsCtV1Field.MSPA_COVERED_TRANSACTION, mspaCoveredTransaction)
             this
         }
 
         Builder setMspaOptOutOptionMode(Integer mspaOptOutOptionMode) {
-            fieldValue(UspCtV1Field.MSPA_OPT_OUT_OPTION_MODE, mspaOptOutOptionMode)
+            fieldValue(UsCtV1Field.MSPA_OPT_OUT_OPTION_MODE, mspaOptOutOptionMode)
             this
         }
 
         Builder setMspaServiceProviderMode(Integer mspaServiceProviderMode) {
-            fieldValue(UspCtV1Field.MSPA_SERVICE_PROVIDER_MODE, mspaServiceProviderMode)
+            fieldValue(UsCtV1Field.MSPA_SERVICE_PROVIDER_MODE, mspaServiceProviderMode)
             this
         }
 
         Builder setGpcSegmentType(Integer gpcSegmentType) {
-            fieldValue(UspCtV1Field.GPC_SEGMENT_TYPE, gpcSegmentType)
+            fieldValue(UsCtV1Field.GPC_SEGMENT_TYPE, gpcSegmentType)
             this
         }
 
         Builder setGpcSegmentIncluded(Integer gpcSegmentIncluded) {
-            fieldValue(UspCtV1Field.GPC_SEGMENT_INCLUDED, gpcSegmentIncluded)
+            fieldValue(UsCtV1Field.GPC_SEGMENT_INCLUDED, gpcSegmentIncluded)
             this
         }
 
         Builder setGpc(Boolean gpc) {
-            fieldValue(UspCtV1Field.GPC, gpc)
+            fieldValue(UsCtV1Field.GPC, gpc)
             this
         }
 
         @Override
         GppConsent build() {
-            return new UspCtV1Consent(section, fieldValues)
+            return new UsCtV1Consent(section, fieldValues)
         }
     }
 }
