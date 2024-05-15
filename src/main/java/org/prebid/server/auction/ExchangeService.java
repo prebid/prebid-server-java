@@ -107,6 +107,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
+import org.prebid.server.proto.openrtb.ext.response.ExtAnalyticsTags;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtModules;
@@ -120,6 +121,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationRes
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
 import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ObjectUtil;
 import org.prebid.server.util.StreamUtil;
@@ -1685,8 +1687,9 @@ public class ExchangeService {
 
     private AuctionContext enrichWithHooksDebugInfo(AuctionContext context) {
         final ExtModules extModules = toExtModules(context);
+        final List<ExtAnalyticsTags> extAnalyticsTags = toExtAnalyticsTags(context);
 
-        if (extModules == null) {
+        if (extModules == null && extAnalyticsTags == null) {
             return context;
         }
 
@@ -1698,6 +1701,7 @@ public class ExchangeService {
                 .map(ExtBidResponsePrebid::toBuilder)
                 .orElse(ExtBidResponsePrebid.builder())
                 .modules(extModules)
+                .analyticsTags(extAnalyticsTags)
                 .build();
 
         final ExtBidResponse updatedExt = ext
@@ -1872,6 +1876,60 @@ public class ExchangeService {
                 : null;
 
         return ExtModulesTraceAnalyticsResult.of(result.status(), result.values(), extAppliedTo);
+    }
+
+    private static List<ExtAnalyticsTags> toExtAnalyticsTags(AuctionContext context) {
+        final JsonNode analytics = Optional.ofNullable(context.getBidRequest().getExt())
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAnalytics)
+                .orElse(null);
+
+        final boolean enableClientDetails = enableClientDetails(analytics);
+        if (!enableClientDetails) {
+            return null;
+        }
+
+        final boolean allowClientDetails = Optional.ofNullable(context.getAccount())
+                .map(Account::getAnalytics)
+                .map(AccountAnalyticsConfig::isAllowClientDetails)
+                .orElse(false);
+
+        if (!allowClientDetails) {
+            context.getDebugWarnings().add("analytics.options.enableclientdetails not enabled for account");
+            return null;
+        }
+
+        return context.getHookExecutionContext().getStageOutcomes().entrySet().stream()
+                .flatMap(stageToExecutionOutcome -> stageToExecutionOutcome.getValue().stream()
+                        .map(StageExecutionOutcome::getGroups)
+                        .flatMap(Collection::stream)
+                        .map(GroupExecutionOutcome::getHooks)
+                        .flatMap(Collection::stream)
+                        .map(hookExecutionOutcome -> ExtAnalyticsTags.of(
+                                stageToExecutionOutcome.getKey(),
+                                hookExecutionOutcome.getHookId().getModuleCode(),
+                                toTraceAnalyticsTags(hookExecutionOutcome.getAnalyticsTags()))))
+                .toList();
+    }
+
+    private static boolean enableClientDetails(JsonNode analytics) {
+        if (notObjectNode(analytics)) {
+            return false;
+        }
+
+        final JsonNode options = analytics.get("options");
+        if (notObjectNode(options)) {
+            return false;
+        }
+
+        final JsonNode enableClientDetails = options.get("enableclientdetails");
+        return enableClientDetails != null
+                && enableClientDetails.isBoolean()
+                && enableClientDetails.asBoolean();
+    }
+
+    private static boolean notObjectNode(JsonNode jsonNode) {
+        return jsonNode == null || !jsonNode.isObject();
     }
 
     private AuctionContext updateHooksMetrics(AuctionContext context) {

@@ -1,9 +1,11 @@
 package org.prebid.server.proto.openrtb.ext.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
 import lombok.Value;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -22,6 +24,9 @@ public class ExtBidResponsePrebid {
      * Defines the contract for bidresponse.ext.prebid.modules
      */
     ExtModules modules;
+
+    @JsonProperty("analyticstags")
+    List<ExtAnalyticsTags> analyticsTags;
 
     /**
      * FLEDGE response as bidresponse.ext.prebid.fledge.auctionconfigs[]
