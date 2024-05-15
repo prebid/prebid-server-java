@@ -50,18 +50,8 @@ public class MedianetBidder implements Bidder<BidRequest> {
      */
     @Override
     @Deprecated(forRemoval = true)
-    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        final MedianetBidResponse bidResponse;
-        try {
-            bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), MedianetBidResponse.class);
-        } catch (DecodeException e) {
-            return Result.withError(BidderError.badServerResponse(e.getMessage()));
-        }
-
-        final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse, errors);
-
-        return Result.of(bids, errors);
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        return Result.withError(BidderError.generic("Deprecated adapter method invoked"));
     }
 
     @Override
