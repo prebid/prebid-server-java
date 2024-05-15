@@ -140,8 +140,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
 
-    private static final String SOURCE_RUBICON = "rubiconproject.com";
-
     private static final String FPD_GPID_FIELD = "gpid";
     private static final String FPD_SKADN_FIELD = "skadn";
     private static final String FPD_SECTIONCAT_FIELD = "sectioncat";
@@ -1164,8 +1162,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final String userId = user != null ? user.getId() : null;
         final List<Eid> userEids = user != null ? user.getEids() : null;
         final String resolvedId = userId == null ? resolveUserId(userEids) : null;
-        final String userBuyeruid = user != null ? user.getBuyeruid() : null;
-        final String resolvedBuyeruid = userBuyeruid != null ? userBuyeruid : resolveBuyeruidFromEids(userEids);
         final ExtUser extUser = user != null ? user.getExt() : null;
         final boolean hasStypeToRemove = hasStypeToRemove(userEids);
         final List<Eid> resolvedUserEids = hasStypeToRemove
@@ -1179,9 +1175,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 && userExtData == null
                 && resolvedUserEids == null
                 && resolvedId == null
-                && Objects.equals(userBuyeruid, resolvedBuyeruid)
-                && !hasStypeToRemove
-        ) {
+                && !hasStypeToRemove) {
 
             return hasDataToRemove
                     ? user.toBuilder().data(null).build()
@@ -1200,7 +1194,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         return userBuilder
                 .id(ObjectUtils.defaultIfNull(resolvedId, userId))
-                .buyeruid(resolvedBuyeruid)
                 .gender(null)
                 .yob(null)
                 .geo(null)
@@ -1299,20 +1292,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 extUserEidUid.getId(),
                 extUserEidUid.getAtype(),
                 extUserEidUidExtCopy);
-    }
-
-    private static String resolveBuyeruidFromEids(List<Eid> eids) {
-        return CollectionUtils.emptyIfNull(eids).stream()
-                .filter(Objects::nonNull)
-                .filter(eid -> SOURCE_RUBICON.equals(eid.getSource()))
-                .map(Eid::getUids)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(Uid::getId)
-                .findFirst()
-                .orElse(null);
-
     }
 
     private RubiconUserExtRp rubiconUserExtRp(User user, ExtImpRubicon rubiconImpExt) {
