@@ -69,10 +69,8 @@ public class LoyalBidder implements Bidder<BidRequest> {
     }
 
     private ExtImpLoyal parseImpExt(Imp imp) {
-        final ExtImpLoyal extImpLoyal;
         try {
-            extImpLoyal = mapper.mapper().convertValue(imp.getExt(), LOYAL_EXT_TYPE_REFERENCE).getBidder();
-            return extImpLoyal;
+            return mapper.mapper().convertValue(imp.getExt(), LOYAL_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
         }
@@ -84,14 +82,13 @@ public class LoyalBidder implements Bidder<BidRequest> {
                 ? url.replace(PLACEMENT_ID_MACRO, ext.getPlacementId()) : url.replace("param={{PlacementId}}&", "");
         url = StringUtils.isNotBlank(ext.getEndpointId())
                 ? url.replace(ENDPOINT_ID_MACRO, ext.getEndpointId()) : url.replace("&param2={{EndpointId}}", "");
-        final BidRequest outgoingRequest = request.toBuilder().build();
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
                 .uri(url)
-                .body(mapper.encodeToBytes(outgoingRequest))
+                .body(mapper.encodeToBytes(request))
                 .headers(HttpUtil.headers())
-                .impIds(BidderUtil.impIds(outgoingRequest))
-                .payload(outgoingRequest)
+                .impIds(BidderUtil.impIds(request))
+                .payload(request)
                 .build();
     }
 
