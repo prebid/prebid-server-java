@@ -19,7 +19,7 @@ import static java.util.Collections.singletonList;
 public class ReadPeakTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromLoyal() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromReadPeak() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/readpeak-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/readpeak/test-readpeak-bid-request.json")))

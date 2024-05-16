@@ -26,7 +26,6 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -67,7 +66,7 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), READPEAK_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException("Failed to deserialize Bematterfull extension: " + e.getMessage());
+            throw new PreBidException("Failed to deserialize ReadPeak extension: " + e.getMessage());
         }
     }
 
@@ -99,7 +98,7 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
 
     private static List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Collections.emptyList();
+            throw new PreBidException("Empty SeatBid array");
         }
         return bidsFromResponse(bidResponse);
     }
@@ -124,7 +123,7 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
             case 1 -> BidType.banner;
             case 2 -> BidType.xNative;
             default -> throw new PreBidException(
-                    "Unable to resolve mediaType " + bid.getMtype() + " for bid: " + bid.getId());
+                    "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid());
         };
     }
 }

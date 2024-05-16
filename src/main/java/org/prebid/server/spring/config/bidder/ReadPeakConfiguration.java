@@ -1,7 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.bematterfull.BematterfullBidder;
+import org.prebid.server.bidder.readpeak.ReadPeakBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -35,7 +35,7 @@ public class ReadPeakConfiguration {
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
                 .withConfig(readpeakConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new BematterfullBidder(config.getEndpoint(), mapper))
+                .bidderCreator(config -> new ReadPeakBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }
