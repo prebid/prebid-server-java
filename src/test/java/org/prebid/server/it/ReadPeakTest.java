@@ -23,7 +23,7 @@ public class ReadPeakTest extends IntegrationTest {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/readpeak-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/readpeak/test-readpeak-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/loyal/test-readpeak-bid-response.json"))));
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/readpeak/test-readpeak-bid-response.json"))));
 
         // when
         final Response response = responseFor("openrtb2/readpeak/test-auction-readpeak-request.json",

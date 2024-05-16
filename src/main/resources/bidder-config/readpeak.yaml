@@ -1,6 +1,6 @@
 adapters:
   readpeak:
-    endpoint: https://dsp.readpeak.com/header/prebid
+    endpoint: https://dsp.readpeak.com/header/prebid?p={{PublisherId}}
     geoscope:
       - EEA
     meta-info:
