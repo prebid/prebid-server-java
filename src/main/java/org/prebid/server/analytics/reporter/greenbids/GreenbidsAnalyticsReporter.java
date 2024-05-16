@@ -5,8 +5,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
+import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
@@ -24,7 +26,6 @@ import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBidder;
 import org.prebid.server.analytics.reporter.greenbids.model.HttpUtil;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
-import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.EncodeException;
@@ -37,8 +38,8 @@ import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -81,14 +82,12 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             final CommonMessage commonMessage = createBidMessage(
                     greenbidsAuctionContext, greenbidsBidResponse, greenbidsId, billingId);
 
-            String commonMessageJson = null;
             try {
-                commonMessageJson = jacksonMapper.encodeToString(commonMessage);
+                String commonMessageJson = jacksonMapper.encodeToString(commonMessage);
+                HttpUtil.sendJson(commonMessageJson, greenbidsAnalyticsProperties.getAnalyticsServer());
             } catch (EncodeException e) {
                 throw new EncodeException("Failed to encode as JSON: " + e.getMessage());
             }
-
-            HttpUtil.sendJson(commonMessageJson, greenbidsAnalyticsProperties.getAnalyticsServer());
         }
 
         return Future.succeededFuture();
@@ -120,7 +119,10 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             BidResponse bidResponse,
             String greenbidsId,
             String billingId) {
-        final List<Imp> imps = auctionContext.getBidRequest().getImp();
+        final List<Imp> imps = Optional.ofNullable(auctionContext)
+                .map(AuctionContext::getBidRequest)
+                .map(BidRequest::getImp)
+                .orElse(Collections.emptyList());
 
         if (CollectionUtils.isEmpty(imps)) {
             throw new IllegalArgumentException("Imps is null or empty");
@@ -138,7 +140,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .collect(
                         Collectors.toMap(
                                 SeatBid::getSeat,
-                                seatBid -> seatBid.getBid().get(0),
+                                seatBid -> seatBid.getBid().getFirst(),
                                 (existing, replacement) -> existing));
 
         final List<SeatNonBid> seatNonBids = auctionContext.getBidRejectionTrackers().entrySet().stream()
@@ -152,16 +154,27 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .collect(
                         Collectors.toMap(
                                 SeatNonBid::getSeat,
-                                seatNonBid -> seatNonBid.getNonBid().get(0),
+                                seatNonBid -> seatNonBid.getNonBid().getFirst(),
                                 (existing, replacement) -> existing));
 
         final List<AdUnit> adUnitsWithBidResponses = extractAdUnitsWithBidResponses(
                 imps, seatsWithBids, seatsWithNonBids);
 
+        final String auctionId = Optional.ofNullable(auctionContext)
+                .map(AuctionContext::getBidRequest)
+                .map(BidRequest::getId)
+                .orElse(null);
+
+        final String referrer = Optional.ofNullable(auctionContext)
+                .map(AuctionContext::getBidRequest)
+                .map(BidRequest::getSite)
+                .map(Site::getPage)
+                .orElse(null);
+
         return CommonMessage.builder()
                 .version(greenbidsAnalyticsProperties.getAnalyticsServerVersion())
-                .auctionId(auctionContext.getBidRequest().getId())
-                .referrer(auctionContext.getBidRequest().getSite().getPage())
+                .auctionId(auctionId)
+                .referrer(referrer)
                 .sampling(greenbidsAnalyticsProperties.getGreenbidsSampling())
                 .prebid("prebid.version")
                 .greenbidsId(greenbidsId)
@@ -184,83 +197,84 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             List<Imp> imps,
             Map<String, Bid> seatsWithBids,
             Map<String, NonBid> seatsWithNonBids) {
-        return imps.stream().map(imp -> {
-            final Banner banner = imp.getBanner();
-            final Video video = imp.getVideo();
-            final Native nativeObject = imp.getXNative();
+        return imps.stream().map(imp -> createAdUnit(imp, seatsWithBids, seatsWithNonBids)).toList();
+    }
 
-            final Integer width = banner.getFormat().get(0).getW();
-            final Integer height = banner.getFormat().get(0).getH();
+    private AdUnit createAdUnit(Imp imp, Map<String, Bid> seatsWithBids, Map<String, NonBid> seatsWithNonBids) {
+        final Banner banner = imp.getBanner();
+        final Video video = imp.getVideo();
+        final Native nativeObject = imp.getXNative();
 
-            final ExtBanner extBanner = ExtBanner.builder()
-                    .sizes(
-                            width != null && height != null ? Arrays.asList(
-                                    Arrays.asList(width, height),
-                                    Arrays.asList(width, height)) : null)
-                    .pos(banner.getPos())
-                    .name(banner.getId())
-                    .build();
+        final Optional<List<Format>> format = Optional.ofNullable(banner)
+                .map(Banner::getFormat)
+                .filter(f -> !CollectionUtils.isEmpty(f));
 
-            final MediaTypes mediaTypes = MediaTypes.builder()
-                    .banner(extBanner)
-                    .video(video)
-                    .nativeObject(nativeObject)
-                    .build();
+        final Integer width = format.map(f -> f.getFirst().getW()).orElse(null);
+        final Integer height = format.map(f -> f.getFirst().getH()).orElse(null);
 
-            final List<GreenbidsBidder> bidders = new ArrayList<>();
+        final List<List<Integer>> bannerWidthHeight = width != null && height != null ? List.of(
+                List.of(width, height),
+                List.of(width, height)) : null;
 
-            final Map<String, Bid> seatsWithBidsForImp = seatsWithBids.entrySet().stream()
-                    .filter(entry -> entry.getValue().getImpid().equals(imp.getId()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        final ExtBanner extBanner = ExtBanner.builder()
+                .sizes(bannerWidthHeight)
+                .pos(Optional.ofNullable(banner).map(Banner::getPos).orElse(null))
+                .name(Optional.ofNullable(banner).map(Banner::getId).orElse(null))
+                .build();
 
-            final Map<String, NonBid> seatsWithNonBidsForImp = seatsWithNonBids.entrySet().stream()
-                    .filter(entry -> entry.getValue().getImpId().equals(imp.getId()))
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        final MediaTypes mediaTypes = MediaTypes.builder()
+                .banner(extBanner)
+                .video(video)
+                .nativeObject(nativeObject)
+                .build();
 
-            seatsWithBidsForImp.forEach((seat, bid) -> {
-                final GreenbidsBidder bidder = GreenbidsBidder.builder()
-                        .bidder(seat)
-                        .isTimeout(false)
-                        .hasBid(bid != null)
-                        .build();
-                bidders.add(bidder);
-            });
+        final List<GreenbidsBidder> bidders = extractBidders(imp, seatsWithBids, seatsWithNonBids);
 
-            seatsWithNonBidsForImp.forEach((seat, nonBid) -> {
-                final GreenbidsBidder bidder = GreenbidsBidder.builder()
-                        .bidder(seat)
-                        .isTimeout(nonBid.getStatusCode().code == BidRejectionReason.TIMED_OUT.code)
-                        .hasBid(false)
-                        .build();
-                bidders.add(bidder);
-            });
+        final String adUnitCode = getAdUnitCode(imp);
 
-            final String adUnitCode = getAdUnitCode(imp);
+        return AdUnit.builder()
+                .code(adUnitCode)
+                .mediaTypes(mediaTypes)
+                .bidders(bidders)
+                .build();
+    }
 
-            return AdUnit.builder()
-                    .code(adUnitCode)
-                    .mediaTypes(mediaTypes)
-                    .bidders(bidders)
-                    .build();
-        }).toList();
+    private List<GreenbidsBidder> extractBidders(
+            Imp imp, Map<String, Bid> seatsWithBids, Map<String, NonBid> seatsWithNonBids) {
+        final List<GreenbidsBidder> bidders = new ArrayList<>();
+
+        final Map<String, Bid> seatsWithBidsForImp = seatsWithBids.entrySet().stream()
+                .filter(entry -> entry.getValue().getImpid().equals(imp.getId()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        final Map<String, NonBid> seatsWithNonBidsForImp = seatsWithNonBids.entrySet().stream()
+                .filter(entry -> entry.getValue().getImpId().equals(imp.getId()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+        seatsWithBidsForImp.forEach((seat, bid) -> {
+            GreenbidsBidder bidder = GreenbidsBidder.ofBid(seat, bid);
+            bidders.add(bidder);
+        });
+
+        seatsWithNonBidsForImp.forEach((seat, nonBid) -> {
+            GreenbidsBidder bidder = GreenbidsBidder.ofNonBid(seat, nonBid);
+            bidders.add(bidder);
+        });
+
+        return bidders;
     }
 
     private String getAdUnitCode(Imp imp) {
         final ObjectNode impExt = imp.getExt();
 
-        final String adUnitCodeStoredRequestId = Optional.ofNullable(getGpid(impExt))
-                .orElseGet(() -> storedRequestId(impExt));
-
-        if (adUnitCodeStoredRequestId != null) {
-            return adUnitCodeStoredRequestId;
-        }
-
-        return imp.getId();
+        return Optional.ofNullable(getGpid(impExt))
+                .or(() -> Optional.ofNullable(storedRequestId(impExt)))
+                .orElse(imp.getId());
     }
 
     private static String getGpid(ObjectNode impExt) {
         return Optional.ofNullable(impExt)
-                .map(ext -> ext.get("prebid"))
+                .map(ext -> ext.get("gpid"))
                 .map(JsonNode::asText)
                 .orElse(null);
     }

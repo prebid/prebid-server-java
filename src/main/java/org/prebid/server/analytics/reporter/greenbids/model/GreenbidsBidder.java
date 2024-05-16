@@ -1,8 +1,11 @@
 package org.prebid.server.analytics.reporter.greenbids.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.iab.openrtb.response.Bid;
 import lombok.Builder;
 import lombok.Value;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 
 @Builder(toBuilder = true)
 @Value
@@ -14,4 +17,20 @@ public class GreenbidsBidder {
     Boolean isTimeout;
     @JsonProperty("hasBid")
     Boolean hasBid;
+
+    public static GreenbidsBidder ofBid(String seat, Bid bid) {
+        return GreenbidsBidder.builder()
+                .bidder(seat)
+                .isTimeout(false)
+                .hasBid(bid != null)
+                .build();
+    }
+
+    public static GreenbidsBidder ofNonBid(String seat, NonBid nonBid) {
+        return GreenbidsBidder.builder()
+                .bidder(seat)
+                .isTimeout(nonBid.getStatusCode() == BidRejectionReason.TIMED_OUT)
+                .hasBid(false)
+                .build();
+    }
 }
