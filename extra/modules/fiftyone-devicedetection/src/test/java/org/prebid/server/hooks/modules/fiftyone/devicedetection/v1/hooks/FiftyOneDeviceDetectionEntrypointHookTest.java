@@ -17,9 +17,12 @@ public class FiftyOneDeviceDetectionEntrypointHookTest {
     private static EntrypointHook buildHook(
             BiConsumer<CollectedEvidence.CollectedEvidenceBuilder, EntrypointPayload> evidenceCollector)
     {
-        final FiftyOneDeviceDetectionEntrypointHook hook = new FiftyOneDeviceDetectionEntrypointHook();
-        hook.entrypointEvidenceCollector = evidenceCollector;
-        return hook;
+        return new FiftyOneDeviceDetectionEntrypointHook() {
+            @Override
+            protected void collectEvidence(CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder, EntrypointPayload entrypointPayload) {
+                evidenceCollector.accept(evidenceBuilder, entrypointPayload);
+            }
+        };
     }
 
     @Test

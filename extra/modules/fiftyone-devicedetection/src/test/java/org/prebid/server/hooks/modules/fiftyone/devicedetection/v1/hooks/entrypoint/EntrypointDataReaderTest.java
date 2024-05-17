@@ -25,9 +25,12 @@ public class EntrypointDataReaderTest {
 
         // when
         final CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder = CollectedEvidence.builder();
-        new FiftyOneDeviceDetectionEntrypointHook()
-                .entrypointEvidenceCollector
-                .accept(evidenceBuilder, entrypointPayload);
+        new FiftyOneDeviceDetectionEntrypointHook() {
+            @Override
+            public void collectEvidence(CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder, EntrypointPayload entrypointPayload) {
+                super.collectEvidence(evidenceBuilder, entrypointPayload);
+            }
+        }.collectEvidence(evidenceBuilder, entrypointPayload);
         final CollectedEvidence evidence = evidenceBuilder.build();
 
         // then

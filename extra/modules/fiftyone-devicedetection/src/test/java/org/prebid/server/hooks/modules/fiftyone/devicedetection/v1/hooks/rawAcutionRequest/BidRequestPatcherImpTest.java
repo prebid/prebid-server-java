@@ -27,14 +27,22 @@ public class BidRequestPatcherImpTest {
             DeviceDetector deviceDetector,
             DeviceInfoPatcher<Device> deviceInfoPatcher)
     {
-        final FiftyOneDeviceDetectionRawAuctionRequestHook hook = new FiftyOneDeviceDetectionRawAuctionRequestHook(
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(
                 null,
                 devicePatchPlanner,
                 deviceDetector,
                 deviceInfoPatcher
-        );
-        hook.bidRequestEvidenceCollector = bidRequestEvidenceCollector;
-        return hook.bidRequestPatcher;
+        ) {
+            @Override
+            public BidRequest enrichDevice(BidRequest bidRequest, CollectedEvidence collectedEvidence) {
+                return super.enrichDevice(bidRequest, collectedEvidence);
+            }
+
+            @Override
+            protected void collectEvidence(CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder, BidRequest bidRequest) {
+                bidRequestEvidenceCollector.accept(evidenceBuilder, bidRequest);
+            }
+        }::enrichDevice;
     }
 
     @Test

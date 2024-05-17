@@ -16,14 +16,22 @@ public class BidRequestReaderTest {
     private static BiConsumer<CollectedEvidence.CollectedEvidenceBuilder, BidRequest> buildHook(
             BiConsumer<UserAgent, Map<String, String>> userAgentEvidenceConverter)
     {
-        final FiftyOneDeviceDetectionRawAuctionRequestHook hook = new FiftyOneDeviceDetectionRawAuctionRequestHook(
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(
                 null,
                 null,
                 null,
                 null
-        );
-        hook.userAgentEvidenceConverter = userAgentEvidenceConverter;
-        return hook.bidRequestEvidenceCollector;
+        ) {
+            @Override
+            public void collectEvidence(CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder, BidRequest bidRequest) {
+                super.collectEvidence(evidenceBuilder, bidRequest);
+            }
+
+            @Override
+            protected void appendSecureHeaders(UserAgent userAgent, Map<String, String> evidence) {
+                userAgentEvidenceConverter.accept(userAgent, evidence);
+            }
+        }::collectEvidence;
     }
 
     @Test

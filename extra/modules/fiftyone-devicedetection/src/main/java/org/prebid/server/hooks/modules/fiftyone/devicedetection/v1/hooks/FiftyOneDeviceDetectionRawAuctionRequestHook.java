@@ -32,10 +32,7 @@ import org.prebid.server.util.ObjectUtil;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Predicate;
 
 public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionRequestHook {
 
@@ -45,13 +42,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
     private final DevicePatchPlanner devicePatchPlanner;
     private final DeviceDetector deviceDetector;
     private final DeviceInfoPatcher<Device> deviceInfoPatcher;
-
-    public Predicate<AuctionInvocationContext> accountControl = this::isAccountAllowed;
-    public BiConsumer<CollectedEvidenceBuilder, BidRequest> bidRequestEvidenceCollector = this::collectEvidence;
-    public BiConsumer<UserAgent, Map<String, String>> userAgentEvidenceConverter = this::appendSecureHeaders;
-    public BiFunction<ModuleContext, Consumer<CollectedEvidenceBuilder>, ModuleContext> moduleContextPatcher
-            = FiftyOneDeviceDetectionRawAuctionRequestHook::addEvidenceToContext;
-    public BiFunction<BidRequest, CollectedEvidence, BidRequest> bidRequestPatcher = this::enrichDevice;
 
     public FiftyOneDeviceDetectionRawAuctionRequestHook(
             AccountFilter accountFilter,
@@ -75,7 +65,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
             AuctionRequestPayload payload,
             AuctionInvocationContext invocationContext)
     {
-        if (!accountControl.test(invocationContext)) {
+        if (!isAccountAllowed(invocationContext)) {
             return Future.succeededFuture(
                     InvocationResultImpl.<AuctionRequestPayload>builder()
                             .status(InvocationStatus.success)
@@ -84,9 +74,9 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
                             .build());
         }
 
-        final ModuleContext moduleContext = moduleContextPatcher.apply(
+        final ModuleContext moduleContext = addEvidenceToContext(
                 (ModuleContext)invocationContext.moduleContext(),
-                builder -> bidRequestEvidenceCollector.accept(builder, payload.bidRequest())
+                builder -> collectEvidence(builder, payload.bidRequest())
         );
 
         return  Future.succeededFuture(
@@ -99,7 +89,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
         );
     }
 
-    public boolean isAccountAllowed(AuctionInvocationContext invocationContext) {
+    protected boolean isAccountAllowed(AuctionInvocationContext invocationContext) {
         if (accountFilter == null) {
             return true;
         }
@@ -133,14 +123,14 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
             CollectedEvidence collectedEvidence)
     {
         final BidRequest currentRequest = existingPayload.bidRequest();
-        final BidRequest patchedRequest = bidRequestPatcher.apply(currentRequest, collectedEvidence);
+        final BidRequest patchedRequest = enrichDevice(currentRequest, collectedEvidence);
         if (patchedRequest == null || patchedRequest == currentRequest) {
             return existingPayload;
         }
         return AuctionRequestPayloadImpl.of(patchedRequest);
     }
 
-    BidRequest enrichDevice(BidRequest bidRequest, CollectedEvidence collectedEvidence) {
+    protected BidRequest enrichDevice(BidRequest bidRequest, CollectedEvidence collectedEvidence) {
         if (bidRequest == null) {
             return null;
         }
@@ -152,7 +142,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
         }
 
         final CollectedEvidenceBuilder evidenceBuilder = collectedEvidence.toBuilder();
-        bidRequestEvidenceCollector.accept(evidenceBuilder, bidRequest);
+        collectEvidence(evidenceBuilder, bidRequest);
         final DeviceInfo detectedDevice = deviceDetector.inferProperties(evidenceBuilder.build(), patchPlan);
         if (detectedDevice == null) {
             return null;
@@ -168,7 +158,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
                 .build();
     }
 
-    static ModuleContext addEvidenceToContext(ModuleContext moduleContext, Consumer<CollectedEvidenceBuilder> evidenceInjector)
+    protected ModuleContext addEvidenceToContext(ModuleContext moduleContext, Consumer<CollectedEvidenceBuilder> evidenceInjector)
     {
         ModuleContext.ModuleContextBuilder contextBuilder;
         CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder = null;
@@ -190,7 +180,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
                 .build();
     }
 
-    void collectEvidence(CollectedEvidenceBuilder evidenceBuilder, BidRequest bidRequest) {
+    protected void collectEvidence(CollectedEvidenceBuilder evidenceBuilder, BidRequest bidRequest) {
         final Device device = bidRequest.getDevice();
         if (device == null) {
             return;
@@ -202,7 +192,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
         final UserAgent sua = device.getSua();
         if (sua != null) {
             final HashMap<String, String> secureHeaders = new HashMap<>();
-            userAgentEvidenceConverter.accept(sua, secureHeaders);
+            appendSecureHeaders(sua, secureHeaders);
             evidenceBuilder.secureHeaders(secureHeaders);
         }
     }
@@ -237,7 +227,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
                     new PropertyMergeImp<>(UserAgent::getModel, s -> !s.isEmpty(), (evidence, model) ->
                             evidence.put("header.Sec-CH-UA-Model", '"' + toHeaderSafe(model) + '"'))));
 
-    void appendSecureHeaders(UserAgent userAgent, Map<String, String> evidence) {
+    protected void appendSecureHeaders(UserAgent userAgent, Map<String, String> evidence) {
         if (userAgent != null) {
             AGENT_MERGER.applyProperties(evidence, userAgent);
         }

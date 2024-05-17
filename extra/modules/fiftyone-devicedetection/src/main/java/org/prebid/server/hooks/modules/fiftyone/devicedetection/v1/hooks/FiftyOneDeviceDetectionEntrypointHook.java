@@ -18,8 +18,6 @@ public class FiftyOneDeviceDetectionEntrypointHook implements EntrypointHook {
 
     private static final String CODE = "fiftyone-devicedetection-entrypoint-hook";
 
-    public BiConsumer<CollectedEvidenceBuilder, EntrypointPayload> entrypointEvidenceCollector = this::collectEvidence;
-
     @Override
     public String code() {
         return CODE;
@@ -31,7 +29,7 @@ public class FiftyOneDeviceDetectionEntrypointHook implements EntrypointHook {
             InvocationContext invocationContext)
     {
         final CollectedEvidenceBuilder evidenceBuilder = CollectedEvidence.builder();
-        entrypointEvidenceCollector.accept(evidenceBuilder, payload);
+        collectEvidence(evidenceBuilder, payload);
 
         return Future.succeededFuture(
                 InvocationResultImpl.<EntrypointPayload>builder()
@@ -45,7 +43,7 @@ public class FiftyOneDeviceDetectionEntrypointHook implements EntrypointHook {
                         .build());
     }
 
-    void collectEvidence(CollectedEvidenceBuilder evidenceBuilder, EntrypointPayload entrypointPayload) {
+    protected void collectEvidence(CollectedEvidenceBuilder evidenceBuilder, EntrypointPayload entrypointPayload) {
         evidenceBuilder.rawHeaders(entrypointPayload.headers().entries());
     }
 }

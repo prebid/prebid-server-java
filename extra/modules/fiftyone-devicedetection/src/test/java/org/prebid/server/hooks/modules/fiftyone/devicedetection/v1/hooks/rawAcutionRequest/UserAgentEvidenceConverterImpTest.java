@@ -21,7 +21,12 @@ public class UserAgentEvidenceConverterImpTest {
                 null,
                 null,
                 null
-        ).userAgentEvidenceConverter;
+        ) {
+            @Override
+            public void appendSecureHeaders(UserAgent userAgent, Map<String, String> evidence) {
+                super.appendSecureHeaders(userAgent, evidence);
+            }
+        }::appendSecureHeaders;
     }
 
     @Test

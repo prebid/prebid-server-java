@@ -19,7 +19,12 @@ public class ModuleContextPatcherImpTest {
                 null,
                 null,
                 null
-        ).moduleContextPatcher;
+        ) {
+            @Override
+            public ModuleContext addEvidenceToContext(ModuleContext moduleContext, Consumer<CollectedEvidence.CollectedEvidenceBuilder> evidenceInjector) {
+                return super.addEvidenceToContext(moduleContext, evidenceInjector);
+            }
+        }::addEvidenceToContext;
     }
 
     @Test

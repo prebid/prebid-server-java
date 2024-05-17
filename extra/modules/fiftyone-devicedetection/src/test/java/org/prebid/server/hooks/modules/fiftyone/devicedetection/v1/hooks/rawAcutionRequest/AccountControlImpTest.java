@@ -33,7 +33,13 @@ public class AccountControlImpTest {
                 accountFilter,
                 null,
                 null,
-                null).accountControl;
+                null)
+        {
+            @Override
+            public boolean isAccountAllowed(AuctionInvocationContext invocationContext) {
+                return super.isAccountAllowed(invocationContext);
+            }
+        }::isAccountAllowed;
     }
 
     @Test

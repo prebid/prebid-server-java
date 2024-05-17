@@ -30,17 +30,32 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
             BiFunction<ModuleContext, Consumer<CollectedEvidence.CollectedEvidenceBuilder>, ModuleContext> moduleContextPatcher,
             BiFunction<BidRequest, CollectedEvidence, BidRequest> bidRequestPatcher
     ) {
-        final FiftyOneDeviceDetectionRawAuctionRequestHook hook = new FiftyOneDeviceDetectionRawAuctionRequestHook(
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(
                 null,
                 null,
                 null,
                 null
-        );
-        hook.accountControl = accountControl;
-        hook.bidRequestEvidenceCollector = bidRequestEvidenceCollector;
-        hook.moduleContextPatcher = moduleContextPatcher;
-        hook.bidRequestPatcher = bidRequestPatcher;
-        return hook;
+        ) {
+            @Override
+            protected boolean isAccountAllowed(AuctionInvocationContext invocationContext) {
+                return accountControl.test(invocationContext);
+            }
+
+            @Override
+            protected BidRequest enrichDevice(BidRequest bidRequest, CollectedEvidence collectedEvidence) {
+                return bidRequestPatcher.apply(bidRequest, collectedEvidence);
+            }
+
+            @Override
+            protected ModuleContext addEvidenceToContext(ModuleContext moduleContext, Consumer<CollectedEvidence.CollectedEvidenceBuilder> evidenceInjector) {
+                return moduleContextPatcher.apply(moduleContext, evidenceInjector);
+            }
+
+            @Override
+            protected void collectEvidence(CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder, BidRequest bidRequest) {
+                bidRequestEvidenceCollector.accept(evidenceBuilder, bidRequest);
+            }
+        };
     }
 
     @Test
