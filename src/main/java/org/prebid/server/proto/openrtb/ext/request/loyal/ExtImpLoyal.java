@@ -11,4 +11,7 @@ public class ExtImpLoyal {
 
     @JsonProperty("endpointId")
     String endpointId;
+
+    @JsonProperty("type")
+    String type;
 }

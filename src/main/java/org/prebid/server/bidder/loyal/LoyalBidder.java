@@ -1,6 +1,8 @@
 package org.prebid.server.bidder.loyal;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -8,7 +10,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -26,17 +27,16 @@ import org.prebid.server.util.HttpUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class LoyalBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpLoyal>> LOYAL_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-
-    private static final String PLACEMENT_ID_MACRO = "{{PlacementId}}";
-    private static final String ENDPOINT_ID_MACRO = "{{EndpointId}}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -54,7 +54,7 @@ public class LoyalBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpLoyal ext = parseImpExt(imp);
-                final HttpRequest<BidRequest> httpRequest = createHttpRequest(ext, request);
+                final HttpRequest<BidRequest> httpRequest = createHttpRequest(ext, request, imp);
                 requests.add(httpRequest);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
@@ -76,19 +76,34 @@ public class LoyalBidder implements Bidder<BidRequest> {
         }
     }
 
-    private HttpRequest<BidRequest> createHttpRequest(ExtImpLoyal ext, BidRequest request) {
-        String url = endpointUrl;
-        url = StringUtils.isNotBlank(ext.getPlacementId())
-                ? url.replace(PLACEMENT_ID_MACRO, ext.getPlacementId()) : url.replace("param={{PlacementId}}&", "");
-        url = StringUtils.isNotBlank(ext.getEndpointId())
-                ? url.replace(ENDPOINT_ID_MACRO, ext.getEndpointId()) : url.replace("&param2={{EndpointId}}", "");
+    private HttpRequest<BidRequest> createHttpRequest(ExtImpLoyal ext, BidRequest request, Imp imp) {
+        // Utworzenie nowego ExtImpLoyal z odpowiednim typem
+        final ExtImpLoyal modifiedExt;
+        if (ext.getPlacementId() != null) {
+            modifiedExt = ExtImpLoyal.of(ext.getPlacementId(), null, "publisher");
+        } else if (ext.getEndpointId() != null) {
+            modifiedExt = ExtImpLoyal.of(null, ext.getEndpointId(), "network");
+        } else {
+            throw new PreBidException("Both placementId and endpointId are missing in ExtImpLoyal");
+        }
+
+        // Utworzenie nowego ObjectNode z zakodowanym ExtImpLoyal
+        final ObjectNode modifiedImpExt = mapper.mapper().valueToTree(ExtPrebid.of(null, modifiedExt));
+
+        // Zaktualizowanie Imp z nowym ext
+        final Imp modifiedImp = imp.toBuilder().ext(modifiedImpExt).build();
+
+        // Zaktualizowanie BidRequest z nowym Imp
+        final BidRequest modifiedRequest = request.toBuilder().imp(Collections.singletonList(modifiedImp)).build();
+
+        // Utworzenie HttpRequest
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(url)
-                .body(mapper.encodeToBytes(request))
+                .uri(endpointUrl)
+                .body(mapper.encodeToBytes(modifiedRequest))
                 .headers(HttpUtil.headers())
-                .impIds(BidderUtil.impIds(request))
-                .payload(request)
+                .impIds(BidderUtil.impIds(modifiedRequest))
+                .payload(modifiedRequest)
                 .build();
     }
 
@@ -102,7 +117,7 @@ public class LoyalBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             throw new PreBidException("Empty SeatBid array");
         }
@@ -112,24 +127,30 @@ public class LoyalBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur()))
+                .map(bid -> BidderBid.of(bid, getBidType(bid), bidResponse.getCur()))
                 .toList();
     }
 
-    private static BidType getBidMediaType(Bid bid) {
-        final Integer markupType = bid.getMtype();
-        if (markupType == null) {
-            throw new PreBidException("Missing MType for bid: " + bid.getId());
+    private BidType getBidType(Bid bid) {
+        final JsonNode typeNode = Optional.ofNullable(bid.getExt())
+                .map(extNode -> extNode.get("prebid"))
+                .map(extPrebidNode -> extPrebidNode.get("type"))
+                .orElse(null);
+
+        final BidType bidType;
+        try {
+            bidType = mapper.mapper().convertValue(typeNode, BidType.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Failed to parse bid.ext.prebid.type for bid.id: '%s'"
+                    .formatted(bid.getId()));
         }
 
-        return switch (markupType) {
-            case 1 -> BidType.banner;
-            case 2 -> BidType.video;
-            case 3 -> BidType.audio;
-            case 4 -> BidType.xNative;
-            default -> throw new PreBidException(
-                    "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid());
-        };
+        if (bidType == null) {
+            throw new PreBidException("bid.ext.prebid.type is not present for bid.id: '%s'"
+                    .formatted(bid.getId()));
+        }
+
+        return bidType;
     }
 
 }
