@@ -82,7 +82,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         }
 
         if (greenbidsBidResponse == null || greenbidsAuctionContext == null) {
-            throw new IllegalArgumentException("Bid response or auction context cannot be null");
+            Future.failedFuture("Bid response or auction context cannot be null");
         }
 
         final String greenbidsId = UUID.randomUUID().toString();
