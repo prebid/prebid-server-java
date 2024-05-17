@@ -8,9 +8,10 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
+import org.prebid.server.bidder.appush.proto.AppushImpExtBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -38,6 +39,10 @@ public class LoyalBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
+    private static final String PUBLISHER_PROPERTY = "publisher";
+    private static final String NETWORK_PROPERTY = "network";
+    private static final String BIDDER_PROPERTY = "bidder";
+
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -48,79 +53,73 @@ public class LoyalBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<BidderError> errors = new ArrayList<>();
-        final List<HttpRequest<BidRequest>> requests = new ArrayList<>();
+        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
+            final ExtImpLoyal extImpLoyal;
             try {
-                final ExtImpLoyal ext = parseImpExt(imp);
-                final HttpRequest<BidRequest> httpRequest = createHttpRequest(ext, request, imp);
-                requests.add(httpRequest);
+                extImpLoyal = parseExtImp(imp);
             } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
+                return Result.withError(BidderError.badInput(e.getMessage()));
             }
+
+            final Imp modifiedImp = modifyImp(imp, extImpLoyal);
+            httpRequests.add(makeHttpRequest(request, modifiedImp));
         }
 
-        if (!errors.isEmpty()) {
-            return Result.withErrors(errors);
-        }
-
-        return Result.withValues(requests);
+        return Result.withValues(httpRequests);
     }
 
-    private ExtImpLoyal parseImpExt(Imp imp) {
+    private ExtImpLoyal parseExtImp(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), LOYAL_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException("Missing bidder ext in impression with id: " + imp.getId());
+            throw new PreBidException(e.getMessage());
         }
     }
 
-    private HttpRequest<BidRequest> createHttpRequest(ExtImpLoyal ext, BidRequest request, Imp imp) {
-        // Utworzenie nowego ExtImpLoyal z odpowiednim typem
-        final ExtImpLoyal modifiedExt;
-        if (ext.getPlacementId() != null) {
-            modifiedExt = ExtImpLoyal.of(ext.getPlacementId(), null, "publisher");
-        } else if (ext.getEndpointId() != null) {
-            modifiedExt = ExtImpLoyal.of(null, ext.getEndpointId(), "network");
-        } else {
-            throw new PreBidException("Both placementId and endpointId are missing in ExtImpLoyal");
+    private AppushImpExtBidder resolveImpExt(ExtImpLoyal extImpLoyal) {
+        final AppushImpExtBidder.AppushImpExtBidderBuilder builder = AppushImpExtBidder.builder();
+
+        if (StringUtils.isNotEmpty(extImpLoyal.getPlacementId())) {
+            builder.type(PUBLISHER_PROPERTY).placementId(extImpLoyal.getPlacementId());
+        } else if (StringUtils.isNotEmpty(extImpLoyal.getEndpointId())) {
+            builder.type(NETWORK_PROPERTY).endpointId(extImpLoyal.getEndpointId());
         }
 
-        // Utworzenie nowego ObjectNode z zakodowanym ExtImpLoyal
-        final ObjectNode modifiedImpExt = mapper.mapper().valueToTree(ExtPrebid.of(null, modifiedExt));
+        return builder.build();
+    }
 
-        // Zaktualizowanie Imp z nowym ext
-        final Imp modifiedImp = imp.toBuilder().ext(modifiedImpExt).build();
+    private Imp modifyImp(Imp imp, ExtImpLoyal extImpLoyal) {
+        final AppushImpExtBidder impExtAppushWithType = resolveImpExt(extImpLoyal);
+        final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
+        modifiedImpExtBidder.set(BIDDER_PROPERTY, mapper.mapper().valueToTree(impExtAppushWithType));
 
-        // Zaktualizowanie BidRequest z nowym Imp
-        final BidRequest modifiedRequest = request.toBuilder().imp(Collections.singletonList(modifiedImp)).build();
+        return imp.toBuilder().ext(modifiedImpExtBidder).build();
+    }
 
-        // Utworzenie HttpRequest
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(endpointUrl)
-                .body(mapper.encodeToBytes(modifiedRequest))
-                .headers(HttpUtil.headers())
-                .impIds(BidderUtil.impIds(modifiedRequest))
-                .payload(modifiedRequest)
-                .build();
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp) {
+        final BidRequest outgoingRequest = request.toBuilder().imp(List.of(imp)).build();
+
+        return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse));
+            final List<BidderBid> bids = extractBids(httpCall.getRequest().getPayload(), bidResponse);
+            return Result.withValues(bids);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidRequest bidRequest, BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            throw new PreBidException("Empty SeatBid array");
+            return Collections.emptyList();
         }
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)

@@ -1,4 +1,7 @@
-    endpoint: "https://us-east-1.loyal.app/pserver?p={{PlacementId}}&e={{EndpointId}}"
+adapters:
+  loyal:
+    enabled: false
+    endpoint: "https://us-east-1.loyal.app/pserver"
     geoscope:
       - USA
     meta-info:
