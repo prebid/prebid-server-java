@@ -591,24 +591,16 @@ class OrtbConverterSpec extends BaseSpec {
 
     def "PBS shouldn't remove imp[0].video.* and keep imp[0].video.plcmt when bidder doesn't support ortb 2.6"() {
         given: "Default bid request with imp[0].video.*"
-        def rqddursListOfRandomNumber = [PBSUtils.randomNumber]
-        def maxseqRandomNumber = PBSUtils.randomNumber
-        def poddurRandomNumber = PBSUtils.randomNumber
-        def podidRandomNumber = PBSUtils.randomNumber
-        def podseqRandomNumber = PBSUtils.randomNumber
-        def mincpmpersecRandomNumber = PBSUtils.randomDecimal
-        def slotinpodRandomNumber = PBSUtils.randomNumber
-        def plcmtRandomEnum = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].video = Video.defaultVideo.tap {
-                rqddurs = rqddursListOfRandomNumber
-                maxseq = maxseqRandomNumber
-                poddur = poddurRandomNumber
-                podid = podidRandomNumber
-                podseq = podseqRandomNumber
-                mincpmpersec = mincpmpersecRandomNumber
-                slotinpod = slotinpodRandomNumber
-                plcmt = plcmtRandomEnum
+                rqddurs = [PBSUtils.randomNumber]
+                maxseq = PBSUtils.randomNumber
+                poddur = PBSUtils.randomNumber
+                podid = PBSUtils.randomNumber
+                podseq = PBSUtils.randomNumber
+                mincpmpersec =  PBSUtils.randomDecimal
+                slotinpod = PBSUtils.randomNumber
+                plcmt = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
             }
         }
 
@@ -618,37 +610,22 @@ class OrtbConverterSpec extends BaseSpec {
         then: "Bidder request should contain the imp[0].video.* as on request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll(bidderRequest) {
-            imp[0].video.rqddurs == rqddursListOfRandomNumber
-            imp[0].video.maxseq == maxseqRandomNumber
-            imp[0].video.poddur == poddurRandomNumber
-            imp[0].video.podid == podidRandomNumber
-            imp[0].video.podseq == podseqRandomNumber
-            imp[0].video.mincpmpersec == mincpmpersecRandomNumber
-            imp[0].video.slotinpod == slotinpodRandomNumber
-            imp[0].video.plcmt == plcmtRandomEnum
+            imp[0].video == bidRequest.imp[0].video
         }
     }
 
     def "PBS shouldn't remove imp[0].video.* when bidder supports ortb 2.6"() {
         given: "Default bid request with imp[0].video.*"
-        def rqddursListOfRandomNumber = [PBSUtils.randomNumber]
-        def maxseqRandomNumber = PBSUtils.randomNumber
-        def poddurRandomNumber = PBSUtils.randomNumber
-        def podidRandomNumber = PBSUtils.randomNumber
-        def podseqRandomNumber = PBSUtils.randomNumber
-        def mincpmpersecRandomNumber = PBSUtils.randomDecimal
-        def slotinpodRandomNumber = PBSUtils.randomNumber
-        def plcmtRandomEnum = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].video = Video.defaultVideo.tap {
-                rqddurs = rqddursListOfRandomNumber
-                maxseq = maxseqRandomNumber
-                poddur = poddurRandomNumber
-                podid = podidRandomNumber
-                podseq = podseqRandomNumber
-                mincpmpersec = mincpmpersecRandomNumber
-                slotinpod = slotinpodRandomNumber
-                plcmt = plcmtRandomEnum
+                rqddurs =  [PBSUtils.randomNumber]
+                maxseq = PBSUtils.randomNumber
+                poddur = PBSUtils.randomNumber
+                podid = PBSUtils.randomNumber
+                podseq = PBSUtils.randomNumber
+                mincpmpersec = PBSUtils.randomDecimal
+                slotinpod = PBSUtils.randomNumber
+                plcmt = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
             }
         }
 
@@ -657,14 +634,7 @@ class OrtbConverterSpec extends BaseSpec {
 
         then: "Bidder request should contain the imp[0].video.* as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].video.rqddurs == rqddursListOfRandomNumber
-            imp[0].video.maxseq == maxseqRandomNumber
-            imp[0].video.poddur == poddurRandomNumber
-            imp[0].video.podid == podidRandomNumber
-            imp[0].video.podseq == podseqRandomNumber
-            imp[0].video.mincpmpersec == mincpmpersecRandomNumber
-            imp[0].video.slotinpod == slotinpodRandomNumber
-            imp[0].video.plcmt == plcmtRandomEnum
+            imp[0].video == bidRequest.imp[0].video
         }
     }
 
@@ -687,34 +657,21 @@ class OrtbConverterSpec extends BaseSpec {
 
         then: "Bidder request should contain the imp[0].audio.* as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].audio.rqddurs
-            imp[0].audio.maxseq
-            imp[0].audio.poddur
-            imp[0].audio.podid
-            imp[0].audio.podseq
-            imp[0].audio.mincpmpersec
-            imp[0].audio.slotinpod
+            imp[0].audio == bidRequest.imp[0].audio
         }
     }
 
     def "PBS shouldn't remove imp[0].audio.* when bidder supports ortb 2.6"() {
         given: "Default bid request with imp[0].audio.*"
-        def rqddursListOfRandomNumber = [PBSUtils.randomNumber]
-        def maxseqRandomNumber = PBSUtils.randomNumber
-        def poddurRandomNumber = PBSUtils.randomNumber
-        def podidRandomNumber = PBSUtils.randomNumber
-        def podseqRandomNumber = PBSUtils.randomNumber
-        def mincpmpersecRandomNumber = PBSUtils.randomDecimal
-        def slotinpodRandomNumber = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].audio = Audio.defaultAudio.tap {
-                rqddurs = rqddursListOfRandomNumber
-                maxseq = maxseqRandomNumber
-                poddur = poddurRandomNumber
-                podid = podidRandomNumber
-                podseq = podseqRandomNumber
-                mincpmpersec = mincpmpersecRandomNumber
-                slotinpod = slotinpodRandomNumber
+                rqddurs = [PBSUtils.randomNumber]
+                maxseq = PBSUtils.randomNumber
+                poddur = PBSUtils.randomNumber
+                podid = PBSUtils.randomNumber
+                podseq = PBSUtils.randomNumber
+                mincpmpersec =  BigDecimal.valueOf(1)
+                slotinpod = PBSUtils.randomNumber
             }
         }
 
@@ -723,13 +680,7 @@ class OrtbConverterSpec extends BaseSpec {
 
         then: "Bidder request should contain the imp[0].audio.* as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].audio.rqddurs == rqddursListOfRandomNumber
-            imp[0].audio.maxseq == maxseqRandomNumber
-            imp[0].audio.poddur == poddurRandomNumber
-            imp[0].audio.podid == podidRandomNumber
-            imp[0].audio.podseq == podseqRandomNumber
-            imp[0].audio.mincpmpersec == mincpmpersecRandomNumber
-            imp[0].audio.slotinpod == slotinpodRandomNumber
+            imp[0].audio == bidRequest.imp[0].audio
         }
     }
 
@@ -765,7 +716,7 @@ class OrtbConverterSpec extends BaseSpec {
         }
     }
 
-    def "PBS shouldn'5 remove site.content.{channel, network} when bidder doesn't support ortb 2.6"() {
+    def "PBS shouldn't remove site.content.{channel, network} when bidder doesn't support ortb 2.6"() {
         given: "Default bid request with site.content.{network, channel}"
         def defaultChannel = Channel.defaultChannel
         def defaultNetwork = Network.defaultNetwork
@@ -1076,7 +1027,7 @@ class OrtbConverterSpec extends BaseSpec {
         then: "BidderRequest should contain the regs.gpp and regs.gppSid as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
             regs.gpp == bidRequest.regs.gpp
-            regs.gppSid.eachWithIndex { Integer value, int i -> bidRequest.regs.gppSid[i] == value }
+            regs.gppSid.eachWithIndex { value, i -> bidRequest.regs.gppSid[i] == value }
         }
     }
 
@@ -1093,7 +1044,7 @@ class OrtbConverterSpec extends BaseSpec {
         then: "BidderRequest should contain the regs.gpp and regs.gppSid as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
             regs.gpp == bidRequest.regs.gpp
-            regs.gppSid.eachWithIndex { Integer value, int i -> bidRequest.regs.gppSid[i] == value }
+            regs.gppSid.eachWithIndex { value, i -> bidRequest.regs.gppSid[i] == value }
         }
     }
 
@@ -1117,12 +1068,8 @@ class OrtbConverterSpec extends BaseSpec {
 
         then: "Bidder request should contain the imp[0].{refresh/qty/dt} as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].refresh.count == refresh.count
-            imp[0].refresh.refSettings[0].refType == refresh.refSettings[0].refType
-            imp[0].refresh.refSettings[0].minInt == refresh.refSettings[0].minInt
-            imp[0].qty.multiplier == qty.multiplier
-            imp[0].qty.sourceType == qty.sourceType
-            imp[0].qty.vendor == qty.vendor
+            imp[0].refresh == refresh
+            imp[0].qty == qty
             imp[0].dt == dt
         }
     }
@@ -1145,12 +1092,8 @@ class OrtbConverterSpec extends BaseSpec {
 
         then: "Bidder request should contain the imp[0].{refresh/qty/dt} as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].refresh.count == bidRequest.imp[0].refresh.count
-            imp[0].refresh.refSettings[0].refType == bidRequest.imp[0].refresh.refSettings[0].refType
-            imp[0].refresh.refSettings[0].minInt == bidRequest.imp[0].refresh.refSettings[0].minInt
-            imp[0].qty.multiplier == bidRequest.imp[0].qty.multiplier
-            imp[0].qty.sourceType == bidRequest.imp[0].qty.sourceType
-            imp[0].qty.vendor == bidRequest.imp[0].qty.vendor
+            imp[0].refresh == bidRequest.imp[0].refresh
+            imp[0].qty == bidRequest.imp[0].qty
             imp[0].dt == bidRequest.imp[0].dt
         }
     }
@@ -1225,8 +1168,11 @@ class OrtbConverterSpec extends BaseSpec {
                 name = PBSUtils.randomString
                 venueType = [PBSUtils.randomString]
                 venueTypeTax = PBSUtils.randomNumber
+                publisher = Publisher.defaultPublisher
                 domain = PBSUtils.randomString
                 keywords = PBSUtils.randomString
+                content = Content.defaultContent
+                ext = DoohExt.defaultDoohExt
             }
         }
 
@@ -1235,12 +1181,7 @@ class OrtbConverterSpec extends BaseSpec {
 
         then: "Bidder request should contain the bidRequest.dooh as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            dooh.id == bidRequest.dooh.id
-            dooh.name == bidRequest.dooh.name
-            dooh.venueType == bidRequest.dooh.venueType
-            dooh.venueTypeTax == bidRequest.dooh.venueTypeTax
-            dooh.domain == bidRequest.dooh.domain
-            dooh.keywords == bidRequest.dooh.keywords
+            dooh == bidRequest.dooh
         }
     }
 
@@ -1265,15 +1206,7 @@ class OrtbConverterSpec extends BaseSpec {
 
         then: "Bidder request should contain the bidRequest.dooh as on request"
         verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            dooh.id == bidRequest.dooh.id
-            dooh.name == bidRequest.dooh.name
-            dooh.venueType == bidRequest.dooh.venueType
-            dooh.venueTypeTax == bidRequest.dooh.venueTypeTax
-            dooh.publisher.id == bidRequest.dooh.publisher.id
-            dooh.domain == bidRequest.dooh.domain
-            dooh.keywords == bidRequest.dooh.keywords
-            dooh.content.id == bidRequest.dooh.content.id
-            dooh.ext.data == bidRequest.dooh.ext.data
+            dooh == bidRequest.dooh
         }
     }
 

@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.response.auction
 
+import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.auction.Asset
 import org.prebid.server.functional.model.request.auction.Imp
@@ -7,6 +8,7 @@ import org.prebid.server.functional.util.ObjectMapperWrapper
 import org.prebid.server.functional.util.PBSUtils
 
 @ToString(includeNames = true, ignoreNulls = true)
+@EqualsAndHashCode
 class Bid implements ObjectMapperWrapper {
 
     String id
