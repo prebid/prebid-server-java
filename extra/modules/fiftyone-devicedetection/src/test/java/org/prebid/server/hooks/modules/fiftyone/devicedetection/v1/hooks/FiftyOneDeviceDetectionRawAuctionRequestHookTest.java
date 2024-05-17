@@ -4,8 +4,8 @@ import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import org.junit.Test;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.FiftyOneDeviceDetectionModule;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.context.CollectedEvidence;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.context.ModuleContext;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.ModuleContext;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
@@ -13,16 +13,40 @@ import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
+    private static FiftyOneDeviceDetectionRawAuctionRequestHook buildHook(
+            Predicate<AuctionInvocationContext> accountControl,
+            BiConsumer<CollectedEvidence.CollectedEvidenceBuilder, BidRequest> bidRequestEvidenceCollector,
+            BiFunction<ModuleContext, Consumer<CollectedEvidence.CollectedEvidenceBuilder>, ModuleContext> moduleContextPatcher,
+            BiFunction<BidRequest, CollectedEvidence, BidRequest> bidRequestPatcher
+    ) {
+        final FiftyOneDeviceDetectionRawAuctionRequestHook hook = new FiftyOneDeviceDetectionRawAuctionRequestHook(
+                null,
+                null,
+                null,
+                null
+        );
+        hook.accountControl = accountControl;
+        hook.bidRequestEvidenceCollector = bidRequestEvidenceCollector;
+        hook.moduleContextPatcher = moduleContextPatcher;
+        hook.bidRequestPatcher = bidRequestPatcher;
+        return hook;
+    }
+
     @Test
     public void codeShouldStartWithModuleCode() {
         // given
-        final RawAuctionRequestHook hook = new FiftyOneDeviceDetectionRawAuctionRequestHook(
+        final RawAuctionRequestHook hook = buildHook(
                 null,
                 null,
                 null,
@@ -39,7 +63,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
 
         // when
         final boolean[] accountControlCalled = { false };
-        final RawAuctionRequestHook hook = new FiftyOneDeviceDetectionRawAuctionRequestHook(
+        final RawAuctionRequestHook hook = buildHook(
                 invocationContext -> {
                     accountControlCalled[0] = true;
                     return false;
@@ -75,7 +99,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
         // when
         final boolean[] payloadReceived = { false };
         final boolean[] patcherCalled = { false };
-        final RawAuctionRequestHook hook = new FiftyOneDeviceDetectionRawAuctionRequestHook(
+        final RawAuctionRequestHook hook = buildHook(
                 invocationContext -> true,
                 (evidenceBuilder, bidRequest) -> {
                     assertThat(evidenceBuilder).isEqualTo(builder);
@@ -85,7 +109,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
                 (moduleContext, collectedEvidenceBuilderConsumer) -> {
                     assertThat(moduleContext).isEqualTo(existingContext);
                     patcherCalled[0] = true;
-                    collectedEvidenceBuilderConsumer.injectInto(builder);
+                    collectedEvidenceBuilderConsumer.accept(builder);
                     return null;
                 },
                 null);
@@ -116,7 +140,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
 
         // when
         final boolean[] patcherCalled = { false };
-        final RawAuctionRequestHook hook = new FiftyOneDeviceDetectionRawAuctionRequestHook(
+        final RawAuctionRequestHook hook = buildHook(
                 invocationContext -> true,
                 (evidenceBuilder, bidRequest) -> fail("Evidence builder should not be called"),
                 (moduleContext, collectedEvidenceBuilderConsumer) -> newContext,
@@ -152,7 +176,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
 
         // when
         final boolean[] patcherCalled = { false };
-        final RawAuctionRequestHook hook = new FiftyOneDeviceDetectionRawAuctionRequestHook(
+        final RawAuctionRequestHook hook = buildHook(
                 invocationContext -> true,
                 (evidenceBuilder, bidRequest) -> fail("Evidence builder should not be called"),
                 (moduleContext, collectedEvidenceBuilderConsumer) -> newContext,
@@ -196,7 +220,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
 
         // when
         final boolean[] patcherCalled = { false };
-        final RawAuctionRequestHook hook = new FiftyOneDeviceDetectionRawAuctionRequestHook(
+        final RawAuctionRequestHook hook = buildHook(
                 invocationContext -> true,
                 (evidenceBuilder, bidRequest) -> fail("Evidence builder should not be called"),
                 (moduleContext, collectedEvidenceBuilderConsumer) -> newContext,

@@ -1,9 +1,9 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks;
 
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.EntrypointEvidenceCollector;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.ModuleContextPatcher;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.context.ModuleContext;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.result.InvocationResultImpl;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence.CollectedEvidenceBuilder;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.ModuleContext;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -12,12 +12,13 @@ import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import io.vertx.core.Future;
 
-public record FiftyOneDeviceDetectionEntrypointHook(
-        EntrypointEvidenceCollector entrypointEvidenceCollector,
-        ModuleContextPatcher moduleContextPatcher
-) implements EntrypointHook
-{
+import java.util.function.BiConsumer;
+
+public class FiftyOneDeviceDetectionEntrypointHook implements EntrypointHook {
+
     private static final String CODE = "fiftyone-devicedetection-entrypoint-hook";
+
+    public BiConsumer<CollectedEvidenceBuilder, EntrypointPayload> entrypointEvidenceCollector = this::collectEvidence;
 
     @Override
     public String code() {
@@ -29,16 +30,22 @@ public record FiftyOneDeviceDetectionEntrypointHook(
             EntrypointPayload payload,
             InvocationContext invocationContext)
     {
-        final ModuleContext moduleContext = moduleContextPatcher.contextWithNewEvidence(
-                null,
-                entrypointEvidenceCollector.evidenceFrom(payload)
-        );
+        final CollectedEvidenceBuilder evidenceBuilder = CollectedEvidence.builder();
+        entrypointEvidenceCollector.accept(evidenceBuilder, payload);
 
         return Future.succeededFuture(
                 InvocationResultImpl.<EntrypointPayload>builder()
                         .status(InvocationStatus.success)
                         .action(InvocationAction.no_action)
-                        .moduleContext(moduleContext)
+                        .moduleContext(
+                                ModuleContext
+                                        .builder()
+                                        .collectedEvidence(evidenceBuilder.build())
+                                        .build())
                         .build());
+    }
+
+    void collectEvidence(CollectedEvidenceBuilder evidenceBuilder, EntrypointPayload entrypointPayload) {
+        evidenceBuilder.rawHeaders(entrypointPayload.headers().entries());
     }
 }
