@@ -11,7 +11,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
-import org.prebid.server.bidder.appush.proto.AppushImpExtBidder;
+import org.prebid.server.bidder.loyal.proto.LoyalImpExtBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -19,7 +19,7 @@ import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
-import org.prebid.server.proto.openrtb.ext.request.appush.ExtImpAppush;
+import org.prebid.server.proto.openrtb.ext.request.loyal.ExtImpLoyal;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 
 import java.util.List;
@@ -68,7 +68,7 @@ public class LoyalBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAppush.of("somePlacementId", "")))));
+                        ExtImpLoyal.of("somePlacementId", "")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -79,7 +79,7 @@ public class LoyalBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(givenImpExtAppushBidder(ext -> ext.type("publisher").placementId("somePlacementId")));
+                .containsExactly(givenImpExtLoyalBidder(ext -> ext.type("publisher").placementId("somePlacementId")));
     }
 
     @Test
@@ -87,7 +87,7 @@ public class LoyalBidderTest extends VertxTest {
         // given
         final BidRequest bidRequest = givenBidRequest(impCustomizer -> impCustomizer
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpAppush.of("", "someEndpointId")))));
+                        ExtImpLoyal.of("", "someEndpointId")))));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -98,7 +98,7 @@ public class LoyalBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(givenImpExtAppushBidder(ext -> ext.type("network").endpointId("someEndpointId")));
+                .containsExactly(givenImpExtLoyalBidder(ext -> ext.type("network").endpointId("someEndpointId")));
     }
 
     @Test
@@ -269,7 +269,7 @@ public class LoyalBidderTest extends VertxTest {
         return impCustomizer.apply(Imp.builder()
                         .id("123")
                         .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpAppush.of("placementId", "endpointId")))))
+                                ExtImpLoyal.of("placementId", "endpointId")))))
                 .build();
     }
 
@@ -288,12 +288,12 @@ public class LoyalBidderTest extends VertxTest {
                 null);
     }
 
-    private ObjectNode givenImpExtAppushBidder(
-            UnaryOperator<AppushImpExtBidder.AppushImpExtBidderBuilder> impExtAppushBidderBuilder) {
+    private ObjectNode givenImpExtLoyalBidder(
+            UnaryOperator<LoyalImpExtBidder.LoyalImpExtBidderBuilder> impExtLoyalBidderBuilder) {
         final ObjectNode modifiedImpExtBidder = mapper.createObjectNode();
 
         return modifiedImpExtBidder.set("bidder", mapper.convertValue(
-                impExtAppushBidderBuilder.apply(AppushImpExtBidder.builder())
+                impExtLoyalBidderBuilder.apply(LoyalImpExtBidder.builder())
                         .build(),
                 JsonNode.class));
     }

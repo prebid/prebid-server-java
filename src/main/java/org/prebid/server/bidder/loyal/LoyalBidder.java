@@ -11,7 +11,7 @@ import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.appush.proto.AppushImpExtBidder;
+import org.prebid.server.bidder.loyal.proto.LoyalImpExtBidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -78,8 +78,8 @@ public class LoyalBidder implements Bidder<BidRequest> {
         }
     }
 
-    private AppushImpExtBidder resolveImpExt(ExtImpLoyal extImpLoyal) {
-        final AppushImpExtBidder.AppushImpExtBidderBuilder builder = AppushImpExtBidder.builder();
+    private LoyalImpExtBidder resolveImpExt(ExtImpLoyal extImpLoyal) {
+        final LoyalImpExtBidder.LoyalImpExtBidderBuilder builder = LoyalImpExtBidder.builder();
 
         if (StringUtils.isNotEmpty(extImpLoyal.getPlacementId())) {
             builder.type(PUBLISHER_PROPERTY).placementId(extImpLoyal.getPlacementId());
@@ -91,9 +91,9 @@ public class LoyalBidder implements Bidder<BidRequest> {
     }
 
     private Imp modifyImp(Imp imp, ExtImpLoyal extImpLoyal) {
-        final AppushImpExtBidder impExtAppushWithType = resolveImpExt(extImpLoyal);
+        final LoyalImpExtBidder impExtLoyalWithType = resolveImpExt(extImpLoyal);
         final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
-        modifiedImpExtBidder.set(BIDDER_PROPERTY, mapper.mapper().valueToTree(impExtAppushWithType));
+        modifiedImpExtBidder.set(BIDDER_PROPERTY, mapper.mapper().valueToTree(impExtLoyalWithType));
 
         return imp.toBuilder().ext(modifiedImpExtBidder).build();
     }
