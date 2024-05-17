@@ -53,21 +53,21 @@ public class LoyalBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+        final List<BidderError> errors = new ArrayList<>();
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
             final ExtImpLoyal extImpLoyal;
             try {
                 extImpLoyal = parseExtImp(imp);
+                final Imp modifiedImp = modifyImp(imp, extImpLoyal);
+                httpRequests.add(makeHttpRequest(request, modifiedImp));
             } catch (PreBidException e) {
-                return Result.withError(BidderError.badInput(e.getMessage()));
+                errors.add(BidderError.badInput(e.getMessage()));
             }
-
-            final Imp modifiedImp = modifyImp(imp, extImpLoyal);
-            httpRequests.add(makeHttpRequest(request, modifiedImp));
         }
 
-        return Result.withValues(httpRequests);
+        return Result.of(httpRequests, errors);
     }
 
     private ExtImpLoyal parseExtImp(Imp imp) {
