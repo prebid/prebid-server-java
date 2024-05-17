@@ -14,6 +14,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
@@ -36,6 +37,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
+import org.prebid.server.vertx.httpclient.HttpClient;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -52,18 +54,21 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
     private final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
     private final JacksonMapper jacksonMapper;
+    private final HttpClient httpClient;
 
     public GreenbidsAnalyticsReporter(
             GreenbidsAnalyticsProperties greenbidsAnalyticsProperties,
-            JacksonMapper jacksonMapper) {
+            JacksonMapper jacksonMapper,
+            HttpClient httpClient) {
         this.greenbidsAnalyticsProperties = Objects.requireNonNull(greenbidsAnalyticsProperties);
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
+        this.httpClient = Objects.requireNonNull(httpClient);
     }
 
     @Override
     public <T> Future<Void> processEvent(T event) {
-        AuctionContext greenbidsAuctionContext = null;
-        BidResponse greenbidsBidResponse = null;
+        final AuctionContext greenbidsAuctionContext;
+        final BidResponse greenbidsBidResponse;
 
         if (event instanceof AmpEvent ampEvent) {
             greenbidsAuctionContext = ampEvent.getAuctionContext();
@@ -71,118 +76,144 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         } else if (event instanceof AuctionEvent auctionEvent) {
             greenbidsAuctionContext = auctionEvent.getAuctionContext();
             greenbidsBidResponse = auctionEvent.getBidResponse();
+        } else {
+            greenbidsAuctionContext = null;
+            greenbidsBidResponse = null;
         }
-        assert greenbidsBidResponse != null && greenbidsAuctionContext != null;
+
+        if (greenbidsBidResponse == null || greenbidsAuctionContext == null) {
+            throw new IllegalArgumentException("Bid response or auction context cannot be null");
+        }
 
         final String greenbidsId = UUID.randomUUID().toString();
         final String billingId = UUID.randomUUID().toString();
-        final boolean isSampled = isSampled(greenbidsAnalyticsProperties.getGreenbidsSampling(), greenbidsId);
 
-        if (isSampled) {
-            final CommonMessage commonMessage = createBidMessage(
-                    greenbidsAuctionContext, greenbidsBidResponse, greenbidsId, billingId);
+        isSampled(greenbidsAnalyticsProperties.getGreenbidsSampling(), greenbidsId)
+                .compose(isSampled -> {
+                    if (isSampled) {
+                        final Future<CommonMessage> bidMessage = createBidMessage(
+                                greenbidsAuctionContext, greenbidsBidResponse, greenbidsId, billingId);
 
-            try {
-                String commonMessageJson = jacksonMapper.encodeToString(commonMessage);
-                HttpUtil.sendJson(commonMessageJson, greenbidsAnalyticsProperties.getAnalyticsServer());
-            } catch (EncodeException e) {
-                throw new EncodeException("Failed to encode as JSON: " + e.getMessage());
-            }
-        }
+                        return bidMessage.onSuccess(commonMessage -> {
+                            try {
+                                final String commonMessageJson = jacksonMapper.encodeToString(commonMessage);
+                                HttpUtil.sendJson(commonMessageJson, greenbidsAnalyticsProperties.getAnalyticsServer());
+                            } catch (EncodeException e) {
+                                Future.failedFuture("Failed to encode as JSON: " + e.getMessage());
+                            }
+                        });
+                    }
+                    return null;
+                });
 
         return Future.succeededFuture();
     }
 
-    private boolean isSampled(
+    private Future<Boolean> isSampled(
             double samplingRate,
             String greenbidsId) {
-        if (samplingRate < 0 || samplingRate > 1) {
-            throw new IllegalArgumentException("Warning: Sampling rate must be between 0 and 1");
+        final Promise<Boolean> promise = Promise.promise();
+        try {
+            if (samplingRate < 0 || samplingRate > 1) {
+                Future.failedFuture("Warning: Sampling rate must be between 0 and 1");
+            }
+
+            final double exploratorySamplingRate = samplingRate
+                    * greenbidsAnalyticsProperties.getExploratorySamplingSplit();
+            final double throttledSamplingRate = samplingRate
+                    * (1.0 - greenbidsAnalyticsProperties.getExploratorySamplingSplit());
+
+            final long hashInt = Math.abs(greenbidsId.hashCode()) % 0x10000;
+            final boolean isPrimarySampled = hashInt < exploratorySamplingRate * 0xFFFF;
+
+            promise.complete(isPrimarySampled || hashInt >= (1 - throttledSamplingRate) * 0xFFFF);
+
+        } catch (IllegalArgumentException e) {
+            promise.fail(e);
         }
 
-        final double exploratorySamplingRate = samplingRate
-                * greenbidsAnalyticsProperties.getExploratorySamplingSplit();
-        final double throttledSamplingRate = samplingRate
-                * (1.0 - greenbidsAnalyticsProperties.getExploratorySamplingSplit());
-
-        final long hashInt = Math.abs(greenbidsId.hashCode()) % 0x10000;
-
-        final boolean isPrimarySampled = hashInt < exploratorySamplingRate * 0xFFFF;
-        if (isPrimarySampled) {
-            return true;
-        }
-        return hashInt >= (1 - throttledSamplingRate) * 0xFFFF;
+        return promise.future();
     }
 
-    public CommonMessage createBidMessage(
+    public Future<CommonMessage> createBidMessage(
             AuctionContext auctionContext,
             BidResponse bidResponse,
             String greenbidsId,
             String billingId) {
-        final List<Imp> imps = Optional.ofNullable(auctionContext)
-                .map(AuctionContext::getBidRequest)
-                .map(BidRequest::getImp)
-                .orElse(Collections.emptyList());
+        final Promise<CommonMessage> promise = Promise.promise();
 
-        if (CollectionUtils.isEmpty(imps)) {
-            throw new IllegalArgumentException("Imps is null or empty");
+        try {
+            final List<Imp> imps = Optional.ofNullable(auctionContext)
+                    .map(AuctionContext::getBidRequest)
+                    .map(BidRequest::getImp)
+                    .orElse(Collections.emptyList());
+
+            if (CollectionUtils.isEmpty(imps)) {
+                throw new IllegalArgumentException("AdUnits list should not be empty");
+            }
+
+            final long auctionElapsed = Optional.ofNullable(auctionContext.getBidRequest())
+                    .map(BidRequest::getExt)
+                    .map(ExtRequest::getPrebid)
+                    .map(ExtRequestPrebid::getAuctiontimestamp)
+                    .map(timestamp -> System.currentTimeMillis() - timestamp).orElse(0L);
+
+            final Map<String, Bid> seatsWithBids = Stream.ofNullable(bidResponse.getSeatbid())
+                    .flatMap(Collection::stream)
+                    .filter(seatBid -> !seatBid.getBid().isEmpty())
+                    .collect(
+                            Collectors.toMap(
+                                    SeatBid::getSeat,
+                                    seatBid -> seatBid.getBid().getFirst(),
+                                    (existing, replacement) -> existing));
+
+            final List<SeatNonBid> seatNonBids = auctionContext.getBidRejectionTrackers().entrySet().stream()
+                    .map(entry -> toSeatNonBid(entry.getKey(), entry.getValue()))
+                    .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
+                    .toList();
+
+            final Map<String, NonBid> seatsWithNonBids = Stream.ofNullable(seatNonBids)
+                    .flatMap(Collection::stream)
+                    .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
+                    .collect(
+                            Collectors.toMap(
+                                    SeatNonBid::getSeat,
+                                    seatNonBid -> seatNonBid.getNonBid().getFirst(),
+                                    (existing, replacement) -> existing));
+
+            final List<AdUnit> adUnitsWithBidResponses = extractAdUnitsWithBidResponses(
+                    imps, seatsWithBids, seatsWithNonBids);
+
+            final String auctionId = Optional.ofNullable(auctionContext)
+                    .map(AuctionContext::getBidRequest)
+                    .map(BidRequest::getId)
+                    .orElse(null);
+
+            final String referrer = Optional.ofNullable(auctionContext)
+                    .map(AuctionContext::getBidRequest)
+                    .map(BidRequest::getSite)
+                    .map(Site::getPage)
+                    .orElse(null);
+
+            promise.complete(
+                    CommonMessage.builder()
+                            .version(greenbidsAnalyticsProperties.getAnalyticsServerVersion())
+                            .auctionId(auctionId)
+                            .referrer(referrer)
+                            .sampling(greenbidsAnalyticsProperties.getGreenbidsSampling())
+                            .prebid("prebid.version")
+                            .greenbidsId(greenbidsId)
+                            .pbuid(greenbidsAnalyticsProperties.getPbuid())
+                            .billingId(billingId)
+                            .adUnits(adUnitsWithBidResponses)
+                            .auctionElapsed(auctionElapsed)
+                            .build());
+
+        } catch (IllegalArgumentException e) {
+            promise.fail(e);
         }
 
-        final long auctionElapsed = Optional.ofNullable(auctionContext.getBidRequest())
-                .map(BidRequest::getExt)
-                .map(ExtRequest::getPrebid)
-                .map(ExtRequestPrebid::getAuctiontimestamp)
-                .map(timestamp -> System.currentTimeMillis() - timestamp).orElse(0L);
-
-        final Map<String, Bid> seatsWithBids = Stream.ofNullable(bidResponse.getSeatbid())
-                .flatMap(Collection::stream)
-                .filter(seatBid -> !seatBid.getBid().isEmpty())
-                .collect(
-                        Collectors.toMap(
-                                SeatBid::getSeat,
-                                seatBid -> seatBid.getBid().getFirst(),
-                                (existing, replacement) -> existing));
-
-        final List<SeatNonBid> seatNonBids = auctionContext.getBidRejectionTrackers().entrySet().stream()
-                .map(entry -> toSeatNonBid(entry.getKey(), entry.getValue()))
-                .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
-                .toList();
-
-        final Map<String, NonBid> seatsWithNonBids = Stream.ofNullable(seatNonBids)
-                .flatMap(Collection::stream)
-                .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
-                .collect(
-                        Collectors.toMap(
-                                SeatNonBid::getSeat,
-                                seatNonBid -> seatNonBid.getNonBid().getFirst(),
-                                (existing, replacement) -> existing));
-
-        final List<AdUnit> adUnitsWithBidResponses = extractAdUnitsWithBidResponses(
-                imps, seatsWithBids, seatsWithNonBids);
-
-        final String auctionId = Optional.ofNullable(auctionContext)
-                .map(AuctionContext::getBidRequest)
-                .map(BidRequest::getId)
-                .orElse(null);
-
-        final String referrer = Optional.ofNullable(auctionContext)
-                .map(AuctionContext::getBidRequest)
-                .map(BidRequest::getSite)
-                .map(Site::getPage)
-                .orElse(null);
-
-        return CommonMessage.builder()
-                .version(greenbidsAnalyticsProperties.getAnalyticsServerVersion())
-                .auctionId(auctionId)
-                .referrer(referrer)
-                .sampling(greenbidsAnalyticsProperties.getGreenbidsSampling())
-                .prebid("prebid.version")
-                .greenbidsId(greenbidsId)
-                .pbuid(greenbidsAnalyticsProperties.getPbuid())
-                .billingId(billingId)
-                .adUnits(adUnitsWithBidResponses)
-                .auctionElapsed(auctionElapsed)
-                .build();
+        return promise.future();
     }
 
     private static SeatNonBid toSeatNonBid(String bidder, BidRejectionTracker bidRejectionTracker) {
@@ -252,12 +283,12 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         seatsWithBidsForImp.forEach((seat, bid) -> {
-            GreenbidsBidder bidder = GreenbidsBidder.ofBid(seat, bid);
+            final GreenbidsBidder bidder = GreenbidsBidder.ofBid(seat, bid);
             bidders.add(bidder);
         });
 
         seatsWithNonBidsForImp.forEach((seat, nonBid) -> {
-            GreenbidsBidder bidder = GreenbidsBidder.ofNonBid(seat, nonBid);
+            final GreenbidsBidder bidder = GreenbidsBidder.ofNonBid(seat, nonBid);
             bidders.add(bidder);
         });
 

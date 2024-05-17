@@ -61,10 +61,12 @@ public class AnalyticsConfiguration {
         @Bean
         GreenbidsAnalyticsReporter greenbidsAnalyticsReporter(
                 GreenbidsAnalyticsConfigurationProperties greenbidsAnalyticsConfigurationProperties,
-                JacksonMapper jacksonMapper) {
+                JacksonMapper jacksonMapper,
+                HttpClient httpClient) {
             return new GreenbidsAnalyticsReporter(
                     greenbidsAnalyticsConfigurationProperties.toComponentProperties(),
-                    jacksonMapper);
+                    jacksonMapper,
+                    httpClient);
         }
 
         @Bean
@@ -88,14 +90,17 @@ public class AnalyticsConfiguration {
 
             Double exploratorySamplingSplit;
 
+            Long timeoutMs;
+
             public GreenbidsAnalyticsProperties toComponentProperties() {
                 return GreenbidsAnalyticsProperties.builder()
-                       .pbuid(getPbuid())
-                       .greenbidsSampling(getGreenbidsSampling())
+                        .pbuid(getPbuid())
+                        .greenbidsSampling(getGreenbidsSampling())
                         .exploratorySamplingSplit(getExploratorySamplingSplit())
                         .analyticsServerVersion(getAnalyticsServerVersion())
                         .analyticsServer(getAnalyticsServer())
-                       .build();
+                        .timeoutMs(getTimeoutMs())
+                        .build();
             }
         }
     }
