@@ -55,6 +55,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     private final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
     private final JacksonMapper jacksonMapper;
     private final HttpClient httpClient;
+    private static final int MAX_16_BIT_INTEGER = 0xFFFF;
+    private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
 
     public GreenbidsAnalyticsReporter(
             GreenbidsAnalyticsProperties greenbidsAnalyticsProperties,
@@ -123,10 +125,10 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             final double throttledSamplingRate = samplingRate
                     * (1.0 - greenbidsAnalyticsProperties.getExploratorySamplingSplit());
 
-            final long hashInt = Math.abs(greenbidsId.hashCode()) % 0x10000;
-            final boolean isPrimarySampled = hashInt < exploratorySamplingRate * 0xFFFF;
+            final long hashInt = Math.abs(greenbidsId.hashCode()) % RANGE_16_BIT_INTEGER_DIVISION_BASIS;
+            final boolean isPrimarySampled = hashInt < exploratorySamplingRate * MAX_16_BIT_INTEGER;
 
-            promise.complete(isPrimarySampled || hashInt >= (1 - throttledSamplingRate) * 0xFFFF);
+            promise.complete(isPrimarySampled || hashInt >= (1 - throttledSamplingRate) * MAX_16_BIT_INTEGER);
 
         } catch (IllegalArgumentException e) {
             promise.fail(e);
