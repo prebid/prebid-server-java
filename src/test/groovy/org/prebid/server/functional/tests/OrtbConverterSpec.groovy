@@ -252,9 +252,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request shouldn contain the wlangb as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            wlangb == wlangbRandomStrings
-        }
+        assert bidder.getBidderRequest(bidRequest.id).wlangb == wlangbRandomStrings
     }
 
     def "PBS shouldn't remove wlangb when bidder doesn't support ortb 2.6"() {
@@ -262,7 +260,6 @@ class OrtbConverterSpec extends BaseSpec {
         def wlangbRandomStrings = [PBSUtils.randomString]
         def bidRequest = BidRequest.defaultBidRequest.tap {
             wlangb = wlangbRandomStrings
-
         }
 
         when: "Requesting PBS auction with ortb 2.5"
@@ -287,9 +284,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the device.langb as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            device.langb == langbRandomString
-        }
+        assert bidder.getBidderRequest(bidRequest.id).device.langb == langbRandomString
     }
 
     def "PBS shouldn't remove device.langb when bidder supports ortb 2.6"() {
@@ -305,9 +300,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the device.langb as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            device.langb == langbRandomString
-        }
+        assert bidder.getBidderRequest(bidRequest.id).device.langb == langbRandomString
     }
 
     def "PBS shouldn't remove site.content.langb when bidder doesn't support ortb 2.6"() {
@@ -323,9 +316,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.content.langb as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.content.langb == langbRandomString
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.content.langb == langbRandomString
     }
 
     def "PBS shouldn't remove site.content.langb when bidder supports ortb 2.6"() {
@@ -341,9 +332,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.content.langb as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.content.langb == langbRandomString
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.content.langb == langbRandomString
     }
 
     def "PBS shouldn't remove app.content.langb when bidder doesn't support ortb 2.6"() {
@@ -359,9 +348,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the app.content.langb as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            app.content.langb == langbRandomString
-        }
+        assert bidder.getBidderRequest(bidRequest.id).app.content.langb == langbRandomString
     }
 
     def "PBS shouldn't remove app.content.langb when bidder supports ortb 2.6"() {
@@ -377,9 +364,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the app.content.langb as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            app.content.langb == langbRandomString
-        }
+        assert bidder.getBidderRequest(bidRequest.id).app.content.langb == langbRandomString
     }
 
     def "PBS shouldn't remove site.publisher.cattax when bidder doesn't support ortb 2.6"() {
@@ -395,9 +380,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.publisher.cattax as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.publisher.cattax == cattaxRandomNumber
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.publisher.cattax == cattaxRandomNumber
     }
 
     def "PBS shouldn't remove site.publisher.cattax when bidder supports ortb 2.6"() {
@@ -413,9 +396,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.publisher.cattax as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.publisher.cattax == cattaxRandomNumber
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.publisher.cattax == cattaxRandomNumber
     }
 
     def "PBS shouldn't remove site.content.producer.cattax when bidder doesn't support ortb 2.6"() {
@@ -433,9 +414,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.content.producer.cattax as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.content.producer.cattax == cattaxRandomNumber
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.content.producer.cattax == cattaxRandomNumber
     }
 
     def "PBS shouldn't remove site.content.producer.cattax when bidder supports ortb 2.6"() {
@@ -453,9 +432,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.content.producer.cattax as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.content.producer.cattax == cattaxRandomNumber
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.content.producer.cattax == cattaxRandomNumber
     }
 
     def "PBS shouldn't remove app.cattax when bidder doesn't support ortb 2.6"() {
@@ -469,9 +446,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the app.cattax as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            app.catTax == cattaxRandomNumber
-        }
+        assert bidder.getBidderRequest(bidRequest.id).app.catTax == cattaxRandomNumber
     }
 
     def "PBS shouldn't remove app.cattax when bidder supports ortb 2.6"() {
@@ -485,9 +460,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the app.cattax as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            app.catTax == cattaxRandomNumber
-        }
+        assert bidder.getBidderRequest(bidRequest.id).app.catTax == cattaxRandomNumber
     }
 
     def "PBS shouldn't remove cattax when bidder doesn't support ortb 2.6"() {
@@ -501,9 +474,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the cattax as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            cattax == cattaxRandomNumber
-        }
+        assert bidder.getBidderRequest(bidRequest.id).cattax == cattaxRandomNumber
     }
 
     def "PBS shouldn't remove cattax when bidder supports ortb 2.6"() {
@@ -517,9 +488,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the cattax as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            cattax == cattaxRandomNumber
-        }
+        assert bidder.getBidderRequest(bidRequest.id).cattax == cattaxRandomNumber
     }
 
     def "PBS shouldn't remove site.cattax when bidder doesn't support ortb 2.6"() {
@@ -533,9 +502,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.cattax as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.catTax == cattaxRandomNumber
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.catTax == cattaxRandomNumber
     }
 
     def "PBS shouldn't remove site.cattax when bidder supports ortb 2.6"() {
@@ -549,16 +516,15 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.cattax as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.catTax == cattaxRandomNumber
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.catTax == cattaxRandomNumber
     }
 
     def "PBS shouldn't remove site.content.cattax when bidder doesn't support ortb 2.6"() {
         given: "Default bid request with site.content.cattax"
+        def cattaxRandomNumber = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
             site.content = Content.defaultContent.tap {
-                cattax = PBSUtils.randomNumber
+                cattax = cattaxRandomNumber
             }
         }
 
@@ -566,9 +532,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.content.cattax as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.content.cattax
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.content.cattax == cattaxRandomNumber
     }
 
     def "PBS shouldn't remove site.content.cattax when bidder supports ortb 2.5"() {
@@ -584,9 +548,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.content.cattax as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.content.cattax == cattaxRandomNumber
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.content.cattax == cattaxRandomNumber
     }
 
     def "PBS shouldn't remove imp[0].video.* and keep imp[0].video.plcmt when bidder doesn't support ortb 2.6"() {
@@ -598,7 +560,7 @@ class OrtbConverterSpec extends BaseSpec {
                 poddur = PBSUtils.randomNumber
                 podid = PBSUtils.randomNumber
                 podseq = PBSUtils.randomNumber
-                mincpmpersec =  PBSUtils.randomDecimal
+                mincpmpersec = PBSUtils.randomDecimal
                 slotinpod = PBSUtils.randomNumber
                 plcmt = PBSUtils.getRandomEnum(VideoPlcmtSubtype)
             }
@@ -609,16 +571,14 @@ class OrtbConverterSpec extends BaseSpec {
 
         then: "Bidder request should contain the imp[0].video.* as on request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        verifyAll(bidderRequest) {
-            imp[0].video == bidRequest.imp[0].video
-        }
+        assert bidderRequest.imp[0].video == bidRequest.imp[0].video
     }
 
     def "PBS shouldn't remove imp[0].video.* when bidder supports ortb 2.6"() {
         given: "Default bid request with imp[0].video.*"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].video = Video.defaultVideo.tap {
-                rqddurs =  [PBSUtils.randomNumber]
+                rqddurs = [PBSUtils.randomNumber]
                 maxseq = PBSUtils.randomNumber
                 poddur = PBSUtils.randomNumber
                 podid = PBSUtils.randomNumber
@@ -633,9 +593,8 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the imp[0].video.* as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].video == bidRequest.imp[0].video
-        }
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].video == bidRequest.imp[0].video
     }
 
     def "PBS shouldn't remove imp[0].audio.* when bidder doesn't support ortb 2.6"() {
@@ -656,9 +615,8 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the imp[0].audio.* as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].audio == bidRequest.imp[0].audio
-        }
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].audio == bidRequest.imp[0].audio
     }
 
     def "PBS shouldn't remove imp[0].audio.* when bidder supports ortb 2.6"() {
@@ -670,7 +628,7 @@ class OrtbConverterSpec extends BaseSpec {
                 poddur = PBSUtils.randomNumber
                 podid = PBSUtils.randomNumber
                 podseq = PBSUtils.randomNumber
-                mincpmpersec =  BigDecimal.valueOf(1)
+                mincpmpersec = BigDecimal.valueOf(1)
                 slotinpod = PBSUtils.randomNumber
             }
         }
@@ -679,9 +637,8 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the imp[0].audio.* as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].audio == bidRequest.imp[0].audio
-        }
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].audio == bidRequest.imp[0].audio
     }
 
     def "PBS shouldn't remove imp[0].ssai when bidder doesn't support ortb 2.6"() {
@@ -695,9 +652,8 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the imp[0].ssai as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].ssai == randomSsai
-        }
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ssai == randomSsai
     }
 
     def "PBS shouldn't remove imp[0].ssai when bidder supports ortb 2.6"() {
@@ -711,9 +667,8 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the imp[0].ssai as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].ssai == ssaiRandomNumber
-        }
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.imp[0].ssai == ssaiRandomNumber
     }
 
     def "PBS shouldn't remove site.content.{channel, network} when bidder doesn't support ortb 2.6"() {
@@ -811,9 +766,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.kwarray as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.kwArray == randomKwArray
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.kwArray == randomKwArray
     }
 
     def "PBS shouldn't remove site.kwarray when bidder supports ortb 2.6"() {
@@ -827,9 +780,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.kwarray as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.kwArray == kwarrayRandomStrings
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.kwArray == kwarrayRandomStrings
     }
 
     def "PBS shouldn't remove site.content.kwarray when bidder doesn't support ortb 2.6"() {
@@ -845,9 +796,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.content.kwarray as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.content.kwarray == kwarrayRandomStrings
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.content.kwarray == kwarrayRandomStrings
     }
 
     def "PBS shouldn't remove site.content.kwarray when bidder supports ortb 2.6"() {
@@ -863,9 +812,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the site.content.kwarray as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.content.kwarray == kwarrayRandomStrings
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.content.kwarray == kwarrayRandomStrings
     }
 
     def "PBS shouldn't remove app.kwarray when bidder doesn't support ortb 2.6"() {
@@ -879,9 +826,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the app.kwarray as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            app.kwArray == randomKwArray
-        }
+        assert bidder.getBidderRequest(bidRequest.id).app.kwArray == randomKwArray
     }
 
     def "PBS shouldn't remove app.kwarray when bidder supports ortb 2.6"() {
@@ -895,9 +840,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the app.kwarray as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            app.kwArray == kwarrayRandomStrings
-        }
+        assert bidder.getBidderRequest(bidRequest.id).app.kwArray == kwarrayRandomStrings
     }
 
     def "PBS shouldn't remove user.kwarray when bidder doesn't support ortb 2.6"() {
@@ -913,9 +856,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request shouldn't contain the user.kwarray as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            user.kwarray == kwarrayRandomStrings
-        }
+        assert bidder.getBidderRequest(bidRequest.id).user.kwarray == kwarrayRandomStrings
     }
 
     def "PBS shouldn't remove user.kwarray when bidder supports ortb 2.6"() {
@@ -931,9 +872,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the user.kwarray as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            user.kwarray == kwarrayRandomStrings
-        }
+        assert bidder.getBidderRequest(bidRequest.id).user.kwarray == kwarrayRandomStrings
     }
 
     def "PBS shouldn't remove device.sua when bidder doesn't support ortb 2.6"() {
@@ -951,9 +890,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the device.sua as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            device.sua.model == model
-        }
+        assert bidder.getBidderRequest(bidRequest.id).device.sua.model == model
     }
 
     def "PBS shouldn't remove device.sua when bidder supports ortb 2.6"() {
@@ -971,9 +908,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the device.sua as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            device.sua.model == model
-        }
+        assert bidder.getBidderRequest(bidRequest.id).device.sua.model == model
     }
 
     def "PBS should pass bid[].{langb, dur, slotinpor, apis, cattax} through to response"() {
@@ -1109,24 +1044,21 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "BidderRequest should contain the app.inventoryPartnerDomain as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.inventoryPartnerDomain == inventoryPartnerDomain
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.inventoryPartnerDomain == inventoryPartnerDomain
     }
 
     def "PBS shouldn't remove site.inventoryPartnerDomain when PBS support ortb 2.6"() {
         given: "Default bid request with site.inventoryPartnerDomain"
+        def inventoryPartnerDomain = PBSUtils.randomString
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            site.inventoryPartnerDomain = PBSUtils.randomString
+            site.inventoryPartnerDomain = inventoryPartnerDomain
         }
 
         when: "Requesting PBS auction with ortb 2.6"
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "BidderRequest should contain the site.inventoryPartnerDomain as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            site.inventoryPartnerDomain == bidRequest.site.inventoryPartnerDomain
-        }
+        assert bidder.getBidderRequest(bidRequest.id).site.inventoryPartnerDomain == inventoryPartnerDomain
     }
 
     def "PBS shouldn't remove app.inventoryPartnerDomain when PBS don't support ortb 2.6"() {
@@ -1139,25 +1071,22 @@ class OrtbConverterSpec extends BaseSpec {
         when: "Requesting PBS auction with ortb 2.5"
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
-        then: "Bidder request shouldn't contain the app.inventoryPartnerDomain as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            app.inventoryPartnerDomain == inventoryPartnerDomain
-        }
+        then: "Bidder request should contain the app.inventoryPartnerDomain as on request"
+        assert bidder.getBidderRequest(bidRequest.id).app.inventoryPartnerDomain == inventoryPartnerDomain
     }
 
     def "PBS shouldn't remove app.inventoryPartnerDomain when PBS support ortb 2.6"() {
         given: "Default bid request with app.inventoryPartnerDomain"
+        def inventoryPartnerDomain = PBSUtils.randomString
         def bidRequest = BidRequest.getDefaultBidRequest(APP).tap {
-            app.inventoryPartnerDomain = PBSUtils.randomString
+            app.inventoryPartnerDomain = inventoryPartnerDomain
         }
 
         when: "Requesting PBS auction with ortb 2.6"
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the app.inventoryPartnerDomain as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            app.inventoryPartnerDomain == bidRequest.app.inventoryPartnerDomain
-        }
+        assert bidder.getBidderRequest(bidRequest.id).app.inventoryPartnerDomain == inventoryPartnerDomain
     }
 
     def "PBS should remove bidRequest.dooh when PBS don't support ortb 2.6"() {
@@ -1180,9 +1109,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the bidRequest.dooh as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            dooh == bidRequest.dooh
-        }
+        assert bidder.getBidderRequest(bidRequest.id).dooh == bidRequest.dooh
     }
 
     def "PBS shouldn't remove bidRequest.dooh when PBS support ortb 2.6"() {
@@ -1205,9 +1132,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the bidRequest.dooh as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            dooh == bidRequest.dooh
-        }
+        assert bidder.getBidderRequest(bidRequest.id).dooh == bidRequest.dooh
     }
 
     def "PBS shouldn't remove regs.ext.gpc when ortb request support ortb 2.6"() {
@@ -1223,9 +1148,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the same regs as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            regs.ext.gpc == randomGpc
-        }
+        assert bidder.getBidderRequest(bidRequest.id).regs.ext.gpc == randomGpc
     }
 
     def "PBS shouldn't remove regs.ext.gpc when ortb request doesn't support ortb 2.6"() {
@@ -1241,9 +1164,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain the same regs as on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            regs.ext.gpc == randomGpc
-        }
+        assert bidder.getBidderRequest(bidRequest.id).regs.ext.gpc == randomGpc
     }
 
     def "PBS shouldn't remove video.protocols when ortb request support 2.6"() {
@@ -1259,9 +1180,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithNewOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain video.protocols on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].video.protocols == protocols
-        }
+        assert bidder.getBidderRequest(bidRequest.id).imp[0].video.protocols == protocols
     }
 
     def "PBS shouldn't remove video.protocols when ortb request support 2.5"() {
@@ -1277,9 +1196,7 @@ class OrtbConverterSpec extends BaseSpec {
         prebidServerServiceWithElderOrtb.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain video.protocols on request"
-        verifyAll(bidder.getBidderRequest(bidRequest.id)) {
-            imp[0].video.protocols == protocols
-        }
+        assert bidder.getBidderRequest(bidRequest.id).imp[0].video.protocols == protocols
     }
 
     def "PBS shouldn't remove saetbid[0].bid[].{lang,dur.slotinpod,apis,cat,cattax} when ortb request support 2.5"() {
