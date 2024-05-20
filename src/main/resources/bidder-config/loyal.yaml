@@ -1,17 +1,17 @@
 adapters:
   loyal:
     endpoint: "https://us-east-1.loyal.app/pserver"
-geoscope:
-  - USA
-meta-info:
-  maintainer-email: "hello@loyal.app"
-  app-media-types:
-    - banner
-    - video
-    - native
-  site-media-types:
-    - banner
-    - video
-    - native
-  supported-vendors: [ ]
-  vendor-id: 0
+    geoscope:
+      - USA
+    meta-info:
+      maintainer-email: "hello@loyal.app"
+      app-media-types:
+        - banner
+        - video
+        - native
+      site-media-types:
+        - banner
+        - video
+        - native
+      supported-vendors: []
+      vendor-id: 0
