@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.readpeak;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -10,20 +11,20 @@ import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.model.BidderBid;
-import org.prebid.server.bidder.model.BidderCall;
-import org.prebid.server.bidder.model.BidderError;
-import org.prebid.server.bidder.model.HttpRequest;
-import org.prebid.server.bidder.model.Result;
+import org.prebid.server.bidder.adtarget.proto.AdtargetImpExt;
+import org.prebid.server.bidder.model.*;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.adtarget.ExtImpAdtarget;
+import org.prebid.server.proto.openrtb.ext.request.alkimi.ExtImpAlkimi;
 import org.prebid.server.proto.openrtb.ext.request.readpeak.ExtImpReadPeak;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -45,19 +46,63 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
         this.mapper = Objects.requireNonNull(mapper);
     }
 
+//    @Override
+//    public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
+//        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+//        final List<BidderError> errors = new ArrayList<>();
+//
+//        for (Imp imp : request.getImp()) {
+//            try {
+//                final ExtImpReadPeak extImp = parseImpExt(imp);
+//                httpRequests.add(makeHttpRequest(request, extImp));
+//            } catch (PreBidException e) {
+//                errors.add(BidderError.badInput(e.getMessage()));
+//            }
+//        }
+//
+//        return Result.of(httpRequests, errors);
+//    }
+
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
+        // Create a deep copy of the incoming request
+        BidRequest requestCopy;
+        try {
+            requestCopy = mapper.decodeValue(mapper.encodeToBytes(request), BidRequest.class);
+        } catch (Exception e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            return Result.withErrors(errors);
+        }
+
+        final List<Imp> imps = new ArrayList<>();
         for (Imp imp : request.getImp()) {
+            final ExtImpReadPeak extImpReadPeak;
             try {
-                final ExtImpReadPeak extImp = parseImpExt(imp);
-                httpRequests.add(makeHttpRequest(request, extImp));
-            } catch (PreBidException e) {
-                errors.add(BidderError.badInput(e.getMessage()));
+                extImpReadPeak = parseImpExt(imp);
+                final Imp updatedImp = updateImp(imp, extImpReadPeak);
+                imps.add(updatedImp);
+            } catch (IllegalArgumentException e) {
+                errors.add(BidderError.badInput("Invalid Imp ext: " + e.getMessage()));
             }
         }
+
+        if (imps.isEmpty()) {
+            errors.add(BidderError.badInput("No valid impressions found"));
+            return Result.withErrors(errors);
+        }
+
+        requestCopy = requestCopy.toBuilder().imp(imps).build();
+
+        final String url = makeUrl(imps.get(0).getExt().get("bidder").get("publisherId").asText());
+        httpRequests.add(HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(url)
+                .headers(BidderUtil.headers())
+                .payload(requestCopy)
+                .build());
 
         return Result.of(httpRequests, errors);
     }
@@ -70,21 +115,25 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
         }
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest bidRequest, ExtImpReadPeak extImp) {
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(makeUrl(extImp))
-                .headers(HttpUtil.headers())
-                .body(mapper.encodeToBytes(bidRequest))
-                .impIds(BidderUtil.impIds(bidRequest))
-                .payload(bidRequest)
+    private Imp updateImp(Imp imp, ExtImpReadPeak extImpReadPeak) {
+        final Price bidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
+
+        return imp.toBuilder()
+                .bidfloor(BidderUtil.isValidPrice(bidFloorPrice)
+                        ? bidFloorPrice.getValue()
+                        : extImpReadPeak.getBidFloor())
+                .tagid(extImpReadPeak.getTagId())
                 .build();
     }
 
-    private String makeUrl(ExtImpReadPeak extImp) {
-        return endpointUrl
-                .replace(PUBLISHER_ID_MACRO, StringUtils.defaultString(extImp.getPublisherId()));
+    private String makeUrl(String publisherId) {
+        return endpointUrl.replace(PUBLISHER_ID_MACRO, StringUtils.defaultString(publisherId));
     }
+
+//    private String makeUrl(ExtImpReadPeak extImp) {
+//        return endpointUrl
+//                .replace(PUBLISHER_ID_MACRO, StringUtils.defaultString(extImp.getPublisherId()));
+//    }
 
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
