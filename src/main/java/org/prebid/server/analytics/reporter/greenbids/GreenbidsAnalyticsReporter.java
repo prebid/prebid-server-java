@@ -22,10 +22,12 @@ import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.greenbids.model.AdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
 import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
+import org.prebid.server.analytics.reporter.greenbids.model.Greenbids;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBidder;
 import org.prebid.server.analytics.reporter.greenbids.model.HttpUtil;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
+import org.prebid.server.analytics.reporter.greenbids.model.Ortb2Imp;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.exception.PreBidException;
@@ -89,12 +91,19 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final String greenbidsId = UUID.randomUUID().toString();
         final String billingId = UUID.randomUUID().toString();
+        final String fingerprint = UUID.randomUUID().toString();
+        final String tid = UUID.randomUUID().toString();
 
         isSampled(greenbidsAnalyticsProperties.getGreenbidsSampling(), greenbidsId)
                 .compose(isSampled -> {
                     if (isSampled) {
                         final Future<CommonMessage> bidMessage = createBidMessage(
-                                greenbidsAuctionContext, greenbidsBidResponse, greenbidsId, billingId);
+                                greenbidsAuctionContext,
+                                greenbidsBidResponse,
+                                greenbidsId,
+                                billingId,
+                                fingerprint,
+                                tid);
 
                         return bidMessage.onSuccess(commonMessage -> {
                             try {
@@ -141,7 +150,9 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             AuctionContext auctionContext,
             BidResponse bidResponse,
             String greenbidsId,
-            String billingId) {
+            String billingId,
+            String fingerprint,
+            String tid) {
         final Promise<CommonMessage> promise = Promise.promise();
 
         try {
@@ -184,7 +195,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                                     (existing, replacement) -> existing));
 
             final List<AdUnit> adUnitsWithBidResponses = extractAdUnitsWithBidResponses(
-                    imps, seatsWithBids, seatsWithNonBids);
+                    imps, seatsWithBids, seatsWithNonBids, fingerprint, tid);
 
             final String auctionId = Optional.ofNullable(auctionContext)
                     .map(AuctionContext::getBidRequest)
@@ -229,11 +240,19 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     public List<AdUnit> extractAdUnitsWithBidResponses(
             List<Imp> imps,
             Map<String, Bid> seatsWithBids,
-            Map<String, NonBid> seatsWithNonBids) {
-        return imps.stream().map(imp -> createAdUnit(imp, seatsWithBids, seatsWithNonBids)).toList();
+            Map<String, NonBid> seatsWithNonBids,
+            String fingerprint,
+            String tid) {
+        return imps.stream().map(imp -> createAdUnit(
+                imp, seatsWithBids, seatsWithNonBids, fingerprint, tid)).toList();
     }
 
-    private AdUnit createAdUnit(Imp imp, Map<String, Bid> seatsWithBids, Map<String, NonBid> seatsWithNonBids) {
+    private AdUnit createAdUnit(
+            Imp imp,
+            Map<String, Bid> seatsWithBids,
+            Map<String, NonBid> seatsWithNonBids,
+            String fingerprint,
+            String tid) {
         final Banner banner = imp.getBanner();
         final Video video = imp.getVideo();
         final Native nativeObject = imp.getXNative();
@@ -265,10 +284,33 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final String adUnitCode = getAdUnitCode(imp);
 
+        final Map<String, Boolean> keptInAuction = bidders.stream()
+                .collect(Collectors.toMap(
+                        GreenbidsBidder::getBidder,
+                        bidder -> true,
+                        (existing, replacement) -> existing
+                ));
+
+        final Greenbids greenbids = Greenbids.builder()
+                .fingerprint(fingerprint)
+                .keptInAuction(keptInAuction)
+                .isExploration(true)
+                .build();
+
+        final Ortb2Imp.Ext ext = Ortb2Imp.Ext.builder()
+                .tid(tid)
+                .greenbids(greenbids)
+                .build();
+
+        final Ortb2Imp ortb2Imp = Ortb2Imp.builder()
+                .ext(ext)
+                .build();
+
         return AdUnit.builder()
                 .code(adUnitCode)
                 .mediaTypes(mediaTypes)
                 .bidders(bidders)
+                .ortb2Imp(ortb2Imp)
                 .build();
     }
 

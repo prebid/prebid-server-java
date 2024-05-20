@@ -139,6 +139,8 @@ public class GreenbidsAnalyticsReporterTest {
         final AuctionContext auctionContext = setupAuctionContextWithNoAdUnit();
         final String greenbidsId = UUID.randomUUID().toString();
         final String billingId = UUID.randomUUID().toString();
+        final String fingerprint = UUID.randomUUID().toString();
+        final String tid = UUID.randomUUID().toString();
 
         // when
         final GreenbidsAnalyticsReporter greenbidsAnalyticsReporter = new GreenbidsAnalyticsReporter(
@@ -151,7 +153,9 @@ public class GreenbidsAnalyticsReporterTest {
                 auctionContext,
                 auctionContext.getBidResponse(),
                 greenbidsId,
-                billingId);
+                billingId,
+                fingerprint,
+                tid);
 
         bidMessage.onComplete(ar -> {
             assertThat(ar.cause().getMessage()).isEqualTo("AdUnits list should not be empty");
@@ -164,6 +168,8 @@ public class GreenbidsAnalyticsReporterTest {
         final AuctionContext auctionContext = setupAuctionContext();
         final String greenbidsId = UUID.randomUUID().toString();
         final String billingId = UUID.randomUUID().toString();
+        final String fingerprint = UUID.randomUUID().toString();
+        final String tid = UUID.randomUUID().toString();
 
         // when
         final GreenbidsAnalyticsReporter greenbidsAnalyticsReporter = new GreenbidsAnalyticsReporter(
@@ -176,7 +182,9 @@ public class GreenbidsAnalyticsReporterTest {
                         auctionContext,
                         auctionContext.getBidResponse(),
                         greenbidsId,
-                        billingId);
+                        billingId,
+                        fingerprint,
+                        tid);
 
         // then
         bidMessage.onSuccess(commonMessage -> {
