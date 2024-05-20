@@ -105,13 +105,11 @@ public class EpsilonBidder implements Bidder<BidRequest> {
         final Site requestSite = bidRequest.getSite();
         final App requestApp = bidRequest.getApp();
         final List<String> cur = bidRequest.getCur();
-        if (cur != null && !cur.isEmpty() && !BIDDER_CURRENCY.equals(cur.get(0))) {
-            bidRequest = bidRequest.toBuilder().cur(Collections.singletonList("USD")).build();
-        }
         return bidRequest.toBuilder()
                 .site(updateSite(requestSite, siteId))
                 .app(requestSite == null ? updateApp(requestApp, siteId) : requestApp)
                 .imp(modifiedImps)
+                .cur(Collections.singletonList(BIDDER_CURRENCY))
                 .build();
     }
 
