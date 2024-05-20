@@ -11,7 +11,7 @@ import com.iab.openrtb.response.SeatBid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
-import org.prebid.server.bidder.loyal.proto.LoyalImpExtBidder;
+import org.prebid.server.bidder.loyal.proto.LoyalImpExt;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -67,6 +67,10 @@ public class LoyalBidder implements Bidder<BidRequest> {
             }
         }
 
+        if (httpRequests.isEmpty()) {
+            return Result.withError(BidderError.badInput("found no valid impressions"));
+        }
+
         return Result.of(httpRequests, errors);
     }
 
@@ -78,8 +82,16 @@ public class LoyalBidder implements Bidder<BidRequest> {
         }
     }
 
-    private LoyalImpExtBidder resolveImpExt(ExtImpLoyal extImpLoyal) {
-        final LoyalImpExtBidder.LoyalImpExtBidderBuilder builder = LoyalImpExtBidder.builder();
+    private Imp modifyImp(Imp imp, ExtImpLoyal extImpLoyal) {
+        final LoyalImpExt impExtLoyalWithType = resolveImpExt(extImpLoyal);
+        final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
+        modifiedImpExtBidder.set(BIDDER_PROPERTY, mapper.mapper().valueToTree(impExtLoyalWithType));
+
+        return imp.toBuilder().ext(modifiedImpExtBidder).build();
+    }
+
+    private LoyalImpExt resolveImpExt(ExtImpLoyal extImpLoyal) {
+        final LoyalImpExt.LoyalImpExtBuilder builder = LoyalImpExt.builder();
 
         if (StringUtils.isNotEmpty(extImpLoyal.getPlacementId())) {
             builder.type(PUBLISHER_PROPERTY).placementId(extImpLoyal.getPlacementId());
@@ -88,14 +100,6 @@ public class LoyalBidder implements Bidder<BidRequest> {
         }
 
         return builder.build();
-    }
-
-    private Imp modifyImp(Imp imp, ExtImpLoyal extImpLoyal) {
-        final LoyalImpExtBidder impExtLoyalWithType = resolveImpExt(extImpLoyal);
-        final ObjectNode modifiedImpExtBidder = mapper.mapper().createObjectNode();
-        modifiedImpExtBidder.set(BIDDER_PROPERTY, mapper.mapper().valueToTree(impExtLoyalWithType));
-
-        return imp.toBuilder().ext(modifiedImpExtBidder).build();
     }
 
     private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp) {
@@ -149,7 +153,11 @@ public class LoyalBidder implements Bidder<BidRequest> {
                     .formatted(bid.getId()));
         }
 
-        return bidType;
+        return switch (bidType) {
+            case banner, video, xNative -> bidType;
+            default -> throw new PreBidException("Unsupported BidType: "
+                    + bidType.getName() + " for bid.id: '" + bid.getId() + "'");
+        };
     }
 
 }

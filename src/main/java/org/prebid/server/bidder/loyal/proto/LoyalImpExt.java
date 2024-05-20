@@ -6,7 +6,7 @@ import lombok.Value;
 
 @Builder
 @Value
-public class LoyalImpExtBidder {
+public class LoyalImpExt {
 
     String type;
 
