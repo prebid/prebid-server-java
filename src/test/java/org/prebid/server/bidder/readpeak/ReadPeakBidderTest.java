@@ -21,6 +21,7 @@ import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.readpeak.ExtImpReadPeak;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -110,7 +111,7 @@ public class ReadPeakBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1).allSatisfy(error -> {
-                    assertThat(error.getMessage()).startsWith("Failed to deserialize ReadPeak extension");
+                    assertThat(error.getMessage()).startsWith("Invalid Imp ext: ");
                     assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
                 }
         );
@@ -181,8 +182,8 @@ public class ReadPeakBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnAllFourBidTypesSuccessfully() throws JsonProcessingException {
         // given
-        final Bid bannerBid = Bid.builder().impid("1").mtype(1).build();
-        final Bid nativeBid = Bid.builder().impid("2").mtype(2).build();
+        final Bid bannerBid = Bid.builder().impid("1").mtype(1).price(BigDecimal.TEN).build();
+        final Bid nativeBid = Bid.builder().impid("2").mtype(2).price(BigDecimal.TEN).build();
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(),
                 givenBidResponse(bannerBid, nativeBid));
@@ -199,7 +200,7 @@ public class ReadPeakBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnBannerBidSuccessfully() throws JsonProcessingException {
         // given
-        final Bid bannerBid = Bid.builder().impid("1").mtype(1).build();
+        final Bid bannerBid = Bid.builder().impid("1").mtype(1).price(BigDecimal.TEN).build();
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(bannerBid));
 
@@ -209,13 +210,12 @@ public class ReadPeakBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).containsOnly(BidderBid.of(bannerBid, banner, "USD"));
-
     }
 
     @Test
     public void makeBidsShouldReturnNativeBidSuccessfully() throws JsonProcessingException {
         // given
-        final Bid nativeBid = Bid.builder().impid("2").mtype(2).build();
+        final Bid nativeBid = Bid.builder().impid("2").mtype(2).price(BigDecimal.TEN).build();
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(nativeBid));
 
@@ -230,7 +230,7 @@ public class ReadPeakBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenImpTypeIsNotSupported() throws JsonProcessingException {
         // given
-        final Bid nativeBid = Bid.builder().impid("id").mtype(3).build();
+        final Bid nativeBid = Bid.builder().impid("id").mtype(3).price(BigDecimal.TEN).build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(nativeBid));
 
         // when
@@ -243,7 +243,7 @@ public class ReadPeakBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorWhenImpTypeIsNull() throws JsonProcessingException {
         // given
-        final Bid bid = Bid.builder().impid("id").mtype(null).build();
+        final Bid bid = Bid.builder().impid("id").mtype(null).price(BigDecimal.TEN).build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(bid));
 
         // when
@@ -253,10 +253,32 @@ public class ReadPeakBidderTest extends VertxTest {
                 .containsExactly(BidderError.badServerResponse("Missing MType for bid: " + bid.getId()));
     }
 
+    @Test
+    public void makeBidsShouldResolveMacrosInBids() throws JsonProcessingException {
+        // given
+        final Bid bid = Bid.builder().impid("1").mtype(1).price(BigDecimal.TEN)
+                .nurl("http://example.com?price=${AUCTION_PRICE}")
+                .adm("<div>${AUCTION_PRICE}</div>")
+                .burl("http://example.com?price=${AUCTION_PRICE}")
+                .build();
+
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(bid));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        final Bid resolvedBid = result.getValue().get(0).getBid();
+        assertThat(resolvedBid.getNurl()).isEqualTo("http://example.com?price=10");
+        assertThat(resolvedBid.getAdm()).isEqualTo("<div>10</div>");
+        assertThat(resolvedBid.getBurl()).isEqualTo("http://example.com?price=10");
+    }
+
     private static BidRequest givenBidRequest() {
         final Imp imp = Imp.builder().id("imp_id")
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
-                        ExtImpReadPeak.of("{{PublisherId}}", "{{SiteId}}", "{{Bidfloor}}", "{{TagId}}")))).build();
+                        ExtImpReadPeak.of("{{PublisherId}}", "{{SiteId}}", BigDecimal.valueOf(0.5), "{{TagId}}")))).build();
         return BidRequest.builder().imp(List.of(imp)).build();
     }
 

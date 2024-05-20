@@ -1,13 +1,11 @@
 package org.prebid.server.proto.openrtb.ext.request.readpeak;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Builder;
 import lombok.Value;
 
 import java.math.BigDecimal;
 
-@Value
-@Builder(toBuilder = true)
+@Value(staticConstructor = "of")
 public class ExtImpReadPeak {
 
     @JsonProperty("publisherId")
