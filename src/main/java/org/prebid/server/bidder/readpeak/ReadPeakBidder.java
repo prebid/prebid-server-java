@@ -65,8 +65,10 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
             final ExtImpReadPeak extImpReadPeak;
             try {
                 extImpReadPeak = parseImpExt(imp);
-                final Imp updatedImp = updateImp(imp, extImpReadPeak);
-                imps.add(updatedImp);
+                if (extImpReadPeak != null) {
+                    final Imp updatedImp = updateImp(imp, extImpReadPeak);
+                    imps.add(updatedImp);
+                }
             } catch (IllegalArgumentException e) {
                 errors.add(BidderError.badInput("Invalid Imp ext: " + e.getMessage()));
             }
@@ -109,6 +111,10 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        if (httpCall.getResponse() == null || httpCall.getResponse().getBody() == null) {
+            return Result.withError(BidderError.badServerResponse("Empty response body"));
+        }
+
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return Result.withValues(extractBids(bidResponse, mapper));
