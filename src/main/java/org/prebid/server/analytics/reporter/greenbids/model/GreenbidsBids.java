@@ -9,7 +9,7 @@ import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 
 @Builder(toBuilder = true)
 @Value
-public class GreenbidsBidder {
+public class GreenbidsBids {
 
     @JsonProperty("bidder")
     String bidder;
@@ -18,16 +18,16 @@ public class GreenbidsBidder {
     @JsonProperty("hasBid")
     Boolean hasBid;
 
-    public static GreenbidsBidder ofBid(String seat, Bid bid) {
-        return GreenbidsBidder.builder()
+    public static GreenbidsBids ofBid(String seat, Bid bid) {
+        return GreenbidsBids.builder()
                 .bidder(seat)
                 .isTimeout(false)
                 .hasBid(bid != null)
                 .build();
     }
 
-    public static GreenbidsBidder ofNonBid(String seat, NonBid nonBid) {
-        return GreenbidsBidder.builder()
+    public static GreenbidsBids ofNonBid(String seat, NonBid nonBid) {
+        return GreenbidsBids.builder()
                 .bidder(seat)
                 .isTimeout(nonBid.getStatusCode() == BidRejectionReason.TIMED_OUT)
                 .hasBid(false)

@@ -16,8 +16,8 @@ public class AdUnit {
     @JsonProperty("mediaTypes")
     MediaTypes mediaTypes;
 
-    @JsonProperty("bidders")
-    List<GreenbidsBidder> bidders;
+    @JsonProperty("bids")
+    List<GreenbidsBids> bids;
 
     @JsonProperty("ortb2Imp")
     Ortb2Imp ortb2Imp;
