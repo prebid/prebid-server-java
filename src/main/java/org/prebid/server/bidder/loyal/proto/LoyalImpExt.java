@@ -7,7 +7,7 @@ import lombok.Value;
 @Builder
 @Value
 public class LoyalImpExt {
-
+    @JsonProperty("type")
     String type;
 
     @JsonProperty("placementId")

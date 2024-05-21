@@ -9,7 +9,8 @@
       },
       "ext": {
         "loyal": {
-          "placementId": "testPlacementId"
+          "placementId": "testPlacementId",
+          "type": "publisher"
         }
       }
     }

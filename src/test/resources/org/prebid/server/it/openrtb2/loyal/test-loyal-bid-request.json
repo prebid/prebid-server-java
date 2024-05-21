@@ -3,22 +3,19 @@
   "imp": [
     {
       "id": "imp_id",
-      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
+      "secure": 1,
       "ext": {
-        "tid": "${json-unit.any-string}",
         "bidder": {
+          "type": "publisher",
           "placementId": "testPlacementId"
         }
       }
     }
   ],
-  "source": {
-    "tid": "${json-unit.any-string}"
-  },
   "site": {
     "domain": "www.example.com",
     "page": "http://www.example.com",
@@ -35,9 +32,10 @@
   },
   "at": 1,
   "tmax": "${json-unit.any-number}",
-  "cur": [
-    "USD"
-  ],
+  "cur": ["USD"],
+  "source" : {
+    "tid" : "${json-unit.any-string}"
+  },
   "regs": {
     "ext": {
       "gdpr": 0
