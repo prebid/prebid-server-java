@@ -13,7 +13,12 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -21,6 +26,7 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.bidder.yieldmo.proto.YieldmoImpExt;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yieldmo.ExtImpYieldmo;
@@ -43,11 +49,23 @@ public class YieldmoBidderTest extends VertxTest {
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
     private static final String PLACEMENT_VALUE = "placementId";
 
-    private final YieldmoBidder target = new YieldmoBidder(ENDPOINT_URL, jacksonMapper);
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
+    @Mock
+    private CurrencyConversionService currencyConversionService;
+
+    private YieldmoBidder target;
+
+    @Before
+    public void setUp() {
+        target = new YieldmoBidder(ENDPOINT_URL, currencyConversionService, jacksonMapper);
+    }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new YieldmoBidder("invalid_url", jacksonMapper));
+        assertThatIllegalArgumentException().isThrownBy(() -> new YieldmoBidder("invalid_url",
+                currencyConversionService, jacksonMapper));
     }
 
     @Test
