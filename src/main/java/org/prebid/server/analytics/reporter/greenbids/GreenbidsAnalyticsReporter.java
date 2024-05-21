@@ -42,7 +42,6 @@ import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
-import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -63,7 +62,6 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     private final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
     private final JacksonMapper jacksonMapper;
     private final HttpClient httpClient;
-
 
     public GreenbidsAnalyticsReporter(
             GreenbidsAnalyticsProperties greenbidsAnalyticsProperties,
@@ -118,22 +116,11 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                                         .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON)
                                         .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
-                                Future<HttpClientResponse> responseFuture = httpClient.post(
+                                httpClient.post(
                                         greenbidsAnalyticsProperties.getAnalyticsServer(),
                                         headers,
                                         commonMessageJson,
                                         greenbidsAnalyticsProperties.getTimeoutMs());
-
-                                responseFuture
-                                        .onSuccess(response ->
-                                                System.out.println(
-                                                        "Analytics Server response body: " + "\n" +
-                                                                response.getStatusCode() + "\n" +
-                                                                response.getHeaders() + "\n" +
-                                                                response.getBody() + "\n" +
-                                                                "CommonMessageJson: " + commonMessageJson
-                                                ))
-                                        .onFailure(error -> System.out.println("Can't send payload to Analytics Server: " + error));
 
                             } catch (EncodeException e) {
                                 Future.failedFuture("Failed to encode as JSON: " + e.getMessage());
