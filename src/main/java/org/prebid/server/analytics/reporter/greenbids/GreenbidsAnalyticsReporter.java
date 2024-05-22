@@ -33,6 +33,8 @@ import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -55,9 +57,9 @@ import java.util.stream.Stream;
 
 public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
-    private static final int MAX_16_BIT_INTEGER = 0xFFFF;
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
     private static final String PREBID_SERVER_VERSION = "3.0.0+server";
+    public static final Logger logger = LoggerFactory.getLogger(GreenbidsAnalyticsReporter.class);
     private final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
     private final JacksonMapper jacksonMapper;
     private final HttpClient httpClient;
@@ -138,7 +140,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final Promise<Boolean> promise = Promise.promise();
         try {
             if (samplingRate < 0 || samplingRate > 1) {
-                Future.failedFuture("Warning: Sampling rate must be between 0 and 1");
+                logger.warn("Warning: Sampling rate must be between 0 and 1");
             }
 
             final double exploratorySamplingRate = samplingRate
@@ -147,11 +149,11 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                     * (1.0 - greenbidsAnalyticsProperties.getExploratorySamplingSplit());
 
             final long hashInt = Integer.parseInt(
-                    greenbidsId.substring(greenbidsId.length() - 4), 16
-            ) % RANGE_16_BIT_INTEGER_DIVISION_BASIS;
-            final boolean isPrimarySampled = hashInt < exploratorySamplingRate * MAX_16_BIT_INTEGER;
+                    greenbidsId.substring(greenbidsId.length() - 4), 16);
+            final boolean isPrimarySampled = hashInt < exploratorySamplingRate * RANGE_16_BIT_INTEGER_DIVISION_BASIS;
 
-            promise.complete(isPrimarySampled || hashInt >= (1 - throttledSamplingRate) * MAX_16_BIT_INTEGER);
+            promise.complete(
+                    isPrimarySampled || hashInt >= (1 - throttledSamplingRate) * RANGE_16_BIT_INTEGER_DIVISION_BASIS);
 
         } catch (IllegalArgumentException e) {
             promise.fail(e);
@@ -279,7 +281,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(Banner::getFormat)
                 .map(formats -> formats.stream()
                         .map(format -> List.of(format.getW(), format.getH())))
-                        .orElseGet(() -> Stream.of(List.of(banner.getW(), banner.getH())))
+                        .orElse(Stream.of(List.of(banner.getW(), banner.getH())))
                 .collect(Collectors.toList());
 
         final ExtBanner extBanner = ExtBanner.builder()
