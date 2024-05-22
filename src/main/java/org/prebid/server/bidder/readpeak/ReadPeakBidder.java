@@ -26,6 +26,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -37,6 +38,7 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
             };
 
     private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
+    private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -117,67 +119,63 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
 
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse, mapper));
+            return Result.withValues(extractBids(bidResponse, mapper, bidRequest));
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse, JacksonMapper mapper) {
+    private static List<BidderBid> extractBids(BidResponse bidResponse, JacksonMapper mapper, BidRequest bidRequest) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             throw new PreBidException("Empty SeatBid array");
         }
-        return bidsFromResponse(bidResponse, mapper);
+        return bidsFromResponse(bidResponse, mapper, bidRequest);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, JacksonMapper mapper) {
+    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, JacksonMapper mapper, BidRequest bidRequest) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(List::stream)
-                .map(bid -> {
-                    resolveMacros(bid);
-                    // Dodanie metadanych do obiektu Bid
-                    final ObjectNode ext = bid.getExt() != null ? bid.getExt().deepCopy()
-                            : mapper.mapper().createObjectNode();
-                    ext.set("prebid", mapper.mapper().convertValue(getBidMeta(bid), ObjectNode.class));
-                    bid = bid.toBuilder().ext(ext).build();
-                    return BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur());
-                })
+//                .map(bid -> {
+//                    resolveMacros(bid);
+//
+//                    .map(bid -> BidderBid.of(resolveMacros(bid), getMediaType(bid.getImpid(), bidRequest.getImp()),
+//                            bidResponse.getCur()));
+//                    final ObjectNode ext = bid.getExt() != null ? bid.getExt().deepCopy()
+//                            : mapper.mapper().createObjectNode();
+//                    ext.set("prebid", mapper.mapper().convertValue(getBidMeta(bid), ObjectNode.class));
+//                    bid = bid.toBuilder().ext(ext).build();
+//                    return BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur());
+//                })
+                .map(bid -> BidderBid.of(resolveMacros(bid), resolveBidType(bid.getImpid(), bidRequest.getImp()),
+                        bidResponse.getCur()))
+                .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static void resolveMacros(Bid bid) {
-        if (bid != null && bid.getPrice() != null) {
-            final String price = bid.getPrice().toPlainString();
-            bid = bid.toBuilder()
-                    .nurl(replaceMacro(bid.getNurl(), price))
-                    .adm(replaceMacro(bid.getAdm(), price))
-                    .burl(replaceMacro(bid.getBurl(), price))
-                    .build();
-        }
+    private static Bid resolveMacros(Bid bid) {
+        final BigDecimal price = bid.getPrice();
+        final String priceAsString = price != null ? price.toPlainString() : "0";
+
+        return bid.toBuilder()
+                .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
+                .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .build();
     }
 
-    private static String replaceMacro(String url, String price) {
-        if (url != null) {
-            return url.replace("${AUCTION_PRICE}", price);
+    private static BidType resolveBidType(String impId, List<Imp> imps) {
+        for (Imp imp : imps) {
+            if (imp.getId().equals(impId)) {
+                if (imp.getBanner() != null) {
+                    return BidType.banner;
+                } else if (imp.getXNative() != null) {
+                    return BidType.xNative;
+                }
+            }
         }
-        return url;
-    }
-
-    private static BidType getBidMediaType(Bid bid) {
-        final Integer markupType = bid.getMtype();
-        if (markupType == null) {
-            throw new PreBidException("Missing MType for bid: " + bid.getId());
-        }
-
-        return switch (markupType) {
-            case 1 -> BidType.banner;
-            case 2 -> BidType.xNative;
-            default -> throw new PreBidException("Unable to fetch mediaType " + markupType
-                    + " in multi-format: " + bid.getImpid());
-        };
+        throw new PreBidException("Failed to find banner/native impression \"%s\"".formatted(impId));
     }
 
     private static ExtBidPrebidMeta getBidMeta(Bid bid) {
