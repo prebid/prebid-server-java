@@ -193,10 +193,10 @@ public class GreenbidsAnalyticsReporterTest {
             assertThat(commonMessage).hasFieldOrPropertyWithValue("pbuid", "pbuid1");
 
             for (AdUnit adUnit : commonMessage.getAdUnits()) {
-                assert adUnit.getBidders() != null;
-                final boolean hasSeatWithBid = adUnit.getBidders().stream()
+                assert adUnit.getBids() != null;
+                final boolean hasSeatWithBid = adUnit.getBids().stream()
                         .anyMatch(bidder -> Boolean.TRUE.equals(bidder.getHasBid()));
-                final boolean hasSeatWithNonBid = adUnit.getBidders().stream()
+                final boolean hasSeatWithNonBid = adUnit.getBids().stream()
                         .anyMatch(bidder -> Boolean.FALSE.equals(bidder.getHasBid()));
 
                 assertThat(hasSeatWithBid).isTrue();
