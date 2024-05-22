@@ -18,8 +18,6 @@ public class BidRequestReaderTest {
     {
         return new FiftyOneDeviceDetectionRawAuctionRequestHook(
                 null,
-                null,
-                null,
                 null
         ) {
             @Override

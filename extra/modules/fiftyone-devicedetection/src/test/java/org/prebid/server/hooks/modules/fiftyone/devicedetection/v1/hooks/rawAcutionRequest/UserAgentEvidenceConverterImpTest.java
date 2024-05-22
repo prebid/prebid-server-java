@@ -18,8 +18,6 @@ public class UserAgentEvidenceConverterImpTest {
     {
         return new FiftyOneDeviceDetectionRawAuctionRequestHook(
                 null,
-                null,
-                null,
                 null
         ) {
             @Override

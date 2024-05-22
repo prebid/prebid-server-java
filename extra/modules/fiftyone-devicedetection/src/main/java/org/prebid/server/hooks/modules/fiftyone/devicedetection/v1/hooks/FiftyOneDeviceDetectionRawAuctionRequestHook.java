@@ -6,15 +6,12 @@ import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.UserAgent;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.DeviceDetector;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.DeviceInfo;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.DeviceInfoPatcher;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.DevicePatchPlan;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.DevicePatchPlanner;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.imps.mergers.MergingConfiguratorImp;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.imps.mergers.PropertyMergeImp;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.detection.DeviceRefiner;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.mergers.MergingConfigurator;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.mergers.PropertyMerge;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence.CollectedEvidenceBuilder;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.EnrichmentResult;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.AccountFilter;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.adapters.DeviceMirror;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.ModuleContext;
@@ -39,20 +36,14 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
     private static final String CODE = "fiftyone-devicedetection-raw-auction-request-hook";
 
     private final AccountFilter accountFilter;
-    private final DevicePatchPlanner devicePatchPlanner;
-    private final DeviceDetector deviceDetector;
-    private final DeviceInfoPatcher<Device> deviceInfoPatcher;
+    private final DeviceRefiner deviceRefiner;
 
     public FiftyOneDeviceDetectionRawAuctionRequestHook(
             AccountFilter accountFilter,
-            DevicePatchPlanner devicePatchPlanner,
-            DeviceDetector deviceDetector,
-            DeviceInfoPatcher<Device> deviceInfoPatcher)
+            DeviceRefiner deviceRefiner)
     {
         this.accountFilter = accountFilter;
-        this.devicePatchPlanner = devicePatchPlanner;
-        this.deviceDetector = deviceDetector;
-        this.deviceInfoPatcher = deviceInfoPatcher;
+        this.deviceRefiner = deviceRefiner;
     }
 
     @Override
@@ -135,26 +126,25 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
             return null;
         }
         final Device existingDevice = ObjectUtil.firstNonNull(bidRequest::getDevice, () -> Device.builder().build());
-        final DevicePatchPlan patchPlan = devicePatchPlanner.buildPatchPlanFor(new DeviceMirror(existingDevice));
-
-        if (patchPlan == null || patchPlan.isEmpty()) {
-            return null;
-        }
 
         final CollectedEvidenceBuilder evidenceBuilder = collectedEvidence.toBuilder();
         collectEvidence(evidenceBuilder, bidRequest);
-        final DeviceInfo detectedDevice = deviceDetector.inferProperties(evidenceBuilder.build(), patchPlan);
-        if (detectedDevice == null) {
+
+        EnrichmentResult<Device> mergeResult = deviceRefiner.enrichDeviceInfo(
+                new DeviceMirror(existingDevice),
+                evidenceBuilder.build(),
+                DeviceMirror.BUILDER_METHOD_SET.makeAdapter(existingDevice));
+        if (mergeResult == null) {
             return null;
         }
 
-        Device mergedDevice = deviceInfoPatcher.patchDeviceInfo(existingDevice, patchPlan, detectedDevice);
-        if (mergedDevice == null || mergedDevice == existingDevice) {
+        final Device mergedDevice = mergeResult.enrichedDevice();
+        if (mergedDevice == null) {
             return null;
         }
 
         return bidRequest.toBuilder()
-                .device(mergedDevice)
+                .device(mergeResult.enrichedDevice())
                 .build();
     }
 
@@ -197,12 +187,12 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
         }
     }
 
-    private static final MergingConfiguratorImp<Map<String, String>, BrandVersion> PLATFORM_MERGER = new MergingConfiguratorImp<>(
+    private static final MergingConfigurator<Map<String, String>, BrandVersion> PLATFORM_MERGER = new MergingConfigurator<>(
             List.of(
-                    new PropertyMergeImp<>(BrandVersion::getBrand, b -> !b.isEmpty(), (evidence, platformName) ->
+                    new PropertyMerge<>(BrandVersion::getBrand, b -> !b.isEmpty(), (evidence, platformName) ->
                             evidence.put("header.Sec-CH-UA-Platform", '"' + toHeaderSafe(platformName) + '"')
                     ),
-                    new PropertyMergeImp<>(BrandVersion::getVersion, v -> !v.isEmpty(), (evidence, platformVersions) -> {
+                    new PropertyMerge<>(BrandVersion::getVersion, v -> !v.isEmpty(), (evidence, platformVersions) -> {
                         final StringBuilder s = new StringBuilder();
                         s.append('"');
                         appendVersionList(s, platformVersions);
@@ -210,26 +200,26 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
                         evidence.put("header.Sec-CH-UA-Platform-Version", s.toString());
                     })));
 
-    private static final MergingConfiguratorImp<Map<String, String>, UserAgent> AGENT_MERGER = new MergingConfiguratorImp<>(
+    private static final MergingConfigurator<Map<String, String>, UserAgent> AGENT_MERGER = new MergingConfigurator<>(
             List.of(
-                    new PropertyMergeImp<>(UserAgent::getBrowsers, b -> !b.isEmpty(), (evidence, versions) -> {
+                    new PropertyMerge<>(UserAgent::getBrowsers, b -> !b.isEmpty(), (evidence, versions) -> {
                         final String fullUA = brandListToString(versions);
                         evidence.put("header.Sec-CH-UA", fullUA);
                         evidence.put("header.Sec-CH-UA-Full-Version-List", fullUA);
                     }),
-                    new PropertyMergeImp<>(UserAgent::getPlatform, b -> true, PLATFORM_MERGER::applyProperties),
-                    new PropertyMergeImp<>(UserAgent::getMobile, b -> true, (evidence, isMobile) ->
+                    new PropertyMerge<>(UserAgent::getPlatform, b -> true, PLATFORM_MERGER::test),
+                    new PropertyMerge<>(UserAgent::getMobile, b -> true, (evidence, isMobile) ->
                             evidence.put("header.Sec-CH-UA-Mobile", "?" + isMobile)),
-                    new PropertyMergeImp<>(UserAgent::getArchitecture, s -> !s.isEmpty(), (evidence, architecture) ->
+                    new PropertyMerge<>(UserAgent::getArchitecture, s -> !s.isEmpty(), (evidence, architecture) ->
                             evidence.put("header.Sec-CH-UA-Arch", '"' + toHeaderSafe(architecture) + '"')),
-                    new PropertyMergeImp<>(UserAgent::getBitness, s -> !s.isEmpty(), (evidence, bitness) ->
+                    new PropertyMerge<>(UserAgent::getBitness, s -> !s.isEmpty(), (evidence, bitness) ->
                             evidence.put("header.Sec-CH-UA-Bitness", '"' + toHeaderSafe(bitness) + '"')),
-                    new PropertyMergeImp<>(UserAgent::getModel, s -> !s.isEmpty(), (evidence, model) ->
+                    new PropertyMerge<>(UserAgent::getModel, s -> !s.isEmpty(), (evidence, model) ->
                             evidence.put("header.Sec-CH-UA-Model", '"' + toHeaderSafe(model) + '"'))));
 
     protected void appendSecureHeaders(UserAgent userAgent, Map<String, String> evidence) {
         if (userAgent != null) {
-            AGENT_MERGER.applyProperties(evidence, userAgent);
+            AGENT_MERGER.test(evidence, userAgent);
         }
     }
 

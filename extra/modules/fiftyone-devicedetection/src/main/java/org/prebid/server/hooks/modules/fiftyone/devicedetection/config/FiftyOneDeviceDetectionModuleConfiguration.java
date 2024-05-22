@@ -1,18 +1,9 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.config;
 
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.DeviceInfoClone;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.detection.DeviceRefiner;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.detection.DeviceRefinerImp;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.pipeline.PipelineProvider;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.FiftyOneDeviceDetectionModule;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.DeviceDetector;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.imps.DeviceDetectorImp;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.adapters.DeviceMirror;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.imps.DevicePatchPlannerImp;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.imps.DeviceInfoPatcherImp;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.imps.DeviceTypeConverterImp;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.imps.PriorityEvidenceSelectorImp;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.imps.pipelinebuilders.PipelineBuilderSpawnerImp;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.imps.pipelinebuilders.PipelinePerformanceConfigurator;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.imps.pipelinebuilders.PipelineSupplierImp;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.imps.pipelinebuilders.PipelineUpdateConfigurator;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionEntrypointHook;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
@@ -43,26 +34,20 @@ public class FiftyOneDeviceDetectionModuleConfiguration {
     }
 
     @Bean
-    DeviceDetector fiftyOneDeviceDetectionDeviceDetector(ModuleConfig moduleConfig) throws Exception {
-        final var pipelineBuilder = new PipelineBuilderSpawnerImp().makeBuilder(moduleConfig.getDataFile());
-        new PipelineUpdateConfigurator().applyProperties(pipelineBuilder, moduleConfig.getDataFile().getUpdate());
-        new PipelinePerformanceConfigurator().applyProperties(pipelineBuilder, moduleConfig.getPerformance());
-        return new DeviceDetectorImp(
-                new PipelineSupplierImp(pipelineBuilder),
-                new PriorityEvidenceSelectorImp(),
-                new DeviceTypeConverterImp(),
-                new DeviceInfoPatcherImp<>(DeviceInfoClone.BUILDER_METHOD_SET::makeAdapter));
+    DeviceRefiner fiftyOneDeviceDetectionDeviceRefiner(ModuleConfig moduleConfig) throws Exception {
+        return new DeviceRefinerImp(
+                new PipelineProvider(
+                        moduleConfig.getDataFile(),
+                        moduleConfig.getPerformance()));
     }
 
     @Bean
-    Module fiftyOneDeviceDetectionModule(ModuleConfig moduleConfig, DeviceDetector deviceDetector) {
+    Module fiftyOneDeviceDetectionModule(ModuleConfig moduleConfig, DeviceRefiner deviceRefiner) {
         final Set<? extends Hook<?, ? extends InvocationContext>> hooks = Stream.of(
                 new FiftyOneDeviceDetectionEntrypointHook(),
                 new FiftyOneDeviceDetectionRawAuctionRequestHook(
                         moduleConfig.getAccountFilter(),
-                        new DevicePatchPlannerImp(),
-                        deviceDetector,
-                        new DeviceInfoPatcherImp<>(DeviceMirror.BUILDER_METHOD_SET::makeAdapter))
+                        deviceRefiner)
         ).collect(Collectors.toSet());
 
         return new FiftyOneDeviceDetectionModule(hooks);

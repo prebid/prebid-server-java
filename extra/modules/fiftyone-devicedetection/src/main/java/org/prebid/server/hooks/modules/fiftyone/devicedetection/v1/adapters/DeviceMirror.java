@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Device.DeviceBuilder;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.DeviceInfo;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.imps.DeviceInfoBuilderMethodSet;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.device.DeviceInfo;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.core.adapters.DeviceInfoBuilderMethodSet;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 
 import java.math.BigDecimal;

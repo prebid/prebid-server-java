@@ -12,8 +12,6 @@ import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import io.vertx.core.Future;
 
-import java.util.function.BiConsumer;
-
 public class FiftyOneDeviceDetectionEntrypointHook implements EntrypointHook {
 
     private static final String CODE = "fiftyone-devicedetection-entrypoint-hook";

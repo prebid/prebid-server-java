@@ -32,8 +32,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     ) {
         return new FiftyOneDeviceDetectionRawAuctionRequestHook(
                 null,
-                null,
-                null,
                 null
         ) {
             @Override

@@ -31,8 +31,6 @@ public class AccountControlImpTest {
     private static Predicate<AuctionInvocationContext> buildHook(AccountFilter accountFilter) {
         return new FiftyOneDeviceDetectionRawAuctionRequestHook(
                 accountFilter,
-                null,
-                null,
                 null)
         {
             @Override

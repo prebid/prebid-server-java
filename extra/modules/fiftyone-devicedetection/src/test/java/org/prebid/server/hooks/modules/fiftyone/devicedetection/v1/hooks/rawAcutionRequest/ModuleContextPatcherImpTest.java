@@ -16,8 +16,6 @@ public class ModuleContextPatcherImpTest {
     {
         return new FiftyOneDeviceDetectionRawAuctionRequestHook(
                 null,
-                null,
-                null,
                 null
         ) {
             @Override
