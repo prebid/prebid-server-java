@@ -72,21 +72,21 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
     @Override
     public <T> Future<Void> processEvent(T event) {
-        final AuctionContext greenbidsAuctionContext;
-        final BidResponse greenbidsBidResponse;
+        final AuctionContext auctionContext;
+        final BidResponse bidResponse;
 
         if (event instanceof AmpEvent ampEvent) {
-            greenbidsAuctionContext = ampEvent.getAuctionContext();
-            greenbidsBidResponse = ampEvent.getBidResponse();
+            auctionContext = ampEvent.getAuctionContext();
+            bidResponse = ampEvent.getBidResponse();
         } else if (event instanceof AuctionEvent auctionEvent) {
-            greenbidsAuctionContext = auctionEvent.getAuctionContext();
-            greenbidsBidResponse = auctionEvent.getBidResponse();
+            auctionContext = auctionEvent.getAuctionContext();
+            bidResponse = auctionEvent.getBidResponse();
         } else {
-            greenbidsAuctionContext = null;
-            greenbidsBidResponse = null;
+            auctionContext = null;
+            bidResponse = null;
         }
 
-        if (greenbidsBidResponse == null || greenbidsAuctionContext == null) {
+        if (bidResponse == null || auctionContext == null) {
             return Future.failedFuture("Bid response or auction context cannot be null");
         }
 
@@ -96,8 +96,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final Boolean isSampled = isSampled(greenbidsAnalyticsProperties.getGreenbidsSampling(), greenbidsId);
         if (isSampled) {
             final CommonMessage commonMessage = createBidMessage(
-                    greenbidsAuctionContext,
-                    greenbidsBidResponse,
+                    auctionContext,
+                    bidResponse,
                     greenbidsId,
                     billingId);
 
