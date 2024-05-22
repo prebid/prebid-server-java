@@ -12,7 +12,7 @@ class GppModuleConfig {
     List<GppSectionId> skipSids
 
     static GppModuleConfig getDefaultModuleConfig(ActivityConfig activityConfig = ActivityConfig.configWithDefaultRestrictRules,
-                                                  List<GppSectionId> sids = [GppSectionId.USP_NAT_V1],
+                                                  List<GppSectionId> sids = [GppSectionId.US_NAT_V1],
                                                   Boolean normalizeFlags = true) {
         new GppModuleConfig().tap {
             it.activityConfig = [activityConfig]

@@ -5,7 +5,7 @@
 		"dockerfile": "Dockerfile",
 		"args": {
 			// Update the VARIANT arg to pick a version of Java
-			"VARIANT": "17-jdk-bookworm",
+			"VARIANT": "21-jdk-bookworm",
 		}
 	},
 	"containerEnv": {

@@ -3,8 +3,6 @@ package org.prebid.server.cookie;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.model.UidWithExpiry;
@@ -12,6 +10,8 @@ import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.util.HttpUtil;
@@ -131,7 +131,7 @@ public class UidsCookieService {
             try {
                 return mapper.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(cookieValue)), Uids.class);
             } catch (IllegalArgumentException | DecodeException e) {
-                logger.debug("Could not decode or parse {0} cookie value {1}", e, COOKIE_NAME, cookieValue);
+                logger.debug("Could not decode or parse {} cookie value {}", e, COOKIE_NAME, cookieValue);
             }
         }
         return null;

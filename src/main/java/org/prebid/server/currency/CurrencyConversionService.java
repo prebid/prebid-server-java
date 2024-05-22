@@ -2,23 +2,24 @@ package org.prebid.server.currency;
 
 import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestCurrency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.spring.config.model.ExternalConversionProperties;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.Initializable;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -67,19 +68,23 @@ public class CurrencyConversionService implements Initializable {
      * Must be called on Vertx event loop thread.
      */
     @Override
-    public void initialize() {
+    public void initialize(Promise<Void> initializePromise) {
         if (externalConversionProperties != null) {
             final Long refreshPeriod = externalConversionProperties.getRefreshPeriodMs();
             final Long defaultTimeout = externalConversionProperties.getDefaultTimeoutMs();
             final HttpClient httpClient = externalConversionProperties.getHttpClient();
 
             final Vertx vertx = externalConversionProperties.getVertx();
-            vertx.setPeriodic(refreshPeriod, ignored -> populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout,
+            vertx.setPeriodic(refreshPeriod, ignored -> populatesLatestCurrencyRates(
+                    currencyServerUrl,
+                    defaultTimeout,
                     httpClient));
             populatesLatestCurrencyRates(currencyServerUrl, defaultTimeout, httpClient);
 
             externalConversionProperties.getMetrics().createCurrencyRatesGauge(this::isRatesStale);
         }
+
+        initializePromise.tryComplete();
     }
 
     /**

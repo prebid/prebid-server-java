@@ -82,12 +82,14 @@ public class GeoLocationConfiguration {
         }
 
         private GeoLocationService createGeoLocationService(RemoteFileSyncerProperties properties, Vertx vertx) {
+            final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
             final HttpClientProperties httpClientProperties = properties.getHttpClient();
             final HttpClientOptions httpClientOptions = new HttpClientOptions()
                     .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                     .setMaxRedirects(httpClientProperties.getMaxRedirects());
 
             final RemoteFileSyncer remoteFileSyncer = new RemoteFileSyncer(
+                    maxMindGeoLocationService,
                     properties.getDownloadUrl(),
                     properties.getSaveFilepath(),
                     properties.getTmpFilepath(),
@@ -96,9 +98,8 @@ public class GeoLocationConfiguration {
                     properties.getUpdateIntervalMs(),
                     vertx.createHttpClient(httpClientOptions),
                     vertx);
-            final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
 
-            remoteFileSyncer.sync(maxMindGeoLocationService);
+            remoteFileSyncer.sync();
             return maxMindGeoLocationService;
         }
     }

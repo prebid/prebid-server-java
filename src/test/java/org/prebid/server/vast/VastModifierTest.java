@@ -35,7 +35,6 @@ public class VastModifierTest {
     private static final String VAST_URL_TRACKING = "http://external-url/event";
     private static final String BID_ID = "bidId";
     private static final String BID_NURL = "nurl1";
-    private static final String LINEITEM_ID = "lineItemId";
     private static final long AUCTION_TIMESTAMP = 1000L;
 
     @Rule
@@ -52,7 +51,7 @@ public class VastModifierTest {
 
     @Before
     public void setUp() {
-        given(eventsService.vastUrlTracking(any(), any(), any(), any(), any()))
+        given(eventsService.vastUrlTracking(any(), any(), any(), any()))
                 .willReturn(VAST_URL_TRACKING);
 
         given(bidderCatalog.isModifyingVastXmlAllowed(any())).willReturn(true);
@@ -97,7 +96,7 @@ public class VastModifierTest {
         final JsonNode result = target.modifyVastXml(true, singleton(BIDDER), givenPutObject(vastWithoutImpression),
                 ACCOUNT_ID, INTEGRATION);
 
-        verify(eventsService).vastUrlTracking(any(), any(), any(), any(), any());
+        verify(eventsService).vastUrlTracking(any(), any(), any(), any());
 
         assertThat(result).isEqualTo(vastWithoutImpression);
     }
@@ -111,11 +110,11 @@ public class VastModifierTest {
         // then
         final String modifiedVast =
                 """
-                <VAST version="3.0"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem>\
-                <VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression></Impression>\
-                <Impression><![CDATA[http://external-url/event]]></Impression><Creatives>\
-                </Creatives></Wrapper></Ad></VAST>\
-                """;
+                        <VAST version="3.0"><Ad><Wrapper><AdSystem>prebid.org wrapper</AdSystem>\
+                        <VASTAdTagURI><![CDATA[adm2]]></VASTAdTagURI><Impression></Impression>\
+                        <Impression><![CDATA[http://external-url/event]]></Impression><Creatives>\
+                        </Creatives></Wrapper></Ad></VAST>\
+                        """;
 
         assertThat(result).isEqualTo(new TextNode(modifiedVast));
     }
@@ -127,8 +126,7 @@ public class VastModifierTest {
 
         // when
         final String result = target
-                .createBidVastXml(BIDDER, adm(), BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, adm(), BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
         assertThat(result).isEqualTo(adm());
@@ -137,8 +135,8 @@ public class VastModifierTest {
     @Test
     public void createBidVastXmlShouldInjectBidNurlWhenBidAdmIsNullAndEventsDisabledByAccount() {
         // when
-        final String result = target.createBidVastXml(BIDDER, null, BID_NURL, BID_ID, ACCOUNT_ID,
-                givenEventsContext(false), emptyList(), LINEITEM_ID);
+        final String result = target
+                .createBidVastXml(BIDDER, null, BID_NURL, BID_ID, ACCOUNT_ID, givenEventsContext(false), emptyList());
 
         // then
         assertThat(result).isEqualTo(modifiedAdm(BID_NURL));
@@ -147,8 +145,8 @@ public class VastModifierTest {
     @Test
     public void createBidVastXmlShouldInjectBidNurlWhenBidAdmIsEmptyAndEventsDisabledByAccount() {
         // when
-        final String result = target.createBidVastXml(BIDDER, "", BID_NURL, BID_ID, ACCOUNT_ID,
-                givenEventsContext(false), emptyList(), LINEITEM_ID);
+        final String result = target
+                .createBidVastXml(BIDDER, "", BID_NURL, BID_ID, ACCOUNT_ID, givenEventsContext(false), emptyList());
 
         // then
         assertThat(result).isEqualTo(modifiedAdm(BID_NURL));
@@ -157,8 +155,8 @@ public class VastModifierTest {
     @Test
     public void createBidVastXmlShouldReturnAdmWhenBidAdmIsPresentAndEventsDisabledByAccount() {
         // when
-        final String result = target.createBidVastXml(BIDDER, adm(), BID_NURL, BID_ID, ACCOUNT_ID,
-                givenEventsContext(false), emptyList(), LINEITEM_ID);
+        final String result = target
+                .createBidVastXml(BIDDER, adm(), BID_NURL, BID_ID, ACCOUNT_ID, givenEventsContext(false), emptyList());
 
         // then
         assertThat(result).isEqualTo(adm());
@@ -169,11 +167,10 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<Wrapper><Impression>http:/test.com</Impression></Wrapper>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo("<Wrapper><Impression>http:/test.com</Impression>"
                 + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></Wrapper>");
@@ -184,11 +181,10 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<Wrapper><  impreSSion garbage >http:/test.com<  /ImPression  garbage ></Wrapper>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo("<Wrapper><  impreSSion garbage >http:/test.com<  /ImPression  garbage >"
                 + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></Wrapper>");
@@ -200,11 +196,10 @@ public class VastModifierTest {
         final String bidAdm = "<InLine><Impression>http:/test.com</Impression>"
                 + "<Impression>http:/test2.com</Impression><Creatives></Creatives></InLine>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo("<InLine><Impression>http:/test.com</Impression>"
                 + "<Impression>http:/test2.com</Impression>"
@@ -217,11 +212,10 @@ public class VastModifierTest {
         final String bidAdm = "<InLine>< Impression  >http:/test.com<   /Impression  >"
                 + "<ImprEssion garbage>http:/test2.com<  /ImPRession garbage><Creatives></Creatives></InLine>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo("<InLine>< Impression  >http:/test.com<   /Impression  >"
                 + "<ImprEssion garbage>http:/test2.com<  /ImPRession garbage>"
@@ -233,11 +227,10 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<InLine></InLine>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo("<InLine><Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></InLine>");
     }
@@ -247,11 +240,10 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<InLine></SomeTag>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo(bidAdm);
     }
@@ -261,11 +253,10 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<wrapper><Impression>http:/test.com</Impression></wrapper>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo("<wrapper><Impression>http:/test.com</Impression>"
                 + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></wrapper>");
@@ -276,11 +267,10 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<  wraPPer garbage><Impression>http:/test.com</Impression><  / wraPPer garbage>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo("<  wraPPer garbage><Impression>http:/test.com</Impression>"
                 + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression><  / wraPPer garbage>");
@@ -290,13 +280,11 @@ public class VastModifierTest {
     public void createBidVastXmlShouldInsertImpressionTagForEmptyWrapper() {
         // when
         final String bidAdm = "<wrapper></wrapper>";
-        final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL,
-                        BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+        final String result = target.createBidVastXml(
+                BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result)
                 .isEqualTo("<wrapper><Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></wrapper>");
@@ -308,11 +296,10 @@ public class VastModifierTest {
         final String bidAdm = "<  wraPPer garbage>< / wrapPer  garbage>";
         final String result = target
                 .createBidVastXml(BIDDER, bidAdm, BID_NURL,
-                        BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                        BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result)
                 .isEqualTo("<  wraPPer garbage><Impression><![CDATA["
@@ -324,11 +311,10 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<wrapper><someTag>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo(bidAdm);
     }
@@ -338,11 +324,10 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<Inline><Impression>http:/test.com</Impression></Inline>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo("<Inline><Impression>http:/test.com</Impression>"
                 + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></Inline>");
@@ -353,11 +338,10 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<  InLIne garbage ><Impression>http:/test.com</Impression></  Inline garbage >";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo("<  InLIne garbage ><Impression>http:/test.com</Impression>"
                 + "<Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></  Inline garbage >");
@@ -368,11 +352,10 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<InLine></InLine>";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo("<InLine><Impression><![CDATA[" + VAST_URL_TRACKING + "]]></Impression></InLine>");
     }
@@ -382,11 +365,10 @@ public class VastModifierTest {
         // when
         final String bidAdm = "<  InLIne garbage >< / InLIne garbage >";
         final String result = target
-                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList(),
-                        LINEITEM_ID);
+                .createBidVastXml(BIDDER, bidAdm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), emptyList());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo("<  InLIne garbage ><Impression><![CDATA["
                 + VAST_URL_TRACKING + "]]></Impression>< / InLIne garbage >");
@@ -398,10 +380,10 @@ public class VastModifierTest {
         final String adm = "<Impression>http:/test.com</Impression>";
         final List<String> warnings = new ArrayList<>();
         final String result = target
-                .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), warnings, LINEITEM_ID);
+                .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), warnings);
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
         assertThat(result).isEqualTo(adm);
         assertThat(warnings).containsExactly("VastXml does not contain neither InLine nor Wrapper for bidder response");
         verify(metrics).updateAdapterRequestErrorMetric(BIDDER, MetricName.badserverresponse);
@@ -413,10 +395,10 @@ public class VastModifierTest {
         final String adm = "<wrappergarbage></wrapper>";
         final List<String> warnings = new ArrayList<>();
         final String result = target
-                .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), warnings, LINEITEM_ID);
+                .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), warnings);
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
         assertThat(result).isEqualTo(adm);
         assertThat(warnings).containsExactly("VastXml does not contain neither InLine nor Wrapper for bidder response");
         verify(metrics).updateAdapterRequestErrorMetric(BIDDER, MetricName.badserverresponse);
@@ -428,10 +410,10 @@ public class VastModifierTest {
         final String adm = "<inlinegarbage></inline>";
         final List<String> warnings = new ArrayList<>();
         final String result = target
-                .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), warnings, LINEITEM_ID);
+                .createBidVastXml(BIDDER, adm, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), warnings);
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
         assertThat(result).isEqualTo(adm);
         assertThat(warnings).containsExactly("VastXml does not contain neither InLine nor Wrapper for bidder response");
         verify(metrics).updateAdapterRequestErrorMetric(BIDDER, MetricName.badserverresponse);
@@ -441,11 +423,11 @@ public class VastModifierTest {
     public void createBidVastXmlShouldNotModifyWhenEventsEnabledAndAdmHaveNoImpression() {
         // when
         final String admWithNoImpression = "no impression";
-        final String result = target.createBidVastXml(BIDDER, admWithNoImpression, BID_NURL, BID_ID,
-                ACCOUNT_ID, eventsContext(), new ArrayList<>(), LINEITEM_ID);
+        final String result = target.createBidVastXml(
+                BIDDER, admWithNoImpression, BID_NURL, BID_ID, ACCOUNT_ID, eventsContext(), new ArrayList<>());
 
         // then
-        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, LINEITEM_ID, eventsContext());
+        verify(eventsService).vastUrlTracking(BID_ID, BIDDER, ACCOUNT_ID, eventsContext());
 
         assertThat(result).isEqualTo(admWithNoImpression);
     }

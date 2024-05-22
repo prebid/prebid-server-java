@@ -17,11 +17,9 @@ import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProp
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.deals.model.DeepDebugLog;
-import org.prebid.server.deals.model.TxnLog;
 import org.prebid.server.execution.Timeout;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Set;
@@ -161,8 +159,6 @@ public class PubstackEventHandlerTest extends VertxTest {
                 .auctionContext(AuctionContext.builder()
                         .uidsCookie(mock(UidsCookie.class))
                         .timeoutContext(TimeoutContext.of(0, mock(Timeout.class), 0))
-                        .txnLog(mock(TxnLog.class))
-                        .deepDebugLog(mock(DeepDebugLog.class))
                         .build())
                 .build();
 
