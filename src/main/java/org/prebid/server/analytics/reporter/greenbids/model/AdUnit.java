@@ -18,9 +18,6 @@ public class AdUnit {
 
     @JsonProperty("bids")
     List<GreenbidsBids> bids;
-
-    @JsonProperty("ortb2Imp")
-    Ortb2Imp ortb2Imp;
 }
 
 

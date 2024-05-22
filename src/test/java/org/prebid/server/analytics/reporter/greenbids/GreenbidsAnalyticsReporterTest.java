@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.Future;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -32,6 +31,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class GreenbidsAnalyticsReporterTest {
 
@@ -149,17 +149,13 @@ public class GreenbidsAnalyticsReporterTest {
                 httpClient);
 
         // then
-        final Future<CommonMessage> bidMessage = greenbidsAnalyticsReporter.createBidMessage(
-                auctionContext,
-                auctionContext.getBidResponse(),
-                greenbidsId,
-                billingId,
-                fingerprint,
-                tid);
-
-        bidMessage.onComplete(ar -> {
-            assertThat(ar.cause().getMessage()).isEqualTo("AdUnits list should not be empty");
-        });
+        assertThatThrownBy(() -> greenbidsAnalyticsReporter.createBidMessage(
+                                auctionContext,
+                                auctionContext.getBidResponse(),
+                                greenbidsId,
+                                billingId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("AdUnits list should not be empty");
     }
 
     @Test
@@ -177,31 +173,25 @@ public class GreenbidsAnalyticsReporterTest {
                 jacksonMapper,
                 httpClient);
 
-        final Future<CommonMessage> bidMessage = greenbidsAnalyticsReporter
-                .createBidMessage(
+        final CommonMessage commonMessage = greenbidsAnalyticsReporter.createBidMessage(
                         auctionContext,
                         auctionContext.getBidResponse(),
                         greenbidsId,
-                        billingId,
-                        fingerprint,
-                        tid);
+                        billingId);
 
         // then
-        bidMessage.onSuccess(commonMessage -> {
+        assertThat(commonMessage).isNotNull();
+        assertThat(commonMessage).hasFieldOrPropertyWithValue("pbuid", "pbuid1");
 
-            assertThat(commonMessage).isNotNull();
-            assertThat(commonMessage).hasFieldOrPropertyWithValue("pbuid", "pbuid1");
+        for (AdUnit adUnit : commonMessage.getAdUnits()) {
+            assert adUnit.getBids() != null;
+            final boolean hasSeatWithBid = adUnit.getBids().stream()
+                    .anyMatch(bidder -> Boolean.TRUE.equals(bidder.getHasBid()));
+            final boolean hasSeatWithNonBid = adUnit.getBids().stream()
+                    .anyMatch(bidder -> Boolean.FALSE.equals(bidder.getHasBid()));
 
-            for (AdUnit adUnit : commonMessage.getAdUnits()) {
-                assert adUnit.getBids() != null;
-                final boolean hasSeatWithBid = adUnit.getBids().stream()
-                        .anyMatch(bidder -> Boolean.TRUE.equals(bidder.getHasBid()));
-                final boolean hasSeatWithNonBid = adUnit.getBids().stream()
-                        .anyMatch(bidder -> Boolean.FALSE.equals(bidder.getHasBid()));
-
-                assertThat(hasSeatWithBid).isTrue();
-                assertThat(hasSeatWithNonBid).isTrue();
-            }
-        });
+            assertThat(hasSeatWithBid).isTrue();
+            assertThat(hasSeatWithNonBid).isTrue();
+        }
     }
 }
