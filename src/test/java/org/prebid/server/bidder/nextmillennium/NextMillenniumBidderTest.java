@@ -321,7 +321,22 @@ public class NextMillenniumBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .contains(BidderError.badServerResponse("Failed to parse bid mtype for impression id \"123\""));
+                .contains(BidderError.badServerResponse("Unable to fetch mediaType 999 in multi-format: 123"));
+        assertThat(result.getValue()).isEmpty();
+    }
+
+    @Test
+    public void makeBidsShouldReturnErrorWhenMTypeIsMissing() throws JsonProcessingException {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest,
+                mapper.writeValueAsString(givenBidResponse(bidBuilder -> bidBuilder.id("bidId").impid("123"))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+
+        // then
+        assertThat(result.getErrors()).contains(BidderError.badServerResponse("Missing MType for bid: bidId"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -339,7 +354,7 @@ public class NextMillenniumBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors())
-                .contains(BidderError.badServerResponse("Failed to parse bid mtype for impression id \"123\""));
+                .contains(BidderError.badServerResponse("Unable to fetch mediaType 999 in multi-format: 123"));
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().mtype(1).impid("312").build(),
                         BidType.banner, "USD"));

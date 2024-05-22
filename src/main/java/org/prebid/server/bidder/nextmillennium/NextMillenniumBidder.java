@@ -206,12 +206,18 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
     }
 
     private static BidType getBidType(Bid bid, List<BidderError> bidderErrors) {
-        return switch (ObjectUtils.defaultIfNull(bid.getMtype(), 0)) {
+        final Integer markupType = bid.getMtype();
+        if (markupType == null) {
+            bidderErrors.add(BidderError.badServerResponse("Missing MType for bid: " + bid.getId()));
+            return null;
+        }
+
+        return switch (markupType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
             default -> {
-                bidderErrors.add(BidderError.badServerResponse("Failed to parse bid mtype for impression id \"%s\""
-                        .formatted(bid.getImpid())));
+                bidderErrors.add(BidderError.badServerResponse(
+                        "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid()));
                 yield null;
             }
         };
