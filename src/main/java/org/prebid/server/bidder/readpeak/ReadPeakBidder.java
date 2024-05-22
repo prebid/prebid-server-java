@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.readpeak;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -30,7 +29,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class ReadPeakBidder implements Bidder<BidRequest> {
 
@@ -140,29 +138,17 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private BidType getBidType(Bid bid) {
-        final JsonNode typeNode = Optional.ofNullable(bid.getExt())
-                .map(extNode -> extNode.get("prebid"))
-                .map(extPrebidNode -> extPrebidNode.get("type"))
-                .orElse(null);
-
-        final BidType bidType;
-        try {
-            bidType = mapper.mapper().convertValue(typeNode, BidType.class);
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException("Failed to parse bid.ext.prebid.type for bid.id: '%s'"
-                    .formatted(bid.getId()));
+    private static BidType getBidType(Bid bid) {
+        final Integer markupType = bid.getMtype();
+        if (markupType == null) {
+            throw new PreBidException("Missing MType for bid: " + bid.getId());
         }
 
-        if (bidType == null) {
-            throw new PreBidException("bid.ext.prebid.type is not present for bid.id: '%s'"
-                    .formatted(bid.getId()));
-        }
-
-        return switch (bidType) {
-            case banner, xNative -> bidType;
-            default -> throw new PreBidException("Unsupported BidType: "
-                    + bidType.getName() + " for bid.id: '" + bid.getId() + "'");
+        return switch (markupType) {
+            case 1 -> BidType.banner;
+            case 4 -> BidType.xNative;
+            default -> throw new PreBidException(
+                    "Unable to fetch mediaType " + bid.getMtype() + " in multi-format: " + bid.getImpid());
         };
     }
 
