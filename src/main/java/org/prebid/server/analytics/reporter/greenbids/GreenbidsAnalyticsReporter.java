@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Site;
@@ -272,16 +271,16 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final Video video = imp.getVideo();
         final Native nativeObject = imp.getXNative();
 
-        final Optional<List<Format>> format = Optional.ofNullable(banner)
+        if (banner == null) {
+            Future.failedFuture(new PreBidException("Error: Banner should be non-null"));
+        }
+
+        final List<List<Integer>> bannerWidthHeight = Optional.ofNullable(banner)
                 .map(Banner::getFormat)
-                .filter(f -> !CollectionUtils.isEmpty(f));
-
-        final Integer width = format.map(f -> f.getFirst().getW()).orElse(null);
-        final Integer height = format.map(f -> f.getFirst().getH()).orElse(null);
-
-        final List<List<Integer>> bannerWidthHeight = width != null && height != null ? List.of(
-                List.of(width, height),
-                List.of(width, height)) : null;
+                .map(formats -> formats.stream()
+                        .map(format -> List.of(format.getW(), format.getH())))
+                        .orElseGet(() -> Stream.of(List.of(banner.getW(), banner.getH())))
+                .collect(Collectors.toList());
 
         final ExtBanner extBanner = ExtBanner.builder()
                 .sizes(bannerWidthHeight)
