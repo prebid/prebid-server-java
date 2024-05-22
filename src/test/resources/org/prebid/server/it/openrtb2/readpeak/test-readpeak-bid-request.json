@@ -3,11 +3,11 @@
   "imp": [
     {
       "id": "imp_id",
-      "secure": 1,
       "banner": {
         "w": 300,
         "h": 250
       },
+      "secure": 1,
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {

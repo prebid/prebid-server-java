@@ -29,10 +29,8 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
-import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
-import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.bidder.model.BidderError.badServerResponse;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
@@ -48,7 +46,7 @@ public class ReadPeakBidderTest extends VertxTest {
     private final ReadPeakBidder target = new ReadPeakBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
-    public void creationShouldFailOnInvalidEndpointUrl2() {
+    public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(() -> new ReadPeakBidder("invalid_url", jacksonMapper));
     }
 
@@ -182,7 +180,7 @@ public class ReadPeakBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnAllTwoBidTypesSuccessfully() throws JsonProcessingException {
+    public void makeBidsShouldReturnAllFourBidTypesSuccessfully() throws JsonProcessingException {
         // given
         final Bid bannerBid = Bid.builder().impid("1").mtype(1).price(BigDecimal.TEN).build();
         final Bid nativeBid = Bid.builder().impid("2").mtype(2).price(BigDecimal.TEN).build();
@@ -256,155 +254,29 @@ public class ReadPeakBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnBidWithResolvedMacros() throws JsonProcessingException {
+    public void makeBidsShouldResolveMacrosInBids() throws JsonProcessingException {
         // given
-        final BidRequest bidRequest = givenBidRequest();
+        final Bid bid = Bid.builder().impid("1").mtype(1).price(BigDecimal.TEN)
+                .nurl("http://example.com?price=${AUCTION_PRICE}")
+                .adm("<div>${AUCTION_PRICE}</div>")
+                .burl("http://example.com?price=${AUCTION_PRICE}")
+                .build();
 
-        final BidderCall<BidRequest> httpCall = givenHttpCall(bidRequest, mapper.writeValueAsString(
-                givenBidResponse(bidBuilder -> bidBuilder
-                        .impid("1")
-                        .nurl("https://mynurl.example.com/win/232332?price=${AUCTION_PRICE}")
-                        .adm("<html><head></head><body><p><img"
-                                + " src=\"https://myurl.example.com/imp?apr=${AUCTION_PRICE}\"/></p></body></head>")
-                        .price(BigDecimal.valueOf(13.45)))));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(), givenBidResponse(bid));
 
         // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, bidRequest);
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(BidderBid::getBid)
-                .extracting(Bid::getNurl, Bid::getAdm)
-                .containsExactly(tuple("https://mynurl.example.com/win/232332?price=13.45",
-                        "<html><head></head><body><p><img src=\"https://myurl.example.com/imp?apr=13.45\"/></p></body></head>"));
+        final Bid resolvedBid = result.getValue().get(0).getBid();
+        assertThat(resolvedBid.getNurl()).isEqualTo("http://example.com?price=10");
+        assertThat(resolvedBid.getAdm()).isEqualTo("<div>10</div>");
+        assertThat(resolvedBid.getBurl()).isEqualTo("http://example.com?price=10");
     }
 
-//    @Test
-//    public void creationShouldFailOnInvalidEndpointUrl() {
-//        assertThatIllegalArgumentException().isThrownBy(() -> new ReadPeakBidder("invalid_url", jacksonMapper));
-//    }
-//
-//    @Test
-//    public void makeHttpRequestsShouldReturnErrorIfImpExtCannotBeParsed() {
-//        // given
-//        final BidRequest bidRequest = BidRequest.builder()
-//                .imp(Collections.singletonList(Imp.builder()
-//                        .ext(mapper.createObjectNode())
-//                        .build()))
-//                .build();
-//
-//        // when
-//        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-//
-//        // then
-//        assertThat(result.getErrors()).hasSize(1)
-//                .element(0)
-//                .extracting(BidderError::getType)
-//                .isEqualTo(BidderError.Type.bad_input);
-//    }
-
-//    @Test
-//    public void makeHttpRequestsShouldReturnErrorIfExtImpReadPeakCannotBeParsed() {
-//        // given
-//        final ObjectNode ext = mapper.createObjectNode();
-//        ext.put("bidder", "invalid");
-//
-//        final BidRequest bidRequest = BidRequest.builder()
-//                .imp(Collections.singletonList(Imp.builder()
-//                        .ext(ext)
-//                        .build()))
-//                .build();
-//
-//        // when
-//        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-//
-//        // then
-//        assertThat(result.getErrors()).hasSize(1)
-//                .element(0)
-//                .extracting(BidderError::getType)
-//                .isEqualTo(BidderError.Type.bad_input);
-//    }
-//
-//    @Test
-//    public void makeHttpRequestsShouldReturnHttpRequest() {
-//        // given
-//        final ExtImpReadPeak extImpReadPeak = ExtImpReadPeak.of("testPublisherId", "testSiteId", BigDecimal.valueOf(1.5), "testTagId");
-//        final ObjectNode ext = mapper.createObjectNode();
-//        ext.set("bidder", mapper.valueToTree(extImpReadPeak));
-//
-//        final BidRequest bidRequest = BidRequest.builder()
-//                .imp(Collections.singletonList(Imp.builder()
-//                        .id("123")
-//                        .ext(ext)
-//                        .build()))
-//                .build();
-//
-//        // when
-//        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-//
-//        // then
-//        assertThat(result.getErrors()).isEmpty();
-//        assertThat(result.getValue()).hasSize(1)
-//                .element(0)
-//                .extracting(HttpRequest::getBody)
-//                .isNotNull();
-//    }
-//
-//    @Test
-//    public void makeBidsShouldReturnEmptyResultIfResponseBodyIsEmpty() {
-//        // given
-//        final BidderCall<BidRequest> bidderCall = BidderCall.succeededHttp(null, HttpResponse.of(200, null, ""), null);
-//
-//        // when
-//        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
-//
-//        // then
-//        assertThat(result.getErrors()).isEmpty();
-//        assertThat(result.getValue()).isEmpty();
-//    }
-//
-//    @Test
-//    public void makeBidsShouldReturnErrorIfResponseBodyIsInvalid() {
-//        // given
-//        final HttpResponse httpResponse = HttpResponse.of(200, null, "invalid");
-//        final BidderCall<BidRequest> bidderCall = BidderCall.succeededHttp(null, httpResponse, null);
-//
-//        // when
-//        final Result<List<BidderBid>> result = target.makeBids(bidderCall, null);
-//
-//        // then
-//        assertThat(result.getErrors()).hasSize(1)
-//                .element(0)
-//                .extracting(BidderError::getType)
-//                .isEqualTo(BidderError.Type.bad_server_response);
-//    }
-//
-//    @Test
-//    public void makeBidsShouldReturnBids() throws Exception {
-//        // given
-//        final BidRequest bidRequest = BidRequest.builder().build();
-//        final BidResponse bidResponse = BidResponse.builder()
-//                .seatbid(Collections.singletonList(SeatBid.builder()
-//                        .bid(Collections.singletonList(com.iab.openrtb.response.Bid.builder().mtype(1).build()))
-//                        .build()))
-//                .build();
-//
-//        final String bidResponseBody = mapper.writeValueAsString(bidResponse);
-//        final HttpResponse httpResponse = HttpResponse.of(200, null, bidResponseBody);
-//        final BidderCall<BidRequest> bidderCall = BidderCall.succeededHttp(null, httpResponse, null);
-//
-//        // when
-//        final Result<List<BidderBid>> result = target.makeBids(bidderCall, bidRequest);
-//
-//        // then
-//        assertThat(result.getErrors()).isEmpty();
-//        assertThat(result.getValue()).hasSize(1);
-//    }
-
     private static BidRequest givenBidRequest() {
-        final Imp imp = Imp.builder()
-                .id("imp_id")
+        final Imp imp = Imp.builder().id("imp_id")
                 .tagid("TagId") // Dodaj tagid
                 .bidfloor(BigDecimal.valueOf(0.5)) // Dodaj bidfloor
                 .ext(mapper.valueToTree(ExtPrebid.of(null,
@@ -427,17 +299,8 @@ public class ReadPeakBidderTest extends VertxTest {
     }
 
     private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
-        return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
-                HttpResponse.of(200, null, body),
-                null);
-    }
-
-    private static BidResponse givenBidResponse(Function<Bid.BidBuilder, Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
-                .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
-                        .build()))
-                .build();
+        return BidderCall.succeededHttp(HttpRequest.<BidRequest>builder()
+                .payload(bidRequest).build(), HttpResponse.of(200, null, body), null);
     }
 
     private static String givenBidResponse(Bid... bids) throws JsonProcessingException {

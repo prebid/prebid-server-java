@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.readpeak;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -22,7 +23,6 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.readpeak.ExtImpReadPeak;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
-import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -30,6 +30,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class ReadPeakBidder implements Bidder<BidRequest> {
 
@@ -37,7 +38,6 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
             new TypeReference<>() {
             };
 
-    private static final String PUBLISHER_ID_MACRO = "{{PublisherId}}";
     private static final String PRICE_MACRO = "${AUCTION_PRICE}";
 
     private final String endpointUrl;
@@ -53,38 +53,21 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
         final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
-        // Create a deep copy of the incoming request
-        BidRequest requestCopy;
-        try {
-            requestCopy = mapper.decodeValue(mapper.encodeToBytes(request), BidRequest.class);
-        } catch (Exception e) {
-            errors.add(BidderError.badInput(e.getMessage()));
-            return Result.withErrors(errors);
-        }
-
-        final List<Imp> imps = new ArrayList<>();
         for (Imp imp : request.getImp()) {
             final ExtImpReadPeak extImpReadPeak;
             try {
                 extImpReadPeak = parseImpExt(imp);
-                if (extImpReadPeak != null) {
-                    final Imp updatedImp = updateImp(imp, extImpReadPeak);
-                    imps.add(updatedImp);
-                }
-            } catch (IllegalArgumentException e) {
-                errors.add(BidderError.badInput("Invalid Imp ext: " + e.getMessage()));
+                final Imp modifiedImp = modifyImp(imp, extImpReadPeak);
+                httpRequests.add(makeHttpRequest(request, modifiedImp));
+            } catch (PreBidException e) {
+                errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        if (imps.isEmpty()) {
-            errors.add(BidderError.badInput("No valid impressions found"));
-            return Result.withErrors(errors);
+        if (httpRequests.isEmpty()) {
+            return Result.withError(BidderError.badInput("found no valid impressions"));
         }
 
-        requestCopy = requestCopy.toBuilder().imp(imps).build();
-
-        final String url = makeUrl(imps.get(0).getExt().get("bidder").get("publisherId").asText());
-        httpRequests.add(BidderUtil.defaultRequest(requestCopy, url, mapper));
         return Result.of(httpRequests, errors);
     }
 
@@ -96,7 +79,7 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp updateImp(Imp imp, ExtImpReadPeak extImpReadPeak) {
+    private Imp modifyImp(Imp imp, ExtImpReadPeak extImpReadPeak) {
         final Price bidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
 
         return imp.toBuilder()
@@ -107,50 +90,42 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private String makeUrl(String publisherId) {
-        return endpointUrl.replace(PUBLISHER_ID_MACRO, StringUtils.defaultString(publisherId));
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp) {
+        final BidRequest outgoingRequest = request.toBuilder().imp(List.of(imp)).build();
+
+        return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
     }
 
     @Override
-    public final Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
-        if (httpCall.getResponse() == null || httpCall.getResponse().getBody() == null) {
-            return Result.withError(BidderError.badServerResponse("Empty response body"));
-        }
-
+    public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return Result.withValues(extractBids(bidResponse, mapper, bidRequest));
+            final List<BidderBid> bids = extractBids(bidResponse);
+            return Result.withValues(bids);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private static List<BidderBid> extractBids(BidResponse bidResponse, JacksonMapper mapper, BidRequest bidRequest) {
+    private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
             throw new PreBidException("Empty SeatBid array");
         }
-        return bidsFromResponse(bidResponse, mapper, bidRequest);
+        return bidsFromResponse(bidResponse);
     }
 
-    private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, JacksonMapper mapper, BidRequest bidRequest) {
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(List::stream)
-//                .map(bid -> {
-//                    resolveMacros(bid);
-//
-//                    .map(bid -> BidderBid.of(resolveMacros(bid), getMediaType(bid.getImpid(), bidRequest.getImp()),
-//                            bidResponse.getCur()));
-//                    final ObjectNode ext = bid.getExt() != null ? bid.getExt().deepCopy()
-//                            : mapper.mapper().createObjectNode();
-//                    ext.set("prebid", mapper.mapper().convertValue(getBidMeta(bid), ObjectNode.class));
-//                    bid = bid.toBuilder().ext(ext).build();
-//                    return BidderBid.of(bid, getBidMediaType(bid), bidResponse.getCur());
-//                })
-                .map(bid -> BidderBid.of(resolveMacros(bid), resolveBidType(bid.getImpid(), bidRequest.getImp()),
-                        bidResponse.getCur()))
+                .map(bid -> {
+                    final Bid resolvedBid = resolveMacros(bid);
+                    final BidType bidType = getBidType(bid);
+                    final Bid updatedBid = addBidMeta(resolvedBid);
+                    return BidderBid.of(updatedBid, bidType, bidResponse.getCur());
+                })
                 .filter(Objects::nonNull)
                 .toList();
     }
@@ -165,22 +140,42 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private static BidType resolveBidType(String impId, List<Imp> imps) {
-        for (Imp imp : imps) {
-            if (imp.getId().equals(impId)) {
-                if (imp.getBanner() != null) {
-                    return BidType.banner;
-                } else if (imp.getXNative() != null) {
-                    return BidType.xNative;
-                }
-            }
+    private BidType getBidType(Bid bid) {
+        final JsonNode typeNode = Optional.ofNullable(bid.getExt())
+                .map(extNode -> extNode.get("prebid"))
+                .map(extPrebidNode -> extPrebidNode.get("type"))
+                .orElse(null);
+
+        final BidType bidType;
+        try {
+            bidType = mapper.mapper().convertValue(typeNode, BidType.class);
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("Failed to parse bid.ext.prebid.type for bid.id: '%s'"
+                    .formatted(bid.getId()));
         }
-        throw new PreBidException("Failed to find banner/native impression \"%s\"".formatted(impId));
+
+        if (bidType == null) {
+            throw new PreBidException("bid.ext.prebid.type is not present for bid.id: '%s'"
+                    .formatted(bid.getId()));
+        }
+
+        return switch (bidType) {
+            case banner, xNative -> bidType;
+            default -> throw new PreBidException("Unsupported BidType: "
+                    + bidType.getName() + " for bid.id: '" + bid.getId() + "'");
+        };
     }
 
-    private static ExtBidPrebidMeta getBidMeta(Bid bid) {
-        return ExtBidPrebidMeta.builder()
-                .advertiserDomains(bid.getAdomain())
+    private Bid addBidMeta(Bid bid) {
+        final ObjectNode bidExt = bid.getExt() != null
+                ? bid.getExt().deepCopy()
+                : mapper.mapper().createObjectNode();
+
+        final ObjectNode prebidNode = bidExt.putObject("prebid");
+        final ObjectNode metaNode = prebidNode.putObject("meta");
+        metaNode.set("advertiserDomains", mapper.mapper().valueToTree(bid.getAdomain()));
+        return bid.toBuilder()
+                .ext(bidExt)
                 .build();
     }
 }
