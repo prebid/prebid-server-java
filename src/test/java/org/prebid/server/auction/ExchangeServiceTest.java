@@ -128,6 +128,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtAnalytics;
 import org.prebid.server.proto.openrtb.ext.response.ExtAnalyticsTags;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -4286,7 +4287,8 @@ public class ExchangeServiceTest extends VertxTest {
         final BidResponse bidResponse = result.getBidResponse();
         assertThat(bidResponse.getExt())
                 .extracting(ExtBidResponse::getPrebid)
-                .extracting(ExtBidResponsePrebid::getAnalyticsTags)
+                .extracting(ExtBidResponsePrebid::getAnalytics)
+                .extracting(ExtAnalytics::getTags)
                 .asInstanceOf(InstanceOfAssertFactories.list(ExtAnalyticsTags.class))
                 .hasSize(1)
                 .allSatisfy(extAnalyticsTags -> {

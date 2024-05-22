@@ -107,6 +107,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtSite;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
+import org.prebid.server.proto.openrtb.ext.response.ExtAnalytics;
 import org.prebid.server.proto.openrtb.ext.response.ExtAnalyticsTags;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
@@ -1715,7 +1716,7 @@ public class ExchangeService {
         final ExtBidResponsePrebid updatedExtPrebid = extPrebid
                 .map(ExtBidResponsePrebid::toBuilder)
                 .orElse(ExtBidResponsePrebid.builder())
-                .analyticsTags(extAnalyticsTags)
+                .analytics(ExtAnalytics.of(extAnalyticsTags))
                 .build();
 
         final ExtBidResponse updatedExt = ext
