@@ -22,10 +22,10 @@ This parameter exists to allow to change the location of the directory Vert.x wi
 - `server.jks-password` - password for the keystore (if ssl is enabled).
 
 ## HTTP Server
-- `http.max-headers-size` - set the maximum length of all headers, deprecated(use server.max-headers-size instead).
-- `http.ssl` - enable SSL/TLS support, deprecated(use server.ssl instead).
-- `http.jks-path` - path to the java keystore (if ssl is enabled), deprecated(use server.jks-path instead).
-- `http.jks-password` - password for the keystore (if ssl is enabled), deprecated(use server.jks-password instead).
+- `server.max-headers-size` - set the maximum length of all headers, deprecated(use server.max-headers-size instead).
+- `server.ssl` - enable SSL/TLS support, deprecated(use server.ssl instead).
+- `server.jks-path` - path to the java keystore (if ssl is enabled), deprecated(use server.jks-path instead).
+- `server.jks-password` - password for the keystore (if ssl is enabled), deprecated(use server.jks-password instead).
 - `server.http.server-instances` - how many http server instances should be created.
   This parameter affects how many CPU cores will be utilized by the application. Rough assumption - one http server instance will keep 1 CPU core busy.
 - `server.http.enabled` - if set to `true` enables http server
@@ -75,9 +75,8 @@ Removes and downloads file again if depending service cant process probably corr
 - `default-request.file.path` - path to a JSON file containing the default request
 
 ## Auction (OpenRTB)
-- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
-- `auction.blacklisted-apps` - comma separated list of blacklisted applications IDs, requests from which should not be processed.
-- `auction.max-timeout-ms` - maximum operation timeout for OpenRTB Auction requests. Deprecated.
+- `auction.blocklisted-accounts` - comma separated list of blocklisted account IDs.
+- `auction.blocklisted-apps` - comma separated list of blocklisted applications IDs, requests from which should not be processed.
 - `auction.biddertmax.min` - minimum operation timeout for OpenRTB Auction requests.
 - `auction.biddertmax.max` - maximum operation timeout for OpenRTB Auction requests.
 - `auction.biddertmax.percent` - adjustment factor for `request.tmax` for bidders.
@@ -104,7 +103,7 @@ Removes and downloads file again if depending service cant process probably corr
 
 ## Video
 - `auction.video.stored-required` - flag forces to merge with stored request
-- `auction.blacklisted-accounts` - comma separated list of blacklisted account IDs.
+- `auction.blocklisted-accounts` - comma separated list of blocklisted account IDs.
 - `video.stored-requests-timeout-ms` - timeout for stored requests fetching.
 - `auction.ad-server-currency` - default currency for video auction, if its value was not specified in request. Important note: PBS uses ISO-4217 codes for the representation of currencies.
 - `auction.video.escape-log-cache-regex` - regex to remove from cache debug log xml.
@@ -204,11 +203,6 @@ Also, each bidder could have its own bidder-specific options.
 - `admin-endpoints.tracelog.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
 - `admin-endpoints.tracelog.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials`
 
-- `admin-endpoints.e2eadmin.enabled` - if equals to `true` the endpoint will be available.
-- `admin-endpoints.e2eadmin.path` - the server context path where the endpoint will be accessible.
-- `admin-endpoints.e2eadmin.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
-- `admin-endpoints.e2eadmin.protected` - when equals to `true` endpoint will be protected by basic authentication configured in `admin-endpoints.credentials` 
-
 - `admin-endpoints.collected-metrics.enabled` - if equals to `true` the endpoint will be available.
 - `admin-endpoints.collected-metrics.path` - the server context path where the endpoint will be accessible.
 - `admin-endpoints.collected-metrics.on-application-port` - when equals to `false` endpoint will be bound to `admin.port`.
@@ -294,8 +288,10 @@ For database data source available next options:
 - `settings.database.user` - database user.
 - `settings.database.password` - database password.
 - `settings.database.pool-size` - set the initial/min/max pool size of database connections.
+- `settings.database.idle-connection-timeout` - Set the idle timeout, time unit is seconds. Zero means don't timeout. This determines if a connection will timeout and be closed and get back to the pool if no data is received nor sent within the timeout.
+- `settings.database.enable-prepared-statement-caching` - Enable caching of the prepared statements so that they can be reused. Defaults to `false`. Please be vary of the DB server limitations as cache instances is per-database-connection.
+- `settings.database.max-prepared-statement-cache-size` - Set the maximum size of the prepared statement cache. Defaults to `256`. Has any effect only when `settings.database.enable-prepared-statement-caching` is set to `true`. Please note that the cache size is multiplied by `settings.database.pool-size`.  
 - `settings.database.account-query` - the SQL query to fetch account.
-- `settings.database.provider-class` - type of connection pool to be used: `hikari` or `c3p0`.
 - `settings.database.stored-requests-query` - the SQL query to fetch stored requests.
 - `settings.database.amp-stored-requests-query` - the SQL query to fetch AMP stored requests.
 - `settings.database.stored-responses-query` - the SQL query to fetch stored responses.
@@ -338,6 +334,7 @@ See [application settings](application-settings.md) for full reference of availa
 For caching available next options:
 - `settings.in-memory-cache.ttl-seconds` - how long (in seconds) data will be available in LRU cache.
 - `settings.in-memory-cache.cache-size` - the size of LRU cache.
+- `settings.in-memory-cache.jitter-seconds` - jitter (in seconds) for `settings.in-memory-cache.ttl-seconds` parameter.
 - `settings.in-memory-cache.notification-endpoints-enabled` - if equals to `true` two additional endpoints will be
 available: [/storedrequests/openrtb2](endpoints/storedrequests/openrtb2.md) and [/storedrequests/amp](endpoints/storedrequests/amp.md).
 - `settings.in-memory-cache.account-invalidation-enabled` - if equals to `true` additional admin protected endpoints will be
@@ -346,14 +343,14 @@ available: `/cache/invalidate?account={accountId}` which remove account from the
 - `settings.in-memory-cache.http-update.amp-endpoint` - the url to fetch AMP stored request updates.
 - `settings.in-memory-cache.http-update.refresh-rate` - refresh period in ms for stored request updates.
 - `settings.in-memory-cache.http-update.timeout` - timeout for obtaining stored request updates.
-- `settings.in-memory-cache.jdbc-update.init-query` - initial query for fetching all stored requests at the startup.
-- `settings.in-memory-cache.jdbc-update.update-query` - a query for periodical update of stored requests, that should
-contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
-- `settings.in-memory-cache.jdbc-update.amp-init-query` - initial query for fetching all AMP stored requests at the startup.
-- `settings.in-memory-cache.jdbc-update.amp-update-query` - a query for periodical update of AMP stored requests, that should
-contain 'WHERE last_updated > ?' to fetch only the records that were updated since previous check.
-- `settings.in-memory-cache.jdbc-update.refresh-rate` - refresh period in ms for stored request updates.
-- `settings.in-memory-cache.jdbc-update.timeout` - timeout for obtaining stored request updates.
+- `settings.in-memory-cache.database-update.init-query` - initial query for fetching all stored requests at the startup.
+- `settings.in-memory-cache.database-update.update-query` - a query for periodical update of stored requests, that should
+contain 'WHERE last_updated > ?' for MySQL and 'WHERE last_updated > $1' for Postgresql to fetch only the records that were updated since previous check.
+- `settings.in-memory-cache.database-update.amp-init-query` - initial query for fetching all AMP stored requests at the startup.
+- `settings.in-memory-cache.database-update.amp-update-query` - a query for periodical update of AMP stored requests, that should
+contain 'WHERE last_updated > ?' for MySQL and 'WHERE last_updated > $1' for Postgresql to fetch only the records that were updated since previous check.
+- `settings.in-memory-cache.database-update.refresh-rate` - refresh period in ms for stored request updates.
+- `settings.in-memory-cache.database-update.timeout` - timeout for obtaining stored request updates.
 
 For targeting available next options:
 - `settings.targeting.truncate-attr-chars` - set the max length for names of targeting keywords (0 means no truncation).

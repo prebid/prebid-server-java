@@ -10,8 +10,6 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Site;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
@@ -28,7 +26,7 @@ import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlocklistedAccountException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -43,6 +41,8 @@ import org.prebid.server.hooks.execution.model.HookStageExecutionResult;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
@@ -89,7 +89,7 @@ public class Ortb2RequestFactory {
 
     private final int timeoutAdjustmentFactor;
     private final double logSamplingRate;
-    private final List<String> blacklistedAccounts;
+    private final List<String> blocklistedAccounts;
     private final UidsCookieService uidsCookieService;
     private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final RequestValidator requestValidator;
@@ -105,7 +105,7 @@ public class Ortb2RequestFactory {
 
     public Ortb2RequestFactory(int timeoutAdjustmentFactor,
                                double logSamplingRate,
-                               List<String> blacklistedAccounts,
+                               List<String> blocklistedAccounts,
                                UidsCookieService uidsCookieService,
                                ActivityInfrastructureCreator activityInfrastructureCreator,
                                RequestValidator requestValidator,
@@ -125,7 +125,7 @@ public class Ortb2RequestFactory {
 
         this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.logSamplingRate = logSamplingRate;
-        this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
+        this.blocklistedAccounts = Objects.requireNonNull(blocklistedAccounts);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.requestValidator = Objects.requireNonNull(requestValidator);
@@ -180,7 +180,7 @@ public class Ortb2RequestFactory {
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return findAccountIdFrom(bidRequest, isLookupStoredRequest)
-                .map(this::validateIfAccountBlacklisted)
+                .map(this::validateIfAccountBlocklisted)
                 .compose(accountId -> loadAccount(timeout, httpRequest, accountId));
     }
 
@@ -233,7 +233,6 @@ public class Ortb2RequestFactory {
                 .build();
 
         return Future.succeededFuture(bidRequest.toBuilder().device(updatedDevice).build());
-
     }
 
     public Future<BidRequest> enrichBidRequestWithAccountAndPrivacyData(AuctionContext auctionContext) {
@@ -259,7 +258,6 @@ public class Ortb2RequestFactory {
                 .device(ObjectUtils.defaultIfNull(enrichedDevice, device))
                 .regs(ObjectUtils.defaultIfNull(enrichedRegs, regs))
                 .build());
-
     }
 
     private static Regs enrichRegs(Regs regs, PrivacyContext privacyContext, Account account) {
@@ -425,13 +423,13 @@ public class Ortb2RequestFactory {
                 .map(storedAuctionResult -> accountIdFrom(storedAuctionResult.bidRequest()));
     }
 
-    private String validateIfAccountBlacklisted(String accountId) {
-        if (CollectionUtils.isNotEmpty(blacklistedAccounts)
+    private String validateIfAccountBlocklisted(String accountId) {
+        if (CollectionUtils.isNotEmpty(blocklistedAccounts)
                 && StringUtils.isNotBlank(accountId)
-                && blacklistedAccounts.contains(accountId)) {
+                && blocklistedAccounts.contains(accountId)) {
 
-            throw new BlacklistedAccountException(
-                    "Prebid-server has blacklisted Account ID: %s, please reach out to the prebid server host."
+            throw new BlocklistedAccountException(
+                    "Prebid-server has blocklisted Account ID: %s, please reach out to the prebid server host."
                             .formatted(accountId));
         }
         return accountId;
@@ -498,7 +496,7 @@ public class Ortb2RequestFactory {
             UNKNOWN_ACCOUNT_LOGGER.warn(accountErrorMessage(exception.getMessage(), httpRequest), 100);
         } else {
             metrics.updateAccountRequestRejectedByFailedFetch(accountId);
-            logger.warn("Error occurred while fetching account: {0}", exception.getMessage());
+            logger.warn("Error occurred while fetching account: {}", exception.getMessage());
             logger.debug("Error occurred while fetching account", exception);
         }
 

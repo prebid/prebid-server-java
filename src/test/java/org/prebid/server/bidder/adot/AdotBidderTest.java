@@ -37,7 +37,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class AdotBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.endpoint{PUBLISHER_PATH}.com";
+    private static final String ENDPOINT_URL = "https://test.endpoint{{PUBLISHER_PATH}}.com";
 
     private final AdotBidder target = new AdotBidder(ENDPOINT_URL, jacksonMapper);
 

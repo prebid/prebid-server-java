@@ -34,7 +34,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.SecBrowsingTopic;
 import org.prebid.server.auction.model.debug.DebugContext;
-import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.BlocklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.identity.IdGenerator;
@@ -2469,14 +2469,14 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnFailedFutureWhenAppIdIsBlacklisted() {
+    public void shouldReturnFailedFutureWhenAppIdIsBlocklisted() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .app(App.builder().id("bad_app").build())
                 .build();
 
         // when and then
-        assertThatExceptionOfType(BlacklistedAppException.class)
+        assertThatExceptionOfType(BlocklistedAppException.class)
                 .isThrownBy(() -> target.resolve(bidRequest, auctionContext, ENDPOINT, false))
                 .withMessage("Prebid-server does not process requests from App ID: bad_app");
     }

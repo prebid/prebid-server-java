@@ -420,14 +420,14 @@ public class ApplicationTest extends IntegrationTest {
     public void optionsRequestShouldRespondWithOriginalPolicyHeaders() {
         // when
         final Response response = given(SPEC)
-                .header("Origin", "origin.com")
+                .header("Origin", "http://origin.com")
                 .header("Access-Control-Request-Method", "GET")
                 .when()
                 .options("/");
 
         // then
         assertThat(response.header("Access-Control-Allow-Credentials")).isEqualTo("true");
-        assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("origin.com");
+        assertThat(response.header("Access-Control-Allow-Origin")).isEqualTo("http://origin.com");
         assertThat(response.header("Access-Control-Allow-Methods")).contains(asList("HEAD", "OPTIONS", "GET", "POST"));
         assertThat(response.header("Access-Control-Allow-Headers"))
                 .isEqualTo("Origin,Accept,X-Requested-With,Content-Type");

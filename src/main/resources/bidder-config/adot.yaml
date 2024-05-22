@@ -1,6 +1,6 @@
 adapters:
   adot:
-    endpoint: https://dsp.adotmob.com/headerbidding{PUBLISHER_PATH}/bidrequest
+    endpoint: https://dsp.adotmob.com/headerbidding{{PUBLISHER_PATH}}/bidrequest
     meta-info:
       maintainer-email: admin@we-are-adot.com
       app-media-types:

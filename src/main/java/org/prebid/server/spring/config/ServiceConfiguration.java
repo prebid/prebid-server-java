@@ -5,8 +5,6 @@ import de.malkusch.whoisServerList.publicSuffixList.PublicSuffixListFactory;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClientOptions;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.core.net.JksOptions;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -95,7 +93,9 @@ import org.prebid.server.json.JsonMerger;
 import org.prebid.server.log.CriteriaLogManager;
 import org.prebid.server.log.CriteriaManager;
 import org.prebid.server.log.HttpInteractionLogger;
+import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerControlKnob;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.optout.GoogleRecaptchaVerifier;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
@@ -114,9 +114,9 @@ import org.prebid.server.validation.ResponseBidValidator;
 import org.prebid.server.validation.VideoRequestValidator;
 import org.prebid.server.vast.VastModifier;
 import org.prebid.server.version.PrebidVersionProvider;
-import org.prebid.server.vertx.http.BasicHttpClient;
-import org.prebid.server.vertx.http.CircuitBreakerSecuredHttpClient;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.BasicHttpClient;
+import org.prebid.server.vertx.httpclient.CircuitBreakerSecuredHttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -127,7 +127,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 import org.springframework.context.annotation.ScopedProxyMode;
 
-import javax.validation.constraints.Min;
+import jakarta.validation.constraints.Min;
 import java.io.IOException;
 import java.time.Clock;
 import java.util.ArrayList;
@@ -239,24 +239,10 @@ public class ServiceConfiguration {
     @Bean
     TimeoutResolver auctionTimeoutResolver(
             @Value("${auction.biddertmax.min}") long minTimeout,
-            @Value("${auction.max-timeout-ms:#{0}}") long maxTimeoutDeprecated,
             @Value("${auction.biddertmax.max:#{0}}") long maxTimeout,
             @Value("${auction.tmax-upstream-response-time}") long upstreamResponseTime) {
 
-        return new TimeoutResolver(
-                minTimeout,
-                resolveMaxTimeout(maxTimeoutDeprecated, maxTimeout),
-                upstreamResponseTime);
-    }
-
-    // TODO: Remove after transition period
-    private static long resolveMaxTimeout(long maxTimeoutDeprecated, long maxTimeout) {
-        if (maxTimeout != 0) {
-            return maxTimeout;
-        }
-
-        logger.warn("Usage of deprecated property: auction.max-timeout-ms. Use auction.biddertmax.max instead.");
-        return maxTimeoutDeprecated;
+        return new TimeoutResolver(minTimeout, maxTimeout, upstreamResponseTime);
     }
 
     @Bean
@@ -277,7 +263,7 @@ public class ServiceConfiguration {
             @Value("${auction.cache.only-winning-bids}") boolean cacheOnlyWinningBids,
             @Value("${settings.generate-storedrequest-bidrequest-id}") boolean generateBidRequestId,
             @Value("${auction.ad-server-currency}") String adServerCurrency,
-            @Value("${auction.blacklisted-apps}") String blacklistedAppsString,
+            @Value("${auction.blocklisted-apps}") String blocklistedAppsString,
             @Value("${external-url}") String externalUrl,
             @Value("${gdpr.host-vendor-id:#{null}}") Integer hostVendorId,
             @Value("${datacenter-region}") String datacenterRegion,
@@ -293,7 +279,7 @@ public class ServiceConfiguration {
                 cacheOnlyWinningBids,
                 generateBidRequestId,
                 adServerCurrency,
-                splitToList(blacklistedAppsString),
+                splitToList(blocklistedAppsString),
                 externalUrl,
                 hostVendorId,
                 datacenterRegion,
@@ -356,7 +342,7 @@ public class ServiceConfiguration {
     @Bean
     Ortb2RequestFactory openRtb2RequestFactory(
             @Value("${auction.biddertmax.percent}") int timeoutAdjustmentFactor,
-            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            @Value("${auction.blocklisted-accounts}") String blocklistedAccountsString,
             UidsCookieService uidsCookieService,
             ActivityInfrastructureCreator activityInfrastructureCreator,
             RequestValidator requestValidator,
@@ -370,12 +356,12 @@ public class ServiceConfiguration {
             PriceFloorProcessor priceFloorProcessor,
             Metrics metrics) {
 
-        final List<String> blacklistedAccounts = splitToList(blacklistedAccountsString);
+        final List<String> blocklistedAccounts = splitToList(blocklistedAccountsString);
 
         return new Ortb2RequestFactory(
                 timeoutAdjustmentFactor,
                 logSamplingRate,
-                blacklistedAccounts,
+                blocklistedAccounts,
                 uidsCookieService,
                 activityInfrastructureCreator,
                 requestValidator,
@@ -505,7 +491,7 @@ public class ServiceConfiguration {
     @Bean
     VideoStoredRequestProcessor videoStoredRequestProcessor(
             @Value("${video.stored-request-required}") boolean enforceStoredRequest,
-            @Value("${auction.blacklisted-accounts}") String blacklistedAccountsString,
+            @Value("${auction.blocklisted-accounts}") String blocklistedAccountsString,
             @Value("${video.stored-requests-timeout-ms}") long defaultTimeoutMs,
             @Value("${auction.ad-server-currency:#{null}}") String adServerCurrency,
             @Value("${default-request.file.path:#{null}}") String defaultBidRequestPath,
@@ -519,7 +505,7 @@ public class ServiceConfiguration {
 
         return new VideoStoredRequestProcessor(
                 enforceStoredRequest,
-                splitToList(blacklistedAccountsString),
+                splitToList(blocklistedAccountsString),
                 defaultTimeoutMs,
                 adServerCurrency,
                 defaultBidRequestPath,

@@ -3,12 +3,10 @@ package org.prebid.server.handler;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import lombok.Value;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -21,6 +19,8 @@ import org.prebid.server.events.EventRequest;
 import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.TimeoutFactory;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.Endpoint;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.settings.ApplicationSettings;
@@ -29,15 +29,19 @@ import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.util.ResourceUtil;
+import org.prebid.server.vertx.verticles.server.HttpEndpoint;
+import org.prebid.server.vertx.verticles.server.application.ApplicationResource;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 /**
  * Accepts notifications from browsers and mobile application for further processing by {@link AnalyticsReporter}
  * and responding with tracking pixel when requested.
  */
-public class NotificationEventHandler implements Handler<RoutingContext> {
+public class NotificationEventHandler implements ApplicationResource {
 
     private static final Logger logger = LoggerFactory.getLogger(NotificationEventHandler.class);
 
@@ -75,6 +79,11 @@ public class NotificationEventHandler implements Handler<RoutingContext> {
                     "Failed to load pixel image at " + TRACKING_PIXEL_PNG, e);
         }
         return TrackingPixel.of(PNG_CONTENT_TYPE, bytes);
+    }
+
+    @Override
+    public List<HttpEndpoint> endpoints() {
+        return Collections.singletonList(HttpEndpoint.of(HttpMethod.GET, Endpoint.event.value()));
     }
 
     @Override
