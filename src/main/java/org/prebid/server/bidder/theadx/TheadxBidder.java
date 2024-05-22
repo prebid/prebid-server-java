@@ -10,7 +10,6 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -103,15 +102,11 @@ public class TheadxBidder implements Bidder<BidRequest> {
 
         final Optional<Device> optionalDevice = Optional.ofNullable(device);
 
-        optionalDevice.map(Device::getUa)
-                .filter(StringUtils::isNotBlank)
-                .ifPresent(ua -> headers.set(X_DEVICE_USER_AGENT_HEADER, ua));
-        optionalDevice.map(Device::getIpv6)
-                .filter(StringUtils::isNotBlank)
-                .ifPresent(ipv6 -> headers.add(X_REAL_IP_HEADER, ipv6));
-        optionalDevice.map(Device::getIp)
-                .filter(StringUtils::isNotBlank)
-                .ifPresent(ip -> headers.add(X_REAL_IP_HEADER, ip));
+        if (device != null) {
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, X_DEVICE_USER_AGENT_HEADER, device.getUa());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, X_REAL_IP_HEADER, device.getIpv6());
+            HttpUtil.addHeaderIfValueIsNotEmpty(headers, X_REAL_IP_HEADER, device.getIp());
+        }
 
         return headers;
     }
