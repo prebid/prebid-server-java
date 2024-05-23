@@ -7,23 +7,26 @@
         "w": 300,
         "h": 250
       },
+      "tagid" : "tag-id-b",
+      "bidfloor" : 5,
       "secure": 1,
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "publisherId": "testPublisherId"
+          "siteId": "site-id-b",
+          "publisherId": "publisher-id-b",
+          "tagId": "tag-id-b",
+          "bidfloor": 5.0
         }
       }
     }
   ],
-  "source": {
-    "tid": "${json-unit.any-string}"
-  },
   "site": {
+    "id" : "site-id-b",
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "domain": "example.com"
+      "id": "publisher-id-b"
     },
     "ext": {
       "amp": 0
@@ -38,6 +41,9 @@
   "cur": [
     "USD"
   ],
+  "source": {
+    "tid": "${json-unit.any-string}"
+  },
   "regs": {
     "ext": {
       "gdpr": 0

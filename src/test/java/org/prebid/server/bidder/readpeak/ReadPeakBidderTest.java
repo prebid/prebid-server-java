@@ -35,7 +35,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class ReadPeakBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://test.com/test?param={{PublisherId}}";
+    private static final String ENDPOINT_URL = "https://test.com/test";
 
     private final ReadPeakBidder target = new ReadPeakBidder(ENDPOINT_URL, jacksonMapper);
 

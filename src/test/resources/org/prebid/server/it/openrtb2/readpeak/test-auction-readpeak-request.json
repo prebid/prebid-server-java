@@ -9,7 +9,10 @@
       },
       "ext": {
         "readpeak": {
-          "publisherId": "testPublisherId"
+          "siteId": "site-id-b",
+          "publisherId": "publisher-id-b",
+          "tagId": "tag-id-b",
+          "bidfloor": 5.0
         }
       }
     }
