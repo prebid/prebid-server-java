@@ -156,55 +156,6 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private BidderBid makeBid2(Bid bid, BidResponse bidResponse) {
-        if (bid.getExt() == null) { // only to test where is null
-            throw new PreBidException("Bid ext is null"); // only to test where is null
-        }
-        final Bid resolvedBid = resolveMacros(bid);
-        if (resolvedBid.getExt() == null) { // only to test where is null
-            throw new PreBidException("Bid ext is null"); // only to test where is null
-        }
-        final BidType bidType = getBidType(resolvedBid);
-
-        // Parse existing ExtBidPrebidMeta
-        final ExtBidPrebid extBidPrebid = parseExtBidPrebidMeta(resolvedBid);
-        final ExtBidPrebidMeta meta = extBidPrebid.getMeta();
-
-        // Build modified ExtBidPrebidMeta
-        final ExtBidPrebidMeta modifiedMeta = ExtBidPrebidMeta.builder()
-                .rendererName(meta.getRendererName())
-                .rendererVersion(meta.getRendererVersion())
-                .advertiserDomains(meta.getAdvertiserDomains()) // add other required fields here
-                .build();
-
-        // Build modified ExtBidPrebid
-        final ExtBidPrebid modifiedPrebid = extBidPrebid.toBuilder()
-                .meta(modifiedMeta)
-                .build();
-
-        // Convert to ObjectNode
-        final ObjectNode modifiedBidExt = mapper.mapper().valueToTree(ExtPrebid.of(modifiedPrebid, null));
-
-        // Return BidderBid
-        return BidderBid.of(resolvedBid.toBuilder().ext(modifiedBidExt).build(), bidType, bidResponse.getCur());
-    }
-
-    private ExtBidPrebid parseExtBidPrebidMeta(Bid bid) {
-        try {
-            if (bid.getExt() == null) {
-                throw new PreBidException("Bid ext is null");
-            }
-            final ExtBidPrebid extPrebid = mapper.mapper()
-                    .convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE).getPrebid();
-            if (extPrebid == null) {
-                throw new PreBidException("Failed to parse extPrebid from bid ext");
-            }
-            return extPrebid;
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
-    }
-
     private BidderBid makeBid(Bid bid, BidResponse bidResponse) {
         final Bid resolvedBid = resolveMacros(bid);
         final BidType bidType = getBidType(bid);
@@ -235,15 +186,16 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
     }
 
     private Bid addBidMeta(Bid bid) {
-        // Build the ExtBidPrebidMeta object
         final ExtBidPrebidMeta extBidPrebidMeta = ExtBidPrebidMeta.builder()
                 .advertiserDomains(bid.getAdomain())
                 .build();
 
-        // Convert ExtBidPrebidMeta to ObjectNode
         final ObjectNode bidExt = bid.getExt() != null ? bid.getExt().deepCopy()
                 : JsonNodeFactory.instance.objectNode();
-        bidExt.set("prebid", mapper.mapper().valueToTree(extBidPrebidMeta));
+        final ObjectNode prebidNode = bidExt
+                .has("prebid") ? (ObjectNode) bidExt.get("prebid") : JsonNodeFactory.instance.objectNode();
+        prebidNode.set("meta", mapper.mapper().valueToTree(extBidPrebidMeta));
+        bidExt.set("prebid", prebidNode);
 
         return bid.toBuilder()
                 .ext(bidExt)
