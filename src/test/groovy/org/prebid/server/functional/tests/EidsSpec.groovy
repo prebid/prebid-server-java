@@ -21,7 +21,7 @@ import static org.prebid.server.functional.testcontainers.Dependencies.getNetwor
 
 class EidsSpec extends BaseSpec {
 
-    def "PBS shouldn't populate user.id"() {
+    def "PBS shouldn't populate user.id from user.ext data"() {
         given: "Default basic BidRequest with generic bidder"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             user = new User(ext: new UserExt(eids: [new Eid(source: PBSUtils.randomString,
@@ -36,7 +36,7 @@ class EidsSpec extends BaseSpec {
         assert !bidderRequest.user.id
     }
 
-    def "PBS should sent eids to the bidder"() {
+    def "PBS should send same eids as in original request"() {
         given: "Default basic BidRequest with generic bidder"
         def eids = [new Eid(source: PBSUtils.randomString, uids: [new Uid(id: PBSUtils.randomString)])]
         def bidRequest = BidRequest.defaultBidRequest.tap {
@@ -71,7 +71,7 @@ class EidsSpec extends BaseSpec {
         eidsBidder << [WILDCARD, GENERIC]
     }
 
-    def "PBS eids shouldn't be passed only to permitted bidders"() {
+    def "PBS eids shouldn't be passed to restricted bidders"() {
         given: "Default bid request with generic bidder"
         def sourceId = PBSUtils.randomString
         def eids = [new Eid(source: sourceId, uids: [new Uid(id: sourceId)])]
@@ -113,10 +113,10 @@ class EidsSpec extends BaseSpec {
         assert bidderRequests.size() == 2
 
         and: "Generic bidder should contain one eid"
-        assert bidderRequests.user.eids.sort { it.size() }[0].sort().containsAll([genericEid].sort())
+        assert bidderRequests.user.eids.sort().first == [genericEid]
 
         and: "Openx bidder should contain two eids"
-        assert bidderRequests.user.eids.sort { it.size() }[1].sort().containsAll([genericEid, openxEid].sort())
+        assert bidderRequests.user.eids.sort().last.sort() == eids.sort()
     }
 
     def "PBs eid permissions for non existing source should not stop auction"() {
@@ -144,7 +144,7 @@ class EidsSpec extends BaseSpec {
 
         and: "Openx and Generic bidder should contain two eid"
         bidderRequests.user.eids.each {
-            assert it.containsAll([secondEid, firstEid])
+            assert it.sort() == [secondEid, firstEid].sort()
         }
     }
 
@@ -195,6 +195,6 @@ class EidsSpec extends BaseSpec {
         assert !sortedEids[0].eids
 
         and: "Alias bidder should contain one eids"
-        assert sortedEids[1].eids.contains(eid)
+        assert sortedEids[1].eids == [eid]
     }
 }
