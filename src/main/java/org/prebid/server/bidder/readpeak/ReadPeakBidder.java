@@ -27,6 +27,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -107,7 +108,7 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
 
     private List<BidderBid> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            throw new PreBidException("Empty SeatBid array");
+            return Collections.emptyList();
         }
         return bidsFromResponse(bidResponse);
     }
