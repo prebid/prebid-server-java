@@ -58,27 +58,30 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final List<HttpRequest<BidRequest>> httpRequests = new ArrayList<>();
+        final List<Imp> modifiedImps = new ArrayList<>();
+        final List<ExtImpReadPeak> extImpReadPeaks = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
         for (Imp imp : request.getImp()) {
-            final ExtImpReadPeak extImpReadPeak;
             try {
-                extImpReadPeak = parseImpExt(imp);
+                final ExtImpReadPeak extImpReadPeak = parseImpExt(imp);
                 final Imp modifiedImp = modifyImp(imp, extImpReadPeak);
-                httpRequests.add(makeHttpRequest(request, modifiedImp));
+                modifiedImps.add(modifiedImp);
+                extImpReadPeaks.add(extImpReadPeak);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
-        if (httpRequests.isEmpty()) {
+        if (modifiedImps.isEmpty()) {
             return Result.withError(BidderError
                     .badInput(String.format("Failed to find compatible impressions for request %s", request.getId())));
-
         }
 
-        return Result.of(httpRequests, errors);
+        final BidRequest modifiedRequest = request.toBuilder().imp(modifiedImps).build();
+        final HttpRequest<BidRequest> httpRequest = makeHttpRequest(modifiedRequest, extImpReadPeaks.get(0));
+
+        return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
     private ExtImpReadPeak parseImpExt(Imp imp) {
@@ -96,15 +99,12 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, Imp imp) {
-        final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder()
-                .imp(List.of(imp));
-
-        final ExtImpReadPeak extImpReadPeak = parseImpExt(imp);
-
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, ExtImpReadPeak extImpReadPeak) {
         final Publisher publisher = Publisher.builder()
                 .id(extImpReadPeak.getPublisherId())
                 .build();
+
+        final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
 
         if (request.getSite() != null) {
             final Site site = request.getSite().toBuilder()
@@ -156,27 +156,19 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private BidderBid makeBid(Bid bid, BidResponse bidResponse) {
-        if (bid.getExt() == null) {
-            throw new PreBidException("Bid ext is null");
+    private BidderBid makeBid2(Bid bid, BidResponse bidResponse) {
+        if (bid.getExt() == null) { // only to test where is null
+            throw new PreBidException("Bid ext is null"); // only to test where is null
         }
         final Bid resolvedBid = resolveMacros(bid);
-        if (resolvedBid.getExt() == null) {
-            throw new PreBidException("Bid ext is null");
+        if (resolvedBid.getExt() == null) { // only to test where is null
+            throw new PreBidException("Bid ext is null"); // only to test where is null
         }
         final BidType bidType = getBidType(resolvedBid);
 
         // Parse existing ExtBidPrebidMeta
         final ExtBidPrebid extBidPrebid = parseExtBidPrebidMeta(resolvedBid);
         final ExtBidPrebidMeta meta = extBidPrebid.getMeta();
-
-        // Validate rendererName and rendererVersion
-        if (StringUtils.isBlank(meta.getRendererName())) {
-            throw new PreBidException("RendererName should not be empty");
-        }
-        if (StringUtils.isBlank(meta.getRendererVersion())) {
-            throw new PreBidException("RendererVersion should not be empty");
-        }
 
         // Build modified ExtBidPrebidMeta
         final ExtBidPrebidMeta modifiedMeta = ExtBidPrebidMeta.builder()
@@ -213,6 +205,13 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
         }
     }
 
+    private BidderBid makeBid(Bid bid, BidResponse bidResponse) {
+        final Bid resolvedBid = resolveMacros(bid);
+        final BidType bidType = getBidType(bid);
+        final Bid updatedBid = addBidMeta(resolvedBid);
+        return BidderBid.of(updatedBid, bidType, bidResponse.getCur());
+    }
+
     private Bid resolveMacros(Bid bid) {
         final BigDecimal price = bid.getPrice();
         final String priceAsString = price != null ? price.toPlainString() : "0";
@@ -220,7 +219,7 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
         return bid.toBuilder()
                 .nurl(StringUtils.replace(bid.getNurl(), PRICE_MACRO, priceAsString))
                 .adm(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
-                .burl(StringUtils.replace(bid.getAdm(), PRICE_MACRO, priceAsString))
+                .burl(StringUtils.replace(bid.getBurl(), PRICE_MACRO, priceAsString))
                 .build();
     }
 
