@@ -1,4 +1,4 @@
-package org.prebid.server.hooks.modules.fiftyone.devicedetection.core.pipeline;
+package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcutionRequest.pipeline;
 
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFile;
 

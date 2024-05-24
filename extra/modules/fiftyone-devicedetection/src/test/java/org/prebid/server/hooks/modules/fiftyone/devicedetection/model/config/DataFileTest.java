@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class DataFileTest {
     @Test
     public void shouldReturnPath() {
+
         // given
         final String path = "/path/to/file.txt";
 
@@ -20,6 +21,7 @@ public class DataFileTest {
 
     @Test
     public void shouldReturnMakeTempCopy() {
+
         // given
         final boolean makeCopy = true;
 
@@ -33,6 +35,7 @@ public class DataFileTest {
 
     @Test
     public void shouldReturnUpdate() {
+
         // given
         final DataFileUpdate dataFileUpdate = new DataFileUpdate();
         dataFileUpdate.setUrl("www.void");
@@ -47,6 +50,7 @@ public class DataFileTest {
 
     @Test
     public void shouldHaveDescription() {
+
         // given
         final DataFile dataFile = new DataFile();
         dataFile.setPath("/etc/null");

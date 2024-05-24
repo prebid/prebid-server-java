@@ -13,11 +13,13 @@ public record FiftyOneDeviceDetectionModule(
 
     @Override
     public String code() {
+
         return CODE;
     }
 
     @Override
     public Collection<? extends Hook<?, ? extends InvocationContext>> hooks() {
+
         return hooks;
     }
 }

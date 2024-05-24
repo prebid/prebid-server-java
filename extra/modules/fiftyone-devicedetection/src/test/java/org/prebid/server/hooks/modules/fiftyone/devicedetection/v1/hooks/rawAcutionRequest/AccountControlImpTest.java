@@ -1,7 +1,9 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcutionRequest;
 
+import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import org.junit.Test;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.AccountFilter;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
@@ -28,20 +30,33 @@ public class AccountControlImpTest {
         FILLED_WHITELIST_FILTER.setAllowList(List.of(ALLOWED_PUBLISHER_ID));
     }
 
-    private static Predicate<AuctionInvocationContext> buildHook(AccountFilter accountFilter) {
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(
-                accountFilter,
-                null)
-        {
+    private static Predicate<AuctionInvocationContext> buildHook(AccountFilter accountFilter) throws Exception {
+
+        final ModuleConfig moduleConfig = new ModuleConfig();
+        moduleConfig.setAccountFilter(accountFilter);
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(moduleConfig) {
+            @Override
+            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
+
+                final DeviceDetectionOnPremisePipelineBuilder builder
+                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
+                when(builder.build()).thenReturn(null);
+                return builder;
+            }
+
             @Override
             public boolean isAccountAllowed(AuctionInvocationContext invocationContext) {
+
                 return super.isAccountAllowed(invocationContext);
             }
-        }::isAccountAllowed;
+
+        }
+            ::isAccountAllowed;
     }
 
     @Test
-    public void shouldReturnTrueWhenFilterIsNull() {
+    public void shouldReturnTrueWhenFilterIsNull() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(null);
 
@@ -50,7 +65,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithoutWhitelistAndNoAuctionInvocationContext() {
+    public void shouldReturnTrueWithoutWhitelistAndNoAuctionInvocationContext() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(NO_WHITELIST_FILTER);
 
@@ -59,7 +75,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithEmptyWhitelistAndNoAuctionInvocationContext() {
+    public void shouldReturnTrueWithEmptyWhitelistAndNoAuctionInvocationContext() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(EMPTY_WHITELIST_FILTER);
 
@@ -68,7 +85,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnFalseWithFilledWhitelistAndNoAuctionInvocationContext() {
+    public void shouldReturnFalseWithFilledWhitelistAndNoAuctionInvocationContext() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(FILLED_WHITELIST_FILTER);
 
@@ -77,7 +95,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithoutWhitelistAndNoAuctionContext() {
+    public void shouldReturnTrueWithoutWhitelistAndNoAuctionContext() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(NO_WHITELIST_FILTER);
 
@@ -89,7 +108,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithEmptyWhitelistAndNoAuctionContext() {
+    public void shouldReturnTrueWithEmptyWhitelistAndNoAuctionContext() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(EMPTY_WHITELIST_FILTER);
 
@@ -101,7 +121,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnFalseWithFilledWhitelistAndNoAuctionContext() {
+    public void shouldReturnFalseWithFilledWhitelistAndNoAuctionContext() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(FILLED_WHITELIST_FILTER);
 
@@ -113,7 +134,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithoutWhitelistAndNoAccount() {
+    public void shouldReturnTrueWithoutWhitelistAndNoAccount() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(NO_WHITELIST_FILTER);
 
@@ -126,7 +148,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithEmptyWhitelistAndNoAccount() {
+    public void shouldReturnTrueWithEmptyWhitelistAndNoAccount() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(EMPTY_WHITELIST_FILTER);
 
@@ -139,7 +162,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnFalseWithFilledWhitelistAndNoAccount() {
+    public void shouldReturnFalseWithFilledWhitelistAndNoAccount() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(FILLED_WHITELIST_FILTER);
 
@@ -152,7 +176,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithoutWhitelistAndNoAccountID() {
+    public void shouldReturnTrueWithoutWhitelistAndNoAccountID() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(NO_WHITELIST_FILTER);
 
@@ -168,7 +193,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithEmptyWhitelistAndNoAccountID() {
+    public void shouldReturnTrueWithEmptyWhitelistAndNoAccountID() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(EMPTY_WHITELIST_FILTER);
 
@@ -184,7 +210,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnFalseWithFilledWhitelistAndNoAccountID() {
+    public void shouldReturnFalseWithFilledWhitelistAndNoAccountID() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(FILLED_WHITELIST_FILTER);
 
@@ -200,7 +227,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithoutWhitelistAndEmptyAccountID() {
+    public void shouldReturnTrueWithoutWhitelistAndEmptyAccountID() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(NO_WHITELIST_FILTER);
 
@@ -217,7 +245,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithEmptyWhitelistAndEmptyAccountID() {
+    public void shouldReturnTrueWithEmptyWhitelistAndEmptyAccountID() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(EMPTY_WHITELIST_FILTER);
 
@@ -234,7 +263,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnFalseWithFilledWhitelistAndEmptyAccountID() {
+    public void shouldReturnFalseWithFilledWhitelistAndEmptyAccountID() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(FILLED_WHITELIST_FILTER);
 
@@ -251,7 +281,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithoutWhitelistAndAllowedAccountID() {
+    public void shouldReturnTrueWithoutWhitelistAndAllowedAccountID() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(NO_WHITELIST_FILTER);
 
@@ -268,7 +299,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithEmptyWhitelistAndAllowedAccountID() {
+    public void shouldReturnTrueWithEmptyWhitelistAndAllowedAccountID() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(EMPTY_WHITELIST_FILTER);
 
@@ -285,7 +317,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithFilledWhitelistAndAllowedAccountID() {
+    public void shouldReturnTrueWithFilledWhitelistAndAllowedAccountID() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(FILLED_WHITELIST_FILTER);
 
@@ -302,7 +335,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithoutWhitelistAndNotAllowedAccountID() {
+    public void shouldReturnTrueWithoutWhitelistAndNotAllowedAccountID() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(NO_WHITELIST_FILTER);
 
@@ -319,7 +353,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnTrueWithEmptyWhitelistAndNotAllowedAccountID() {
+    public void shouldReturnTrueWithEmptyWhitelistAndNotAllowedAccountID() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(EMPTY_WHITELIST_FILTER);
 
@@ -336,7 +371,8 @@ public class AccountControlImpTest {
     }
 
     @Test
-    public void shouldReturnFalseWithFilledWhitelistAndNotAllowedAccountID() {
+    public void shouldReturnFalseWithFilledWhitelistAndNotAllowedAccountID() throws Exception {
+
         // given
         final Predicate<AuctionInvocationContext> accountControl = buildHook(FILLED_WHITELIST_FILTER);
 

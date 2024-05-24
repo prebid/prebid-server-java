@@ -1,7 +1,9 @@
-package org.prebid.server.hooks.modules.fiftyone.devicedetection.core.detection;
+package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcutionRequest.detection;
 
+import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import org.junit.Test;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
 
 import java.util.AbstractMap;
 import java.util.Collections;
@@ -9,19 +11,33 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class PriorityEvidenceSelectorImpTest {
-    private static Map<String, String> pickRelevantFrom(CollectedEvidence collectedEvidence) {
-        return new DeviceRefinerImp(null) {
+    private static Map<String, String> pickRelevantFrom(CollectedEvidence collectedEvidence) throws Exception {
+
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
+            @Override
+            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
+
+                final DeviceDetectionOnPremisePipelineBuilder builder
+                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
+                when(builder.build()).thenReturn(null);
+                return builder;
+            }
+
             @Override
             public Map<String, String> pickRelevantFrom(CollectedEvidence collectedEvidence) {
+
                 return super.pickRelevantFrom(collectedEvidence);
             }
         }.pickRelevantFrom(collectedEvidence);
     }
-    
+
     @Test
-    public void shouldSelectSuaIfPresent() {
+    public void shouldSelectSuaIfPresent() throws Exception {
+
         // given
         final Map<String, String> secureHeaders = Collections.singletonMap("ua", "fake-ua");
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
@@ -38,7 +54,8 @@ public class PriorityEvidenceSelectorImpTest {
     }
 
     @Test
-    public void shouldSelectUaIfNoSuaPresent() {
+    public void shouldSelectUaIfNoSuaPresent() throws Exception {
+
         // given
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
                 .deviceUA("dummy-ua")
@@ -54,8 +71,10 @@ public class PriorityEvidenceSelectorImpTest {
         assertThat(evidenceFragment.getKey()).isEqualTo("header.user-agent");
         assertThat(evidenceFragment.getValue()).isEqualTo(collectedEvidence.deviceUA());
     }
+
     @Test
-    public void shouldMergeUaWithSuaIfBothPresent() {
+    public void shouldMergeUaWithSuaIfBothPresent() throws Exception {
+
         // given
         final Map<String, String> suaHeaders = Collections.singletonMap("ua", "fake-ua");
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
@@ -75,7 +94,8 @@ public class PriorityEvidenceSelectorImpTest {
     }
 
     @Test
-    public void shouldSelectRawHeaderIfNoDeviceInfoPresent() {
+    public void shouldSelectRawHeaderIfNoDeviceInfoPresent() throws Exception {
+
         // given
         final List<Map.Entry<String, String>> rawHeaders = List.of(
                 new AbstractMap.SimpleEntry<>("ua", "zumba"),
@@ -100,7 +120,8 @@ public class PriorityEvidenceSelectorImpTest {
     }
 
     @Test
-    public void shouldPickLastHeaderWithSameKey() {
+    public void shouldPickLastHeaderWithSameKey() throws Exception {
+
         // given
         final String theKey = "ua";
         final List<Map.Entry<String, String>> rawHeaders = List.of(
@@ -121,7 +142,8 @@ public class PriorityEvidenceSelectorImpTest {
     }
 
     @Test
-    public void shouldReturnEmptyMapOnNoEvidenceToPick() {
+    public void shouldReturnEmptyMapOnNoEvidenceToPick() throws Exception {
+
         // given
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder().build();
 

@@ -7,7 +7,7 @@ import lombok.Data;
  */
 @Data
 public final class DataFile {
-    /** 
+    /**
      * The full path to the device detection data file.
      * @see fiftyone.devicedetection.DeviceDetectionPipelineBuilder#useOnPremise(String, boolean)
      */

@@ -11,14 +11,14 @@ import java.util.List;
 
 @Builder
 public record InvocationResultImpl<PAYLOAD>(
-    InvocationStatus status,
-    String message,
-    InvocationAction action,
-    PayloadUpdate<PAYLOAD> payloadUpdate,
-    List<String> errors,
-    List<String> warnings,
-    List<String> debugMessages,
-    Object moduleContext,
-    Tags analyticsTags
+        InvocationStatus status,
+        String message,
+        InvocationAction action,
+        PayloadUpdate<PAYLOAD> payloadUpdate,
+        List<String> errors,
+        List<String> warnings,
+        List<String> debugMessages,
+        Object moduleContext,
+        Tags analyticsTags
 ) implements InvocationResult<PAYLOAD> {
 }

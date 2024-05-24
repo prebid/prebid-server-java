@@ -1,5 +1,6 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcutionRequest;
 
+import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import org.junit.Test;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
@@ -10,25 +11,41 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ModuleContextPatcherImpTest {
-    private static BiFunction<ModuleContext, Consumer<CollectedEvidence.CollectedEvidenceBuilder>, ModuleContext> buildPatcher()
-    {
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(
-                null,
-                null
-        ) {
+    private static BiFunction<
+            ModuleContext,
+            Consumer<CollectedEvidence.CollectedEvidenceBuilder>,
+            ModuleContext> buildPatcher() throws Exception {
+
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
             @Override
-            public ModuleContext addEvidenceToContext(ModuleContext moduleContext, Consumer<CollectedEvidence.CollectedEvidenceBuilder> evidenceInjector) {
+            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
+
+                final DeviceDetectionOnPremisePipelineBuilder builder
+                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
+                when(builder.build()).thenReturn(null);
+                return builder;
+            }
+
+            @Override
+            public ModuleContext addEvidenceToContext(
+                    ModuleContext moduleContext,
+                    Consumer<CollectedEvidence.CollectedEvidenceBuilder> evidenceInjector) {
+
                 return super.addEvidenceToContext(moduleContext, evidenceInjector);
             }
-        }::addEvidenceToContext;
+        }
+            ::addEvidenceToContext;
     }
 
     @Test
-    public void shouldMakeNewContextIfNullIsPassedIn() {
+    public void shouldMakeNewContextIfNullIsPassedIn() throws Exception {
+
         // given and when
-        final ModuleContext newContext = buildPatcher().apply(null, b -> {});
+        final ModuleContext newContext = buildPatcher().apply(null, b -> { });
 
         // then
         assertThat(newContext).isNotNull();
@@ -36,11 +53,12 @@ public class ModuleContextPatcherImpTest {
     }
 
     @Test
-    public void shouldMakeNewEvidenceIfNoneWasPresent() {
+    public void shouldMakeNewEvidenceIfNoneWasPresent() throws Exception {
+
         // given and when
         final ModuleContext newContext = buildPatcher().apply(
                 ModuleContext.builder().build(),
-                b -> {});
+                b -> { });
 
         // then
         assertThat(newContext).isNotNull();
@@ -48,7 +66,8 @@ public class ModuleContextPatcherImpTest {
     }
 
     @Test
-    public void shouldMergeEvidences() {
+    public void shouldMergeEvidences() throws Exception {
+
         // given and when
         final String ua = "mad-hatter";
         final HashMap<String, String> sua = new HashMap<>();

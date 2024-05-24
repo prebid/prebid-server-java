@@ -13,6 +13,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class FiftyOneDeviceDetectionModuleTest {
     @Test
     public void shouldReturnNonBlankCode() {
+
         // given
         final Module module = new FiftyOneDeviceDetectionModule(null);
 
@@ -22,6 +23,7 @@ public class FiftyOneDeviceDetectionModuleTest {
 
     @Test
     public void shouldReturnSavedHooks() {
+
         // given
         final Collection<Hook<?, ? extends InvocationContext>> hooks = Collections.emptyList();
         final Module module = new FiftyOneDeviceDetectionModule(hooks);

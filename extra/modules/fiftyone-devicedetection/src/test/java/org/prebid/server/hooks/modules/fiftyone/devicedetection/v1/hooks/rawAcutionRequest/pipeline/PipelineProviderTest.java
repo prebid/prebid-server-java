@@ -1,13 +1,13 @@
-package org.prebid.server.hooks.modules.fiftyone.devicedetection.core.pipeline;
+package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcutionRequest.pipeline;
 
 import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
-import fiftyone.devicedetection.DeviceDetectionPipelineBuilder;
 import fiftyone.pipeline.core.flowelements.Pipeline;
-import fiftyone.pipeline.engines.services.DataUpdateServiceDefault;
 import org.junit.Test;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFile;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFileUpdate;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.PerformanceConfig;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
 
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
@@ -23,37 +23,51 @@ public class PipelineProviderTest {
             PipelineBuilderSpawner<DeviceDetectionOnPremisePipelineBuilder> builderSpawner,
             BiConsumer<DeviceDetectionOnPremisePipelineBuilder, DataFileUpdate> updateOptionsMerger,
             BiConsumer<DeviceDetectionOnPremisePipelineBuilder, PerformanceConfig> performanceOptionsMerger
-    )  throws Exception {
-        return new PipelineProvider(dataFile, performanceConfig) {
+    ) throws Exception {
+        final ModuleConfig moduleConfig = new ModuleConfig();
+        moduleConfig.setDataFile(dataFile);
+        moduleConfig.setPerformance(performanceConfig);
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(moduleConfig) {
+            @Override
+            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
+
+                return super.makeBuilder();
+            }
+
             @Override
             protected DeviceDetectionOnPremisePipelineBuilder makeRawBuilder(DataFile dataFile) throws Exception {
+
                 return builderSpawner.makeBuilder(dataFile);
             }
 
             @Override
-            protected void applyUpdateOptions(DeviceDetectionOnPremisePipelineBuilder pipelineBuilder, DataFileUpdate updateConfig) {
+            protected void applyUpdateOptions(
+                    DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
+                    DataFileUpdate updateConfig) {
+
                 updateOptionsMerger.accept(pipelineBuilder, updateConfig);
             }
 
             @Override
             protected void applyPerformanceOptions(
                     DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
-                    PerformanceConfig performanceConfig)
-            {
+                    PerformanceConfig performanceConfig) {
+
                 performanceOptionsMerger.accept(pipelineBuilder, performanceConfig);
             }
 
             @Override
-            public DeviceDetectionOnPremisePipelineBuilder makeBuilder(
-                    DataFile dataFile,
-                    PerformanceConfig performanceConfig
-            ) throws Exception {
-                return super.makeBuilder(dataFile, performanceConfig);
+            public Pipeline getPipeline() {
+
+                return super.getPipeline();
             }
-        };
+        }
+            ::getPipeline;
     }
+
     @Test
     public void shouldUseJoinedBuilder() throws Exception {
+
         // given
         final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
 

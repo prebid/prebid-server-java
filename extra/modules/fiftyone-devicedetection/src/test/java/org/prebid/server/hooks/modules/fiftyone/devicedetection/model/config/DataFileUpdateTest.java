@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class DataFileUpdateTest {
     @Test
     public void shouldReturnAuto() {
+
         // given
         final boolean value = true;
 
@@ -20,6 +21,7 @@ public class DataFileUpdateTest {
 
     @Test
     public void shouldReturnOnStartup() {
+
         // given
         final boolean value = true;
 
@@ -33,6 +35,7 @@ public class DataFileUpdateTest {
 
     @Test
     public void shouldReturnUrl() {
+
         // given
         final String value = "/path/to/file.txt";
 
@@ -46,6 +49,7 @@ public class DataFileUpdateTest {
 
     @Test
     public void shouldReturnLicenseKey() {
+
         // given
         final String value = "/path/to/file.txt";
 
@@ -59,6 +63,7 @@ public class DataFileUpdateTest {
 
     @Test
     public void shouldReturnWatchFileSystem() {
+
         // given
         final boolean value = true;
 
@@ -72,6 +77,7 @@ public class DataFileUpdateTest {
 
     @Test
     public void shouldReturnPollingInterval() {
+
         // given
         final int value = 42;
 
@@ -85,6 +91,7 @@ public class DataFileUpdateTest {
 
     @Test
     public void shouldHaveDescription() {
+
         // given
         final DataFileUpdate dataFileUpdate = new DataFileUpdate();
         dataFileUpdate.setPollingInterval(29);

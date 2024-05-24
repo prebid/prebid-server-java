@@ -1,6 +1,7 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks;
 
 import com.iab.openrtb.request.BidRequest;
+import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import io.vertx.core.Future;
 import org.junit.Test;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.FiftyOneDeviceDetectionModule;
@@ -27,37 +28,54 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     private static FiftyOneDeviceDetectionRawAuctionRequestHook buildHook(
             Predicate<AuctionInvocationContext> accountControl,
             BiConsumer<CollectedEvidence.CollectedEvidenceBuilder, BidRequest> bidRequestEvidenceCollector,
-            BiFunction<ModuleContext, Consumer<CollectedEvidence.CollectedEvidenceBuilder>, ModuleContext> moduleContextPatcher,
+            BiFunction<ModuleContext,
+                    Consumer<CollectedEvidence.CollectedEvidenceBuilder>, ModuleContext> moduleContextPatcher,
             BiFunction<BidRequest, CollectedEvidence, BidRequest> bidRequestPatcher
-    ) {
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(
-                null,
-                null
-        ) {
+    ) throws Exception {
+
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
+            @Override
+            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
+
+                final DeviceDetectionOnPremisePipelineBuilder builder
+                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
+                when(builder.build()).thenReturn(null);
+                return builder;
+            }
+
             @Override
             protected boolean isAccountAllowed(AuctionInvocationContext invocationContext) {
+
                 return accountControl.test(invocationContext);
             }
 
             @Override
             protected BidRequest enrichDevice(BidRequest bidRequest, CollectedEvidence collectedEvidence) {
+
                 return bidRequestPatcher.apply(bidRequest, collectedEvidence);
             }
 
             @Override
-            protected ModuleContext addEvidenceToContext(ModuleContext moduleContext, Consumer<CollectedEvidence.CollectedEvidenceBuilder> evidenceInjector) {
+            protected ModuleContext addEvidenceToContext(
+                    ModuleContext moduleContext,
+                    Consumer<CollectedEvidence.CollectedEvidenceBuilder> evidenceInjector) {
+
                 return moduleContextPatcher.apply(moduleContext, evidenceInjector);
             }
 
             @Override
-            protected void collectEvidence(CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder, BidRequest bidRequest) {
+            protected void collectEvidence(
+                    CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder,
+                    BidRequest bidRequest) {
+
                 bidRequestEvidenceCollector.accept(evidenceBuilder, bidRequest);
             }
         };
     }
 
     @Test
-    public void codeShouldStartWithModuleCode() {
+    public void codeShouldStartWithModuleCode() throws Exception {
+
         // given
         final RawAuctionRequestHook hook = buildHook(
                 null,
@@ -70,7 +88,8 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldPassInvocationContextToAccountControl() {
+    public void shouldPassInvocationContextToAccountControl() throws Exception {
+
         // given
         final AuctionInvocationContext mockedContext = mock(AuctionInvocationContext.class);
 
@@ -98,7 +117,8 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldPassPayloadAndBuilderThroughModulePatcher() {
+    public void shouldPassPayloadAndBuilderThroughModulePatcher() throws Exception {
+
         // given
         final AuctionRequestPayload payload = mock(AuctionRequestPayload.class);
         final BidRequest rawBidRequest = BidRequest.builder().build();
@@ -139,7 +159,8 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldReturnOldPayloadIfPatcherReturnedNull() {
+    public void shouldReturnOldPayloadIfPatcherReturnedNull() throws Exception {
+
         // given
         final AuctionRequestPayload payload = mock(AuctionRequestPayload.class);
         final BidRequest rawBidRequest = BidRequest.builder().build();
@@ -177,7 +198,8 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldReturnOldPayloadIfPatcherReturnedOldRequest() {
+    public void shouldReturnOldPayloadIfPatcherReturnedOldRequest() throws Exception {
+
         // given
         final AuctionRequestPayload payload = mock(AuctionRequestPayload.class);
         when(payload.bidRequest()).thenReturn(BidRequest.builder().build());
@@ -216,7 +238,8 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    public void shouldReturnNewPayloadIfPatcherReturnedNewRequest() {
+    public void shouldReturnNewPayloadIfPatcherReturnedNewRequest() throws Exception {
+
         // given
         final AuctionRequestPayload payload = mock(AuctionRequestPayload.class);
         when(payload.bidRequest()).thenReturn(BidRequest.builder()

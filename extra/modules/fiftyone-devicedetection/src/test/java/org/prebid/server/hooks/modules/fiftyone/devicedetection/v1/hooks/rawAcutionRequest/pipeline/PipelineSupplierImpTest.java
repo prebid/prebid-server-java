@@ -1,10 +1,9 @@
-package org.prebid.server.hooks.modules.fiftyone.devicedetection.core.pipeline;
+package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcutionRequest.pipeline;
 
 import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import fiftyone.pipeline.core.flowelements.Pipeline;
 import org.junit.Test;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFile;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.PerformanceConfig;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
 
 import java.util.function.Supplier;
 
@@ -13,20 +12,26 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class PipelineSupplierImpTest {
-    private static Supplier<Pipeline> makeSupplier(DeviceDetectionOnPremisePipelineBuilder builder)  throws Exception {
-        return new PipelineProvider(null, null) {
+    private static Supplier<Pipeline> makeSupplier(DeviceDetectionOnPremisePipelineBuilder builder) throws Exception {
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
             @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder(
-                    DataFile dataFile,
-                    PerformanceConfig performanceConfig
-            ) {
+            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
+
                 return builder;
             }
-        };
+
+            @Override
+            public Pipeline getPipeline() {
+
+                return super.getPipeline();
+            }
+        }
+            ::getPipeline;
     }
 
     @Test
     public void shouldReturnBuiltPipeline() throws Exception {
+
         // given
         final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
 
