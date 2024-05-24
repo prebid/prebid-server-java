@@ -117,7 +117,7 @@ public class GreenbidsAnalyticsReporterTest {
                 .build();
     }
 
-    public static AuctionContext setUpAuctionContextWithNoAdUnit() {
+    public static AuctionContext setUpAuctionContextWithNoBidResponse() {
         // bid request
         final Site site = Site.builder()
                 .domain("www.leparisien.fr")
@@ -182,20 +182,19 @@ public class GreenbidsAnalyticsReporterTest {
     }
 
     @Test
-    public void shouldThrowExceptionWhenAdUnitsListIsEmpty() {
+    public void shouldThrowExceptionWhenBidResponseIsNull() {
         // given
-        final AuctionContext auctionContext = setUpAuctionContextWithNoAdUnit();
+        final AuctionContext auctionContext = setUpAuctionContextWithNoBidResponse();
         event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
 
         // when
-        try {
-            greenbidsAnalyticsReporter.processEvent(event);
-        } catch (IllegalArgumentException e) {
-            // then
-            assertEquals("AdUnits list should not be empty", e.getMessage());
-        }
+        final Future<Void> result = greenbidsAnalyticsReporter.processEvent(event);
+
+        // then
+        assertTrue(result.failed());
+        assertEquals("Bid response or auction context cannot be null", result.cause().getMessage());
     }
 }

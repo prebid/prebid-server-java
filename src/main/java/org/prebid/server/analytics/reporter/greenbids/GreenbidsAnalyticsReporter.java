@@ -100,11 +100,16 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             return Future.succeededFuture();
         }
 
-        final CommonMessage commonMessage = createBidMessage(
-                auctionContext,
-                bidResponse,
-                greenbidsId,
-                billingId);
+        final CommonMessage commonMessage;
+        try {
+            commonMessage = createBidMessage(
+                    auctionContext,
+                    bidResponse,
+                    greenbidsId,
+                    billingId);
+        } catch (IllegalArgumentException e) {
+            return Future.failedFuture(e);
+        }
 
         try {
             final String commonMessageJson = jacksonMapper.encodeToString(commonMessage);
@@ -113,8 +118,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                     .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON)
                     .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
-
-            Future<HttpClientResponse> responseFuture = httpClient.post(
+            final Future<HttpClientResponse> responseFuture = httpClient.post(
                     greenbidsAnalyticsProperties.getAnalyticsServer(),
                     headers,
                     commonMessageJson,
