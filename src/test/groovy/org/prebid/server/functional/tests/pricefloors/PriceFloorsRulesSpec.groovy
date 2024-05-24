@@ -284,8 +284,8 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         def higherWidth = lowerWidth + 1
         def higherHigh = lowerHigh + 1
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner.format = [new Format(w: lowerWidth, h: lowerHigh),
-                                    new Format(w: higherWidth, h: higherHigh)]
+            imp[0].banner.format = [new Format(weight: lowerWidth, height: lowerHigh),
+                                    new Format(weight: higherWidth, height: higherHigh)]
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -352,20 +352,20 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         mediaType                                                            | impClosure
         org.prebid.server.functional.model.response.auction.MediaType.BANNER | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
-                banner.format = [new Format(w: widthVal, h: heightVal)]
+                banner.format = [new Format(weight: widthVal, height: heightVal)]
             }
         }
         org.prebid.server.functional.model.response.auction.MediaType.BANNER | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
                 banner.format = null
-                banner.w = widthVal
-                banner.h = heightVal
+                banner.weight = widthVal
+                banner.height = heightVal
             }
         }
         org.prebid.server.functional.model.response.auction.MediaType.VIDEO  | { int widthVal, int heightVal ->
             Imp.getDefaultImpression(mediaType).tap {
-                video.w = widthVal
-                video.h = heightVal
+                video.weight = widthVal
+                video.height = heightVal
             }
         }
     }

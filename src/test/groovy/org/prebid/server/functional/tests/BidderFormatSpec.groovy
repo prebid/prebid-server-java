@@ -4,6 +4,7 @@ import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountBidValidationConfig
 import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.BidValidationEnforcement
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredResponse
 import org.prebid.server.functional.model.request.auction.Asset
@@ -32,10 +33,10 @@ class BidderFormatSpec extends BaseSpec {
     @Shared
     private static final RANDOM_NUMBER = PBSUtils.randomNumber
 
-    def "PBS should successfully pass when banner.format{w.h} is valid"() {
+    def "PBS should successfully pass when banner.format weight and height is valid"() {
         given: "Default bid request with banner format"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner.format = bannerFormat
+            imp[0].banner.format = [new Format(weight: bannerFormatWeight, height: bannerFormatHeight)]
         }
 
         when: "Requesting PBS auction"
@@ -43,25 +44,19 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "BidResponse should contain the same banner format as on request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest?.imp[0]?.banner?.format[0].w == bannerFormat[0].w
-        assert bidderRequest?.imp[0]?.banner?.format[0].h == bannerFormat[0].h
+        assert bidderRequest?.imp[0]?.banner?.format[0].weight == bannerFormatWeight
+        assert bidderRequest?.imp[0]?.banner?.format[0].height == bannerFormatHeight
 
         where:
-        bannerFormat << [[Format.defaultFormat],
-                         [Format.defaultFormat.tap {
-                             w = 1
-                             h = 1
-                         }],
-                         [Format.defaultFormat.tap {
-                             w = PBSUtils.randomNumber
-                             h = PBSUtils.randomNumber
-                         }]]
+        bannerFormatWeight    | bannerFormatHeight
+        1                     | 1
+        PBSUtils.randomNumber | PBSUtils.randomNumber
     }
 
-    def "PBS should unsuccessfully pass and throw error due to validation banner.format{w.h} when banner.format{w.h} is invalid"() {
+    def "PBS should unsuccessfully pass and throw error due to validation banner.format{w.h} when banner.format weight or height is invalid"() {
         given: "Default bid request with banner format"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner.format = bannerFormat
+            imp[0].banner.format = [new Format(weight: bannerFormatWeight, height: bannerFormatHeight)]
         }
 
         when: "Requesting PBS auction"
@@ -74,18 +69,45 @@ class BidderFormatSpec extends BaseSpec {
                 "Request imp[0].banner.format[0] must define a valid \"h\" and \"w\" properties"
 
         where:
-        bannerFormat << [[Format.defaultFormat.tap { w = 0 }],
-                         [Format.defaultFormat.tap { h = 0 }],
-                         [Format.defaultFormat.tap { w = null }],
-                         [Format.defaultFormat.tap { h = null }],
-                         [Format.defaultFormat.tap { w = PBSUtils.randomNegativeNumber }],
-                         [Format.defaultFormat.tap { h = PBSUtils.randomNegativeNumber }]]
+        bannerFormatWeight            | bannerFormatHeight
+        0                             | PBSUtils.randomNumber
+        PBSUtils.randomNumber         | 0
+        null                          | PBSUtils.randomNumber
+        PBSUtils.randomNumber         | null
+        PBSUtils.randomNegativeNumber | PBSUtils.randomNumber
+        PBSUtils.randomNumber         | PBSUtils.randomNegativeNumber
     }
 
-    def "PBS should successfully pass when banner.{w.h} is valid"() {
+    def "PBS should unsuccessfully pass and throw error due to validation banner.format{w.h} when banner.format weight and height is invalid"() {
         given: "Default bid request with banner format"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner = banner
+            imp[0].banner.format = [new Format(weight: bannerFormatWeight, height: bannerFormatHeight)]
+        }
+
+        when: "Requesting PBS auction"
+        defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBs should throw error due to banner.format{w.h} validation"
+        def exception = thrown(PrebidServerException)
+        assert exception.statusCode == 400
+        assert exception.responseBody == "Invalid request format: Request imp[0].banner.format[0] " +
+                "should define *either* {w, h} (for static size requirements) " +
+                "*or* {wmin, wratio, hratio} (for flexible sizes) to be non-zero positive"
+
+        where:
+        bannerFormatWeight            | bannerFormatHeight
+        0                             | 0
+        0                             | null
+        0                             | PBSUtils.randomNegativeNumber
+        null                          | null
+        null                          | PBSUtils.randomNegativeNumber
+        PBSUtils.randomNegativeNumber | PBSUtils.randomNegativeNumber
+    }
+
+    def "PBS should successfully pass when banner weight and height is valid"() {
+        given: "Default bid request with banner format"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            imp[0].banner = new Banner(weight: bannerFormatWeight, height: bannerFormatHeight)
         }
 
         when: "Requesting PBS auction"
@@ -93,17 +115,19 @@ class BidderFormatSpec extends BaseSpec {
 
         then: "BidResponse should contain the same banner{w.h} as on request"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)
-        assert bidderRequest?.imp[0]?.banner?.w == banner.w
-        assert bidderRequest?.imp[0]?.banner?.h == banner.h
+        assert bidderRequest?.imp[0]?.banner?.weight == bannerFormatWeight
+        assert bidderRequest?.imp[0]?.banner?.height == bannerFormatHeight
 
         where:
-        banner << [new Banner(w: 1, h: 1), new Banner(w: PBSUtils.randomNumber, h: PBSUtils.randomNumber)]
+        bannerFormatWeight    | bannerFormatHeight
+        1                     | 1
+        PBSUtils.randomNumber | PBSUtils.randomNumber
     }
 
     def "PBS should unsuccessfully pass and throw error due to validation banner{w.h} when banner{w.h} is invalid"() {
         given: "Default bid request with banner{w.h}"
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner = banner
+            imp[0].banner = new Banner(weight: bannerFormatWeight, height: bannerFormatHeight)
         }
 
         when: "Requesting PBS auction"
@@ -116,12 +140,16 @@ class BidderFormatSpec extends BaseSpec {
                 "request.imp[0].banner has no sizes. Define \"w\" and \"h\", or include \"format\" elements"
 
         where:
-        banner << [new Banner(w: 0, h: PBSUtils.randomNumber),
-                   new Banner(w: PBSUtils.randomNumber, h: 0),
-                   new Banner(w: null, h: PBSUtils.randomNumber),
-                   new Banner(w: PBSUtils.randomNumber, h: null),
-                   new Banner(w: PBSUtils.randomNegativeNumber, h: PBSUtils.randomNumber),
-                   new Banner(w: PBSUtils.randomNumber, h: PBSUtils.randomNegativeNumber)]
+        bannerFormatWeight            | bannerFormatHeight
+        0                             | 0
+        0                             | PBSUtils.randomNumber
+        PBSUtils.randomNumber         | 0
+        null                          | null
+        null                          | PBSUtils.randomNumber
+        PBSUtils.randomNumber         | null
+        PBSUtils.randomNegativeNumber | PBSUtils.randomNegativeNumber
+        PBSUtils.randomNegativeNumber | PBSUtils.randomNumber
+        PBSUtils.randomNumber         | PBSUtils.randomNegativeNumber
     }
 
     def "PBS should emit error and metrics when banner-creative-max-size: warn and bid response W or H is larger that request W or H"() {
@@ -131,27 +159,30 @@ class BidderFormatSpec extends BaseSpec {
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner = new Banner().tap {
-                format = [new Format(w: RANDOM_NUMBER, h: RANDOM_NUMBER)]
+            imp[0].tap {
+                banner = new Banner(format: [new Format(weight: RANDOM_NUMBER, height: RANDOM_NUMBER)])
+                ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
             }
-            imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
         }
 
         and: "Stored bid response with biggest W and H than in bidRequest in DB"
+        def storedBidId = UUID.randomUUID()
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].w = responseWeight
-            it.seatbid[0].bid[0].h = responseHeight
+            it.seatbid[0].bid[0].tap {
+                it.id = storedBidId
+                it.weight = responseWeight
+                it.height = responseHeight
+            }
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
 
         and: "Account in the DB with specified banner max size enforcement"
-        def accountConfig = new AccountConfig(
-                auction: new AccountAuctionConfig(
-                        bidValidations: new AccountBidValidationConfig(bannerMaxSizeEnforcement: accountCretiveMaxSize),
-                        debugAllow: true))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
+        def account = getAccountWithSpecifiedBannerMax(bidRequest.accountId, accountCretiveMaxSize)
         accountDao.save(account)
+
+        and: "Flush metrics"
+        flushMetrics(pbsService)
 
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
@@ -164,16 +195,16 @@ class BidderFormatSpec extends BaseSpec {
         and: "Response should contain error"
         assert bidResponse.ext?.errors[GENERIC]*.code == [5]
         assert bidResponse.ext?.errors[GENERIC]*.message[0]
-                == "BidId `${storedBidResponse.seatbid[0].bid[0].id}` validation messages: " +
+                == "BidId `${storedBidId}` validation messages: " +
                 "Warning: BidResponse validation `warn`: bidder `${GENERIC}` response triggers creative size " +
-                "validation for bid ${storedBidResponse.seatbid[0].bid[0].id}, account=${bidRequest.accountId}, " +
+                "validation for bid ${storedBidId}, account=${bidRequest.accountId}, " +
                 "referrer=${bidRequest.site.page}, max imp size='${RANDOM_NUMBER}x${RANDOM_NUMBER}', " +
                 "bid response size='${responseWeight}x${responseHeight}'"
 
         and: "Bid response should contain weight and height from stored response"
         def bid = bidResponse.seatbid[0].bid[0]
-        assert bid.w == responseWeight
-        assert bid.h == responseHeight
+        assert bid.weight == responseWeight
+        assert bid.height == responseHeight
 
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
@@ -195,26 +226,24 @@ class BidderFormatSpec extends BaseSpec {
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner = new Banner().tap {
-                format = [new Format(w: RANDOM_NUMBER, h: RANDOM_NUMBER)]
+            imp[0].tap {
+                banner = new Banner(format: [new Format(weight: RANDOM_NUMBER, height: RANDOM_NUMBER)])
+                ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
             }
-            it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
         }
 
         and: "Stored bid response with biggest W and H than in bidRequest in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].w = responseWeight
-            it.seatbid[0].bid[0].h = responseHeight
+            it.seatbid[0].bid[0].tap {
+                it.weight = responseWeight
+                it.height = responseHeight
+            }
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
 
         and: "Account in the DB with specified banner max size enforcement"
-        def accountConfig = new AccountConfig(
-                auction: new AccountAuctionConfig(
-                        bidValidations: new AccountBidValidationConfig(bannerMaxSizeEnforcement: accountCretiveMaxSize),
-                        debugAllow: true))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
+        def account = getAccountWithSpecifiedBannerMax(bidRequest.accountId, accountCretiveMaxSize)
         accountDao.save(account)
 
         when: "Requesting PBS auction"
@@ -230,8 +259,8 @@ class BidderFormatSpec extends BaseSpec {
 
         and: "Bid response should contain weight and height from stored response"
         def bid = bidResponse.seatbid[0].bid[0]
-        assert bid.w == responseWeight
-        assert bid.h == responseHeight
+        assert bid.weight == responseWeight
+        assert bid.height == responseHeight
 
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
@@ -253,26 +282,26 @@ class BidderFormatSpec extends BaseSpec {
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner = new Banner().tap {
-                format = [new Format(w: RANDOM_NUMBER, h: RANDOM_NUMBER)]
+            imp[0].tap {
+                banner = new Banner(format: [new Format(weight: RANDOM_NUMBER, height: RANDOM_NUMBER)])
+                ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
             }
-            imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
         }
 
         and: "Stored bid response with biggest W and H than in bidRequest in DB"
+        def storedBidId = UUID.randomUUID()
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].w = responseWeight
-            it.seatbid[0].bid[0].h = responseHeight
+            it.seatbid[0].bid[0].tap {
+                it.id = storedBidId
+                it.weight = responseWeight
+                it.height = responseHeight
+            }
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
 
         and: "Account in the DB with specified banner max size enforcement"
-        def accountConfig = new AccountConfig(
-                auction: new AccountAuctionConfig(
-                        bidValidations: new AccountBidValidationConfig(bannerMaxSizeEnforcement: accountCretiveMaxSize),
-                        debugAllow: true))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
+        def account = getAccountWithSpecifiedBannerMax(bidRequest.accountId, accountCretiveMaxSize)
         accountDao.save(account)
 
         when: "Requesting PBS auction"
@@ -286,9 +315,9 @@ class BidderFormatSpec extends BaseSpec {
         and: "Response should contain error"
         assert bidResponse.ext?.errors[GENERIC]*.code == [5]
         assert bidResponse.ext?.errors[GENERIC]*.message[0]
-                == "BidId `${storedBidResponse.seatbid[0].bid[0].id}` validation messages: " +
+                == "BidId `${storedBidId}` validation messages: " +
                 "Error: BidResponse validation `enforce`: bidder `${GENERIC.value}` response triggers creative size " +
-                "validation for bid ${storedBidResponse.seatbid[0].bid[0].id}, account=${bidRequest.accountId}, " +
+                "validation for bid ${storedBidId}, account=${bidRequest.accountId}, " +
                 "referrer=${bidRequest.site.page}, max imp size='${RANDOM_NUMBER}x${RANDOM_NUMBER}', " +
                 "bid response size='${responseWeight}x${responseHeight}'"
 
@@ -315,26 +344,24 @@ class BidderFormatSpec extends BaseSpec {
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner = new Banner().tap {
-                format = [new Format(w: RANDOM_NUMBER, h: RANDOM_NUMBER)]
+            imp[0].tap {
+                banner = new Banner(format: [new Format(weight: RANDOM_NUMBER, height: RANDOM_NUMBER)])
+                ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
             }
-            imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
         }
 
         and: "Stored bid response with biggest W and H than in bidRequest in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].w = RANDOM_NUMBER
-            it.seatbid[0].bid[0].h = RANDOM_NUMBER
+            it.seatbid[0].bid[0].tap {
+                weight = RANDOM_NUMBER
+                height = RANDOM_NUMBER
+            }
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
 
         and: "Account in the DB with specified banner max size enforcement"
-        def accountConfig = new AccountConfig(
-                auction: new AccountAuctionConfig(
-                        bidValidations: new AccountBidValidationConfig(bannerMaxSizeEnforcement: accountCretiveMaxSize),
-                        debugAllow: true))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
+        def account = getAccountWithSpecifiedBannerMax(bidRequest.accountId, accountCretiveMaxSize)
         accountDao.save(account)
 
         when: "Requesting PBS auction"
@@ -350,8 +377,8 @@ class BidderFormatSpec extends BaseSpec {
 
         and: "Bid response should contain weight and height from stored response"
         def bid = bidResponse.seatbid[0].bid[0]
-        assert bid.w == RANDOM_NUMBER
-        assert bid.h == RANDOM_NUMBER
+        assert bid.weight == RANDOM_NUMBER
+        assert bid.height == RANDOM_NUMBER
 
         and: "PBs shouldn't perform a bidder request due to stored bid response"
         assert !bidder.getBidderRequests(bidRequest.id)
@@ -372,29 +399,25 @@ class BidderFormatSpec extends BaseSpec {
 
         and: "Default bid request with video W and H"
         def storedResponseId = PBSUtils.randomNumber
-        def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].video = Video.getDefaultVideo().tap {
-                w = RANDOM_NUMBER
-                h = RANDOM_NUMBER
+        def bidRequest = BidRequest.getDefaultVideoRequest().tap {
+            imp[0].tap {
+                video = new Video(weight: RANDOM_NUMBER, height: RANDOM_NUMBER, mimes: [PBSUtils.randomString])
+                ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
             }
-            imp[0].banner = null
-            it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
         }
 
         and: "Stored bid response with biggest W and H than in bidRequest in DB"
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].w = responseWeight
-            it.seatbid[0].bid[0].h = responseHeight
+            it.seatbid[0].bid[0].tap {
+                weight = responseWeight
+                height = responseHeight
+            }
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
 
         and: "Account in the DB with specified banner max size enforcement"
-        def accountConfig = new AccountConfig(
-                auction: new AccountAuctionConfig(
-                        bidValidations: new AccountBidValidationConfig(bannerMaxSizeEnforcement: accountCretiveMaxSize),
-                        debugAllow: true))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
+        def account = getAccountWithSpecifiedBannerMax(bidRequest.accountId, accountCretiveMaxSize)
         accountDao.save(account)
 
         when: "Requesting PBS auction"
@@ -443,26 +466,26 @@ class BidderFormatSpec extends BaseSpec {
         and: "Default bid request with banner format"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].banner = new Banner().tap {
-                format = [new Format(w: RANDOM_NUMBER, h: RANDOM_NUMBER)]
+            imp[0].tap {
+                banner = new Banner(format: [new Format(weight: RANDOM_NUMBER, height: RANDOM_NUMBER)])
+                ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
             }
-            it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
         }
 
         and: "Stored bid response with biggest W and H than in bidRequest in DB"
+        def storedBidId = UUID.randomUUID()
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].w = responseWeight
-            it.seatbid[0].bid[0].h = responseHeight
+            it.seatbid[0].bid[0].tap {
+                it.id = storedBidId
+                it.weight = responseWeight
+                it.height = responseHeight
+            }
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
 
         and: "Account in the DB with specified banner max size enforcement"
-        def accountConfig = new AccountConfig(
-                auction: new AccountAuctionConfig(
-                        bidValidations: new AccountBidValidationConfig(bannerMaxSizeEnforcement: accountCretiveMaxSize),
-                        debugAllow: true))
-        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
+        def account = getAccountWithSpecifiedBannerMax(bidRequest.accountId, accountCretiveMaxSize)
         accountDao.save(account)
 
         when: "Requesting PBS auction"
@@ -476,9 +499,9 @@ class BidderFormatSpec extends BaseSpec {
         and: "Bid response should contain error"
         assert bidResponse.ext?.errors[GENERIC]*.code == [5]
         assert bidResponse.ext?.errors[GENERIC]*.message[0]
-                == "BidId `${storedBidResponse.seatbid[0].bid[0].id}` validation messages: " +
+                == "BidId `${storedBidId}` validation messages: " +
                 "Error: BidResponse validation `enforce`: bidder `generic` response triggers creative size " +
-                "validation for bid ${storedBidResponse.seatbid[0].bid[0].id}, account=${bidRequest.accountId}, " +
+                "validation for bid ${storedBidId}, account=${bidRequest.accountId}, " +
                 "referrer=${bidRequest.site.page}, max imp size='${RANDOM_NUMBER}x${RANDOM_NUMBER}', " +
                 "bid response size='${responseWeight}x${responseHeight}'"
 
@@ -506,7 +529,7 @@ class BidderFormatSpec extends BaseSpec {
         given: "PBS with secure-markUp: #secureMarkup"
         def pbsService = pbsServiceFactory.getService(["auction.validations.secure-markup": secureMarkup])
 
-        and: "Default bid request"
+        and: "Audio bid request"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
             imp[0].secure = secure
@@ -567,9 +590,13 @@ class BidderFormatSpec extends BaseSpec {
         }
 
         and: "Stored bid response in DB"
+        def storedBidId = UUID.randomUUID()
         def adm = new Adm(assets: [Asset.getImgAsset("${url}://secure-assets.${PBSUtils.randomString}.com")])
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].adm = adm
+            it.seatbid[0].bid[0].tap {
+                it.id = storedBidId
+                it.adm = adm
+            }
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -585,9 +612,9 @@ class BidderFormatSpec extends BaseSpec {
         and: "Bid response should contain error"
         assert bidResponse.ext?.errors[GENERIC]*.code == [5]
         assert bidResponse.ext?.errors[GENERIC]*.message[0]
-                == "BidId `${storedBidResponse.seatbid[0].bid[0].id}` validation messages: " +
+                == "BidId `${storedBidId}` validation messages: " +
                 "Warning: BidResponse validation `warn`: bidder `${BidderName.GENERIC.value}` response triggers secure creative " +
-                "validation for bid ${bidResponse.seatbid[0].bid[0].id}, account=${bidRequest.accountId}, referrer=${bidRequest.site.page}," +
+                "validation for bid ${storedBidId}, account=${bidRequest.accountId}, referrer=${bidRequest.site.page}," +
                 " adm=${encode(adm)}"
 
         and: "Pbs should contain seatBid"
@@ -671,9 +698,13 @@ class BidderFormatSpec extends BaseSpec {
         }
 
         and: "Stored bid response in DB"
+        def storedBidId = UUID.randomUUID()
         def adm = new Adm(assets: [Asset.getImgAsset("${url}://secure-assets.${PBSUtils.randomString}.com")])
         def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
-            it.seatbid[0].bid[0].adm = adm
+            it.seatbid[0].bid[0].tap {
+                it.id = storedBidId
+                it.adm = adm
+            }
         }
         def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
         storedResponseDao.save(storedResponse)
@@ -689,9 +720,9 @@ class BidderFormatSpec extends BaseSpec {
         and: "Bid response should contain error"
         assert bidResponse.ext?.errors[GENERIC]*.code == [5]
         assert bidResponse.ext?.errors[GENERIC]*.message[0]
-                == "BidId `${storedBidResponse.seatbid[0].bid[0].id}` validation messages: " +
+                == "BidId `${storedBidId}` validation messages: " +
                 "Error: BidResponse validation `enforce`: bidder `${BidderName.GENERIC.value}` response triggers secure creative " +
-                "validation for bid ${storedBidResponse.seatbid[0].bid[0].id}, account=${bidRequest.accountId}, referrer=${bidRequest.site.page}," +
+                "validation for bid ${storedBidId}, account=${bidRequest.accountId}, referrer=${bidRequest.site.page}," +
                 " adm=${encode(adm)}"
 
         and: "Pbs shouldn't contain seatBid"
@@ -718,8 +749,10 @@ class BidderFormatSpec extends BaseSpec {
         and: "Default bid request with secure"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].secure = secure
-            imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
+            imp[0].tap {
+                it.secure = secure
+                it.ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
+            }
         }
 
         and: "Stored bid response in DB with adm"
@@ -768,8 +801,10 @@ class BidderFormatSpec extends BaseSpec {
         and: "Default bid request with stored bid response and secure"
         def storedResponseId = PBSUtils.randomNumber
         def bidRequest = BidRequest.defaultBidRequest.tap {
-            imp[0].secure = 0
-            imp[0].ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
+            imp[0].tap {
+                secure = 0
+                ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: BidderName.GENERIC)]
+            }
         }
 
         and: "Stored bid response in DB with adm"
@@ -808,5 +843,13 @@ class BidderFormatSpec extends BaseSpec {
         SKIP.value    | "https"
         SKIP.value    | "http%3A"
         SKIP.value    | "https"
+    }
+
+    private static Account getAccountWithSpecifiedBannerMax(String accountId, BidValidationEnforcement bannerMaxSizeEnforcement) {
+        def accountConfig = new AccountConfig(
+                auction: new AccountAuctionConfig(
+                        bidValidations: new AccountBidValidationConfig(bannerMaxSizeEnforcement: bannerMaxSizeEnforcement),
+                        debugAllow: true))
+        new Account(status: ACTIVE, uuid: accountId, config: accountConfig)
     }
 }

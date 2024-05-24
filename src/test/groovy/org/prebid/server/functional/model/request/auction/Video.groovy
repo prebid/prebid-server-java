@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.request.auction
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 
@@ -14,8 +15,10 @@ class Video {
     Integer maxseq
     Integer poddur
     List<Integer> protocols
-    Integer w
-    Integer h
+    @JsonProperty("w")
+    Integer weight
+    @JsonProperty("h")
+    Integer height
     Integer podid
     Integer podseq
     List<Integer> rqddurs
@@ -42,6 +45,6 @@ class Video {
     List<Integer> companiontype
 
     static Video getDefaultVideo() {
-        new Video(mimes: ["video/mp4"], w: 300, h: 200)
+        new Video(mimes: ["video/mp4"], weight: 300, height: 200)
     }
 }
