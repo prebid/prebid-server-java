@@ -102,8 +102,8 @@ adapter-defaults:
     allow: true
 auction:
   ad-server-currency: USD
-  blacklisted-accounts:
-  blacklisted-apps:
+  blocklisted-accounts:
+  blocklisted-apps:
   biddertmax:
     min: 50
     max: 5000
@@ -125,7 +125,7 @@ auction:
     secure-markup: skip
   host-schain-node:
   category-mapping-enabled: false
-  strict-app-site-dooh: false
+  strict-app-site-dooh: true
 video:
   stored-request-required: false
   stored-requests-timeout-ms: 90
@@ -194,7 +194,7 @@ host-cookie:
   max-cookie-size-bytes: 4096
 gdpr:
   enabled: true
-  eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf
+  eea-countries: at,bg,be,cy,cz,dk,ee,fi,fr,de,gr,hu,ie,it,lv,lt,lu,mt,nl,pl,pt,ro,sk,si,es,se,gb,is,no,li,ai,aw,pt,bm,aq,io,vg,ic,ky,fk,re,mw,gp,gf,yt,pf,tf,gl,pt,ms,an,bq,cw,sx,nc,pn,sh,pm,gs,tc,uk,wf,ch
   vendorlist:
     default-timeout-ms: 2000
     v2:

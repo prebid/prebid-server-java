@@ -45,7 +45,7 @@ class AuctionSpec extends BaseSpec {
     private static final boolean CORS_SUPPORT = false
     private static final UserSyncInfo.Type USER_SYNC_TYPE = REDIRECT
     private static final int DEFAULT_TIMEOUT = getRandomTimeout()
-    private static final Map<String, String> PBS_CONFIG = ["auction.max-timeout-ms"    : MAX_TIMEOUT as String,
+    private static final Map<String, String> PBS_CONFIG = ["auction.biddertmax.max"    : MAX_TIMEOUT as String,
                                                            "auction.default-timeout-ms": DEFAULT_TIMEOUT as String]
     private static final Map<String, String> GENERIC_CONFIG = [
             "adapters.${GENERIC.value}.usersync.${USER_SYNC_TYPE.value}.url"         : USER_SYNC_URL,

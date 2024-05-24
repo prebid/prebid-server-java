@@ -157,6 +157,8 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                     return BidType.banner;
                 } else if (imp.getXNative() != null) {
                     return BidType.xNative;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
                 }
             }
         }

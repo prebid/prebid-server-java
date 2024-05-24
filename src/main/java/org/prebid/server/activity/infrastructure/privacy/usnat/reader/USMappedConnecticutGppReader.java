@@ -1,7 +1,7 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
 
 import com.iab.gpp.encoder.GppModel;
-import com.iab.gpp.encoder.section.UspCtV1;
+import com.iab.gpp.encoder.section.UsCtV1;
 import org.prebid.server.activity.infrastructure.privacy.uscustomlogic.USCustomLogicGppReader;
 import org.prebid.server.activity.infrastructure.privacy.usnat.USNatGppReader;
 import org.prebid.server.util.ObjectUtil;
@@ -15,20 +15,20 @@ public class USMappedConnecticutGppReader implements USNatGppReader, USCustomLog
     private static final List<Integer> MIXED_CHILD_SENSITIVE_DATA = List.of(2, 1);
     private static final List<Integer> CHILD_SENSITIVE_DATA = List.of(1, 1);
 
-    private final UspCtV1 consent;
+    private final UsCtV1 consent;
 
     public USMappedConnecticutGppReader(GppModel gppModel) {
-        consent = gppModel != null ? gppModel.getUspCtV1Section() : null;
+        consent = gppModel != null ? gppModel.getUsCtV1Section() : null;
     }
 
     @Override
     public Integer getVersion() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getVersion);
+        return ObjectUtil.getIfNotNull(consent, UsCtV1::getVersion);
     }
 
     @Override
     public Boolean getGpc() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getGpc);
+        return ObjectUtil.getIfNotNull(consent, UsCtV1::getGpc);
     }
 
     @Override
@@ -38,22 +38,22 @@ public class USMappedConnecticutGppReader implements USNatGppReader, USCustomLog
 
     @Override
     public Boolean getGpcSegmentIncluded() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getGpcSegmentIncluded);
+        return ObjectUtil.getIfNotNull(consent, UsCtV1::getGpcSegmentIncluded);
     }
 
     @Override
     public Integer getSaleOptOut() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getSaleOptOut);
+        return ObjectUtil.getIfNotNull(consent, UsCtV1::getSaleOptOut);
     }
 
     @Override
     public Integer getSaleOptOutNotice() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getSaleOptOutNotice);
+        return ObjectUtil.getIfNotNull(consent, UsCtV1::getSaleOptOutNotice);
     }
 
     @Override
     public Integer getSharingNotice() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getSharingNotice);
+        return ObjectUtil.getIfNotNull(consent, UsCtV1::getSharingNotice);
     }
 
     @Override
@@ -68,12 +68,12 @@ public class USMappedConnecticutGppReader implements USNatGppReader, USCustomLog
 
     @Override
     public Integer getTargetedAdvertisingOptOut() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getTargetedAdvertisingOptOut);
+        return ObjectUtil.getIfNotNull(consent, UsCtV1::getTargetedAdvertisingOptOut);
     }
 
     @Override
     public Integer getTargetedAdvertisingOptOutNotice() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getTargetedAdvertisingOptOutNotice);
+        return ObjectUtil.getIfNotNull(consent, UsCtV1::getTargetedAdvertisingOptOutNotice);
     }
 
     @Override
@@ -83,7 +83,7 @@ public class USMappedConnecticutGppReader implements USNatGppReader, USCustomLog
 
     @Override
     public List<Integer> getSensitiveDataProcessing() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getSensitiveDataProcessing);
+        return ObjectUtil.getIfNotNull(consent, UsCtV1::getSensitiveDataProcessing);
     }
 
     @Override
@@ -94,7 +94,7 @@ public class USMappedConnecticutGppReader implements USNatGppReader, USCustomLog
     @Override
     public List<Integer> getKnownChildSensitiveDataConsents() {
         final List<Integer> originalData = ObjectUtil.getIfNotNull(
-                consent, UspCtV1::getKnownChildSensitiveDataConsents);
+                consent, UsCtV1::getKnownChildSensitiveDataConsents);
 
         final Integer first = originalData != null ? originalData.get(0) : null;
         final Integer second = originalData != null ? originalData.get(1) : null;
@@ -116,16 +116,16 @@ public class USMappedConnecticutGppReader implements USNatGppReader, USCustomLog
 
     @Override
     public Integer getMspaCoveredTransaction() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getMspaCoveredTransaction);
+        return ObjectUtil.getIfNotNull(consent, UsCtV1::getMspaCoveredTransaction);
     }
 
     @Override
     public Integer getMspaServiceProviderMode() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getMspaServiceProviderMode);
+        return ObjectUtil.getIfNotNull(consent, UsCtV1::getMspaServiceProviderMode);
     }
 
     @Override
     public Integer getMspaOptOutOptionMode() {
-        return ObjectUtil.getIfNotNull(consent, UspCtV1::getMspaOptOutOptionMode);
+        return ObjectUtil.getIfNotNull(consent, UsCtV1::getMspaOptOutOptionMode);
     }
 }

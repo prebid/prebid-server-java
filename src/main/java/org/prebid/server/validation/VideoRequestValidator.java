@@ -25,8 +25,10 @@ public class VideoRequestValidator {
     /**
      * Throws {@link InvalidRequestException} in case of invalid {@link BidRequestVideo}.
      */
-    public void validateStoredBidRequest(BidRequestVideo bidRequestVideo, boolean enforceStoredRequest,
-                                         List<String> blacklistedAccounts) {
+    public void validateStoredBidRequest(BidRequestVideo bidRequestVideo,
+                                         boolean enforceStoredRequest,
+                                         List<String> blocklistedAccounts) {
+
         if (enforceStoredRequest && StringUtils.isBlank(bidRequestVideo.getStoredrequestid())) {
             throw new InvalidRequestException("request missing required field: storedrequestid");
         }
@@ -44,7 +46,7 @@ public class VideoRequestValidator {
             }
         }
 
-        validateSiteAndApp(bidRequestVideo.getSite(), bidRequestVideo.getApp(), blacklistedAccounts);
+        validateSiteAndApp(bidRequestVideo.getSite(), bidRequestVideo.getApp(), blocklistedAccounts);
         validateVideo(bidRequestVideo.getVideo());
     }
 
@@ -53,7 +55,7 @@ public class VideoRequestValidator {
                 .anyMatch(duration -> duration <= 0);
     }
 
-    private void validateSiteAndApp(Site site, App app, List<String> blacklistedAccounts) {
+    private void validateSiteAndApp(Site site, App app, List<String> blocklistedAccounts) {
         if (app == null && site == null) {
             throw new InvalidRequestException("request missing required field: site or app");
         } else if (app != null && site != null) {
@@ -64,7 +66,7 @@ public class VideoRequestValidator {
             final String appId = app.getId();
 
             if (StringUtils.isNotBlank(appId)) {
-                if (blacklistedAccounts.contains(appId)) {
+                if (blocklistedAccounts.contains(appId)) {
                     throw new InvalidRequestException("Prebid-server does not process requests from App ID: "
                             + appId);
                 }
