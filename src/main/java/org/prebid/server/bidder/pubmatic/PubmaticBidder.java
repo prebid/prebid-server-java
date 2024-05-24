@@ -214,6 +214,9 @@ public class PubmaticBidder implements Bidder<BidRequest> {
     }
 
     private static BigDecimal parseKadFloor(String kadFloorString) {
+        if (StringUtils.isBlank(kadFloorString)) {
+            return null;
+        }
         try {
             return new BigDecimal(StringUtils.trimToEmpty(kadFloorString));
         } catch (NumberFormatException e) {

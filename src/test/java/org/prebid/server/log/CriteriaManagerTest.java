@@ -8,7 +8,6 @@ import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
-import org.prebid.server.deals.model.LogCriteriaFilter;
 
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.any;
@@ -35,14 +34,14 @@ public class CriteriaManagerTest extends VertxTest {
     @Test
     public void addCriteriaShouldThrowIllegalArgumentExceptionWhenLoggerLevelHasInvalidValue() {
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> criteriaManager.addCriteria("1001", "rubicon", "lineItemId1", "invalid", 800))
+                .isThrownBy(() -> criteriaManager.addCriteria("1001", "rubicon", "invalid", 800))
                 .withMessage("Invalid LoggingLevel: invalid");
     }
 
     @Test
     public void addCriteriaShouldAddVertxTimerWithLimitedDurationInMillis() {
         // given and when
-        criteriaManager.addCriteria("1001", "rubicon", "lineItemId1", "error", 800000);
+        criteriaManager.addCriteria("1001", "rubicon", "error", 800000);
 
         // then
         verify(vertx).setTimer(eq(300000L), any());
@@ -51,25 +50,7 @@ public class CriteriaManagerTest extends VertxTest {
     @Test
     public void addCriteriaShouldAddVertxTimerWithDefaultDurationInMillis() {
         // given and when
-        criteriaManager.addCriteria("1001", "rubicon", "lineItemId1", "error", 200000);
-
-        // then
-        verify(vertx).setTimer(eq(200000L), any());
-    }
-
-    @Test
-    public void addCriteriaByFilterShouldAddVertxTimeWithLimitedDurationInMillis() {
-        // given and when
-        criteriaManager.addCriteria(LogCriteriaFilter.of("1001", "rubicon", "lineItemId1"), 800L);
-
-        // then
-        verify(vertx).setTimer(eq(300000L), any());
-    }
-
-    @Test
-    public void addCriteriaByFilterShouldAddVertxTimeWithNotLimitedDurationInMillis() {
-        // given and when
-        criteriaManager.addCriteria(LogCriteriaFilter.of("1001", "rubicon", "lineItemId1"), 200L);
+        criteriaManager.addCriteria("1001", "rubicon", "error", 200000);
 
         // then
         verify(vertx).setTimer(eq(200000L), any());

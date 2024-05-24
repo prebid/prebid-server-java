@@ -45,16 +45,16 @@ import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.SpecialFeature;
 import org.prebid.server.settings.model.SpecialFeatures;
 import org.prebid.server.spring.config.retry.RetryPolicyConfigurationProperties;
-import org.prebid.server.vertx.http.HttpClient;
+import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -355,13 +355,13 @@ public class PrivacyServiceConfiguration {
     }
 
     @Bean
-    UserFpdCcpaMask userFpdCcpaMask(IpAddressHelper ipAddressHelper) {
-        return new UserFpdCcpaMask(ipAddressHelper);
+    UserFpdCcpaMask userFpdCcpaMask(UserFpdActivityMask userFpdActivityMask) {
+        return new UserFpdCcpaMask(userFpdActivityMask);
     }
 
     @Bean
-    UserFpdCoppaMask userFpdCoppaMask(IpAddressHelper ipAddressHelper) {
-        return new UserFpdCoppaMask(ipAddressHelper);
+    UserFpdCoppaMask userFpdCoppaMask(UserFpdActivityMask userFpdActivityMask) {
+        return new UserFpdCoppaMask(userFpdActivityMask);
     }
 
     @Bean

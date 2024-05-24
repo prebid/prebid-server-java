@@ -1,28 +1,13 @@
 package org.prebid.server.auction.versionconverter.down;
 
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.iab.openrtb.request.App;
-import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Channel;
-import com.iab.openrtb.request.Content;
-import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Eid;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Network;
-import com.iab.openrtb.request.Producer;
-import com.iab.openrtb.request.Publisher;
-import com.iab.openrtb.request.Qty;
-import com.iab.openrtb.request.RefSettings;
-import com.iab.openrtb.request.Refresh;
 import com.iab.openrtb.request.Regs;
-import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
-import com.iab.openrtb.request.UserAgent;
-import com.iab.openrtb.request.Video;
 import org.junit.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
@@ -30,16 +15,14 @@ import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
 import org.prebid.server.proto.openrtb.ext.request.ExtSource;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
-import java.math.BigDecimal;
-import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.prebid.server.hooks.v1.PayloadUpdate.identity;
 
 public class BidRequestOrtb26To25ConverterTest extends VertxTest {
 
@@ -60,20 +43,17 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
         // then
         assertThat(result)
                 .extracting(BidRequest::getImp)
-                .satisfies(imps -> {
-                    assertThat(imps)
-                            .extracting(Imp::getRwdd)
-                            .containsOnlyNulls();
-                    assertThat(imps)
-                            .extracting(Imp::getExt)
-                            .containsExactly(
-                                    null,
-                                    mapper.valueToTree(Map.of("prebid", Map.of("is_rewarded_inventory", 1))),
-                                    mapper.valueToTree(Map.of(
-                                            "prebid", Map.of(
-                                                    "is_rewarded_inventory", 0,
-                                                    "someField", "someValue"))));
-                });
+                .satisfies(imps ->
+                        assertThat(imps)
+                                .extracting(Imp::getExt)
+                                .containsExactly(
+                                        null,
+                                        mapper.valueToTree(Map.of("prebid", Map.of("is_rewarded_inventory", 1))),
+                                        mapper.valueToTree(Map.of(
+                                                "prebid", Map.of(
+                                                        "is_rewarded_inventory", 0,
+                                                        "someField", "someValue"))))
+                );
     }
 
     @Test
@@ -146,25 +126,6 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
     }
 
     @Test
-    public void convertShouldRemoveRegsGppData() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(request -> request.regs(
-                Regs.builder()
-                        .gpp("gppValue")
-                        .gppSid(List.of(1, 2, 3))
-                        .build()));
-
-        // when
-        final BidRequest result = target.convert(bidRequest);
-
-        // then
-        assertThat(result)
-                .extracting(BidRequest::getRegs)
-                .extracting(Regs::getGpp, Regs::getGppSid)
-                .containsOnlyNulls();
-    }
-
-    @Test
     public void convertShouldMoveUserData() {
         // given
         final BidRequest bidRequest = givenBidRequest(request -> request.user(
@@ -194,95 +155,6 @@ public class BidRequestOrtb26To25ConverterTest extends VertxTest {
                             .extracting(User::getExt)
                             .isEqualTo(expectedUserExt);
                 });
-    }
-
-    @Test
-    public void convertShouldRemoveFieldsThatAreNotInOrtb25() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(request -> request
-                .imp(singletonList(givenImp(imp -> imp
-                        .video(Video.builder()
-                                .maxseq(1)
-                                .poddur(1)
-                                .podid(1)
-                                .podseq(1)
-                                .rqddurs(singletonList(1))
-                                .slotinpod(1)
-                                .mincpmpersec(BigDecimal.ONE)
-                                .plcmt(1)
-                                .build())
-                        .audio(Audio.builder()
-                                .poddur(1)
-                                .rqddurs(singletonList(1))
-                                .podid(1)
-                                .podseq(1)
-                                .slotinpod(1)
-                                .mincpmpersec(BigDecimal.ONE)
-                                .maxseq(1)
-                                .build())
-                        .refresh(Refresh.builder().count(1)
-                                .refsettings(singletonList(RefSettings.builder().minint(1).build()))
-                                .build())
-                        .qty(Qty.builder().multiplier(BigDecimal.ONE).build())
-                        .dt(0.1)
-                        .ssai(1))))
-                .site(Site.builder()
-                        .cattax(1)
-                        .inventorypartnerdomain("inventorypartnerdomain")
-                        .publisher(Publisher.builder().cattax(1).build())
-                        .content(Content.builder()
-                                .producer(Producer.builder().cattax(1).build())
-                                .cattax(1)
-                                .kwarray(singletonList("kwarray"))
-                                .langb("langb")
-                                .network(Network.builder().build())
-                                .channel(Channel.builder().build())
-                                .build())
-                        .kwarray(singletonList("kwarray"))
-                        .build())
-                .app(App.builder()
-                        .cattax(1)
-                        .inventorypartnerdomain("inventorypartnerdomain")
-                        .publisher(Publisher.builder().cattax(1).build())
-                        .content(Content.builder()
-                                .producer(Producer.builder().cattax(1).build())
-                                .cattax(1)
-                                .kwarray(singletonList("kwarray"))
-                                .langb("langb")
-                                .network(Network.builder().build())
-                                .channel(Channel.builder().build())
-                                .build())
-                        .kwarray(singletonList("kwarray"))
-                        .build())
-                .dooh(Dooh.builder().build())
-                .device(Device.builder().sua(UserAgent.builder().build()).langb("langb").build())
-                .user(User.builder().kwarray(singletonList("kwarray")).build())
-                .wlangb(singletonList("wlangb"))
-                .cattax(1));
-
-        // when
-        final BidRequest result = target.convert(bidRequest);
-
-        // then
-        assertThat(result).satisfies(request -> {
-            assertThat(result.getImp())
-                    .hasSize(1)
-                    .allSatisfy(imp -> {
-                        assertThat(imp.getVideo()).isEqualTo(Video.builder().build());
-                        assertThat(imp.getAudio()).isEqualTo(Audio.builder().build());
-                        assertThat(imp.getSsai()).isNull();
-                        assertThat(imp.getRefresh()).isNull();
-                        assertThat(imp.getQty()).isNull();
-                        assertThat(imp.getDt()).isNull();
-                    });
-
-            assertThat(request.getSite()).isEqualTo(Site.builder().build());
-            assertThat(request.getApp()).isEqualTo(App.builder().build());
-            assertThat(request.getDevice()).isEqualTo(Device.builder().build());
-            assertThat(request.getUser()).isEqualTo(User.builder().build());
-            assertThat(request.getWlangb()).isNull();
-            assertThat(request.getCattax()).isNull();
-        });
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer) {

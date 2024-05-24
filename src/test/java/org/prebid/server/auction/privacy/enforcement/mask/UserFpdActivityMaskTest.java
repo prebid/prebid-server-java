@@ -35,10 +35,10 @@ public class UserFpdActivityMaskTest {
         final User user = User.builder().build();
 
         // when
-        target.maskUser(user, true, false, false);
+        target.maskUser(user, true, false);
 
         // then
-        verify(userFpdTcfMask).maskUser(same(user), eq(true), eq(false), eq(false), eq(emptySet()));
+        verify(userFpdTcfMask).maskUser(same(user), eq(true), eq(false), eq(emptySet()));
     }
 
     @Test
@@ -47,22 +47,10 @@ public class UserFpdActivityMaskTest {
         final User user = User.builder().build();
 
         // when
-        target.maskUser(user, false, true, false);
+        target.maskUser(user, false, true);
 
         // then
-        verify(userFpdTcfMask).maskUser(same(user), eq(false), eq(true), eq(false), eq(emptySet()));
-    }
-
-    @Test
-    public void maskUserShouldProperlyDelegateGeoParameter() {
-        // given
-        final User user = User.builder().build();
-
-        // when
-        target.maskUser(user, false, false, true);
-
-        // then
-        verify(userFpdTcfMask).maskUser(same(user), eq(false), eq(false), eq(true), eq(emptySet()));
+        verify(userFpdTcfMask).maskUser(same(user), eq(false), eq(true), eq(emptySet()));
     }
 
     @Test

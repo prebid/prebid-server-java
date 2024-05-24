@@ -5,6 +5,7 @@ import io.vertx.core.http.HttpClientOptions;
 import lombok.Data;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.GeoLocationServiceWrapper;
+import org.prebid.server.auction.requestfactory.Ortb2ImplicitParametersResolver;
 import org.prebid.server.execution.RemoteFileSyncer;
 import org.prebid.server.execution.retry.FixedIntervalRetryPolicy;
 import org.prebid.server.geolocation.CircuitBreakerSecuredGeoLocationService;
@@ -81,12 +82,14 @@ public class GeoLocationConfiguration {
         }
 
         private GeoLocationService createGeoLocationService(RemoteFileSyncerProperties properties, Vertx vertx) {
+            final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
             final HttpClientProperties httpClientProperties = properties.getHttpClient();
             final HttpClientOptions httpClientOptions = new HttpClientOptions()
                     .setConnectTimeout(httpClientProperties.getConnectTimeoutMs())
                     .setMaxRedirects(httpClientProperties.getMaxRedirects());
 
             final RemoteFileSyncer remoteFileSyncer = new RemoteFileSyncer(
+                    maxMindGeoLocationService,
                     properties.getDownloadUrl(),
                     properties.getSaveFilepath(),
                     properties.getTmpFilepath(),
@@ -95,9 +98,8 @@ public class GeoLocationConfiguration {
                     properties.getUpdateIntervalMs(),
                     vertx.createHttpClient(httpClientOptions),
                     vertx);
-            final MaxMindGeoLocationService maxMindGeoLocationService = new MaxMindGeoLocationService();
 
-            remoteFileSyncer.sync(maxMindGeoLocationService);
+            remoteFileSyncer.sync();
             return maxMindGeoLocationService;
         }
     }
@@ -201,9 +203,13 @@ public class GeoLocationConfiguration {
     @Bean
     GeoLocationServiceWrapper geoLocationServiceWrapper(
             @Autowired(required = false) GeoLocationService geoLocationService,
+            Ortb2ImplicitParametersResolver implicitParametersResolver,
             Metrics metrics) {
 
-        return new GeoLocationServiceWrapper(geoLocationService, metrics);
+        return new GeoLocationServiceWrapper(
+                geoLocationService,
+                implicitParametersResolver,
+                metrics);
     }
 
 }

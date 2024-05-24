@@ -8,12 +8,10 @@ import io.restassured.response.Response
 import io.restassured.specification.RequestSpecification
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.BidderName
-import org.prebid.server.functional.model.deals.report.LineItemStatusReport
 import org.prebid.server.functional.model.mock.services.prebidcache.response.PrebidCacheResponse
 import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.cookiesync.CookieSyncRequest
-import org.prebid.server.functional.model.request.dealsupdate.ForceDealsUpdateRequest
 import org.prebid.server.functional.model.request.event.EventRequest
 import org.prebid.server.functional.model.request.logging.httpinteraction.HttpInteractionRequest
 import org.prebid.server.functional.model.request.setuid.SetuidRequest
@@ -58,8 +56,6 @@ class PrebidServerService implements ObjectMapperWrapper {
     static final String CURRENCY_RATES_ENDPOINT = "/currency/rates"
     static final String HTTP_INTERACTION_ENDPOINT = "/logging/httpinteraction"
     static final String COLLECTED_METRICS_ENDPOINT = "/collected-metrics"
-    static final String FORCE_DEALS_UPDATE_ENDPOINT = "/pbs-admin/force-deals-update"
-    static final String LINE_ITEM_STATUS_ENDPOINT = "/pbs-admin/lineitem-status"
     static final String PROMETHEUS_METRICS_ENDPOINT = "/metrics"
     static final String UIDS_COOKIE_NAME = "uids"
 
@@ -274,25 +270,6 @@ class PrebidServerService implements ObjectMapperWrapper {
         decode(response.asString(), new TypeReference<Map<String, Number>>() {})
     }
 
-    void sendForceDealsUpdateRequest(ForceDealsUpdateRequest forceDealsUpdateRequest) {
-        def response = given(adminRequestSpecification).queryParams(toMap(forceDealsUpdateRequest))
-                                                       .get(FORCE_DEALS_UPDATE_ENDPOINT)
-
-        checkResponseStatusCode(response, 204)
-    }
-
-    LineItemStatusReport sendLineItemStatusRequest(String lineItemId) {
-        def request = given(adminRequestSpecification)
-        if (lineItemId != null) {
-            request.queryParam("id", lineItemId)
-        }
-
-        def response = request.get(LINE_ITEM_STATUS_ENDPOINT)
-
-        checkResponseStatusCode(response)
-        decode(response.body.asString(), LineItemStatusReport)
-    }
-
     String sendPrometheusMetricsRequest() {
         def response = given(prometheusRequestSpecification).get(PROMETHEUS_METRICS_ENDPOINT)
 
@@ -384,7 +361,7 @@ class PrebidServerService implements ObjectMapperWrapper {
         if (testEnd.isBefore(testStart)) {
             throw new IllegalArgumentException("The end time of the test is less than the start time")
         }
-        def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        def formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss")
                                          .withZone(ZoneId.from(UTC))
         def logs = Arrays.asList(pbsContainer.logs.split("\n"))
         def filteredLogs = []

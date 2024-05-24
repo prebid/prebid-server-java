@@ -26,8 +26,8 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.exception.BlacklistedAccountException;
-import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.BlocklistedAccountException;
+import org.prebid.server.exception.BlocklistedAppException;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -238,19 +238,19 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithServiceUnavailableIfBidRequestHasAccountBlacklisted() {
+    public void shouldRespondWithServiceUnavailableIfBidRequestHasAccountBlocklisted() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new BlacklistedAccountException("Blacklisted account")));
+                .willReturn(Future.failedFuture(new BlocklistedAccountException("Blocklisted account")));
 
         // when
         auctionHandler.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(403));
-        verify(httpResponse).end(eq("Blacklisted: Blacklisted account"));
+        verify(httpResponse).end(eq("Blocklisted: Blocklisted account"));
 
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_account));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blocklisted_account));
     }
 
     @Test
@@ -270,19 +270,19 @@ public class AuctionHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithServiceUnavailableIfBidRequestHasAppBlacklisted() {
+    public void shouldRespondWithServiceUnavailableIfBidRequestHasAppBlocklisted() {
         // given
         given(auctionRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new BlacklistedAppException("Blacklisted app")));
+                .willReturn(Future.failedFuture(new BlocklistedAppException("Blocklisted app")));
 
         // when
         auctionHandler.handle(routingContext);
 
         // then
         verify(httpResponse).setStatusCode(eq(403));
-        verify(httpResponse).end(eq("Blacklisted: Blacklisted app"));
+        verify(httpResponse).end(eq("Blocklisted: Blocklisted app"));
 
-        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blacklisted_app));
+        verify(metrics).updateRequestTypeMetric(eq(MetricName.openrtb2web), eq(MetricName.blocklisted_app));
     }
 
     @Test
@@ -395,8 +395,7 @@ public class AuctionHandlerTest extends VertxTest {
 
         final BidResponse bidResponse = BidResponse.builder()
                 .ext(ExtBidResponse.builder()
-                        .debug(ExtResponseDebug.of(null, resolvedRequest,
-                                null, null))
+                        .debug(ExtResponseDebug.of(null, resolvedRequest, null))
                         .build())
                 .build();
         final AuctionContext auctionContext = AuctionContext.builder()
