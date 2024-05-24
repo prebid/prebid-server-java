@@ -100,8 +100,6 @@ public class TheadxBidder implements Bidder<BidRequest> {
         headers.set(HttpUtil.X_OPENRTB_VERSION_HEADER, OPENRTB_VERSION);
         headers.set(X_TEST_HEADER, X_TEST);
 
-        final Optional<Device> optionalDevice = Optional.ofNullable(device);
-
         if (device != null) {
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, X_DEVICE_USER_AGENT_HEADER, device.getUa());
             HttpUtil.addHeaderIfValueIsNotEmpty(headers, X_REAL_IP_HEADER, device.getIpv6());
