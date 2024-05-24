@@ -355,7 +355,7 @@ public class AnalyticsReporterDelegatorTest {
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_EIDS), any())).willReturn(false);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).willReturn(false);
 
-        given(userFpdActivityMask.maskUser(any(), eq(true), eq(true), eq(true)))
+        given(userFpdActivityMask.maskUser(any(), eq(true), eq(true)))
                 .willReturn(User.builder().id("masked").build());
         given(userFpdActivityMask.maskDevice(any(), eq(true), eq(true)))
                 .willReturn(Device.builder().model("masked").build());

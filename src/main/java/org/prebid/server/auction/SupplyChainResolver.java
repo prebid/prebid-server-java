@@ -4,13 +4,13 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.SupplyChainNode;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebidSchain;
@@ -72,7 +72,7 @@ public class SupplyChainResolver {
         }
 
         if (existingSchain != null) {
-            logger.debug("Schain bidder {0} is rejected since it was defined more than once", bidder);
+            logger.debug("Schain bidder {} is rejected since it was defined more than once", bidder);
             return null;
         }
 

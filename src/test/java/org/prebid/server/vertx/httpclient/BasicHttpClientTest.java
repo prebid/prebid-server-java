@@ -1,13 +1,13 @@
 package org.prebid.server.vertx.httpclient;
 
 import io.vertx.core.Future;
-import io.vertx.core.Handler;
 import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.http.HttpClientResponse;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
@@ -15,14 +15,15 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.CountDownLatch;
@@ -30,11 +31,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 @RunWith(VertxUnitRunner.class)
@@ -56,45 +56,41 @@ public class BasicHttpClientTest {
 
     @Before
     public void setUp() {
-        given(wrappedHttpClient.requestAbs(any(), any())).willReturn(httpClientRequest);
-
-        given(httpClientRequest.setFollowRedirects(anyBoolean())).willReturn(httpClientRequest);
-        given(httpClientRequest.handler(any())).willReturn(httpClientRequest);
-        given(httpClientRequest.exceptionHandler(any())).willReturn(httpClientRequest);
-        given(httpClientRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());
-
-        given(httpClientResponse.bodyHandler(any())).willReturn(httpClientResponse);
-        given(httpClientResponse.exceptionHandler(any())).willReturn(httpClientResponse);
+        given(wrappedHttpClient.request(any())).willReturn(Future.succeededFuture(httpClientRequest));
+        given(httpClientRequest.send()).willReturn(Future.succeededFuture(httpClientResponse));
+        given(httpClientRequest.send(any(Buffer.class))).willReturn(Future.succeededFuture(httpClientResponse));
 
         httpClient = new BasicHttpClient(vertx, wrappedHttpClient);
     }
 
     @Test
     public void requestShouldPerformHttpRequestWithExpectedParams() {
-        // given
-        final MultiMap headers = mock(MultiMap.class);
-        given(httpClientRequest.headers()).willReturn(headers);
-
-        // when
-        httpClient.request(HttpMethod.POST, "url", headers, "body", 500L);
+        // given and when
+        httpClient.request(HttpMethod.POST, "http://www.example.com", MultiMap.caseInsensitiveMultiMap(), "body", 500L);
 
         // then
-        verify(wrappedHttpClient).requestAbs(eq(HttpMethod.POST), eq("url"));
-        verify(httpClientRequest.headers()).addAll(eq(headers));
-        verify(httpClientRequest).end(eq("body"));
+        final ArgumentCaptor<RequestOptions> requestOptionsArgumentCaptor =
+                ArgumentCaptor.forClass(RequestOptions.class);
+        verify(wrappedHttpClient).request(requestOptionsArgumentCaptor.capture());
+
+        final RequestOptions expectedRequestOptions = new RequestOptions()
+                .setFollowRedirects(true)
+                .setConnectTimeout(500L)
+                .setMethod(HttpMethod.POST)
+                .setAbsoluteURI("http://www.example.com")
+                .setHeaders(MultiMap.caseInsensitiveMultiMap());
+        assertThat(requestOptionsArgumentCaptor.getValue().toJson()).isEqualTo(expectedRequestOptions.toJson());
+
+        verify(httpClientRequest).send(eq(Buffer.buffer("body".getBytes())));
     }
 
     @Test
     public void requestShouldSucceedIfHttpRequestSucceeds() {
         // given
-        given(httpClientRequest.handler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(httpClientResponse));
-
-        given(httpClientResponse.bodyHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(Buffer.buffer("response")));
+        given(httpClientResponse.body()).willReturn(Future.succeededFuture(Buffer.buffer("response")));
 
         // when
-        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, (String) null, 1L);
+        final Future<?> future = httpClient.request(HttpMethod.GET, "http://www.example.com", null, (String) null, 1L);
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -102,34 +98,34 @@ public class BasicHttpClientTest {
 
     @Test
     public void requestShouldAllowFollowingRedirections() {
-        // when
-        httpClient.request(HttpMethod.GET, null, null, (String) null, 1L);
+        // given and when
+        httpClient.request(HttpMethod.POST, "http://www.example.com", MultiMap.caseInsensitiveMultiMap(), "body", 500L);
 
         // then
-        verify(httpClientRequest).setFollowRedirects(true);
+        final ArgumentCaptor<RequestOptions> requestOptionsArgumentCaptor =
+                ArgumentCaptor.forClass(RequestOptions.class);
+        verify(wrappedHttpClient).request(requestOptionsArgumentCaptor.capture());
+        assertTrue(requestOptionsArgumentCaptor.getValue().getFollowRedirects());
     }
 
     @Test
     public void requestShouldFailIfInvalidUrlPassed() {
-        // given
-        given(wrappedHttpClient.requestAbs(any(), any())).willThrow(new RuntimeException("error"));
-
-        // when
+        // given and when
         final Future<?> future = httpClient.request(HttpMethod.GET, null, null, (String) null, 1L);
 
         // then
         assertThat(future.failed()).isTrue();
-        assertThat(future.cause()).hasMessage("error");
+        assertThat(future.cause()).isInstanceOf(MalformedURLException.class);
     }
 
     @Test
     public void requestShouldFailIfHttpRequestFails() {
         // given
-        given(httpClientRequest.exceptionHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Request exception")));
+        given(wrappedHttpClient.request(any()))
+                .willReturn(Future.failedFuture("Request exception"));
 
         // when
-        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, (String) null, 1L);
+        final Future<?> future = httpClient.request(HttpMethod.GET, "http://www.example.com", null, (String) null, 1L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -139,14 +135,11 @@ public class BasicHttpClientTest {
     @Test
     public void requestShouldFailIfHttpResponseFails() {
         // given
-        given(httpClientRequest.handler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(httpClientResponse));
-
-        given(httpClientResponse.exceptionHandler(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(new RuntimeException("Response exception")));
+        given(wrappedHttpClient.request(any()))
+                .willReturn(Future.failedFuture("Response exception"));
 
         // when
-        final Future<?> future = httpClient.request(HttpMethod.GET, null, null, (String) null, 1L);
+        final Future<?> future = httpClient.request(HttpMethod.GET, "http://example.coom", null, (String) null, 1L);
 
         // then
         assertThat(future.failed()).isTrue();
@@ -253,14 +246,5 @@ public class BasicHttpClientTest {
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> Answer<Object> withSelfAndPassObjectToHandler(T obj) {
-        return inv -> {
-            // invoking handler right away passing mock to it
-            ((Handler<T>) inv.getArgument(0)).handle(obj);
-            return inv.getMock();
-        };
     }
 }

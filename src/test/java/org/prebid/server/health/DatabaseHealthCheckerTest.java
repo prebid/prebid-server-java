@@ -3,15 +3,13 @@ package org.prebid.server.health;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.ext.jdbc.JDBCClient;
-import io.vertx.ext.sql.SQLClient;
+import io.vertx.sqlclient.Pool;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.mockito.stubbing.Answer;
 import org.prebid.server.health.model.StatusResponse;
 
 import java.time.Clock;
@@ -38,50 +36,47 @@ public class DatabaseHealthCheckerTest {
     @Mock
     private Vertx vertx;
     @Mock
-    private JDBCClient jdbcClient;
-    @Mock
-    private SQLClient sqlClient;
+    private Pool pool;
 
-    private DatabaseHealthChecker databaseHealthCheck;
+    private DatabaseHealthChecker target;
 
     @Before
     public void setUp() {
-        databaseHealthCheck = new DatabaseHealthChecker(vertx, jdbcClient, TEST_REFRESH_PERIOD);
+        target = new DatabaseHealthChecker(vertx, pool, TEST_REFRESH_PERIOD);
     }
 
     @Test
     public void creationShouldFailWithNullArguments() {
-        assertThatNullPointerException().isThrownBy(() -> new DatabaseHealthChecker(null, jdbcClient, 0));
+        assertThatNullPointerException().isThrownBy(() -> new DatabaseHealthChecker(null, pool, 0));
         assertThatNullPointerException().isThrownBy(() -> new DatabaseHealthChecker(vertx, null, TEST_REFRESH_PERIOD));
     }
 
     @Test
     public void creationShouldFailWhenRefreshPeriodIsZeroOrNegative() {
-        assertThatIllegalArgumentException().isThrownBy(() -> new DatabaseHealthChecker(vertx, jdbcClient, 0));
-        assertThatIllegalArgumentException().isThrownBy(() -> new DatabaseHealthChecker(vertx, jdbcClient, -1));
+        assertThatIllegalArgumentException().isThrownBy(() -> new DatabaseHealthChecker(vertx, pool, 0));
+        assertThatIllegalArgumentException().isThrownBy(() -> new DatabaseHealthChecker(vertx, pool, -1));
     }
 
     @Test
     public void getCheckNameShouldReturnExpectedResult() {
-        assertThat(databaseHealthCheck.name()).isEqualTo(DATABASE_CHECK_NAME);
+        assertThat(target.name()).isEqualTo(DATABASE_CHECK_NAME);
     }
 
     @Test
     public void getLastStatusShouldReturnNullStatusIfCheckWasNotInitialized() {
-        assertThat(databaseHealthCheck.status()).isNull();
+        assertThat(target.status()).isNull();
     }
 
     @Test
     public void getLastStatusShouldReturnStatusUpAndLastUpdatedAfterTestTime() {
         // given
-        given(jdbcClient.getConnection(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(0, sqlClient, Future.succeededFuture()));
+        given(pool.getConnection()).willReturn(Future.succeededFuture());
 
         // when
-        databaseHealthCheck.updateStatus();
+        target.updateStatus();
 
         // then
-        final StatusResponse lastStatus = databaseHealthCheck.status();
+        final StatusResponse lastStatus = target.status();
         assertThat(lastStatus.getStatus()).isEqualTo("UP");
         assertThat(lastStatus.getLastUpdated()).isAfter(TEST_TIME_STRING);
     }
@@ -89,14 +84,13 @@ public class DatabaseHealthCheckerTest {
     @Test
     public void getLastStatusShouldReturnStatusDownAndLastUpdatedAfterTestTime() {
         // given
-        given(jdbcClient.getConnection(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(0, sqlClient, Future.failedFuture("fail")));
+        given(pool.getConnection()).willReturn(Future.failedFuture("fail"));
 
         // when
-        databaseHealthCheck.updateStatus();
+        target.updateStatus();
 
         // then
-        final StatusResponse lastStatus = databaseHealthCheck.status();
+        final StatusResponse lastStatus = target.status();
         assertThat(lastStatus.getStatus()).isEqualTo("DOWN");
         assertThat(lastStatus.getLastUpdated()).isAfter(TEST_TIME_STRING);
     }
@@ -104,26 +98,18 @@ public class DatabaseHealthCheckerTest {
     @Test
     public void initializeShouldMakeOneInitialRequestAndTwoScheduledRequests() {
         // given
-        given(vertx.setPeriodic(anyLong(), any()))
-                .willAnswer(withSelfAndPassObjectToHandler(1, 0L, 1L, 2L));
-        given(jdbcClient.getConnection(any()))
-                .willAnswer(withSelfAndPassObjectToHandler(0, sqlClient, Future.succeededFuture()));
+        given(vertx.setPeriodic(anyLong(), any())).willAnswer(inv -> {
+            final Handler<Long> handler = inv.getArgument(1);
+            handler.handle(1L);
+            handler.handle(2L);
+            return 0L;
+        });
+        given(pool.getConnection()).willReturn(Future.succeededFuture());
 
         // when
-        databaseHealthCheck.initialize();
+        target.initialize();
 
         // then
-        verify(jdbcClient, times(3)).getConnection(any());
-    }
-
-    @SuppressWarnings("unchecked")
-    private <T> Answer<Object> withSelfAndPassObjectToHandler(int arg, Object result, T... objects) {
-        return inv -> {
-            // invoking handler right away passing mock to it
-            for (T obj : objects) {
-                ((Handler<T>) inv.getArgument(arg)).handle(obj);
-            }
-            return result;
-        };
+        verify(pool, times(3)).getConnection();
     }
 }

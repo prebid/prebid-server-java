@@ -7,7 +7,7 @@ class Openx implements BidderAdapter {
     String unit
     String delDomain
     String platform
-    Integer customFloor
+    String customFloor
     Map<String, Map> customParams
 
     static Openx getDefaultOpenx() {

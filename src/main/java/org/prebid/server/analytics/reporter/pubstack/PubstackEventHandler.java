@@ -7,11 +7,11 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -118,7 +118,7 @@ public class PubstackEventHandler {
                     sendEvents(events);
                 }
             } catch (Exception exception) {
-                logger.error("[pubstack] Failed to send analytics report to endpoint {0} with a reason {1}",
+                logger.error("[pubstack] Failed to send analytics report to endpoint {} with a reason {}",
                         endpoint, exception.getMessage());
             } finally {
                 lockOnSend.unlock();
@@ -163,13 +163,13 @@ public class PubstackEventHandler {
 
     private void handleReportResponse(AsyncResult<HttpClientResponse> result) {
         if (result.failed()) {
-            logger.error("[pubstack] Failed to send events to endpoint {0} with a reason: {1}",
+            logger.error("[pubstack] Failed to send events to endpoint {} with a reason: {}",
                     endpoint, result.cause().getMessage());
         } else {
             final HttpClientResponse httpClientResponse = result.result();
             final int statusCode = httpClientResponse.getStatusCode();
             if (statusCode != HttpResponseStatus.OK.code()) {
-                logger.error("[pubstack] Wrong code received {0} instead of 200", statusCode);
+                logger.error("[pubstack] Wrong code received {} instead of 200", statusCode);
             }
         }
     }

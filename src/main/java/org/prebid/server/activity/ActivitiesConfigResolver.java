@@ -1,7 +1,7 @@
 package org.prebid.server.activity;
 
-import io.vertx.core.logging.LoggerFactory;
 import org.prebid.server.log.ConditionalLogger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
