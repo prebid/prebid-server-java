@@ -40,6 +40,7 @@ import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -94,32 +95,45 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final String billingId = UUID.randomUUID().toString();
 
         final Boolean isSampled = isSampled(greenbidsAnalyticsProperties.getGreenbidsSampling(), greenbidsId);
-        if (isSampled) {
-            final CommonMessage commonMessage = createBidMessage(
-                    auctionContext,
-                    bidResponse,
-                    greenbidsId,
-                    billingId);
 
-            try {
-                final String commonMessageJson = jacksonMapper.encodeToString(commonMessage);
-
-                final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
-                        .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                        .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
-
-                httpClient.post(
-                        greenbidsAnalyticsProperties.getAnalyticsServer(),
-                        headers,
-                        commonMessageJson,
-                        greenbidsAnalyticsProperties.getTimeoutMs());
-
-            } catch (EncodeException e) {
-                return Future.failedFuture("Failed to encode as JSON: " + e.getMessage());
-            }
+        if (!isSampled) {
+            return Future.succeededFuture();
         }
 
-        return Future.succeededFuture();
+        final CommonMessage commonMessage = createBidMessage(
+                auctionContext,
+                bidResponse,
+                greenbidsId,
+                billingId);
+
+        try {
+            final String commonMessageJson = jacksonMapper.encodeToString(commonMessage);
+
+            final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
+                    .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON)
+                    .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+
+
+            Future<HttpClientResponse> responseFuture = httpClient.post(
+                    greenbidsAnalyticsProperties.getAnalyticsServer(),
+                    headers,
+                    commonMessageJson,
+                    greenbidsAnalyticsProperties.getTimeoutMs());
+
+            return responseFuture.compose(response -> {
+                final int responseStatusCode = response.getStatusCode();
+                if (responseStatusCode == 202 || responseStatusCode == 200) {
+                    return Future.succeededFuture();
+                } else {
+                    return Future.failedFuture(
+                            "Unexpected response status: " + response.getStatusCode());
+                }
+            });
+
+        } catch (EncodeException e) {
+            return Future.failedFuture("Failed to encode as JSON: " + e.getMessage());
+        }
+
     }
 
     private Boolean isSampled(double samplingRate, String greenbidsId) {
@@ -140,7 +154,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 || hashInt >= (1 - throttledSamplingRate) * RANGE_16_BIT_INTEGER_DIVISION_BASIS;
     }
 
-    public CommonMessage createBidMessage(
+    private CommonMessage createBidMessage(
             AuctionContext auctionContext,
             BidResponse bidResponse,
             String greenbidsId,

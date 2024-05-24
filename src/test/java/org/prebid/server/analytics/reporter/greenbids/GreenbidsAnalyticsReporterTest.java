@@ -9,13 +9,16 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.vertx.core.Future;
+import io.vertx.core.MultiMap;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.prebid.server.analytics.reporter.greenbids.model.AdUnit;
-import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
+import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
@@ -24,34 +27,32 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.Set;
-import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class GreenbidsAnalyticsReporterTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    ObjectMapper mapper = ObjectMapperProvider.mapper();
-
-    JacksonMapper jacksonMapper = new JacksonMapper(mapper);
-
     @Mock
     private HttpClient httpClient;
 
-    GreenbidsAnalyticsProperties greenbidsAnalyticsProperties = GreenbidsAnalyticsProperties.builder()
-            .pbuid("pbuid1")
-            .greenbidsSampling(1.0)
-            .exploratorySamplingSplit(0.9)
-            .configurationRefreshDelayMs(10000L)
-            .timeoutMs(100000L)
-            .build();
+    GreenbidsAnalyticsReporter greenbidsAnalyticsReporter;
+
+    AuctionEvent event;
 
     public static AuctionContext setupAuctionContext() {
         // bid request
@@ -116,7 +117,7 @@ public class GreenbidsAnalyticsReporterTest {
                 .build();
     }
 
-    public static AuctionContext setupAuctionContextWithNoAdUnit() {
+    public static AuctionContext setUpAuctionContextWithNoAdUnit() {
         // bid request
         final Site site = Site.builder()
                 .domain("www.leparisien.fr")
@@ -133,65 +134,68 @@ public class GreenbidsAnalyticsReporterTest {
                 .build();
     }
 
-    @Test
-    public void shouldThrowExceptionWhenAdUnitsListIsEmpty() {
-        // given
-        final AuctionContext auctionContext = setupAuctionContextWithNoAdUnit();
-        final String greenbidsId = UUID.randomUUID().toString();
-        final String billingId = UUID.randomUUID().toString();
-        final String fingerprint = UUID.randomUUID().toString();
-        final String tid = UUID.randomUUID().toString();
+    @Before
+    public void setUp() {
+        MockitoAnnotations.initMocks(this);
 
-        // when
-        final GreenbidsAnalyticsReporter greenbidsAnalyticsReporter = new GreenbidsAnalyticsReporter(
+        final ObjectMapper mapper = ObjectMapperProvider.mapper();
+
+        final JacksonMapper jacksonMapper = new JacksonMapper(mapper);
+
+        final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties = GreenbidsAnalyticsProperties.builder()
+                .pbuid("pbuid1")
+                .greenbidsSampling(1.0)
+                .exploratorySamplingSplit(0.9)
+                .analyticsServerVersion("2.2.0")
+                .analyticsServer("http://localhost:8080")
+                .configurationRefreshDelayMs(10000L)
+                .timeoutMs(100000L)
+                .build();
+
+        greenbidsAnalyticsReporter = new GreenbidsAnalyticsReporter(
                 greenbidsAnalyticsProperties,
                 jacksonMapper,
                 httpClient);
-
-        // then
-        assertThatThrownBy(() -> greenbidsAnalyticsReporter.createBidMessage(
-                                auctionContext,
-                                auctionContext.getBidResponse(),
-                                greenbidsId,
-                                billingId))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("AdUnits list should not be empty");
     }
 
     @Test
-    public void shouldConstructValidCommonMessage() {
+    public void shouldReceiveValidResponseOnAuctionContext() {
         // given
         final AuctionContext auctionContext = setupAuctionContext();
-        final String greenbidsId = UUID.randomUUID().toString();
-        final String billingId = UUID.randomUUID().toString();
-        final String fingerprint = UUID.randomUUID().toString();
-        final String tid = UUID.randomUUID().toString();
+        event = AuctionEvent.builder()
+                .auctionContext(auctionContext)
+                .bidResponse(auctionContext.getBidResponse())
+                .build();
+
+        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+        when(mockResponse.getStatusCode()).thenReturn(202);
+        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
+                .thenReturn(Future.succeededFuture(mockResponse));
 
         // when
-        final GreenbidsAnalyticsReporter greenbidsAnalyticsReporter = new GreenbidsAnalyticsReporter(
-                greenbidsAnalyticsProperties,
-                jacksonMapper,
-                httpClient);
-
-        final CommonMessage commonMessage = greenbidsAnalyticsReporter.createBidMessage(
-                        auctionContext,
-                        auctionContext.getBidResponse(),
-                        greenbidsId,
-                        billingId);
+        final Future<Void> result = greenbidsAnalyticsReporter.processEvent(event);
 
         // then
-        assertThat(commonMessage).isNotNull();
-        assertThat(commonMessage).hasFieldOrPropertyWithValue("pbuid", "pbuid1");
+        assertTrue(result.succeeded());
+        verify(httpClient).post(anyString(), any(MultiMap.class), anyString(), anyLong());
+        verify(mockResponse).getStatusCode();
+    }
 
-        for (AdUnit adUnit : commonMessage.getAdUnits()) {
-            assert adUnit.getBids() != null;
-            final boolean hasSeatWithBid = adUnit.getBids().stream()
-                    .anyMatch(bidder -> Boolean.TRUE.equals(bidder.getHasBid()));
-            final boolean hasSeatWithNonBid = adUnit.getBids().stream()
-                    .anyMatch(bidder -> Boolean.FALSE.equals(bidder.getHasBid()));
+    @Test
+    public void shouldThrowExceptionWhenAdUnitsListIsEmpty() {
+        // given
+        final AuctionContext auctionContext = setUpAuctionContextWithNoAdUnit();
+        event = AuctionEvent.builder()
+                .auctionContext(auctionContext)
+                .bidResponse(auctionContext.getBidResponse())
+                .build();
 
-            assertThat(hasSeatWithBid).isTrue();
-            assertThat(hasSeatWithNonBid).isTrue();
+        // when
+        try {
+            greenbidsAnalyticsReporter.processEvent(event);
+        } catch (IllegalArgumentException e) {
+            // then
+            assertEquals("AdUnits list should not be empty", e.getMessage());
         }
     }
 }
