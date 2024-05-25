@@ -77,7 +77,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .build();
         given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(emptyPrivacy);
 
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final AuctionContext auctionContext = givenAuctionContext(
@@ -101,7 +101,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .build();
         given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(emptyPrivacy);
 
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.builder().warnings(singletonList("Error")).build()));
 
         final AuctionContext auctionContext = givenAuctionContext(
@@ -125,7 +125,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .build();
         given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(privacy);
 
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final AuctionContext auctionContext = givenAuctionContext(
@@ -150,7 +150,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .build();
         given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(privacy);
 
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final AuctionContext auctionContext = givenAuctionContext(
@@ -178,7 +178,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         given(ipAddressHelper.maskIpv4(anyString())).willReturn("maskedIpV4");
         given(ipAddressHelper.anonymizeIpv6(anyString())).willReturn("maskedIpV6");
 
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final BidRequest bidRequest = givenBidRequest(request -> request.device(Device.builder().ip("ip").build()));
@@ -207,7 +207,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         given(ipAddressHelper.maskIpv4(anyString())).willReturn("maskedIpV4");
         given(ipAddressHelper.anonymizeIpv6(anyString())).willReturn("maskedIpV6");
 
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final BidRequest bidRequest = givenBidRequest(request -> request.device(Device.builder().ipv6("ipV6").build()));
@@ -233,7 +233,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
                 .build();
         given(privacyExtractor.validPrivacyFrom(any(), any())).willReturn(privacy);
 
-        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any()))
+        given(tcfDefinerService.resolveTcfContext(any(), any(), any(), any(), any(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(TcfContext.empty()));
 
         final BidRequest bidRequest = givenBidRequest(request -> request.site(Site.builder().ref("refUrl").build()));
@@ -248,7 +248,7 @@ public class AmpPrivacyContextFactoryTest extends VertxTest {
         // then
         final RequestLogInfo expectedRequestLogInfo = RequestLogInfo.of(MetricName.openrtb2web, "refUrl", null);
         verify(tcfDefinerService)
-                .resolveTcfContext(any(), any(), any(), any(), any(), eq(expectedRequestLogInfo), any());
+                .resolveTcfContext(any(), any(), any(), any(), any(), eq(expectedRequestLogInfo), any(), any());
     }
 
     private static AuctionContext givenAuctionContext(

@@ -15,8 +15,6 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.Source;
 import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.SetUtils;
@@ -35,12 +33,14 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.Endpoint;
 import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.SecBrowsingTopic;
-import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.BlocklistedAppException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.identity.IdGenerator;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.JsonMerger;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -91,7 +91,7 @@ public class Ortb2ImplicitParametersResolver {
     private final boolean shouldCacheOnlyWinningBids;
     private final boolean generateBidRequestId;
     private final String adServerCurrency;
-    private final List<String> blacklistedApps;
+    private final List<String> blocklistedApps;
     private final ExtRequestPrebidServer serverInfo;
     private final ImplicitParametersExtractor paramsExtractor;
     private final TimeoutResolver timeoutResolver;
@@ -104,7 +104,7 @@ public class Ortb2ImplicitParametersResolver {
     public Ortb2ImplicitParametersResolver(boolean shouldCacheOnlyWinningBids,
                                            boolean generateBidRequestId,
                                            String adServerCurrency,
-                                           List<String> blacklistedApps,
+                                           List<String> blocklistedApps,
                                            String externalUrl,
                                            Integer hostVendorId,
                                            String datacenterRegion,
@@ -119,7 +119,7 @@ public class Ortb2ImplicitParametersResolver {
         this.shouldCacheOnlyWinningBids = shouldCacheOnlyWinningBids;
         this.generateBidRequestId = generateBidRequestId;
         this.adServerCurrency = validateCurrency(Objects.requireNonNull(adServerCurrency));
-        this.blacklistedApps = Objects.requireNonNull(blacklistedApps);
+        this.blocklistedApps = Objects.requireNonNull(blocklistedApps);
         this.serverInfo = ExtRequestPrebidServer.of(externalUrl, hostVendorId, datacenterRegion, null);
         this.paramsExtractor = Objects.requireNonNull(paramsExtractor);
         this.timeoutResolver = Objects.requireNonNull(timeoutResolver);
@@ -153,7 +153,7 @@ public class Ortb2ImplicitParametersResolver {
                               String endpoint,
                               boolean hasStoredBidRequest) {
 
-        checkBlacklistedApp(bidRequest);
+        checkBlocklistedApp(bidRequest);
 
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
@@ -211,12 +211,12 @@ public class Ortb2ImplicitParametersResolver {
         return !IMP_EXT_NON_BIDDER_FIELDS.contains(field);
     }
 
-    private void checkBlacklistedApp(BidRequest bidRequest) {
+    private void checkBlocklistedApp(BidRequest bidRequest) {
         final App app = bidRequest.getApp();
         final String appId = app != null ? app.getId() : null;
 
-        if (StringUtils.isNotBlank(appId) && blacklistedApps.contains(appId)) {
-            throw new BlacklistedAppException(
+        if (StringUtils.isNotBlank(appId) && blocklistedApps.contains(appId)) {
+            throw new BlocklistedAppException(
                     "Prebid-server does not process requests from App ID: " + appId);
         }
     }
@@ -284,7 +284,7 @@ public class Ortb2ImplicitParametersResolver {
         return ipAddress != null && ipAddress.getVersion() == version ? ipAddress.getIp() : null;
     }
 
-    private IpAddress findIpFromRequest(HttpRequestContext request) {
+    public IpAddress findIpFromRequest(HttpRequestContext request) {
         final CaseInsensitiveMultiMap headers = request.getHeaders();
         final String remoteHost = request.getRemoteHost();
         final List<String> requestIps = paramsExtractor.ipFrom(headers, remoteHost);
@@ -440,7 +440,7 @@ public class Ortb2ImplicitParametersResolver {
         try {
             return paramsExtractor.domainFrom(url);
         } catch (PreBidException e) {
-            logger.warn("Error occurred while populating bid request: {0}", e.getMessage());
+            logger.warn("Error occurred while populating bid request: {}", e.getMessage());
             return null;
         }
     }

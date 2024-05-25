@@ -9,6 +9,7 @@
       },
       "ext": {
         "bizzclick": {
+          "host": "host",
           "accountId": "accountId",
           "placementId": "placementId"
         }

@@ -1,9 +1,7 @@
 package org.prebid.server.health;
 
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.ext.jdbc.JDBCClient;
-import io.vertx.ext.sql.SQLConnection;
+import io.vertx.sqlclient.Pool;
 import org.prebid.server.health.model.Status;
 import org.prebid.server.health.model.StatusResponse;
 
@@ -15,13 +13,13 @@ public class DatabaseHealthChecker extends PeriodicHealthChecker {
 
     private static final String NAME = "database";
 
-    private final JDBCClient jdbcClient;
+    private final Pool pool;
 
     private StatusResponse status;
 
-    public DatabaseHealthChecker(Vertx vertx, JDBCClient jdbcClient, long refreshPeriod) {
+    public DatabaseHealthChecker(Vertx vertx, Pool pool, long refreshPeriod) {
         super(vertx, refreshPeriod);
-        this.jdbcClient = Objects.requireNonNull(jdbcClient);
+        this.pool = Objects.requireNonNull(pool);
     }
 
     @Override
@@ -36,9 +34,7 @@ public class DatabaseHealthChecker extends PeriodicHealthChecker {
 
     @Override
     void updateStatus() {
-        final Promise<SQLConnection> connectionPromise = Promise.promise();
-        jdbcClient.getConnection(connectionPromise);
-        connectionPromise.future().onComplete(result ->
+        pool.getConnection().onComplete(result ->
                 status = StatusResponse.of(
                         result.succeeded() ? Status.UP.name() : Status.DOWN.name(),
                         ZonedDateTime.now(Clock.systemUTC())));

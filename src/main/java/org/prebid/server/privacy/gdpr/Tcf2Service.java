@@ -100,21 +100,23 @@ public class Tcf2Service {
                                                                         AccountGdprConfig accountGdprConfig) {
 
         final Purposes mergedPurposes = mergeAccountPurposes(accountGdprConfig);
+        final PurposeOneTreatmentInterpretation mergedPurposeOneTreatmentInterpretation =
+                mergePurposeOneTreatmentInterpretation(accountGdprConfig);
+
         final VendorPermissionsByType<VendorPermission> vendorPermissionsByType =
                 toVendorPermissionsByType(vendorPermissions, accountGdprConfig);
 
-        // TODO: always merge account config for purpose1 with next major release
         return versionedVendorListService.forConsent(tcfConsent)
                 .compose(vendorGvlPermissions -> processSupportedPurposeStrategies(
                                 tcfConsent,
                                 wrapWithGVL(vendorPermissionsByType, vendorGvlPermissions),
                                 mergedPurposes,
-                                purposeOneTreatmentInterpretation),
+                                mergedPurposeOneTreatmentInterpretation),
                         ignored -> processDowngradedSupportedPurposeStrategies(
                                 tcfConsent,
                                 wrapWithGVL(vendorPermissionsByType, Collections.emptyMap()),
                                 mergedPurposes,
-                                mergePurposeOneTreatmentInterpretation(accountGdprConfig)))
+                                mergedPurposeOneTreatmentInterpretation))
                 .map(ignored -> enforcePurpose4IfRequired(mergedPurposes, vendorPermissionsByType))
                 .map(ignored -> processSupportedSpecialFeatureStrategies(
                         tcfConsent,

@@ -1,7 +1,7 @@
 package org.prebid.server.activity.infrastructure.privacy.usnat.reader;
 
 import com.iab.gpp.encoder.GppModel;
-import com.iab.gpp.encoder.section.UspCtV1;
+import com.iab.gpp.encoder.section.UsCtV1;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -26,13 +26,13 @@ public class USMappedConnecticutGppReaderTest {
     private GppModel gppModel;
 
     @Mock
-    private UspCtV1 uspCtV1;
+    private UsCtV1 usCtV1;
 
     private USMappedConnecticutGppReader gppReader;
 
     @Before
     public void setUp() {
-        given(gppModel.getUspCtV1Section()).willReturn(uspCtV1);
+        given(gppModel.getUsCtV1Section()).willReturn(usCtV1);
 
         gppReader = new USMappedConnecticutGppReader(gppModel);
     }
@@ -40,7 +40,7 @@ public class USMappedConnecticutGppReaderTest {
     @Test
     public void getVersionShouldReturnExpectedResult() {
         // given
-        given(uspCtV1.getVersion()).willReturn(1);
+        given(usCtV1.getVersion()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getVersion()).isEqualTo(1);
@@ -49,7 +49,7 @@ public class USMappedConnecticutGppReaderTest {
     @Test
     public void getGpcShouldReturnExpectedResult() {
         // given
-        given(uspCtV1.getGpc()).willReturn(true);
+        given(usCtV1.getGpc()).willReturn(true);
 
         // when and then
         assertThat(gppReader.getGpc()).isTrue();
@@ -59,13 +59,13 @@ public class USMappedConnecticutGppReaderTest {
     public void getGpcSegmentTypeShouldReturnExpectedResult() {
         // when and then
         assertThat(gppReader.getGpcSegmentType()).isNull();
-        verifyNoInteractions(uspCtV1);
+        verifyNoInteractions(usCtV1);
     }
 
     @Test
     public void getGpcSegmentIncludedShouldReturnExpectedResult() {
         // given
-        given(uspCtV1.getGpcSegmentIncluded()).willReturn(true);
+        given(usCtV1.getGpcSegmentIncluded()).willReturn(true);
 
         // when and then
         assertThat(gppReader.getGpcSegmentIncluded()).isTrue();
@@ -74,7 +74,7 @@ public class USMappedConnecticutGppReaderTest {
     @Test
     public void getSaleOptOutShouldReturnExpectedResult() {
         // given
-        given(uspCtV1.getSaleOptOut()).willReturn(1);
+        given(usCtV1.getSaleOptOut()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getSaleOptOut()).isEqualTo(1);
@@ -83,7 +83,7 @@ public class USMappedConnecticutGppReaderTest {
     @Test
     public void getSaleOptOutNoticeShouldReturnExpectedResult() {
         // given
-        given(uspCtV1.getSaleOptOutNotice()).willReturn(1);
+        given(usCtV1.getSaleOptOutNotice()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getSaleOptOutNotice()).isEqualTo(1);
@@ -92,7 +92,7 @@ public class USMappedConnecticutGppReaderTest {
     @Test
     public void getSharingNoticeShouldReturnExpectedResult() {
         // given
-        given(uspCtV1.getSharingNotice()).willReturn(1);
+        given(usCtV1.getSharingNotice()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getSharingNotice()).isEqualTo(1);
@@ -102,20 +102,20 @@ public class USMappedConnecticutGppReaderTest {
     public void getSharingOptOutShouldReturnExpectedResult() {
         // when and then
         assertThat(gppReader.getSharingOptOut()).isNull();
-        verifyNoInteractions(uspCtV1);
+        verifyNoInteractions(usCtV1);
     }
 
     @Test
     public void getSharingOptOutNoticeShouldReturnExpectedResult() {
         // when and then
         assertThat(gppReader.getSharingOptOutNotice()).isNull();
-        verifyNoInteractions(uspCtV1);
+        verifyNoInteractions(usCtV1);
     }
 
     @Test
     public void getTargetedAdvertisingOptOutShouldReturnExpectedResult() {
         // given
-        given(uspCtV1.getTargetedAdvertisingOptOut()).willReturn(1);
+        given(usCtV1.getTargetedAdvertisingOptOut()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getTargetedAdvertisingOptOut()).isEqualTo(1);
@@ -124,7 +124,7 @@ public class USMappedConnecticutGppReaderTest {
     @Test
     public void getTargetedAdvertisingOptOutNoticeShouldReturnExpectedResult() {
         // given
-        given(uspCtV1.getTargetedAdvertisingOptOutNotice()).willReturn(1);
+        given(usCtV1.getTargetedAdvertisingOptOutNotice()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getTargetedAdvertisingOptOutNotice()).isEqualTo(1);
@@ -134,14 +134,14 @@ public class USMappedConnecticutGppReaderTest {
     public void getSensitiveDataLimitUseNoticeShouldReturnExpectedResult() {
         // when and then
         assertThat(gppReader.getSensitiveDataLimitUseNotice()).isNull();
-        verifyNoInteractions(uspCtV1);
+        verifyNoInteractions(usCtV1);
     }
 
     @Test
     public void getSensitiveDataProcessingShouldReturnExpectedResult() {
         // given
         final List<Integer> data = Collections.emptyList();
-        given(uspCtV1.getSensitiveDataProcessing()).willReturn(data);
+        given(usCtV1.getSensitiveDataProcessing()).willReturn(data);
 
         // when and then
         assertThat(gppReader.getSensitiveDataProcessing()).isSameAs(data);
@@ -151,13 +151,13 @@ public class USMappedConnecticutGppReaderTest {
     public void getSensitiveDataProcessingOptOutNoticeShouldReturnExpectedResult() {
         // when and then
         assertThat(gppReader.getSensitiveDataProcessingOptOutNotice()).isNull();
-        verifyNoInteractions(uspCtV1);
+        verifyNoInteractions(usCtV1);
     }
 
     @Test
     public void getKnownChildSensitiveDataConsentsShouldReturnNonChildResult() {
         // given
-        given(uspCtV1.getKnownChildSensitiveDataConsents()).willReturn(asList(0, 0, 0));
+        given(usCtV1.getKnownChildSensitiveDataConsents()).willReturn(asList(0, 0, 0));
 
         // when and then
         assertThat(gppReader.getKnownChildSensitiveDataConsents()).containsExactly(0, 0);
@@ -166,7 +166,7 @@ public class USMappedConnecticutGppReaderTest {
     @Test
     public void getKnownChildSensitiveDataConsentsShouldReturnMixedChildResult() {
         // given
-        given(uspCtV1.getKnownChildSensitiveDataConsents()).willReturn(asList(null, 2, 2));
+        given(usCtV1.getKnownChildSensitiveDataConsents()).willReturn(asList(null, 2, 2));
 
         // when and then
         assertThat(gppReader.getKnownChildSensitiveDataConsents()).containsExactly(2, 1);
@@ -175,7 +175,7 @@ public class USMappedConnecticutGppReaderTest {
     @Test
     public void getKnownChildSensitiveDataConsentsShouldReturnChildResult() {
         // given
-        given(uspCtV1.getKnownChildSensitiveDataConsents()).willReturn(asList(null, null, null));
+        given(usCtV1.getKnownChildSensitiveDataConsents()).willReturn(asList(null, null, null));
 
         // when and then
         assertThat(gppReader.getKnownChildSensitiveDataConsents()).containsExactly(1, 1);
@@ -185,13 +185,13 @@ public class USMappedConnecticutGppReaderTest {
     public void getPersonalDataConsentsShouldReturnExpectedResult() {
         // when and then
         assertThat(gppReader.getPersonalDataConsents()).isNull();
-        verifyNoInteractions(uspCtV1);
+        verifyNoInteractions(usCtV1);
     }
 
     @Test
     public void getMspaCoveredTransactionShouldReturnExpectedResult() {
         // given
-        given(uspCtV1.getMspaCoveredTransaction()).willReturn(1);
+        given(usCtV1.getMspaCoveredTransaction()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getMspaCoveredTransaction()).isEqualTo(1);
@@ -200,7 +200,7 @@ public class USMappedConnecticutGppReaderTest {
     @Test
     public void getMspaServiceProviderModeShouldReturnExpectedResult() {
         // given
-        given(uspCtV1.getMspaServiceProviderMode()).willReturn(1);
+        given(usCtV1.getMspaServiceProviderMode()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getMspaServiceProviderMode()).isEqualTo(1);
@@ -209,7 +209,7 @@ public class USMappedConnecticutGppReaderTest {
     @Test
     public void getMspaOptOutOptionModeShouldReturnExpectedResult() {
         // given
-        given(uspCtV1.getMspaOptOutOptionMode()).willReturn(1);
+        given(usCtV1.getMspaOptOutOptionMode()).willReturn(1);
 
         // when and then
         assertThat(gppReader.getMspaOptOutOptionMode()).isEqualTo(1);

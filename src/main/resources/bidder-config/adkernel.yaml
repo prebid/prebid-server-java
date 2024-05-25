@@ -1,6 +1,6 @@
 adapters:
   adkernel:
-    endpoint: https://pbs.adksrv.com/hb?zone=%s
+    endpoint: http://pbs.adksrv.com/hb?zone=%s
     endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid-dev@adkernel.com

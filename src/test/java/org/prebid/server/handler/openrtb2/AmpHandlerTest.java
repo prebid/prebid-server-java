@@ -35,8 +35,8 @@ import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.cookie.UidsCookie;
-import org.prebid.server.exception.BlacklistedAccountException;
-import org.prebid.server.exception.BlacklistedAppException;
+import org.prebid.server.exception.BlocklistedAccountException;
+import org.prebid.server.exception.BlocklistedAppException;
 import org.prebid.server.exception.InvalidAccountConfigException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -281,10 +281,10 @@ public class AmpHandlerTest extends VertxTest {
     }
 
     @Test
-    public void shouldRespondWithBadRequestIfRequestHasBlacklistedAccount() {
+    public void shouldRespondWithBadRequestIfRequestHasBlocklistedAccount() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new BlacklistedAccountException("Blacklisted account")));
+                .willReturn(Future.failedFuture(new BlocklistedAccountException("Blocklisted account")));
 
         // when
         ampHandler.handle(routingContext);
@@ -298,14 +298,14 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
                         tuple("x-prebid", "pbs-java/1.00"));
-        verify(httpResponse).end(eq("Blacklisted: Blacklisted account"));
+        verify(httpResponse).end(eq("Blocklisted: Blocklisted account"));
     }
 
     @Test
-    public void shouldRespondWithBadRequestIfRequestHasBlacklistedApp() {
+    public void shouldRespondWithBadRequestIfRequestHasBlocklistedApp() {
         // given
         given(ampRequestFactory.fromRequest(any(), anyLong()))
-                .willReturn(Future.failedFuture(new BlacklistedAppException("Blacklisted app")));
+                .willReturn(Future.failedFuture(new BlocklistedAppException("Blocklisted app")));
 
         // when
         ampHandler.handle(routingContext);
@@ -319,7 +319,7 @@ public class AmpHandlerTest extends VertxTest {
                         tuple("AMP-Access-Control-Allow-Source-Origin", "http://example.com"),
                         tuple("Access-Control-Expose-Headers", "AMP-Access-Control-Allow-Source-Origin"),
                         tuple("x-prebid", "pbs-java/1.00"));
-        verify(httpResponse).end(eq("Blacklisted: Blacklisted app"));
+        verify(httpResponse).end(eq("Blocklisted: Blocklisted app"));
     }
 
     @Test
@@ -566,7 +566,7 @@ public class AmpHandlerTest extends VertxTest {
 
         givenHoldAuction(givenBidResponseWithExt(
                 ExtBidResponse.builder()
-                        .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null, null))
+                        .debug(ExtResponseDebug.of(null, auctionContext.getBidRequest(), null))
                         .prebid(ExtBidResponsePrebid.builder().auctiontimestamp(1000L).targeting(emptyMap()).build())
                         .build()));
 
