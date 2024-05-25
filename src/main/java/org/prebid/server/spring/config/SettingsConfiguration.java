@@ -343,8 +343,6 @@ public class SettingsConfiguration {
                 @Autowired(required = false) DatabaseApplicationSettings databaseApplicationSettings,
                 @Autowired(required = false) HttpApplicationSettings httpApplicationSettings,
                 @Autowired(required = false) S3ApplicationSettings s3ApplicationSettings) {
-                @Autowired(required = false) DatabaseApplicationSettings databaseApplicationSettings,
-                @Autowired(required = false) HttpApplicationSettings httpApplicationSettings) {
 
             final List<ApplicationSettings> applicationSettingsList =
                     Stream.of(s3ApplicationSettings,
