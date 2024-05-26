@@ -2,6 +2,7 @@ package org.prebid.server.settings.service;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
@@ -82,11 +83,13 @@ public class S3PeriodicRefreshService implements Initializable {
     }
 
     @Override
-    public void initialize() {
+    public void initialize(Promise<Void> initializePromise) {
         getAll();
         if (refreshPeriod > 0) {
             vertx.setPeriodic(refreshPeriod, ignored -> refresh());
         }
+
+        initializePromise.tryComplete();
     }
 
     private void getAll() {

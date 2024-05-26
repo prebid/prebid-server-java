@@ -1,6 +1,7 @@
 package org.prebid.server.settings.service;
 
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.junit.Before;
 import org.junit.Rule;
@@ -190,7 +191,7 @@ public class S3PeriodicRefreshServiceTest extends VertxTest {
                 vertx,
                 metrics,
                 clock);
-        s3PeriodicRefreshService.initialize();
+        s3PeriodicRefreshService.initialize(Promise.promise());
     }
 
     @SuppressWarnings("unchecked")
