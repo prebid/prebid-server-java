@@ -35,6 +35,7 @@ import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonMap;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
@@ -309,6 +310,45 @@ public class TcfDefinerServiceTest {
         verifyNoInteractions(geoLocationServiceWrapper);
         verify(metrics).updatePrivacyTcfRequestsMetric(2);
         verify(metrics).updatePrivacyTcfGeoMetric(2, null);
+    }
+
+    @Test
+    public void resolveTcfContextShouldUseEeaListFromAccountConfig() {
+        // given
+        final GdprConfig gdprConfig = GdprConfig.builder()
+                .enabled(true)
+                .consentStringMeansInScope(true)
+                .build();
+
+        target = new TcfDefinerService(
+                gdprConfig,
+                singleton(EEA_COUNTRY),
+                tcf2Service,
+                geoLocationServiceWrapper,
+                bidderCatalog,
+                ipAddressHelper,
+                metrics);
+
+        final String vendorConsent = "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA";
+
+        // when
+        final Future<TcfContext> result = target.resolveTcfContext(
+                Privacy.builder().consentString(vendorConsent).build(),
+                "country",
+                null,
+                AccountGdprConfig.builder().eeaCountries(emptySet()).build(),
+                null,
+                null,
+                null,
+                null);
+
+        // then
+        assertThat(result).isSucceeded();
+        assertThat(result.result())
+                .extracting(TcfContext::getInEea)
+                .isEqualTo(false);
+
+        verify(metrics).updatePrivacyTcfGeoMetric(2, false);
     }
 
     @Test
