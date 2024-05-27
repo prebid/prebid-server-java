@@ -3,6 +3,7 @@ package org.prebid.server.bidder.playdigo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -33,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
 public class PlaydigoBidderTest extends VertxTest {
@@ -228,6 +230,27 @@ public class PlaydigoBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeBidsShouldReturnAudioBid() throws JsonProcessingException {
+        // given
+        final ObjectNode bidExt = mapper.createObjectNode()
+                .putPOJO("prebid", ExtBidPrebid.builder().type(audio).build());
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(3))));
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(BidderBid::getType)
+                .containsExactly(audio);
+    }
+
+    @Test
     public void makeBidsShouldReturnNativeBid() throws JsonProcessingException {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
@@ -258,7 +281,7 @@ public class PlaydigoBidderTest extends VertxTest {
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
                 mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(3))));
+                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(5))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);

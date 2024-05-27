@@ -15,6 +15,4 @@ public class PlaydigoImpExt {
 
     @JsonProperty("endpointId")
     String endpointId;
-
-
 }

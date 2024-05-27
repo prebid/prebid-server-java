@@ -19,7 +19,7 @@ import static java.util.Collections.singletonList;
 public class PlaydigoTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromLoyal() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromPlaydigo() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/playdigo-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/playdigo/test-playdigo-bid-request.json")))

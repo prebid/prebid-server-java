@@ -139,6 +139,7 @@ public class PlaydigoBidder implements Bidder<BidRequest> {
         return switch (markupType) {
             case 1 -> BidType.banner;
             case 2 -> BidType.video;
+            case 3 -> BidType.audio;
             case 4 -> BidType.xNative;
             default -> throw new PreBidException(
                     "could not define media type for impression: " + bid.getImpid());
