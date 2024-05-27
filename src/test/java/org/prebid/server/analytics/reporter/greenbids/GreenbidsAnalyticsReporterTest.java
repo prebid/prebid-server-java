@@ -15,7 +15,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.analytics.model.AuctionEvent;
@@ -50,11 +49,73 @@ public class GreenbidsAnalyticsReporterTest {
     @Mock
     private HttpClient httpClient;
 
-    GreenbidsAnalyticsReporter greenbidsAnalyticsReporter;
+    private GreenbidsAnalyticsReporter target;
 
-    AuctionEvent event;
+    private AuctionEvent event;
 
-    public static AuctionContext setupAuctionContext() {
+    @Before
+    public void setUp() {
+        final ObjectMapper mapper = ObjectMapperProvider.mapper();
+
+        final JacksonMapper jacksonMapper = new JacksonMapper(mapper);
+
+        final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties = GreenbidsAnalyticsProperties.builder()
+                .pbuid("pbuid1")
+                .greenbidsSampling(1.0)
+                .exploratorySamplingSplit(0.9)
+                .analyticsServerVersion("2.2.0")
+                .analyticsServer("http://localhost:8080")
+                .configurationRefreshDelayMs(10000L)
+                .timeoutMs(100000L)
+                .build();
+
+        target = new GreenbidsAnalyticsReporter(
+                greenbidsAnalyticsProperties,
+                jacksonMapper,
+                httpClient);
+    }
+
+    @Test
+    public void shouldReceiveValidResponseOnAuctionContext() {
+        // given
+        final AuctionContext auctionContext = setupAuctionContext();
+        event = AuctionEvent.builder()
+                .auctionContext(auctionContext)
+                .bidResponse(auctionContext.getBidResponse())
+                .build();
+
+        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+        when(mockResponse.getStatusCode()).thenReturn(202);
+        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
+                .thenReturn(Future.succeededFuture(mockResponse));
+
+        // when
+        final Future<Void> result = target.processEvent(event);
+
+        // then
+        assertTrue(result.succeeded());
+        verify(httpClient).post(anyString(), any(MultiMap.class), anyString(), anyLong());
+        verify(mockResponse).getStatusCode();
+    }
+
+    @Test
+    public void shouldThrowExceptionWhenBidResponseIsNull() {
+        // given
+        final AuctionContext auctionContext = setUpAuctionContextWithNoBidResponse();
+        event = AuctionEvent.builder()
+                .auctionContext(auctionContext)
+                .bidResponse(auctionContext.getBidResponse())
+                .build();
+
+        // when
+        final Future<Void> result = target.processEvent(event);
+
+        // then
+        assertTrue(result.failed());
+        assertEquals("Bid response or auction context cannot be null", result.cause().getMessage());
+    }
+
+    private static AuctionContext setupAuctionContext() {
         // bid request
         final Site site = Site.builder()
                 .domain("www.leparisien.fr")
@@ -117,7 +178,7 @@ public class GreenbidsAnalyticsReporterTest {
                 .build();
     }
 
-    public static AuctionContext setUpAuctionContextWithNoBidResponse() {
+    private static AuctionContext setUpAuctionContextWithNoBidResponse() {
         // bid request
         final Site site = Site.builder()
                 .domain("www.leparisien.fr")
@@ -132,69 +193,5 @@ public class GreenbidsAnalyticsReporterTest {
                 .httpRequest(HttpRequestContext.builder().build())
                 .bidRequest(bidRequest)
                 .build();
-    }
-
-    @Before
-    public void setUp() {
-        MockitoAnnotations.initMocks(this);
-
-        final ObjectMapper mapper = ObjectMapperProvider.mapper();
-
-        final JacksonMapper jacksonMapper = new JacksonMapper(mapper);
-
-        final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties = GreenbidsAnalyticsProperties.builder()
-                .pbuid("pbuid1")
-                .greenbidsSampling(1.0)
-                .exploratorySamplingSplit(0.9)
-                .analyticsServerVersion("2.2.0")
-                .analyticsServer("http://localhost:8080")
-                .configurationRefreshDelayMs(10000L)
-                .timeoutMs(100000L)
-                .build();
-
-        greenbidsAnalyticsReporter = new GreenbidsAnalyticsReporter(
-                greenbidsAnalyticsProperties,
-                jacksonMapper,
-                httpClient);
-    }
-
-    @Test
-    public void shouldReceiveValidResponseOnAuctionContext() {
-        // given
-        final AuctionContext auctionContext = setupAuctionContext();
-        event = AuctionEvent.builder()
-                .auctionContext(auctionContext)
-                .bidResponse(auctionContext.getBidResponse())
-                .build();
-
-        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
-        when(mockResponse.getStatusCode()).thenReturn(202);
-        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
-                .thenReturn(Future.succeededFuture(mockResponse));
-
-        // when
-        final Future<Void> result = greenbidsAnalyticsReporter.processEvent(event);
-
-        // then
-        assertTrue(result.succeeded());
-        verify(httpClient).post(anyString(), any(MultiMap.class), anyString(), anyLong());
-        verify(mockResponse).getStatusCode();
-    }
-
-    @Test
-    public void shouldThrowExceptionWhenBidResponseIsNull() {
-        // given
-        final AuctionContext auctionContext = setUpAuctionContextWithNoBidResponse();
-        event = AuctionEvent.builder()
-                .auctionContext(auctionContext)
-                .bidResponse(auctionContext.getBidResponse())
-                .build();
-
-        // when
-        final Future<Void> result = greenbidsAnalyticsReporter.processEvent(event);
-
-        // then
-        assertTrue(result.failed());
-        assertEquals("Bid response or auction context cannot be null", result.cause().getMessage());
     }
 }
