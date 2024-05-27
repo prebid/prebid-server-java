@@ -5,9 +5,9 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import com.iab.openrtb.response.Bid;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
@@ -157,6 +157,8 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
                     return BidType.banner;
                 } else if (imp.getXNative() != null) {
                     return BidType.xNative;
+                } else if (imp.getVideo() != null) {
+                    return BidType.video;
                 }
             }
         }

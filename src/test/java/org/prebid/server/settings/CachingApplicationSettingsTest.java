@@ -61,12 +61,13 @@ public class CachingApplicationSettingsTest {
 
         target = new CachingApplicationSettings(
                 delegateSettings,
-                new SettingsCache(360, 100),
-                new SettingsCache(360, 100),
-                new SettingsCache(360, 100),
+                new SettingsCache(360, 100, 0),
+                new SettingsCache(360, 100, 0),
+                new SettingsCache(360, 100, 0),
                 metrics,
                 360,
-                100);
+                100,
+                0);
     }
 
     @Test

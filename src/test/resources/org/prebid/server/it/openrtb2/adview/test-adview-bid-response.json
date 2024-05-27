@@ -9,7 +9,8 @@
           "price": 0.01,
           "id": "bid_id",
           "impid": "imp_id",
-          "cid": "8048"
+          "cid": "8048",
+          "mtype": 1
         }
       ],
       "type": "banner"

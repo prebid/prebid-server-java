@@ -1,0 +1,36 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 0.01,
+          "mtype": 1,
+          "adid": "adid",
+          "cid": "cid",
+          "crid": "crid",
+          "ext": {
+            "prebid": {
+              "type": "banner"
+            },
+            "origbidcpm": 0.01
+          }
+        }
+      ],
+      "seat": "bwx",
+      "group": 0
+    }
+  ],
+  "cur": "USD",
+  "ext": {
+    "responsetimemillis": {
+      "bwx": "{{ bwx.response_time_ms }}"
+    },
+    "prebid": {
+      "auctiontimestamp": 0
+    },
+    "tmaxrequest": 5000
+  }
+}

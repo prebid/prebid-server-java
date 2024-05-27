@@ -47,7 +47,7 @@ public class ActivityEnforcementTest {
         final Device maskedDevice = Device.builder().ip("maskedDevice").build();
 
         given(activityInfrastructure.isAllowed(any(), any())).willReturn(false);
-        given(userFpdActivityMask.maskUser(any(), anyBoolean(), anyBoolean(), anyBoolean()))
+        given(userFpdActivityMask.maskUser(any(), anyBoolean(), anyBoolean()))
                 .willReturn(maskedUser);
         given(userFpdActivityMask.maskDevice(any(), anyBoolean(), anyBoolean()))
                 .willReturn(maskedDevice);

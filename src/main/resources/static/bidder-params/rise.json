@@ -11,6 +11,10 @@
     "publisher_id": {
       "type": "string",
       "description": "Deprecated, use org instead."
+    },
+    "placementId": {
+      "type": "string",
+      "description": "Placement ID."
     }
   },
   "oneOf": [
