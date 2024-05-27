@@ -40,6 +40,8 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
+import org.prebid.server.metric.MetricName;
+import org.prebid.server.metric.Metrics;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 import org.prebid.server.proto.openrtb.ext.request.ExtDeviceInt;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevicePrebid;
@@ -91,6 +93,8 @@ public class RequestValidatorTest extends VertxTest {
     private BidderCatalog bidderCatalog;
     @Mock
     private BidderParamValidator bidderParamValidator;
+    @Mock
+    private Metrics metrics;
 
     private RequestValidator target;
 
@@ -100,7 +104,7 @@ public class RequestValidatorTest extends VertxTest {
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
         given(bidderCatalog.isActive(eq(RUBICON))).willReturn(true);
 
-        target = new RequestValidator(bidderCatalog, bidderParamValidator, jacksonMapper, 0.01);
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, metrics, jacksonMapper, 0.01, false);
     }
 
     @Test
@@ -1126,6 +1130,74 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
+    public void validateShouldFailWhenDoohSiteAndAppArePresentInRequestAndStrictValidationIsEnabled() {
+        // when
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, metrics, jacksonMapper, 0.01, true);
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .dooh(Dooh.builder().build())
+                .app(App.builder().build())
+                .site(Site.builder().build())
+                .build();
+        final ValidationResult result = target.validate(invalidRequest, null);
+
+        // then
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.app and request.dooh and request.site are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenSiteAndAppArePresentInRequestAndStrictValidationIsEnabled() {
+        // when
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, metrics, jacksonMapper, 0.01, true);
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .app(App.builder().build())
+                .site(Site.builder().build())
+                .build();
+        final ValidationResult result = target.validate(invalidRequest, null);
+
+        // then
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.app and request.site are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenDoohAndSiteArePresentInRequestAndStrictValidationIsEnabled() {
+        // when
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, metrics, jacksonMapper, 0.01, true);
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .dooh(Dooh.builder().build())
+                .site(Site.builder().build())
+                .build();
+        final ValidationResult result = target.validate(invalidRequest, null);
+
+        // then
+        verify(metrics).updateAlertsMetrics(MetricName.general);
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.dooh and request.site are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
+    }
+
+    @Test
+    public void validateShouldFailWhenDoohAndAppArePresentInRequestAndStrictValidationIsEnabled() {
+        // when
+        target = new RequestValidator(bidderCatalog, bidderParamValidator, metrics, jacksonMapper, 0.01, true);
+        final BidRequest invalidRequest = validBidRequestBuilder()
+                .dooh(Dooh.builder().build())
+                .app(App.builder().build())
+                .build();
+        final ValidationResult result = target.validate(invalidRequest, null);
+
+        // then
+        assertThat(result.getErrors()).hasSize(1)
+                .containsOnly("request.app and request.dooh and request.site are present, "
+                        + "but no more than one of request.site or request.app or request.dooh can be defined");
+    }
+
+    @Test
     public void validateShouldReturnValidationMessageWhenMinWidthPercIsNull() {
         // given
         final BidRequest bidRequest = validBidRequestBuilder()
@@ -1856,16 +1928,20 @@ public class RequestValidatorTest extends VertxTest {
     }
 
     @Test
-    public void validateShouldReturnValidationMessageForInvalidTargeting() {
+    public void validateShouldReturnValidationMessageForInvalidTargetingPrefix() {
         // given
         final ExtPriceGranularity priceGranularity = ExtPriceGranularity.of(1, singletonList(
                 ExtGranularityRange.of(BigDecimal.valueOf(5), BigDecimal.valueOf(0.01))));
+        final String prefix = "1234567890";
+        final int truncateattrchars = 10;
         final BidRequest bidRequest = validBidRequestBuilder()
                 .ext(ExtRequest.of(ExtRequestPrebid.builder()
                         .targeting(ExtRequestTargeting.builder()
                                 .pricegranularity(mapper.valueToTree(priceGranularity))
-                                .includebidderkeys(false)
-                                .includewinners(false)
+                                .includebidderkeys(true)
+                                .includewinners(true)
+                                .truncateattrchars(truncateattrchars)
+                                .prefix(prefix)
                                 .build())
                         .build()))
                 .build();
@@ -1875,8 +1951,8 @@ public class RequestValidatorTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1)
-                .containsOnly("ext.prebid.targeting: At least one of includewinners or includebidderkeys"
-                        + " must be enabled to enable targeting support");
+                .containsOnly("ext.prebid.targeting: decrease prefix length or increase truncateattrchars"
+                        + " by " + (prefix.length() + 11 - truncateattrchars) + " characters");
     }
 
     @Test
@@ -2110,24 +2186,6 @@ public class RequestValidatorTest extends VertxTest {
         // then
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly("request.user.eids[0].uids[0] missing required field: \"id\"");
-    }
-
-    @Test
-    public void validateShouldReturnErrorWhenEidSourceIsNotUnique() {
-        // given
-        final BidRequest bidRequest = validBidRequestBuilder()
-                .user(User.builder()
-                        .eids(asList(
-                                Eid.of("source", singletonList(Uid.of("id1", null, null)), null),
-                                Eid.of("source", singletonList(Uid.of("id2", null, null)), null)))
-                        .build())
-                .build();
-
-        // when
-        final ValidationResult result = target.validate(bidRequest, null);
-
-        // then
-        assertThat(result.getErrors()).containsExactly("request.user.eids must contain unique sources");
     }
 
     @Test

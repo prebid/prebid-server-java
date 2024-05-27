@@ -15,22 +15,26 @@ import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.seedingalliance.ExtImpSeedingAlliance;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 
 import java.math.BigDecimal;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.tuple;
 
 public class SeedingAllianceBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://randomurl.com";
+    private static final String ENDPOINT_URL = "https://randomurl.com/{{AccountId}}";
 
     private final SeedingAllianceBidder target = new SeedingAllianceBidder(ENDPOINT_URL, jacksonMapper);
 
@@ -40,9 +44,10 @@ public class SeedingAllianceBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateExpectedUrl() {
+    public void makeHttpRequestsShouldCreateUrlWithPbsAccountIdWhenSeatIdIsNotReceived() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.ext(givenImpExt("adUnitId", null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -51,13 +56,80 @@ public class SeedingAllianceBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://randomurl.com");
+                .containsExactly("https://randomurl.com/pbs");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateUrlWithSeatIdWhenSeatIdIsReceived() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(
+                givenImpExt("adUnitId", "seatId", null)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://randomurl.com/seatId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateUrlWithSeatIdWhenAccountIdIsReceived() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(
+                givenImpExt("adUnitId", null, "accountId")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://randomurl.com/accountId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateUrlWithSeatIdWhenAccountIdAndSeatIdAreReceived() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(
+                givenImpExt("adUnitId", "seatId", "accountId")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://randomurl.com/accountId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldAddAdUnitUdAsTagIdToImps() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.id("impId1").tagid("tagId1").ext(givenImpExt("adUnit1", null, null)),
+                impBuilder -> impBuilder.id("impId2").ext(givenImpExt("adUnit2", null, null)));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId, Imp::getTagid)
+                .containsExactly(tuple("impId1", "adUnit1"), tuple("impId2", "adUnit2"));
     }
 
     @Test
     public void makeHttpRequestsShouldEnrichRequestWithEurCurrency() {
         // given
-        final BidRequest bidRequest = givenBidRequest(identity());
+        final BidRequest bidRequest = givenBidRequest(Collections.emptyList());
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -73,8 +145,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotAddAdditionalEurCurrencyEntry() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.cur(List.of("EUR")), identity());
+        final BidRequest bidRequest = givenBidRequest(List.of("EUR"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -90,8 +161,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldNotRemoveOtherCurrencies() {
         // given
-        final BidRequest bidRequest = givenBidRequest(
-                bidRequestBuilder -> bidRequestBuilder.cur(List.of("USD", "YEN")), identity());
+        final BidRequest bidRequest = givenBidRequest(List.of("USD", "YEN"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -208,16 +278,25 @@ public class SeedingAllianceBidderTest extends VertxTest {
                         BidderError.badServerResponse("Failed to parse bid.ext.prebid.type for bid.id: 'someBidId'"));
     }
 
-    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return givenBidRequest(identity(), impCustomizer);
+    private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder>... impCustomizers) {
+        return BidRequest.builder()
+                .imp(Arrays.stream(impCustomizers).map(SeedingAllianceBidderTest::givenImp).toList())
+                .build();
     }
 
-    private static BidRequest givenBidRequest(
-            Function<BidRequest.BidRequestBuilder, BidRequest.BidRequestBuilder> bidRequestCustomizer,
-            Function<Imp.ImpBuilder, Imp.ImpBuilder> impCustomizer) {
-        return bidRequestCustomizer.apply(BidRequest.builder()
-                        .imp(singletonList(impCustomizer.apply(Imp.builder().id("123")).build())))
+    private static BidRequest givenBidRequest(List<String> currencies) {
+        return BidRequest.builder()
+                .imp(List.of(givenImp(identity())))
+                .cur(currencies)
                 .build();
+    }
+
+    private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder().id("imp_id").ext(givenImpExt("adUnitId", null, null))).build();
+    }
+
+    private static ObjectNode givenImpExt(String adUnitId, String seatId, String accountId) {
+        return mapper.valueToTree(ExtPrebid.of(null, ExtImpSeedingAlliance.of(adUnitId, seatId, accountId)));
     }
 
     private static BidderCall<BidRequest> givenHttpCall(String body) {

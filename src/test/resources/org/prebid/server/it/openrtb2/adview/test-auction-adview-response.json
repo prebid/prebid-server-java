@@ -10,6 +10,7 @@
           "adid": "2068416",
           "cid": "8048",
           "crid": "24080",
+          "mtype": 1,
           "ext": {
             "origbidcpm": 0.01,
             "prebid": {

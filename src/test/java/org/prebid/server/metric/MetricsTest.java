@@ -388,16 +388,16 @@ public class MetricsTest {
     public void updateRequestTypeMetricShouldIncrementMetric() {
         // when
         metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.ok);
-        metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.blacklisted_account);
-        metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.blacklisted_app);
+        metrics.updateRequestTypeMetric(MetricName.openrtb2web, MetricName.blocklisted_account);
+        metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.blocklisted_app);
         metrics.updateRequestTypeMetric(MetricName.openrtb2app, MetricName.err);
         metrics.updateRequestTypeMetric(MetricName.amp, MetricName.badinput);
         metrics.updateRequestTypeMetric(MetricName.amp, MetricName.networkerr);
 
         // then
         assertThat(metricRegistry.counter("requests.ok.openrtb2-web").getCount()).isOne();
-        assertThat(metricRegistry.counter("requests.blacklisted_account.openrtb2-web").getCount()).isOne();
-        assertThat(metricRegistry.counter("requests.blacklisted_app.openrtb2-app").getCount()).isOne();
+        assertThat(metricRegistry.counter("requests.blocklisted_account.openrtb2-web").getCount()).isOne();
+        assertThat(metricRegistry.counter("requests.blocklisted_app.openrtb2-app").getCount()).isOne();
         assertThat(metricRegistry.counter("requests.err.openrtb2-app").getCount()).isOne();
         assertThat(metricRegistry.counter("requests.badinput.amp").getCount()).isOne();
         assertThat(metricRegistry.counter("requests.networkerr.amp").getCount()).isOne();
@@ -673,155 +673,23 @@ public class MetricsTest {
     }
 
     @Test
-    public void updateGpRequestMetricShouldIncrementPlannerRequestAndPlannerSuccessfulRequest() {
-        // when
-        metrics.updatePlannerRequestMetric(true);
-
-        // then
-        assertThat(metricRegistry.counter("pg.planner_requests").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.counter("pg.planner_request_successful").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void updateGpRequestMetricShouldIncrementPlannerRequestAndPlannerFailedRequest() {
-        // when
-        metrics.updatePlannerRequestMetric(false);
-
-        // then
-        assertThat(metricRegistry.counter("pg.planner_requests").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.counter("pg.planner_request_failed").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void updateGpRequestMetricShouldIncrementUserDetailsSuccessfulRequest() {
-        // when
-        metrics.updateUserDetailsRequestMetric(true);
-
-        // then
-        assertThat(metricRegistry.counter("user_details_requests").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.counter("user_details_request_successful").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void updateGpRequestMetricShouldIncrementUserDetailsFailedRequest() {
-        // when
-        metrics.updateUserDetailsRequestMetric(false);
-
-        // then
-        assertThat(metricRegistry.counter("user_details_requests").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.counter("user_details_request_failed").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void updateGpRequestMetricShouldIncrementWinSuccessfulRequest() {
-        // when
-        metrics.updateWinEventRequestMetric(true);
-
-        // then
-        assertThat(metricRegistry.counter("win_requests").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.counter("win_request_successful").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void updateGpRequestMetricShouldIncrementWinFailedRequest() {
-        // when
-        metrics.updateWinEventRequestMetric(false);
-
-        // then
-        assertThat(metricRegistry.counter("win_requests").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.counter("win_request_failed").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void updateWinRequestTimeShouldLogTime() {
-        // when
-        metrics.updateWinRequestTime(20L);
-
-        // then
-        assertThat(metricRegistry.timer("win_request_time").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void updateWinRequestPreparationFailedShouldIncrementMetric() {
-        // when
-        metrics.updateWinRequestPreparationFailed();
-
-        // then
-        assertThat(metricRegistry.counter("win_request_preparation_failed").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void updateUserDetailsRequestPreparationFailedShouldIncrementMetric() {
-        // when
-        metrics.updateUserDetailsRequestPreparationFailed();
-
-        // then
-        assertThat(metricRegistry.counter("user_details_request_preparation_failed").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void updateDeliveryRequestMetricShouldIncrementDeliveryRequestAndSuccessfulDeliveryRequest() {
-        // when
-        metrics.updateDeliveryRequestMetric(true);
-
-        // then
-        assertThat(metricRegistry.counter("pg.delivery_requests").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.counter("pg.delivery_request_successful").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void updateDeliveryRequestMetricShouldIncrementDeliveryRequestAndFailedDeliveryRequest() {
-        // when
-        metrics.updateDeliveryRequestMetric(false);
-
-        // then
-        assertThat(metricRegistry.counter("pg.delivery_requests").getCount()).isEqualTo(1);
-        assertThat(metricRegistry.counter("pg.delivery_request_failed").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void updateLineItemsNumberMetricShouldIncrementLineItemsNumberForAAcountValue() {
-        // when
-        metrics.updateLineItemsNumberMetric(20L);
-
-        // then
-        assertThat(metricRegistry.counter("pg.planner_lineitems_received").getCount()).isEqualTo(20);
-    }
-
-    @Test
-    public void updatePlannerRequestTimeShouldLogTime() {
-        // when
-        metrics.updatePlannerRequestTime(20L);
-
-        // then
-        assertThat(metricRegistry.timer("pg.planner_request_time").getCount()).isEqualTo(1);
-    }
-
-    @Test
-    public void updateDeliveryRequestTimeShouldLogTime() {
-        // when
-        metrics.updateDeliveryRequestTime(20L);
-
-        // then
-        assertThat(metricRegistry.timer("pg.delivery_request_time").getCount()).isEqualTo(1);
-    }
-
-    @Test
     public void updateAuctionTcfMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAuctionTcfMetrics(RUBICON, MetricName.openrtb2web, true, true, true, true);
-        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.openrtb2web, false, true, true, false);
-        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.openrtb2app, true, false, false, true);
+        metrics.updateAuctionTcfMetrics(RUBICON, MetricName.openrtb2web, true, true, true, true, true);
+        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.openrtb2web, true, false, true, false, true);
+        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.openrtb2app, false, true, false, true, false);
 
         // then
+        assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.userfpd_masked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.userid_removed").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.geo_masked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.analytics_blocked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.request_blocked").getCount()).isOne();
-        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.geo_masked").getCount()).isOne();
-        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.analytics_blocked").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.userfpd_masked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.conversant.openrtb2-app.tcf.userid_removed").getCount()).isOne();
-        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-app.tcf.request_blocked").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.geo_masked").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-app.tcf.analytics_blocked").getCount()).isOne();
+        assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.request_blocked").getCount()).isOne();
     }
 
     @Test
@@ -1354,15 +1222,6 @@ public class MetricsTest {
     }
 
     @Test
-    public void shouldIncrementWinNotificationMetric() {
-        // when
-        metrics.updateWinNotificationMetric();
-
-        // then
-        assertThat(metricRegistry.counter("win_notifications").getCount()).isEqualTo(1);
-    }
-
-    @Test
     public void shouldIncrementRequestsActivityDisallowedCount() {
         // when
         metrics.updateRequestsActivityDisallowedCount(Activity.CALL_BIDDER);
@@ -1395,20 +1254,30 @@ public class MetricsTest {
     @Test
     public void shouldIncrementUpdateRequestsActivityProcessedRulesCount() {
         // when
-        metrics.updateRequestsActivityProcessedRulesCount(2);
+        metrics.updateRequestsActivityProcessedRulesCount();
 
         // then
-        assertThat(metricRegistry.counter("requests.activity.processedrules.count").getCount()).isEqualTo(2);
+        assertThat(metricRegistry.counter("requests.activity.processedrules.count").getCount()).isEqualTo(1);
     }
 
     @Test
     public void shouldIncrementUpdateAccountActivityProcessedRulesCount() {
         // when
-        metrics.updateAccountActivityProcessedRulesCount("account_id", 2);
+        metrics.updateAccountActivityProcessedRulesCount("account_id");
 
         // then
         assertThat(metricRegistry.counter("account.account_id.activity.processedrules.count").getCount())
-                .isEqualTo(2);
+                .isEqualTo(1);
+    }
+
+    @Test
+    public void shouldIncrementUpdateAccountRequestRejectedByFailedFetchCount() {
+        // when
+        metrics.updateAccountRequestRejectedByFailedFetch("account_id");
+
+        // then
+        assertThat(metricRegistry.counter("account.account_id.requests.rejected.account-fetch-failed").getCount())
+                .isEqualTo(1);
     }
 
     private void verifyCreatesConfiguredCounterType(Consumer<Metrics> metricsConsumer) {

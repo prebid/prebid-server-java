@@ -1,0 +1,20 @@
+{
+  "id": "request_id",
+  "seatbid": [
+    {
+      "bid": [
+        {
+          "id": "bid_id",
+          "impid": "imp_id",
+          "price": 3.33,
+          "adid": "adid001",
+          "adm": "<VAST version=\"3.0\"></VAST>",
+          "crid": "crid001",
+          "cid": "cid001",
+          "h": 250,
+          "w": 300
+        }
+      ]
+    }
+  ]
+}

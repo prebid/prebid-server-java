@@ -3,8 +3,6 @@ package org.prebid.server.cookie;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.Cookie;
 import io.vertx.core.http.CookieSameSite;
-import io.vertx.core.logging.Logger;
-import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cookie.model.UidWithExpiry;
@@ -12,6 +10,8 @@ import org.prebid.server.cookie.model.UidsCookieUpdateResult;
 import org.prebid.server.cookie.proto.Uids;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.util.HttpUtil;
@@ -106,9 +106,6 @@ public class UidsCookieService {
     UidsCookie parseFromCookies(Map<String, String> cookies) {
         final Uids parsedUids = parseUids(cookies);
 
-        final Uids.UidsBuilder uidsBuilder = Uids.builder()
-                .uidsLegacy(Collections.emptyMap());
-
         final Boolean optout;
         final Map<String, UidWithExpiry> uidsMap;
 
@@ -120,7 +117,9 @@ public class UidsCookieService {
             uidsMap = enrichAndSanitizeUids(parsedUids, cookies);
         }
 
-        return new UidsCookie(uidsBuilder.uids(uidsMap).optout(optout).build(), mapper);
+        final Uids uids = Uids.builder().uids(uidsMap).optout(optout).build();
+
+        return new UidsCookie(uids, mapper);
     }
 
     /**
@@ -132,7 +131,7 @@ public class UidsCookieService {
             try {
                 return mapper.decodeValue(Buffer.buffer(Base64.getUrlDecoder().decode(cookieValue)), Uids.class);
             } catch (IllegalArgumentException | DecodeException e) {
-                logger.debug("Could not decode or parse {0} cookie value {1}", e, COOKIE_NAME, cookieValue);
+                logger.debug("Could not decode or parse {} cookie value {}", e, COOKIE_NAME, cookieValue);
             }
         }
         return null;
@@ -195,11 +194,6 @@ public class UidsCookieService {
         final Map<String, UidWithExpiry> workingUidsMap = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
         if (originalUidsMap != null) {
             workingUidsMap.putAll(originalUidsMap);
-        }
-
-        final Map<String, String> legacyUids = uids != null ? uids.getUidsLegacy() : null;
-        if (workingUidsMap.isEmpty() && legacyUids != null) {
-            legacyUids.forEach((key, value) -> workingUidsMap.put(key, UidWithExpiry.expired(value)));
         }
 
         final String hostCookie = parseHostCookie(cookies);

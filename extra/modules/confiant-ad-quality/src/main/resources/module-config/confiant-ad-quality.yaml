@@ -17,3 +17,4 @@ hooks:
         long-interval-attempts: 336
         long-interval: 1800000
       scan-state-check-interval: 600000
+      bidders-to-exclude-from-scan:

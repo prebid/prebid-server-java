@@ -25,6 +25,8 @@ import java.util.Objects;
 public class FreewheelSSPBidder implements Bidder<BidRequest> {
 
     private static final BidType BID_TYPE = BidType.video;
+    private static final String COMPONENT_ID_HEADER_NAME = "Componentid";
+    private static final String COMPONENT_ID_HEADER_VALUE = "prebid-java";
     private final String endpointUrl;
     private final JacksonMapper mapper;
 
@@ -39,7 +41,7 @@ public class FreewheelSSPBidder implements Bidder<BidRequest> {
                 HttpRequest.<BidRequest>builder()
                         .method(HttpMethod.POST)
                         .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
+                        .headers(HttpUtil.headers().add(COMPONENT_ID_HEADER_NAME, COMPONENT_ID_HEADER_VALUE))
                         .body(mapper.encodeToBytes(bidRequest))
                         .impIds(BidderUtil.impIds(bidRequest))
                         .payload(bidRequest)

@@ -27,8 +27,9 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.model.NotificationEvent;
-import org.prebid.server.auction.PrivacyEnforcementService;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.metric.Metrics;
@@ -69,7 +70,9 @@ public class AnalyticsReporterDelegatorTest {
     @Mock
     private Vertx vertx;
     @Mock
-    private PrivacyEnforcementService privacyEnforcementService;
+    private TcfEnforcement tcfEnforcement;
+    @Mock
+    private UserFpdActivityMask userFpdActivityMask;
     @Mock
     private Metrics metrics;
 
@@ -98,11 +101,11 @@ public class AnalyticsReporterDelegatorTest {
         final Map<Integer, PrivacyEnforcementAction> enforcementActionMap = new HashMap<>();
         enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
         enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.allowAll());
-        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+        given(tcfEnforcement.enforce(any(), any()))
                 .willReturn(Future.succeededFuture(enforcementActionMap));
 
         target = new AnalyticsReporterDelegator(
-                0.01, List.of(firstReporter, secondReporter), vertx, privacyEnforcementService, metrics);
+                vertx, List.of(firstReporter, secondReporter), tcfEnforcement, userFpdActivityMask, metrics, 0.01);
     }
 
     @Test
@@ -251,7 +254,7 @@ public class AnalyticsReporterDelegatorTest {
         enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.restrictAll());
         enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.allowAll());
 
-        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+        given(tcfEnforcement.enforce(any(), any()))
                 .willReturn(Future.succeededFuture(enforcementActionMap));
 
         willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
@@ -271,7 +274,7 @@ public class AnalyticsReporterDelegatorTest {
         enforcementActionMap.put(FIRST_REPORTER_ID, PrivacyEnforcementAction.restrictAll());
         enforcementActionMap.put(SECOND_REPORTER_ID, PrivacyEnforcementAction.restrictAll());
 
-        given(privacyEnforcementService.resultForVendorIds(any(), any()))
+        given(tcfEnforcement.enforce(any(), any()))
                 .willReturn(Future.succeededFuture(enforcementActionMap));
 
         willAnswer(withNullAndInvokeHandler()).given(vertx).runOnContext(any());
@@ -349,11 +352,12 @@ public class AnalyticsReporterDelegatorTest {
         // given
         given(activityInfrastructure.isAllowed(eq(Activity.REPORT_ANALYTICS), any())).willReturn(true);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_UFPD), any())).willReturn(false);
+        given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_EIDS), any())).willReturn(false);
         given(activityInfrastructure.isAllowed(eq(Activity.TRANSMIT_GEO), any())).willReturn(false);
 
-        given(privacyEnforcementService.maskUserConsideringActivityRestrictions(any(), eq(true), eq(true)))
+        given(userFpdActivityMask.maskUser(any(), eq(true), eq(true)))
                 .willReturn(User.builder().id("masked").build());
-        given(privacyEnforcementService.maskDeviceConsideringActivityRestrictions(any(), eq(true), eq(true)))
+        given(userFpdActivityMask.maskDevice(any(), eq(true), eq(true)))
                 .willReturn(Device.builder().model("masked").build());
 
         final AuctionEvent auctionEvent = AuctionEvent.builder()

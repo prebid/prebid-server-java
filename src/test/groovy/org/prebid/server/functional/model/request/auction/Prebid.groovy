@@ -1,6 +1,5 @@
 package org.prebid.server.functional.model.request.auction
 
-import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
@@ -36,6 +35,8 @@ class Prebid {
     Boolean createTids
     Sdk sdk
     List<AdServerTargeting> adServerTargeting
+    BidderControls bidderControls
+    PrebidModulesConfig modules
 
     static class Channel {
 

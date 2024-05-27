@@ -5,16 +5,22 @@ import net.minidev.json.annotate.JsonIgnore
 
 enum BidderName {
 
+    WILDCARD("*"),
+    UNKNOWN("unknown"),
+    BOGUS("bogus"),
     ALIAS("alias"),
-    GENERIC("generic"),
     GENERIC_CAMEL_CASE("GeNerIc"),
+    GENERIC("generic"),
     RUBICON("rubicon"),
     APPNEXUS("appnexus"),
     RUBICON_ALIAS("rubiconAlias"),
-    BOGUS("bogus"),
     OPENX("openx"),
-    UNKNOWN("unknown")
-
+    ACEEX("aceex"),
+    ACUITYADS("acuityads"),
+    AAX("aax"),
+    ADKERNEL("adkernel"),
+    GRID("grid"),
+    MEDIANET("medianet")
 
     @JsonValue
     final String value

@@ -2,31 +2,41 @@ package org.prebid.server.spring.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
+import lombok.Data;
+import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.auction.privacy.enforcement.ActivityEnforcement;
+import org.prebid.server.auction.privacy.enforcement.CcpaEnforcement;
+import org.prebid.server.auction.privacy.enforcement.CoppaEnforcement;
+import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdCcpaMask;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdCoppaMask;
+import org.prebid.server.auction.privacy.enforcement.mask.UserFpdTcfMask;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.geolocation.GeoLocationService;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.privacy.HostVendorTcfDefinerService;
 import org.prebid.server.privacy.gdpr.Tcf2Service;
 import org.prebid.server.privacy.gdpr.TcfDefinerService;
-import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeEightStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeFiveStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeFourStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeNineStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeOneStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeSevenStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeSixStrategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.Purpose01Strategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.Purpose02Strategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.Purpose03Strategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.Purpose04Strategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.Purpose05Strategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.Purpose06Strategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.Purpose07Strategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.Purpose08Strategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.Purpose09Strategy;
+import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.Purpose10Strategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeTenStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeThreeStrategy;
-import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.PurposeTwoStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.BasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.FullEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.NoEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.purpose.typestrategies.PurposeTwoBasicEnforcePurposeStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesOneStrategy;
 import org.prebid.server.privacy.gdpr.tcfstrategies.specialfeature.SpecialFeaturesStrategy;
+import org.prebid.server.privacy.gdpr.vendorlist.VendorListFetchThrottler;
 import org.prebid.server.privacy.gdpr.vendorlist.VendorListService;
 import org.prebid.server.privacy.gdpr.vendorlist.VersionedVendorListService;
 import org.prebid.server.settings.model.GdprConfig;
@@ -34,13 +44,18 @@ import org.prebid.server.settings.model.Purpose;
 import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.SpecialFeature;
 import org.prebid.server.settings.model.SpecialFeatures;
-import org.prebid.server.vertx.http.HttpClient;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.prebid.server.spring.config.retry.RetryPolicyConfigurationProperties;
+import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.validation.annotation.Validated;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -51,58 +66,72 @@ public class PrivacyServiceConfiguration {
 
     @Bean
     VendorListService vendorListServiceV2(
-            @Value("${gdpr.vendorlist.v2.cache-dir}") String cacheDir,
-            @Value("${gdpr.vendorlist.v2.http-endpoint-template}") String endpointTemplate,
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${gdpr.vendorlist.v2.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
-            @Value("${gdpr.vendorlist.v2.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
-            @Value("${gdpr.vendorlist.v2.deprecated}") boolean deprecated,
+            VendorListServiceConfigurationProperties vendorListServiceV2Properties,
             Vertx vertx,
+            Clock clock,
             FileSystem fileSystem,
             HttpClient httpClient,
             Metrics metrics,
             JacksonMapper mapper) {
 
         return new VendorListService(
-                cacheDir,
-                endpointTemplate,
+                logSamplingRate,
+                vendorListServiceV2Properties.getCacheDir(),
+                vendorListServiceV2Properties.getHttpEndpointTemplate(),
                 defaultTimeoutMs,
-                refreshMissingListPeriodMs,
-                deprecated,
-                fallbackVendorListPath,
+                vendorListServiceV2Properties.getRefreshMissingListPeriodMs(),
+                vendorListServiceV2Properties.getDeprecated(),
+                vendorListServiceV2Properties.getFallbackVendorListPath(),
                 vertx,
                 fileSystem,
                 httpClient,
                 metrics,
-                mapper);
+                "v2",
+                mapper,
+                new VendorListFetchThrottler(vendorListServiceV2Properties.getRetryPolicy().toPolicy(), clock));
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.vendorlist.v2")
+    VendorListServiceConfigurationProperties vendorListServiceV2Properties() {
+        return new VendorListServiceConfigurationProperties();
     }
 
     @Bean
     VendorListService vendorListServiceV3(
-            @Value("${gdpr.vendorlist.v3.cache-dir}") String cacheDir,
-            @Value("${gdpr.vendorlist.v3.http-endpoint-template}") String endpointTemplate,
+            @Value("${logging.sampling-rate:0.01}") double logSamplingRate,
             @Value("${gdpr.vendorlist.default-timeout-ms}") int defaultTimeoutMs,
-            @Value("${gdpr.vendorlist.v3.refresh-missing-list-period-ms}") int refreshMissingListPeriodMs,
-            @Value("${gdpr.vendorlist.v3.fallback-vendor-list-path:#{null}}") String fallbackVendorListPath,
-            @Value("${gdpr.vendorlist.v3.deprecated}") boolean deprecated,
+            VendorListServiceConfigurationProperties vendorListServiceV3Properties,
             Vertx vertx,
+            Clock clock,
             FileSystem fileSystem,
             HttpClient httpClient,
             Metrics metrics,
             JacksonMapper mapper) {
 
         return new VendorListService(
-                cacheDir,
-                endpointTemplate,
+                logSamplingRate,
+                vendorListServiceV3Properties.getCacheDir(),
+                vendorListServiceV3Properties.getHttpEndpointTemplate(),
                 defaultTimeoutMs,
-                refreshMissingListPeriodMs,
-                deprecated,
-                fallbackVendorListPath,
+                vendorListServiceV3Properties.getRefreshMissingListPeriodMs(),
+                vendorListServiceV3Properties.getDeprecated(),
+                vendorListServiceV3Properties.getFallbackVendorListPath(),
                 vertx,
                 fileSystem,
                 httpClient,
                 metrics,
-                mapper);
+                "v3",
+                mapper,
+                new VendorListFetchThrottler(vendorListServiceV3Properties.getRetryPolicy().toPolicy(), clock));
+    }
+
+    @Bean
+    @ConfigurationProperties(prefix = "gdpr.vendorlist.v3")
+    VendorListServiceConfigurationProperties vendorListServiceV3Properties() {
+        return new VendorListServiceConfigurationProperties();
     }
 
     @Bean
@@ -132,7 +161,7 @@ public class PrivacyServiceConfiguration {
             GdprConfig gdprConfig,
             @Value("${gdpr.eea-countries}") String eeaCountriesAsString,
             Tcf2Service tcf2Service,
-            @Autowired(required = false) GeoLocationService geoLocationService,
+            GeoLocationServiceWrapper geoLocationServiceWrapper,
             BidderCatalog bidderCatalog,
             IpAddressHelper ipAddressHelper,
             Metrics metrics) {
@@ -143,7 +172,7 @@ public class PrivacyServiceConfiguration {
                 gdprConfig,
                 eeaCountries,
                 tcf2Service,
-                geoLocationService,
+                geoLocationServiceWrapper,
                 bidderCatalog,
                 ipAddressHelper,
                 metrics);
@@ -158,82 +187,112 @@ public class PrivacyServiceConfiguration {
     }
 
     @Bean
-    PurposeOneStrategy purposeOneStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                                          BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                                          NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeOneStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+    Purpose01Strategy purpose01Strategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+                                        BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                        NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+
+        return new Purpose01Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
     @Bean
-    PurposeTwoStrategy purposeTwoStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                                          PurposeTwoBasicEnforcePurposeStrategy purposeTwoBasicEnforcePurposeStrategy,
-                                          NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeTwoStrategy(fullEnforcePurposeStrategy, purposeTwoBasicEnforcePurposeStrategy,
+    Purpose02Strategy purpose02Strategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+                                        PurposeTwoBasicEnforcePurposeStrategy purposeTwoBasicEnforcePurposeStrategy,
+                                        NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+
+        return new Purpose02Strategy(
+                fullEnforcePurposeStrategy,
+                purposeTwoBasicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
     @Bean
-    PurposeThreeStrategy purposeThreeStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                                              BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                                              NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeThreeStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+    Purpose03Strategy purpose03Strategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+                                        BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                        NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+
+        return new Purpose03Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
     @Bean
-    PurposeFourStrategy purposeFourStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                                            BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                                            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeFourStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+    Purpose04Strategy purpose04Strategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+                                        BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                        NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+
+        return new Purpose04Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
     @Bean
-    PurposeFiveStrategy purposeFiveStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                                            BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                                            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeFiveStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+    Purpose05Strategy purpose05Strategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+                                        BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                        NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+
+        return new Purpose05Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
     @Bean
-    PurposeSixStrategy purposeSixStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                                          BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                                          NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeSixStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+    Purpose06Strategy purpose06Strategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+                                        BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                        NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+
+        return new Purpose06Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
     @Bean
-    PurposeSevenStrategy purposeSevenStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                                              BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                                              NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeSevenStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+    Purpose07Strategy purpose07Strategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+                                        BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                        NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+
+        return new Purpose07Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
     @Bean
-    PurposeEightStrategy purposeEightStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                                              BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                                              NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeEightStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+    Purpose08Strategy purpose08Strategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+                                        BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                        NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+
+        return new Purpose08Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
     @Bean
-    PurposeNineStrategy purposeNineStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                                            BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                                            NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeNineStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+    Purpose09Strategy purpose09Strategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+                                        BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                        NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+
+        return new Purpose09Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
     @Bean
-    PurposeTenStrategy purposeTenStrategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
-                                          BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
-                                          NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
-        return new PurposeTenStrategy(fullEnforcePurposeStrategy, basicEnforcePurposeStrategy,
+    Purpose10Strategy purpose10Strategy(FullEnforcePurposeStrategy fullEnforcePurposeStrategy,
+                                        BasicEnforcePurposeStrategy basicEnforcePurposeStrategy,
+                                        NoEnforcePurposeStrategy noEnforcePurposeStrategy) {
+
+        return new Purpose10Strategy(
+                fullEnforcePurposeStrategy,
+                basicEnforcePurposeStrategy,
                 noEnforcePurposeStrategy);
     }
 
@@ -288,5 +347,75 @@ public class PrivacyServiceConfiguration {
     @Bean
     SpecialFeature specialFeature() {
         return new SpecialFeature();
+    }
+
+    @Bean
+    UserFpdActivityMask userFpdActivityMask(UserFpdTcfMask userFpdTcfMask) {
+        return new UserFpdActivityMask(userFpdTcfMask);
+    }
+
+    @Bean
+    UserFpdCcpaMask userFpdCcpaMask(UserFpdActivityMask userFpdActivityMask) {
+        return new UserFpdCcpaMask(userFpdActivityMask);
+    }
+
+    @Bean
+    UserFpdCoppaMask userFpdCoppaMask(UserFpdActivityMask userFpdActivityMask) {
+        return new UserFpdCoppaMask(userFpdActivityMask);
+    }
+
+    @Bean
+    UserFpdTcfMask userFpdTcfMask(IpAddressHelper ipAddressHelper) {
+        return new UserFpdTcfMask(ipAddressHelper);
+    }
+
+    @Bean
+    ActivityEnforcement activityEnforcement(UserFpdActivityMask userFpdActivityMask) {
+        return new ActivityEnforcement(userFpdActivityMask);
+    }
+
+    @Bean
+    CcpaEnforcement ccpaEnforcement(UserFpdCcpaMask userFpdCcpaMask,
+                                    BidderCatalog bidderCatalog,
+                                    Metrics metrics,
+                                    @Value("${ccpa.enforce}") boolean ccpaEnforce) {
+
+        return new CcpaEnforcement(userFpdCcpaMask, bidderCatalog, metrics, ccpaEnforce);
+    }
+
+    @Bean
+    CoppaEnforcement coppaEnforcement(UserFpdCoppaMask userFpdCoppaMask, Metrics metrics) {
+        return new CoppaEnforcement(userFpdCoppaMask, metrics);
+    }
+
+    @Bean
+    TcfEnforcement tcfEnforcement(TcfDefinerService tcfDefinerService,
+                                  UserFpdTcfMask userFpdTcfMask,
+                                  BidderCatalog bidderCatalog,
+                                  Metrics metrics,
+                                  @Value("${lmt.enforce}") boolean lmtEnforce) {
+
+        return new TcfEnforcement(tcfDefinerService, userFpdTcfMask, bidderCatalog, metrics, lmtEnforce);
+    }
+
+    @Data
+    @Validated
+    public static class VendorListServiceConfigurationProperties {
+
+        @NotEmpty
+        String cacheDir;
+
+        @NotEmpty
+        String httpEndpointTemplate;
+
+        @Min(1)
+        int refreshMissingListPeriodMs;
+
+        String fallbackVendorListPath;
+
+        @NotNull
+        Boolean deprecated;
+
+        RetryPolicyConfigurationProperties retryPolicy;
     }
 }

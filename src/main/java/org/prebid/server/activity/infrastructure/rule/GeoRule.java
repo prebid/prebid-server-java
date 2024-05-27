@@ -1,18 +1,22 @@
 package org.prebid.server.activity.infrastructure.rule;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Value;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ComponentType;
-import org.prebid.server.activity.infrastructure.payload.ActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.GeoActivityCallPayload;
-import org.prebid.server.activity.infrastructure.payload.GpcActivityCallPayload;
+import org.prebid.server.activity.infrastructure.debug.Loggable;
+import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.GeoActivityInvocationPayload;
+import org.prebid.server.activity.infrastructure.payload.GpcActivityInvocationPayload;
 
 import java.util.List;
 import java.util.Set;
 
-public final class GeoRule extends AbstractMatchRule {
+public final class GeoRule extends AbstractMatchRule implements Loggable {
 
-    private final ComponentRule componentRule;
+    private final Set<ComponentType> componentTypes;
+    private final Set<String> componentNames;
     private final boolean sidsMatched;
     private final List<GeoCode> geoCodes;
     private final String gpc;
@@ -25,7 +29,8 @@ public final class GeoRule extends AbstractMatchRule {
                    String gpc,
                    boolean allowed) {
 
-        this.componentRule = new ComponentRule(componentTypes, componentNames, allowed);
+        this.componentTypes = componentTypes;
+        this.componentNames = componentNames;
         this.sidsMatched = sidsMatched;
         this.geoCodes = geoCodes;
         this.gpc = gpc;
@@ -33,30 +38,31 @@ public final class GeoRule extends AbstractMatchRule {
     }
 
     @Override
-    public boolean matches(ActivityCallPayload activityCallPayload) {
+    public boolean matches(ActivityInvocationPayload activityInvocationPayload) {
         return sidsMatched
-                && (geoCodes == null || matchesOneOfGeoCodes(activityCallPayload))
-                && (gpc == null || matchesGpc(activityCallPayload))
-                && componentRule.matches(activityCallPayload);
+                && (geoCodes == null || matchesOneOfGeoCodes(activityInvocationPayload))
+                && (gpc == null || matchesGpc(activityInvocationPayload))
+                && (componentTypes == null || componentTypes.contains(activityInvocationPayload.componentType()))
+                && (componentNames == null || componentNames.contains(activityInvocationPayload.componentName()));
     }
 
-    private boolean matchesOneOfGeoCodes(ActivityCallPayload activityCallPayload) {
-        if (activityCallPayload instanceof GeoActivityCallPayload geoPayload) {
+    private boolean matchesOneOfGeoCodes(ActivityInvocationPayload activityInvocationPayload) {
+        if (activityInvocationPayload instanceof GeoActivityInvocationPayload geoPayload) {
             return geoCodes.stream().anyMatch(geoCode -> matchesGeoCode(geoCode, geoPayload));
         }
 
         return true;
     }
 
-    private static boolean matchesGeoCode(GeoCode geoCode, GeoActivityCallPayload geoPayload) {
+    private static boolean matchesGeoCode(GeoCode geoCode, GeoActivityInvocationPayload geoPayload) {
         final String region = geoCode.getRegion();
         return StringUtils.equalsIgnoreCase(geoCode.getCountry(), geoPayload.country())
                 && (region == null || StringUtils.equalsIgnoreCase(region, geoPayload.region()));
     }
 
-    private boolean matchesGpc(ActivityCallPayload activityCallPayload) {
-        if (activityCallPayload instanceof GpcActivityCallPayload gpcActivityCallPayload) {
-            return gpc.equals(gpcActivityCallPayload.gpc());
+    private boolean matchesGpc(ActivityInvocationPayload activityInvocationPayload) {
+        if (activityInvocationPayload instanceof GpcActivityInvocationPayload gpcActivityInvocationPayload) {
+            return gpc.equals(gpcActivityInvocationPayload.gpc());
         }
 
         return true;
@@ -67,11 +73,30 @@ public final class GeoRule extends AbstractMatchRule {
         return allowed;
     }
 
+    @Override
+    public JsonNode asLogEntry(ObjectMapper mapper) {
+        return mapper.valueToTree(new GeoRuleLogEntry(
+                componentTypes,
+                componentNames,
+                sidsMatched,
+                geoCodes,
+                gpc,
+                allowed));
+    }
+
     @Value(staticConstructor = "of")
     public static class GeoCode {
 
         String country;
 
         String region;
+    }
+
+    private record GeoRuleLogEntry(Set<ComponentType> componentTypes,
+                                   Set<String> componentNames,
+                                   boolean gppSidsMatched,
+                                   List<GeoCode> geoCodes,
+                                   String gpc,
+                                   boolean allow) {
     }
 }

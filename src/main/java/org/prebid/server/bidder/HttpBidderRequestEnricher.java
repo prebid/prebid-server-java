@@ -16,7 +16,6 @@ import org.prebid.server.spring.config.bidder.model.CompressionType;
 import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -25,7 +24,13 @@ import java.util.stream.Stream;
 
 public class HttpBidderRequestEnricher {
 
-    private static final Set<CharSequence> HEADERS_TO_COPY = Collections.singleton(HttpUtil.SEC_GPC_HEADER.toString());
+    private static final Set<CharSequence> HEADERS_TO_COPY = Set.of(
+            HttpUtil.SEC_GPC_HEADER.toString(),
+            HttpUtil.SAVE_DATA.toString(),
+            HttpUtil.SEC_CH_UA.toString(),
+            HttpUtil.SEC_CH_UA_MOBILE.toString(),
+            HttpUtil.SEC_CH_UA_PLATFORM.toString()
+    );
 
     private final PrebidVersionProvider prebidVersionProvider;
 
@@ -63,8 +68,7 @@ public class HttpBidderRequestEnricher {
 
     private static void addOriginalRequestHeaders(MultiMap bidderHeaders, CaseInsensitiveMultiMap originalHeaders) {
         originalHeaders.entries().stream()
-                .filter(entry -> HEADERS_TO_COPY.contains(entry.getKey())
-                        && !bidderHeaders.contains(entry.getKey()))
+                .filter(entry -> HEADERS_TO_COPY.contains(entry.getKey()) && !bidderHeaders.contains(entry.getKey()))
                 .forEach(entry -> bidderHeaders.add(entry.getKey(), entry.getValue()));
     }
 

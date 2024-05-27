@@ -11,4 +11,5 @@ class BidResponsePrebid {
     Long auctionTimeStamp
     Map passThrough
     ExtBidResponseFledge fledge
+    ExtModule modules
 }

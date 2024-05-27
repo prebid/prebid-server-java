@@ -13,6 +13,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.handler.admin.CurrencyRatesHandler;
 
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;

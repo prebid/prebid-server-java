@@ -28,8 +28,8 @@ import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsConfig;
 import org.prebid.server.settings.model.AccountPriceFloorsFetchConfig;
-import org.prebid.server.vertx.http.HttpClient;
-import org.prebid.server.vertx.http.model.HttpClientResponse;
+import org.prebid.server.vertx.httpclient.HttpClient;
+import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.math.BigDecimal;
 import java.util.concurrent.TimeoutException;

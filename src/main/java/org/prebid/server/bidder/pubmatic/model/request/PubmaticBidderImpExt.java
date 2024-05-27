@@ -1,14 +1,16 @@
 package org.prebid.server.bidder.pubmatic.model.request;
 
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
 import org.prebid.server.proto.openrtb.ext.request.pubmatic.ExtImpPubmatic;
 
-@AllArgsConstructor(staticName = "of")
-@Value
+@Value(staticConstructor = "of")
 public class PubmaticBidderImpExt {
 
     ExtImpPubmatic bidder;
 
-    PubmaticExtData data;
+    ObjectNode data;
+
+    Integer ae;
+
 }

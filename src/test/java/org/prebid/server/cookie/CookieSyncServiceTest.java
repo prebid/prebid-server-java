@@ -12,7 +12,7 @@ import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
-import org.prebid.server.auction.PrivacyEnforcementService;
+import org.prebid.server.auction.privacy.enforcement.CcpaEnforcement;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodChooser;
@@ -74,7 +74,7 @@ public class CookieSyncServiceTest extends VertxTest {
     @Mock
     private HostVendorTcfDefinerService hostVendorTcfDefinerService;
     @Mock
-    private PrivacyEnforcementService privacyEnforcementService;
+    private CcpaEnforcement ccpaEnforcement;
     @Mock
     private UidsCookieService uidsCookieService;
     @Mock
@@ -1171,7 +1171,7 @@ public class CookieSyncServiceTest extends VertxTest {
                 maxLimit,
                 bidderCatalog,
                 hostVendorTcfDefinerService,
-                privacyEnforcementService,
+                ccpaEnforcement,
                 uidsCookieService,
                 coopSyncProvider,
                 metrics);

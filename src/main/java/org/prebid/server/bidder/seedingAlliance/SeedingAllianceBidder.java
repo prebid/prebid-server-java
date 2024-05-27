@@ -1,20 +1,26 @@
 package org.prebid.server.bidder.seedingAlliance;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
+import org.prebid.server.proto.openrtb.ext.ExtPrebid;
+import org.prebid.server.proto.openrtb.ext.request.seedingalliance.ExtImpSeedingAlliance;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
@@ -29,8 +35,13 @@ import java.util.Optional;
 
 public class SeedingAllianceBidder implements Bidder<BidRequest> {
 
+    private static final TypeReference<ExtPrebid<?, ExtImpSeedingAlliance>> EXT_IMP_TYPE_REFERENCE =
+            new TypeReference<>() { };
+
     private static final String EUR_CURRENCY = "EUR";
     private static final String AUCTION_PRICE_MACRO = "${AUCTION_PRICE}";
+    private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
+    private static final String DEFAULT_ACCOUNT_ID = "pbs";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -42,26 +53,41 @@ public class SeedingAllianceBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final BidRequest resolvedRequest = resolveRequest(bidRequest);
+        String accountId = null;
+        final List<Imp> modifiedImps = new ArrayList<>();
+        for (Imp imp: bidRequest.getImp()) {
+            try {
+                final ExtImpSeedingAlliance impExt = parseImpExt(imp);
+                accountId = StringUtils.isNotBlank(impExt.getAccountId())
+                        ? impExt.getAccountId()
+                        : StringUtils.isNotBlank(impExt.getSeatId()) ? impExt.getSeatId() : null;
+                final Imp modifiedImp = imp.toBuilder().tagid(impExt.getAdUnitId()).build();
+                modifiedImps.add(modifiedImp);
+            } catch (PreBidException e) {
+                return Result.withError(BidderError.badInput(e.getMessage()));
+            }
+        }
+        final BidRequest modifiedBidRequest = modifyBidRequest(bidRequest, modifiedImps);
 
-        return Result.withValue(
-                HttpRequest.<BidRequest>builder()
-                        .method(HttpMethod.POST)
-                        .uri(endpointUrl)
-                        .headers(HttpUtil.headers())
-                        .body(mapper.encodeToBytes(resolvedRequest))
-                        .impIds(BidderUtil.impIds(resolvedRequest))
-                        .payload(resolvedRequest)
-                        .build());
+        return Result.withValue(makeHttpRequest(accountId, modifiedBidRequest));
     }
 
-    private static BidRequest resolveRequest(BidRequest bidRequest) {
+    private ExtImpSeedingAlliance parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), EXT_IMP_TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException("could not unmarshal imp.ext.prebid.bidder: " + e.getMessage());
+        }
+    }
+
+    private static BidRequest modifyBidRequest(BidRequest bidRequest, List<Imp> modifiedImps) {
         return bidRequest.toBuilder()
-                .cur(resolveCurrencies(bidRequest.getCur()))
+                .imp(modifiedImps)
+                .cur(modifyCurrencies(bidRequest.getCur()))
                 .build();
     }
 
-    private static List<String> resolveCurrencies(List<String> bidderCurrencies) {
+    private static List<String> modifyCurrencies(List<String> bidderCurrencies) {
         if (bidderCurrencies != null && bidderCurrencies.contains(EUR_CURRENCY)) {
             return bidderCurrencies;
         }
@@ -72,6 +98,22 @@ public class SeedingAllianceBidder implements Bidder<BidRequest> {
         resolvedCurrencies.add(EUR_CURRENCY);
 
         return Collections.unmodifiableList(resolvedCurrencies);
+    }
+
+    private HttpRequest<BidRequest> makeHttpRequest(String accountId, BidRequest modifiedBidRequest) {
+        return HttpRequest.<BidRequest>builder()
+                .method(HttpMethod.POST)
+                .uri(makeEndpoint(accountId))
+                .headers(HttpUtil.headers())
+                .body(mapper.encodeToBytes(modifiedBidRequest))
+                .impIds(BidderUtil.impIds(modifiedBidRequest))
+                .payload(modifiedBidRequest)
+                .build();
+    }
+
+    private String makeEndpoint(String accountId) {
+        final String marcoReplacement = StringUtils.isNotBlank(accountId) ? accountId : DEFAULT_ACCOUNT_ID;
+        return endpointUrl.replace(ACCOUNT_ID_MACRO, marcoReplacement);
     }
 
     @Override

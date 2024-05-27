@@ -42,7 +42,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
  */
 public class AlgorixBidderTest extends VertxTest {
 
-    private static final String ENDPOINT_URL = "https://{HOST}.svr-algorix.com/rtb/sa?sid={SID}&token={TOKEN}";
+    private static final String ENDPOINT_URL = "https://{{HOST}}.svr-algorix.com/rtb/sa?sid={{SID}}&token={{TOKEN}}";
 
     private final AlgorixBidder target = new AlgorixBidder(ENDPOINT_URL, jacksonMapper);
 

@@ -1,4 +1,3 @@
-
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.request.auction.App
@@ -18,7 +17,6 @@ import spock.lang.PendingFeature
 
 import java.time.Instant
 
-import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.DOOH
 import static org.prebid.server.functional.util.HttpUtil.REFERER_HEADER
@@ -46,15 +44,24 @@ class BidValidationSpec extends BaseSpec {
                 ["Bid \"${bidResponse.seatbid.first().bid.first().id}\" does not contain a 'price'" as String]
     }
 
-    @PendingFeature
-    def "PBS should throw an exception when bid request includes more than one distribution channel"() {
+    def "PBS should throw an exception when bid request includes more than one distribution channel and strict setting enabled for service"() {
+        given: "PBS with string setting enabled"
+        def strictPrebidService = pbsServiceFactory.getService(['auction.strict-app-site-dooh': 'true'])
+
+        and: "Flush metrics"
+        flushMetrics(strictPrebidService)
+
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        strictPrebidService.sendAuctionRequest(bidRequest)
 
         then: "PBS throws an exception"
         def exception = thrown(PrebidServerException)
         assert exception.statusCode == 400
         assert exception.responseBody.contains("no more than one of request.site or request.app or request.dooh can be defined")
+
+        and: "Bid validation metric value is incremented"
+        def metrics = strictPrebidService.sendCollectedMetricsRequest()
+        assert metrics["alerts.general"] == 1
 
         where:
         bidRequest << [BidRequest.getDefaultBidRequest(DistributionChannel.APP).tap {
@@ -68,16 +75,22 @@ class BidValidationSpec extends BaseSpec {
                        }]
     }
 
-    def "PBS should contain response and emit warning logs when bidRequest include multiple distribution channel"() {
+    def "PBS should contain response and emit warning logs when bidRequest include multiple distribution channel and strict setting disabled for service"() {
         given: "Start time and random referer"
         def startTime = Instant.now()
         def randomReferer = PBSUtils.randomString
 
+        and: "PBS with string setting disabled"
+        def softPrebidService = pbsServiceFactory.getService(['auction.strict-app-site-dooh': 'false'])
+
         and: "Request distribution channels"
         def requestDistributionChannels = bidRequest.getRequestDistributionChannels()
 
+        and: "Flush metrics"
+        flushMetrics(softPrebidService)
+
         when: "PBS processes auction request"
-        def response = defaultPbsService.sendAuctionRequest(bidRequest, [(REFERER_HEADER): randomReferer])
+        def response = softPrebidService.sendAuctionRequest(bidRequest, [(REFERER_HEADER): randomReferer])
 
         then: "BidResponse contain single seatbid"
         assert response.seatbid.size() == 1
@@ -88,8 +101,12 @@ class BidValidationSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]*.message ==
                 ["BidRequest contains $warningChannelsValues. Only the first one is applicable, the others are ignored" as String]
 
+        and: "Bid validation metric value is incremented"
+        def metrics = softPrebidService.sendCollectedMetricsRequest()
+        assert metrics["alerts.general"] == 1
+
         and: "PBS log should contain message"
-        def logs = defaultPbsService.getLogsByTime(startTime)
+        def logs = softPrebidService.getLogsByTime(startTime)
         def validatorLogChannelsValues = requestDistributionChannels.collect { "request.${it.value.toLowerCase()}" }.join(" and ")
         assert getLogsByText(logs, "$validatorLogChannelsValues are present. Referer: $randomReferer")
         assert getLogsByText(logs, "$warningChannelsValues are present. Referer: $randomReferer. Account: ${bidRequest.getAccountId()}")
@@ -260,7 +277,7 @@ class BidValidationSpec extends BaseSpec {
         assert metrics["adapter.generic.requests.bid_validation"] == initialMetricValue + 1
     }
 
-    def "PBS should throw error when two separate eids with same eids.source"() {
+    def "PBS shouldn't throw error when two separate eids with same eids.source"() {
         given: "Default bid request with user.eids"
         def source = PBSUtils.randomString
         def defaultEids = [Eid.getDefaultEid(source), Eid.getDefaultEid(source)]
@@ -273,10 +290,15 @@ class BidValidationSpec extends BaseSpec {
         when: "PBS processes auction request"
         defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should fail the request"
-        def exception = thrown(PrebidServerException)
-        assert exception.statusCode == BAD_REQUEST.code()
-        assert exception.responseBody.contains("Invalid request format: request.user.eids must contain unique sources")
+        then: "PBS should contain same eids as in request"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequest.user.eids[0].source == defaultEids[0].source
+        assert bidderRequest.user.eids[0].uids[0].id == defaultEids[0].uids[0].id
+        assert bidderRequest.user.eids[0].uids[0].atype == defaultEids[0].uids[0].atype
+
+        assert bidderRequest.user.eids[1].source == defaultEids[1].source
+        assert bidderRequest.user.eids[1].uids[0].id == defaultEids[1].uids[0].id
+        assert bidderRequest.user.eids[1].uids[0].atype == defaultEids[1].uids[0].atype
     }
 
     def "PBS shouldn't throw error when two separate eids with different eids.source"() {
