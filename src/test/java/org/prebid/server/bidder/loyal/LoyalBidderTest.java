@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
@@ -63,6 +62,11 @@ public class LoyalBidderTest extends VertxTest {
                 .extracting(BidRequest::getImp)
                 .extracting(List::size)
                 .containsOnly(1);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactlyInAnyOrder("123", "123");
     }
 
     @Test
@@ -76,12 +80,18 @@ public class LoyalBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         //then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(2)
+        assertThat(result.getErrors().get(0).getMessage()).isEqualTo("Invalid imp: invalidImp");
+        assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
                 .extracting(List::size)
                 .containsOnly(1);
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactly("123");
+
     }
 
     @Test
@@ -190,10 +200,7 @@ public class LoyalBidderTest extends VertxTest {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(banner).build());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
-                        .build(),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123"))));
 
@@ -212,10 +219,7 @@ public class LoyalBidderTest extends VertxTest {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(video).build());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
-                        .build(),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123"))));
 
@@ -234,10 +238,7 @@ public class LoyalBidderTest extends VertxTest {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(xNative).build());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
-                        .build(),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123"))));
 
@@ -256,10 +257,7 @@ public class LoyalBidderTest extends VertxTest {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
                 .set("prebid", mapper.createArrayNode());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
-                        .build(),
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).id("123"))));
 
