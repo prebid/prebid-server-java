@@ -3,7 +3,6 @@ package org.prebid.server.analytics.reporter.greenbids;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
@@ -106,10 +105,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                     greenbidsId,
                     billingId);
             commonMessageJson = jacksonMapper.encodeToString(commonMessage);
-        } catch (IllegalArgumentException | PreBidException e) {
+        } catch (IllegalArgumentException | PreBidException | EncodeException e) {
             return Future.failedFuture(e);
-        } catch (EncodeException e) {
-            return Future.failedFuture("Failed to encode as JSON: " + e.getMessage());
         }
 
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
@@ -234,25 +231,20 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             Imp imp,
             Map<String, Bid> seatsWithBids,
             Map<String, NonBid> seatsWithNonBids) {
-        final Banner banner = imp.getBanner();
+        final ExtBanner extBanner = Optional.ofNullable(imp.getBanner())
+                .map(banner -> {
+                    if (banner.getFormat() == null) {
+                        throw new PreBidException("Error: Banner format should be non-null");
+                    }
+                    return ExtBanner.builder()
+                            .sizes(banner.getFormat())
+                            .pos(banner.getPos())
+                            .name(banner.getId())
+                            .build();
+                }).orElse(null);
+
         final Video video = imp.getVideo();
         final Native nativeObject = imp.getXNative();
-
-        if (banner == null) {
-            throw new PreBidException("Error: Banner should be non-null");
-        }
-
-        // Error is here
-        final List<List<Integer>> bannerWidthHeight = Optional.ofNullable(banner)
-                .map(Banner::getFormat)
-                .map(formats -> formats.stream().map(format -> List.of(format.getW(), format.getH())))
-                .orElse(null).collect(Collectors.toList());
-
-        final ExtBanner extBanner = ExtBanner.builder()
-                .sizes(bannerWidthHeight)
-                .pos(Optional.ofNullable(banner).map(Banner::getPos).orElse(null))
-                .name(Optional.ofNullable(banner).map(Banner::getId).orElse(null))
-                .build();
 
         final MediaTypes mediaTypes = MediaTypes.builder()
                 .banner(extBanner)
