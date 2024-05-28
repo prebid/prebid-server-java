@@ -24,6 +24,7 @@ import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -38,7 +39,7 @@ public class DsaEnforcer {
     private final JacksonMapper mapper;
 
     public DsaEnforcer(JacksonMapper mapper) {
-        this.mapper = mapper;
+        this.mapper = Objects.requireNonNull(mapper);
     }
 
     public AuctionParticipation enforce(BidRequest bidRequest,
@@ -100,8 +101,6 @@ public class DsaEnforcer {
         if (dsaResponse == null) {
             throw new PreBidException("DSA object missing when required");
         }
-
-        validateFieldLength(dsaResponse);
 
         final Integer adRender = dsaResponse.getAdRender();
         final Integer pubRender = bidRequest.getRegs().getExt().getDsa().getPubRender();
