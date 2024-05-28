@@ -32,6 +32,7 @@ import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -55,6 +56,9 @@ public class GreenbidsAnalyticsReporterTest {
 
     @Mock
     private HttpClient httpClient;
+
+    @Mock
+    private Clock clock;
 
     private GreenbidsAnalyticsReporter target;
 
@@ -82,7 +86,8 @@ public class GreenbidsAnalyticsReporterTest {
         target = new GreenbidsAnalyticsReporter(
                 greenbidsAnalyticsProperties,
                 jacksonMapper,
-                httpClient);
+                httpClient,
+                clock);
     }
 
     @Test
@@ -191,7 +196,8 @@ public class GreenbidsAnalyticsReporterTest {
         target = new GreenbidsAnalyticsReporter(
                 greenbidsAnalyticsProperties,
                 mockJacksonMapper,
-                httpClient);
+                httpClient,
+                clock);
 
         // when
         final Future<Void> result = target.processEvent(event);
@@ -305,7 +311,8 @@ public class GreenbidsAnalyticsReporterTest {
         target = new GreenbidsAnalyticsReporter(
                 greenbidsAnalyticsProperties,
                 jacksonMapper,
-                httpClient);
+                httpClient,
+                clock);
 
         // when
         final Future<Void> result = target.processEvent(event);

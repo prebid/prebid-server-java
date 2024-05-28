@@ -25,6 +25,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.constraints.NotNull;
+import java.time.Clock;
 import java.util.List;
 
 @Configuration
@@ -62,11 +63,13 @@ public class AnalyticsConfiguration {
         GreenbidsAnalyticsReporter greenbidsAnalyticsReporter(
                 GreenbidsAnalyticsConfigurationProperties greenbidsAnalyticsConfigurationProperties,
                 JacksonMapper jacksonMapper,
-                HttpClient httpClient) {
+                HttpClient httpClient,
+                Clock clock) {
             return new GreenbidsAnalyticsReporter(
                     greenbidsAnalyticsConfigurationProperties.toComponentProperties(),
                     jacksonMapper,
-                    httpClient);
+                    httpClient,
+                    clock);
         }
 
         @Bean

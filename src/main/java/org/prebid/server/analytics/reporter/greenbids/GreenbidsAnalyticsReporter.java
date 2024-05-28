@@ -41,6 +41,7 @@ import org.prebid.server.util.HttpUtil;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
+import java.time.Clock;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -58,14 +59,16 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     private final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
     private final JacksonMapper jacksonMapper;
     private final HttpClient httpClient;
+    private final Clock clock;
 
     public GreenbidsAnalyticsReporter(
             GreenbidsAnalyticsProperties greenbidsAnalyticsProperties,
             JacksonMapper jacksonMapper,
-            HttpClient httpClient) {
+            HttpClient httpClient, Clock clock) {
         this.greenbidsAnalyticsProperties = Objects.requireNonNull(greenbidsAnalyticsProperties);
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
         this.httpClient = Objects.requireNonNull(httpClient);
+        this.clock = clock;
     }
 
     @Override
@@ -85,7 +88,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         }
 
         if (bidResponse == null || auctionContext == null) {
-            return Future.failedFuture("Bid response or auction context cannot be null");
+            return Future.failedFuture(new PreBidException("Bid response or auction context cannot be null"));
         }
 
         final String greenbidsId = UUID.randomUUID().toString();
@@ -105,7 +108,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                     greenbidsId,
                     billingId);
             commonMessageJson = jacksonMapper.encodeToString(commonMessage);
-        } catch (IllegalArgumentException | PreBidException | EncodeException e) {
+        } catch (PreBidException | EncodeException e) {
             return Future.failedFuture(e);
         }
 
@@ -129,7 +132,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 return Future.succeededFuture();
             } else {
                 return Future.failedFuture(
-                        "Unexpected response status: " + response.getStatusCode());
+                        new PreBidException("Unexpected response status: " + response.getStatusCode()));
             }
         });
     }
@@ -165,13 +168,13 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(AuctionContext::getBidRequest)
                 .map(BidRequest::getImp)
                 .filter(CollectionUtils::isNotEmpty)
-                .orElseThrow(() -> new IllegalArgumentException("AdUnits list should not be empty"));
+                .orElseThrow(() -> new PreBidException("AdUnits list should not be empty"));
 
         final long auctionElapsed = Optional.of(auctionContext.getBidRequest())
                 .map(BidRequest::getExt)
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getAuctiontimestamp)
-                .map(timestamp -> System.currentTimeMillis() - timestamp).orElse(0L);
+                .map(timestamp -> clock.millis() - timestamp).orElse(0L);
 
         final Map<String, Bid> seatsWithBids = Stream.ofNullable(bidResponse.getSeatbid())
                 .flatMap(Collection::stream)
@@ -271,8 +274,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         .map(entry -> GreenbidsBids.ofBid(entry.getKey(), entry.getValue())),
                 seatsWithNonBids.entrySet().stream()
                         .filter(entry -> entry.getValue().getImpId().equals(imp.getId()))
-                        .map(entry -> GreenbidsBids.ofNonBid(entry.getKey(), entry.getValue()))
-        ).collect(Collectors.toList());
+                        .map(entry -> GreenbidsBids.ofNonBid(entry.getKey(), entry.getValue())))
+                .collect(Collectors.toList());
     }
 
     private String getAdUnitCode(Imp imp) {
