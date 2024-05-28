@@ -38,6 +38,7 @@
     "tid" : "${json-unit.any-string}"
   },
   "regs" : {
+    "gpp_sid" : [ 1, 3, 7 ],
     "ext" : {
       "gdpr" : 0,
       "dsa": {

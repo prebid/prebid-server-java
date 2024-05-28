@@ -6,7 +6,6 @@ import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.mchange.util.AssertException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -52,7 +51,7 @@ public class AccountActivityRulesConfigDeserializerTest {
         // given
         given(parser.getCurrentToken()).willReturn(JsonToken.VALUE_FALSE);
         given(parser.getCurrentName()).willReturn("FIELD");
-        doThrow(AssertException.class)
+        doThrow(RuntimeException.class)
                 .when(context)
                 .reportWrongTokenException(
                         eq(JsonToken.class),
@@ -60,7 +59,7 @@ public class AccountActivityRulesConfigDeserializerTest {
                         eq("Failed to parse field FIELD to array with a reason: Expected array."));
 
         // when and then
-        assertThatExceptionOfType(AssertException.class)
+        assertThatExceptionOfType(RuntimeException.class)
                 .isThrownBy(() -> target.deserialize(parser, context));
     }
 

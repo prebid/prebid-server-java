@@ -41,7 +41,7 @@ public class SeedingAllianceBidder implements Bidder<BidRequest> {
     private static final String EUR_CURRENCY = "EUR";
     private static final String AUCTION_PRICE_MACRO = "${AUCTION_PRICE}";
     private static final String ACCOUNT_ID_MACRO = "{{AccountId}}";
-    private static final String DEFAULT_SEAT_ID = "pbs";
+    private static final String DEFAULT_ACCOUNT_ID = "pbs";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -53,12 +53,14 @@ public class SeedingAllianceBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        String seatId = null;
+        String accountId = null;
         final List<Imp> modifiedImps = new ArrayList<>();
         for (Imp imp: bidRequest.getImp()) {
             try {
                 final ExtImpSeedingAlliance impExt = parseImpExt(imp);
-                seatId = impExt.getSeatId();
+                accountId = StringUtils.isNotBlank(impExt.getAccountId())
+                        ? impExt.getAccountId()
+                        : StringUtils.isNotBlank(impExt.getSeatId()) ? impExt.getSeatId() : null;
                 final Imp modifiedImp = imp.toBuilder().tagid(impExt.getAdUnitId()).build();
                 modifiedImps.add(modifiedImp);
             } catch (PreBidException e) {
@@ -67,7 +69,7 @@ public class SeedingAllianceBidder implements Bidder<BidRequest> {
         }
         final BidRequest modifiedBidRequest = modifyBidRequest(bidRequest, modifiedImps);
 
-        return Result.withValue(makeHttpRequest(seatId, modifiedBidRequest));
+        return Result.withValue(makeHttpRequest(accountId, modifiedBidRequest));
     }
 
     private ExtImpSeedingAlliance parseImpExt(Imp imp) {
@@ -98,10 +100,10 @@ public class SeedingAllianceBidder implements Bidder<BidRequest> {
         return Collections.unmodifiableList(resolvedCurrencies);
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(String seatId, BidRequest modifiedBidRequest) {
+    private HttpRequest<BidRequest> makeHttpRequest(String accountId, BidRequest modifiedBidRequest) {
         return HttpRequest.<BidRequest>builder()
                 .method(HttpMethod.POST)
-                .uri(makeEndpoint(seatId))
+                .uri(makeEndpoint(accountId))
                 .headers(HttpUtil.headers())
                 .body(mapper.encodeToBytes(modifiedBidRequest))
                 .impIds(BidderUtil.impIds(modifiedBidRequest))
@@ -109,9 +111,9 @@ public class SeedingAllianceBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private String makeEndpoint(String seatId) {
-        final String accountId = StringUtils.isNotBlank(seatId) ? seatId : DEFAULT_SEAT_ID;
-        return endpointUrl.replace(ACCOUNT_ID_MACRO, accountId);
+    private String makeEndpoint(String accountId) {
+        final String marcoReplacement = StringUtils.isNotBlank(accountId) ? accountId : DEFAULT_ACCOUNT_ID;
+        return endpointUrl.replace(ACCOUNT_ID_MACRO, marcoReplacement);
     }
 
     @Override

@@ -1,34 +1,23 @@
 package org.prebid.server.auction.privacy.enforcement.mask;
 
 import com.iab.openrtb.request.Device;
-import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.User;
-import org.prebid.server.auction.IpAddressHelper;
 
-import java.util.Collections;
+import java.util.Objects;
 
-public class UserFpdCoppaMask extends UserFpdPrivacyMask {
+public class UserFpdCoppaMask {
 
-    public UserFpdCoppaMask(IpAddressHelper ipAddressHelper) {
-        super(ipAddressHelper);
+    private final UserFpdActivityMask userFpdActivityMask;
+
+    public UserFpdCoppaMask(UserFpdActivityMask userFpdActivityMask) {
+        this.userFpdActivityMask = Objects.requireNonNull(userFpdActivityMask);
     }
 
     public User maskUser(User user) {
-        return maskUser(user, true, true, true, Collections.emptySet());
+        return userFpdActivityMask.maskUser(user, true, true);
     }
 
     public Device maskDevice(Device device) {
-        return maskDevice(device, true, true, true);
-    }
-
-    @Override
-    protected Geo maskGeo(Geo geo) {
-        return geo.toBuilder()
-                .lat(null)
-                .lon(null)
-                .metro(null)
-                .city(null)
-                .zip(null)
-                .build();
+        return userFpdActivityMask.maskDevice(device, true, true);
     }
 }

@@ -131,7 +131,16 @@ Container for mocking different calls from PBS: prebid cache, bidders, currency 
 
 Container for Mysql database.
 
-- Use `org/prebid/server/functional/db_schema.sql` script for scheme.
+- Use `org/prebid/server/functional/db_mysql_schema.sql` script for scheme.
+- DataBase: `prebid`
+- Username: `prebid`
+- Password: `prebid`
+
+#### PostgreSQLContainer
+
+Container for PostgreSQL database.
+
+- Use `org/prebid/server/functional/db_psql_schema.sql` script for scheme.
 - DataBase: `prebid`
 - Username: `prebid`
 - Password: `prebid`

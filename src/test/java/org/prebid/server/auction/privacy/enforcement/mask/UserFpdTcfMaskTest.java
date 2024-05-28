@@ -12,6 +12,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.IpAddressHelper;
+import org.prebid.server.proto.openrtb.ext.request.ExtGeo;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 
 import static java.util.Arrays.asList;
@@ -55,14 +56,10 @@ public class UserFpdTcfMaskTest extends VertxTest {
                 .build();
 
         // when
-        final User result = target.maskUser(user, true, false, false, emptySet());
+        final User result = target.maskUser(user, true, false, emptySet());
 
         // then
-        assertThat(result).isEqualTo(
-                User.builder()
-                        .eids(emptyList())
-                        .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
-                        .build());
+        assertThat(result).isEqualTo(User.builder().eids(emptyList()).build());
     }
 
     @Test
@@ -85,7 +82,7 @@ public class UserFpdTcfMaskTest extends VertxTest {
                 .build();
 
         // when
-        final User result = target.maskUser(user, false, true, false, singleton("2"));
+        final User result = target.maskUser(user, false, true, singleton("2"));
 
         // then
         assertThat(result).isEqualTo(
@@ -104,41 +101,6 @@ public class UserFpdTcfMaskTest extends VertxTest {
     }
 
     @Test
-    public void maskUserShouldReturnExpectedResultWhenGeoMasked() {
-        // given
-        final User user = User.builder()
-                .id("id")
-                .buyeruid("buyeruid")
-                .yob(1)
-                .gender("gender")
-                .keywords("keywords")
-                .kwarray(emptyList())
-                .data(emptyList())
-                .eids(emptyList())
-                .geo(Geo.builder().lon(-85.34321F).lat(189.342323F).build())
-                .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
-                .build();
-
-        // when
-        final User result = target.maskUser(user, false, false, true, emptySet());
-
-        // then
-        assertThat(result).isEqualTo(
-                User.builder()
-                        .id("id")
-                        .buyeruid("buyeruid")
-                        .yob(1)
-                        .gender("gender")
-                        .keywords("keywords")
-                        .kwarray(emptyList())
-                        .data(emptyList())
-                        .eids(emptyList())
-                        .geo(Geo.builder().lon(-85.34F).lat(189.34F).build())
-                        .ext(ExtUser.builder().data(mapper.createObjectNode()).build())
-                        .build());
-    }
-
-    @Test
     public void maskDeviceShouldReturnExpectedResultWhenIpMasked() {
         // given
         given(ipAddressHelper.maskIpv4(any())).willReturn("ip4");
@@ -150,6 +112,12 @@ public class UserFpdTcfMaskTest extends VertxTest {
                 .geo(Geo.builder()
                         .lon(-85.34321F)
                         .lat(189.342323F)
+                        .metro("metro")
+                        .city("city")
+                        .zip("zip")
+                        .accuracy(1)
+                        .ipservice(1)
+                        .ext(ExtGeo.of())
                         .build())
                 .ifa("ifa")
                 .macsha1("macsha1")
@@ -171,6 +139,12 @@ public class UserFpdTcfMaskTest extends VertxTest {
                         .geo(Geo.builder()
                                 .lon(-85.34321F)
                                 .lat(189.342323F)
+                                .metro("metro")
+                                .city("city")
+                                .zip("zip")
+                                .accuracy(1)
+                                .ipservice(1)
+                                .ext(ExtGeo.of())
                                 .build())
                         .ifa("ifa")
                         .macsha1("macsha1")
@@ -194,6 +168,12 @@ public class UserFpdTcfMaskTest extends VertxTest {
                 .geo(Geo.builder()
                         .lon(-85.34321F)
                         .lat(189.342323F)
+                        .metro("metro")
+                        .city("city")
+                        .zip("zip")
+                        .accuracy(1)
+                        .ipservice(1)
+                        .ext(ExtGeo.of())
                         .build())
                 .ifa("ifa")
                 .macsha1("macsha1")
@@ -238,6 +218,12 @@ public class UserFpdTcfMaskTest extends VertxTest {
                 .geo(Geo.builder()
                         .lon(-85.34321F)
                         .lat(189.342323F)
+                        .metro("metro")
+                        .city("city")
+                        .zip("zip")
+                        .accuracy(1)
+                        .ipservice(1)
+                        .ext(ExtGeo.of())
                         .build())
                 .ifa("ifa")
                 .macsha1("macsha1")
@@ -259,6 +245,12 @@ public class UserFpdTcfMaskTest extends VertxTest {
                         .geo(Geo.builder()
                                 .lon(-85.34321F)
                                 .lat(189.342323F)
+                                .metro("metro")
+                                .city("city")
+                                .zip("zip")
+                                .accuracy(1)
+                                .ipservice(1)
+                                .ext(ExtGeo.of())
                                 .build())
                         .build());
     }

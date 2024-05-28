@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>3.0.0-SNAPSHOT</version>
+        <version>3.1.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -19,56 +19,10 @@
     </organization>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <java.version>21</java.version>
-        <maven.compiler.source>${java.version}</maven.compiler.source>
-        <maven.compiler.target>${java.version}</maven.compiler.target>
         <dockerfileName>Dockerfile</dockerfileName>
 
-        <!-- dependencies versions -->
-        <spring.boot.version>3.2.3</spring.boot.version>
-        <validation-api.version>2.0.1.Final</validation-api.version>
-        <commons.version>3.14.0</commons.version>
-        <commons.collections.version>4.4</commons.collections.version>
-        <commons.compress.version>1.26.0</commons.compress.version>
-        <commons-math3.version>3.6.1</commons-math3.version>
-        <httpclient.version>4.5.14</httpclient.version>
-        <ipaddress.version>5.3.1</ipaddress.version>
-        <oshi.version>6.4.5</oshi.version>
-        <jackson.version>2.16.2</jackson.version>
-        <json-schema-validator.version>1.0.76</json-schema-validator.version>
-        <jsonpatch.version>1.13</jsonpatch.version>
-        <mysql.version>8.0.28</mysql.version>
-        <postgresql.version>42.7.2</postgresql.version>
-        <psl.version>2.2.0</psl.version>
-        <metrics-influxdb.version>1.2.2</metrics-influxdb.version>
-        <vertx.prometheus.version>0.16.0</vertx.prometheus.version>
-        <consent-string-sdk.version>2.0.2</consent-string-sdk.version>
-        <iabtcf.version>2.0.7</iabtcf.version>
-        <maxmind-client.version>2.12.0</maxmind-client.version>
-        <hikari.version>5.0.1</hikari.version>
-        <gpp-encoder.version>3.0.10</gpp-encoder.version>
-        <protobuf.version>3.21.7</protobuf.version>
-        <protoc.version>3.17.3</protoc.version>
-        <json-logic.version>1.0.7</json-logic.version>
-
-        <!-- test dependencies versions -->
-        <junit.version>4.13.2</junit.version>
-        <junit-jupiter.version>5.10.2</junit-jupiter.version>
-        <mockito.version>4.11.0</mockito.version>
-        <assertj.version>3.24.2</assertj.version>
-        <wiremock.version>2.35.1</wiremock.version>
-        <awaitility.version>4.2.0</awaitility.version>
+        <!-- TODO: remove explicit Jetty dependency -->
         <jetty.version>9.4.53.v20231009</jetty.version>
-        <restassured.version>5.4.0</restassured.version>
-        <h2.version>2.2.220</h2.version>
-        <spock.version>2.4-M2-groovy-4.0</spock.version>
-        <groovy.version>4.0.15</groovy.version>
-        <testcontainers.version>1.17.4</testcontainers.version>
-        <mockserver.version>5.14.0</mockserver.version>
-        <aspectj.version>1.9.9.1</aspectj.version>
-        <bytebuddy.version>1.12.14</bytebuddy.version>
 
         <!-- plugin versions -->
         <checkstyle-plugin.version>3.1.2</checkstyle-plugin.version>
@@ -76,61 +30,19 @@
         <download-plugin.version>1.2.0</download-plugin.version>
         <jacoco-plugin.version>0.8.11</jacoco-plugin.version>
         <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
-        <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
-        <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
-        <maven-failsafe-plugin.version>${maven-surefire-plugin.version}</maven-failsafe-plugin.version>
-        <docker-maven-plugin.version>0.40.2</docker-maven-plugin.version>
+
         <gmavenplus-plugin.version>3.0.2</gmavenplus-plugin.version>
         <skipFunctionalTests>false</skipFunctionalTests>
         <skipModuleFunctionalTests>true</skipModuleFunctionalTests>
-        <skipUnitTests>false</skipUnitTests>
         <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
         <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
     </properties>
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring.boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.google.code.gson</groupId>
-                <artifactId>gson</artifactId>
-            </dependency>
-            <dependency>
-                <groupId>commons-codec</groupId>
-                <artifactId>commons-codec</artifactId>
-                <scope>compile</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.httpcomponents</groupId>
-                <artifactId>httpcore</artifactId>
-                <scope>compile</scope>
-            </dependency>
-            <dependency>
-                <groupId>com.rabbitmq</groupId>
-                <artifactId>amqp-client</artifactId>
-            </dependency>
-            <dependency>
-                <groupId>org.jboss.logging</groupId>
-                <artifactId>jboss-logging</artifactId>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
-
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
         <dependency>
             <groupId>jakarta.annotation</groupId>
@@ -139,7 +51,6 @@
         <dependency>
             <groupId>javax.validation</groupId>
             <artifactId>validation-api</artifactId>
-            <version>${validation-api.version}</version>
         </dependency>
         <dependency>
             <groupId>org.hibernate.validator</groupId>
@@ -148,37 +59,38 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-core</artifactId>
-            <version>${vertx.version}</version>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-web</artifactId>
-            <version>${vertx.version}</version>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-config</artifactId>
-            <version>${vertx.version}</version>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
-            <artifactId>vertx-jdbc-client</artifactId>
-            <version>${vertx.version}</version>
+            <artifactId>vertx-mysql-client</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-pg-client</artifactId>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-circuit-breaker</artifactId>
-            <version>${vertx.version}</version>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-dropwizard-metrics</artifactId>
-            <version>${vertx.version}</version>
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-auth-common</artifactId>
-            <version>${vertx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.ongres.scram</groupId>
+            <artifactId>client</artifactId>
         </dependency>
         <dependency>
             <groupId>io.netty</groupId>
@@ -193,94 +105,76 @@
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
-            <version>${commons.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-collections4</artifactId>
-            <version>${commons.collections.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-compress</artifactId>
-            <version>${commons.compress.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-math3</artifactId>
-            <version>${commons-math3.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
-            <version>${httpclient.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.seancfoley</groupId>
             <artifactId>ipaddress</artifactId>
-            <version>${ipaddress.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.oshi</groupId>
             <artifactId>oshi-core</artifactId>
-            <version>${oshi.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-blackbird</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
-            <version>${jackson.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-xml</artifactId>
-            <version>${jackson.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.networknt</groupId>
             <artifactId>json-schema-validator</artifactId>
-            <version>${json-schema-validator.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.java-json-tools</groupId>
             <artifactId>json-patch</artifactId>
-            <version>${jsonpatch.version}</version>
         </dependency>
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>${mysql.version}</version>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>${postgresql.version}</version>
         </dependency>
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
@@ -289,13 +183,6 @@
         <dependency>
             <groupId>de.malkusch.whois-server-list</groupId>
             <artifactId>public-suffix-list</artifactId>
-            <version>${psl.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.google.code.findbugs</groupId>
-                    <artifactId>jsr305</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
@@ -312,103 +199,63 @@
         <dependency>
             <groupId>com.izettle</groupId>
             <artifactId>dropwizard-metrics-influxdb</artifactId>
-            <version>${metrics-influxdb.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>io.dropwizard</groupId>
-                    <artifactId>dropwizard-metrics</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.kafka</groupId>
-                    <artifactId>kafka-clients</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>com.conversantmedia.gdpr</groupId>
-            <artifactId>consent-string-sdk-java</artifactId>
-            <version>${consent-string-sdk.version}</version>
         </dependency>
         <dependency>
             <groupId>com.iabtcf</groupId>
             <artifactId>iabtcf-decoder</artifactId>
-            <version>${iabtcf.version}</version>
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_vertx4</artifactId>
-            <version>${vertx.prometheus.version}</version>
         </dependency>
         <dependency>
             <groupId>io.prometheus</groupId>
             <artifactId>simpleclient_dropwizard</artifactId>
-            <version>${vertx.prometheus.version}</version>
         </dependency>
         <dependency>
             <groupId>com.maxmind.geoip2</groupId>
             <artifactId>geoip2</artifactId>
-            <version>${maxmind-client.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.zaxxer</groupId>
-            <artifactId>HikariCP</artifactId>
-            <version>${hikari.version}</version>
         </dependency>
         <dependency>
             <groupId>com.iabgpp</groupId>
             <artifactId>iabgpp-encoder</artifactId>
-            <version>${gpp-encoder.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java-util</artifactId>
-            <version>${protobuf.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>${protobuf.version}</version>
         </dependency>
         <dependency>
             <groupId>io.github.jamsesso</groupId>
             <artifactId>json-logic-java</artifactId>
-            <version>${json-logic.version}</version>
         </dependency>
         <!-- Test -->
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>${junit.version}</version>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.junit.vintage</groupId>
             <artifactId>junit-vintage-engine</artifactId>
-            <version>${junit-jupiter.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
-            <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>${assertj.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.awaitility</groupId>
-            <artifactId>awaitility</artifactId>
-            <version>${awaitility.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -419,19 +266,16 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-unit</artifactId>
-            <version>${vertx.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.github.tomakehurst</groupId>
             <artifactId>wiremock-jre8</artifactId>
-            <version>${wiremock.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.iabtcf</groupId>
             <artifactId>iabtcf-encoder</artifactId>
-            <version>${iabtcf.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -497,49 +341,31 @@
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
-            <version>${restassured.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>json-path</artifactId>
-            <version>${restassured.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>xml-path</artifactId>
-            <version>${restassured.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy</artifactId>
-            <version>${bytebuddy.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.spockframework</groupId>
             <artifactId>spock-core</artifactId>
-            <version>${spock.version}</version>
             <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.groovy</groupId>
-                    <artifactId>groovy</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.groovy</groupId>
             <artifactId>groovy</artifactId>
-            <version>${groovy.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.groovy</groupId>
             <artifactId>groovy-yaml</artifactId>
-            <version>${groovy.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -551,37 +377,36 @@
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-codegen</artifactId>
-            <version>${vertx.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <version>${h2.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mockserver</artifactId>
-            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mysql</artifactId>
-            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mock-server</groupId>
             <artifactId>mockserver-client-java</artifactId>
-            <version>${mockserver.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -609,6 +434,7 @@
                             <launchContainers>false</launchContainers>
                         </systemPropertyVariables>
                         <skipTests>${skipUnitTests}</skipTests>
+                        <argLine>${surefire.jacoco.args}</argLine>
                     </configuration>
                 </plugin>
                 <plugin>
@@ -723,7 +549,9 @@
                         <additionalProtoPathElement>${project.basedir}/src/main/proto</additionalProtoPathElement>
                         <additionalProtoPathElement>${project.basedir}/src/test/proto</additionalProtoPathElement>
                     </additionalProtoPathElements>
-                    <protocArtifact>com.google.protobuf:protoc:${protoc.version}:exe:${os.detected.classifier}</protocArtifact>
+                    <protocArtifact>
+                        com.google.protobuf:protoc:${protoc.version}:exe:${os.detected.classifier}
+                    </protocArtifact>
                 </configuration>
             </plugin>
             <plugin>
@@ -738,7 +566,9 @@
                             <goal>wget</goal>
                         </goals>
                         <configuration>
-                            <url>https://raw.githubusercontent.com/IABTechLab/openrtb-proto-v2/master/openrtb-core/src/main/protobuf/openrtb.proto</url>
+                            <url>
+                                https://raw.githubusercontent.com/IABTechLab/openrtb-proto-v2/master/openrtb-core/src/main/protobuf/openrtb.proto
+                            </url>
                             <outputDirectory>${project.basedir}/src/main/proto</outputDirectory>
                             <outputFileName>openrtb.proto</outputFileName>
                         </configuration>
@@ -750,7 +580,9 @@
                             <goal>wget</goal>
                         </goals>
                         <configuration>
-                            <url>https://raw.githubusercontent.com/MagniteEngineering/xapi-proto/main/src/proto/com/magnite/openrtb/v2/openrtb-xapi.proto</url>
+                            <url>
+                                https://raw.githubusercontent.com/MagniteEngineering/xapi-proto/main/src/proto/com/magnite/openrtb/v2/openrtb-xapi.proto
+                            </url>
                             <outputDirectory>${project.basedir}/src/main/proto</outputDirectory>
                             <outputFileName>openrtb-xapi.proto</outputFileName>
                         </configuration>
@@ -778,18 +610,22 @@
                         <exclude>com/iab/openrtb/**</exclude>
                         <exclude>**/proto/**</exclude>
                         <exclude>**/model/**</exclude>
+                        <exclude>**/functional/**</exclude>
                         <exclude>org/prebid/server/spring/config/**</exclude>
                     </excludes>
                 </configuration>
                 <executions>
                     <execution>
-                        <id>prepare-agent</id>
+                        <id>before-unit-test-execution</id>
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                        <configuration>
+                            <propertyName>surefire.jacoco.args</propertyName>
+                        </configuration>
                     </execution>
                     <execution>
-                        <id>report</id>
+                        <id>after-unit-test-execution</id>
                         <goals>
                             <goal>report</goal>
                         </goals>
@@ -904,9 +740,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
                 <configuration>
-                    <argLine>
-                        -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
-                    </argLine>
                     <systemPropertyVariables>
                         <mockserver.version>${mockserver.version}</mockserver.version>
                         <pbs.version>${project.version}</pbs.version>
@@ -943,13 +776,6 @@
                         </configuration>
                     </execution>
                 </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.aspectj</groupId>
-                        <artifactId>aspectjweaver</artifactId>
-                        <version>${aspectj.version}</version>
-                    </dependency>
-                </dependencies>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

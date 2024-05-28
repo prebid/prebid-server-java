@@ -26,7 +26,7 @@ import org.prebid.server.auction.model.IpAddress;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.cookie.UidsCookieService;
-import org.prebid.server.exception.BlacklistedAccountException;
+import org.prebid.server.exception.BlocklistedAccountException;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -89,7 +89,7 @@ public class Ortb2RequestFactory {
 
     private final int timeoutAdjustmentFactor;
     private final double logSamplingRate;
-    private final List<String> blacklistedAccounts;
+    private final List<String> blocklistedAccounts;
     private final UidsCookieService uidsCookieService;
     private final ActivityInfrastructureCreator activityInfrastructureCreator;
     private final RequestValidator requestValidator;
@@ -105,7 +105,7 @@ public class Ortb2RequestFactory {
 
     public Ortb2RequestFactory(int timeoutAdjustmentFactor,
                                double logSamplingRate,
-                               List<String> blacklistedAccounts,
+                               List<String> blocklistedAccounts,
                                UidsCookieService uidsCookieService,
                                ActivityInfrastructureCreator activityInfrastructureCreator,
                                RequestValidator requestValidator,
@@ -125,7 +125,7 @@ public class Ortb2RequestFactory {
 
         this.timeoutAdjustmentFactor = timeoutAdjustmentFactor;
         this.logSamplingRate = logSamplingRate;
-        this.blacklistedAccounts = Objects.requireNonNull(blacklistedAccounts);
+        this.blocklistedAccounts = Objects.requireNonNull(blocklistedAccounts);
         this.uidsCookieService = Objects.requireNonNull(uidsCookieService);
         this.activityInfrastructureCreator = Objects.requireNonNull(activityInfrastructureCreator);
         this.requestValidator = Objects.requireNonNull(requestValidator);
@@ -180,7 +180,7 @@ public class Ortb2RequestFactory {
         final HttpRequestContext httpRequest = auctionContext.getHttpRequest();
 
         return findAccountIdFrom(bidRequest, isLookupStoredRequest)
-                .map(this::validateIfAccountBlacklisted)
+                .map(this::validateIfAccountBlocklisted)
                 .compose(accountId -> loadAccount(timeout, httpRequest, accountId));
     }
 
@@ -423,13 +423,13 @@ public class Ortb2RequestFactory {
                 .map(storedAuctionResult -> accountIdFrom(storedAuctionResult.bidRequest()));
     }
 
-    private String validateIfAccountBlacklisted(String accountId) {
-        if (CollectionUtils.isNotEmpty(blacklistedAccounts)
+    private String validateIfAccountBlocklisted(String accountId) {
+        if (CollectionUtils.isNotEmpty(blocklistedAccounts)
                 && StringUtils.isNotBlank(accountId)
-                && blacklistedAccounts.contains(accountId)) {
+                && blocklistedAccounts.contains(accountId)) {
 
-            throw new BlacklistedAccountException(
-                    "Prebid-server has blacklisted Account ID: %s, please reach out to the prebid server host."
+            throw new BlocklistedAccountException(
+                    "Prebid-server has blocklisted Account ID: %s, please reach out to the prebid server host."
                             .formatted(accountId));
         }
         return accountId;

@@ -57,15 +57,8 @@ public class ActivityEnforcement {
         final boolean disallowTransmitEids = !infrastructure.isAllowed(Activity.TRANSMIT_EIDS, payload);
         final boolean disallowTransmitGeo = !infrastructure.isAllowed(Activity.TRANSMIT_GEO, payload);
 
-        final User resolvedUser = userFpdActivityMask.maskUser(
-                user,
-                disallowTransmitUfpd,
-                disallowTransmitEids,
-                disallowTransmitGeo);
-        final Device resolvedDevice = userFpdActivityMask.maskDevice(
-                device,
-                disallowTransmitUfpd,
-                disallowTransmitGeo);
+        final User resolvedUser = userFpdActivityMask.maskUser(user, disallowTransmitUfpd, disallowTransmitEids);
+        final Device resolvedDevice = userFpdActivityMask.maskDevice(device, disallowTransmitUfpd, disallowTransmitGeo);
 
         return bidderPrivacyResult.toBuilder()
                 .user(resolvedUser)

@@ -5,6 +5,7 @@ import net.minidev.json.annotate.JsonIgnore
 
 enum BidderName {
 
+    WILDCARD("*"),
     UNKNOWN("unknown"),
     BOGUS("bogus"),
     ALIAS("alias"),

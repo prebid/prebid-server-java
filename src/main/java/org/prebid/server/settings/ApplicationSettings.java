@@ -14,7 +14,7 @@ import java.util.Set;
  * stored requests and imps) from the source.
  *
  * @see FileApplicationSettings
- * @see JdbcApplicationSettings
+ * @see DatabaseApplicationSettings
  * @see HttpApplicationSettings
  * @see CachingApplicationSettings
  * @see CompositeApplicationSettings
