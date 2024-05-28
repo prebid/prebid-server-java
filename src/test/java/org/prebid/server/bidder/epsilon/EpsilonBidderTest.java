@@ -60,7 +60,9 @@ public class EpsilonBidderTest extends VertxTest {
     private EpsilonBidder target;
 
     @Before
-    public void setUp() { target = new EpsilonBidder(ENDPOINT_URL, false, jacksonMapper, currencyConversionService); }
+    public void setUp() {
+        target = new EpsilonBidder(ENDPOINT_URL, false, jacksonMapper, currencyConversionService);
+    }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
