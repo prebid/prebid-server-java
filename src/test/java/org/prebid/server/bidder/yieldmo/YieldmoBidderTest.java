@@ -28,10 +28,12 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.bidder.yieldmo.proto.YieldmoImpExt;
+import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yieldmo.ExtImpYieldmo;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -43,6 +45,10 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 import static org.assertj.core.api.Assertions.tuple;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class YieldmoBidderTest extends VertxTest {
 
@@ -173,6 +179,53 @@ public class YieldmoBidderTest extends VertxTest {
                 .containsExactly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()));
+    }
+
+    @Test
+    public void makeHttpRequestConvertsCurrencyToUsdWhenAble() {
+        //given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
+
+        final var convertedBidFloor = new BigDecimal("1.5");
+
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(convertedBidFloor);
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        verify(currencyConversionService).convertCurrency(eq(BigDecimal.ONE), any(), eq("EUR"), eq("USD"));
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(convertedBidFloor, "USD"));
+
+    }
+
+    @Test
+    public void makeHttpRequestShouldUseOriginalBidFloorsIfCurrencyCanNotBeConverted() {
+        //given
+        final BidRequest bidRequest = givenBidRequest(impBuilder ->
+                impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
+
+        final var convertedBidFloor = new BigDecimal("1.5");
+
+        when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenThrow(
+                new PreBidException("currency could not be converted"));
+
+        //when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        //then
+        verify(currencyConversionService).convertCurrency(eq(BigDecimal.ONE), any(), eq("EUR"), eq("USD"));
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp).doesNotContainNull()
+                .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
+                .containsOnly(tuple(BigDecimal.ONE, "EUR"));
+
     }
 
     @Test

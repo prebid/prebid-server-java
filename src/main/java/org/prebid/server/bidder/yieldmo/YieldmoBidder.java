@@ -108,8 +108,8 @@ public class YieldmoBidder implements Bidder<BidRequest> {
 
             return Price.of(USD_CURRENCY, convertedPrice);
         } catch (PreBidException e) {
-            throw new PreBidException("Unable to convert provided bid floor currency from %s to %s for imp `%s`"
-                    .formatted(bidFloorCur, USD_CURRENCY, impId));
+            //If currency conversion fails, we still want to recieve the bid request.
+            return bidFloorPrice;
         }
     }
 
