@@ -76,7 +76,7 @@ public class DmxBidder implements Bidder<BidRequest> {
         String updatedPublisherId = null;
         String updatedSellerId = null;
         try {
-            final ExtImpDmx extImp = parseImpExt(imps.get(0));
+            final ExtImpDmx extImp = parseImpExt(imps.getFirst());
             final String extImpPublisherId = extImp.getPublisherId();
             updatedPublisherId = StringUtils.isNotBlank(extImpPublisherId) ? extImpPublisherId : extImp.getMemberId();
             updatedSellerId = extImp.getSellerId();
@@ -203,7 +203,7 @@ public class DmxBidder implements Bidder<BidRequest> {
         final List<Format> format = banner != null ? banner.getFormat() : null;
 
         if ((height == null || width == null) && CollectionUtils.isNotEmpty(format)) {
-            final Format firstFormat = format.get(0);
+            final Format firstFormat = format.getFirst();
             if (firstFormat != null) {
                 return banner.toBuilder()
                         .w(firstFormat.getW())

@@ -49,7 +49,7 @@ public class RoulaxBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         try {
-            final ExtImpRoulax extImpRoulax = parseImpExt(bidRequest.getImp().get(0));
+            final ExtImpRoulax extImpRoulax = parseImpExt(bidRequest.getImp().getFirst());
             return Result.withValue(BidderUtil.defaultRequest(bidRequest, resolveEndpoint(extImpRoulax), mapper));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));

@@ -283,10 +283,10 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                         .map(User::getExt)
                         .map(ExtUser::getEids)
                         .filter(CollectionUtils::isNotEmpty)
-                        .map(eids -> eids.get(0))
+                        .map(eids -> eids.getFirst())
                         .map(Eid::getUids)
                         .filter(CollectionUtils::isNotEmpty)
-                        .map(uids -> uids.get(0))
+                        .map(uids -> uids.getFirst())
                         .map(Uid::getId))
                 .map(AdnuntiusMetaData::of)
                 .orElse(null);
@@ -351,7 +351,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
                 continue;
             }
 
-            final AdnuntiusAd ad = adsUnit.getAds().get(0);
+            final AdnuntiusAd ad = adsUnit.getAds().getFirst();
             final String impId = imp.getId();
             final String bidType = extImpAdnuntius.getBidType();
             currency = ObjectUtil.getIfNotNull(ad.getBid(), AdnuntiusBid::getCurrency);
@@ -371,7 +371,7 @@ public class AdnuntiusBidder implements Bidder<AdnuntiusRequest> {
 
     private static boolean validateAdsUnit(AdnuntiusAdsUnit adsUnit) {
         final List<AdnuntiusAd> ads = adsUnit != null ? adsUnit.getAds() : null;
-        return CollectionUtils.isNotEmpty(ads) && ads.get(0) != null;
+        return CollectionUtils.isNotEmpty(ads) && ads.getFirst() != null;
     }
 
     private static Bid createBid(AdnuntiusAd ad, String adm, String impId, String bidType) {

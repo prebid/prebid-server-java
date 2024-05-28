@@ -89,23 +89,15 @@ public class PubstackAnalyticsReporter implements AnalyticsReporter, Initializab
 
     @Override
     public <T> Future<Void> processEvent(T event) {
-        final EventType eventType;
-
-        if (event instanceof AmpEvent) {
-            eventType = EventType.amp;
-        } else if (event instanceof AuctionEvent) {
-            eventType = EventType.auction;
-        } else if (event instanceof CookieSyncEvent) {
-            eventType = EventType.cookiesync;
-        } else if (event instanceof NotificationEvent) {
-            eventType = EventType.notification;
-        } else if (event instanceof SetuidEvent) {
-            eventType = EventType.setuid;
-        } else if (event instanceof VideoEvent) {
-            eventType = EventType.video;
-        } else {
-            eventType = null;
-        }
+        final EventType eventType = switch (event) {
+            case AmpEvent ampEvent -> EventType.amp;
+            case AuctionEvent auctionEvent -> EventType.auction;
+            case CookieSyncEvent cookieSyncEvent -> EventType.cookiesync;
+            case NotificationEvent notificationEvent -> EventType.notification;
+            case SetuidEvent setuidEvent -> EventType.setuid;
+            case VideoEvent videoEvent -> EventType.video;
+            case null, default -> null;
+        };
 
         if (eventType != null) {
             eventHandlers.get(eventType).handle(event);

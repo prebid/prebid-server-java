@@ -117,10 +117,10 @@ public class ConnectadBidder implements Bidder<BidRequest> {
             if (CollectionUtils.isEmpty(banner.getFormat())) {
                 throw new PreBidException("At least one size is required");
             }
-            final Format format = banner.getFormat().get(0);
+            final Format format = banner.getFormat().getFirst();
             final List<Format> slicedFormatList = new ArrayList<>(banner.getFormat());
 
-            slicedFormatList.remove(0);
+            slicedFormatList.removeFirst();
             updatedImp.banner(banner.toBuilder().format(slicedFormatList).w(format.getW()).h(format.getH()).build());
         }
 

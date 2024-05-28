@@ -51,7 +51,7 @@ public class AdponeBidderTest extends VertxTest {
 
         final List<BidderError> errors = result.getErrors();
         assertThat(errors).hasSize(1);
-        assertThat(errors.get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(errors.getFirst().getMessage()).startsWith("Cannot deserialize value");
     }
 
     @Test
@@ -69,7 +69,7 @@ public class AdponeBidderTest extends VertxTest {
         assertThat(httpRequests).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
                 .containsOnly(bidRequest);
-        assertThat(httpRequests.get(0).getPayload()).isSameAs(bidRequest);
+        assertThat(httpRequests.getFirst().getPayload()).isSameAs(bidRequest);
     }
 
     @Test
@@ -84,7 +84,7 @@ public class AdponeBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
 
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getHeaders())
+        assertThat(result.getValue().getFirst().getHeaders())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("Content-Type", "application/json;charset=utf-8"),
@@ -102,9 +102,9 @@ public class AdponeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 

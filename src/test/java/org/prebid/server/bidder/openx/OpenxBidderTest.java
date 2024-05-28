@@ -188,7 +188,7 @@ public class OpenxBidderTest extends VertxTest {
 
         // then
         assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Cannot deserialize value of");
     }
 
@@ -381,7 +381,7 @@ public class OpenxBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
                 .isNotNull();
-        final ObjectNode ext = result.getValue().get(0).getPayload().getImp().get(0).getExt();
+        final ObjectNode ext = result.getValue().getFirst().getPayload().getImp().getFirst().getExt();
         assertThat(ext)
                 .isInstanceOf(JsonNode.class)
                 .usingRecursiveComparison()

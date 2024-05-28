@@ -61,7 +61,7 @@ public class UnicornBidder implements Bidder<BidRequest> {
         try {
             validateRegs(request.getRegs());
 
-            firstImpExt = parseImpExt(request.getImp().get(0)).getBidder();
+            firstImpExt = parseImpExt(request.getImp().getFirst()).getBidder();
             modifiedImps = request.getImp().stream().map(this::modifyImp).toList();
             modifiedSource = modifySource(request.getSource());
             modifiedApp = modifyApp(request.getApp(), firstImpExt.getMediaId(), firstImpExt.getPublisherId());

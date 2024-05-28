@@ -66,7 +66,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
@@ -86,7 +86,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Request needs to include a Banner object");
         assertThat(result.getValue()).isEmpty();
     }
@@ -107,7 +107,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("tagid must be a String of numbers");
         assertThat(result.getValue()).isEmpty();
     }
@@ -128,7 +128,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("tagid must be a String of numbers");
         assertThat(result.getValue()).isEmpty();
     }
@@ -149,7 +149,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("tagid cant be 0");
         assertThat(result.getValue()).isEmpty();
     }
@@ -170,7 +170,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Need at least one size to build request");
         assertThat(result.getValue()).isEmpty();
     }
@@ -191,7 +191,7 @@ public class EmxDigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Need at least one size to build request");
         assertThat(result.getValue()).isEmpty();
     }
@@ -331,7 +331,7 @@ public class EmxDigitalBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(request -> request.getImp().get(0).getSecure())
+                .extracting(request -> request.getImp().getFirst().getSecure())
                 .containsExactly(1);
     }
 
@@ -500,9 +500,9 @@ public class EmxDigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType())
+        assertThat(result.getErrors().getFirst().getType())
                 .isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }

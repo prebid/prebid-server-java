@@ -317,7 +317,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return targetings != null
                 ? targetings.stream()
                 .filter(targeting -> !CollectionUtils.isEmpty(targeting.getValues()))
-                .collect(Collectors.toMap(RubiconTargeting::getKey, targeting -> targeting.getValues().get(0)))
+                .collect(Collectors.toMap(RubiconTargeting::getKey, targeting -> targeting.getValues().getFirst()))
                 : Collections.emptyMap();
     }
 
@@ -696,7 +696,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         mergeFirstPartyDataFromApp(app, result);
         mergeFirstPartyDataFromImp(imp, rubiconImpExt, result);
 
-        return result.size() > 0 ? result : null;
+        return !result.isEmpty() ? result : null;
     }
 
     private RubiconImpExtPrebid makeRubiconExtPrebid(PriceFloorResult priceFloorResult,
@@ -929,7 +929,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<ExtRequestPrebidMultiBid> multibids = extRequestPrebid != null
                 ? extRequestPrebid.getMultibid() : null;
         final ExtRequestPrebidMultiBid extRequestPrebidMultiBid =
-                CollectionUtils.isNotEmpty(multibids) ? multibids.get(0) : null;
+                CollectionUtils.isNotEmpty(multibids) ? multibids.getFirst() : null;
         final Integer multibidMaxBids = extRequestPrebidMultiBid != null ? extRequestPrebidMultiBid.getMaxBids() : null;
 
         return multibidMaxBids != null ? multibidMaxBids : 1;
@@ -1502,7 +1502,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private List<HttpRequest<BidRequest>> createDealsRequests(BidRequest bidRequest, String uri) {
-        final Imp singleImp = bidRequest.getImp().get(0);
+        final Imp singleImp = bidRequest.getImp().getFirst();
         return singleImp.getPmp().getDeals().stream()
                 .map(deal -> mapper.mapper().convertValue(deal.getExt(), ExtDeal.class))
                 .filter(Objects::nonNull)
@@ -1694,7 +1694,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static BidType bidType(BidRequest bidRequest) {
-        final ImpMediaType impMediaType = impType(bidRequest.getImp().get(0));
+        final ImpMediaType impMediaType = impType(bidRequest.getImp().getFirst());
         return switch (impMediaType) {
             case video -> BidType.video;
             case banner -> BidType.banner;

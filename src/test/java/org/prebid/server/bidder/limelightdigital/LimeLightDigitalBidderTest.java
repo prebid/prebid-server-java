@@ -199,8 +199,8 @@ public class LimeLightDigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -242,7 +242,7 @@ public class LimeLightDigitalBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors().get(0).getMessage()).isEqualTo("Unknown media type of imp: '123'");
+        assertThat(result.getErrors().getFirst().getMessage()).isEqualTo("Unknown media type of imp: '123'");
     }
 
     @Test
@@ -331,7 +331,7 @@ public class LimeLightDigitalBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Bid contains unknown imp id: '321'");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Bid contains unknown imp id: '321'");
     }
 
     private static BidRequest givenBidRequest(UnaryOperator<Imp.ImpBuilder> impCustomizer) {

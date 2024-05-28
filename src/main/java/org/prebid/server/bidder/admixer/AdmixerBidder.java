@@ -119,7 +119,7 @@ public class AdmixerBidder implements Bidder<BidRequest> {
 
         if (bidResponse == null
                 || CollectionUtils.isEmpty(bidResponse.getSeatbid())
-                || CollectionUtils.isEmpty(bidResponse.getSeatbid().get(0).getBid())) {
+                || CollectionUtils.isEmpty(bidResponse.getSeatbid().getFirst().getBid())) {
             return Result.empty();
         }
 
