@@ -18,7 +18,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
-import org.prebid.server.analytics.reporter.greenbids.model.AdUnit;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
 import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
@@ -194,7 +194,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                                 seatNonBid -> seatNonBid.getNonBid().getFirst(),
                                 (existing, replacement) -> existing));
 
-        final List<AdUnit> adUnitsWithBidResponses = imps.stream().map(imp -> createAdUnit(
+        final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream().map(imp -> createAdUnit(
                 imp, seatsWithBids, seatsWithNonBids)).toList();
 
         final String auctionId = auctionContextOptional
@@ -213,7 +213,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         .auctionId(auctionId)
                         .referrer(referrer)
                         .sampling(greenbidsAnalyticsProperties.getGreenbidsSampling())
-                        .prebid(PREBID_SERVER_VERSION)
+                        .prebidServer(PREBID_SERVER_VERSION)
                         .greenbidsId(greenbidsId)
                         .pbuid(greenbidsAnalyticsProperties.getPbuid())
                         .billingId(billingId)
@@ -230,7 +230,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         return SeatNonBid.of(bidder, nonBids);
     }
 
-    private AdUnit createAdUnit(
+    private GreenbidsAdUnit createAdUnit(
             Imp imp,
             Map<String, Bid> seatsWithBids,
             Map<String, NonBid> seatsWithNonBids) {
@@ -259,7 +259,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final String adUnitCode = getAdUnitCode(imp);
 
-        return AdUnit.builder()
+        return GreenbidsAdUnit.builder()
                 .code(adUnitCode)
                 .mediaTypes(mediaTypes)
                 .bids(bids)

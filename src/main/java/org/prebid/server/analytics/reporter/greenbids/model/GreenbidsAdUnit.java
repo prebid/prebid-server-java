@@ -8,7 +8,7 @@ import java.util.List;
 
 @Builder(toBuilder = true)
 @Value
-public class AdUnit {
+public class GreenbidsAdUnit {
 
     @JsonProperty("code")
     String code;

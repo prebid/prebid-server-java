@@ -22,8 +22,8 @@ public class CommonMessage {
     @JsonProperty("sampling")
     private final double sampling;
 
-    @JsonProperty("prebid")
-    private final String prebid;
+    @JsonProperty("prebidServer")
+    private final String prebidServer;
 
     @JsonProperty("greenbidsId")
     private final String greenbidsId;
@@ -35,7 +35,7 @@ public class CommonMessage {
     private final String billingId;
 
     @JsonProperty("adUnits")
-    private final List<AdUnit> adUnits;
+    private final List<GreenbidsAdUnit> adUnits;
 
     @JsonProperty("auctionElapsed")
     private final Long auctionElapsed;
