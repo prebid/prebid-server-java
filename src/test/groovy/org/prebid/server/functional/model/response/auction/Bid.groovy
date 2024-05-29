@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.response.auction
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.auction.Asset
@@ -31,14 +32,19 @@ class Bid implements ObjectMapperWrapper {
     List<Integer> apis
     Integer api
     Integer protocol
-    Integer qagmediarating
+    @JsonProperty("qagmediarating")
+    Integer qagMediaRating
     String language
     String langb
     String dealid
-    Integer w
-    Integer h
-    Integer wratio
-    Integer hratio
+    @JsonProperty("w")
+    Integer weight
+    @JsonProperty("h")
+    Integer height
+    @JsonProperty("wratio")
+    Integer weightRatio
+    @JsonProperty("hratio")
+    Integer heightRatio
     Integer exp
     Integer dur
     Integer mtype
@@ -55,8 +61,8 @@ class Bid implements ObjectMapperWrapper {
             impid = imp.id
             price = PBSUtils.getRandomPrice()
             crid = 1
-            h = imp.banner && imp.banner.format ? imp.banner.format.first().h : null
-            w = imp.banner && imp.banner.format ? imp.banner.format.first().w : null
+            height = imp.banner && imp.banner.format ? imp.banner.format.first().height : null
+            weight = imp.banner && imp.banner.format ? imp.banner.format.first().weight : null
             if (imp.nativeObj || imp.video) {
                 adm = new Adm(assets: [Asset.defaultAsset])
             }
