@@ -3,7 +3,6 @@ package org.prebid.server.bidder.loyal;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
@@ -83,15 +82,42 @@ public class LoyalBidderTest extends VertxTest {
         assertThat(result.getErrors().get(0).getMessage()).isEqualTo("Invalid imp: invalidImp");
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
-                .extracting(BidRequest::getImp)
-                .extracting(List::size)
-                .containsOnly(1);
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getId)
                 .containsExactly("123");
 
+    }
+
+    @Test
+    public void makeHttpRequestsShouldIncludeImpIds() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("imp1"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactly("imp1");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseCorrectUri() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(UnaryOperator.identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly(ENDPOINT_URL);
     }
 
     @Test
@@ -153,7 +179,7 @@ public class LoyalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(null));
 
         // when
@@ -167,7 +193,7 @@ public class LoyalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null, "invalid");
+        final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -184,7 +210,7 @@ public class LoyalBidderTest extends VertxTest {
     @Test
     public void makeBidsShouldReturnEmptyListIfBidResponseSeatBidIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(BidResponse.builder().build()));
 
         // when
@@ -200,7 +226,7 @@ public class LoyalBidderTest extends VertxTest {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(banner).build());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123"))));
 
@@ -219,7 +245,7 @@ public class LoyalBidderTest extends VertxTest {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(video).build());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123"))));
 
@@ -238,7 +264,7 @@ public class LoyalBidderTest extends VertxTest {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(xNative).build());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123"))));
 
@@ -257,7 +283,7 @@ public class LoyalBidderTest extends VertxTest {
         // given
         final ObjectNode bidExt = mapper.createObjectNode()
                 .set("prebid", mapper.createArrayNode());
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).id("123"))));
 
@@ -277,9 +303,6 @@ public class LoyalBidderTest extends VertxTest {
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(audio).build());
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                BidRequest.builder()
-                        .imp(singletonList(Imp.builder().id("123").audio(Audio.builder().build()).build()))
-                        .build(),
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).id("123"))));
 
@@ -330,9 +353,9 @@ public class LoyalBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
+    private static BidderCall<BidRequest> givenHttpCall(String body) {
         return BidderCall.succeededHttp(
-                HttpRequest.<BidRequest>builder().payload(bidRequest).build(),
+                HttpRequest.<BidRequest>builder().payload(null).build(),
                 HttpResponse.of(200, null, body),
                 null);
     }
