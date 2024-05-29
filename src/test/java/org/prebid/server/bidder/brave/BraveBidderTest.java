@@ -53,7 +53,7 @@ public class BraveBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("ext.bidder not provided");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("ext.bidder not provided");
     }
 
     @Test

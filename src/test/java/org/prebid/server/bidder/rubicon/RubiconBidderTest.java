@@ -185,7 +185,7 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
                 .returns(ENDPOINT_URL, HttpRequest::getUri);
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+        assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple(HttpUtil.AUTHORIZATION_HEADER.toString(), "Basic dXNlcm5hbWU6cGFzc3dvcmQ="),
@@ -598,7 +598,7 @@ public class RubiconBidderTest extends VertxTest {
         final ObjectNode givenSkadn = mapper.createObjectNode();
         givenSkadn.put("property1", "value1");
         givenSkadn.put("property2", 2);
-        Optional.ofNullable(bidRequest.getImp().get(0))
+        Optional.ofNullable(bidRequest.getImp().getFirst())
                 .map(Imp::getExt)
                 .ifPresent(s -> s.set("skadn", givenSkadn));
 
@@ -2380,7 +2380,7 @@ public class RubiconBidderTest extends VertxTest {
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
-        bidRequest.getImp().get(0).getExt()
+        bidRequest.getImp().getFirst().getExt()
                 .set("data", mapper.createObjectNode()
                         .set("property2", mapper.createArrayNode().add("value2")));
 
@@ -2406,7 +2406,7 @@ public class RubiconBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 identity(), impBuilder -> impBuilder.video(Video.builder().build()), identity());
 
-        bidRequest.getImp().get(0).getExt().set("gpid", TextNode.valueOf("gpidvalue"));
+        bidRequest.getImp().getFirst().getExt().set("gpid", TextNode.valueOf("gpidvalue"));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -2474,8 +2474,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCopySiteExtDataFieldToRubiconImpExtRpTarget()
-            throws IOException {
+    public void makeHttpRequestsShouldCopySiteExtDataFieldToRubiconImpExtRpTarget() {
         // given
         final ObjectNode siteExtDataNode = mapper.createObjectNode()
                 .set("site", mapper.createArrayNode().add("value1"));
@@ -2488,7 +2487,7 @@ public class RubiconBidderTest extends VertxTest {
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
-        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        final ObjectNode impExt = bidRequest.getImp().getFirst().getExt();
         impExt.set("context", mapper.valueToTree(ExtImpContext.of(impExtContextDataNode)));
 
         // when
@@ -2510,8 +2509,7 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCopyAppExtDataFieldToRubiconImpExtRpTarget()
-            throws IOException {
+    public void makeHttpRequestsShouldCopyAppExtDataFieldToRubiconImpExtRpTarget() {
         // given
         final ObjectNode appExtDataNode = mapper.createObjectNode()
                 .set("app", mapper.createArrayNode().add("value1"));
@@ -2550,7 +2548,7 @@ public class RubiconBidderTest extends VertxTest {
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
-        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        final ObjectNode impExt = bidRequest.getImp().getFirst().getExt();
         impExt.set("data", mapper.createObjectNode()
                 .put("keywords", "imp,ext,data,keywords"));
         impExt.set(
@@ -2584,7 +2582,7 @@ public class RubiconBidderTest extends VertxTest {
                 impBuilder -> impBuilder.video(Video.builder().build()),
                 identity());
 
-        final ObjectNode impExt = bidRequest.getImp().get(0).getExt();
+        final ObjectNode impExt = bidRequest.getImp().getFirst().getExt();
         impExt.set("data", mapper.createObjectNode().put("search", "imp ext data search"));
 
         // when
@@ -2694,7 +2692,7 @@ public class RubiconBidderTest extends VertxTest {
         final ObjectNode dataNode = mapper.createObjectNode()
                 .set("pbadslot", TextNode.valueOf("pbadslotvalue"));
 
-        bidRequest.getImp().get(0).getExt().set("data", dataNode);
+        bidRequest.getImp().getFirst().getExt().set("data", dataNode);
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -2721,7 +2719,7 @@ public class RubiconBidderTest extends VertxTest {
                                 .put("adslot", "adslotvalue")
                                 .put("name", "gam"));
 
-        bidRequest.getImp().get(0).getExt().set("data", dataNode);
+        bidRequest.getImp().getFirst().getExt().set("data", dataNode);
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -2823,7 +2821,7 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
         assertThat(result.getValue()).hasSize(1);
     }
 
@@ -3432,8 +3430,8 @@ public class RubiconBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 

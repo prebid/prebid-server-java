@@ -55,7 +55,7 @@ public class InterstitialProcessor {
         }
 
         final List<Format> formats = banner.getFormat();
-        final Format firstFormat = CollectionUtils.isEmpty(formats) ? null : formats.get(0);
+        final Format firstFormat = CollectionUtils.isEmpty(formats) ? null : formats.getFirst();
         Integer maxHeight = firstFormat != null ? firstFormat.getH() : null;
         Integer maxWidth = firstFormat != null ? firstFormat.getW() : null;
 

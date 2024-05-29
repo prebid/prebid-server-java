@@ -56,7 +56,7 @@ public class AdtargetBidderTest extends VertxTest {
         // then
         final BidRequest expectedBidRequest = bidRequest
                 .toBuilder()
-                .imp(singletonList(bidRequest.getImp().get(0).toBuilder()
+                .imp(singletonList(bidRequest.getImp().getFirst().toBuilder()
                         .bidfloor(BigDecimal.valueOf(3))
                         .ext(mapper.valueToTree(AdtargetImpExt.of(
                                 ExtImpAdtarget.of(15, 1, 2, BigDecimal.valueOf(3)))))

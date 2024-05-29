@@ -337,7 +337,7 @@ public class YieldlabBidderTest extends VertxTest {
                 "&dsatransparency=testDomain%7E1_2_3"
         );
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getUri())
+        assertThat(result.getValue().getFirst().getUri())
                 .contains(expectations);
     }
 
@@ -374,7 +374,7 @@ public class YieldlabBidderTest extends VertxTest {
                 "&dsatransparency=testDomain%7E1_2_3%7E%7EtestDomain2%7E4_5_6"
         );
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getUri())
+        assertThat(result.getValue().getFirst().getUri())
                 .contains(expectations);
     }
 
@@ -406,7 +406,7 @@ public class YieldlabBidderTest extends VertxTest {
                 "dsadatatopub=3"
         );
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getUri())
+        assertThat(result.getValue().getFirst().getUri())
                 .contains(expectations);
     }
 
@@ -438,7 +438,7 @@ public class YieldlabBidderTest extends VertxTest {
                 "dsadatatopub=3"
         );
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getUri())
+        assertThat(result.getValue().getFirst().getUri())
                 .contains(expectations);
     }
 
@@ -494,7 +494,7 @@ public class YieldlabBidderTest extends VertxTest {
         expectedDsa.put("adrender", 2);
         expectedDsa.set("transparency", transparencies);
 
-        final JsonNode actualDsa = result.getValue().get(0).getBid().getExt().get("dsa");
+        final JsonNode actualDsa = result.getValue().getFirst().getBid().getExt().get("dsa");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(actualDsa).isEqualTo(expectedDsa);

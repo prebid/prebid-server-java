@@ -32,11 +32,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 
 public class BlueSeaBidder implements Bidder<BidRequest> {
 
-    private static final Set<String> SUPPORTED_BID_TYPES_TEXTUAL = Set.of("banner", "video", "native");
     private static final TypeReference<ExtPrebid<?, ExtImpBlueSea>> BLUE_SEA_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };

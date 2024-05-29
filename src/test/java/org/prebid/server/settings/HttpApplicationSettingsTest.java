@@ -302,7 +302,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getStoredIdToRequest()).isEmpty();
         assertThat(future.result().getStoredIdToImp()).isEmpty();
-        assertThat(future.result().getErrors().get(0))
+        assertThat(future.result().getErrors().getFirst())
                 .startsWith("Error fetching stored requests for ids [id1] via HTTP: parsing json failed for response: "
                         + "invalid-response with message: Failed to decode");
     }
@@ -321,7 +321,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getStoredIdToRequest()).isEmpty();
         assertThat(future.result().getStoredIdToImp()).isEmpty();
-        assertThat(future.result().getErrors().get(0))
+        assertThat(future.result().getErrors().getFirst())
                 .startsWith("Error fetching stored requests for ids [id1] via HTTP: "
                         + "parsing json failed for response: {\"requests\": {\"id1\":\"invalid-stored-request\"} "
                         + "with message: Failed to decode");
@@ -341,7 +341,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getStoredIdToRequest()).isEmpty();
         assertThat(future.result().getStoredIdToImp()).isEmpty();
-        assertThat(future.result().getErrors().get(0))
+        assertThat(future.result().getErrors().getFirst())
                 .startsWith("Error fetching stored requests for ids [id1] via HTTP: parsing json failed for response: "
                         + "{\"imps\": {\"id1\":\"invalid-stored-imp\"} with message: Failed to decode");
     }
