@@ -10,15 +10,15 @@ import org.prebid.server.functional.util.PBSUtils
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 @EqualsAndHashCode
 @ToString(includeNames = true, ignoreNulls = true)
-class Dsa {
+class DsaResponse {
 
     String behalf
     String paid
     List<DsaTransparency> transparency
     DsaAdRender adRender
 
-    static Dsa getDefaultDsa() {
-        new Dsa(
+    static DsaResponse getDefaultDsa() {
+        new DsaResponse(
                 behalf: PBSUtils.randomString,
                 paid: PBSUtils.randomString,
                 adRender: PBSUtils.getRandomEnum(DsaAdRender),

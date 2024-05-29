@@ -31,7 +31,7 @@ import org.prebid.server.exception.PreBidException;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsaTransparency;
+import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.stroeercore.ExtImpStroeerCore;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.HttpUtil;
@@ -133,9 +133,9 @@ public class StroeerCoreBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldReturnDSA() {
         // given
-        final List<ExtRegsDsaTransparency> transparencies = Arrays.asList(
-                ExtRegsDsaTransparency.of("platform-example.com", List.of(1, 2)),
-                ExtRegsDsaTransparency.of("ssp-example.com", List.of(1))
+        final List<DsaTransparency> transparencies = Arrays.asList(
+                DsaTransparency.of("platform-example.com", List.of(1, 2)),
+                DsaTransparency.of("ssp-example.com", List.of(1))
         );
 
         final ExtRegsDsa dsa = ExtRegsDsa.of(3, 1, 2, transparencies);
