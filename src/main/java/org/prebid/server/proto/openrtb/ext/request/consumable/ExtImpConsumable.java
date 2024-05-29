@@ -22,4 +22,7 @@ public class ExtImpConsumable {
 
     @JsonProperty("unitName")
     String unitName;
+
+    @JsonProperty("placementId")
+    String placementId;
 }

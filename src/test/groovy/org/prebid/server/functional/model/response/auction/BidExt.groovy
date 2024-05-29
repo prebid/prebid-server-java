@@ -9,5 +9,5 @@ class BidExt {
     Prebid prebid
     BigDecimal origbidcpm
     Currency origbidcur
-    Dsa dsa
+    DsaResponse dsa
 }

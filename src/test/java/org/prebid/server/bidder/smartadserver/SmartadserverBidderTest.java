@@ -75,7 +75,7 @@ public class SmartadserverBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri())
+        assertThat(result.getValue().getFirst().getUri())
                 .isEqualTo("https://test.endpoint.com/path/api/bid?testParam=testVal&callerId=5");
     }
 

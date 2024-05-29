@@ -37,7 +37,7 @@ public class AdponeBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         try {
-            mapper.mapper().convertValue(bidRequest.getImp().get(0).getExt().get("bidder"), ExtImpAdpone.class);
+            mapper.mapper().convertValue(bidRequest.getImp().getFirst().getExt().get("bidder"), ExtImpAdpone.class);
         } catch (IllegalArgumentException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }

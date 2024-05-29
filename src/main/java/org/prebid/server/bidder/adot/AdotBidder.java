@@ -56,7 +56,7 @@ public class AdotBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         final List<BidderError> errors = new ArrayList<>();
 
-        final Imp firstImp = bidRequest.getImp().get(0);
+        final Imp firstImp = bidRequest.getImp().getFirst();
         final String publisherPath = StringUtils.defaultString(
                 ObjectUtil.getIfNotNull(parseImpExt(firstImp), ExtImpAdot::getPublisherPath));
 

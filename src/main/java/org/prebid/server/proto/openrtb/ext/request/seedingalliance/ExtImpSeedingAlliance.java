@@ -12,4 +12,7 @@ public class ExtImpSeedingAlliance {
     @JsonProperty("seatId")
     String seatId;
 
+    @JsonProperty("accountId")
+    String accountId;
+
 }

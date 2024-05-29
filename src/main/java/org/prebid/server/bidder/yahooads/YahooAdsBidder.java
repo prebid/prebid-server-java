@@ -162,7 +162,7 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         if (CollectionUtils.isEmpty(bannerFormats)) {
             throw new PreBidException("No sizes provided for Banner");
         }
-        final Format firstFormat = bannerFormats.get(0);
+        final Format firstFormat = bannerFormats.getFirst();
 
         return banner.toBuilder()
                 .w(firstFormat.getW())
@@ -250,10 +250,6 @@ public class YahooAdsBidder implements Bidder<BidRequest> {
         final List<SeatBid> seatBids = bidResponse != null ? bidResponse.getSeatbid() : null;
         if (seatBids == null) {
             return Collections.emptyList();
-        }
-
-        if (seatBids.isEmpty()) {
-            throw new PreBidException("Invalid SeatBids count: 0");
         }
         return bidsFromResponse(bidResponse, bidRequest.getImp());
     }

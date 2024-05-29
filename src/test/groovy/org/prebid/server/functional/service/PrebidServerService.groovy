@@ -93,6 +93,13 @@ class PrebidServerService implements ObjectMapperWrapper {
         }
     }
 
+    AmpResponse sendAmpRequestWithAdditionalQueries(AmpRequest ampRequest, Map<String, Object> queries = [:]) {
+        def response = getAmp(ampRequest, [:], queries)
+
+        checkResponseStatusCode(response)
+        decode(response.body.asString(), AmpResponse)
+    }
+
     AmpResponse sendAmpRequest(AmpRequest ampRequest, Map<String, String> headers = [:]) {
         def response = getAmp(ampRequest, headers)
 
@@ -314,10 +321,18 @@ class PrebidServerService implements ObjectMapperWrapper {
         requestSpecification.post(COOKIE_SYNC_ENDPOINT)
     }
 
-    private Response getAmp(AmpRequest ampRequest, Map<String, String> headers = [:]) {
+    private Response getAmp(AmpRequest ampRequest,
+                            Map<String, String> headers = [:],
+                            Map<String, Object> queries = [:]) {
+        def map = toMap(ampRequest)
+
+        if (!queries.isEmpty()) {
+            map.putAll(queries)
+        }
+
         given(requestSpecification).headers(headers)
-                                   .queryParams(toMap(ampRequest))
-                                   .get(AMP_ENDPOINT)
+                .queryParams(map)
+                .get(AMP_ENDPOINT)
     }
 
     private void checkResponseStatusCode(Response response, int statusCode = 200) {

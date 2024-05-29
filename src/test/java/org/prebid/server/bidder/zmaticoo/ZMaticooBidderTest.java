@@ -60,7 +60,7 @@ public class ZMaticooBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).satisfies(errors -> {
-            assertThat(errors.get(0)).satisfies(error -> {
+            assertThat(errors.getFirst()).satisfies(error -> {
                 assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
                 assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
             });

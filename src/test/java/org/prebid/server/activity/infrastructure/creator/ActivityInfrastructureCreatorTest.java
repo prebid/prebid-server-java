@@ -123,7 +123,7 @@ public class ActivityInfrastructureCreatorTest {
         final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
 
         given(activityRuleFactory.from(
-                same(account.getPrivacy().getActivities().get(Activity.TRANSMIT_UFPD).getRules().get(0)),
+                same(account.getPrivacy().getActivities().get(Activity.TRANSMIT_UFPD).getRules().getFirst()),
                 argThat(arg -> arg.getGppContext() == gppContext)))
                 .willReturn(TestRule.disallowIfMatches(payload -> true));
 

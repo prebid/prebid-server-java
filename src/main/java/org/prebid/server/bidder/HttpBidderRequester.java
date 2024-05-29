@@ -110,7 +110,7 @@ public class HttpBidderRequester {
 
         // stored response available only for single request interaction for the moment.
         final Stream<Future<BidderCall<T>>> httpCalls = isStoredResponse(httpRequests, storedResponse, bidderName)
-                ? Stream.of(makeStoredHttpCall(httpRequests.get(0), storedResponse))
+                ? Stream.of(makeStoredHttpCall(httpRequests.getFirst(), storedResponse))
                 : httpRequests.stream().map(httpRequest -> doRequest(httpRequest, timeout));
 
         // httpCalls contains recovered and mapped to succeeded Future<BidderHttpCall> with error inside

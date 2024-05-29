@@ -78,7 +78,7 @@ public class DeepintentBidder implements Bidder<BidRequest> {
             if (CollectionUtils.isEmpty(banner.getFormat())) {
                 throw new PreBidException("At least one size is required, imp : " + impId);
             }
-            final Format format = bannerFormats.get(0);
+            final Format format = bannerFormats.getFirst();
             return banner.toBuilder().w(format.getW()).h(format.getH()).build();
         }
 

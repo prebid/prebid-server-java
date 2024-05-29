@@ -50,7 +50,7 @@ public class BraveBidder implements Bidder<BidRequest> {
         final String url;
 
         try {
-            final ExtImpBrave extImpBrave = parseImpExt(request.getImp().get(0));
+            final ExtImpBrave extImpBrave = parseImpExt(request.getImp().getFirst());
             url = resolveEndpoint(extImpBrave.getPlacementId());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));

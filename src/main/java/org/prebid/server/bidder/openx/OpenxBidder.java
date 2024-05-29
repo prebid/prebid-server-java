@@ -169,7 +169,7 @@ public class OpenxBidder implements Bidder<BidRequest> {
         return CollectionUtils.isNotEmpty(processedImps)
                 ? bidRequest.toBuilder()
                 .imp(processedImps)
-                .ext(makeReqExt(imps.get(0)))
+                .ext(makeReqExt(imps.getFirst()))
                 .build()
                 : null;
     }

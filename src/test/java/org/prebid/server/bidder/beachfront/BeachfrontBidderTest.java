@@ -122,7 +122,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith(
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith(
                 "ignoring imp id=123, error while decoding extImpBeachfront, err: Cannot deserialize value");
     }
 
@@ -364,7 +364,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue().get(0).getHeaders())
+        assertThat(result.getValue().getFirst().getHeaders())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),
@@ -385,7 +385,7 @@ public class BeachfrontBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue().get(0).getHeaders())
+        assertThat(result.getValue().getFirst().getHeaders())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .contains(
                         tuple(HttpUtil.COOKIE_HEADER.toString(), "__io_cid=4125"));
@@ -598,7 +598,7 @@ public class BeachfrontBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage())
+        assertThat(result.getErrors().getFirst().getMessage())
                 .isEqualTo("server response failed to unmarshal as valid rtb. "
                         + "Run with request.debug = 1 for more info");
     }

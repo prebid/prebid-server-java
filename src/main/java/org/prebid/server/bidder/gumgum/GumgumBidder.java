@@ -148,7 +148,7 @@ public class GumgumBidder implements Bidder<BidRequest> {
     private Banner resolveBanner(Banner banner, ExtImpGumgum extImpGumgum) {
         final List<Format> format = banner.getFormat();
         if (banner.getH() == null && banner.getW() == null && CollectionUtils.isNotEmpty(format)) {
-            final Format firstFormat = format.get(0);
+            final Format firstFormat = format.getFirst();
 
             final Long slot = extImpGumgum.getSlot();
             final ObjectNode bannerExt = slot != null && slot != 0L

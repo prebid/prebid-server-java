@@ -40,7 +40,6 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpAdkernelAdn>> ADKERNELADN_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String DEFAULT_DOMAIN = "tag.adkernel.com";
     private static final String URL_PUBLISHER_ID_MACRO = "{{PublisherID}}";
 
     private final String endpointUrl;
@@ -141,7 +140,7 @@ public class AdkernelAdnBidder implements Bidder<BidRequest> {
                 throw new PreBidException("Expected at least one banner.format entry or explicit w/h");
             }
 
-            final Format format = compatBannerFormat.get(0);
+            final Format format = compatBannerFormat.getFirst();
             final Banner.BannerBuilder bannerBuilder = compatBanner.toBuilder();
 
             if (compatBannerFormat.size() > 1) {
