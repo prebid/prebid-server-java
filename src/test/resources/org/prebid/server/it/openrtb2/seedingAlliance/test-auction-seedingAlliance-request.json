@@ -9,7 +9,8 @@
       },
       "ext": {
         "seedingAlliance": {
-          "adUnitId": "someAdUnitId"
+          "adUnitId": "someAdUnitId",
+          "accountId": "accountId"
         }
       }
     }

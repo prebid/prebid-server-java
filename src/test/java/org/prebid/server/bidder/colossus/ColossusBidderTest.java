@@ -54,7 +54,7 @@ public class ColossusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -68,7 +68,7 @@ public class ColossusBidderTest extends VertxTest {
 
         // then
         final BidRequest expectedRequest = bidRequest.toBuilder()
-                .imp(singletonList(bidRequest.getImp().get(0).toBuilder().tagid("tagidString").build()))
+                .imp(singletonList(bidRequest.getImp().getFirst().toBuilder().tagid("tagidString").build()))
                 .build();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
@@ -108,8 +108,8 @@ public class ColossusBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 

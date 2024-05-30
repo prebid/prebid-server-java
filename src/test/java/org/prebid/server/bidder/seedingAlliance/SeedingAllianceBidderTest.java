@@ -46,7 +46,8 @@ public class SeedingAllianceBidderTest extends VertxTest {
     @Test
     public void makeHttpRequestsShouldCreateUrlWithPbsAccountIdWhenSeatIdIsNotReceived() {
         // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(givenImpExt("accountId", null)));
+        final BidRequest bidRequest = givenBidRequest(
+                impBuilder -> impBuilder.ext(givenImpExt("adUnitId", null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -62,7 +63,7 @@ public class SeedingAllianceBidderTest extends VertxTest {
     public void makeHttpRequestsShouldCreateUrlWithSeatIdWhenSeatIdIsReceived() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(
-                givenImpExt("accountId", "customSeatId")));
+                givenImpExt("adUnitId", "seatId", null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -71,15 +72,47 @@ public class SeedingAllianceBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getUri)
-                .containsExactly("https://randomurl.com/customSeatId");
+                .containsExactly("https://randomurl.com/seatId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateUrlWithSeatIdWhenAccountIdIsReceived() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(
+                givenImpExt("adUnitId", null, "accountId")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://randomurl.com/accountId");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldCreateUrlWithSeatIdWhenAccountIdAndSeatIdAreReceived() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.ext(
+                givenImpExt("adUnitId", "seatId", "accountId")));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1)
+                .extracting(HttpRequest::getUri)
+                .containsExactly("https://randomurl.com/accountId");
     }
 
     @Test
     public void makeHttpRequestsShouldAddAdUnitUdAsTagIdToImps() {
         // given
         final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder.id("impId1").tagid("tagId1").ext(givenImpExt("adUnit1", null)),
-                impBuilder -> impBuilder.id("impId2").ext(givenImpExt("adUnit2", null)));
+                impBuilder -> impBuilder.id("impId1").tagid("tagId1").ext(givenImpExt("adUnit1", null, null)),
+                impBuilder -> impBuilder.id("impId2").ext(givenImpExt("adUnit2", null, null)));
 
         // when
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
@@ -259,11 +292,11 @@ public class SeedingAllianceBidderTest extends VertxTest {
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder().id("imp_id").ext(givenImpExt("accountId", null))).build();
+        return impCustomizer.apply(Imp.builder().id("imp_id").ext(givenImpExt("adUnitId", null, null))).build();
     }
 
-    private static ObjectNode givenImpExt(String adUnitId, String seatId) {
-        return mapper.valueToTree(ExtPrebid.of(null, ExtImpSeedingAlliance.of(adUnitId, seatId)));
+    private static ObjectNode givenImpExt(String adUnitId, String seatId, String accountId) {
+        return mapper.valueToTree(ExtPrebid.of(null, ExtImpSeedingAlliance.of(adUnitId, seatId, accountId)));
     }
 
     private static BidderCall<BidRequest> givenHttpCall(String body) {

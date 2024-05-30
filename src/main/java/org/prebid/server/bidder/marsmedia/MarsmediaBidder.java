@@ -51,7 +51,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
         final String firstImpZone;
         final BidRequest outgoingRequest;
         try {
-            firstImpZone = resolveExtZone(bidRequest.getImp().get(0));
+            firstImpZone = resolveExtZone(bidRequest.getImp().getFirst());
             outgoingRequest = createRequest(bidRequest);
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -110,7 +110,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
     }
 
     private static Banner updateBanner(Banner banner) {
-        final Format firstFormat = banner.getFormat().get(0);
+        final Format firstFormat = banner.getFormat().getFirst();
         return banner.toBuilder()
                 .w(ObjectUtils.defaultIfNull(firstFormat.getW(), 0))
                 .h(ObjectUtils.defaultIfNull(firstFormat.getH(), 0))
@@ -147,7 +147,7 @@ public class MarsmediaBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(List<SeatBid> seatbid, List<Imp> imps, String currency) {
-        final SeatBid firstSeatBid = seatbid.get(0);
+        final SeatBid firstSeatBid = seatbid.getFirst();
         return firstSeatBid != null ? firstSeatBid.getBid().stream()
                 .filter(Objects::nonNull)
                 .map(bid -> BidderBid.of(bid, getBidType(bid.getImpid(), imps), currency))

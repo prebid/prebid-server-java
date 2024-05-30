@@ -15,6 +15,9 @@ import fiftyone.pipeline.engines.Constants;
 import fiftyone.pipeline.engines.data.AspectPropertyValue;
 import fiftyone.pipeline.engines.services.DataUpdateServiceDefault;
 import lombok.Builder;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
@@ -50,15 +53,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
 
     private static final String CODE = "fiftyone-devicedetection-raw-auction-request-hook";
 
-    private final ModuleConfig moduleConfig;
-    private final Pipeline pipeline;
-
-    public FiftyOneDeviceDetectionRawAuctionRequestHook(ModuleConfig moduleConfig) throws Exception {
-
-        this.moduleConfig = moduleConfig;
-        final DeviceDetectionOnPremisePipelineBuilder builder = makeBuilder();
-        pipeline = builder.build();
-    }
+    public static final String EXT_DEVICE_ID_KEY = "fiftyonedegrees_deviceId";
 
     private static final Collection<String> PROPERTIES_USED = List.of(
             "devicetype",
@@ -82,6 +77,48 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
             "GeoLocation",
             "HardwareModelVariants");
 
+    // https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/main/AdCOM%20v1.0%20FINAL.md#list--device-types-
+    private enum ORTBDeviceType {
+        UNKNOWN,
+        MOBILE_TABLET,
+        PERSONAL_COMPUTER,
+        CONNECTED_TV,
+        PHONE,
+        TABLET,
+        CONNECTED_DEVICE,
+        SET_TOP_BOX,
+        OOH_DEVICE
+    }
+
+    private static final Map<String, Integer> MAPPING = Map.ofEntries(
+            Map.entry("Phone", ORTBDeviceType.PHONE.ordinal()),
+            Map.entry("Console", ORTBDeviceType.SET_TOP_BOX.ordinal()),
+            Map.entry("Desktop", ORTBDeviceType.PERSONAL_COMPUTER.ordinal()),
+            Map.entry("EReader", ORTBDeviceType.PERSONAL_COMPUTER.ordinal()),
+            Map.entry("IoT", ORTBDeviceType.CONNECTED_DEVICE.ordinal()),
+            Map.entry("Kiosk", ORTBDeviceType.OOH_DEVICE.ordinal()),
+            Map.entry("MediaHub", ORTBDeviceType.SET_TOP_BOX.ordinal()),
+            Map.entry("Mobile", ORTBDeviceType.MOBILE_TABLET.ordinal()),
+            Map.entry("Router", ORTBDeviceType.CONNECTED_DEVICE.ordinal()),
+            Map.entry("SmallScreen", ORTBDeviceType.CONNECTED_DEVICE.ordinal()),
+            Map.entry("SmartPhone", ORTBDeviceType.MOBILE_TABLET.ordinal()),
+            Map.entry("SmartSpeaker", ORTBDeviceType.CONNECTED_DEVICE.ordinal()),
+            Map.entry("SmartWatch", ORTBDeviceType.CONNECTED_DEVICE.ordinal()),
+            Map.entry("Tablet", ORTBDeviceType.TABLET.ordinal()),
+            Map.entry("Tv", ORTBDeviceType.CONNECTED_TV.ordinal()),
+            Map.entry("Vehicle Display", ORTBDeviceType.PERSONAL_COMPUTER.ordinal())
+    );
+
+    private final ModuleConfig moduleConfig;
+    private final Pipeline pipeline;
+
+    public FiftyOneDeviceDetectionRawAuctionRequestHook(ModuleConfig moduleConfig) throws Exception {
+
+        this.moduleConfig = moduleConfig;
+        final DeviceDetectionOnPremisePipelineBuilder builder = makeBuilder();
+        pipeline = builder.build();
+    }
+
     protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
 
         final ModuleConfig moduleConfig = getModuleConfig();
@@ -93,6 +130,11 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
         return builder;
     }
 
+    protected ModuleConfig getModuleConfig() {
+
+        return moduleConfig;
+    }
+
     protected DeviceDetectionOnPremisePipelineBuilder makeRawBuilder(DataFile dataFile) throws Exception {
 
         final Boolean shouldMakeDataCopy = dataFile.getMakeTempCopy();
@@ -100,12 +142,49 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
                 .useOnPremise(dataFile.getPath(), shouldMakeDataCopy != null && shouldMakeDataCopy);
     }
 
+    protected void applyUpdateOptions(
+            DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
+            DataFileUpdate updateConfig) {
+
+        pipelineBuilder.setDataUpdateService(new DataUpdateServiceDefault());
+
+        final Boolean auto = updateConfig.getAuto();
+        if (auto != null) {
+            pipelineBuilder.setAutoUpdate(auto);
+        }
+
+        final Boolean onStartup = updateConfig.getOnStartup();
+        if (onStartup != null) {
+            pipelineBuilder.setDataUpdateOnStartup(onStartup);
+        }
+
+        final String url = updateConfig.getUrl();
+        if (StringUtils.isNotBlank(url)) {
+            pipelineBuilder.setDataUpdateUrl(url);
+        }
+
+        final String licenseKey = updateConfig.getLicenseKey();
+        if (StringUtils.isNotBlank(licenseKey)) {
+            pipelineBuilder.setDataUpdateLicenseKey(licenseKey);
+        }
+
+        final Boolean watchFileSystem = updateConfig.getWatchFileSystem();
+        if (watchFileSystem != null) {
+            pipelineBuilder.setDataFileSystemWatcher(watchFileSystem);
+        }
+
+        final Integer pollingInterval = updateConfig.getPollingInterval();
+        if (pollingInterval != null) {
+            pipelineBuilder.setUpdatePollingInterval(pollingInterval);
+        }
+    }
+
     protected void applyPerformanceOptions(
             DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
             PerformanceConfig performanceConfig) {
 
         final String profile = performanceConfig.getProfile();
-        if (profile != null && !profile.isEmpty()) {
+        if (StringUtils.isNotBlank(profile)) {
             final String lowercasedProfile = profile.toLowerCase();
             for (Constants.PerformanceProfiles nextProfile: Constants.PerformanceProfiles.values()) {
                 if (nextProfile.name().toLowerCase().equals(lowercasedProfile)) {
@@ -133,43 +212,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
         final Integer drift = performanceConfig.getDrift();
         if (drift != null) {
             pipelineBuilder.setDrift(drift);
-        }
-    }
-
-    protected void applyUpdateOptions(
-            DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
-            DataFileUpdate updateConfig) {
-
-        pipelineBuilder.setDataUpdateService(new DataUpdateServiceDefault());
-
-        final var auto = updateConfig.getAuto();
-        if (auto != null) {
-            pipelineBuilder.setAutoUpdate(auto);
-        }
-
-        final var onStartup = updateConfig.getOnStartup();
-        if (onStartup != null) {
-            pipelineBuilder.setDataUpdateOnStartup(onStartup);
-        }
-
-        final var url = updateConfig.getUrl();
-        if (url != null && !url.isEmpty()) {
-            pipelineBuilder.setDataUpdateUrl(url);
-        }
-
-        final var licenseKey = updateConfig.getLicenseKey();
-        if (licenseKey != null && !licenseKey.isEmpty()) {
-            pipelineBuilder.setDataUpdateLicenseKey(licenseKey);
-        }
-
-        final var watchFileSystem = updateConfig.getWatchFileSystem();
-        if (watchFileSystem != null) {
-            pipelineBuilder.setDataFileSystemWatcher(watchFileSystem);
-        }
-
-        final var pollingInterval = updateConfig.getPollingInterval();
-        if (pollingInterval != null) {
-            pipelineBuilder.setUpdatePollingInterval(pollingInterval);
         }
     }
 
@@ -211,32 +253,146 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
     protected boolean isAccountAllowed(AuctionInvocationContext invocationContext) {
 
         final AccountFilter accountFilter = getModuleConfig().getAccountFilter();
-        if (accountFilter == null) {
+        final List<String> allowList = ObjectUtil.getIfNotNull(accountFilter, AccountFilter::getAllowList);
+        if (CollectionUtils.isEmpty(allowList)) {
             return true;
         }
-        final List<String> allowList = accountFilter.getAllowList();
-        final boolean hasAllowList = allowList != null && !allowList.isEmpty();
-        do {
-            if (invocationContext == null) {
-                break;
+        return Optional.ofNullable(invocationContext)
+                .map(AuctionInvocationContext::auctionContext)
+                .map(AuctionContext::getAccount)
+                .map(Account::getId)
+                .filter(StringUtils::isNotBlank)
+                .map(allowList::contains)
+                .orElse(false);
+    }
+
+    protected ModuleContext addEvidenceToContext(
+            ModuleContext moduleContext,
+            Consumer<CollectedEvidence.CollectedEvidenceBuilder> evidenceInjector) {
+
+        final CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder = Optional.ofNullable(moduleContext)
+                .map(ModuleContext::collectedEvidence)
+                .map(CollectedEvidence::toBuilder)
+                .orElseGet(CollectedEvidence::builder);
+
+        evidenceInjector.accept(evidenceBuilder);
+
+        return Optional.ofNullable(moduleContext)
+                .map(ModuleContext::toBuilder)
+                .orElseGet(ModuleContext::builder)
+                .collectedEvidence(evidenceBuilder.build())
+                .build();
+    }
+
+    protected void collectEvidence(
+            CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder,
+            BidRequest bidRequest) {
+
+        final Device device = bidRequest.getDevice();
+        if (device == null) {
+            return;
+        }
+        final String ua = device.getUa();
+        if (ua != null) {
+            evidenceBuilder.deviceUA(ua);
+        }
+        final UserAgent sua = device.getSua();
+        if (sua != null) {
+            final HashMap<String, String> secureHeaders = new HashMap<>();
+            appendSecureHeaders(sua, secureHeaders);
+            evidenceBuilder.secureHeaders(secureHeaders);
+        }
+    }
+
+    protected void appendSecureHeaders(UserAgent userAgent, Map<String, String> evidence) {
+
+        if (userAgent == null) {
+            return;
+        }
+
+        final List<BrandVersion> versions = userAgent.getBrowsers();
+        if (CollectionUtils.isNotEmpty(versions)) {
+            final String fullUA = brandListToString(versions);
+            evidence.put("header.Sec-CH-UA", fullUA);
+            evidence.put("header.Sec-CH-UA-Full-Version-List", fullUA);
+        }
+
+        final BrandVersion platform = userAgent.getPlatform();
+        if (platform != null) {
+            final String platformName = platform.getBrand();
+            if (StringUtils.isNotBlank(platformName)) {
+                evidence.put("header.Sec-CH-UA-Platform", '"' + toHeaderSafe(platformName) + '"');
             }
-            final AuctionContext auctionContext = invocationContext.auctionContext();
-            if (auctionContext == null) {
-                break;
+
+            final List<String> platformVersions = platform.getVersion();
+            if (CollectionUtils.isNotEmpty(platformVersions)) {
+                final StringBuilder s = new StringBuilder();
+                s.append('"');
+                appendVersionList(s, platformVersions);
+                s.append('"');
+                evidence.put("header.Sec-CH-UA-Platform-Version", s.toString());
             }
-            final Account account = auctionContext.getAccount();
-            if (account == null) {
-                break;
+        }
+
+        final Integer isMobile = userAgent.getMobile();
+        if (isMobile != null) {
+            evidence.put("header.Sec-CH-UA-Mobile", "?" + isMobile);
+        }
+
+        final String architecture = userAgent.getArchitecture();
+        if (StringUtils.isNotBlank(architecture)) {
+            evidence.put("header.Sec-CH-UA-Arch", '"' + toHeaderSafe(architecture) + '"');
+        }
+
+        final String bitness = userAgent.getBitness();
+        if (StringUtils.isNotBlank(bitness)) {
+            evidence.put("header.Sec-CH-UA-Bitness", '"' + toHeaderSafe(bitness) + '"');
+        }
+
+        final String model = userAgent.getModel();
+        if (StringUtils.isNotBlank(model)) {
+            evidence.put("header.Sec-CH-UA-Model", '"' + toHeaderSafe(model) + '"');
+        }
+    }
+
+    private static String toHeaderSafe(String rawValue) {
+
+        return rawValue.replace("\"", "\\\"");
+    }
+
+    private static String brandListToString(List<BrandVersion> versions) {
+
+        final StringBuilder s = new StringBuilder();
+        for (BrandVersion nextBrandVersion : versions) {
+            final String brandName = nextBrandVersion.getBrand();
+            if (brandName == null) {
+                continue;
             }
-            final String accountId = account.getId();
-            if (accountId == null || accountId.isEmpty()) {
-                break;
+            if (!s.isEmpty()) {
+                s.append(", ");
             }
-            if (hasAllowList) {
-                return allowList.contains(accountId);
+            s.append('"');
+            s.append(toHeaderSafe(brandName));
+            s.append("\";v=\"");
+            appendVersionList(s, nextBrandVersion.getVersion());
+            s.append('"');
+        }
+        return s.toString();
+    }
+
+    private static void appendVersionList(StringBuilder s, List<String> versions) {
+
+        if (CollectionUtils.isEmpty(versions)) {
+            return;
+        }
+        boolean isFirstVersionFragment = true;
+        for (String nextFragment : versions) {
+            if (!isFirstVersionFragment) {
+                s.append('.');
             }
-        } while (false);
-        return !hasAllowList;
+            s.append(nextFragment);
+            isFirstVersionFragment = false;
+        }
     }
 
     private AuctionRequestPayload updatePayload(
@@ -276,6 +432,14 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
                 .build();
     }
 
+    @Builder
+    public record EnrichmentResult(
+            Device enrichedDevice,
+            Collection<String> enrichedFields,
+            Exception processingException
+    ) {
+    }
+
     protected EnrichmentResult populateDeviceInfo(
             Device device,
             CollectedEvidence collectedEvidence) {
@@ -296,6 +460,37 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
         }
     }
 
+    protected Pipeline getPipeline() {
+
+        return pipeline;
+    }
+
+    protected Map<String, String> pickRelevantFrom(CollectedEvidence collectedEvidence) {
+
+        final Map<String, String> evidence = new HashMap<>();
+
+        final String ua = collectedEvidence.deviceUA();
+        if (StringUtils.isNotBlank(ua)) {
+            evidence.put("header.user-agent", ua);
+        }
+        final Map<String, String> secureHeaders = collectedEvidence.secureHeaders();
+        if (MapUtils.isNotEmpty(secureHeaders)) {
+            evidence.putAll(secureHeaders);
+        }
+        if (!evidence.isEmpty()) {
+            return evidence;
+        }
+
+        final Collection<Map.Entry<String, String>> headers = collectedEvidence.rawHeaders();
+        if (CollectionUtils.isNotEmpty(headers)) {
+            for (Map.Entry<String, String> nextRawHeader : headers) {
+                evidence.put("header." + nextRawHeader.getKey(), nextRawHeader.getValue());
+            }
+        }
+
+        return evidence;
+    }
+
     protected EnrichmentResult patchDevice(Device device, DeviceData deviceData) {
 
         final List<String> updatedFields = new ArrayList<>();
@@ -314,23 +509,23 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
         }
 
         final String currentMake = device.getMake();
-        if (!(currentMake != null && !currentMake.isEmpty())) {
+        if (!(StringUtils.isNotBlank(currentMake))) {
             final String make = getSafe(deviceData, DeviceData::getHardwareVendor);
-            if (make != null && !make.isEmpty()) {
+            if (StringUtils.isNotBlank(make)) {
                 deviceBuilder.make(make);
                 updatedFields.add("make");
             }
         }
 
         final String currentModel = device.getModel();
-        if (!(currentModel != null && !currentModel.isEmpty())) {
+        if (!(StringUtils.isNotBlank(currentModel))) {
             final String model = getSafe(deviceData, DeviceData::getHardwareModel);
-            if (model != null && !model.isEmpty()) {
+            if (StringUtils.isNotBlank(model)) {
                 deviceBuilder.model(model);
                 updatedFields.add("model");
             } else {
                 final List<String> names = getSafe(deviceData, DeviceData::getHardwareName);
-                if (names != null && !names.isEmpty()) {
+                if (CollectionUtils.isNotEmpty(names)) {
                     deviceBuilder.model(String.join(",", names));
                     updatedFields.add("model");
                 }
@@ -338,18 +533,18 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
         }
 
         final String currentOS = device.getOs();
-        if (!(currentOS != null && !currentOS.isEmpty())) {
+        if (!(StringUtils.isNotBlank(currentOS))) {
             final String os = getSafe(deviceData, DeviceData::getPlatformName);
-            if (os != null && !os.isEmpty()) {
+            if (StringUtils.isNotBlank(os)) {
                 deviceBuilder.os(os);
                 updatedFields.add("os");
             }
         }
 
         final String currentOSV = device.getOsv();
-        if (!(currentOSV != null && !currentOSV.isEmpty())) {
+        if (!(StringUtils.isNotBlank(currentOSV))) {
             final String osv = getSafe(deviceData, DeviceData::getPlatformVersion);
-            if (osv != null && !osv.isEmpty()) {
+            if (StringUtils.isNotBlank(osv)) {
                 deviceBuilder.osv(osv);
                 updatedFields.add("osv");
             }
@@ -395,9 +590,9 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
         }
 
         final String currentDeviceId = getDeviceId(device);
-        if (!(currentDeviceId != null && !currentDeviceId.isEmpty())) {
+        if (!(StringUtils.isNotBlank(currentDeviceId))) {
             final String deviceID = getSafe(deviceData, DeviceData::getDeviceId);
-            if (deviceID != null && !deviceID.isEmpty()) {
+            if (StringUtils.isNotBlank(deviceID)) {
                 setDeviceId(deviceBuilder, device, deviceID);
                 updatedFields.add("ext." + EXT_DEVICE_ID_KEY);
             }
@@ -427,207 +622,12 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
         return null;
     }
 
-    // https://github.com/InteractiveAdvertisingBureau/AdCOM/blob/main/AdCOM%20v1.0%20FINAL.md#list--device-types-
-    private enum ORTBDeviceType {
-        UNKNOWN,
-        MOBILE_TABLET,
-        PERSONAL_COMPUTER,
-        CONNECTED_TV,
-        PHONE,
-        TABLET,
-        CONNECTED_DEVICE,
-        SET_TOP_BOX,
-        OOH_DEVICE
-    }
-
-    private static final Map<String, Integer> MAPPING = Map.ofEntries(
-            Map.entry("Phone", ORTBDeviceType.PHONE.ordinal()),
-            Map.entry("Console", ORTBDeviceType.SET_TOP_BOX.ordinal()),
-            Map.entry("Desktop", ORTBDeviceType.PERSONAL_COMPUTER.ordinal()),
-            Map.entry("EReader", ORTBDeviceType.PERSONAL_COMPUTER.ordinal()),
-            Map.entry("IoT", ORTBDeviceType.CONNECTED_DEVICE.ordinal()),
-            Map.entry("Kiosk", ORTBDeviceType.OOH_DEVICE.ordinal()),
-            Map.entry("MediaHub", ORTBDeviceType.SET_TOP_BOX.ordinal()),
-            Map.entry("Mobile", ORTBDeviceType.MOBILE_TABLET.ordinal()),
-            Map.entry("Router", ORTBDeviceType.CONNECTED_DEVICE.ordinal()),
-            Map.entry("SmallScreen", ORTBDeviceType.CONNECTED_DEVICE.ordinal()),
-            Map.entry("SmartPhone", ORTBDeviceType.MOBILE_TABLET.ordinal()),
-            Map.entry("SmartSpeaker", ORTBDeviceType.CONNECTED_DEVICE.ordinal()),
-            Map.entry("SmartWatch", ORTBDeviceType.CONNECTED_DEVICE.ordinal()),
-            Map.entry("Tablet", ORTBDeviceType.TABLET.ordinal()),
-            Map.entry("Tv", ORTBDeviceType.CONNECTED_TV.ordinal()),
-            Map.entry("Vehicle Display", ORTBDeviceType.PERSONAL_COMPUTER.ordinal())
-    );
-
     protected Integer convertDeviceType(String deviceType) {
 
         return Optional
                 .ofNullable(MAPPING.get(deviceType))
                 .orElse(ORTBDeviceType.UNKNOWN.ordinal());
     }
-
-    protected Map<String, String> pickRelevantFrom(CollectedEvidence collectedEvidence) {
-
-        final Map<String, String> evidence = new HashMap<>();
-
-        final String ua = collectedEvidence.deviceUA();
-        if (ua != null && !ua.isEmpty()) {
-            evidence.put("header.user-agent", ua);
-        }
-        final Map<String, String> secureHeaders = collectedEvidence.secureHeaders();
-        if (secureHeaders != null && !secureHeaders.isEmpty()) {
-            evidence.putAll(secureHeaders);
-        }
-        if (!evidence.isEmpty()) {
-            return evidence;
-        }
-
-        final Collection<Map.Entry<String, String>> headers = collectedEvidence.rawHeaders();
-        if (headers != null && !headers.isEmpty()) {
-            for (Map.Entry<String, String> nextRawHeader : headers) {
-                evidence.put("header." + nextRawHeader.getKey(), nextRawHeader.getValue());
-            }
-        }
-
-        return evidence;
-    }
-
-    protected ModuleContext addEvidenceToContext(
-            ModuleContext moduleContext,
-            Consumer<CollectedEvidence.CollectedEvidenceBuilder> evidenceInjector) {
-
-        final ModuleContext.ModuleContextBuilder contextBuilder;
-        CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder = null;
-        if (moduleContext != null) {
-            contextBuilder = moduleContext.toBuilder();
-            final CollectedEvidence lastEvidence = moduleContext.collectedEvidence();
-            if (lastEvidence != null) {
-                evidenceBuilder = lastEvidence.toBuilder();
-            }
-        } else {
-            contextBuilder = ModuleContext.builder();
-        }
-        if (evidenceBuilder == null) {
-            evidenceBuilder = CollectedEvidence.builder();
-        }
-        evidenceInjector.accept(evidenceBuilder);
-        return contextBuilder
-                .collectedEvidence(evidenceBuilder.build())
-                .build();
-    }
-
-    protected void collectEvidence(
-            CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder,
-            BidRequest bidRequest) {
-
-        final Device device = bidRequest.getDevice();
-        if (device == null) {
-            return;
-        }
-        final String ua = device.getUa();
-        if (ua != null) {
-            evidenceBuilder.deviceUA(ua);
-        }
-        final UserAgent sua = device.getSua();
-        if (sua != null) {
-            final HashMap<String, String> secureHeaders = new HashMap<>();
-            appendSecureHeaders(sua, secureHeaders);
-            evidenceBuilder.secureHeaders(secureHeaders);
-        }
-    }
-
-    protected void appendSecureHeaders(UserAgent userAgent, Map<String, String> evidence) {
-
-        if (userAgent == null) {
-            return;
-        }
-
-        final List<BrandVersion> versions = userAgent.getBrowsers();
-        if (versions != null && !versions.isEmpty()) {
-            final String fullUA = brandListToString(versions);
-            evidence.put("header.Sec-CH-UA", fullUA);
-            evidence.put("header.Sec-CH-UA-Full-Version-List", fullUA);
-        }
-
-        final BrandVersion platform = userAgent.getPlatform();
-        if (platform != null) {
-            final String platformName = platform.getBrand();
-            if (platformName != null && !platformName.isEmpty()) {
-                evidence.put("header.Sec-CH-UA-Platform", '"' + toHeaderSafe(platformName) + '"');
-            }
-
-            final List<String> platformVersions = platform.getVersion();
-            if (platformVersions != null && !platformVersions.isEmpty()) {
-                final StringBuilder s = new StringBuilder();
-                s.append('"');
-                appendVersionList(s, platformVersions);
-                s.append('"');
-                evidence.put("header.Sec-CH-UA-Platform-Version", s.toString());
-            }
-        }
-
-        final Integer isMobile = userAgent.getMobile();
-        if (isMobile != null) {
-            evidence.put("header.Sec-CH-UA-Mobile", "?" + isMobile);
-        }
-
-        final String architecture = userAgent.getArchitecture();
-        if (architecture != null && !architecture.isEmpty()) {
-            evidence.put("header.Sec-CH-UA-Arch", '"' + toHeaderSafe(architecture) + '"');
-        }
-
-        final String bitness = userAgent.getBitness();
-        if (bitness != null && !bitness.isEmpty()) {
-            evidence.put("header.Sec-CH-UA-Bitness", '"' + toHeaderSafe(bitness) + '"');
-        }
-
-        final String model = userAgent.getModel();
-        if (model != null && !model.isEmpty()) {
-            evidence.put("header.Sec-CH-UA-Model", '"' + toHeaderSafe(model) + '"');
-        }
-    }
-
-    private static String brandListToString(List<BrandVersion> versions) {
-
-        final StringBuilder s = new StringBuilder();
-        for (BrandVersion nextBrandVersion : versions) {
-            final String brandName = nextBrandVersion.getBrand();
-            if (brandName == null) {
-                continue;
-            }
-            if (!s.isEmpty()) {
-                s.append(", ");
-            }
-            s.append('"');
-            s.append(toHeaderSafe(brandName));
-            s.append("\";v=\"");
-            appendVersionList(s, nextBrandVersion.getVersion());
-            s.append('"');
-        }
-        return s.toString();
-    }
-
-    private static void appendVersionList(StringBuilder s, List<String> versions) {
-
-        if (versions == null || versions.isEmpty()) {
-            return;
-        }
-        boolean isFirstVersionFragment = true;
-        for (String nextFragment : versions) {
-            if (!isFirstVersionFragment) {
-                s.append('.');
-            }
-            s.append(nextFragment);
-            isFirstVersionFragment = false;
-        }
-    }
-
-    private static String toHeaderSafe(String rawValue) {
-
-        return rawValue.replace("\"", "\\\"");
-    }
-
-    public static final String EXT_DEVICE_ID_KEY = "fiftyonedegrees_deviceId";
 
     /**
      * Consists of four components separated by a hyphen symbol:
@@ -668,23 +668,5 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
         }
         ext.addProperty(EXT_DEVICE_ID_KEY, new TextNode(deviceId));
         deviceBuilder.ext(ext);
-    }
-
-    @Builder
-    public record EnrichmentResult(
-            Device enrichedDevice,
-            Collection<String> enrichedFields,
-            Exception processingException
-    ) {
-    }
-
-    protected ModuleConfig getModuleConfig() {
-
-        return moduleConfig;
-    }
-
-    protected Pipeline getPipeline() {
-
-        return pipeline;
     }
 }

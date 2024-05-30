@@ -52,7 +52,7 @@ public class UcfunnelBidder implements Bidder<BidRequest> {
 
         String partnerId = null;
         try {
-            final ExtImpUcfunnel extImpUcfunnel = parseImpExt(request.getImp().get(0));
+            final ExtImpUcfunnel extImpUcfunnel = parseImpExt(request.getImp().getFirst());
             final String adUnitId = extImpUcfunnel.getAdunitid();
             partnerId = extImpUcfunnel.getPartnerid();
             if (StringUtils.isEmpty(partnerId) || StringUtils.isEmpty(adUnitId)) {

@@ -309,7 +309,7 @@ public class AdoceanBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+        assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactly(tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
@@ -340,7 +340,7 @@ public class AdoceanBidderTest extends VertxTest {
         final Result<List<HttpRequest<Void>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+        assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactly(tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), HttpUtil.APPLICATION_JSON_CONTENT_TYPE),
                         tuple(HttpUtil.ACCEPT_HEADER.toString(), HttpHeaderValues.APPLICATION_JSON.toString()),
@@ -402,7 +402,7 @@ public class AdoceanBidderTest extends VertxTest {
                         .h(250)
                         .build(),
                 BidType.banner, "EUR");
-        assertThat(result.getValue().get(0).getBid().getAdm()).isEqualTo(adm);
+        assertThat(result.getValue().getFirst().getBid().getAdm()).isEqualTo(adm);
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).doesNotContainNull().hasSize(1).element(0).isEqualTo(expected);
     }

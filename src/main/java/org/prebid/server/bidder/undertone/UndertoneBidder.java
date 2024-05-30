@@ -204,7 +204,7 @@ public class UndertoneBidder implements Bidder<BidRequest> {
                 .collect(Collectors.groupingBy(Imp::getId))
                 .entrySet()
                 .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, imps -> imps.getValue().get(0)));
+                .collect(Collectors.toMap(Map.Entry::getKey, imps -> imps.getValue().getFirst()));
     }
 
     private BidType getBidType(Bid bid, Map<String, Imp> idImpMap) {

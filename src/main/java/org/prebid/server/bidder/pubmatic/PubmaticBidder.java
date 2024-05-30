@@ -277,7 +277,7 @@ public class PubmaticBidder implements Bidder<BidRequest> {
             return banner;
         }
 
-        final Format firstFormat = format.get(0);
+        final Format firstFormat = format.getFirst();
 
         return modifyWithSizeParams(banner, firstFormat.getW(), firstFormat.getH());
     }

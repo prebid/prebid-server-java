@@ -21,3 +21,7 @@ adapters:
         url: https://onetag-sys.com/usync/?redir={{redirect_url}}&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}
         support-cors: false
         uid-macro: '${USER_TOKEN}'
+      redirect:
+        url: https://onetag-sys.com/usync/?tag=img&redir={{redirect_url}}&gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}
+        support-cors: false
+        uid-macro: '${USER_TOKEN}'

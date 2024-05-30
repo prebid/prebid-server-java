@@ -53,7 +53,7 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
         final String url;
 
         try {
-            extImpKrushmedia = parseImpExt(request.getImp().get(0));
+            extImpKrushmedia = parseImpExt(request.getImp().getFirst());
             url = resolveEndpoint(extImpKrushmedia.getAccountId());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -127,7 +127,7 @@ public class KrushmediaBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
+        final SeatBid firstSeatBid = bidResponse.getSeatbid().getFirst();
 
         return firstSeatBid.getBid().stream()
                 .filter(Objects::nonNull)

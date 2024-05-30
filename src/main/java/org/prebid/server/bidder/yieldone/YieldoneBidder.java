@@ -69,7 +69,7 @@ public class YieldoneBidder implements Bidder<BidRequest> {
         final Banner banner = imp.getBanner();
         if (banner != null) {
             if (banner.getH() == null && banner.getW() == null && CollectionUtils.isNotEmpty(banner.getFormat())) {
-                final Format firstFormat = banner.getFormat().get(0);
+                final Format firstFormat = banner.getFormat().getFirst();
                 final Banner modifiedBanner = banner.toBuilder()
                         .h(firstFormat.getH())
                         .w(firstFormat.getW())

@@ -232,27 +232,32 @@ public class CookieSyncHandler implements ApplicationResource {
         final HttpResponseStatus status;
         final String body;
 
-        if (error instanceof InvalidCookieSyncRequestException) {
-            status = HttpResponseStatus.BAD_REQUEST;
-            body = "Invalid request format: " + message;
+        switch (error) {
+            case InvalidCookieSyncRequestException invalidCookieSyncRequestException -> {
+                status = HttpResponseStatus.BAD_REQUEST;
+                body = "Invalid request format: " + message;
 
-            metrics.updateUserSyncBadRequestMetric();
-            BAD_REQUEST_LOGGER.info(message, logSamplingRate);
-        } else if (error instanceof UnauthorizedUidsException) {
-            status = HttpResponseStatus.UNAUTHORIZED;
-            body = "Unauthorized: " + message;
+                metrics.updateUserSyncBadRequestMetric();
+                BAD_REQUEST_LOGGER.info(message, logSamplingRate);
+            }
+            case UnauthorizedUidsException unauthorizedUidsException -> {
+                status = HttpResponseStatus.UNAUTHORIZED;
+                body = "Unauthorized: " + message;
 
-            metrics.updateUserSyncOptoutMetric();
-        } else if (error instanceof InvalidAccountConfigException) {
-            status = HttpResponseStatus.BAD_REQUEST;
-            body = "Invalid account configuration: " + message;
+                metrics.updateUserSyncOptoutMetric();
+            }
+            case InvalidAccountConfigException invalidAccountConfigException -> {
+                status = HttpResponseStatus.BAD_REQUEST;
+                body = "Invalid account configuration: " + message;
 
-            BAD_REQUEST_LOGGER.info(message, logSamplingRate);
-        } else {
-            status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            body = "Unexpected setuid processing error: " + message;
+                BAD_REQUEST_LOGGER.info(message, logSamplingRate);
+            }
+            default -> {
+                status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
+                body = "Unexpected setuid processing error: " + message;
 
-            logger.warn(body, error);
+                logger.warn(body, error);
+            }
         }
 
         HttpUtil.executeSafely(routingContext, Endpoint.cookie_sync,
