@@ -18,11 +18,12 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
 import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBids;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsPrebidExt;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionTracker;
@@ -38,6 +39,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
@@ -53,22 +55,26 @@ import java.util.stream.Stream;
 
 public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
+    private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids";
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
-    private static final String PREBID_SERVER_VERSION = "3.0.0+server";
     private static final Logger logger = LoggerFactory.getLogger(GreenbidsAnalyticsReporter.class);
     private final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
     private final JacksonMapper jacksonMapper;
     private final HttpClient httpClient;
     private final Clock clock;
+    private final PrebidVersionProvider prebidVersionProvider;
 
     public GreenbidsAnalyticsReporter(
             GreenbidsAnalyticsProperties greenbidsAnalyticsProperties,
             JacksonMapper jacksonMapper,
-            HttpClient httpClient, Clock clock) {
+            HttpClient httpClient,
+            Clock clock,
+            PrebidVersionProvider prebidVersionProvider) {
         this.greenbidsAnalyticsProperties = Objects.requireNonNull(greenbidsAnalyticsProperties);
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
         this.httpClient = Objects.requireNonNull(httpClient);
-        this.clock = clock;
+        this.clock = Objects.requireNonNull(clock);
+        this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
     }
 
     @Override
@@ -91,10 +97,12 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             return Future.failedFuture(new PreBidException("Bid response or auction context cannot be null"));
         }
 
+        final GreenbidsPrebidExt greenbidsImpExt = parseBidRequestExt(auctionContext.getBidRequest());
+
         final String greenbidsId = UUID.randomUUID().toString();
         final String billingId = UUID.randomUUID().toString();
 
-        final boolean isSampled = isSampled(greenbidsAnalyticsProperties.getGreenbidsSampling(), greenbidsId);
+        final boolean isSampled = isSampled(greenbidsImpExt.getGreenbidsSampling(), greenbidsId);
 
         if (!isSampled) {
             return Future.succeededFuture();
@@ -106,7 +114,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                     auctionContext,
                     bidResponse,
                     greenbidsId,
-                    billingId);
+                    billingId,
+                    greenbidsImpExt);
             commonMessageJson = jacksonMapper.encodeToString(commonMessage);
         } catch (PreBidException | EncodeException e) {
             return Future.failedFuture(e);
@@ -123,6 +132,29 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 greenbidsAnalyticsProperties.getTimeoutMs());
 
         return processAnalyticServerResponse(responseFuture);
+    }
+
+    private GreenbidsPrebidExt parseBidRequestExt(BidRequest bidRequest) {
+        final Optional<ObjectNode> adapterNode = Optional.ofNullable(bidRequest)
+                .map(BidRequest::getExt)
+                .map(ExtRequest::getPrebid)
+                .map(ExtRequestPrebid::getAnalytics)
+                .filter(this::isNotEmptyObjectNode)
+                .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME));
+
+        final String pbuid = adapterNode.map(node -> node.get("pbuid"))
+                .map(JsonNode::asText)
+                .orElse(null);
+
+        final Double greenbidsSampling = adapterNode.map(node -> node.get("greenbidsSampling"))
+                .map(JsonNode::asDouble)
+                .orElse(null);
+
+        return GreenbidsPrebidExt.builder().pbuid(pbuid).greenbidsSampling(greenbidsSampling).build();
+    }
+
+    private boolean isNotEmptyObjectNode(JsonNode analytics) {
+        return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
     private Future<Void> processAnalyticServerResponse(Future<HttpClientResponse> responseFuture) {
@@ -161,7 +193,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             AuctionContext auctionContext,
             BidResponse bidResponse,
             String greenbidsId,
-            String billingId) {
+            String billingId,
+            GreenbidsPrebidExt greenbidsImpExt) {
         final Optional<AuctionContext> auctionContextOptional = Optional.ofNullable(auctionContext);
 
         final List<Imp> imps = auctionContextOptional
@@ -212,10 +245,10 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         .version(greenbidsAnalyticsProperties.getAnalyticsServerVersion())
                         .auctionId(auctionId)
                         .referrer(referrer)
-                        .sampling(greenbidsAnalyticsProperties.getGreenbidsSampling())
-                        .prebidServer(PREBID_SERVER_VERSION)
+                        .sampling(greenbidsImpExt.getGreenbidsSampling())
+                        .prebidServer(prebidVersionProvider.getNameVersionRecord())
                         .greenbidsId(greenbidsId)
-                        .pbuid(greenbidsAnalyticsProperties.getPbuid())
+                        .pbuid(greenbidsImpExt.getPbuid())
                         .billingId(billingId)
                         .adUnits(adUnitsWithBidResponses)
                         .auctionElapsed(auctionElapsed)

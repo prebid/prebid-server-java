@@ -15,6 +15,7 @@ import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,12 +65,14 @@ public class AnalyticsConfiguration {
                 GreenbidsAnalyticsConfigurationProperties greenbidsAnalyticsConfigurationProperties,
                 JacksonMapper jacksonMapper,
                 HttpClient httpClient,
-                Clock clock) {
+                Clock clock,
+                PrebidVersionProvider prebidVersionProvider) {
             return new GreenbidsAnalyticsReporter(
                     greenbidsAnalyticsConfigurationProperties.toComponentProperties(),
                     jacksonMapper,
                     httpClient,
-                    clock);
+                    clock,
+                    prebidVersionProvider);
         }
 
         @Bean
@@ -82,11 +85,6 @@ public class AnalyticsConfiguration {
         @NoArgsConstructor
         @Data
         private static class GreenbidsAnalyticsConfigurationProperties {
-            @NotNull
-            String pbuid;
-
-            Double greenbidsSampling;
-
             String analyticsServerVersion;
 
             String analyticsServer;
@@ -97,8 +95,6 @@ public class AnalyticsConfiguration {
 
             public GreenbidsAnalyticsProperties toComponentProperties() {
                 return GreenbidsAnalyticsProperties.builder()
-                        .pbuid(getPbuid())
-                        .greenbidsSampling(getGreenbidsSampling())
                         .exploratorySamplingSplit(getExploratorySamplingSplit())
                         .analyticsServerVersion(getAnalyticsServerVersion())
                         .analyticsServer(getAnalyticsServer())

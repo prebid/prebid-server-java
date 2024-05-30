@@ -28,6 +28,9 @@ import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.model.HttpRequestContext;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
+import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
@@ -60,6 +63,9 @@ public class GreenbidsAnalyticsReporterTest {
     @Mock
     private Clock clock;
 
+    @Mock
+    private PrebidVersionProvider prebidVersionProvider;
+
     private GreenbidsAnalyticsReporter target;
 
     private AuctionEvent event;
@@ -74,8 +80,6 @@ public class GreenbidsAnalyticsReporterTest {
         jacksonMapper = new JacksonMapper(mapper);
 
         greenbidsAnalyticsProperties = GreenbidsAnalyticsProperties.builder()
-                .pbuid("pbuid1")
-                .greenbidsSampling(1.0)
                 .exploratorySamplingSplit(0.9)
                 .analyticsServerVersion("2.2.0")
                 .analyticsServer("http://localhost:8080")
@@ -87,7 +91,8 @@ public class GreenbidsAnalyticsReporterTest {
                 greenbidsAnalyticsProperties,
                 jacksonMapper,
                 httpClient,
-                clock);
+                clock,
+                prebidVersionProvider);
     }
 
     @Test
@@ -197,7 +202,8 @@ public class GreenbidsAnalyticsReporterTest {
                 greenbidsAnalyticsProperties,
                 mockJacksonMapper,
                 httpClient,
-                clock);
+                clock,
+                prebidVersionProvider);
 
         // when
         final Future<Void> result = target.processEvent(event);
@@ -240,7 +246,11 @@ public class GreenbidsAnalyticsReporterTest {
         // given
         final AuctionContext auctionContext = mock(AuctionContext.class);
         final BidResponse bidResponse = mock(BidResponse.class);
-        when(auctionContext.getBidRequest()).thenReturn(mock(BidRequest.class));
+        when(auctionContext.getBidRequest())
+                .thenReturn(BidRequest.builder()
+                                .id("request1")
+                                .ext(setUpExtRequest())
+                                .build());
 
         final AuctionEvent event = mock(AuctionEvent.class);
         when(event.getAuctionContext()).thenReturn(auctionContext);
@@ -312,7 +322,8 @@ public class GreenbidsAnalyticsReporterTest {
                 greenbidsAnalyticsProperties,
                 jacksonMapper,
                 httpClient,
-                clock);
+                clock,
+                prebidVersionProvider);
 
         // when
         final Future<Void> result = target.processEvent(event);
@@ -341,6 +352,7 @@ public class GreenbidsAnalyticsReporterTest {
                 .id("request1")
                 .imp(Collections.singletonList(imp))
                 .site(site)
+                .ext(setUpExtRequest())
                 .build();
 
         // bid response
@@ -414,11 +426,27 @@ public class GreenbidsAnalyticsReporterTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .id("request1")
                 .site(site)
+                .ext(setUpExtRequest())
                 .build();
 
         return AuctionContext.builder()
                 .httpRequest(HttpRequestContext.builder().build())
                 .bidRequest(bidRequest)
                 .build();
+    }
+
+    private static ExtRequest setUpExtRequest() {
+        final ObjectNode greenbidsNode = new ObjectMapper().createObjectNode();
+        greenbidsNode.put("pbuid", "leparisien");
+        greenbidsNode.put("greenbidsSampling", 1.0);
+
+        final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
+        analyticsNode.set("greenbids", greenbidsNode);
+
+        return ExtRequest.of(
+                ExtRequestPrebid
+                        .builder()
+                        .analytics(analyticsNode)
+                        .build());
     }
 }

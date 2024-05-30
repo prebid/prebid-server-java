@@ -8,12 +8,6 @@ import lombok.Value;
 @Value
 public class GreenbidsAnalyticsProperties {
 
-    @JsonProperty("pbuid")
-    String pbuid;
-
-    @JsonProperty("greenbidsSampling")
-    Double greenbidsSampling;
-
     @JsonProperty("exploratorySamplingSplit")
     Double exploratorySamplingSplit;
 
