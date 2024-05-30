@@ -19,6 +19,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.auction.model.AuctionContext;
@@ -52,7 +53,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class GreenbidsAnalyticsReporterTest {
+public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -69,8 +70,6 @@ public class GreenbidsAnalyticsReporterTest {
     private GreenbidsAnalyticsReporter target;
 
     private AuctionEvent event;
-
-    private JacksonMapper jacksonMapper;
 
     private GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
 

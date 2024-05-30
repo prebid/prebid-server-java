@@ -102,9 +102,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final String greenbidsId = UUID.randomUUID().toString();
         final String billingId = UUID.randomUUID().toString();
 
-        final boolean isSampled = isSampled(greenbidsImpExt.getGreenbidsSampling(), greenbidsId);
-
-        if (!isSampled) {
+        if (!isSampled(greenbidsImpExt.getGreenbidsSampling(), greenbidsId)) {
             return Future.succeededFuture();
         }
 
@@ -117,8 +115,10 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                     billingId,
                     greenbidsImpExt);
             commonMessageJson = jacksonMapper.encodeToString(commonMessage);
-        } catch (PreBidException | EncodeException e) {
+        } catch (PreBidException e) {
             return Future.failedFuture(e);
+        } catch (EncodeException e) {
+            return Future.failedFuture(new PreBidException("Failed to encode as JSON: ", e));
         }
 
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
@@ -195,15 +195,14 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             String greenbidsId,
             String billingId,
             GreenbidsPrebidExt greenbidsImpExt) {
-        final Optional<AuctionContext> auctionContextOptional = Optional.ofNullable(auctionContext);
+        final Optional<BidRequest> bidRequest = Optional.ofNullable(auctionContext.getBidRequest());
 
-        final List<Imp> imps = auctionContextOptional
-                .map(AuctionContext::getBidRequest)
+        final List<Imp> imps = bidRequest
                 .map(BidRequest::getImp)
                 .filter(CollectionUtils::isNotEmpty)
                 .orElseThrow(() -> new PreBidException("AdUnits list should not be empty"));
 
-        final long auctionElapsed = Optional.of(auctionContext.getBidRequest())
+        final long auctionElapsed = bidRequest
                 .map(BidRequest::getExt)
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getAuctiontimestamp)
@@ -230,13 +229,11 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream().map(imp -> createAdUnit(
                 imp, seatsWithBids, seatsWithNonBids)).toList();
 
-        final String auctionId = auctionContextOptional
-                .map(AuctionContext::getBidRequest)
+        final String auctionId = bidRequest
                 .map(BidRequest::getId)
                 .orElse(null);
 
-        final String referrer = auctionContextOptional
-                .map(AuctionContext::getBidRequest)
+        final String referrer = bidRequest
                 .map(BidRequest::getSite)
                 .map(Site::getPage)
                 .orElse(null);
