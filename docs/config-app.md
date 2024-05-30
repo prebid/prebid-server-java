@@ -91,6 +91,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.validations.secure-markup` - enables secure markup validation. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.host-schain-node` - defines global schain node that will be appended to `request.source.ext.schain.nodes` passed to bidders
 - `auction.category-mapping-enabled` - if equals to `true` the category mapping feature will be active while auction.
+- `auction.strict-app-site-dooh` - if set to `true`, it will reject requests that contain more than one of app/site/dooh. Defaults to `false`.
 
 ## Event
 - `event.default-timeout-ms` - timeout for event notifications
