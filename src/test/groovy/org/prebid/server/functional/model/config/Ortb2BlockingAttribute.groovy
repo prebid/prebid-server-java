@@ -6,8 +6,8 @@ import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.KebabCaseStrategy)
-class AccountAnalyticsConfig {
+class Ortb2BlockingAttribute {
 
-    Map<String, Boolean> auctionEvents
-    Boolean allowClientDetails
+    Boolean enforceBlocks
+    List<String> blockedAdomain
 }

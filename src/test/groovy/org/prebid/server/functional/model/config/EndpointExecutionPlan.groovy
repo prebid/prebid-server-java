@@ -8,7 +8,8 @@ class EndpointExecutionPlan {
 
     Map<Stage, StageExecutionPlan> stages
 
-    static EndpointExecutionPlan getModuleEndpointExecutionPlan(ModuleName name, Stage stage) {
-        new EndpointExecutionPlan(stages: [(stage): StageExecutionPlan.getModuleStageExecutionPlan(name, stage)])
+    static EndpointExecutionPlan getModuleEndpointExecutionPlan(ModuleName name, List<Stage> stages) {
+        new EndpointExecutionPlan(stages:  stages.collectEntries {
+            it -> [(it): StageExecutionPlan.getModuleStageExecutionPlan(name, it)] } as Map<Stage, StageExecutionPlan>)
     }
 }

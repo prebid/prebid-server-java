@@ -6,10 +6,10 @@ import groovy.transform.ToString
 @ToString
 enum FetchStatus {
 
-    NONE, SUCCESS, TIMEOUT, INPROGRESS, ERROR
+    NONE, SUCCESS, TIMEOUT, INPROGRESS, ERROR, SUCCESS_ALLOW, SUCCESS_BLOCK
 
     @JsonValue
     String getValue() {
-        name().toLowerCase()
+        name().toLowerCase().replace('_', '-')
     }
 }
