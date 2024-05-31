@@ -519,8 +519,8 @@ public class PriceFloorFetcherTest extends VertxTest {
                         .enabled(true)
                         .url("http://test.host.com")
                         .maxRules(10L)
-                        .maxFileSize(10L)
-                        .timeout(1300L)
+                        .maxFileSizeKb(10L)
+                        .timeoutMs(1300L)
                         .maxAgeSec(1500L)
                         .periodSec(1200L))
                 .build();
