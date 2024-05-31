@@ -1,5 +1,6 @@
 package org.prebid.server.settings.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
@@ -10,20 +11,20 @@ import java.util.List;
 @Value
 public class AccountGdprConfig {
 
-    @JsonProperty("enabled")
     Boolean enabled;
 
-    @JsonProperty("channel-enabled")
+    @JsonProperty("channel_enabled")
+    @JsonAlias("channel-enabled")
     EnabledForRequestType enabledForRequestType;
 
     Purposes purposes;
 
-    @JsonProperty("special-features")
+    @JsonAlias("special-features")
     SpecialFeatures specialFeatures;
 
-    @JsonProperty("purpose-one-treatment-interpretation")
+    @JsonAlias("purpose-one-treatment-interpretation")
     PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation;
 
-    @JsonProperty("basic-enforcement-vendors")
+    @JsonAlias("basic-enforcement-vendors")
     List<String> basicEnforcementVendors;
 }
