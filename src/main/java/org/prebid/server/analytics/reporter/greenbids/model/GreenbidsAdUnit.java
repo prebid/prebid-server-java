@@ -13,6 +13,12 @@ public class GreenbidsAdUnit {
     @JsonProperty("code")
     String code;
 
+    @JsonProperty("gpid")
+    String gpid;
+
+    @JsonProperty("codeType")
+    String codeType;
+
     @JsonProperty("mediaTypes")
     MediaTypes mediaTypes;
 

@@ -1,7 +1,6 @@
 package org.prebid.server.analytics.reporter.greenbids.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.iab.openrtb.request.Format;
 import lombok.Builder;
 import lombok.Value;
 
@@ -12,7 +11,7 @@ import java.util.List;
 public class ExtBanner {
 
     @JsonProperty("sizes")
-    List<Format> sizes;
+    List<List<Integer>> sizes;
 
     @JsonProperty("pos")
     Integer pos;

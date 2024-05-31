@@ -2,6 +2,7 @@ package org.prebid.server.analytics.reporter.greenbids;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
@@ -98,9 +99,16 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     public void shouldReceiveValidResponseOnAuctionContextForBanner() {
         // given
         final Banner banner = setUpBanner();
+
+        final ObjectNode prebidJsonNodes = mapper.valueToTree(
+                singletonMap("gpid", TextNode.valueOf("gpidvalue")));
+
         final Imp imp = Imp.builder()
+                .id("adunitcodevalue")
+                .ext(prebidJsonNodes)
                 .banner(banner)
                 .build();
+
         final AuctionContext auctionContext = setupAuctionContext(imp);
         event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
@@ -265,7 +273,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     @Test
-    public void shouldFailWhenBannerFormatIsNull() {
+    public void shouldReceiveValidResponseWhenBannerFormatIsNull() {
         // given
         final Banner bannerWithoutFormat = setUpBannerWithoutFormat();
         final Imp imp = Imp.builder()
@@ -277,13 +285,18 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
 
+        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+        when(mockResponse.getStatusCode()).thenReturn(202);
+        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
+                .thenReturn(Future.succeededFuture(mockResponse));
+
         // when
         final Future<Void> result = target.processEvent(event);
 
         // then
-        assertThat(result.failed()).isTrue();
-        assertThat(result.cause())
-                .hasMessageStartingWith("Error: Banner format should be non-null");
+        assertThat(result.succeeded()).isTrue();
+        verify(httpClient).post(anyString(), any(MultiMap.class), anyString(), anyLong());
+        verify(mockResponse).getStatusCode();
     }
 
     @Test
@@ -399,6 +412,8 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         return Banner.builder()
                 .format(Collections.singletonList(format))
+                .w(240)
+                .h(400)
                 .build();
     }
 
@@ -406,6 +421,8 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         return Banner.builder()
                 .pos(1)
                 .format(null)
+                .w(728)
+                .h(90)
                 .build();
     }
 

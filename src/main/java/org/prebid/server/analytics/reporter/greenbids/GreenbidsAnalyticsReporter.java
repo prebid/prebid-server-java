@@ -3,6 +3,7 @@ package org.prebid.server.analytics.reporter.greenbids;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
@@ -45,6 +46,7 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
 import java.time.Clock;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -55,6 +57,8 @@ import java.util.stream.Stream;
 
 public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
+    private static final String PUBLISHER_ID_DYNAMIC_PARAM = "pbuid";
+    private static final String GREENBIDS_SAMPLING_DYNAMIC_PARAM = "greenbidsSampling";
     private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids";
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
     private static final Logger logger = LoggerFactory.getLogger(GreenbidsAnalyticsReporter.class);
@@ -142,11 +146,11 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .filter(this::isNotEmptyObjectNode)
                 .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME));
 
-        final String pbuid = adapterNode.map(node -> node.get("pbuid"))
+        final String pbuid = adapterNode.map(node -> node.get(PUBLISHER_ID_DYNAMIC_PARAM))
                 .map(JsonNode::asText)
                 .orElse(null);
 
-        final Double greenbidsSampling = adapterNode.map(node -> node.get("greenbidsSampling"))
+        final Double greenbidsSampling = adapterNode.map(node -> node.get(GREENBIDS_SAMPLING_DYNAMIC_PARAM))
                 .map(JsonNode::asDouble)
                 .orElse(null);
 
@@ -264,18 +268,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             Imp imp,
             Map<String, Bid> seatsWithBids,
             Map<String, NonBid> seatsWithNonBids) {
-        final ExtBanner extBanner = Optional.ofNullable(imp.getBanner())
-                .map(banner -> {
-                    if (banner.getFormat() == null) {
-                        throw new PreBidException("Error: Banner format should be non-null");
-                    }
-                    return ExtBanner.builder()
-                            .sizes(banner.getFormat())
-                            .pos(banner.getPos())
-                            .name(banner.getId())
-                            .build();
-                }).orElse(null);
-
+        final ExtBanner extBanner = getExtBanner(imp.getBanner());
         final Video video = imp.getVideo();
         final Native nativeObject = imp.getXNative();
 
@@ -287,12 +280,47 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final List<GreenbidsBids> bids = extractBidders(imp, seatsWithBids, seatsWithNonBids);
 
-        final String adUnitCode = getAdUnitCode(imp);
+        final String gpidWithFallback = getGpidWithFallback(imp);
+
+        final ObjectNode impExt = imp.getExt();
+        final Optional<String> gpidOption = getGpid(impExt);
+        final Optional<String> storedRequestIdOption = getStoredRequestId(impExt);
+        final String adUnitCode = imp.getId();
+
+        final String codeType = gpidOption.map(gpid -> "gpid")
+                .or(() -> storedRequestIdOption.map(id -> "storedRequestId"))
+                .orElse("adUnitCode");
 
         return GreenbidsAdUnit.builder()
                 .code(adUnitCode)
+                .gpid(gpidWithFallback)
+                .codeType(codeType)
                 .mediaTypes(mediaTypes)
                 .bids(bids)
+                .build();
+    }
+
+    public static ExtBanner getExtBanner(Banner banner) {
+        if (banner == null) {
+            return null;
+        }
+
+        final List<List<Integer>> sizes = Optional.ofNullable(banner.getFormat())
+                .filter(formats -> !formats.isEmpty())
+                .map(formats -> formats.stream()
+                        .map(format -> List.of(format.getW(), format.getH()))
+                        .collect(Collectors.toList()))
+                .orElseGet(() -> {
+                    if (banner.getW() != null && banner.getH() != null) {
+                        return List.of(List.of(banner.getW(), banner.getH()));
+                    }
+                    return Collections.emptyList();
+                });
+
+        return ExtBanner.builder()
+                .sizes(sizes)
+                .pos(banner.getPos())
+                .name(banner.getId())
                 .build();
     }
 
@@ -308,7 +336,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .collect(Collectors.toList());
     }
 
-    private String getAdUnitCode(Imp imp) {
+    private String getGpidWithFallback(Imp imp) {
         final ObjectNode impExt = imp.getExt();
 
         return getGpid(impExt)
