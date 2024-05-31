@@ -32,6 +32,10 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.audio;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
+import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
+import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
+import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class LoyalBidderTest extends VertxTest {
 
@@ -48,7 +52,7 @@ public class LoyalBidderTest extends VertxTest {
     public void makeHttpRequestsShouldMakeOneRequestPerImp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(givenImp(UnaryOperator.identity()), givenImp(UnaryOperator.identity())))
+                .imp(asList(givenImp(UnaryOperator.identity()), givenImp2(UnaryOperator.identity())))
                 .build();
 
         //when
@@ -65,7 +69,7 @@ public class LoyalBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getId)
-                .containsExactlyInAnyOrder("123", "123");
+                .containsExactlyInAnyOrder("123", "321");
     }
 
     @Test
@@ -191,6 +195,24 @@ public class LoyalBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldReturnExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(UnaryOperator.identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getHeaders)
+                .satisfies(headers -> assertThat(headers.get(CONTENT_TYPE_HEADER))
+                        .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
+                .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
+                        .isEqualTo(APPLICATION_JSON_VALUE));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
     public void makeBidsShouldReturnErrorIfResponseBodyCouldNotBeParsed() {
         // given
         final BidderCall<BidRequest> httpCall = givenHttpCall("invalid");
@@ -227,8 +249,7 @@ public class LoyalBidderTest extends VertxTest {
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(banner).build());
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -246,8 +267,7 @@ public class LoyalBidderTest extends VertxTest {
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(video).build());
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -265,8 +285,7 @@ public class LoyalBidderTest extends VertxTest {
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(xNative).build());
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -284,8 +303,7 @@ public class LoyalBidderTest extends VertxTest {
         final ObjectNode bidExt = mapper.createObjectNode()
                 .set("prebid", mapper.createArrayNode());
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).id("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).id("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -303,8 +321,7 @@ public class LoyalBidderTest extends VertxTest {
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(audio).build());
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).id("123"))));
+                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).id("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -337,6 +354,14 @@ public class LoyalBidderTest extends VertxTest {
                 .build();
     }
 
+    private static Imp givenImp2(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+        return impCustomizer.apply(Imp.builder()
+                        .id("321")
+                        .ext(mapper.valueToTree(ExtPrebid.of(null,
+                                ExtImpLoyal.of("placementId", "endpointId")))))
+                .build();
+    }
+
     private static Imp givenBadImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("invalidImp")
@@ -345,12 +370,13 @@ public class LoyalBidderTest extends VertxTest {
                 .build();
     }
 
-    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
+    private static String givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) throws JsonProcessingException {
+        final BidResponse bidResponse = BidResponse.builder()
                 .cur("USD")
                 .seatbid(singletonList(SeatBid.builder().bid(singletonList(bidCustomizer.apply(Bid.builder()).build()))
                         .build()))
                 .build();
+        return mapper.writeValueAsString(bidResponse);
     }
 
     private static BidderCall<BidRequest> givenHttpCall(String body) {
