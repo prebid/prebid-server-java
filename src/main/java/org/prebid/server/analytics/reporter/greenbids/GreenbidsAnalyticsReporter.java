@@ -25,6 +25,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBids;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsPrebidExt;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionTracker;
@@ -134,6 +135,17 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 headers,
                 commonMessageJson,
                 greenbidsAnalyticsProperties.getTimeoutMs());
+
+        responseFuture
+                .onSuccess(response ->
+                        System.out.println(
+                                "Analytics Server response body: " +
+                                        response.getStatusCode() + "\n" +
+                                        response.getHeaders() + "\n" +
+                                        response.getBody() + "\n" +
+                                        commonMessageJson
+                        ))
+                .onFailure(error -> System.out.println("Can't send payload to Analytics Server: " + error));
 
         return processAnalyticServerResponse(responseFuture);
     }
@@ -280,21 +292,28 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final List<GreenbidsBids> bids = extractBidders(imp, seatsWithBids, seatsWithNonBids);
 
-        final String gpidWithFallback = getGpidWithFallback(imp);
-
         final ObjectNode impExt = imp.getExt();
         final Optional<String> gpidOption = getGpid(impExt);
         final Optional<String> storedRequestIdOption = getStoredRequestId(impExt);
         final String adUnitCode = imp.getId();
 
-        final String codeType = gpidOption.map(gpid -> "gpid")
-                .or(() -> storedRequestIdOption.map(id -> "storedRequestId"))
-                .orElse("adUnitCode");
+        final String gpidWithFallback = gpidOption.or(() -> storedRequestIdOption)
+                .orElse(adUnitCode);
+
+        final GreenbidsUnifiedCode.Source codeTypeSource = gpidOption
+                .map(gpid -> GreenbidsUnifiedCode.Source.gpidSource)
+                .or(() -> storedRequestIdOption
+                        .map(storedRequestId -> GreenbidsUnifiedCode.Source.storedRequestIdSource))
+                .orElse(GreenbidsUnifiedCode.Source.adUnitCodeSource);
+
+        final GreenbidsUnifiedCode greenbidsUnifiedCode = GreenbidsUnifiedCode.builder()
+                .value(gpidWithFallback)
+                .source(codeTypeSource)
+                .build();
 
         return GreenbidsAdUnit.builder()
                 .code(adUnitCode)
-                .gpid(gpidWithFallback)
-                .codeType(codeType)
+                .unifiedCode(greenbidsUnifiedCode)
                 .mediaTypes(mediaTypes)
                 .bids(bids)
                 .build();

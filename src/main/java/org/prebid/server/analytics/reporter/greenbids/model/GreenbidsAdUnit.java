@@ -13,8 +13,8 @@ public class GreenbidsAdUnit {
     @JsonProperty("code")
     String code;
 
-    @JsonProperty("gpid")
-    String gpid;
+    @JsonProperty("unifiedCode")
+    GreenbidsUnifiedCode unifiedCode;
 
     @JsonProperty("codeType")
     String codeType;
