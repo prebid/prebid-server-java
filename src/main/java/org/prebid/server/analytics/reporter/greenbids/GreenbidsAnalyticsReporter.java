@@ -355,14 +355,6 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .collect(Collectors.toList());
     }
 
-    private String getGpidWithFallback(Imp imp) {
-        final ObjectNode impExt = imp.getExt();
-
-        return getGpid(impExt)
-                .or(() -> getStoredRequestId(impExt))
-                .orElse(imp.getId());
-    }
-
     private static Optional<String> getGpid(ObjectNode impExt) {
         return Optional.ofNullable(impExt)
                 .map(ext -> ext.get("gpid"))
