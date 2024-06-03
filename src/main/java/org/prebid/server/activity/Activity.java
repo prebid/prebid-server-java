@@ -1,30 +1,39 @@
 package org.prebid.server.activity;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public enum Activity {
 
-    @JsonProperty("syncUser")
+    @JsonProperty("sync_user")
+    @JsonAlias({"syncUser", "sync-user"})
     SYNC_USER,
 
-    @JsonProperty("fetchBids")
+    @JsonProperty("fetch_bids")
+    @JsonAlias({"fetchBids", "fetch-bids"})
     CALL_BIDDER,
 
-    @JsonProperty("enrichUfpd")
+    @JsonProperty("enrich_ufpd")
+    @JsonAlias({"enrichUfpd", "enrich-ufpd"})
     MODIFY_UFDP,
 
-    @JsonProperty("transmitUfpd")
+    @JsonProperty("transmit_ufpd")
+    @JsonAlias({"transmitUfpd", "transmit-ufpd"})
     TRANSMIT_UFPD,
 
-    @JsonProperty("transmitEids")
+    @JsonProperty("transmit_eids")
+    @JsonAlias({"transmitEids", "transmit-eids"})
     TRANSMIT_EIDS,
 
-    @JsonProperty("transmitPreciseGeo")
+    @JsonProperty("transmit_precise_geo")
+    @JsonAlias({"transmitPreciseGeo", "transmit-precise-geo"})
     TRANSMIT_GEO,
 
-    @JsonProperty("transmitTid")
+    @JsonProperty("transmit_tid")
+    @JsonAlias({"transmitTid", "transmit-tid"})
     TRANSMIT_TID,
 
-    @JsonProperty("reportAnalytics")
+    @JsonProperty("report_analytics")
+    @JsonAlias({"reportAnalytics", "report-analytics"})
     REPORT_ANALYTICS
 }

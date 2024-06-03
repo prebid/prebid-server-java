@@ -1,5 +1,6 @@
 package org.prebid.server.settings.model.activity.rule;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Value;
 import org.prebid.server.activity.ComponentType;
@@ -16,13 +17,16 @@ public class AccountActivityConditionsRuleConfig implements AccountActivityRuleC
     @Value(staticConstructor = "of")
     public static class Condition {
 
-        @JsonProperty("componentType")
+        @JsonProperty("component_type")
+        @JsonAlias({"componentType", "component-type"})
         List<ComponentType> componentTypes;
 
-        @JsonProperty("componentName")
+        @JsonProperty("component_name")
+        @JsonAlias({"componentName", "component-name"})
         List<String> componentNames;
 
-        @JsonProperty("gppSid")
+        @JsonProperty("gpp_sid")
+        @JsonAlias({"gppSid", "gpp-sid"})
         List<Integer> sids;
 
         @JsonProperty("geo")
