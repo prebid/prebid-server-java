@@ -102,7 +102,7 @@ public class PlaydigoBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(givenImpExtLoyalBidder(ext -> ext.type("publisher").placementId("somePlacementId")));
+                .containsExactly(givenImpExtPlaydigoBidder(ext -> ext.type("publisher").placementId("somePlacementId")));
     }
 
     @Test
@@ -121,7 +121,7 @@ public class PlaydigoBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(givenImpExtLoyalBidder(ext -> ext.type("network").endpointId("someEndpointId")));
+                .containsExactly(givenImpExtPlaydigoBidder(ext -> ext.type("network").endpointId("someEndpointId")));
     }
 
     @Test
@@ -338,7 +338,7 @@ public class PlaydigoBidderTest extends VertxTest {
                 null);
     }
 
-    private ObjectNode givenImpExtLoyalBidder(
+    private ObjectNode givenImpExtPlaydigoBidder(
             UnaryOperator<PlaydigoImpExt.PlaydigoImpExtBuilder> impExtPlaydigoBidderBuilder) {
         final ObjectNode modifiedImpExtBidder = mapper.createObjectNode();
 

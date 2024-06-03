@@ -33,4 +33,3 @@ public class PlaydigoTest extends IntegrationTest {
         assertJsonEquals("openrtb2/playdigo/test-auction-playdigo-response.json", response, singletonList("playdigo"));
     }
 }
-
