@@ -102,7 +102,9 @@ public class PlaydigoBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getExt)
-                .containsExactly(givenImpExtPlaydigoBidder(ext -> ext.type("publisher").placementId("somePlacementId")));
+                .containsExactly(givenImpExtPlaydigoBidder(ext -> ext
+                        .type("publisher")
+                        .placementId("somePlacementId")));
     }
 
     @Test
