@@ -187,7 +187,7 @@ public class YieldmoBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
                 impBuilder.bidfloor(BigDecimal.ONE).bidfloorcur("EUR"));
 
-        final var convertedBidFloor = new BigDecimal("1.5");
+        final BigDecimal convertedBidFloor = new BigDecimal("1.5");
 
         when(currencyConversionService.convertCurrency(any(), any(), any(), any())).thenReturn(convertedBidFloor);
 
@@ -201,7 +201,6 @@ public class YieldmoBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
                 .containsOnly(tuple(convertedBidFloor, "USD"));
-
     }
 
     @Test
@@ -225,7 +224,6 @@ public class YieldmoBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp).doesNotContainNull()
                 .extracting(Imp::getBidfloor, Imp::getBidfloorcur)
                 .containsOnly(tuple(BigDecimal.ONE, "EUR"));
-
     }
 
     @Test

@@ -108,7 +108,7 @@ public class YieldmoBidder implements Bidder<BidRequest> {
 
             return Price.of(USD_CURRENCY, convertedPrice);
         } catch (PreBidException e) {
-            //If currency conversion fails, we still want to recieve the bid request.
+            // If currency conversion fails, we still want to receive the bid request.
             return bidFloorPrice;
         }
     }
