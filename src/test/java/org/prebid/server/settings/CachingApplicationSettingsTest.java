@@ -148,7 +148,7 @@ public class CachingApplicationSettingsTest {
 
         // when
         final Future<Account> future = target.getAccountById("accountId", timeout);
-        target.invalidateAllAccountCache();
+        target.invalidateAccountCache("accountId");
         target.getAccountById("accountId", timeout);
 
         // then
@@ -223,7 +223,7 @@ public class CachingApplicationSettingsTest {
 
         // when
         target.getAccountById("accountId", timeout);
-        target.invalidateAllAccountCache();
+        target.invalidateAccountCache("accountId");
         final Future<Account> lastFuture = target
                 .getAccountById("accountId", timeout);
 
