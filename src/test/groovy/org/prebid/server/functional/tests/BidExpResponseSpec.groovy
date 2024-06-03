@@ -155,7 +155,7 @@ class BidExpResponseSpec extends BaseSpec {
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response shouldn't contain exp data"
-        assert !response.seatbid.bid.first.exp
+        assert !response.seatbid.first.bid.first.exp
 
         where:
         bidRequest                     | auctionConfig
