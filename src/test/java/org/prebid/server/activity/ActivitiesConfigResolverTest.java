@@ -55,41 +55,25 @@ public class ActivitiesConfigResolverTest extends VertxTest {
     public void resolveShouldRemoveInvalidRulesFromAccountActivitiesConfiguration() {
         // given
         final Account givenAccount = Account.builder()
-                .privacy(AccountPrivacyConfig.builder().activities(
-                                Map.of(
-                                        Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
-                                        Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
-                                                AccountActivityConditionsRuleConfig.of(null, null),
-                                                AccountActivityConditionsRuleConfig.of(
-                                                        AccountActivityConditionsRuleConfig.Condition.of(null, null, null, null, null),
-                                                        null),
-                                                AccountActivityConditionsRuleConfig.of(
-                                                        AccountActivityConditionsRuleConfig.Condition.of(
-                                                                emptyList(), emptyList(), null, null, null),
-                                                        null),
-                                                AccountActivityConditionsRuleConfig.of(
-                                                        AccountActivityConditionsRuleConfig.Condition.of(
-                                                                singletonList(ComponentType.BIDDER),
-                                                                singletonList("bidder"),
-                                                                null,
-                                                                null,
-                                                                null),
-                                                        null)))))
-                        .build())
-                .build();
-
-        // when
-        final Account actualAccount = target.resolve(givenAccount);
-
-        // then
-        assertThat(actualAccount).isEqualTo(Account.builder()
-                .privacy(AccountPrivacyConfig.builder().activities(
-                        Map.of(
+                .privacy(AccountPrivacyConfig.builder().activities(Map.of(
                                 Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
                                 Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
                                         AccountActivityConditionsRuleConfig.of(null, null),
                                         AccountActivityConditionsRuleConfig.of(
-                                                AccountActivityConditionsRuleConfig.Condition.of(null, null, null, null, null),
+                                                AccountActivityConditionsRuleConfig.Condition.of(
+                                                        null,
+                                                        null,
+                                                        null,
+                                                        null,
+                                                        null),
+                                                null),
+                                        AccountActivityConditionsRuleConfig.of(
+                                                AccountActivityConditionsRuleConfig.Condition.of(
+                                                        emptyList(),
+                                                        emptyList(),
+                                                        null,
+                                                        null,
+                                                        null),
                                                 null),
                                         AccountActivityConditionsRuleConfig.of(
                                                 AccountActivityConditionsRuleConfig.Condition.of(
@@ -98,7 +82,30 @@ public class ActivitiesConfigResolverTest extends VertxTest {
                                                         null,
                                                         null,
                                                         null),
-                                                null))))).build())
+                                                null)))))
+                        .build())
+                .build();
+
+        // when
+        final Account actualAccount = target.resolve(givenAccount);
+
+        // then
+        assertThat(actualAccount).isEqualTo(Account.builder()
+                .privacy(AccountPrivacyConfig.builder().activities(Map.of(
+                        Activity.SYNC_USER, AccountActivityConfiguration.of(null, null),
+                        Activity.MODIFY_UFDP, AccountActivityConfiguration.of(null, asList(
+                                AccountActivityConditionsRuleConfig.of(null, null),
+                                AccountActivityConditionsRuleConfig.of(
+                                        AccountActivityConditionsRuleConfig.Condition.of(null, null, null, null, null),
+                                        null),
+                                AccountActivityConditionsRuleConfig.of(
+                                        AccountActivityConditionsRuleConfig.Condition.of(
+                                                singletonList(ComponentType.BIDDER),
+                                                singletonList("bidder"),
+                                                null,
+                                                null,
+                                                null),
+                                        null))))).build())
                 .build());
     }
 }

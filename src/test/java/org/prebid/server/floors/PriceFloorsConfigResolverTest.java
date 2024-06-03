@@ -207,7 +207,8 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void resolveShouldReturnGivenAccountIfMaxFileSizeMoreThanMaximumValue() {
         // given
-        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxFileSizeKb(Integer.MAX_VALUE + 1L));
+        final Account givenAccount = accountWithFloorsFetchConfig(config ->
+                config.maxFileSizeKb(Integer.MAX_VALUE + 1L));
 
         // when
         final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
@@ -225,12 +226,12 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
                         .priceFloors(AccountPriceFloorsConfig.builder()
                                 .enforceFloorsRate(10)
                                 .fetch(configCustomizer.apply(
-                                        AccountPriceFloorsFetchConfig.builder()
-                                                .maxAgeSec(1000L)
-                                                .periodSec(600L)
-                                                .timeoutMs(100L)
-                                                .maxRules(100L)
-                                                .maxFileSizeKb(100L))
+                                                AccountPriceFloorsFetchConfig.builder()
+                                                        .maxAgeSec(1000L)
+                                                        .periodSec(600L)
+                                                        .timeoutMs(100L)
+                                                        .maxRules(100L)
+                                                        .maxFileSizeKb(100L))
                                         .build())
                                 .build())
                         .build())

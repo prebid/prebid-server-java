@@ -49,7 +49,13 @@ public class ConditionsRuleTest extends VertxTest {
     @Test
     public void matchesShouldReturnFalseIfComponentTypesDoesNotContainsArgument() {
         // given
-        final ConditionsRule rule = new ConditionsRule(singleton(ComponentType.ANALYTICS), null, true, null, null, true);
+        final ConditionsRule rule = new ConditionsRule(
+                singleton(ComponentType.ANALYTICS),
+                null,
+                true,
+                null,
+                null,
+                true);
 
         // when
         final boolean matches = rule.matches(ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, null));
