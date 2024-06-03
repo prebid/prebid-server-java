@@ -106,17 +106,17 @@ class EidsSpec extends BaseSpec {
         }
 
         when: "PBS processes auction request"
-        pbsService.sendAuctionRequest(bidRequest)
+        def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain two bidder request"
-        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        def bidderRequests = getRequest(response)
         assert bidderRequests.size() == 2
 
         and: "Generic bidder should contain one eid"
-        assert bidderRequests.user.eids.sort().first == [genericEid]
+        assert bidderRequests[GENERIC.value].user.eids.sort().first == [genericEid]
 
         and: "Openx bidder should contain two eids"
-        assert bidderRequests.user.eids.sort().last.sort() == eids.sort()
+        assert bidderRequests[OPENX.value].user.eids.sort().last.sort() == eids.sort()
     }
 
     def "PBs eid permissions for non existing source should not stop auction"() {
