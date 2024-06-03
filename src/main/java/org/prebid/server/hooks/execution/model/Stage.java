@@ -1,38 +1,29 @@
 package org.prebid.server.hooks.execution.model;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonValue;
-
-import java.util.Arrays;
+import com.fasterxml.jackson.annotation.JsonAlias;
 
 public enum Stage {
 
     entrypoint,
-    raw_auction_request("raw-auction-request"),
-    processed_auction_request("processed-auction-request"),
-    bidder_request("bidder-request"),
-    raw_bidder_response("raw-bidder-response"),
-    processed_bidder_response("processed-bidder-response"),
-    all_processed_bid_responses("all-processed-bid-responses"),
-    auction_response("auction-response");
 
-    @JsonValue
-    private final String value;
+    @JsonAlias("raw-auction-request")
+    raw_auction_request,
 
-    Stage() {
-        this.value = name();
-    }
+    @JsonAlias("processed-auction-request")
+    processed_auction_request,
 
-    Stage(String value) {
-        this.value = value;
-    }
+    @JsonAlias("bidder-request")
+    bidder_request,
 
-    @SuppressWarnings("unused")
-    @JsonCreator
-    public static Stage fromString(String value) {
-        return Arrays.stream(values())
-                .filter(stage -> stage.value.equals(value))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown stage"));
-    }
+    @JsonAlias("raw-bidder-response")
+    raw_bidder_response,
+
+    @JsonAlias("processed-bidder-response")
+    processed_bidder_response,
+
+    @JsonAlias("all-processed-bid-responses")
+    all_processed_bid_responses,
+
+    @JsonAlias("auction-response")
+    auction_response
 }
