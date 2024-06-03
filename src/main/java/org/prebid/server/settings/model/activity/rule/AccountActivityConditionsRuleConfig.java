@@ -7,7 +7,7 @@ import org.prebid.server.activity.ComponentType;
 import java.util.List;
 
 @Value(staticConstructor = "of")
-public class AccountActivityComponentRuleConfig implements AccountActivityRuleConfig {
+public class AccountActivityConditionsRuleConfig implements AccountActivityRuleConfig {
 
     Condition condition;
 
@@ -21,5 +21,13 @@ public class AccountActivityComponentRuleConfig implements AccountActivityRuleCo
 
         @JsonProperty("componentName")
         List<String> componentNames;
+
+        @JsonProperty("gppSid")
+        List<Integer> sids;
+
+        @JsonProperty("geo")
+        List<String> geoCodes;
+
+        String gpc;
     }
 }

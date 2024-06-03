@@ -20,12 +20,12 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class GeoRuleTest extends VertxTest {
+public class ConditionsRuleTest extends VertxTest {
 
     @Test
     public void allowedShouldReturnExpectedResult() {
         // given
-        final GeoRule rule = new GeoRule(null, null, true, null, null, true);
+        final ConditionsRule rule = new ConditionsRule(null, null, true, null, null, true);
 
         // when
         final boolean allowed = rule.allowed();
@@ -37,7 +37,7 @@ public class GeoRuleTest extends VertxTest {
     @Test
     public void matchesShouldReturnTrueIfComponentTypesIsNull() {
         // given
-        final GeoRule rule = new GeoRule(null, null, true, null, null, true);
+        final ConditionsRule rule = new ConditionsRule(null, null, true, null, null, true);
 
         // when
         final boolean matches = rule.matches(ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, null));
@@ -49,7 +49,7 @@ public class GeoRuleTest extends VertxTest {
     @Test
     public void matchesShouldReturnFalseIfComponentTypesDoesNotContainsArgument() {
         // given
-        final GeoRule rule = new GeoRule(singleton(ComponentType.ANALYTICS), null, true, null, null, true);
+        final ConditionsRule rule = new ConditionsRule(singleton(ComponentType.ANALYTICS), null, true, null, null, true);
 
         // when
         final boolean matches = rule.matches(ActivityInvocationPayloadImpl.of(ComponentType.BIDDER, null));
@@ -61,7 +61,7 @@ public class GeoRuleTest extends VertxTest {
     @Test
     public void matchesShouldReturnTrueIfComponentNamesIsNull() {
         // given
-        final GeoRule rule = new GeoRule(null, null, true, null, null, true);
+        final ConditionsRule rule = new ConditionsRule(null, null, true, null, null, true);
         final ActivityInvocationPayload payload = ActivityInvocationPayloadImpl.of(
                 ComponentType.ANALYTICS, "componentName");
 
@@ -75,7 +75,7 @@ public class GeoRuleTest extends VertxTest {
     @Test
     public void matchesShouldReturnFalseIfComponentNamesDoesNotContainsArgument() {
         // given
-        final GeoRule rule = new GeoRule(null, singleton("other"), true, null, null, true);
+        final ConditionsRule rule = new ConditionsRule(null, singleton("other"), true, null, null, true);
         final ActivityInvocationPayload payload = ActivityInvocationPayloadImpl.of(
                 ComponentType.ANALYTICS, "componentName");
 
@@ -89,7 +89,7 @@ public class GeoRuleTest extends VertxTest {
     @Test
     public void matchesShouldReturnFalseIfSidsDoesNotMatched() {
         // given
-        final GeoRule rule = new GeoRule(null, null, false, null, null, true);
+        final ConditionsRule rule = new ConditionsRule(null, null, false, null, null, true);
         final ActivityInvocationPayload payload = ActivityInvocationPayloadImpl.of(
                 ComponentType.ANALYTICS, "componentName");
 
@@ -103,11 +103,11 @@ public class GeoRuleTest extends VertxTest {
     @Test
     public void matchesShouldReturnTrueIfGeoCodeWithoutRegionMatched() {
         // given
-        final GeoRule rule = new GeoRule(
+        final ConditionsRule rule = new ConditionsRule(
                 null,
                 null,
                 true,
-                singletonList(GeoRule.GeoCode.of("Country", null)),
+                singletonList(ConditionsRule.GeoCode.of("Country", null)),
                 null,
                 true);
         final ActivityInvocationPayload payload = PrivacyEnforcementServiceActivityInvocationPayload.of(
@@ -126,11 +126,11 @@ public class GeoRuleTest extends VertxTest {
     @Test
     public void matchesShouldReturnFalseIfCountryDoesNotMatched() {
         // given
-        final GeoRule rule = new GeoRule(
+        final ConditionsRule rule = new ConditionsRule(
                 null,
                 null,
                 true,
-                singletonList(GeoRule.GeoCode.of("Country", null)),
+                singletonList(ConditionsRule.GeoCode.of("Country", null)),
                 null,
                 true);
         final ActivityInvocationPayload payload = PrivacyEnforcementServiceActivityInvocationPayload.of(
@@ -149,11 +149,11 @@ public class GeoRuleTest extends VertxTest {
     @Test
     public void matchesShouldReturnTrueIfGeoCodeMatched() {
         // given
-        final GeoRule rule = new GeoRule(
+        final ConditionsRule rule = new ConditionsRule(
                 null,
                 null,
                 true,
-                singletonList(GeoRule.GeoCode.of("Country", "Region")),
+                singletonList(ConditionsRule.GeoCode.of("Country", "Region")),
                 null,
                 true);
         final ActivityInvocationPayload payload = PrivacyEnforcementServiceActivityInvocationPayload.of(
@@ -172,11 +172,11 @@ public class GeoRuleTest extends VertxTest {
     @Test
     public void matchesShouldReturnFalseIfRegionDoesNotMatched() {
         // given
-        final GeoRule rule = new GeoRule(
+        final ConditionsRule rule = new ConditionsRule(
                 null,
                 null,
                 true,
-                singletonList(GeoRule.GeoCode.of("Country", "Region")),
+                singletonList(ConditionsRule.GeoCode.of("Country", "Region")),
                 null,
                 true);
         final ActivityInvocationPayload payload = PrivacyEnforcementServiceActivityInvocationPayload.of(
@@ -195,7 +195,7 @@ public class GeoRuleTest extends VertxTest {
     @Test
     public void matchesShouldReturnTrueIfGpcMatched() {
         // given
-        final GeoRule rule = new GeoRule(null, null, true, null, "2", true);
+        final ConditionsRule rule = new ConditionsRule(null, null, true, null, "2", true);
         final ActivityInvocationPayload payload = BidRequestActivityInvocationPayload.of(
                 null,
                 BidRequest.builder()
@@ -212,7 +212,7 @@ public class GeoRuleTest extends VertxTest {
     @Test
     public void matchesShouldReturnFalseIfGpcNotMatched() {
         // given
-        final GeoRule rule = new GeoRule(null, null, true, null, "2", true);
+        final ConditionsRule rule = new ConditionsRule(null, null, true, null, "2", true);
         final ActivityInvocationPayload payload = BidRequestActivityInvocationPayload.of(
                 null,
                 BidRequest.builder()
@@ -229,11 +229,11 @@ public class GeoRuleTest extends VertxTest {
     @Test
     public void matchesShouldReturnExpectedResult() {
         // given
-        final GeoRule rule = new GeoRule(
+        final ConditionsRule rule = new ConditionsRule(
                 singleton(ComponentType.BIDDER),
                 singleton("bidder"),
                 true,
-                singletonList(GeoRule.GeoCode.of("Country", "Region")),
+                singletonList(ConditionsRule.GeoCode.of("Country", "Region")),
                 "2",
                 true);
         final ActivityInvocationPayload payload = BidRequestActivityInvocationPayload.of(
@@ -253,11 +253,11 @@ public class GeoRuleTest extends VertxTest {
     @Test
     public void asLogEntryShouldReturnExpectedObjectNode() {
         // given
-        final GeoRule rule = new GeoRule(
+        final ConditionsRule rule = new ConditionsRule(
                 singleton(ComponentType.BIDDER),
                 singleton("bidder"),
                 false,
-                singletonList(GeoRule.GeoCode.of("Country", "Region")),
+                singletonList(ConditionsRule.GeoCode.of("Country", "Region")),
                 "2",
                 true);
 
