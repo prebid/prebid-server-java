@@ -1,5 +1,6 @@
 package org.prebid.server.analytics.reporter.greenbids;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -17,6 +18,8 @@ import io.vertx.core.MultiMap;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -68,6 +71,9 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Mock
     private PrebidVersionProvider prebidVersionProvider;
 
+    @Captor
+    private ArgumentCaptor<String> jsonCaptor;
+
     private GreenbidsAnalyticsReporter target;
 
     private AuctionEvent event;
@@ -96,7 +102,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     @Test
-    public void shouldReceiveValidResponseOnAuctionContextForBanner() {
+    public void shouldReceiveValidResponseOnAuctionContextForBanner() throws JsonProcessingException {
         // given
         final Banner banner = setUpBanner();
 
@@ -117,23 +123,33 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
         when(mockResponse.getStatusCode()).thenReturn(202);
-        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
+
+        final ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
+        when(httpClient.post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
 
         // when
         final Future<Void> result = target.processEvent(event);
 
+        final String capturedJson = jsonCaptor.getValue();
+        final ObjectNode capturedJsonNode = (ObjectNode) mapper.readTree(capturedJson);
+        capturedJsonNode.put("greenbidsId", "testGreenbidsId");
+        capturedJsonNode.put("billingId", "testBillingId");
+        final ObjectNode expectedJsonNode = (ObjectNode) mapper.readTree(expectedJsonForBannerTest());
+
         // then
         assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(anyString(), any(MultiMap.class), anyString(), anyLong());
         verify(mockResponse).getStatusCode();
+        assertThat(capturedJsonNode).isEqualTo(expectedJsonNode);
     }
 
     @Test
-    public void shouldReceiveValidResponseOnAuctionContextForVideo() {
+    public void shouldReceiveValidResponseOnAuctionContextForVideo() throws JsonProcessingException {
         // given
         final Video video = setUpVideo();
         final Imp imp = Imp.builder()
+                .id("adunitcodevalue")
                 .video(video)
                 .build();
         final AuctionContext auctionContext = setupAuctionContext(imp);
@@ -144,16 +160,62 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
         when(mockResponse.getStatusCode()).thenReturn(202);
-        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
+
+        final ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
+        when(httpClient.post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
 
         // when
         final Future<Void> result = target.processEvent(event);
 
+        final String capturedJson = jsonCaptor.getValue();
+        final ObjectNode capturedJsonNode = (ObjectNode) mapper.readTree(capturedJson);
+        capturedJsonNode.put("greenbidsId", "testGreenbidsId");
+        capturedJsonNode.put("billingId", "testBillingId");
+        final ObjectNode expectedJsonNode = (ObjectNode) mapper.readTree(expectedJsonForVideoTest());
+
         // then
         assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(anyString(), any(MultiMap.class), anyString(), anyLong());
         verify(mockResponse).getStatusCode();
+        assertThat(capturedJsonNode).isEqualTo(expectedJsonNode);
+    }
+
+    @Test
+    public void shouldReceiveValidResponseWhenBannerFormatIsNull() throws JsonProcessingException {
+        // given
+        final Banner bannerWithoutFormat = setUpBannerWithoutFormat();
+        final Imp imp = Imp.builder()
+                .id("adunitcodevalue")
+                .banner(bannerWithoutFormat)
+                .build();
+        final AuctionContext auctionContext = setupAuctionContext(imp);
+        event = AuctionEvent.builder()
+                .auctionContext(auctionContext)
+                .bidResponse(auctionContext.getBidResponse())
+                .build();
+
+        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+        when(mockResponse.getStatusCode()).thenReturn(202);
+
+        final ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
+        when(httpClient.post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong()))
+                .thenReturn(Future.succeededFuture(mockResponse));
+
+        // when
+        final Future<Void> result = target.processEvent(event);
+
+        final String capturedJson = jsonCaptor.getValue();
+        final ObjectNode capturedJsonNode = (ObjectNode) mapper.readTree(capturedJson);
+        capturedJsonNode.put("greenbidsId", "testGreenbidsId");
+        capturedJsonNode.put("billingId", "testBillingId");
+        final ObjectNode expectedJsonNode = (ObjectNode) mapper.readTree(expectedJsonForBannerWithFormatNullTest());
+
+        // then
+        assertThat(result.succeeded()).isTrue();
+        verify(httpClient).post(anyString(), any(MultiMap.class), anyString(), anyLong());
+        verify(mockResponse).getStatusCode();
+        assertThat(capturedJsonNode).isEqualTo(expectedJsonNode);
     }
 
     @Test
@@ -270,33 +332,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         assertThat(result.failed()).isTrue();
         assertThat(result.cause())
                 .hasMessageStartingWith("AdUnits list should not be empty");
-    }
-
-    @Test
-    public void shouldReceiveValidResponseWhenBannerFormatIsNull() {
-        // given
-        final Banner bannerWithoutFormat = setUpBannerWithoutFormat();
-        final Imp imp = Imp.builder()
-                .banner(bannerWithoutFormat)
-                .build();
-        final AuctionContext auctionContext = setupAuctionContext(imp);
-        event = AuctionEvent.builder()
-                .auctionContext(auctionContext)
-                .bidResponse(auctionContext.getBidResponse())
-                .build();
-
-        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
-        when(mockResponse.getStatusCode()).thenReturn(202);
-        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
-                .thenReturn(Future.succeededFuture(mockResponse));
-
-        // when
-        final Future<Void> result = target.processEvent(event);
-
-        // then
-        assertThat(result.succeeded()).isTrue();
-        verify(httpClient).post(anyString(), any(MultiMap.class), anyString(), anyLong());
-        verify(mockResponse).getStatusCode();
     }
 
     @Test
@@ -464,5 +499,86 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                         .builder()
                         .analytics(analyticsNode)
                         .build());
+    }
+
+    private String expectedJsonForBannerTest() {
+        return "{"
+                + "\"version\":\"2.2.0\","
+                + "\"auctionId\":\"request1\","
+                + "\"sampling\":1.0,"
+                + "\"greenbidsId\":\"testGreenbidsId\","
+                + "\"pbuid\":\"leparisien\","
+                + "\"billingId\":\"testBillingId\","
+                + "\"adUnits\":[{"
+                + "\"code\":\"adunitcodevalue\","
+                + "\"unifiedCode\":{"
+                + "\"value\":\"gpidvalue\","
+                + "\"src\":\"gpidSource\""
+                + "},"
+                + "\"mediaTypes\":{"
+                + "\"banner\":{"
+                + "\"sizes\":[["
+                + "320,50"
+                + "]]"
+                + "}"
+                + "},"
+                + "\"bids\":[]"
+                + "}],"
+                + "\"auctionElapsed\":0"
+                + "}";
+    }
+
+    private String expectedJsonForVideoTest() {
+        return "{"
+                + "\"version\":\"2.2.0\","
+                + "\"auctionId\":\"request1\","
+                + "\"sampling\":1.0,"
+                + "\"greenbidsId\":\"testGreenbidsId\","
+                + "\"pbuid\":\"leparisien\","
+                + "\"billingId\":\"testBillingId\","
+                + "\"adUnits\":[{"
+                + "\"code\":\"adunitcodevalue\","
+                + "\"unifiedCode\":{"
+                + "\"value\":\"adunitcodevalue\","
+                + "\"src\":\"adUnitCodeSource\""
+                + "},"
+                + "\"mediaTypes\":{"
+                + "\"video\":{"
+                + "\"plcmt\":1,"
+                + "\"pos\":1"
+                + "}"
+                + "},"
+                + "\"bids\":[]"
+                + "}],"
+                + "\"auctionElapsed\":0"
+                + "}";
+    }
+
+    private String expectedJsonForBannerWithFormatNullTest() {
+        return "{"
+                + "\"version\":\"2.2.0\","
+                + "\"auctionId\":\"request1\","
+                + "\"sampling\":1.0,"
+                + "\"greenbidsId\":\"testGreenbidsId\","
+                + "\"pbuid\":\"leparisien\","
+                + "\"billingId\":\"testBillingId\","
+                + "\"adUnits\":[{"
+                + "\"code\":\"adunitcodevalue\","
+                + "\"unifiedCode\":{"
+                + "\"value\":\"adunitcodevalue\","
+                + "\"src\":\"adUnitCodeSource\""
+                + "},"
+                + "\"mediaTypes\":{"
+                + "\"banner\":{"
+                + "\"sizes\":[["
+                + "728,90"
+                + "]],"
+                + "\"pos\":1"
+                + "}"
+                + "},"
+                + "\"bids\":[]"
+                + "}],"
+                + "\"auctionElapsed\":0"
+                + "}";
     }
 }

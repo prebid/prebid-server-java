@@ -136,17 +136,6 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 commonMessageJson,
                 greenbidsAnalyticsProperties.getTimeoutMs());
 
-        responseFuture
-                .onSuccess(response ->
-                        System.out.println(
-                                "Analytics Server response body: " +
-                                        response.getStatusCode() + "\n" +
-                                        response.getHeaders() + "\n" +
-                                        response.getBody() + "\n" +
-                                        commonMessageJson
-                        ))
-                .onFailure(error -> System.out.println("Can't send payload to Analytics Server: " + error));
-
         return processAnalyticServerResponse(responseFuture);
     }
 
