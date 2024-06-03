@@ -52,7 +52,10 @@ public class LoyalBidderTest extends VertxTest {
     public void makeHttpRequestsShouldMakeOneRequestPerImp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
-                .imp(asList(givenImp(UnaryOperator.identity()), givenImp2(UnaryOperator.identity())))
+                .imp(asList(
+                        givenImp(UnaryOperator.identity()),
+                        givenImp(imp -> imp.id("321").ext(mapper.valueToTree(ExtPrebid
+                                .of(null, ExtImpLoyal.of("placementId2", "endpointId2")))))))
                 .build();
 
         //when
@@ -83,7 +86,6 @@ public class LoyalBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         //then
-        assertThat(result.getErrors().get(0).getMessage()).isEqualTo("Invalid imp: invalidImp");
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .flatExtracting(BidRequest::getImp)
@@ -249,7 +251,7 @@ public class LoyalBidderTest extends VertxTest {
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(banner).build());
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123")));
+                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -267,7 +269,7 @@ public class LoyalBidderTest extends VertxTest {
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(video).build());
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123")));
+                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -285,7 +287,7 @@ public class LoyalBidderTest extends VertxTest {
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(xNative).build());
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123")));
+                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -303,7 +305,7 @@ public class LoyalBidderTest extends VertxTest {
         final ObjectNode bidExt = mapper.createObjectNode()
                 .set("prebid", mapper.createArrayNode());
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).id("123")));
+                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).id("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -321,7 +323,7 @@ public class LoyalBidderTest extends VertxTest {
         final ObjectNode bidExt = mapper.createObjectNode()
                 .putPOJO("prebid", ExtBidPrebid.builder().type(audio).build());
         final BidderCall<BidRequest> httpCall = givenHttpCall(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).id("123")));
+                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).id("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -354,19 +356,10 @@ public class LoyalBidderTest extends VertxTest {
                 .build();
     }
 
-    private static Imp givenImp2(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
-        return impCustomizer.apply(Imp.builder()
-                        .id("321")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpLoyal.of("placementId", "endpointId")))))
-                .build();
-    }
-
     private static Imp givenBadImp(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                         .id("invalidImp")
-                        .ext(mapper.valueToTree(ExtPrebid.of(null,
-                                ExtImpLoyal.of(null, null)))))
+                        .ext(mapper.createObjectNode().set("bidder", mapper.createArrayNode())))
                 .build();
     }
 

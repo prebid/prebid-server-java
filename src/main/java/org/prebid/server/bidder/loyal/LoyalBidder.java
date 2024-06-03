@@ -59,12 +59,8 @@ public class LoyalBidder implements Bidder<BidRequest> {
         for (Imp imp : request.getImp()) {
             try {
                 final ExtImpLoyal extImpLoyal = parseExtImp(imp);
-                if (isValidImp(extImpLoyal)) {
-                    final Imp modifiedImp = modifyImp(imp, extImpLoyal);
-                    httpRequests.add(makeHttpRequest(request, modifiedImp));
-                } else {
-                    errors.add(BidderError.badInput("Invalid imp: " + imp.getId()));
-                }
+                final Imp modifiedImp = modifyImp(imp, extImpLoyal);
+                httpRequests.add(makeHttpRequest(request, modifiedImp));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -83,11 +79,6 @@ public class LoyalBidder implements Bidder<BidRequest> {
         } catch (IllegalArgumentException e) {
             throw new PreBidException("Cannot deserialize ExtImpLoyal: " + e.getMessage());
         }
-    }
-
-    private boolean isValidImp(ExtImpLoyal extImpLoyal) {
-        return StringUtils.isNotEmpty(extImpLoyal.getPlacementId())
-                || StringUtils.isNotEmpty(extImpLoyal.getEndpointId());
     }
 
     private Imp modifyImp(Imp imp, ExtImpLoyal extImpLoyal) {
