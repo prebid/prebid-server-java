@@ -8,7 +8,6 @@ import lombok.Value;
 @Value
 public class LoyalImpExt {
 
-    @JsonProperty("type")
     String type;
 
     @JsonProperty("placementId")
