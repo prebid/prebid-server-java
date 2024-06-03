@@ -8,7 +8,5 @@ import groovy.transform.ToString
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 class AnalyticsPrebid {
 
-    String stage
-    String module
     List<AnalyticsPrebidTag> tags
 }

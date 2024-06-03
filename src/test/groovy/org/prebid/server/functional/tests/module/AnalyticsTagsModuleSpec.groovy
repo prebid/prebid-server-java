@@ -66,7 +66,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
     }
 
     def "PBS should include analytics tag for richmedia module in response when request and account allow client details"() {
-        given:
+        given: "PBS server with enabled media filter"
         def PATTERN_NAME = PBSUtils.randomString
         def pbsServiceWithEnabledMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME))
 
@@ -150,7 +150,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
             it.appliedTo.impIds == bidRequest.imp.id
         }
 
-        cleanup: "Stop container with default request"
+        cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
     }
 
@@ -196,7 +196,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
             it.appliedTo.impIds == bidRequest.imp.id
         }
 
-        cleanup: "Stop container with default request"
+        cleanup: "Stop and remove pbs container"
         pbsServiceFactory.removeContainer(pbsConfig)
     }
 
@@ -217,7 +217,7 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         def bidResponse = defaultPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bid response should not contain any analytics tag"
-        assert !bidResponse.ext.prebid.analytics.tags
+        assert !bidResponse?.ext?.prebid?.analytics?.tags
 
         and: "Bid response shouldn't contain warning"
         assert !bidResponse.ext.warnings
@@ -239,8 +239,8 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         when: "PBS processes auction request"
         def bidResponse = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
 
-        then: "Bid response should not contain any  analytics tag"
-        assert !bidResponse.ext.prebid.analytics
+        then: "Bid response should not contain any analytics tag"
+        assert !bidResponse?.ext?.prebid?.analytics?.tags
 
         and: "Bid response shouldn't contain warning"
         assert !bidResponse.ext.warnings
@@ -263,12 +263,33 @@ class AnalyticsTagsModuleSpec extends ModuleBaseSpec {
         def bidResponse = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
 
         then: "Bid response should not contain any analytics tag"
-        assert !bidResponse.ext.prebid.analytics
+        assert !bidResponse?.ext?.prebid?.analytics?.tags
 
         and: "Bid response should contain warning"
         assert bidResponse.ext.warnings[PREBID]?.code == [999]
         assert bidResponse.ext.warnings[PREBID]?.message == ["analytics.options.enableclientdetails not enabled for account"]
     }
 
+    def "PBS should not include analytics tag in response without warning when client details is disabled in account and request"() {
+        given: "Default account with module config"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.analytics = new PrebidAnalytics(options: new AnalyticsOptions(enableClientDetails: false))
+        }
 
+        and: "Account in the DB"
+        def executionPlan = ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, ORTB2_BLOCKING, [RAW_BIDDER_RESPONSE])
+        def hooksConfiguration = new AccountHooksConfiguration(executionPlan: executionPlan)
+        def accountConfig = new AccountConfig(hooks: hooksConfiguration, analytics: new AccountAnalyticsConfig(allowClientDetails: false))
+        def account = new Account(uuid: bidRequest.accountId, config: accountConfig)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = pbsServiceWithEnabledOrtb2Blocking.sendAuctionRequest(bidRequest)
+
+        then: "Bid response should not contain any analytics tag"
+        assert !bidResponse?.ext?.prebid?.analytics?.tags
+
+        and: "Bid response shouldn't contain warning"
+        assert !bidResponse.ext.warnings
+    }
 }

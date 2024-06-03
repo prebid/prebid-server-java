@@ -6,7 +6,6 @@ import groovy.transform.ToString
 
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
 @ToString(includeNames = true, ignoreNulls = true)
-
 class AnalyticsOptions {
 
     Boolean enableClientDetails
