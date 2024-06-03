@@ -1124,7 +1124,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         assertThat(capturedBidderRequests).hasSize(2)
                 .extracting(BidderRequest::getBidRequest)
-                .extracting(capturedBidRequest -> capturedBidRequest.getImp().get(0).getExt().get("bidder").asInt())
+                .extracting(capturedBidRequest -> capturedBidRequest.getImp().getFirst().getExt().get("bidder").asInt())
                 .containsOnly(2, 1);
     }
 
@@ -3135,7 +3135,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidderError expectedError =
                 BidderError.generic("Unable to convert bid currency CUR to desired ad server currency USD");
-        final BidderSeatBid firstSeatBid = auctionParticipations.get(0).getBidderResponse().getSeatBid();
+        final BidderSeatBid firstSeatBid = auctionParticipations.getFirst().getBidderResponse().getSeatBid();
         assertThat(firstSeatBid.getBids()).isEmpty();
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
@@ -3171,7 +3171,7 @@ public class ExchangeServiceTest extends VertxTest {
         assertThat(auctionParticipations).hasSize(1);
 
         final BigDecimal updatedPrice = BigDecimal.valueOf(100);
-        final BidderSeatBid firstSeatBid = auctionParticipations.get(0).getBidderResponse().getSeatBid();
+        final BidderSeatBid firstSeatBid = auctionParticipations.getFirst().getBidderResponse().getSeatBid();
         assertThat(firstSeatBid.getBids())
                 .extracting(BidderBid::getBid)
                 .flatExtracting(Bid::getPrice)
@@ -3217,7 +3217,7 @@ public class ExchangeServiceTest extends VertxTest {
         final BidderError expectedError =
                 BidderError.generic("Unable to convert bid currency CUR2 to desired ad server currency USD");
 
-        final BidderSeatBid firstSeatBid = auctionParticipations.get(0).getBidderResponse().getSeatBid();
+        final BidderSeatBid firstSeatBid = auctionParticipations.getFirst().getBidderResponse().getSeatBid();
         assertThat(firstSeatBid.getBids()).containsOnly(expectedBidderBid);
         assertThat(firstSeatBid.getErrors()).containsOnly(expectedError);
     }
@@ -3302,7 +3302,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidderError expectedError = BidderError.badInput("Cur parameter contains more than one currency."
                 + " CUR1 will be used");
-        final BidderSeatBid firstSeatBid = auctionParticipations.get(0).getBidderResponse().getSeatBid();
+        final BidderSeatBid firstSeatBid = auctionParticipations.getFirst().getBidderResponse().getSeatBid();
         assertThat(firstSeatBid.getBids())
                 .extracting(BidderBid::getBid)
                 .flatExtracting(Bid::getPrice)
@@ -4533,7 +4533,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .willReturn(MediaTypeProcessingResult.rejected(Collections.singletonList(
                         BidderError.badInput("MediaTypeProcessor error."))));
         given(bidResponseCreator.create(
-                argThat(argument -> argument.getAuctionParticipations().get(0)
+                argThat(argument -> argument.getAuctionParticipations().getFirst()
                         .getBidderResponse()
                         .equals(BidderResponse.of(
                                 "bidder1",

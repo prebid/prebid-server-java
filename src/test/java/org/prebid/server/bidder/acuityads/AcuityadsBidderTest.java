@@ -53,7 +53,7 @@ public class AcuityadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("ext.bidder not provided");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("ext.bidder not provided");
     }
 
     @Test
@@ -66,7 +66,7 @@ public class AcuityadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("ext.bidder not provided");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("ext.bidder not provided");
     }
 
     @Test
@@ -80,7 +80,7 @@ public class AcuityadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Missed host param");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Missed host param");
     }
 
     @Test
@@ -94,7 +94,7 @@ public class AcuityadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Missed accountId param");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Missed accountId param");
     }
 
     @Test
@@ -139,8 +139,8 @@ public class AcuityadsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 

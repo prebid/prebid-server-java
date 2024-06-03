@@ -86,7 +86,7 @@ public class YandexBidder implements Bidder<BidRequest> {
 
     private static String getCurrency(BidRequest request) {
         final List<String> currencies = request.getCur();
-        final String currency = CollectionUtils.isNotEmpty(currencies) ? currencies.get(0) : null;
+        final String currency = CollectionUtils.isNotEmpty(currencies) ? currencies.getFirst() : null;
 
         return StringUtils.defaultString(currency);
     }
@@ -126,7 +126,7 @@ public class YandexBidder implements Bidder<BidRequest> {
         final List<Format> format = banner.getFormat();
         if (weight == null || height == null || weight == 0 || height == 0) {
             if (CollectionUtils.isNotEmpty(format)) {
-                final Format firstFormat = format.get(0);
+                final Format firstFormat = format.getFirst();
                 return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
             }
             throw new PreBidException("Invalid sizes provided for Banner %sx%s".formatted(weight, height));

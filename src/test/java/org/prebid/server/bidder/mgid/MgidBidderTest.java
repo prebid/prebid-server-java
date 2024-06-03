@@ -82,7 +82,7 @@ public class MgidBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).isEqualToIgnoringCase("accountId is not set");
+        assertThat(result.getErrors().getFirst().getMessage()).isEqualToIgnoringCase("accountId is not set");
         assertThat(result.getValue()).isEmpty();
     }
 

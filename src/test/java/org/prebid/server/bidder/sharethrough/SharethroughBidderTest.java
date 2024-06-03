@@ -277,14 +277,14 @@ public class SharethroughBidderTest extends VertxTest {
         assertThat(httpRequests)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(impressions -> impressions.get(0))
+                .extracting(impressions -> impressions.getFirst())
                 .allSatisfy(impression -> assertThat(impression.getId()).isEqualTo("123"));
 
         // The multiformat bid request is split into a bid request per media type
         assertThat(httpRequests)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(impressions -> impressions.get(0))
+                .extracting(impressions -> impressions.getFirst())
                 // Ignore audio impressions because it is currently not supported
                 .satisfiesExactlyInAnyOrder(
                         impression -> {
@@ -325,7 +325,7 @@ public class SharethroughBidderTest extends VertxTest {
         // then
         final List<BidderError> errors = result.getErrors();
         assertThat(errors).hasSize(1);
-        assertThat(errors.get(0).getMessage())
+        assertThat(errors.getFirst().getMessage())
                 .isEqualTo("Invalid MediaType. Sharethrough only supports Banner, Video and Native.");
     }
 

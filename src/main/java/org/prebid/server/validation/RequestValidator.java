@@ -1013,7 +1013,7 @@ public class RequestValidator {
             }
         }
 
-        if (extPrebidBidder.size() == 0) {
+        if (extPrebidBidder.isEmpty()) {
             warnings.add("WARNING: request.imp[%d].ext must contain at least one valid bidder".formatted(impIndex));
         }
     }

@@ -381,7 +381,7 @@ public class YandexBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getHeaders())
+        assertThat(result.getValue().getFirst().getHeaders())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("Accept-Language", "EN"),
                         tuple("User-Agent", "UA"),

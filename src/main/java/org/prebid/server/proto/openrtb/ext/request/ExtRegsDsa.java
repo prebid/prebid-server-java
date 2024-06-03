@@ -32,6 +32,6 @@ public class ExtRegsDsa {
     /**
      * Defines the contract for bidrequest.regs.ext.dsa.transparency[]
      */
-    List<ExtRegsDsaTransparency> transparency;
+    List<DsaTransparency> transparency;
 
 }

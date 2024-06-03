@@ -68,7 +68,7 @@ public class GridBidder implements Bidder<BidRequest> {
             return Result.withErrors(errors);
         }
 
-        final Keywords firstImpKeywords = getKeywordsFromImpExt(imps.get(0).getExt());
+        final Keywords firstImpKeywords = getKeywordsFromImpExt(imps.getFirst().getExt());
         final BidRequest modifiedRequest = modifyRequest(request, firstImpKeywords, modifiedImps);
 
         return Result.of(Collections.singletonList(

@@ -114,21 +114,21 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getValue().get(0))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getBanner)
                 .isNotNull();
 
         assertThat(result.getValue().get(1))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getVideo)
                 .isNotNull();
 
         assertThat(result.getValue().get(2))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getAudio)
                 .isNotNull();
     }
@@ -150,14 +150,14 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getValue().get(0))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getBanner)
                 .isNotNull();
 
         assertThat(result.getValue().get(1))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getVideo)
                 .isNotNull();
     }
@@ -179,14 +179,14 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getValue().get(0))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getBanner)
                 .isNotNull();
 
         assertThat(result.getValue().get(1))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getAudio)
                 .isNotNull();
     }
@@ -210,14 +210,14 @@ public class ResetDigitalBidderTest extends VertxTest {
         assertThat(result.getValue().get(0))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getVideo)
                 .isNotNull();
 
         assertThat(result.getValue().get(1))
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(a -> a.get(0))
+                .extracting(a -> a.getFirst())
                 .extracting(Imp::getAudio)
                 .isNotNull();
     }

@@ -143,7 +143,7 @@ public class BidmachineBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.get(0))
+                .extracting(imps -> imps.getFirst())
                 .flatExtracting(currImp -> currImp.getBanner().getBattr())
                 .containsExactly(1, 16);
     }
@@ -169,7 +169,7 @@ public class BidmachineBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.get(0))
+                .extracting(imps -> imps.getFirst())
                 .flatExtracting(currImp -> currImp.getVideo().getBattr())
                 .containsExactly(1, 16);
     }

@@ -501,7 +501,7 @@ public class BidResponseCreator {
 
             return Future.succeededFuture(BidResponse.builder()
                     .id(bidRequest.getId())
-                    .cur(bidRequest.getCur().get(0))
+                    .cur(bidRequest.getCur().getFirst())
                     .nbr(0) // signal "Unknown Error"
                     .seatbid(Collections.emptyList())
                     .ext(extBidResponse)
@@ -1130,7 +1130,7 @@ public class BidResponseCreator {
 
         return BidResponse.builder()
                 .id(bidRequest.getId())
-                .cur(bidRequest.getCur().get(0))
+                .cur(bidRequest.getCur().getFirst())
                 .seatbid(seatBids)
                 .ext(extBidResponse)
                 .build();
