@@ -62,7 +62,7 @@ public class MotorikBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
-                .extracting(imps -> imps.get(0))
+                .extracting(imps -> imps.getFirst())
                 .extracting(Imp::getExt)
                 .containsOnlyNulls();
 

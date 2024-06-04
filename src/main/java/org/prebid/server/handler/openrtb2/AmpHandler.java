@@ -369,7 +369,7 @@ public class AmpHandler implements ApplicationResource {
         String origin = null;
         final List<String> ampSourceOrigin = routingContext.queryParam("__amp_source_origin");
         if (CollectionUtils.isNotEmpty(ampSourceOrigin)) {
-            origin = ampSourceOrigin.get(0);
+            origin = ampSourceOrigin.getFirst();
         }
         if (origin == null) {
             // Just to be safe

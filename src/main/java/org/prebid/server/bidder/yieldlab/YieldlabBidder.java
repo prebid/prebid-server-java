@@ -36,7 +36,7 @@ import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsaTransparency;
+import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
@@ -271,7 +271,7 @@ public class YieldlabBidder implements Bidder<Void> {
             dsaRequestParams.put("dsadatatopub", dsa.getDataToPub().toString());
         }
 
-        final List<ExtRegsDsaTransparency> dsaTransparency = dsa.getTransparency();
+        final List<DsaTransparency> dsaTransparency = dsa.getTransparency();
         if (CollectionUtils.isNotEmpty(dsaTransparency)) {
             final String encodedTransparencies = encodeTransparenciesAsString(dsaTransparency);
             if (StringUtils.isNotBlank(encodedTransparencies)) {
@@ -282,20 +282,20 @@ public class YieldlabBidder implements Bidder<Void> {
         return dsaRequestParams;
     }
 
-    private static String encodeTransparenciesAsString(List<ExtRegsDsaTransparency> transparencies) {
+    private static String encodeTransparenciesAsString(List<DsaTransparency> transparencies) {
         return transparencies.stream()
             .filter(YieldlabBidder::isTransparencyValid)
             .map(YieldlabBidder::encodeTransparency)
             .collect(Collectors.joining(TRANSPARENCY_TEMPLATE_DELIMITER));
     }
 
-    private static boolean isTransparencyValid(ExtRegsDsaTransparency transparency) {
+    private static boolean isTransparencyValid(DsaTransparency transparency) {
         return StringUtils.isNotBlank(transparency.getDomain())
                 && transparency.getDsaParams() != null
                 && CollectionUtils.isNotEmpty(transparency.getDsaParams());
     }
 
-    private static String encodeTransparency(ExtRegsDsaTransparency transparency) {
+    private static String encodeTransparency(DsaTransparency transparency) {
         return TRANSPARENCY_TEMPLATE.formatted(transparency.getDomain(),
             encodeTransparencyParams(transparency.getDsaParams()));
     }

@@ -121,7 +121,7 @@ public class StoredResponseProcessor {
 
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid initialSeatBid = bidderResponse.getSeatBid();
-        final BidderSeatBid adjustedSeatBid = updateSeatBid(initialSeatBid, imps.get(0).getId());
+        final BidderSeatBid adjustedSeatBid = updateSeatBid(initialSeatBid, imps.getFirst().getId());
 
         return auctionParticipation.with(bidderResponse.with(adjustedSeatBid));
     }

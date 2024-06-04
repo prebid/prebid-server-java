@@ -54,13 +54,13 @@ public class SaLunamediaBidder implements Bidder<BidRequest> {
             throw new PreBidException("Empty SeatBid");
         }
 
-        final SeatBid firstSeatBid = seatBids.get(0);
+        final SeatBid firstSeatBid = seatBids.getFirst();
         final List<Bid> bids = firstSeatBid != null ? firstSeatBid.getBid() : null;
         if (CollectionUtils.isEmpty(bids)) {
             throw new PreBidException("Empty SeatBid.Bids");
         }
 
-        final Bid firstBid = bids.get(0);
+        final Bid firstBid = bids.getFirst();
         final ObjectNode firstBidExt = firstBid != null ? firstBid.getExt() : null;
         if (firstBidExt == null) {
             throw new PreBidException("Missing BidExt");

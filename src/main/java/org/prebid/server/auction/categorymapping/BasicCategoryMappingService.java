@@ -205,7 +205,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
             return Future.failedFuture(
                     new RejectedBidException(bid.getId(), bidder, "Bid has more than one category"));
         }
-        final String category = CollectionUtils.isNotEmpty(iabCategories) ? iabCategories.get(0) : null;
+        final String category = CollectionUtils.isNotEmpty(iabCategories) ? iabCategories.getFirst() : null;
         if (StringUtils.isBlank(category)) {
             return Future.failedFuture(
                     new RejectedBidException(bid.getId(), bidder, "Bid did not contain a category"));
@@ -556,7 +556,7 @@ public class BasicCategoryMappingService implements CategoryMappingService {
 
         final String bidId = bidderBid.getBid().getId();
 
-        final int maxDuration = durations.get(durations.size() - 1);
+        final int maxDuration = durations.getLast();
         if (duration > maxDuration) {
             throw new RejectedBidException(
                     bidId, bidder, "Bid duration '%s' exceeds maximum '%s'".formatted(duration, maxDuration));

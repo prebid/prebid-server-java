@@ -10,6 +10,7 @@ class Uid {
 
     String id
     Integer atype
+    UidExt ext
 
     static Uid getDefaultUid() {
         new Uid().tap {

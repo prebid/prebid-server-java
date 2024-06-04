@@ -840,7 +840,7 @@ public class ExchangeService {
         final OrtbVersion ortbVersion = bidderSupportedOrtbVersion(bidder, bidderAliases);
         // stored bid response supported only for single imp requests
         final String storedBidResponse = impBidderToStoredBidResponse.size() == 1
-                ? impBidderToStoredBidResponse.get(imps.get(0).getId()).get(bidder)
+                ? impBidderToStoredBidResponse.get(imps.getFirst().getId()).get(bidder)
                 : null;
         final BidRequest preparedBidRequest = prepareBidRequest(
                 bidderPrivacyResult,
@@ -1470,7 +1470,7 @@ public class ExchangeService {
         final List<String> requestCurrencies = bidRequest.getCur();
         if (requestCurrencies.size() > 1) {
             errors.add(BidderError.badInput("Cur parameter contains more than one currency. %s will be used"
-                    .formatted(requestCurrencies.get(0))));
+                    .formatted(requestCurrencies.getFirst())));
         }
 
         final List<BidderBid> bids = seatBid.getBids();
@@ -1536,7 +1536,7 @@ public class ExchangeService {
 
         final List<BidderBid> updatedBidderBids = new ArrayList<>(bidderBids.size());
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
-        final String adServerCurrency = bidRequest.getCur().get(0);
+        final String adServerCurrency = bidRequest.getCur().getFirst();
 
         for (final BidderBid bidderBid : bidderBids) {
             try {

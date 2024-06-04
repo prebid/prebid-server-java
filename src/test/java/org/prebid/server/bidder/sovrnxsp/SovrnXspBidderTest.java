@@ -235,7 +235,7 @@ public class SovrnXspBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> results = target.makeHttpRequests(bidRequest);
 
         // then
-        final Imp expectedImp = bidRequest.getImp().get(0).toBuilder().tagid("imp_ext_zone_id").build();
+        final Imp expectedImp = bidRequest.getImp().getFirst().toBuilder().tagid("imp_ext_zone_id").build();
         final BidRequest expectedBidRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(expectedImp))
                 .build();

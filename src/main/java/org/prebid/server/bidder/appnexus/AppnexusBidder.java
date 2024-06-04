@@ -218,7 +218,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
         final Integer height = banner.getH();
         final List<Format> formats = banner.getFormat();
         final Format firstFormat = CollectionUtils.isNotEmpty(formats)
-                ? formats.get(0)
+                ? formats.getFirst()
                 : null;
 
         final boolean replaceWithFirstFormat = firstFormat != null && width == null && height == null;

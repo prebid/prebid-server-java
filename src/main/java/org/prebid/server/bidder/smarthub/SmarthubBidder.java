@@ -45,7 +45,7 @@ public class SmarthubBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final Imp firstImp = request.getImp().get(0);
+        final Imp firstImp = request.getImp().getFirst();
         final ExtImpSmarthub extImpSmarthub;
         try {
             extImpSmarthub = mapper.mapper().convertValue(firstImp.getExt(), SMARTHUB_EXT_TYPE_REFERENCE).getBidder();
@@ -84,9 +84,9 @@ public class SmarthubBidder implements Bidder<BidRequest> {
 
     private List<BidderBid> extractBids(BidResponse bidResponse) {
         final List<SeatBid> seatBid = bidResponse != null ? bidResponse.getSeatbid() : null;
-        final SeatBid firstSeatBid = CollectionUtils.isNotEmpty(seatBid) ? seatBid.get(0) : null;
+        final SeatBid firstSeatBid = CollectionUtils.isNotEmpty(seatBid) ? seatBid.getFirst() : null;
         final List<Bid> bids = firstSeatBid != null ? firstSeatBid.getBid() : null;
-        final Bid firstBid = CollectionUtils.isNotEmpty(bids) ? bids.get(0) : null;
+        final Bid firstBid = CollectionUtils.isNotEmpty(bids) ? bids.getFirst() : null;
 
         if (firstBid == null) {
             throw new PreBidException("SeatBid[0].Bid[0] cannot be empty");

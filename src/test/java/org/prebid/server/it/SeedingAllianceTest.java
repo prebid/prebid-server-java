@@ -23,7 +23,7 @@ public class SeedingAllianceTest extends IntegrationTest {
     public void openrtb2AuctionShouldRespondWithBidsFromSeedingAlliance() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/seedingAlliance-exchange"))
-                .withQueryParam("ssp", equalTo("pbs"))
+                .withQueryParam("ssp", equalTo("accountId"))
                 .withRequestBody(equalToJson(
                         jsonFrom("openrtb2/seedingAlliance/test-seedingAlliance-bid-request.json")))
                 .willReturn(aResponse().withBody(
