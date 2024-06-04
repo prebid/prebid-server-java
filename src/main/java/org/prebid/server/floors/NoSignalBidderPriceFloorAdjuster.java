@@ -18,6 +18,8 @@ import java.util.Optional;
 
 public class NoSignalBidderPriceFloorAdjuster implements PriceFloorAdjuster {
 
+    private static final String ALL_BIDDERS = "*";
+
     private final PriceFloorAdjuster delegate;
 
     public NoSignalBidderPriceFloorAdjuster(PriceFloorAdjuster delegate) {
@@ -30,6 +32,7 @@ public class NoSignalBidderPriceFloorAdjuster implements PriceFloorAdjuster {
                               BidRequest bidRequest,
                               Account account,
                               List<String> debugWarnings) {
+
         final Optional<PriceFloorRules> optionalFloors = Optional.ofNullable(bidRequest)
                 .map(BidRequest::getExt)
                 .map(ExtRequest::getPrebid)
@@ -55,7 +58,7 @@ public class NoSignalBidderPriceFloorAdjuster implements PriceFloorAdjuster {
                 .or(() -> optionalFloors
                         .map(PriceFloorRules::getEnforcement)
                         .map(PriceFloorEnforcement::getNoFloorSignalBidders))
-                .filter(noSignalBidders -> noSignalBidders.contains(bidder))
+                .filter(noSignalBidders -> noSignalBidders.contains(bidder) || noSignalBidders.contains(ALL_BIDDERS))
                 .map(ignored -> {
                     debugWarnings.add("noFloorSignal to bidder " + bidder);
                     return Price.empty();

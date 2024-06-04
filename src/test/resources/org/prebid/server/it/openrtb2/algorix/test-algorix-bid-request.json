@@ -4,6 +4,7 @@
     {
       "id": "imp_id",
       "secure": 1,
+      "rwdd": 1,
       "banner": {
         "w": 300,
         "h": 250

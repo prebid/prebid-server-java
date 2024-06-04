@@ -509,7 +509,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         // then
         assertThat(bidRequestFuture.succeeded()).isTrue();
         assertThat(bidRequestFuture.result().hasStoredBidRequest()).isTrue();
-        assertThat(bidRequestFuture.result().bidRequest().getImp().get(0)).isEqualTo(Imp.builder()
+        assertThat(bidRequestFuture.result().bidRequest().getImp().getFirst()).isEqualTo(Imp.builder()
                 .banner(Banner.builder().format(singletonList(Format.builder().w(300).h(250).build())).build())
                 .ext(mapper.valueToTree(
                         ExtImp.of(ExtImpPrebid.builder().storedrequest(ExtStoredRequest.of("123")).build(), null)))
@@ -575,7 +575,7 @@ public class StoredRequestProcessorTest extends VertxTest {
         verifyNoInteractions(applicationSettings, metrics);
         assertThat(bidRequestFuture.succeeded()).isTrue();
         assertThat(bidRequestFuture.result().hasStoredBidRequest()).isFalse();
-        assertThat(bidRequestFuture.result().bidRequest().getImp().get(0)).isSameAs(imp);
+        assertThat(bidRequestFuture.result().bidRequest().getImp().getFirst()).isSameAs(imp);
         assertThat(bidRequestFuture.result().bidRequest()).isSameAs(bidRequest);
     }
 

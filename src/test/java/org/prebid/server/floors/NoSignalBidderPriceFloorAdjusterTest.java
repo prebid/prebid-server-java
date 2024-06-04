@@ -392,6 +392,69 @@ public class NoSignalBidderPriceFloorAdjusterTest extends VertxTest {
         verifyNoInteractions(delegate);
     }
 
+    @Test
+    public void adjustForImpShouldReturnEmptyPriceWhenModelHasWildcardAndTakesPrecendenceOverDataAndEnforce() {
+        // given
+        final BidRequest givenBidRequest = givenBidRequest(
+                List.of("*"),
+                List.of("bidder", "bidder2"),
+                List.of("bidder3", "bidder2"));
+
+        final Imp givenImp = givenImp();
+        final Account givenAccount = Account.builder().build();
+        final List<String> debugWarnings = new ArrayList<>();
+
+        // when
+        final Price actual = target.adjustForImp(givenImp, "bidder", givenBidRequest, givenAccount, debugWarnings);
+
+        // then
+        assertThat(actual).isEqualTo(Price.empty());
+        assertThat(debugWarnings).containsOnly("noFloorSignal to bidder bidder");
+        verifyNoInteractions(delegate);
+    }
+
+    @Test
+    public void adjustForImpShouldReturnEmptyPriceWhenDataHasWildcardAndTakesPrecendenceOverEnforce() {
+        // given
+        final BidRequest givenBidRequest = givenBidRequest(
+                null,
+                List.of("bidder3", "*"),
+                List.of("bidder3", "bidder2"));
+
+        final Imp givenImp = givenImp();
+        final Account givenAccount = Account.builder().build();
+        final List<String> debugWarnings = new ArrayList<>();
+
+        // when
+        final Price actual = target.adjustForImp(givenImp, "bidder", givenBidRequest, givenAccount, debugWarnings);
+
+        // then
+        assertThat(actual).isEqualTo(Price.empty());
+        assertThat(debugWarnings).containsOnly("noFloorSignal to bidder bidder");
+        verifyNoInteractions(delegate);
+    }
+
+    @Test
+    public void adjustForImpShouldCallDelegateWhenModelHasBidderSetAndTakesPrecendenceOverDataWithWildcard() {
+        // given
+        final BidRequest givenBidRequest = givenBidRequest(
+                List.of("bidder3", "bidder2"),
+                List.of("*"),
+                null);
+
+        final Imp givenImp = givenImp();
+        final Account givenAccount = Account.builder().build();
+        final List<String> debugWarnings = new ArrayList<>();
+
+        // when
+        final Price actual = target.adjustForImp(givenImp, "bidder", givenBidRequest, givenAccount, debugWarnings);
+
+        // then
+        assertThat(actual).isEqualTo(Price.of("EUR", BigDecimal.ONE));
+        assertThat(debugWarnings).isEmpty();
+        verify(delegate).adjustForImp(givenImp, "bidder", givenBidRequest, givenAccount, debugWarnings);
+    }
+
     private static BidRequest givenBidRequest(List<String> modelGroupBidders,
                                               List<String> dataBidders,
                                               List<String> enforcementBidders) {

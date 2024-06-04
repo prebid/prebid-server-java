@@ -53,7 +53,7 @@ public class BizzclickBidder implements Bidder<BidRequest> {
         final List<Imp> imps = request.getImp();
         final ExtImpBizzclick extImpBizzclick;
         try {
-            extImpBizzclick = parseImpExt(imps.get(0));
+            extImpBizzclick = parseImpExt(imps.getFirst());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -134,7 +134,7 @@ public class BizzclickBidder implements Bidder<BidRequest> {
             throw new PreBidException("Empty SeatBid array");
         }
 
-        final SeatBid seatBid = bidResponse.getSeatbid().get(0);
+        final SeatBid seatBid = bidResponse.getSeatbid().getFirst();
         if (seatBid == null || CollectionUtils.isEmpty(seatBid.getBid())) {
             return Collections.emptyList();
         }

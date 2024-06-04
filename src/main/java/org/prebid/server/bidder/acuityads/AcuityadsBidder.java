@@ -53,7 +53,7 @@ public class AcuityadsBidder implements Bidder<BidRequest> {
         final String url;
 
         try {
-            extImpAcuityads = parseImpExt(request.getImp().get(0));
+            extImpAcuityads = parseImpExt(request.getImp().getFirst());
             url = resolveEndpoint(extImpAcuityads.getHost(), extImpAcuityads.getAccountId());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -140,7 +140,7 @@ public class AcuityadsBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
+        final SeatBid firstSeatBid = bidResponse.getSeatbid().getFirst();
         final List<Bid> bids = firstSeatBid.getBid();
 
         if (CollectionUtils.isEmpty(bids)) {

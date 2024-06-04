@@ -106,7 +106,7 @@ public class UcfunnelBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1);
-        assertThat(result.getValue().get(0).getUri()).isEqualTo("https://test.endpoint.com/partnerId/request");
+        assertThat(result.getValue().getFirst().getUri()).isEqualTo("https://test.endpoint.com/partnerId/request");
     }
 
     @Test
@@ -118,7 +118,7 @@ public class UcfunnelBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_input);
         assertThat(result.getValue()).isEmpty();
     }
 

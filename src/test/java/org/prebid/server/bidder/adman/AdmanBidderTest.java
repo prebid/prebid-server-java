@@ -51,7 +51,7 @@ public class AdmanBidderTest extends VertxTest {
 
         // then
         final BidRequest expectedRequest = bidRequest.toBuilder()
-                .imp(singletonList(bidRequest.getImp().get(0).toBuilder().tagid("tagidString").build()))
+                .imp(singletonList(bidRequest.getImp().getFirst().toBuilder().tagid("tagidString").build()))
                 .build();
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())

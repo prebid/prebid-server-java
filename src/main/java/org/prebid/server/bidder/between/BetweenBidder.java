@@ -119,7 +119,7 @@ public class BetweenBidder implements Bidder<BidRequest> {
     private static Banner resolveBanner(Banner banner) {
         if (banner.getW() == null && banner.getH() == null) {
             final List<Format> bannerFormat = banner.getFormat();
-            final Format firstFormat = bannerFormat.get(0);
+            final Format firstFormat = bannerFormat.getFirst();
             final List<Format> formatSkipFirst = bannerFormat.subList(1, bannerFormat.size());
             return banner.toBuilder()
                     .format(formatSkipFirst)

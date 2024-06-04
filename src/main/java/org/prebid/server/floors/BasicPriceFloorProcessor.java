@@ -314,7 +314,7 @@ public class BasicPriceFloorProcessor implements PriceFloorProcessor {
         final PriceFloorData data = ObjectUtil.getIfNotNull(floors, PriceFloorRules::getData);
         final List<PriceFloorModelGroup> modelGroups = ObjectUtil.getIfNotNull(data, PriceFloorData::getModelGroups);
 
-        return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.get(0) : null;
+        return CollectionUtils.isNotEmpty(modelGroups) ? modelGroups.getFirst() : null;
     }
 
     private Imp updateImpWithFloors(Imp imp,

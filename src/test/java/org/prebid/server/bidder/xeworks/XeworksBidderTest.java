@@ -70,7 +70,7 @@ public class XeworksBidderTest extends VertxTest {
 
         final List<BidderError> errors = result.getErrors();
         assertThat(errors).hasSize(1);
-        assertThat(errors.get(0).getMessage())
+        assertThat(errors.getFirst().getMessage())
                 .isEqualTo("Failed to deserialize Xeworks extension in impression with id: 123");
     }
 

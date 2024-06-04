@@ -452,7 +452,7 @@ public class AmpRequestFactory {
     private BidRequest fillExplicitParameters(BidRequest bidRequest) {
         final List<Imp> imps = bidRequest.getImp();
         // Force HTTPS as AMP requires it, but pubs can forget to set it.
-        final Imp imp = imps.get(0);
+        final Imp imp = imps.getFirst();
         final Integer secure = imp.getSecure();
         final boolean setSecure = secure == null || secure != 1;
 
@@ -483,7 +483,7 @@ public class AmpRequestFactory {
                 || setDefaultCache) {
 
             result = bidRequest.toBuilder()
-                    .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
+                    .imp(setSecure ? Collections.singletonList(imps.getFirst().toBuilder().secure(1).build()) : imps)
                     .ext(extRequest(
                             bidRequest,
                             setDefaultTargeting,
@@ -505,7 +505,7 @@ public class AmpRequestFactory {
         ortbTypesResolver.normalizeTargeting(targetingNode, errors, referer);
 
         final Site updatedSite = overrideSite(bidRequest.getSite());
-        final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), httpRequest, targetingNode);
+        final Imp updatedImp = overrideImp(bidRequest.getImp().getFirst(), httpRequest, targetingNode);
 
         if (ObjectUtils.anyNotNull(updatedSite, updatedImp)) {
             return bidRequest.toBuilder()

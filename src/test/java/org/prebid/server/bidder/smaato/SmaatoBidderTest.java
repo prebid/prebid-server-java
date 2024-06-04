@@ -732,8 +732,8 @@ public class SmaatoBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot decode bid.adm:");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_input);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot decode bid.adm:");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_input);
     }
 
     @Test

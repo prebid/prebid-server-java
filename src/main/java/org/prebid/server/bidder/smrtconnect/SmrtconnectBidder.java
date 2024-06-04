@@ -43,7 +43,7 @@ public class SmrtconnectBidder implements Bidder<BidRequest> {
 
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
-        final Imp firstImp = bidRequest.getImp().get(0);
+        final Imp firstImp = bidRequest.getImp().getFirst();
         final ExtImpSmrtconnect extImpSmrtconnect;
 
         try {

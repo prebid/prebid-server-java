@@ -116,7 +116,7 @@ public class MgidxBidderTest extends VertxTest {
 
         final List<BidderError> errors = result.getErrors();
         assertThat(errors).hasSize(1);
-        assertThat(errors.get(0).getMessage())
+        assertThat(errors.getFirst().getMessage())
                 .startsWith("Cannot deserialize value of type ");
     }
 

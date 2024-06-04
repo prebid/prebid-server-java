@@ -9,7 +9,8 @@
       },
       "ext": {
         "rise": {
-          "publisher_id": "testPlacementId"
+          "org": "testOrgId",
+          "placementId": "testPlacementId"
         }
       }
     }
