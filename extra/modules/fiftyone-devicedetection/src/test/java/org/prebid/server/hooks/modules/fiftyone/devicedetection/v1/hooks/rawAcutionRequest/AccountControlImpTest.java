@@ -1,9 +1,9 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcutionRequest;
 
-import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import org.junit.Test;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.AccountFilter;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
@@ -34,16 +34,10 @@ public class AccountControlImpTest {
 
         final ModuleConfig moduleConfig = new ModuleConfig();
         moduleConfig.setAccountFilter(accountFilter);
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(moduleConfig) {
-            @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
-
-                final DeviceDetectionOnPremisePipelineBuilder builder
-                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-                when(builder.build()).thenReturn(null);
-                return builder;
-            }
-
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(
+                moduleConfig,
+                mock(DeviceEnricher.class)
+        ) {
             @Override
             public boolean isAccountAllowed(AuctionInvocationContext invocationContext) {
 

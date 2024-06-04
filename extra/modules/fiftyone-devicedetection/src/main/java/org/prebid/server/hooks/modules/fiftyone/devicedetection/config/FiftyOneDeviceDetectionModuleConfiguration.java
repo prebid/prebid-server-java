@@ -1,6 +1,9 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.config;
 
+import fiftyone.pipeline.core.flowelements.Pipeline;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.FiftyOneDeviceDetectionModule;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.PipelineBuilder;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionEntrypointHook;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
@@ -33,11 +36,23 @@ public class FiftyOneDeviceDetectionModuleConfiguration {
     }
 
     @Bean
-    Module fiftyOneDeviceDetectionModule(ModuleConfig moduleConfig) throws Exception {
+    Pipeline pipeline(ModuleConfig moduleConfig) throws Exception {
+
+        return new PipelineBuilder().build(moduleConfig);
+    }
+
+    @Bean
+    DeviceEnricher deviceEnricher(Pipeline pipeline) {
+
+        return new DeviceEnricher(pipeline);
+    }
+
+    @Bean
+    Module fiftyOneDeviceDetectionModule(ModuleConfig moduleConfig, DeviceEnricher deviceEnricher) {
 
         final Set<? extends Hook<?, ? extends InvocationContext>> hooks = Stream.of(
                 new FiftyOneDeviceDetectionEntrypointHook(),
-                new FiftyOneDeviceDetectionRawAuctionRequestHook(moduleConfig)
+                new FiftyOneDeviceDetectionRawAuctionRequestHook(moduleConfig, deviceEnricher)
         ).collect(Collectors.toSet());
 
         return new FiftyOneDeviceDetectionModule(hooks);

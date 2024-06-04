@@ -1,20 +1,19 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcutionRequest.detection;
 
 import com.iab.openrtb.request.Device;
-import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import fiftyone.devicedetection.shared.DeviceData;
 import fiftyone.pipeline.core.data.FlowData;
 import fiftyone.pipeline.core.flowelements.Pipeline;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.EnrichmentResult;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doThrow;
@@ -26,24 +25,15 @@ public class DeviceEnrichmentTest {
 
     private static BiFunction<Device,
             CollectedEvidence,
-            FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult> buildHook(
-                    Supplier<Pipeline> pipelineSupplier,
+            EnrichmentResult> buildHook(
+                    Pipeline pipeline,
                     BiFunction<
                             Device,
                             DeviceData,
-                            FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult> patcher,
+                            EnrichmentResult> patcher,
                     Function<CollectedEvidence, Map<String, String>> evidenceCollector) throws Exception {
 
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
-            @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
-
-                final DeviceDetectionOnPremisePipelineBuilder builder
-                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-                when(builder.build()).thenReturn(null);
-                return builder;
-            }
-
+        return new DeviceEnricher(pipeline) {
             @Override
             protected EnrichmentResult patchDevice(Device device, DeviceData deviceData) {
 
@@ -54,12 +44,6 @@ public class DeviceEnrichmentTest {
             protected Map<String, String> pickRelevantFrom(CollectedEvidence collectedEvidence) {
 
                 return evidenceCollector.apply(collectedEvidence);
-            }
-
-            @Override
-            protected Pipeline getPipeline() {
-
-                return pipelineSupplier.get();
             }
 
             @Override
@@ -85,9 +69,9 @@ public class DeviceEnrichmentTest {
         final BiFunction<
                 Device,
                 CollectedEvidence,
-                FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult> hook
-                = buildHook(() -> pipeline, null, null);
-        final FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult result = hook.apply(null, null);
+                EnrichmentResult> hook
+                = buildHook(pipeline, null, null);
+        final EnrichmentResult result = hook.apply(null, null);
 
         // then
         assertThat(result.processingException()).isEqualTo(e);
@@ -111,13 +95,13 @@ public class DeviceEnrichmentTest {
         final BiFunction<
                 Device,
                 CollectedEvidence,
-                FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult> hook
-                = buildHook(() -> pipeline, null, ev -> {
+                EnrichmentResult> hook
+                = buildHook(pipeline, null, ev -> {
                     collectorCalled[0] = true;
                     assertThat(ev).isEqualTo(collectedEvidence);
                     return evidence;
                 });
-        final FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult result = hook.apply(
+        final EnrichmentResult result = hook.apply(
                 null,
                 collectedEvidence);
 
@@ -146,16 +130,16 @@ public class DeviceEnrichmentTest {
         final BiFunction<
                 Device,
                 CollectedEvidence,
-                FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult> hook
+                EnrichmentResult> hook
                 = buildHook(
-                        () -> pipeline,
+                        pipeline,
                         null,
                         ev -> {
                             collectorCalled[0] = true;
                             assertThat(ev).isEqualTo(collectedEvidence);
                             return evidence;
                         });
-        final FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult result = hook.apply(
+        final EnrichmentResult result = hook.apply(
                 null,
                 collectedEvidence);
 
@@ -177,8 +161,8 @@ public class DeviceEnrichmentTest {
         final DeviceData deviceData = mock(DeviceData.class);
         when(flowData.get(DeviceData.class)).thenReturn(deviceData);
         final Device mergedDevice = Device.builder().build();
-        final FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult preparedResult
-                = FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult.builder()
+        final EnrichmentResult preparedResult
+                = EnrichmentResult.builder()
                 .enrichedDevice(mergedDevice)
                 .build();
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder().build();
@@ -191,8 +175,8 @@ public class DeviceEnrichmentTest {
         final BiFunction<
                 Device,
                 CollectedEvidence,
-                FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult> hook
-                = buildHook(() -> pipeline,
+                EnrichmentResult> hook
+                = buildHook(pipeline,
                     (dev, devData) -> {
                         patcherCalled[0] = true;
                         assertThat(dev).isEqualTo(device);
@@ -204,7 +188,7 @@ public class DeviceEnrichmentTest {
                         assertThat(ev).isEqualTo(collectedEvidence);
                         return evidence;
                     });
-        final FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult result = hook.apply(
+        final EnrichmentResult result = hook.apply(
                 device,
                 CollectedEvidence.builder().build());
 

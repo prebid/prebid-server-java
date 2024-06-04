@@ -1,8 +1,9 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcutionRequest;
 
-import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import org.junit.Test;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.ModuleContext;
 
@@ -12,7 +13,6 @@ import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class ModuleContextPatcherImpTest {
     private static BiFunction<
@@ -20,16 +20,10 @@ public class ModuleContextPatcherImpTest {
             Consumer<CollectedEvidence.CollectedEvidenceBuilder>,
             ModuleContext> buildPatcher() throws Exception {
 
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
-            @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
-
-                final DeviceDetectionOnPremisePipelineBuilder builder
-                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-                when(builder.build()).thenReturn(null);
-                return builder;
-            }
-
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(
+                mock(ModuleConfig.class),
+                mock(DeviceEnricher.class)
+        ) {
             @Override
             public ModuleContext addEvidenceToContext(
                     ModuleContext moduleContext,

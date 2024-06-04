@@ -7,17 +7,16 @@ import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.Dat
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFileUpdate;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.PerformanceConfig;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.PipelineBuilder;
 
 import java.util.function.BiConsumer;
-import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class PipelineProviderTest {
-    private static Supplier<Pipeline> makeProvider(
+    private static PipelineSupplier makeProvider(
             DataFile dataFile,
             PerformanceConfig performanceConfig,
             PipelineBuilderSpawner<DeviceDetectionOnPremisePipelineBuilder> builderSpawner,
@@ -27,17 +26,11 @@ public class PipelineProviderTest {
         final ModuleConfig moduleConfig = new ModuleConfig();
         moduleConfig.setDataFile(dataFile);
         moduleConfig.setPerformance(performanceConfig);
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(moduleConfig) {
-            @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
-
-                return super.makeBuilder();
-            }
-
+        final PipelineBuilder builder = new PipelineBuilder() {
             @Override
             protected DeviceDetectionOnPremisePipelineBuilder makeRawBuilder(DataFile dataFile) throws Exception {
 
-                return builderSpawner.makeBuilder(dataFile);
+                return builderSpawner.spawn(dataFile);
             }
 
             @Override
@@ -55,14 +48,8 @@ public class PipelineProviderTest {
 
                 performanceOptionsMerger.accept(pipelineBuilder, performanceConfig);
             }
-
-            @Override
-            public Pipeline getPipeline() {
-
-                return super.getPipeline();
-            }
-        }
-            ::getPipeline;
+        };
+        return () -> builder.build(moduleConfig);
     }
 
     @Test
@@ -82,7 +69,7 @@ public class PipelineProviderTest {
         final boolean[] builderSpawnerCalled = { false };
         final boolean[] updateAppliedCalled = { false };
         final boolean[] performanceAppliedCalled = { false };
-        final Supplier<Pipeline> pipelineSupplier = makeProvider(
+        final PipelineSupplier pipelineSupplier = makeProvider(
                 dataFile,
                 performanceConfig,
                 dataFile1 -> {

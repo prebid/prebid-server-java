@@ -1,25 +1,16 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcutionRequest.adapters;
 
-import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
+import fiftyone.pipeline.core.flowelements.Pipeline;
 import org.junit.Test;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class DeviceTypeConverterImpTest {
     private static Integer convertDeviceType(String deviceType) throws Exception {
 
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
-            @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
-
-                final DeviceDetectionOnPremisePipelineBuilder builder
-                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-                when(builder.build()).thenReturn(null);
-                return builder;
-            }
+        return new DeviceEnricher(mock(Pipeline.class)) {
 
             @Override
             public Integer convertDeviceType(String deviceType) {

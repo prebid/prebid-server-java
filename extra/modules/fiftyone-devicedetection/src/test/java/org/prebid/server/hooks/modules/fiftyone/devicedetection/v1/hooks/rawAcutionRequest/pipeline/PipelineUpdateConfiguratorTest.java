@@ -4,7 +4,8 @@ import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFileUpdate;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.PipelineBuilder;
 
 import java.util.function.BiConsumer;
 
@@ -19,9 +20,9 @@ public class PipelineUpdateConfiguratorTest {
     private static BiConsumer<DeviceDetectionOnPremisePipelineBuilder,
             DataFileUpdate> makeConfigurator() throws Exception {
 
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
+        return new PipelineBuilder() {
             @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
+            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder(ModuleConfig moduleConfig) throws Exception {
 
                 final DeviceDetectionOnPremisePipelineBuilder builder
                         = mock(DeviceDetectionOnPremisePipelineBuilder.class);

@@ -2,8 +2,11 @@ package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcu
 
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
-import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
+import fiftyone.pipeline.core.flowelements.Pipeline;
 import org.junit.Test;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.EnrichmentResult;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
 
@@ -13,7 +16,6 @@ import java.util.function.BiFunction;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class BidRequestPatcherImpTest {
     private static BiFunction<BidRequest, CollectedEvidence, BidRequest> buildHook(
@@ -21,19 +23,20 @@ public class BidRequestPatcherImpTest {
             BiFunction<
                     Device,
                     CollectedEvidence,
-                    FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult> deviceRefiner
+                    EnrichmentResult> deviceRefiner
     ) throws Exception {
 
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
-            @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(
+                mock(ModuleConfig.class),
+                new DeviceEnricher(mock(Pipeline.class)) {
+                    @Override
+                    public EnrichmentResult populateDeviceInfo(
+                            Device device,
+                            CollectedEvidence collectedEvidence) {
 
-                final DeviceDetectionOnPremisePipelineBuilder builder
-                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-                when(builder.build()).thenReturn(null);
-                return builder;
-            }
-
+                        return deviceRefiner.apply(device, collectedEvidence);
+                    }
+                }) {
             @Override
             public BidRequest enrichDevice(BidRequest bidRequest, CollectedEvidence collectedEvidence) {
 
@@ -46,14 +49,6 @@ public class BidRequestPatcherImpTest {
                     BidRequest bidRequest) {
 
                 bidRequestEvidenceCollector.accept(evidenceBuilder, bidRequest);
-            }
-
-            @Override
-            protected EnrichmentResult populateDeviceInfo(
-                    Device device,
-                    CollectedEvidence collectedEvidence) {
-
-                return deviceRefiner.apply(device, collectedEvidence);
             }
         }
             ::enrichDevice;
@@ -85,7 +80,7 @@ public class BidRequestPatcherImpTest {
                 (builder, request) -> { },
                 (device, evidence) -> {
                     refinerCalled[0] = true;
-                    return FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult.builder().build();
+                    return EnrichmentResult.builder().build();
                 }
         );
 
@@ -132,7 +127,7 @@ public class BidRequestPatcherImpTest {
         // when
         final BiFunction<BidRequest, CollectedEvidence, BidRequest> requestPatcher = buildHook(
                 (builder, request) -> { },
-                (device, collectedEvidence) -> FiftyOneDeviceDetectionRawAuctionRequestHook.EnrichmentResult
+                (device, collectedEvidence) -> EnrichmentResult
                         .builder()
                         .enrichedDevice(mergedDevice)
                         .build());

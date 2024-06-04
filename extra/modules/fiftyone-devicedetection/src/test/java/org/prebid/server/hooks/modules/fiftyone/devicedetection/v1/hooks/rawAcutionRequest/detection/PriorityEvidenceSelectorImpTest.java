@@ -1,9 +1,9 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcutionRequest.detection;
 
-import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
+import fiftyone.pipeline.core.flowelements.Pipeline;
 import org.junit.Test;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
 
 import java.util.AbstractMap;
 import java.util.Collections;
@@ -12,21 +12,11 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class PriorityEvidenceSelectorImpTest {
     private static Map<String, String> pickRelevantFrom(CollectedEvidence collectedEvidence) throws Exception {
 
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
-            @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
-
-                final DeviceDetectionOnPremisePipelineBuilder builder
-                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-                when(builder.build()).thenReturn(null);
-                return builder;
-            }
-
+        return new DeviceEnricher(mock(Pipeline.class)) {
             @Override
             public Map<String, String> pickRelevantFrom(CollectedEvidence collectedEvidence) {
 

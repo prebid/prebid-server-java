@@ -3,32 +3,27 @@ package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcu
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.UserAgent;
-import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import org.junit.Test;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class BidRequestReaderTest {
     private static BiConsumer<CollectedEvidence.CollectedEvidenceBuilder, BidRequest> buildHook(
             BiConsumer<UserAgent, Map<String, String>> userAgentEvidenceConverter) throws Exception {
 
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
-            @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
-
-                final DeviceDetectionOnPremisePipelineBuilder builder
-                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-                when(builder.build()).thenReturn(null);
-                return builder;
-            }
-
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(
+                mock(ModuleConfig.class),
+                mock(DeviceEnricher.class)
+        ) {
             @Override
             public void collectEvidence(
                     CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder,
@@ -38,9 +33,11 @@ public class BidRequestReaderTest {
             }
 
             @Override
-            protected void appendSecureHeaders(UserAgent userAgent, Map<String, String> evidence) {
+            protected Map<String, String> convertSecureHeaders(UserAgent userAgent) {
 
+                final Map<String, String> evidence = new HashMap<>();
                 userAgentEvidenceConverter.accept(userAgent, evidence);
+                return evidence;
             }
         }
             ::collectEvidence;

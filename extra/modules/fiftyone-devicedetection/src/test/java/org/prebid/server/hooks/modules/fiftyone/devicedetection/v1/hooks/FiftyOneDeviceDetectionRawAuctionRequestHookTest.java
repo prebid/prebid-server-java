@@ -1,11 +1,12 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks;
 
 import com.iab.openrtb.request.BidRequest;
-import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import io.vertx.core.Future;
 import org.junit.Test;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.FiftyOneDeviceDetectionModule;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.ModuleContext;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
@@ -33,16 +34,10 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
             BiFunction<BidRequest, CollectedEvidence, BidRequest> bidRequestPatcher
     ) throws Exception {
 
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
-            @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
-
-                final DeviceDetectionOnPremisePipelineBuilder builder
-                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-                when(builder.build()).thenReturn(null);
-                return builder;
-            }
-
+        return new FiftyOneDeviceDetectionRawAuctionRequestHook(
+                mock(ModuleConfig.class),
+                mock(DeviceEnricher.class)
+        ) {
             @Override
             protected boolean isAccountAllowed(AuctionInvocationContext invocationContext) {
 

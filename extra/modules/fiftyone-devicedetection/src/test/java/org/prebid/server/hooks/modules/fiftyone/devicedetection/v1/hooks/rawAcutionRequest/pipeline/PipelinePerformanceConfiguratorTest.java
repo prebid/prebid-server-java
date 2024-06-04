@@ -5,7 +5,7 @@ import fiftyone.pipeline.engines.Constants;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.PerformanceConfig;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.PipelineBuilder;
 
 import java.util.function.BiConsumer;
 
@@ -14,22 +14,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class PipelinePerformanceConfiguratorTest {
     private static BiConsumer<DeviceDetectionOnPremisePipelineBuilder,
             PerformanceConfig> makeConfigurator() throws Exception {
 
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
-            @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
-
-                final DeviceDetectionOnPremisePipelineBuilder builder
-                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-                when(builder.build()).thenReturn(null);
-                return builder;
-            }
-
+        return new PipelineBuilder() {
             @Override
             public void applyPerformanceOptions(
                     DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,

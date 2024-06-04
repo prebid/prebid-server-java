@@ -3,30 +3,22 @@ package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcu
 import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import fiftyone.pipeline.core.flowelements.Pipeline;
 import org.junit.Test;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
-
-import java.util.function.Supplier;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.PipelineBuilder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class PipelineSupplierImpTest {
-    private static Supplier<Pipeline> makeSupplier(DeviceDetectionOnPremisePipelineBuilder builder) throws Exception {
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
+    private static PipelineSupplier makeSupplier(DeviceDetectionOnPremisePipelineBuilder builder) throws Exception {
+        return () -> new PipelineBuilder() {
             @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
+            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder(ModuleConfig moduleConfig) throws Exception {
 
                 return builder;
             }
-
-            @Override
-            public Pipeline getPipeline() {
-
-                return super.getPipeline();
-            }
-        }
-            ::getPipeline;
+        }.build(null);
     }
 
     @Test
@@ -39,7 +31,7 @@ public class PipelineSupplierImpTest {
         final Pipeline mockedPipeline = mock(Pipeline.class);
         when(builder.build()).thenReturn(mockedPipeline);
 
-        final Supplier<Pipeline> pipelineSupplier = makeSupplier(builder);
+        final PipelineSupplier pipelineSupplier = makeSupplier(builder);
         final Pipeline pipeline = pipelineSupplier.get();
 
         // then

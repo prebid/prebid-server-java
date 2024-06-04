@@ -3,25 +3,14 @@ package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcu
 import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import org.junit.Test;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFile;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.PipelineBuilder;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class PipelineBuilderSpawnerImpTest {
     private static PipelineBuilderSpawner<DeviceDetectionOnPremisePipelineBuilder> makeSpawner() throws Exception {
 
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(null) {
-            @Override
-            protected DeviceDetectionOnPremisePipelineBuilder makeBuilder() throws Exception {
-
-                final DeviceDetectionOnPremisePipelineBuilder builder
-                        = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-                when(builder.build()).thenReturn(null);
-                return builder;
-            }
-
+        return new PipelineBuilder() {
             @Override
             public DeviceDetectionOnPremisePipelineBuilder makeRawBuilder(DataFile dataFile) throws Exception {
 
@@ -41,7 +30,7 @@ public class PipelineBuilderSpawnerImpTest {
                 = makeSpawner();
 
         // when
-        final DeviceDetectionOnPremisePipelineBuilder pipelineBuilder = builderSpawner.makeBuilder(dataFile);
+        final DeviceDetectionOnPremisePipelineBuilder pipelineBuilder = builderSpawner.spawn(dataFile);
 
         // then
         assertThat(pipelineBuilder).isNotNull();
@@ -58,7 +47,7 @@ public class PipelineBuilderSpawnerImpTest {
                 = makeSpawner();
 
         // when
-        final DeviceDetectionOnPremisePipelineBuilder pipelineBuilder = builderSpawner.makeBuilder(dataFile);
+        final DeviceDetectionOnPremisePipelineBuilder pipelineBuilder = builderSpawner.spawn(dataFile);
 
         // then
         assertThat(pipelineBuilder).isNotNull();

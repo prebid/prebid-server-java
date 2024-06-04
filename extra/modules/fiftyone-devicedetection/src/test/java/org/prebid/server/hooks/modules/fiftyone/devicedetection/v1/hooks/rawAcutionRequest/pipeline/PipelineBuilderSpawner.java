@@ -14,5 +14,5 @@ public interface PipelineBuilderSpawner<T> {
      * @return Builder capable of eventually producing {@link fiftyone.pipeline.core.flowelements.Pipeline}.
      * @throws Exception Underlying error when constructing the builder.
      */
-    T makeBuilder(DataFile dataFile) throws Exception;
+    T spawn(DataFile dataFile) throws Exception;
 }
