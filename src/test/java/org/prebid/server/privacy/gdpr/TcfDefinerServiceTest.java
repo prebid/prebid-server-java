@@ -336,7 +336,7 @@ public class TcfDefinerServiceTest {
                 Privacy.builder().consentString(vendorConsent).build(),
                 "country",
                 null,
-                AccountGdprConfig.builder().eeaCountries(emptySet()).build(),
+                AccountGdprConfig.builder().eeaCountries("").build(),
                 null,
                 null,
                 null,

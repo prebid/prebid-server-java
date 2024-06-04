@@ -30,6 +30,7 @@ import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -259,9 +260,16 @@ public class TcfDefinerService {
 
     private Boolean isCountryInEea(String country, AccountGdprConfig accountGdprConfig) {
         final Set<String> publisherEeaCountries = ObjectUtils.defaultIfNull(
-                accountGdprConfig != null ? accountGdprConfig.getEeaCountries() : null,
+                accountGdprConfig != null ? eeaCountries(accountGdprConfig.getEeaCountries()) : null,
                 eeaCountries);
         return country != null ? publisherEeaCountries.contains(country) : null;
+    }
+
+    private static Set<String> eeaCountries(String eeaCountriesAsString) {
+        return Arrays.stream(eeaCountriesAsString.split(","))
+                .map(StringUtils::strip)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet());
     }
 
     private TcfContext updateTcfGeoMetrics(TcfContext tcfContext) {
