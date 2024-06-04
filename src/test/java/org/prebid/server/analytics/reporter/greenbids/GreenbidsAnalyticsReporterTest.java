@@ -85,8 +85,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
     private GreenbidsAnalyticsReporter target;
 
-    private AuctionEvent event;
-
     private GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
 
     @Before
@@ -124,7 +122,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .build();
 
         final AuctionContext auctionContext = givenAuctionContext(imp);
-        event = AuctionEvent.builder()
+        final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
@@ -145,7 +143,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         // then
         assertThat(result.succeeded()).isTrue();
-        verify(httpClient).post(anyString(), any(MultiMap.class), anyString(), anyLong());
+        verify(httpClient).post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong());
         verify(mockResponse).getStatusCode();
         assertThat(capturedJsonNode).isEqualTo(expectedJsonNode);
     }
@@ -159,7 +157,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .video(video)
                 .build();
         final AuctionContext auctionContext = givenAuctionContext(imp);
-        event = AuctionEvent.builder()
+        final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
@@ -180,7 +178,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         // then
         assertThat(result.succeeded()).isTrue();
-        verify(httpClient).post(anyString(), any(MultiMap.class), anyString(), anyLong());
+        verify(httpClient).post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong());
         verify(mockResponse).getStatusCode();
         assertThat(capturedJsonNode).isEqualTo(expectedJsonNode);
     }
@@ -194,7 +192,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .banner(bannerWithoutFormat)
                 .build();
         final AuctionContext auctionContext = givenAuctionContext(imp);
-        event = AuctionEvent.builder()
+        final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
@@ -216,7 +214,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         // then
         assertThat(result.succeeded()).isTrue();
-        verify(httpClient).post(anyString(), any(MultiMap.class), anyString(), anyLong());
+        verify(httpClient).post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong());
         verify(mockResponse).getStatusCode();
         assertThat(capturedJsonNode).isEqualTo(expectedJsonNode);
     }
@@ -225,7 +223,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     public void shouldFailWhenBidResponseIsNull() {
         // given
         final AuctionContext auctionContext = givenAuctionContextWithNoBidResponse();
-        event = AuctionEvent.builder()
+        final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
@@ -262,7 +260,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .banner(banner)
                 .build();
         final AuctionContext auctionContext = givenAuctionContext(imp);
-        event = AuctionEvent.builder()
+        final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
@@ -294,7 +292,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .banner(banner)
                 .build();
         final AuctionContext auctionContext = givenAuctionContext(imp);
-        event = AuctionEvent.builder()
+        final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
@@ -361,7 +359,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .banner(givenBanner())
                 .build();
         final AuctionContext auctionContext = givenAuctionContext(imp);
-        event = AuctionEvent.builder()
+        final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
