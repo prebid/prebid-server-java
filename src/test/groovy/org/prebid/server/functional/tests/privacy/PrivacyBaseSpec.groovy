@@ -40,7 +40,8 @@ import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
 import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.getDefaultVendorListResponse
-import static org.prebid.server.functional.model.pricefloors.Country.*
+import static org.prebid.server.functional.model.pricefloors.Country.USA
+import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
 import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_2
 import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
@@ -91,7 +92,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
             "gdpr.vendorlist.v3.retry-policy.exponential-backoff.max-delay-millis": EXPONENTIAL_BACKOFF_MAX_DELAY as String,
             "gdpr.vendorlist.v3.retry-policy.exponential-backoff.factor"          : Long.MAX_VALUE as String]
 
-    private static final Map<String, String> GDPR_EEA_COUNTRY = ["gdpr.eea-countries": "$BULGARIA.ISOAlpha2,SK,VK" as String]
+    private static final Map<String, String> GDPR_EEA_COUNTRY = ["gdpr.eea-countries": "$BULGARIA.ISOAlpha2, SK, VK" as String]
 
     protected static final String VENDOR_LIST_PATH = "/app/prebid-server/data/vendorlist-v{VendorVersion}/{VendorVersion}.json"
     protected static final String VALID_VALUE_FOR_GPC_HEADER = "1"
