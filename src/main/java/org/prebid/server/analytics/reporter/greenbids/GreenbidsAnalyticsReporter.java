@@ -25,6 +25,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBids;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsPrebidExt;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsSource;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
@@ -102,12 +103,12 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             return Future.failedFuture(new PreBidException("Bid response or auction context cannot be null"));
         }
 
-        final GreenbidsPrebidExt greenbidsImpExt = parseBidRequestExt(auctionContext.getBidRequest());
+        final GreenbidsPrebidExt greenbidsBidRequestExt = parseBidRequestExt(auctionContext.getBidRequest());
 
         final String greenbidsId = UUID.randomUUID().toString();
         final String billingId = UUID.randomUUID().toString();
 
-        if (!isSampled(greenbidsImpExt.getGreenbidsSampling(), greenbidsId)) {
+        if (!isSampled(greenbidsBidRequestExt.getGreenbidsSampling(), greenbidsId)) {
             return Future.succeededFuture();
         }
 
@@ -118,7 +119,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                     bidResponse,
                     greenbidsId,
                     billingId,
-                    greenbidsImpExt);
+                    greenbidsBidRequestExt);
             commonMessageJson = jacksonMapper.encodeToString(commonMessage);
         } catch (PreBidException e) {
             return Future.failedFuture(e);
@@ -289,15 +290,15 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final String gpidWithFallback = gpidOption.or(() -> storedRequestIdOption)
                 .orElse(adUnitCode);
 
-        final GreenbidsUnifiedCode.Source codeTypeSource = gpidOption
-                .map(gpid -> GreenbidsUnifiedCode.Source.gpidSource)
+        final GreenbidsSource codeTypeSource = gpidOption
+                .map(gpid -> GreenbidsSource.GPID_SOURCE)
                 .or(() -> storedRequestIdOption
-                        .map(storedRequestId -> GreenbidsUnifiedCode.Source.storedRequestIdSource))
-                .orElse(GreenbidsUnifiedCode.Source.adUnitCodeSource);
+                        .map(storedRequestId -> GreenbidsSource.STORED_REQUEST_ID_SOURCE))
+                .orElse(GreenbidsSource.AD_UNIT_CODE_SOURCE);
 
         final GreenbidsUnifiedCode greenbidsUnifiedCode = GreenbidsUnifiedCode.builder()
                 .value(gpidWithFallback)
-                .source(codeTypeSource)
+                .source(codeTypeSource.getValue())
                 .build();
 
         return GreenbidsAdUnit.builder()

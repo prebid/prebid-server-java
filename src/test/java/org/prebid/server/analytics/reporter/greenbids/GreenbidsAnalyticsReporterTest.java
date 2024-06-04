@@ -1,6 +1,6 @@
 package org.prebid.server.analytics.reporter.greenbids;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -39,6 +39,8 @@ import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
+import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.Collections;
@@ -58,6 +60,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class GreenbidsAnalyticsReporterTest extends VertxTest {
+
+    String EXPECTED_JSON_PATH_BANNER =
+            "src/test/java/org/prebid/server/analytics/reporter/greenbids/greenbids_analytics_payload_banner.json";
+
+    String EXPECTED_JSON_PATH_VIDEO =
+            "src/test/java/org/prebid/server/analytics/reporter/greenbids/greenbids_analytics_payload_video.json";
+
+    String EXPECTED_JSON_PATH_BANNER_FORMAT_NULL =
+            "src/test/java/org/prebid/server/analytics/reporter/greenbids/greenbids_analytics_payload_no_format.json";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -82,9 +93,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
     @Before
     public void setUp() {
-        final ObjectMapper mapper = ObjectMapperProvider.mapper();
-        jacksonMapper = new JacksonMapper(mapper);
-
         greenbidsAnalyticsProperties = GreenbidsAnalyticsProperties.builder()
                 .exploratorySamplingSplit(0.9)
                 .analyticsServerVersion("2.2.0")
@@ -99,10 +107,12 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 httpClient,
                 clock,
                 prebidVersionProvider);
+
+        jsonCaptor = ArgumentCaptor.forClass(String.class);
     }
 
     @Test
-    public void shouldReceiveValidResponseOnAuctionContextForBanner() throws JsonProcessingException {
+    public void shouldReceiveValidResponseOnAuctionContextForBanner() throws IOException {
         // given
         final Banner banner = setUpBanner();
 
@@ -123,8 +133,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
         when(mockResponse.getStatusCode()).thenReturn(202);
-
-        final ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
         when(httpClient.post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
 
@@ -135,7 +143,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final ObjectNode capturedJsonNode = (ObjectNode) mapper.readTree(capturedJson);
         capturedJsonNode.put("greenbidsId", "testGreenbidsId");
         capturedJsonNode.put("billingId", "testBillingId");
-        final ObjectNode expectedJsonNode = (ObjectNode) mapper.readTree(expectedJsonForBannerTest());
+        final ObjectNode expectedJsonNode = (ObjectNode) mapper.readTree(parseJson(EXPECTED_JSON_PATH_BANNER));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -145,7 +153,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     @Test
-    public void shouldReceiveValidResponseOnAuctionContextForVideo() throws JsonProcessingException {
+    public void shouldReceiveValidResponseOnAuctionContextForVideo() throws IOException {
         // given
         final Video video = setUpVideo();
         final Imp imp = Imp.builder()
@@ -160,8 +168,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
         when(mockResponse.getStatusCode()).thenReturn(202);
-
-        final ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
         when(httpClient.post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
 
@@ -172,7 +178,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final ObjectNode capturedJsonNode = (ObjectNode) mapper.readTree(capturedJson);
         capturedJsonNode.put("greenbidsId", "testGreenbidsId");
         capturedJsonNode.put("billingId", "testBillingId");
-        final ObjectNode expectedJsonNode = (ObjectNode) mapper.readTree(expectedJsonForVideoTest());
+        final ObjectNode expectedJsonNode = (ObjectNode) mapper.readTree(parseJson(EXPECTED_JSON_PATH_VIDEO));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -182,7 +188,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     @Test
-    public void shouldReceiveValidResponseWhenBannerFormatIsNull() throws JsonProcessingException {
+    public void shouldReceiveValidResponseWhenBannerFormatIsNull() throws IOException {
         // given
         final Banner bannerWithoutFormat = setUpBannerWithoutFormat();
         final Imp imp = Imp.builder()
@@ -197,8 +203,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
         when(mockResponse.getStatusCode()).thenReturn(202);
-
-        final ArgumentCaptor<String> jsonCaptor = ArgumentCaptor.forClass(String.class);
         when(httpClient.post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
 
@@ -209,7 +213,8 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final ObjectNode capturedJsonNode = (ObjectNode) mapper.readTree(capturedJson);
         capturedJsonNode.put("greenbidsId", "testGreenbidsId");
         capturedJsonNode.put("billingId", "testBillingId");
-        final ObjectNode expectedJsonNode = (ObjectNode) mapper.readTree(expectedJsonForBannerWithFormatNullTest());
+        final ObjectNode expectedJsonNode = (ObjectNode) mapper
+                .readTree(parseJson(EXPECTED_JSON_PATH_BANNER_FORMAT_NULL));
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -405,7 +410,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         // bid response
         final Bid bid = Bid.builder()
                 .id("bid1")
-                .impid("imp1")
+                .impid("adunitcodevalue")
                 .price(BigDecimal.valueOf(1.5))
                 .adm("<div>Ad Markup</div>")
                 .build();
@@ -423,7 +428,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         final BidRejectionTracker bidRejectionTracker = new BidRejectionTracker(
                 "seat2",
-                Set.of("imp1"),
+                Set.of("adunitcodevalue"),
                 1.0);
 
         bidRejectionTracker.reject("imp1", BidRejectionReason.NO_BID);
@@ -501,84 +506,8 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                         .build());
     }
 
-    private String expectedJsonForBannerTest() {
-        return "{"
-                + "\"version\":\"2.2.0\","
-                + "\"auctionId\":\"request1\","
-                + "\"sampling\":1.0,"
-                + "\"greenbidsId\":\"testGreenbidsId\","
-                + "\"pbuid\":\"leparisien\","
-                + "\"billingId\":\"testBillingId\","
-                + "\"adUnits\":[{"
-                + "\"code\":\"adunitcodevalue\","
-                + "\"unifiedCode\":{"
-                + "\"value\":\"gpidvalue\","
-                + "\"src\":\"gpidSource\""
-                + "},"
-                + "\"mediaTypes\":{"
-                + "\"banner\":{"
-                + "\"sizes\":[["
-                + "320,50"
-                + "]]"
-                + "}"
-                + "},"
-                + "\"bids\":[]"
-                + "}],"
-                + "\"auctionElapsed\":0"
-                + "}";
-    }
-
-    private String expectedJsonForVideoTest() {
-        return "{"
-                + "\"version\":\"2.2.0\","
-                + "\"auctionId\":\"request1\","
-                + "\"sampling\":1.0,"
-                + "\"greenbidsId\":\"testGreenbidsId\","
-                + "\"pbuid\":\"leparisien\","
-                + "\"billingId\":\"testBillingId\","
-                + "\"adUnits\":[{"
-                + "\"code\":\"adunitcodevalue\","
-                + "\"unifiedCode\":{"
-                + "\"value\":\"adunitcodevalue\","
-                + "\"src\":\"adUnitCodeSource\""
-                + "},"
-                + "\"mediaTypes\":{"
-                + "\"video\":{"
-                + "\"plcmt\":1,"
-                + "\"pos\":1"
-                + "}"
-                + "},"
-                + "\"bids\":[]"
-                + "}],"
-                + "\"auctionElapsed\":0"
-                + "}";
-    }
-
-    private String expectedJsonForBannerWithFormatNullTest() {
-        return "{"
-                + "\"version\":\"2.2.0\","
-                + "\"auctionId\":\"request1\","
-                + "\"sampling\":1.0,"
-                + "\"greenbidsId\":\"testGreenbidsId\","
-                + "\"pbuid\":\"leparisien\","
-                + "\"billingId\":\"testBillingId\","
-                + "\"adUnits\":[{"
-                + "\"code\":\"adunitcodevalue\","
-                + "\"unifiedCode\":{"
-                + "\"value\":\"adunitcodevalue\","
-                + "\"src\":\"adUnitCodeSource\""
-                + "},"
-                + "\"mediaTypes\":{"
-                + "\"banner\":{"
-                + "\"sizes\":[["
-                + "728,90"
-                + "]],"
-                + "\"pos\":1"
-                + "}"
-                + "},"
-                + "\"bids\":[]"
-                + "}],"
-                + "\"auctionElapsed\":0"
-                + "}";
+    String parseJson(String path) throws IOException {
+        JsonNode jsonNode = mapper.readTree(new File(path));
+        return mapper.writeValueAsString(jsonNode);
     }
 }
