@@ -31,7 +31,6 @@ import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -44,7 +43,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -114,7 +112,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Test
     public void shouldReceiveValidResponseOnAuctionContextForBanner() throws IOException {
         // given
-        final Banner banner = setUpBanner();
+        final Banner banner = givenBanner();
 
         final ObjectNode prebidJsonNodes = mapper.valueToTree(
                 singletonMap("gpid", TextNode.valueOf("gpidvalue")));
@@ -125,7 +123,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .banner(banner)
                 .build();
 
-        final AuctionContext auctionContext = setupAuctionContext(imp);
+        final AuctionContext auctionContext = givenAuctionContext(imp);
         event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -155,12 +153,12 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Test
     public void shouldReceiveValidResponseOnAuctionContextForVideo() throws IOException {
         // given
-        final Video video = setUpVideo();
+        final Video video = givenVideo();
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
                 .video(video)
                 .build();
-        final AuctionContext auctionContext = setupAuctionContext(imp);
+        final AuctionContext auctionContext = givenAuctionContext(imp);
         event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -190,12 +188,12 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Test
     public void shouldReceiveValidResponseWhenBannerFormatIsNull() throws IOException {
         // given
-        final Banner bannerWithoutFormat = setUpBannerWithoutFormat();
+        final Banner bannerWithoutFormat = givenBannerWithoutFormat();
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
                 .banner(bannerWithoutFormat)
                 .build();
-        final AuctionContext auctionContext = setupAuctionContext(imp);
+        final AuctionContext auctionContext = givenAuctionContext(imp);
         event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -226,7 +224,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Test
     public void shouldFailWhenBidResponseIsNull() {
         // given
-        final AuctionContext auctionContext = setUpAuctionContextWithNoBidResponse();
+        final AuctionContext auctionContext = givenAuctionContextWithNoBidResponse();
         event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -259,11 +257,11 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Test
     public void shouldFailOnEncodeException() {
         // given
-        final Banner banner = setUpBanner();
+        final Banner banner = givenBanner();
         final Imp imp = Imp.builder()
                 .banner(banner)
                 .build();
-        final AuctionContext auctionContext = setupAuctionContext(imp);
+        final AuctionContext auctionContext = givenAuctionContext(imp);
         event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -291,11 +289,11 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Test
     public void shouldFailOnUnexpectedResponseStatus() {
         // given
-        final Banner banner = setUpBanner();
+        final Banner banner = givenBanner();
         final Imp imp = Imp.builder()
                 .banner(banner)
                 .build();
-        final AuctionContext auctionContext = setupAuctionContext(imp);
+        final AuctionContext auctionContext = givenAuctionContext(imp);
         event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -323,7 +321,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         when(auctionContext.getBidRequest())
                 .thenReturn(BidRequest.builder()
                                 .id("request1")
-                                .ext(setUpExtRequest())
+                                .ext(givenExtRequest())
                                 .build());
 
         final AuctionEvent event = mock(AuctionEvent.class);
@@ -341,6 +339,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
     @Test
     public void shouldFailOnDecodingImpExtPrebid() {
+        // given
         final String prebid = "prebid";
         final String bidderKey = "bidder";
         final String optionKey = "options";
@@ -350,32 +349,22 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final Map<String, Map<String, String>> bidderValue =
                 singletonMap(
                         bidderName,
-                        doubleMap("test-host", "unknownHost", "publisher_id", "ps4"));
-
-        final ObjectMapper mapper = ObjectMapperProvider.mapper();
-        jacksonMapper = new JacksonMapper(mapper);
+                        Map.of("test-host", "unknownHost", "publisher_id", "ps4"));
 
         final ObjectNode prebidJsonNodes = mapper.valueToTree(
                 singletonMap(
                         prebid,
-                        doubleMap(optionKey, optionValue, bidderKey, bidderValue)));
+                        Map.of(optionKey, optionValue, bidderKey, bidderValue)));
 
         final Imp imp = Imp.builder()
                 .ext(prebidJsonNodes)
-                .banner(setUpBanner())
+                .banner(givenBanner())
                 .build();
-        final AuctionContext auctionContext = setupAuctionContext(imp);
+        final AuctionContext auctionContext = givenAuctionContext(imp);
         event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
-
-        target = new GreenbidsAnalyticsReporter(
-                greenbidsAnalyticsProperties,
-                jacksonMapper,
-                httpClient,
-                clock,
-                prebidVersionProvider);
 
         // when
         final Future<Void> result = target.processEvent(event);
@@ -387,14 +376,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                         + "Cannot construct instance of `org.prebid.server.proto.openrtb.ext.request.ExtOptions`");
     }
 
-    private static <K, V> Map<K, V> doubleMap(K key1, V value1, K key2, V value2) {
-        final Map<K, V> map = new HashMap<>();
-        map.put(key1, value1);
-        map.put(key2, value2);
-        return map;
-    }
-
-    private static AuctionContext setupAuctionContext(Imp imp) {
+    private static AuctionContext givenAuctionContext(Imp imp) {
         // bid request
         final Site site = Site.builder()
                 .domain("www.leparisien.fr")
@@ -404,7 +386,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .id("request1")
                 .imp(Collections.singletonList(imp))
                 .site(site)
-                .ext(setUpExtRequest())
+                .ext(givenExtRequest())
                 .build();
 
         // bid response
@@ -444,7 +426,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .build();
     }
 
-    private static Banner setUpBanner() {
+    private static Banner givenBanner() {
         final Format format = Format.builder()
                 .w(320)
                 .h(50)
@@ -457,7 +439,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .build();
     }
 
-    private static Banner setUpBannerWithoutFormat() {
+    private static Banner givenBannerWithoutFormat() {
         return Banner.builder()
                 .pos(1)
                 .format(null)
@@ -466,14 +448,14 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .build();
     }
 
-    private static Video setUpVideo() {
+    private static Video givenVideo() {
         return Video.builder()
                 .pos(1)
                 .plcmt(1)
                 .build();
     }
 
-    private static AuctionContext setUpAuctionContextWithNoBidResponse() {
+    private static AuctionContext givenAuctionContextWithNoBidResponse() {
         // bid request
         final Site site = Site.builder()
                 .domain("www.leparisien.fr")
@@ -482,7 +464,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final BidRequest bidRequest = BidRequest.builder()
                 .id("request1")
                 .site(site)
-                .ext(setUpExtRequest())
+                .ext(givenExtRequest())
                 .build();
 
         return AuctionContext.builder()
@@ -491,7 +473,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .build();
     }
 
-    private static ExtRequest setUpExtRequest() {
+    private static ExtRequest givenExtRequest() {
         final ObjectNode greenbidsNode = new ObjectMapper().createObjectNode();
         greenbidsNode.put("pbuid", "leparisien");
         greenbidsNode.put("greenbidsSampling", 1.0);
