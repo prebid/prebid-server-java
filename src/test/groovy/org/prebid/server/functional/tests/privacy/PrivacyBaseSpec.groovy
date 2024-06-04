@@ -98,7 +98,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
     @Shared
     protected final PrebidServerService privacyPbsService = pbsServiceFactory.getService(GDPR_VENDOR_LIST_CONFIG +
-            GENERIC_COOKIE_SYNC_CONFIG + GENERIC_VENDOR_CONFIG + RETRY_POLICY_EXPONENTIAL_CONFIG)
+            ["gdpr.eea-countries": "BG,SK,VK"] + GENERIC_COOKIE_SYNC_CONFIG + GENERIC_VENDOR_CONFIG + RETRY_POLICY_EXPONENTIAL_CONFIG)
 
     protected static final Map<String, String> PBS_CONFIG = OPENX_CONFIG + OPENX_COOKIE_SYNC_CONFIG +
             GENERIC_COOKIE_SYNC_CONFIG + GDPR_VENDOR_LIST_CONFIG + SETTING_CONFIG + GENERIC_VENDOR_CONFIG
