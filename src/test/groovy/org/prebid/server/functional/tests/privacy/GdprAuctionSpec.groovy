@@ -380,7 +380,6 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Gpdr bid request with override country"
         def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString).tap {
-            //BULGARIA(bg) present in host config eea-country
             device.geo.country = BULGARIA
         }
 
@@ -409,7 +408,6 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Gpdr bid request with override country"
         def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString).tap {
-            //USA(us) doesn't present in host config eea-country
             device.geo.country = USA
         }
 
@@ -438,7 +436,6 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         and: "Gpdr bid request with override country"
         def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString).tap {
-            //USA(us) doesn't present in host config eea-country
             device.geo.country = USA
         }
 
