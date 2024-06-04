@@ -163,7 +163,27 @@ class BidExpResponseSpec extends BaseSpec {
         assert response.seatbid.bid.first.exp == [accountCacheTtl]
     }
 
-    def "PBS auction should resolve exp from account config for video request when it have value"() {
+    def "PBS auction shouldn't resolve exp from account videoCacheTtl config when bidRequest type doesn't matching"() {
+        given: "default bidRequest"
+        def bidRequest = BidRequest.defaultBidRequest
+
+        and: "Account in the DB"
+        def auctionConfig = new AccountAuctionConfig(videoCacheTtl: PBSUtils.randomNumber)
+        def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
+        accountDao.save(account)
+
+        and: "Set bidder response without exp"
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        bidder.setResponse(bidRequest.id, bidResponse)
+
+        when: "PBS processes auction request"
+        def response = defaultPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bid response shouldn't contain exp data"
+        assert !response.seatbid.first.bid.first.exp
+    }
+
+    def "PBS auction should resolve exp from account videoCacheTtl config for video request when it have value"() {
         given: "default bidRequest"
         def bidRequest = BidRequest.defaultVideoRequest
 
@@ -184,8 +204,13 @@ class BidExpResponseSpec extends BaseSpec {
         assert response.seatbid.bid.first.exp == [accountCacheTtl]
     }
 
-    def "PBS auction shouldn't resolve exp from account config when bidRequest type doesn't matching"() {
-        given: "Account in the DB"
+    def "PBS auction should resolve exp from account bannerCacheTtl config for video request when it have value"() {
+        given: "default bidRequest"
+        def bidRequest = BidRequest.defaultVideoRequest
+
+        and: "Account in the DB"
+        def accountCacheTtl = PBSUtils.randomNumber
+        def auctionConfig = new AccountAuctionConfig(bannerCacheTtl: accountCacheTtl)
         def account = new Account(uuid: bidRequest.accountId, config: new AccountConfig(auction: auctionConfig))
         accountDao.save(account)
 
@@ -196,13 +221,8 @@ class BidExpResponseSpec extends BaseSpec {
         when: "PBS processes auction request"
         def response = defaultPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Bid response shouldn't contain exp data"
-        assert !response.seatbid.first.bid.first.exp
-
-        where:
-        bidRequest                     | auctionConfig
-        BidRequest.defaultBidRequest   | new AccountAuctionConfig(videoCacheTtl: PBSUtils.randomNumber)
-        BidRequest.defaultVideoRequest | new AccountAuctionConfig(bannerCacheTtl: PBSUtils.randomNumber)
+        then: "Bid response should contain exp data"
+        assert response.seatbid.bid.first.exp == [accountCacheTtl]
     }
 
     def "PBS auction should resolve exp from global banner config for banner request"() {
