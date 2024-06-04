@@ -7,6 +7,7 @@
 - [ ] bugfix
 - [ ] documentation
 - [ ] configuration
+- [ ] tech debt (test coverage, refactorings, etc.)
 
 ### ✨ What's the context?
 
