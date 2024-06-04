@@ -319,12 +319,9 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(formats -> formats.stream()
                         .map(format -> List.of(format.getW(), format.getH()))
                         .collect(Collectors.toList()))
-                .orElseGet(() -> {
-                    if (banner.getW() != null && banner.getH() != null) {
-                        return List.of(List.of(banner.getW(), banner.getH()));
-                    }
-                    return Collections.emptyList();
-                });
+                .orElse(banner.getW() != null && banner.getH() != null
+                        ? List.of(List.of(banner.getW(), banner.getH()))
+                        : Collections.emptyList());
 
         return ExtBanner.builder()
                 .sizes(sizes)
