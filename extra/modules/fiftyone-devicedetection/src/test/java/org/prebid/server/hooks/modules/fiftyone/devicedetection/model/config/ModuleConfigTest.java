@@ -9,7 +9,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class ModuleConfigTest {
     @Test
     public void shouldReturnAccountFilter() {
-
         // given
         final AccountFilter accountFilter = new AccountFilter();
         accountFilter.setAllowList(Collections.singletonList("raccoon"));
@@ -24,7 +23,6 @@ public class ModuleConfigTest {
 
     @Test
     public void shouldReturnDataFile() {
-
         // given
         final DataFile dataFile = new DataFile();
         dataFile.setPath("B:\\archive");
@@ -39,7 +37,6 @@ public class ModuleConfigTest {
 
     @Test
     public void shouldReturnPerformanceConfig() {
-
         // given
         final PerformanceConfig performanceConfig = new PerformanceConfig();
         performanceConfig.setProfile("SilentHunter");
@@ -54,7 +51,6 @@ public class ModuleConfigTest {
 
     @Test
     public void shouldHaveDescription() {
-
         // given
         final DataFile dataFile = new DataFile();
         dataFile.setPath("Z:\\virtual-drive");

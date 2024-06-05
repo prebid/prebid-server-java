@@ -3,10 +3,12 @@ package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcu
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Device;
 import fiftyone.devicedetection.shared.DeviceData;
+import fiftyone.pipeline.core.data.FlowData;
 import fiftyone.pipeline.core.flowelements.Pipeline;
 import fiftyone.pipeline.engines.data.AspectPropertyValue;
 import fiftyone.pipeline.engines.exceptions.NoValueException;
 import org.junit.Test;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.EnrichmentResult;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
@@ -21,13 +23,10 @@ import static org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.D
 import static org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher.getDeviceId;
 
 public class DevicePatchPlannerImpTest {
-
     private static <T> AspectPropertyValue<T> mockValue(T value) {
-
-        return new AspectPropertyValue<T>() {
+        return new AspectPropertyValue<>() {
             @Override
             public boolean hasValue() {
-
                 return true;
             }
 
@@ -38,19 +37,16 @@ public class DevicePatchPlannerImpTest {
 
             @Override
             public void setValue(T t) {
-
                 throw new UnsupportedOperationException();
             }
 
             @Override
             public String getNoValueMessage() {
-
                 throw new UnsupportedOperationException();
             }
 
             @Override
             public void setNoValueMessage(String s) {
-
                 throw new UnsupportedOperationException();
             }
         };
@@ -59,19 +55,19 @@ public class DevicePatchPlannerImpTest {
     private static EnrichmentResult patchDevice(
             Device device,
             DeviceData deviceData) throws Exception {
-
-        return new DeviceEnricher(mock(Pipeline.class)) {
-            @Override
-            public EnrichmentResult patchDevice(Device device, DeviceData deviceData) {
-
-                return super.patchDevice(device, deviceData);
-            }
-        }.patchDevice(device, deviceData);
+        final Pipeline pipeline = mock(Pipeline.class);
+        final FlowData flowData = mock(FlowData.class);
+        when(pipeline.createFlowData()).thenReturn(flowData);
+        when(flowData.get(DeviceData.class)).thenReturn(deviceData);
+        final DeviceEnricher deviceEnricher = new DeviceEnricher(pipeline);
+        final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
+                .deviceUA("fake-UserAgent")
+                .build();
+        return deviceEnricher.populateDeviceInfo(device, collectedEvidence);
     }
 
     @Test
     public void shouldReturnAllPropertiesWhenDeviceIsEmpty() throws Exception {
-
         // given
         final Device device = Device.builder().build();
 
@@ -85,7 +81,6 @@ public class DevicePatchPlannerImpTest {
 
     @Test
     public void shouldReturnNullWhenDeviceIsFull() throws Exception {
-
         // given and when
         final EnrichmentResult result
                 = patchDevice(buildCompleteDevice(), buildCompleteDeviceData());
@@ -96,7 +91,6 @@ public class DevicePatchPlannerImpTest {
 
     @Test
     public void shouldReturnDeviceTypePatchWhenItIsMissing() throws Exception {
-
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .devicetype(null)
@@ -113,7 +107,6 @@ public class DevicePatchPlannerImpTest {
 
     @Test
     public void shouldReturnMakePatchWhenItIsMissing() throws Exception {
-
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .make(null)
@@ -130,7 +123,6 @@ public class DevicePatchPlannerImpTest {
 
     @Test
     public void shouldReturnHWNameForModelIfHWModelIsMissing() throws Exception {
-
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .model(null)
@@ -151,7 +143,6 @@ public class DevicePatchPlannerImpTest {
 
     @Test
     public void shouldReturnModelPatchWhenItIsMissing() throws Exception {
-
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .model(null)
@@ -168,7 +159,6 @@ public class DevicePatchPlannerImpTest {
 
     @Test
     public void shouldReturnOsPatchWhenItIsMissing() throws Exception {
-
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .os(null)
@@ -185,7 +175,6 @@ public class DevicePatchPlannerImpTest {
 
     @Test
     public void shouldReturnOsvPatchWhenItIsMissing() throws Exception {
-
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .osv(null)
@@ -202,7 +191,6 @@ public class DevicePatchPlannerImpTest {
 
     @Test
     public void shouldReturnHPatchWhenItIsMissing() throws Exception {
-
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .h(null)
@@ -219,7 +207,6 @@ public class DevicePatchPlannerImpTest {
 
     @Test
     public void shouldReturnWPatchWhenItIsMissing() throws Exception {
-
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .w(null)
@@ -236,7 +223,6 @@ public class DevicePatchPlannerImpTest {
 
     @Test
     public void shouldReturnPpiPatchWhenItIsMissing() throws Exception {
-
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .ppi(null)
@@ -253,7 +239,6 @@ public class DevicePatchPlannerImpTest {
 
     @Test
     public void shouldReturnPXRatioPatchWhenItIsMissing() throws Exception {
-
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .pxratio(null)
@@ -270,7 +255,6 @@ public class DevicePatchPlannerImpTest {
 
     @Test
     public void shouldReturnDeviceIDPatchWhenItIsMissing() throws Exception {
-
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .ext(null)
@@ -286,7 +270,6 @@ public class DevicePatchPlannerImpTest {
     }
 
     private static Device buildCompleteDevice() {
-
         final Device device = Device.builder()
                 .devicetype(1)
                 .make("StarFleet")
@@ -304,7 +287,6 @@ public class DevicePatchPlannerImpTest {
     }
 
     private static DeviceData buildCompleteDeviceData() {
-
         final DeviceData deviceData = mock(DeviceData.class);
         when(deviceData.getDeviceType()).thenReturn(mockValue("Mobile"));
         when(deviceData.getHardwareVendor()).thenReturn(mockValue("StarFleet"));

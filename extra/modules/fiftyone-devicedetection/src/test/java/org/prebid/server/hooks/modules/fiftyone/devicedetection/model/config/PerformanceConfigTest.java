@@ -7,7 +7,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class PerformanceConfigTest {
     @Test
     public void shouldReturnProfile() {
-
         // given
         final String profile = "TurtleSlow";
 
@@ -21,7 +20,6 @@ public class PerformanceConfigTest {
 
     @Test
     public void shouldReturnConcurrency() {
-
         // given
         final int concurrency = 5438;
 
@@ -35,7 +33,6 @@ public class PerformanceConfigTest {
 
     @Test
     public void shouldReturnDifference() {
-
         // given
         final int difference = 5438;
 
@@ -49,7 +46,6 @@ public class PerformanceConfigTest {
 
     @Test
     public void shouldReturnAllowUnmatched() {
-
         // given
         final boolean allowUnmatched = true;
 
@@ -63,7 +59,6 @@ public class PerformanceConfigTest {
 
     @Test
     public void shouldReturnDrift() {
-
         // given
         final int drift = 8624;
 
@@ -77,7 +72,6 @@ public class PerformanceConfigTest {
 
     @Test
     public void shouldHaveDescription() {
-
         // given and when
         final PerformanceConfig performanceConfig = new PerformanceConfig();
         performanceConfig.setProfile("LightningFast");

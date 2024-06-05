@@ -19,7 +19,6 @@ import static org.mockito.Mockito.when;
 public class FiftyOneDeviceDetectionEntrypointHookTest {
     @Test
     public void codeShouldStartWithModuleCode() {
-
         // given
         final EntrypointHook hook = new FiftyOneDeviceDetectionEntrypointHook();
 
@@ -29,7 +28,6 @@ public class FiftyOneDeviceDetectionEntrypointHookTest {
 
     @Test
     public void shouldReturnPatchedModule() {
-
         // given and when
         final EntrypointHook hook = new FiftyOneDeviceDetectionEntrypointHook();
         final EntrypointPayload entrypointPayload = mock(EntrypointPayload.class);
@@ -43,7 +41,6 @@ public class FiftyOneDeviceDetectionEntrypointHookTest {
 
     @Test
     public void shouldAddRawRequestHeaders() {
-
         // given
         final EntrypointPayload entrypointPayload = mock(EntrypointPayload.class);
         final String key = "ua";

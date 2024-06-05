@@ -14,7 +14,6 @@ public class AccountFilterTest {
 
     @Test
     public void shouldReturnAllowList() {
-
         // given
         final AccountFilter accountFilter = new AccountFilter();
         accountFilter.setAllowList(TEST_ALLOW_LIST);
@@ -25,7 +24,6 @@ public class AccountFilterTest {
 
     @Test
     public void shouldHaveDescription() {
-
         // given
         final AccountFilter accountFilter = new AccountFilter();
         accountFilter.setAllowList(TEST_ALLOW_LIST);

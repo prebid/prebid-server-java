@@ -1,45 +1,51 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcutionRequest;
 
+import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import org.junit.Test;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.ModuleContext;
+import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 
 import java.util.HashMap;
 import java.util.function.BiFunction;
-import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ModuleContextPatcherImpTest {
     private static BiFunction<
             ModuleContext,
-            Consumer<CollectedEvidence.CollectedEvidenceBuilder>,
+            Device,
             ModuleContext> buildPatcher() throws Exception {
-
-        return new FiftyOneDeviceDetectionRawAuctionRequestHook(
+        final RawAuctionRequestHook hook = new FiftyOneDeviceDetectionRawAuctionRequestHook(
                 mock(ModuleConfig.class),
                 mock(DeviceEnricher.class)
-        ) {
-            @Override
-            public ModuleContext addEvidenceToContext(
-                    ModuleContext moduleContext,
-                    Consumer<CollectedEvidence.CollectedEvidenceBuilder> evidenceInjector) {
-
-                return super.addEvidenceToContext(moduleContext, evidenceInjector);
-            }
-        }
-            ::addEvidenceToContext;
+        );
+        return (moduleContext, device) -> {
+            final BidRequest bidRequest = BidRequest.builder()
+                    .device(device)
+                    .build();
+            final AuctionRequestPayload auctionRequestPayload = mock(AuctionRequestPayload.class);
+            when(auctionRequestPayload.bidRequest()).thenReturn(bidRequest);
+            final AuctionInvocationContext invocationContext = mock(AuctionInvocationContext.class);
+            when(invocationContext.moduleContext()).thenReturn(moduleContext);
+            return (ModuleContext) hook.call(auctionRequestPayload, invocationContext)
+                    .result()
+                    .moduleContext();
+        };
     }
 
     @Test
     public void shouldMakeNewContextIfNullIsPassedIn() throws Exception {
-
         // given and when
-        final ModuleContext newContext = buildPatcher().apply(null, b -> { });
+        final ModuleContext newContext = buildPatcher().apply(null, null);
 
         // then
         assertThat(newContext).isNotNull();
@@ -48,11 +54,10 @@ public class ModuleContextPatcherImpTest {
 
     @Test
     public void shouldMakeNewEvidenceIfNoneWasPresent() throws Exception {
-
         // given and when
         final ModuleContext newContext = buildPatcher().apply(
                 ModuleContext.builder().build(),
-                b -> { });
+                null);
 
         // then
         assertThat(newContext).isNotNull();
@@ -61,20 +66,19 @@ public class ModuleContextPatcherImpTest {
 
     @Test
     public void shouldMergeEvidences() throws Exception {
-
         // given and when
         final String ua = "mad-hatter";
         final HashMap<String, String> sua = new HashMap<>();
         final ModuleContext existingContext = ModuleContext.builder()
                 .collectedEvidence(CollectedEvidence.builder()
-                        .deviceUA(ua)
+                        .secureHeaders(sua)
                         .build())
                 .build();
 
         // when
         final ModuleContext newContext = buildPatcher().apply(
                 existingContext,
-                builder -> builder.secureHeaders(sua));
+                Device.builder().ua(ua).build());
 
         // then
         assertThat(newContext).isNotNull();

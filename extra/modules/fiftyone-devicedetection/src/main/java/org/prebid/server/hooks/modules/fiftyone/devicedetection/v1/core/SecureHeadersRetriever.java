@@ -11,12 +11,10 @@ import java.util.Map;
 import jakarta.annotation.Nonnull;
 
 public class SecureHeadersRetriever {
-
     private SecureHeadersRetriever() {
     }
 
     public static Map<String, String> retrieveFrom(@Nonnull UserAgent userAgent) {
-
         final Map<String, String> secureHeaders = new HashMap<>();
 
         final List<BrandVersion> versions = userAgent.getBrowsers();
@@ -67,12 +65,10 @@ public class SecureHeadersRetriever {
     }
 
     private static String toHeaderSafe(String rawValue) {
-
         return '"' + rawValue.replace("\"", "\\\"") + '"';
     }
 
     private static String brandListToString(List<BrandVersion> versions) {
-
         final StringBuilder stringBuilder = new StringBuilder();
         for (BrandVersion nextBrandVersion : versions) {
             final String brandName = nextBrandVersion.getBrand();
@@ -91,7 +87,6 @@ public class SecureHeadersRetriever {
     }
 
     private static void appendVersionList(StringBuilder stringBuilder, List<String> versions) {
-
         if (CollectionUtils.isEmpty(versions)) {
             return;
         }

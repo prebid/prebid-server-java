@@ -1,11 +1,17 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.rawAcutionRequest;
 
+import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.BrandVersion;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.UserAgent;
 import org.junit.Test;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.ModuleContext;
+import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
+import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
+import org.prebid.server.hooks.v1.auction.RawAuctionRequestHook;
 
 import java.util.HashMap;
 import java.util.List;
@@ -14,28 +20,33 @@ import java.util.function.BiConsumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class UserAgentEvidenceConverterImpTest {
-
     private static BiConsumer<UserAgent, Map<String, String>> buildConverter() throws Exception {
-
-        return (userAgent, evidence) -> evidence.putAll(
-                new FiftyOneDeviceDetectionRawAuctionRequestHook(
-                    mock(ModuleConfig.class),
-                    mock(DeviceEnricher.class)) {
-
-                    @Override
-                    public Map<String, String> convertSecureHeaders(UserAgent userAgent) {
-
-                        return super.convertSecureHeaders(userAgent);
-                    }
-                }
-                .convertSecureHeaders(userAgent));
+        final RawAuctionRequestHook hook = new FiftyOneDeviceDetectionRawAuctionRequestHook(
+                mock(ModuleConfig.class),
+                mock(DeviceEnricher.class)
+        );
+        final AuctionRequestPayload payload = mock(AuctionRequestPayload.class);
+        final AuctionInvocationContext auctionInvocationContext = mock(AuctionInvocationContext.class);
+        return (userAgent, evidence) -> {
+            final BidRequest bidRequest = BidRequest.builder()
+                    .device(Device.builder()
+                            .sua(userAgent)
+                            .build())
+                    .build();
+            when(payload.bidRequest()).thenReturn(bidRequest);
+            evidence.putAll(((ModuleContext) hook.call(payload, auctionInvocationContext)
+                    .result()
+                    .moduleContext())
+                    .collectedEvidence()
+                    .secureHeaders());
+        };
     }
 
     @Test
     public void shouldReturnEmptyMapOnEmptyUserAgent() throws Exception {
-
         // given
         final UserAgent userAgent = UserAgent.builder().build();
 
@@ -50,7 +61,6 @@ public class UserAgentEvidenceConverterImpTest {
 
     @Test
     public void shouldAddBrowsers() throws Exception {
-
         // given
         final UserAgent userAgent = UserAgent.builder()
                 .browsers(List.of(
@@ -74,7 +84,6 @@ public class UserAgentEvidenceConverterImpTest {
 
     @Test
     public void shouldAddPlatform() throws Exception {
-
         final UserAgent userAgent = UserAgent.builder()
                 .platform(new BrandVersion("Cyborg", List.of("19", "5"), null))
                 .build();
@@ -94,7 +103,6 @@ public class UserAgentEvidenceConverterImpTest {
 
     @Test
     public void shouldAddIsMobile() throws Exception {
-
         final UserAgent userAgent = UserAgent.builder()
                 .mobile(5)
                 .build();
@@ -112,7 +120,6 @@ public class UserAgentEvidenceConverterImpTest {
 
     @Test
     public void shouldAddArchitecture() throws Exception {
-
         final UserAgent userAgent = UserAgent.builder()
                 .architecture("LEG")
                 .build();
@@ -130,7 +137,6 @@ public class UserAgentEvidenceConverterImpTest {
 
     @Test
     public void shouldAddtBitness() throws Exception {
-
         final UserAgent userAgent = UserAgent.builder()
                 .bitness("doubtful")
                 .build();
@@ -148,7 +154,6 @@ public class UserAgentEvidenceConverterImpTest {
 
     @Test
     public void shouldAddModel() throws Exception {
-
         final UserAgent userAgent = UserAgent.builder()
                 .model("reflectivity")
                 .build();

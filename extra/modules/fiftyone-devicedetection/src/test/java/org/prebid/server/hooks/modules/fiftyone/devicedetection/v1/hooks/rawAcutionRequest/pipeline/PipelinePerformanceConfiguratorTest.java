@@ -4,10 +4,11 @@ import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import fiftyone.pipeline.engines.Constants;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFile;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFileUpdate;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.PerformanceConfig;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.PipelineBuilder;
-
-import java.util.function.BiConsumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -16,34 +17,26 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 public class PipelinePerformanceConfiguratorTest {
-    private static BiConsumer<DeviceDetectionOnPremisePipelineBuilder,
-            PerformanceConfig> makeConfigurator() throws Exception {
-
-        return new PipelineBuilder() {
-            @Override
-            public void applyPerformanceOptions(
-                    DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
-                    PerformanceConfig performanceConfig) {
-
-                super.applyPerformanceOptions(pipelineBuilder, performanceConfig);
-            }
-        }
-            ::applyPerformanceOptions;
+    private static void applyPerformanceOptions(
+            DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
+            PerformanceConfig performanceConfig) throws Exception {
+        final ModuleConfig moduleConfig = new ModuleConfig();
+        moduleConfig.setDataFile(new DataFile());
+        moduleConfig.getDataFile().setUpdate(new DataFileUpdate());
+        moduleConfig.setPerformance(performanceConfig);
+        new PipelineBuilder(pipelineBuilder).build(moduleConfig);
     }
 
     @Test
     public void shouldIgnoreUnknownProfile() throws Exception {
-
         // given
         final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-        final BiConsumer<DeviceDetectionOnPremisePipelineBuilder, PerformanceConfig> configurator
-                = makeConfigurator();
 
         final PerformanceConfig config = new PerformanceConfig();
         config.setProfile("ghost");
 
         // when
-        configurator.accept(builder, config);
+        applyPerformanceOptions(builder, config);
 
         // then
         verify(builder, never()).setPerformanceProfile(any());
@@ -51,17 +44,14 @@ public class PipelinePerformanceConfiguratorTest {
 
     @Test
     public void shouldIgnoreEmptyProfile() throws Exception {
-
         // given
         final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-        final BiConsumer<DeviceDetectionOnPremisePipelineBuilder, PerformanceConfig> configurator
-                = makeConfigurator();
 
         final PerformanceConfig config = new PerformanceConfig();
         config.setProfile("");
 
         // when
-        configurator.accept(builder, config);
+        applyPerformanceOptions(builder, config);
 
         // then
         verify(builder, never()).setPerformanceProfile(any());
@@ -69,11 +59,8 @@ public class PipelinePerformanceConfiguratorTest {
 
     @Test
     public void shouldAssignMaxPerformance() throws Exception {
-
         // given
         final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-        final BiConsumer<DeviceDetectionOnPremisePipelineBuilder, PerformanceConfig> configurator
-                = makeConfigurator();
 
         final PerformanceConfig config = new PerformanceConfig();
         config.setProfile("mAxperFORMance");
@@ -82,7 +69,7 @@ public class PipelinePerformanceConfiguratorTest {
                 = ArgumentCaptor.forClass(Constants.PerformanceProfiles.class);
 
         // when
-        configurator.accept(builder, config);
+        applyPerformanceOptions(builder, config);
 
         // then
         verify(builder).setPerformanceProfile(profilesArgumentCaptor.capture());
@@ -91,11 +78,8 @@ public class PipelinePerformanceConfiguratorTest {
 
     @Test
     public void shouldAssignConcurrency() throws Exception {
-
         // given
         final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-        final BiConsumer<DeviceDetectionOnPremisePipelineBuilder, PerformanceConfig> configurator
-                = makeConfigurator();
 
         final PerformanceConfig config = new PerformanceConfig();
         config.setConcurrency(398476);
@@ -103,7 +87,7 @@ public class PipelinePerformanceConfiguratorTest {
         final ArgumentCaptor<Integer> concurrenciesArgumentCaptor = ArgumentCaptor.forClass(Integer.class);
 
         // when
-        configurator.accept(builder, config);
+        applyPerformanceOptions(builder, config);
 
         // then
         verify(builder).setConcurrency(concurrenciesArgumentCaptor.capture());
@@ -112,11 +96,8 @@ public class PipelinePerformanceConfiguratorTest {
 
     @Test
     public void shouldAssignDifference() throws Exception {
-
         // given
         final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-        final BiConsumer<DeviceDetectionOnPremisePipelineBuilder, PerformanceConfig> configurator
-                = makeConfigurator();
 
         final PerformanceConfig config = new PerformanceConfig();
         config.setDifference(498756);
@@ -124,7 +105,7 @@ public class PipelinePerformanceConfiguratorTest {
         final ArgumentCaptor<Integer> profilesArgumentCaptor = ArgumentCaptor.forClass(Integer.class);
 
         // when
-        configurator.accept(builder, config);
+        applyPerformanceOptions(builder, config);
 
         // then
         verify(builder).setDifference(profilesArgumentCaptor.capture());
@@ -133,11 +114,8 @@ public class PipelinePerformanceConfiguratorTest {
 
     @Test
     public void shouldAssignAllowUnmatched() throws Exception {
-
         // given
         final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-        final BiConsumer<DeviceDetectionOnPremisePipelineBuilder, PerformanceConfig> configurator
-                = makeConfigurator();
 
         final PerformanceConfig config = new PerformanceConfig();
         config.setAllowUnmatched(true);
@@ -145,7 +123,7 @@ public class PipelinePerformanceConfiguratorTest {
         final ArgumentCaptor<Boolean> allowUnmatchedArgumentCaptor = ArgumentCaptor.forClass(Boolean.class);
 
         // when
-        configurator.accept(builder, config);
+        applyPerformanceOptions(builder, config);
 
         // then
         verify(builder).setAllowUnmatched(allowUnmatchedArgumentCaptor.capture());
@@ -154,11 +132,8 @@ public class PipelinePerformanceConfiguratorTest {
 
     @Test
     public void shouldAssignDrift() throws Exception {
-
         // given
         final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-        final BiConsumer<DeviceDetectionOnPremisePipelineBuilder, PerformanceConfig> configurator
-                = makeConfigurator();
 
         final PerformanceConfig config = new PerformanceConfig();
         config.setDrift(1348);
@@ -166,7 +141,7 @@ public class PipelinePerformanceConfiguratorTest {
         final ArgumentCaptor<Integer> driftsArgumentCaptor = ArgumentCaptor.forClass(Integer.class);
 
         // when
-        configurator.accept(builder, config);
+        applyPerformanceOptions(builder, config);
 
         // then
         verify(builder).setDrift(driftsArgumentCaptor.capture());

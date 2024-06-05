@@ -12,12 +12,10 @@ import org.prebid.server.hooks.v1.entrypoint.EntrypointPayload;
 import io.vertx.core.Future;
 
 public class FiftyOneDeviceDetectionEntrypointHook implements EntrypointHook {
-
     private static final String CODE = "fiftyone-devicedetection-entrypoint-hook";
 
     @Override
     public String code() {
-
         return CODE;
     }
 
@@ -25,7 +23,6 @@ public class FiftyOneDeviceDetectionEntrypointHook implements EntrypointHook {
     public Future<InvocationResult<EntrypointPayload>> call(
             EntrypointPayload payload,
             InvocationContext invocationContext) {
-
         return Future.succeededFuture(
                 InvocationResultImpl.<EntrypointPayload>builder()
                         .status(InvocationStatus.success)
