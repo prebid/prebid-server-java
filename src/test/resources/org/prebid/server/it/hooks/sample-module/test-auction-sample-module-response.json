@@ -113,8 +113,8 @@
                       "invocationresults": [
                         {
                           "hookid": {
-                            "module_code": "sample-it-module",
-                            "hook_impl_code": "entrypoint"
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "entrypoint"
                           },
                           "status": "success",
                           "action": "update"
@@ -126,7 +126,7 @@
               ]
             },
             {
-              "stage": "raw_auction_request",
+              "stage": "raw-auction-request",
               "outcomes": [
                 {
                   "entity": "auction-request",
@@ -135,8 +135,8 @@
                       "invocationresults": [
                         {
                           "hookid": {
-                            "module_code": "sample-it-module",
-                            "hook_impl_code": "raw-auction-request"
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "raw-auction-request"
                           },
                           "status": "success",
                           "action": "update",
@@ -174,7 +174,7 @@
               ]
             },
             {
-              "stage": "processed_auction_request",
+              "stage": "processed-auction-request",
               "outcomes": [
                 {
                   "entity": "auction-request",
@@ -183,8 +183,8 @@
                       "invocationresults": [
                         {
                           "hookid": {
-                            "module_code": "sample-it-module",
-                            "hook_impl_code": "processed-auction-request"
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "processed-auction-request"
                           },
                           "status": "success",
                           "action": "update"
@@ -196,7 +196,7 @@
               ]
             },
             {
-              "stage": "bidder_request",
+              "stage": "bidder-request",
               "outcomes": [
                 {
                   "entity": "rubicon",
@@ -205,8 +205,8 @@
                       "invocationresults": [
                         {
                           "hookid": {
-                            "module_code": "sample-it-module",
-                            "hook_impl_code": "bidder-request"
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "bidder-request"
                           },
                           "status": "success",
                           "action": "update"
@@ -218,7 +218,7 @@
               ]
             },
             {
-              "stage": "raw_bidder_response",
+              "stage": "raw-bidder-response",
               "outcomes": [
                 {
                   "entity": "rubicon",
@@ -227,8 +227,8 @@
                       "invocationresults": [
                         {
                           "hookid": {
-                            "module_code": "sample-it-module",
-                            "hook_impl_code": "raw-bidder-response"
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "raw-bidder-response"
                           },
                           "status": "success",
                           "action": "update"
@@ -240,7 +240,7 @@
               ]
             },
             {
-              "stage": "processed_bidder_response",
+              "stage": "processed-bidder-response",
               "outcomes": [
                 {
                   "entity": "rubicon",
@@ -249,8 +249,8 @@
                       "invocationresults": [
                         {
                           "hookid": {
-                            "module_code": "sample-it-module",
-                            "hook_impl_code": "processed-bidder-response"
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "processed-bidder-response"
                           },
                           "status": "success",
                           "action": "update"
@@ -262,7 +262,7 @@
               ]
             },
             {
-              "stage": "auction_response",
+              "stage": "auction-response",
               "outcomes": [
                 {
                   "entity": "auction-response",
@@ -271,8 +271,8 @@
                       "invocationresults": [
                         {
                           "hookid": {
-                            "module_code": "sample-it-module",
-                            "hook_impl_code": "auction-response"
+                            "module-code": "sample-it-module",
+                            "hook-impl-code": "auction-response"
                           },
                           "status": "success",
                           "action": "update"
