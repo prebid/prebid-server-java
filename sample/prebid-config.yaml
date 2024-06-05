@@ -10,8 +10,13 @@ adapters:
     enabled: true
   rubicon:
     enabled: true
+  amt:
+    enabled: ${AMT_ADAPTER_ENABLED}
 metrics:
-  prefix: prebid
+  log:
+    enabled: true
+    name: METRICS
+    interval: 30
 cache:
   scheme: http
   host: localhost
