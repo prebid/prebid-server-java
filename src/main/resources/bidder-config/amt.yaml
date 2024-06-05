@@ -1,0 +1,17 @@
+adapters:
+  amt:
+    endpoint: ${AMT_BIDDING_SERVER_SIMULATOR_ENDPOINT}
+    meta-info:
+      maintainer-email: maintainer@example.com
+      app-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      site-media-types:
+        - banner
+        - video
+        - native
+        - audio
+      supported-vendors:
+      vendor-id: 0

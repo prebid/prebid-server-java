@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "AWS AMT Solutions Adapter Params",
+  "description": "A schema which validates params accepted by the AWS AMT Solutions adapter",
+  "type": "object",
+  "properties": {
+    "placementId": {
+      "type": "string",
+      "description": "Placement ID",
+      "minLength": 1
+    },
+    "bidFloor": {
+      "type": "number",
+      "description": "The minimum CPM price in USD.",
+      "minimum": 0
+    },
+    "bidCeiling": {
+      "type": "number",
+      "description": "The maximum CPM price in USD.",
+      "maximum": 100000
+    }
+  },
+  "required": [
+    "placementId"
+  ]
+}
