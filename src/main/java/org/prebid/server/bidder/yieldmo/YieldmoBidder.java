@@ -15,7 +15,9 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.HttpRequest;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.Result;
+import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.bidder.yieldmo.proto.YieldmoBidExt;
 import org.prebid.server.bidder.yieldmo.proto.YieldmoImpExt;
 import org.prebid.server.exception.PreBidException;
@@ -27,6 +29,7 @@ import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -39,12 +42,17 @@ public class YieldmoBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpYieldmo>> YIELDMO_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
+    private static final String USD_CURRENCY = "USD";
 
     private final String endpointUrl;
+    private final CurrencyConversionService currencyConversionService;
     private final JacksonMapper mapper;
 
-    public YieldmoBidder(String endpointUrl, JacksonMapper mapper) {
+    public YieldmoBidder(String endpointUrl,
+            CurrencyConversionService currencyConversionService,
+            JacksonMapper mapper) {
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpointUrl));
+        this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -56,7 +64,7 @@ public class YieldmoBidder implements Bidder<BidRequest> {
         for (Imp imp : bidRequest.getImp()) {
             try {
                 final ExtImpYieldmo impExt = parseImpExt(imp);
-                modifiedImps.add(modifyImp(imp, impExt));
+                modifiedImps.add(modifyImp(imp, bidRequest, impExt));
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
@@ -78,9 +86,31 @@ public class YieldmoBidder implements Bidder<BidRequest> {
         }
     }
 
-    private Imp modifyImp(Imp imp, ExtImpYieldmo ext) {
+    private Imp modifyImp(Imp imp, BidRequest bidRequest, ExtImpYieldmo ext) {
         final YieldmoImpExt modifiedExt = YieldmoImpExt.of(ext.getPlacementId(), extractGpid(imp));
-        return imp.toBuilder().ext(mapper.mapper().valueToTree(modifiedExt)).build();
+
+        Price bidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
+        bidFloorPrice = BidderUtil.isValidPrice(bidFloorPrice)
+                ? convertBidFloor(bidFloorPrice, imp.getId(), bidRequest) : bidFloorPrice;
+
+        return imp.toBuilder()
+            .bidfloor(bidFloorPrice.getValue())
+            .bidfloorcur(bidFloorPrice.getCurrency())
+            .ext(mapper.mapper().valueToTree(modifiedExt))
+            .build();
+    }
+
+    private Price convertBidFloor(Price bidFloorPrice, String impId, BidRequest bidRequest) {
+        final String bidFloorCur = bidFloorPrice.getCurrency();
+        try {
+            final BigDecimal convertedPrice = currencyConversionService
+                    .convertCurrency(bidFloorPrice.getValue(), bidRequest, bidFloorCur, USD_CURRENCY);
+
+            return Price.of(USD_CURRENCY, convertedPrice);
+        } catch (PreBidException e) {
+            // If currency conversion fails, we still want to receive the bid request.
+            return bidFloorPrice;
+        }
     }
 
     private static String extractGpid(Imp imp) {
