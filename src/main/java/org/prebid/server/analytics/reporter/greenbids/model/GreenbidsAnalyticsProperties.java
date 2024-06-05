@@ -1,5 +1,6 @@
 package org.prebid.server.analytics.reporter.greenbids.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
@@ -7,13 +8,18 @@ import lombok.Value;
 @Value
 public class GreenbidsAnalyticsProperties {
 
+    @JsonProperty("exploratorySamplingSplit")
     Double exploratorySamplingSplit;
 
+    @JsonProperty("analyticsServerVersion")
     String analyticsServerVersion;
 
+    @JsonProperty("analyticsServerUrl")
     String analyticsServerUrl;
 
+    @JsonProperty("configurationRefreshDelayMs")
     Long configurationRefreshDelayMs;
 
+    @JsonProperty("timeoutMs")
     Long timeoutMs;
 }

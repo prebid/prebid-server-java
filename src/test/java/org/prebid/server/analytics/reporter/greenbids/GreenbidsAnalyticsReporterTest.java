@@ -12,6 +12,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import org.junit.Before;
@@ -39,6 +40,7 @@ import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
+import org.prebid.server.util.HttpUtil;
 import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -79,6 +81,15 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Captor
     private ArgumentCaptor<String> jsonCaptor;
 
+    @Captor
+    private ArgumentCaptor<MultiMap> headersCaptor;
+
+    @Captor
+    private ArgumentCaptor<String> urlCaptor;
+
+    @Captor
+    private ArgumentCaptor<Long> timeoutCaptor;
+
     private GreenbidsAnalyticsReporter target;
 
     private GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
@@ -101,6 +112,9 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 prebidVersionProvider);
 
         jsonCaptor = ArgumentCaptor.forClass(String.class);
+        headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
+        urlCaptor = ArgumentCaptor.forClass(String.class);
+        timeoutCaptor = ArgumentCaptor.forClass(Long.class);
     }
 
     @Test
@@ -125,22 +139,30 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
         when(mockResponse.getStatusCode()).thenReturn(202);
-        when(httpClient.post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong()))
+        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
         final CommonMessage expectedCommonMessage = givenCommonMessageForBanner();
 
         // when
         final Future<Void> result = target.processEvent(event);
-        final String capturedJson = jsonCaptor.getValue();
-        final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
 
         // then
         assertThat(result.succeeded()).isTrue();
-        verify(httpClient).post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong());
+        verify(httpClient).post(
+                urlCaptor.capture(), headersCaptor.capture(), jsonCaptor.capture(), timeoutCaptor.capture());
         verify(mockResponse).getStatusCode();
+
+        final String capturedJson = jsonCaptor.getValue();
+        final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
         assertThat(capturedCommonMessage).usingRecursiveComparison()
                 .ignoringFields("billingId", "greenbidsId")
                 .isEqualTo(expectedCommonMessage);
+        assertThat(urlCaptor.getValue()).isEqualTo("http://localhost:8080");
+        assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
+                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
+        assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
+                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
+        assertThat(timeoutCaptor.getValue()).isEqualTo(greenbidsAnalyticsProperties.getTimeoutMs());
     }
 
     @Test
@@ -159,22 +181,30 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
         when(mockResponse.getStatusCode()).thenReturn(202);
-        when(httpClient.post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong()))
+        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
         final CommonMessage expectedCommonMessage = givenCommonMessageForVideo();
 
         // when
         final Future<Void> result = target.processEvent(event);
-        final String capturedJson = jsonCaptor.getValue();
-        final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
 
         // then
         assertThat(result.succeeded()).isTrue();
-        verify(httpClient).post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong());
+        verify(httpClient).post(
+                urlCaptor.capture(), headersCaptor.capture(), jsonCaptor.capture(), timeoutCaptor.capture());
         verify(mockResponse).getStatusCode();
+
+        final String capturedJson = jsonCaptor.getValue();
+        final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
         assertThat(capturedCommonMessage).usingRecursiveComparison()
                 .ignoringFields("billingId", "greenbidsId")
                 .isEqualTo(expectedCommonMessage);
+        assertThat(urlCaptor.getValue()).isEqualTo("http://localhost:8080");
+        assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
+                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
+        assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
+                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
+        assertThat(timeoutCaptor.getValue()).isEqualTo(greenbidsAnalyticsProperties.getTimeoutMs());
     }
 
     @Test
@@ -193,22 +223,30 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
         when(mockResponse.getStatusCode()).thenReturn(202);
-        when(httpClient.post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong()))
+        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
         final CommonMessage expectedCommonMessage = givenCommonMessageBannerWithoutFormat();
 
         // when
         final Future<Void> result = target.processEvent(event);
-        final String capturedJson = jsonCaptor.getValue();
-        final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
 
         // then
         assertThat(result.succeeded()).isTrue();
-        verify(httpClient).post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong());
+        verify(httpClient).post(
+                urlCaptor.capture(), headersCaptor.capture(), jsonCaptor.capture(), timeoutCaptor.capture());
         verify(mockResponse).getStatusCode();
+
+        final String capturedJson = jsonCaptor.getValue();
+        final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
         assertThat(capturedCommonMessage).usingRecursiveComparison()
                 .ignoringFields("billingId", "greenbidsId")
                 .isEqualTo(expectedCommonMessage);
+        assertThat(urlCaptor.getValue()).isEqualTo("http://localhost:8080");
+        assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
+                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
+        assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
+                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
+        assertThat(timeoutCaptor.getValue()).isEqualTo(greenbidsAnalyticsProperties.getTimeoutMs());
     }
 
     @Test
