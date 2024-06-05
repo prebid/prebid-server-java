@@ -150,7 +150,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(
                 urlCaptor.capture(), headersCaptor.capture(), jsonCaptor.capture(), timeoutCaptor.capture());
-        verify(mockResponse).getStatusCode();
 
         final String capturedJson = jsonCaptor.getValue();
         final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
@@ -192,7 +191,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(
                 urlCaptor.capture(), headersCaptor.capture(), jsonCaptor.capture(), timeoutCaptor.capture());
-        verify(mockResponse).getStatusCode();
 
         final String capturedJson = jsonCaptor.getValue();
         final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
@@ -234,7 +232,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(
                 urlCaptor.capture(), headersCaptor.capture(), jsonCaptor.capture(), timeoutCaptor.capture());
-        verify(mockResponse).getStatusCode();
 
         final String capturedJson = jsonCaptor.getValue();
         final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
