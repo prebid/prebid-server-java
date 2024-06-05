@@ -1,6 +1,5 @@
 package org.prebid.server.analytics.reporter.greenbids;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -25,7 +24,13 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.AuctionEvent;
+import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
+import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBids;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
+import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
@@ -38,11 +43,11 @@ import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 
-import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -58,15 +63,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class GreenbidsAnalyticsReporterTest extends VertxTest {
-
-    String EXPECTED_JSON_PATH_BANNER =
-            "src/test/java/org/prebid/server/analytics/reporter/greenbids/greenbids_analytics_payload_banner.json";
-
-    String EXPECTED_JSON_PATH_VIDEO =
-            "src/test/java/org/prebid/server/analytics/reporter/greenbids/greenbids_analytics_payload_video.json";
-
-    String EXPECTED_JSON_PATH_BANNER_FORMAT_NULL =
-            "src/test/java/org/prebid/server/analytics/reporter/greenbids/greenbids_analytics_payload_no_format.json";
 
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
@@ -92,7 +88,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         greenbidsAnalyticsProperties = GreenbidsAnalyticsProperties.builder()
                 .exploratorySamplingSplit(0.9)
                 .analyticsServerVersion("2.2.0")
-                .analyticsServer("http://localhost:8080")
+                .analyticsServerUrl("http://localhost:8080")
                 .configurationRefreshDelayMs(10000L)
                 .timeoutMs(100000L)
                 .build();
@@ -131,21 +127,20 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         when(mockResponse.getStatusCode()).thenReturn(202);
         when(httpClient.post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
+        final CommonMessage expectedCommonMessage = givenCommonMessageForBanner();
 
         // when
         final Future<Void> result = target.processEvent(event);
-
         final String capturedJson = jsonCaptor.getValue();
-        final ObjectNode capturedJsonNode = (ObjectNode) mapper.readTree(capturedJson);
-        capturedJsonNode.put("greenbidsId", "testGreenbidsId");
-        capturedJsonNode.put("billingId", "testBillingId");
-        final ObjectNode expectedJsonNode = (ObjectNode) mapper.readTree(parseJson(EXPECTED_JSON_PATH_BANNER));
+        final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
 
         // then
         assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong());
         verify(mockResponse).getStatusCode();
-        assertThat(capturedJsonNode).isEqualTo(expectedJsonNode);
+        assertThat(capturedCommonMessage).usingRecursiveComparison()
+                .ignoringFields("billingId", "greenbidsId")
+                .isEqualTo(expectedCommonMessage);
     }
 
     @Test
@@ -166,21 +161,20 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         when(mockResponse.getStatusCode()).thenReturn(202);
         when(httpClient.post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
+        final CommonMessage expectedCommonMessage = givenCommonMessageForVideo();
 
         // when
         final Future<Void> result = target.processEvent(event);
-
         final String capturedJson = jsonCaptor.getValue();
-        final ObjectNode capturedJsonNode = (ObjectNode) mapper.readTree(capturedJson);
-        capturedJsonNode.put("greenbidsId", "testGreenbidsId");
-        capturedJsonNode.put("billingId", "testBillingId");
-        final ObjectNode expectedJsonNode = (ObjectNode) mapper.readTree(parseJson(EXPECTED_JSON_PATH_VIDEO));
+        final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
 
         // then
         assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong());
         verify(mockResponse).getStatusCode();
-        assertThat(capturedJsonNode).isEqualTo(expectedJsonNode);
+        assertThat(capturedCommonMessage).usingRecursiveComparison()
+                .ignoringFields("billingId", "greenbidsId")
+                .isEqualTo(expectedCommonMessage);
     }
 
     @Test
@@ -201,22 +195,20 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         when(mockResponse.getStatusCode()).thenReturn(202);
         when(httpClient.post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
+        final CommonMessage expectedCommonMessage = givenCommonMessageBannerWithoutFormat();
 
         // when
         final Future<Void> result = target.processEvent(event);
-
         final String capturedJson = jsonCaptor.getValue();
-        final ObjectNode capturedJsonNode = (ObjectNode) mapper.readTree(capturedJson);
-        capturedJsonNode.put("greenbidsId", "testGreenbidsId");
-        capturedJsonNode.put("billingId", "testBillingId");
-        final ObjectNode expectedJsonNode = (ObjectNode) mapper
-                .readTree(parseJson(EXPECTED_JSON_PATH_BANNER_FORMAT_NULL));
+        final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
 
         // then
         assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(anyString(), any(MultiMap.class), jsonCaptor.capture(), anyLong());
         verify(mockResponse).getStatusCode();
-        assertThat(capturedJsonNode).isEqualTo(expectedJsonNode);
+        assertThat(capturedCommonMessage).usingRecursiveComparison()
+                .ignoringFields("billingId", "greenbidsId")
+                .isEqualTo(expectedCommonMessage);
     }
 
     @Test
@@ -332,7 +324,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause())
-                .hasMessageStartingWith("AdUnits list should not be empty");
+                .hasMessageStartingWith("Impressions list should not be empty");
     }
 
     @Test
@@ -486,8 +478,113 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                         .build());
     }
 
-    String parseJson(String path) throws IOException {
-        JsonNode jsonNode = mapper.readTree(new File(path));
-        return mapper.writeValueAsString(jsonNode);
+    private static CommonMessage givenCommonMessageForBanner() {
+        return CommonMessage.builder()
+                .version("2.2.0")
+                .auctionId("request1")
+                .sampling(1.0)
+                .pbuid("leparisien")
+                .adUnits(
+                        List.of(GreenbidsAdUnit.builder()
+                                .code("adunitcodevalue")
+                                .unifiedCode(GreenbidsUnifiedCode.builder()
+                                        .value("gpidvalue")
+                                        .source("gpidSource")
+                                        .build())
+                                .mediaTypes(MediaTypes.builder()
+                                        .banner(ExtBanner.builder()
+                                                .sizes(List.of(List.of(320, 50)))
+                                                .build())
+                                        .build())
+                                .bids(List.of(
+                                        GreenbidsBids.builder()
+                                                .bidder("seat1")
+                                                .isTimeout(false)
+                                                .hasBid(true)
+                                                .build(),
+                                        GreenbidsBids.builder()
+                                                .bidder("seat2")
+                                                .isTimeout(false)
+                                                .hasBid(false)
+                                                .build()
+                                ))
+                                .build()
+                        ))
+                .auctionElapsed(0L)
+                .build();
+    }
+
+    private static CommonMessage givenCommonMessageForVideo() {
+        return CommonMessage.builder()
+                .version("2.2.0")
+                .auctionId("request1")
+                .sampling(1.0)
+                .pbuid("leparisien")
+                .adUnits(
+                        List.of(GreenbidsAdUnit.builder()
+                                .code("adunitcodevalue")
+                                .unifiedCode(GreenbidsUnifiedCode.builder()
+                                        .value("adunitcodevalue")
+                                        .source("adUnitCodeSource")
+                                        .build())
+                                .mediaTypes(MediaTypes.builder()
+                                        .video(Video.builder()
+                                                .plcmt(1)
+                                                .pos(1)
+                                                .build())
+                                        .build())
+                                .bids(List.of(
+                                        GreenbidsBids.builder()
+                                                .bidder("seat1")
+                                                .isTimeout(false)
+                                                .hasBid(true)
+                                                .build(),
+                                        GreenbidsBids.builder()
+                                                .bidder("seat2")
+                                                .isTimeout(false)
+                                                .hasBid(false)
+                                                .build()
+                                ))
+                                .build()
+                        ))
+                .auctionElapsed(0L)
+                .build();
+    }
+
+    private static CommonMessage givenCommonMessageBannerWithoutFormat() {
+        return CommonMessage.builder()
+                .version("2.2.0")
+                .auctionId("request1")
+                .sampling(1.0)
+                .pbuid("leparisien")
+                .adUnits(
+                        List.of(GreenbidsAdUnit.builder()
+                                .code("adunitcodevalue")
+                                .unifiedCode(GreenbidsUnifiedCode.builder()
+                                        .value("adunitcodevalue")
+                                        .source("adUnitCodeSource")
+                                        .build())
+                                .mediaTypes(MediaTypes.builder()
+                                        .banner(ExtBanner.builder()
+                                                .sizes(List.of(List.of(728, 90)))
+                                                .pos(1)
+                                                .build())
+                                        .build())
+                                .bids(List.of(
+                                        GreenbidsBids.builder()
+                                                .bidder("seat1")
+                                                .isTimeout(false)
+                                                .hasBid(true)
+                                                .build(),
+                                        GreenbidsBids.builder()
+                                                .bidder("seat2")
+                                                .isTimeout(false)
+                                                .hasBid(false)
+                                                .build()
+                                ))
+                                .build()
+                        ))
+                .auctionElapsed(0L)
+                .build();
     }
 }

@@ -97,7 +97,7 @@ public class AnalyticsConfiguration {
                 return GreenbidsAnalyticsProperties.builder()
                         .exploratorySamplingSplit(getExploratorySamplingSplit())
                         .analyticsServerVersion(getAnalyticsServerVersion())
-                        .analyticsServer(getAnalyticsServer())
+                        .analyticsServerUrl(getAnalyticsServer())
                         .timeoutMs(getTimeoutMs())
                         .build();
             }

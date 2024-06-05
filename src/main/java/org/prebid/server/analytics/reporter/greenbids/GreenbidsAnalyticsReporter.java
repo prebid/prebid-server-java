@@ -95,8 +95,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             auctionContext = auctionEvent.getAuctionContext();
             bidResponse = auctionEvent.getBidResponse();
         } else {
-            auctionContext = null;
-            bidResponse = null;
+            return Future.failedFuture(new PreBidException("Unprocessable event: " + event.getClass().getName()));
         }
 
         if (bidResponse == null || auctionContext == null) {
@@ -132,7 +131,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
 
         final Future<HttpClientResponse> responseFuture = httpClient.post(
-                greenbidsAnalyticsProperties.getAnalyticsServer(),
+                greenbidsAnalyticsProperties.getAnalyticsServerUrl(),
                 headers,
                 commonMessageJson,
                 greenbidsAnalyticsProperties.getTimeoutMs());
@@ -166,7 +165,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     private Future<Void> processAnalyticServerResponse(Future<HttpClientResponse> responseFuture) {
         return responseFuture.compose(response -> {
             final int responseStatusCode = response.getStatusCode();
-            if (responseStatusCode == 202 || responseStatusCode == 200) {
+            if (responseStatusCode >= 200 && responseStatusCode < 300) {
                 return Future.succeededFuture();
             } else {
                 return Future.failedFuture(
@@ -206,7 +205,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final List<Imp> imps = bidRequest
                 .map(BidRequest::getImp)
                 .filter(CollectionUtils::isNotEmpty)
-                .orElseThrow(() -> new PreBidException("AdUnits list should not be empty"));
+                .orElseThrow(() -> new PreBidException("Impressions list should not be empty"));
 
         final long auctionElapsed = bidRequest
                 .map(BidRequest::getExt)

@@ -11,6 +11,6 @@ public class GreenbidsUnifiedCode {
     @JsonProperty("value")
     String value;
 
-    @JsonProperty("src")
+    @JsonProperty("source")
     String source;
 }

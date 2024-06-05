@@ -16,9 +16,6 @@ public class GreenbidsAdUnit {
     @JsonProperty("unifiedCode")
     GreenbidsUnifiedCode unifiedCode;
 
-    @JsonProperty("codeType")
-    String codeType;
-
     @JsonProperty("mediaTypes")
     MediaTypes mediaTypes;
 
