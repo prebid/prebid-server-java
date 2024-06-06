@@ -287,23 +287,14 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final List<GreenbidsBids> bids = extractBidders(imp, seatsWithBids, seatsWithNonBids);
 
         final ObjectNode impExt = imp.getExt();
-        final Optional<String> gpidOption = getGpid(impExt);
-        final Optional<String> storedRequestIdOption = getStoredRequestId(impExt);
         final String adUnitCode = imp.getId();
 
-        final String gpidWithFallback = gpidOption.or(() -> storedRequestIdOption)
-                .orElse(adUnitCode);
-
-        final GreenbidsSource codeTypeSource = gpidOption
-                .map(gpid -> GreenbidsSource.GPID_SOURCE)
-                .or(() -> storedRequestIdOption
-                        .map(storedRequestId -> GreenbidsSource.STORED_REQUEST_ID_SOURCE))
-                .orElse(GreenbidsSource.AD_UNIT_CODE_SOURCE);
-
-        final GreenbidsUnifiedCode greenbidsUnifiedCode = GreenbidsUnifiedCode.builder()
-                .value(gpidWithFallback)
-                .source(codeTypeSource.getValue())
-                .build();
+        final GreenbidsUnifiedCode greenbidsUnifiedCode = getGpid(impExt)
+                .or(() -> getStoredRequestId(impExt))
+                .orElseGet(() -> GreenbidsUnifiedCode.builder()
+                        .value(adUnitCode)
+                        .source(GreenbidsSource.AD_UNIT_CODE_SOURCE.getValue())
+                        .build());
 
         return GreenbidsAdUnit.builder()
                 .code(adUnitCode)
@@ -346,18 +337,28 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .collect(Collectors.toList());
     }
 
-    private static Optional<String> getGpid(ObjectNode impExt) {
+    private static Optional<GreenbidsUnifiedCode> getGpid(ObjectNode impExt) {
         return Optional.ofNullable(impExt)
                 .map(ext -> ext.get("gpid"))
-                .map(JsonNode::asText);
+                .map(JsonNode::asText)
+                .map(gpid ->
+                        GreenbidsUnifiedCode.builder()
+                                .value(gpid)
+                                .source(GreenbidsSource.GPID_SOURCE.getValue())
+                                .build());
     }
 
-    private Optional<String> getStoredRequestId(ObjectNode impExt) {
+    private Optional<GreenbidsUnifiedCode> getStoredRequestId(ObjectNode impExt) {
         return Optional.ofNullable(impExt)
                 .map(ext -> ext.get("prebid"))
                 .map(this::extImpPrebid)
                 .map(ExtImpPrebid::getStoredrequest)
-                .map(ExtStoredRequest::getId);
+                .map(ExtStoredRequest::getId)
+                .map(storedRequestId ->
+                        GreenbidsUnifiedCode.builder()
+                                .value(storedRequestId)
+                                .source(GreenbidsSource.STORED_REQUEST_ID_SOURCE.getValue())
+                                .build());
     }
 
     private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
