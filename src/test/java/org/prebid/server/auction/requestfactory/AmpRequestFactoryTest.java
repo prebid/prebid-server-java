@@ -194,8 +194,7 @@ public class AmpRequestFactoryTest extends VertxTest {
                 ampPrivacyContextFactory,
                 debugResolver,
                 jacksonMapper,
-                geoLocationServiceWrapper,
-                1L);
+                geoLocationServiceWrapper);
     }
 
     @Test

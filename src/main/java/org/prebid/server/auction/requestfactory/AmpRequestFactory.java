@@ -102,7 +102,6 @@ public class AmpRequestFactory {
     private final DebugResolver debugResolver;
     private final JacksonMapper mapper;
     private final GeoLocationServiceWrapper geoLocationServiceWrapper;
-    private final double logSamplingRate;
 
     public AmpRequestFactory(Ortb2RequestFactory ortb2RequestFactory,
                              StoredRequestProcessor storedRequestProcessor,
@@ -115,8 +114,7 @@ public class AmpRequestFactory {
                              AmpPrivacyContextFactory ampPrivacyContextFactory,
                              DebugResolver debugResolver,
                              JacksonMapper mapper,
-                             GeoLocationServiceWrapper geoLocationServiceWrapper,
-                             double logSamplingRate) {
+                             GeoLocationServiceWrapper geoLocationServiceWrapper) {
 
         this.ortb2RequestFactory = Objects.requireNonNull(ortb2RequestFactory);
         this.storedRequestProcessor = Objects.requireNonNull(storedRequestProcessor);
@@ -130,7 +128,6 @@ public class AmpRequestFactory {
         this.ampPrivacyContextFactory = Objects.requireNonNull(ampPrivacyContextFactory);
         this.mapper = Objects.requireNonNull(mapper);
         this.geoLocationServiceWrapper = Objects.requireNonNull(geoLocationServiceWrapper);
-        this.logSamplingRate = logSamplingRate;
     }
 
     /**
