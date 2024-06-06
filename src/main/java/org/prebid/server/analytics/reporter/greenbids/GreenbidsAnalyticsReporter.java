@@ -59,8 +59,6 @@ import java.util.stream.Stream;
 
 public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
-    private static final String PUBLISHER_ID_DYNAMIC_PARAM = "pbuid";
-    private static final String GREENBIDS_SAMPLING_DYNAMIC_PARAM = "greenbidsSampling";
     private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids";
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
     private static final Logger logger = LoggerFactory.getLogger(GreenbidsAnalyticsReporter.class);
@@ -95,7 +93,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             auctionContext = auctionEvent.getAuctionContext();
             bidResponse = auctionEvent.getBidResponse();
         } else {
-            return Future.failedFuture(new PreBidException("Unprocessable event: " + event.getClass().getName()));
+            return Future.failedFuture(new PreBidException("Unprocessable event received"));
         }
 
         if (bidResponse == null || auctionContext == null) {
