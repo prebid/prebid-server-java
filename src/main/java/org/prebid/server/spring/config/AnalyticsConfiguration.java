@@ -8,6 +8,7 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.reporter.greenbids.GreenbidsAnalyticsReporter;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsJacksonMapper;
 import org.prebid.server.analytics.reporter.log.LogAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.PubstackAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
@@ -63,7 +64,7 @@ public class AnalyticsConfiguration {
         @Bean
         GreenbidsAnalyticsReporter greenbidsAnalyticsReporter(
                 GreenbidsAnalyticsConfigurationProperties greenbidsAnalyticsConfigurationProperties,
-                JacksonMapper jacksonMapper,
+                GreenbidsJacksonMapper jacksonMapper,
                 HttpClient httpClient,
                 Clock clock,
                 PrebidVersionProvider prebidVersionProvider) {

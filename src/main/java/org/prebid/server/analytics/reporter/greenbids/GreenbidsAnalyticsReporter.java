@@ -2,8 +2,6 @@ package org.prebid.server.analytics.reporter.greenbids;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -29,12 +27,12 @@ import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBids;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsPrebidExt;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsSource;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsJacksonMapper;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.EncodeException;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -67,14 +65,14 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
     private static final Logger logger = LoggerFactory.getLogger(GreenbidsAnalyticsReporter.class);
     private final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
-    private final JacksonMapper jacksonMapper;
+    private final GreenbidsJacksonMapper jacksonMapper;
     private final HttpClient httpClient;
     private final Clock clock;
     private final PrebidVersionProvider prebidVersionProvider;
 
     public GreenbidsAnalyticsReporter(
             GreenbidsAnalyticsProperties greenbidsAnalyticsProperties,
-            JacksonMapper jacksonMapper,
+            GreenbidsJacksonMapper jacksonMapper,
             HttpClient httpClient,
             Clock clock,
             PrebidVersionProvider prebidVersionProvider) {
@@ -82,10 +80,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         this.httpClient = Objects.requireNonNull(httpClient);
         this.clock = Objects.requireNonNull(clock);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
-
-        final ObjectMapper mapper = Objects.requireNonNull(jacksonMapper).mapper()
-                .setPropertyNamingStrategy(PropertyNamingStrategy.LOWER_CAMEL_CASE);
-        this.jacksonMapper = new JacksonMapper(mapper);
+        this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
     }
 
     @Override

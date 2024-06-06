@@ -31,12 +31,12 @@ import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBids;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsJacksonMapper;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.json.EncodeException;
-import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -59,6 +59,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -94,8 +95,13 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
     private GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
 
+    private GreenbidsJacksonMapper jacksonMapper;
+
     @Before
     public void setUp() {
+        final ObjectMapper mapper = new ObjectMapper();
+        jacksonMapper = new GreenbidsJacksonMapper(mapper);
+
         greenbidsAnalyticsProperties = GreenbidsAnalyticsProperties.builder()
                 .exploratorySamplingSplit(0.9)
                 .analyticsServerVersion("2.2.0")
@@ -152,7 +158,8 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 urlCaptor.capture(), headersCaptor.capture(), jsonCaptor.capture(), timeoutCaptor.capture());
 
         final String capturedJson = jsonCaptor.getValue();
-        final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
+        final CommonMessage capturedCommonMessage = jacksonMapper.mapper()
+                .readValue(capturedJson, CommonMessage.class);
         assertThat(capturedCommonMessage).usingRecursiveComparison()
                 .ignoringFields("billingId", "greenbidsId")
                 .isEqualTo(expectedCommonMessage);
@@ -193,7 +200,8 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 urlCaptor.capture(), headersCaptor.capture(), jsonCaptor.capture(), timeoutCaptor.capture());
 
         final String capturedJson = jsonCaptor.getValue();
-        final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
+        final CommonMessage capturedCommonMessage = jacksonMapper.mapper()
+                .readValue(capturedJson, CommonMessage.class);
         assertThat(capturedCommonMessage).usingRecursiveComparison()
                 .ignoringFields("billingId", "greenbidsId")
                 .isEqualTo(expectedCommonMessage);
@@ -219,9 +227,15 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
 
+        final MultiMap expectedHeadersTemp = expectedHeaders();
+
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
         when(mockResponse.getStatusCode()).thenReturn(202);
-        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
+        when(httpClient.post(
+                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
+                eq(expectedHeadersTemp),
+                anyString(),
+                eq(greenbidsAnalyticsProperties.getTimeoutMs())))
                 .thenReturn(Future.succeededFuture(mockResponse));
         final CommonMessage expectedCommonMessage = givenCommonMessageBannerWithoutFormat();
 
@@ -231,19 +245,17 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         // then
         assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(
-                urlCaptor.capture(), headersCaptor.capture(), jsonCaptor.capture(), timeoutCaptor.capture());
+                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
+                eq(expectedHeadersTemp),
+                jsonCaptor.capture(),
+                eq(greenbidsAnalyticsProperties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
-        final CommonMessage capturedCommonMessage = mapper.readValue(capturedJson, CommonMessage.class);
+        final CommonMessage capturedCommonMessage = jacksonMapper.mapper()
+                .readValue(capturedJson, CommonMessage.class);
         assertThat(capturedCommonMessage).usingRecursiveComparison()
                 .ignoringFields("billingId", "greenbidsId")
                 .isEqualTo(expectedCommonMessage);
-        assertThat(urlCaptor.getValue()).isEqualTo("http://localhost:8080");
-        assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
-                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
-        assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
-                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
-        assertThat(timeoutCaptor.getValue()).isEqualTo(greenbidsAnalyticsProperties.getTimeoutMs());
     }
 
     @Test
@@ -292,11 +304,10 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
 
-        final JacksonMapper mockJacksonMapper = mock(JacksonMapper.class);
-        final ObjectMapper mockObjectMapper = mock(ObjectMapper.class);
-        when(mockJacksonMapper.mapper()).thenReturn(mockObjectMapper);
-        doThrow(new EncodeException("Failed to encode as JSON"))
-                .when(mockJacksonMapper).encodeToString(any(CommonMessage.class));
+        final GreenbidsJacksonMapper mockJacksonMapper = mock(GreenbidsJacksonMapper.class);
+        final ObjectMapper realObjectMapper = new ObjectMapper();
+        when(mockJacksonMapper.mapper()).thenReturn(realObjectMapper);
+        doThrow(new EncodeException("Failed to encode as JSON")).when(mockJacksonMapper).encodeToString(any());
 
         target = new GreenbidsAnalyticsReporter(
                 greenbidsAnalyticsProperties,
@@ -402,6 +413,13 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         assertThat(result.cause())
                 .hasMessageStartingWith("Error decoding imp.ext.prebid: "
                         + "Cannot construct instance of `org.prebid.server.proto.openrtb.ext.request.ExtOptions`");
+    }
+
+    private MultiMap expectedHeaders() {
+        final MultiMap expectedHeaders = MultiMap.caseInsensitiveMultiMap();
+        expectedHeaders.add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON.toString());
+        expectedHeaders.add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON.toString());
+        return expectedHeaders;
     }
 
     private static AuctionContext givenAuctionContext(Imp imp) {
