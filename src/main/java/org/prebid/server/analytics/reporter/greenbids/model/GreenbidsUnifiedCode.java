@@ -1,6 +1,5 @@
 package org.prebid.server.analytics.reporter.greenbids.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
 
@@ -8,9 +7,7 @@ import lombok.Value;
 @Value
 public class GreenbidsUnifiedCode {
 
-    @JsonProperty("value")
     String value;
 
-    @JsonProperty("source")
     String source;
 }

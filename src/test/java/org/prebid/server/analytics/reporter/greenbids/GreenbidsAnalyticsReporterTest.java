@@ -293,7 +293,10 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .build();
 
         final JacksonMapper mockJacksonMapper = mock(JacksonMapper.class);
-        doThrow(new EncodeException("Failed to encode as JSON")).when(mockJacksonMapper).encodeToString(any());
+        final ObjectMapper mockObjectMapper = mock(ObjectMapper.class);
+        when(mockJacksonMapper.mapper()).thenReturn(mockObjectMapper);
+        doThrow(new EncodeException("Failed to encode as JSON"))
+                .when(mockJacksonMapper).encodeToString(any(CommonMessage.class));
 
         target = new GreenbidsAnalyticsReporter(
                 greenbidsAnalyticsProperties,

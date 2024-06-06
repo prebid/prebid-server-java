@@ -2,6 +2,8 @@ package org.prebid.server.analytics.reporter.greenbids;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
@@ -77,10 +79,13 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             Clock clock,
             PrebidVersionProvider prebidVersionProvider) {
         this.greenbidsAnalyticsProperties = Objects.requireNonNull(greenbidsAnalyticsProperties);
-        this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.clock = Objects.requireNonNull(clock);
         this.prebidVersionProvider = Objects.requireNonNull(prebidVersionProvider);
+
+        final ObjectMapper mapper = Objects.requireNonNull(jacksonMapper).mapper()
+                .setPropertyNamingStrategy(PropertyNamingStrategy.LOWER_CAMEL_CASE);
+        this.jacksonMapper = new JacksonMapper(mapper);
     }
 
     @Override

@@ -10,10 +10,8 @@ import lombok.Value;
 @Value
 public class MediaTypes {
 
-    @JsonProperty("banner")
     ExtBanner banner;
 
-    @JsonProperty("video")
     Video video;
 
     @JsonProperty("native")

@@ -1,6 +1,5 @@
 package org.prebid.server.analytics.reporter.greenbids.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.iab.openrtb.response.Bid;
 import lombok.Builder;
 import lombok.Value;
@@ -11,11 +10,10 @@ import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 @Value
 public class GreenbidsBids {
 
-    @JsonProperty("bidder")
     String bidder;
-    @JsonProperty("isTimeout")
+
     Boolean isTimeout;
-    @JsonProperty("hasBid")
+
     Boolean hasBid;
 
     public static GreenbidsBids ofBid(String seat, Bid bid) {
