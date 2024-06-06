@@ -145,22 +145,22 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     }
 
     private GreenbidsPrebidExt parseBidRequestExt(BidRequest bidRequest) {
-        final Optional<ObjectNode> adapterNode = Optional.ofNullable(bidRequest)
+        return Optional.ofNullable(bidRequest)
                 .map(BidRequest::getExt)
                 .map(ExtRequest::getPrebid)
                 .map(ExtRequestPrebid::getAnalytics)
                 .filter(this::isNotEmptyObjectNode)
-                .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME));
+                .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
+                .map(this::toGreenbidsPrebidExt)
+                .orElse(GreenbidsPrebidExt.builder().build());
+    }
 
-        final String pbuid = adapterNode.map(node -> node.get(PUBLISHER_ID_DYNAMIC_PARAM))
-                .map(JsonNode::asText)
-                .orElse(null);
-
-        final Double greenbidsSampling = adapterNode.map(node -> node.get(GREENBIDS_SAMPLING_DYNAMIC_PARAM))
-                .map(JsonNode::asDouble)
-                .orElse(null);
-
-        return GreenbidsPrebidExt.builder().pbuid(pbuid).greenbidsSampling(greenbidsSampling).build();
+    private GreenbidsPrebidExt toGreenbidsPrebidExt(ObjectNode adapterNode) {
+        try {
+            return jacksonMapper.mapper().treeToValue(adapterNode, GreenbidsPrebidExt.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("Error decoding bid request analytics extension: " + e.getMessage(), e);
+        }
     }
 
     private boolean isNotEmptyObjectNode(JsonNode analytics) {
@@ -304,7 +304,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .build();
     }
 
-    public static ExtBanner getExtBanner(Banner banner) {
+    private static ExtBanner getExtBanner(Banner banner) {
         if (banner == null) {
             return null;
         }
