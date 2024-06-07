@@ -61,6 +61,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
     private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids";
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
+
     private static final Logger logger = LoggerFactory.getLogger(GreenbidsAnalyticsReporter.class);
     private final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
     private final GreenbidsJacksonMapper jacksonMapper;
@@ -134,7 +135,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 commonMessageJson,
                 greenbidsAnalyticsProperties.getTimeoutMs());
 
-        return processAnalyticServerResponse(responseFuture);
+        return responseFuture.compose(this::processAnalyticServerResponse);
     }
 
     private GreenbidsPrebidExt parseBidRequestExt(BidRequest bidRequest) {
@@ -160,16 +161,12 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         return analytics != null && analytics.isObject() && !analytics.isEmpty();
     }
 
-    private Future<Void> processAnalyticServerResponse(Future<HttpClientResponse> responseFuture) {
-        return responseFuture.compose(response -> {
-            final int responseStatusCode = response.getStatusCode();
-            if (responseStatusCode >= 200 && responseStatusCode < 300) {
-                return Future.succeededFuture();
-            } else {
-                return Future.failedFuture(
-                        new PreBidException("Unexpected response status: " + response.getStatusCode()));
-            }
-        });
+    private Future<Void> processAnalyticServerResponse(HttpClientResponse response) {
+        final int responseStatusCode = response.getStatusCode();
+        if (responseStatusCode >= 200 && responseStatusCode < 300) {
+            return Future.succeededFuture();
+        }
+        return Future.failedFuture(new PreBidException("Unexpected response status: " + response.getStatusCode()));
     }
 
     private boolean isSampled(double samplingRate, String greenbidsId) {

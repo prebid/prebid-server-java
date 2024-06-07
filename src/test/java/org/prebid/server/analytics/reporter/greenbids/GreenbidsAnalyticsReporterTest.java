@@ -85,12 +85,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Captor
     private ArgumentCaptor<MultiMap> headersCaptor;
 
-    @Captor
-    private ArgumentCaptor<String> urlCaptor;
-
-    @Captor
-    private ArgumentCaptor<Long> timeoutCaptor;
-
     private GreenbidsAnalyticsReporter target;
 
     private GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
@@ -116,11 +110,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 httpClient,
                 clock,
                 prebidVersionProvider);
-
-        jsonCaptor = ArgumentCaptor.forClass(String.class);
-        headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
-        urlCaptor = ArgumentCaptor.forClass(String.class);
-        timeoutCaptor = ArgumentCaptor.forClass(Long.class);
     }
 
     @Test
@@ -163,9 +152,13 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final String capturedJson = jsonCaptor.getValue();
         final CommonMessage capturedCommonMessage = jacksonMapper.mapper()
                 .readValue(capturedJson, CommonMessage.class);
+
         assertThat(capturedCommonMessage).usingRecursiveComparison()
                 .ignoringFields("billingId", "greenbidsId")
                 .isEqualTo(expectedCommonMessage);
+        assertThat(capturedCommonMessage.getGreenbidsId()).isNotNull();
+        assertThat(capturedCommonMessage.getBillingId()).isNotNull();
+
         assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
         assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
@@ -209,6 +202,9 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         assertThat(capturedCommonMessage).usingRecursiveComparison()
                 .ignoringFields("billingId", "greenbidsId")
                 .isEqualTo(expectedCommonMessage);
+        assertThat(capturedCommonMessage.getGreenbidsId()).isNotNull();
+        assertThat(capturedCommonMessage.getBillingId()).isNotNull();
+
         assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
         assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
@@ -257,6 +253,9 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         assertThat(capturedCommonMessage).usingRecursiveComparison()
                 .ignoringFields("billingId", "greenbidsId")
                 .isEqualTo(expectedCommonMessage);
+        assertThat(capturedCommonMessage.getGreenbidsId()).isNotNull();
+        assertThat(capturedCommonMessage.getBillingId()).isNotNull();
+
         assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
         assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
