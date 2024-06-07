@@ -1,7 +1,6 @@
 package org.prebid.server.spring.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import io.vertx.core.Vertx;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -85,9 +84,7 @@ public class AnalyticsConfiguration {
 
         @Bean
         public GreenbidsJacksonMapper greenbidsJacksonMapper(ObjectMapper greenbidsObjectMapper) {
-            final ObjectMapper greenbidsCustomizedMapper = greenbidsObjectMapper
-                    .setPropertyNamingStrategy(PropertyNamingStrategy.LOWER_CAMEL_CASE);
-            return new GreenbidsJacksonMapper(greenbidsCustomizedMapper);
+            return new GreenbidsJacksonMapper(greenbidsObjectMapper);
         }
 
         @Bean
