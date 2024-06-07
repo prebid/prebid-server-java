@@ -30,8 +30,8 @@ import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBids;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsJacksonMapper;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
@@ -155,7 +155,10 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         // then
         assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(
-                urlCaptor.capture(), headersCaptor.capture(), jsonCaptor.capture(), timeoutCaptor.capture());
+                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
+                headersCaptor.capture(),
+                jsonCaptor.capture(),
+                eq(greenbidsAnalyticsProperties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
         final CommonMessage capturedCommonMessage = jacksonMapper.mapper()
@@ -163,12 +166,10 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         assertThat(capturedCommonMessage).usingRecursiveComparison()
                 .ignoringFields("billingId", "greenbidsId")
                 .isEqualTo(expectedCommonMessage);
-        assertThat(urlCaptor.getValue()).isEqualTo("http://localhost:8080");
         assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
         assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
-        assertThat(timeoutCaptor.getValue()).isEqualTo(greenbidsAnalyticsProperties.getTimeoutMs());
     }
 
     @Test
@@ -197,7 +198,10 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         // then
         assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(
-                urlCaptor.capture(), headersCaptor.capture(), jsonCaptor.capture(), timeoutCaptor.capture());
+                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
+                headersCaptor.capture(),
+                jsonCaptor.capture(),
+                eq(greenbidsAnalyticsProperties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
         final CommonMessage capturedCommonMessage = jacksonMapper.mapper()
@@ -205,12 +209,10 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         assertThat(capturedCommonMessage).usingRecursiveComparison()
                 .ignoringFields("billingId", "greenbidsId")
                 .isEqualTo(expectedCommonMessage);
-        assertThat(urlCaptor.getValue()).isEqualTo("http://localhost:8080");
         assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
         assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
-        assertThat(timeoutCaptor.getValue()).isEqualTo(greenbidsAnalyticsProperties.getTimeoutMs());
     }
 
     @Test
@@ -227,15 +229,14 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
 
-        final MultiMap expectedHeadersTemp = expectedHeaders();
-
         final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+
         when(mockResponse.getStatusCode()).thenReturn(202);
         when(httpClient.post(
-                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
-                eq(expectedHeadersTemp),
                 anyString(),
-                eq(greenbidsAnalyticsProperties.getTimeoutMs())))
+                any(MultiMap.class),
+                anyString(),
+                anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
         final CommonMessage expectedCommonMessage = givenCommonMessageBannerWithoutFormat();
 
@@ -246,7 +247,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(
                 eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
-                eq(expectedHeadersTemp),
+                headersCaptor.capture(),
                 jsonCaptor.capture(),
                 eq(greenbidsAnalyticsProperties.getTimeoutMs()));
 
@@ -256,6 +257,10 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         assertThat(capturedCommonMessage).usingRecursiveComparison()
                 .ignoringFields("billingId", "greenbidsId")
                 .isEqualTo(expectedCommonMessage);
+        assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
+                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
+        assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
+                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
     }
 
     @Test
@@ -413,13 +418,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         assertThat(result.cause())
                 .hasMessageStartingWith("Error decoding imp.ext.prebid: "
                         + "Cannot construct instance of `org.prebid.server.proto.openrtb.ext.request.ExtOptions`");
-    }
-
-    private MultiMap expectedHeaders() {
-        final MultiMap expectedHeaders = MultiMap.caseInsensitiveMultiMap();
-        expectedHeaders.add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON.toString());
-        expectedHeaders.add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON.toString());
-        return expectedHeaders;
     }
 
     private static AuctionContext givenAuctionContext(Imp imp) {
