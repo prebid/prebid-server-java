@@ -71,7 +71,7 @@ public class ReadPeakBidderTest extends VertxTest {
     }
 
     @Test
-    public void shouldMakeOneRequestWhenOneImpIsValidAndAnotherIsNot() throws IOException {
+    public void makeHttpRequestsShouldMakeOneRequestWhenOneImpIsValidAndAnotherIsNot() throws IOException {
         // given
         final Imp validImp = givenImp(imp -> imp.id("validImp"));
         final Imp invalidImp = givenBadImp(imp -> imp.id("invalidImp"));
@@ -94,7 +94,7 @@ public class ReadPeakBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorIfImpExtCannotBeParsed2() {
+    public void makeHttpRequestsShouldReturnErrorIfImpExtCannotBeParsed() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
                 impBuilder.ext(mapper.createObjectNode().set("bidder", mapper.createArrayNode())));
@@ -173,7 +173,7 @@ public class ReadPeakBidderTest extends VertxTest {
     public void makeHttpRequestsShouldSetAppPublisher() throws IOException {
         // given
         final App app = App.builder().id("appId").build();
-        final Imp validImp = givenImpWithNullSideId(imp -> imp.id("validImp"));
+        final Imp validImp = givenImpWithoutSiteId(imp -> imp.id("validImp"));
         final BidRequest bidRequest = BidRequest.builder()
                 .app(app)
                 .imp(Collections.singletonList(validImp))
@@ -320,7 +320,7 @@ public class ReadPeakBidderTest extends VertxTest {
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isNotEmpty();
+        assertThat(result.getErrors()).isNotEmpty(); // This should pass
         assertThat(result.getErrors())
                 .extracting(BidderError::getMessage)
                 .containsExactly("Unable to fetch mediaType 2 in multi-format: 123");
@@ -411,7 +411,7 @@ public class ReadPeakBidderTest extends VertxTest {
                 .build().toBuilder()).build();
     }
 
-    private static Imp givenImpWithNullSideId(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
+    private static Imp givenImpWithoutSiteId(UnaryOperator<Imp.ImpBuilder> impCustomizer) {
         return impCustomizer.apply(Imp.builder()
                 .id("123")
                 .ext(mapper.valueToTree(ExtPrebid.of(null,

@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.readpeak;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
@@ -40,9 +39,6 @@ import java.util.Objects;
 public class ReadPeakBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpReadPeak>> READPEAK_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
-    private static final TypeReference<ExtPrebid<ExtBidPrebid, ObjectNode>> EXT_PREBID_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
@@ -95,7 +91,7 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
     private Imp modifyImp(Imp imp, ExtImpReadPeak extImpReadPeak) {
         return imp.toBuilder()
                 .bidfloor(extImpReadPeak.getBidFloor() != null ? extImpReadPeak.getBidFloor() : imp.getBidfloor())
-                .tagid(StringUtils.isNotBlank(extImpReadPeak.getTagId()) ? extImpReadPeak.getTagId() : null)
+                .tagid(StringUtils.isNotBlank(extImpReadPeak.getTagId()) ? extImpReadPeak.getTagId() : imp.getTagid())
                 .build();
     }
 
@@ -106,54 +102,74 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
 
         final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
 
-        if (request.getSite() != null) {
-            final Site site = request.getSite().toBuilder()
-                    .id(StringUtils.isNotBlank(extImpReadPeak.getSiteId())
-                            ? extImpReadPeak.getSiteId() : request.getSite().getId())
-                    .publisher(publisher)
-                    .build();
-            requestBuilder.site(site);
-        } else if (request.getApp() != null) {
-            final App app = request.getApp().toBuilder()
-                    .id(StringUtils.isNotBlank(extImpReadPeak.getSiteId())
-                            ? extImpReadPeak.getSiteId() : request.getApp().getId())
-                    .publisher(publisher)
-                    .build();
-            requestBuilder.app(app);
-        }
+        final boolean hasSite = request.getSite() != null;
+        final boolean hasApp = !hasSite && request.getApp() != null;
 
-        final BidRequest outgoingRequest = requestBuilder.build();
+        final BidRequest outgoingRequest = requestBuilder
+                .site(hasSite ? modifySite(request.getSite(), extImpReadPeak, publisher) : request.getSite())
+                .app(hasApp ? modifyApp(request.getApp(), extImpReadPeak, publisher) : request.getApp())
+                .build();
 
         return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
+    }
+
+    private Site modifySite(Site site, ExtImpReadPeak extImpReadPeak, Publisher publisher) {
+        return site.toBuilder()
+                .id(StringUtils.isNotBlank(extImpReadPeak.getSiteId())
+                        ? extImpReadPeak.getSiteId() : site.getId())
+                .publisher(publisher)
+                .build();
+    }
+
+    private App modifyApp(App app, ExtImpReadPeak extImpReadPeak, Publisher publisher) {
+        return app.toBuilder()
+                .id(StringUtils.isNotBlank(extImpReadPeak.getSiteId())
+                        ? extImpReadPeak.getSiteId() : app.getId())
+                .publisher(publisher)
+                .build();
     }
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            final List<BidderBid> bids = extractBids(bidResponse);
-            return Result.withValues(bids);
+            return extractBids(bidResponse);
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private List<BidderBid> extractBids(BidResponse bidResponse) {
+    private Result<List<BidderBid>> extractBids(BidResponse bidResponse) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Collections.emptyList();
+            return Result.withValues(Collections.emptyList());
         }
         return bidsFromResponse(bidResponse);
     }
 
-    private List<BidderBid> bidsFromResponse(BidResponse bidResponse) {
-        return bidResponse.getSeatbid().stream()
-                .filter(Objects::nonNull)
-                .map(SeatBid::getBid)
-                .filter(Objects::nonNull)
-                .flatMap(List::stream)
-                .map(bid -> makeBid(bid, bidResponse))
-                .filter(Objects::nonNull)
-                .toList();
+    private Result<List<BidderBid>> bidsFromResponse(BidResponse bidResponse) {
+        final List<BidderError> errors = new ArrayList<>();
+        final List<BidderBid> validBids = new ArrayList<>();
+
+        for (SeatBid seatBid : bidResponse.getSeatbid()) {
+            if (seatBid != null) {
+                for (Bid bid : seatBid.getBid()) {
+                    if (bid != null) {
+                        try {
+                            final BidderBid bidderBid = makeBid(bid, bidResponse);
+                            validBids.add(bidderBid);
+                        } catch (PreBidException e) {
+                            errors.add(BidderError.badInput(e.getMessage()));
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            return Result.withErrors(errors);
+        }
+
+        return Result.withValues(validBids);
     }
 
     private BidderBid makeBid(Bid bid, BidResponse bidResponse) {
@@ -190,15 +206,19 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
                 .advertiserDomains(bid.getAdomain())
                 .build();
 
-        final ObjectNode bidExt = bid.getExt() != null ? bid.getExt().deepCopy()
-                : JsonNodeFactory.instance.objectNode();
-        final ObjectNode prebidNode = bidExt
-                .has("prebid") ? (ObjectNode) bidExt.get("prebid") : JsonNodeFactory.instance.objectNode();
-        prebidNode.set("meta", mapper.mapper().valueToTree(extBidPrebidMeta));
-        bidExt.set("prebid", prebidNode);
+        final ExtBidPrebidMeta modifiedMeta = ExtBidPrebidMeta.builder()
+                .advertiserDomains(bid.getAdomain())
+                .build();
+
+        final ExtBidPrebid modifiedPrebid = ExtBidPrebid.builder()
+                .meta(modifiedMeta)
+                .build();
+
+        final ObjectNode modifiedBidExt = mapper.mapper()
+                .valueToTree(ExtPrebid.of(modifiedPrebid, null));
 
         return bid.toBuilder()
-                .ext(bidExt)
+                .ext(modifiedBidExt)
                 .build();
     }
 }
