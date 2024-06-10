@@ -246,11 +246,53 @@ public class NoSignalBidderPriceFloorAdjusterTest extends VertxTest {
     }
 
     @Test
+    public void adjustForImpShouldReturnEmptyPriceWhenOnlyModelGroupHasNoSignalBiddersWithBidderValueCaseInsensitive() {
+        // given
+        final BidRequest givenBidRequest = givenBidRequest(
+                List.of("biDDer", "bidder2"),
+                null,
+                null);
+
+        final Imp givenImp = givenImp();
+        final Account givenAccount = Account.builder().build();
+        final List<String> debugWarnings = new ArrayList<>();
+
+        // when
+        final Price actual = target.adjustForImp(givenImp, "bidder", givenBidRequest, givenAccount, debugWarnings);
+
+        // then
+        assertThat(debugWarnings).containsOnly("noFloorSignal to bidder bidder");
+        assertThat(actual).isEqualTo(Price.empty());
+        verifyNoInteractions(delegate);
+    }
+
+    @Test
     public void adjustForImpShouldReturnEmptyPriceWhenOnlyDataHasNoSignalBiddersWithBidderValue() {
         // given
         final BidRequest givenBidRequest = givenBidRequest(
                 null,
                 List.of("bidder", "bidder2"),
+                null);
+
+        final Imp givenImp = givenImp();
+        final Account givenAccount = Account.builder().build();
+        final List<String> debugWarnings = new ArrayList<>();
+
+        // when
+        final Price actual = target.adjustForImp(givenImp, "bidder", givenBidRequest, givenAccount, debugWarnings);
+
+        // then
+        assertThat(debugWarnings).containsOnly("noFloorSignal to bidder bidder");
+        assertThat(actual).isEqualTo(Price.empty());
+        verifyNoInteractions(delegate);
+    }
+
+    @Test
+    public void adjustForImpShouldReturnEmptyPriceWhenOnlyDataHasNoSignalBiddersWithBidderValueCaseInsensitive() {
+        // given
+        final BidRequest givenBidRequest = givenBidRequest(
+                null,
+                List.of("BiDdeR", "bidder2"),
                 null);
 
         final Imp givenImp = givenImp();
@@ -273,6 +315,27 @@ public class NoSignalBidderPriceFloorAdjusterTest extends VertxTest {
                 null,
                 null,
                 List.of("bidder", "bidder2"));
+
+        final Imp givenImp = givenImp();
+        final Account givenAccount = Account.builder().build();
+        final List<String> debugWarnings = new ArrayList<>();
+
+        // when
+        final Price actual = target.adjustForImp(givenImp, "bidder", givenBidRequest, givenAccount, debugWarnings);
+
+        // then
+        assertThat(debugWarnings).containsOnly("noFloorSignal to bidder bidder");
+        assertThat(actual).isEqualTo(Price.empty());
+        verifyNoInteractions(delegate);
+    }
+
+    @Test
+    public void adjustForImpShouldReturnEmptyPriceWhenOnlyEnforceHasNoSignalBiddersWithBidderValueCaseInsensitive() {
+        // given
+        final BidRequest givenBidRequest = givenBidRequest(
+                null,
+                null,
+                List.of("BIDDER", "bidder2"));
 
         final Imp givenImp = givenImp();
         final Account givenAccount = Account.builder().build();

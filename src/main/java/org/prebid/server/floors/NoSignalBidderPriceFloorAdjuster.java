@@ -58,11 +58,16 @@ public class NoSignalBidderPriceFloorAdjuster implements PriceFloorAdjuster {
                 .or(() -> optionalFloors
                         .map(PriceFloorRules::getEnforcement)
                         .map(PriceFloorEnforcement::getNoFloorSignalBidders))
-                .filter(noSignalBidders -> noSignalBidders.contains(bidder) || noSignalBidders.contains(ALL_BIDDERS))
+                .filter(noSignalBidders -> isNoSignalBidder(bidder, noSignalBidders))
                 .map(ignored -> {
                     debugWarnings.add("noFloorSignal to bidder " + bidder);
                     return Price.empty();
                 })
                 .orElseGet(() -> delegate.adjustForImp(imp, bidder, bidRequest, account, debugWarnings));
+    }
+
+    private static boolean isNoSignalBidder(String bidder, List<String> noSignalBidders) {
+        return noSignalBidders.stream().anyMatch(noSignalBidder -> noSignalBidder.equalsIgnoreCase(bidder))
+                || noSignalBidders.contains(ALL_BIDDERS);
     }
 }
