@@ -61,8 +61,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
     private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids";
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
-
     private static final Logger logger = LoggerFactory.getLogger(GreenbidsAnalyticsReporter.class);
+
     private final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
     private final GreenbidsJacksonMapper jacksonMapper;
     private final HttpClient httpClient;

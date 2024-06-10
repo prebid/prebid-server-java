@@ -78,12 +78,8 @@ public class AnalyticsConfiguration {
         }
 
         @Bean
-        public ObjectMapper greenbidsObjectMapper() {
-            return new ObjectMapper();
-        }
-
-        @Bean
-        public GreenbidsJacksonMapper greenbidsJacksonMapper(ObjectMapper greenbidsObjectMapper) {
+        public GreenbidsJacksonMapper greenbidsJacksonMapper() {
+            final ObjectMapper greenbidsObjectMapper = new ObjectMapper();
             return new GreenbidsJacksonMapper(greenbidsObjectMapper);
         }
 
