@@ -1,8 +1,7 @@
 package org.prebid.server.spring.config.bidder;
 
 import org.prebid.server.bidder.BidderDeps;
-import org.prebid.server.bidder.yieldmo.YieldmoBidder;
-import org.prebid.server.currency.CurrencyConversionService;
+import org.prebid.server.bidder.playdigo.PlaydigoBidder;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.spring.config.bidder.model.BidderConfigurationProperties;
 import org.prebid.server.spring.config.bidder.util.BidderDepsAssembler;
@@ -17,27 +16,26 @@ import org.springframework.context.annotation.PropertySource;
 import jakarta.validation.constraints.NotBlank;
 
 @Configuration
-@PropertySource(value = "classpath:/bidder-config/yieldmo.yaml", factory = YamlPropertySourceFactory.class)
-public class YieldmoConfiguration {
+@PropertySource(value = "classpath:/bidder-config/playdigo.yaml", factory = YamlPropertySourceFactory.class)
+public class PlaydigoConfiguration {
 
-    private static final String BIDDER_NAME = "yieldmo";
+    private static final String BIDDER_NAME = "playdigo";
 
-    @Bean("yieldmoConfigurationProperties")
-    @ConfigurationProperties("adapters.yieldmo")
+    @Bean("playdigoConfigurationProperties")
+    @ConfigurationProperties("adapters.playdigo")
     BidderConfigurationProperties configurationProperties() {
         return new BidderConfigurationProperties();
     }
 
     @Bean
-    BidderDeps yieldmoBidderDeps(BidderConfigurationProperties yieldmoConfigurationProperties,
-                                 @NotBlank @Value("${external-url}") String externalUrl,
-                                 JacksonMapper mapper,
-                                 CurrencyConversionService currencyConversionService) {
+    BidderDeps playdigoBidderDeps(BidderConfigurationProperties playdigoConfigurationProperties,
+                                  @NotBlank @Value("${external-url}") String externalUrl,
+                                  JacksonMapper mapper) {
 
         return BidderDepsAssembler.forBidder(BIDDER_NAME)
-                .withConfig(yieldmoConfigurationProperties)
+                .withConfig(playdigoConfigurationProperties)
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
-                .bidderCreator(config -> new YieldmoBidder(config.getEndpoint(), currencyConversionService, mapper))
+                .bidderCreator(config -> new PlaydigoBidder(config.getEndpoint(), mapper))
                 .assemble();
     }
 }
