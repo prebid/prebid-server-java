@@ -1,7 +1,9 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks;
 
 import io.vertx.core.Future;
+import org.junit.Before;
 import org.junit.Test;
+import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.FiftyOneDeviceDetectionModule;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.ModuleContext;
@@ -13,26 +15,32 @@ import org.prebid.server.model.CaseInsensitiveMultiMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class FiftyOneDeviceDetectionEntrypointHookTest {
-    @Test
-    public void codeShouldStartWithModuleCode() {
-        // given
-        final EntrypointHook hook = new FiftyOneDeviceDetectionEntrypointHook();
+    private EntrypointHook target;
 
-        // when and then
-        assertThat(hook.code()).startsWith(FiftyOneDeviceDetectionModule.CODE);
+    @Before
+    public void setUp() {
+        target = new FiftyOneDeviceDetectionEntrypointHook();
     }
 
     @Test
-    public void shouldReturnPatchedModule() {
-        // given and when
-        final EntrypointHook hook = new FiftyOneDeviceDetectionEntrypointHook();
-        final EntrypointPayload entrypointPayload = mock(EntrypointPayload.class);
-        when(entrypointPayload.headers()).thenReturn(CaseInsensitiveMultiMap.builder().build());
-        final Future<InvocationResult<EntrypointPayload>> result = hook.call(entrypointPayload, null);
+    public void codeShouldStartWithModuleCode() {
+        // when and then
+        assertThat(target.code()).startsWith(FiftyOneDeviceDetectionModule.CODE);
+    }
+
+    @Test
+    public void callShouldReturnPatchedModule() {
+        // given
+        final EntrypointPayload entrypointPayload = EntrypointPayloadImpl.of(
+                null,
+                CaseInsensitiveMultiMap.builder().build(),
+                null
+        );
+
+        // when
+        final Future<InvocationResult<EntrypointPayload>> result = target.call(entrypointPayload, null);
 
         // then
         assertThat(result.succeeded()).isTrue();
@@ -40,18 +48,20 @@ public class FiftyOneDeviceDetectionEntrypointHookTest {
     }
 
     @Test
-    public void shouldAddRawRequestHeaders() {
+    public void callShouldAddRawRequestHeadersToModuleEvidence() {
         // given
-        final EntrypointPayload entrypointPayload = mock(EntrypointPayload.class);
         final String key = "ua";
         final String value = "AI-scape Imitator";
-        when(entrypointPayload.headers()).thenReturn(CaseInsensitiveMultiMap.builder()
-                .add(key, value)
-                .build());
+        final EntrypointPayload entrypointPayload = EntrypointPayloadImpl.of(
+                null,
+                CaseInsensitiveMultiMap.builder()
+                        .add(key, value)
+                        .build(),
+                null
+        );
 
-        // given and when
-        final EntrypointHook hook = new FiftyOneDeviceDetectionEntrypointHook();
-        final Future<InvocationResult<EntrypointPayload>> result = hook.call(entrypointPayload, null);
+        // when
+        final Future<InvocationResult<EntrypointPayload>> result = target.call(entrypointPayload, null);
 
         // then
         assertThat(result.succeeded()).isTrue();

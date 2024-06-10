@@ -3,7 +3,7 @@ package org.prebid.server.hooks.modules.fiftyone.devicedetection.config;
 import fiftyone.pipeline.core.flowelements.Pipeline;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.FiftyOneDeviceDetectionModule;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.PipelineBuilder;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.PipelineBuilderBuilder;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionEntrypointHook;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks.FiftyOneDeviceDetectionRawAuctionRequestHook;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
@@ -35,7 +35,7 @@ public class FiftyOneDeviceDetectionModuleConfiguration {
 
     @Bean
     Pipeline pipeline(ModuleConfig moduleConfig) throws Exception {
-        return new PipelineBuilder(null).build(moduleConfig).build();
+        return new PipelineBuilderBuilder().build(moduleConfig).build();
     }
 
     @Bean
