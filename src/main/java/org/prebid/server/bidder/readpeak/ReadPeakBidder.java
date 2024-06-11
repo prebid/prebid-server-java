@@ -106,25 +106,24 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
         final boolean hasApp = !hasSite && request.getApp() != null;
 
         final BidRequest outgoingRequest = requestBuilder
-                .site(hasSite ? modifySite(request.getSite(), extImpReadPeak, publisher) : request.getSite())
+                .site(hasSite ? modifySite(request.getSite(),
+                        extImpReadPeak.getSiteId(), publisher) : request.getSite())
                 .app(hasApp ? modifyApp(request.getApp(), extImpReadPeak, publisher) : request.getApp())
                 .build();
 
         return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
     }
 
-    private Site modifySite(Site site, ExtImpReadPeak extImpReadPeak, Publisher publisher) {
+    private Site modifySite(Site site, String siteId, Publisher publisher) {
         return site.toBuilder()
-                .id(StringUtils.isNotBlank(extImpReadPeak.getSiteId())
-                        ? extImpReadPeak.getSiteId() : site.getId())
+                .id(StringUtils.isNotBlank(siteId) ? siteId : site.getId())
                 .publisher(publisher)
                 .build();
     }
 
     private App modifyApp(App app, ExtImpReadPeak extImpReadPeak, Publisher publisher) {
         return app.toBuilder()
-                .id(StringUtils.isNotBlank(extImpReadPeak.getSiteId())
-                        ? extImpReadPeak.getSiteId() : app.getId())
+                .id(StringUtils.isNotBlank(extImpReadPeak.getSiteId()) ? extImpReadPeak.getSiteId() : app.getId())
                 .publisher(publisher)
                 .build();
     }
@@ -134,7 +133,7 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
             return extractBids(bidResponse);
-        } catch (DecodeException | PreBidException e) {
+        } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
