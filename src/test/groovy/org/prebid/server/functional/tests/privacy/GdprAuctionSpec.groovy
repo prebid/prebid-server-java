@@ -3,14 +3,26 @@ package org.prebid.server.functional.tests.privacy
 import org.mockserver.model.Delay
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountGdprConfig
+import org.prebid.server.functional.model.config.PurposeConfig
+import org.prebid.server.functional.model.privacy.EnforcementRequirement
+import org.prebid.server.functional.model.request.auction.Activity
+import org.prebid.server.functional.model.request.auction.ActivityRule
+import org.prebid.server.functional.model.request.auction.AllowActivities
+import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.DistributionChannel
+import org.prebid.server.functional.model.request.auction.Eid
+import org.prebid.server.functional.model.request.auction.RegsExt
+import org.prebid.server.functional.model.request.auction.User
+import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.container.PrebidServerContainer
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.BogusConsent
 import org.prebid.server.functional.util.privacy.TcfConsent
+import org.prebid.server.functional.util.privacy.TcfUtils
 import org.prebid.server.functional.util.privacy.VendorListConsent
+import spock.lang.IgnoreRest
 import spock.lang.PendingFeature
 
 import java.time.Instant
@@ -18,10 +30,36 @@ import java.time.Instant
 import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.config.Purpose.P1
+import static org.prebid.server.functional.model.config.Purpose.P1
+import static org.prebid.server.functional.model.config.Purpose.P2
+import static org.prebid.server.functional.model.config.Purpose.P4
+import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
+import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
+import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
+import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
+import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.REQUEST_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.REQUEST_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.REQUEST_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.request.auction.ActivityType.FETCH_BIDS
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_BY_PRIVACY
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
+import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
 
@@ -366,5 +404,185 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
+    }
+
+    def "PBS auction should update activity controls fetch bids metrics when tcf requirement disallow request"() {
+        given: "Default Generic BidRequests with personal data"
+        def tcfConsent = new TcfConsent.Builder().build()
+        def bidRequest = bidRequestWithPersonalData.tap {
+            regs.ext = new RegsExt(gdpr: 1)
+            user.ext.consent = tcfConsent
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = [(P2): new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)]
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        and: "Flush metric"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction requests"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should cansel request"
+        assert !bidder.getBidderRequests(bidRequest.id)
+
+        then: "Metrics processed across activities should be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+    }
+
+    def "PBS auction should update activity controls privacy metrics when tcf requirement disallow privacy fields"() {
+        given: "Default Generic BidRequests with personal data"
+        def tcfConsent = new TcfConsent.Builder().build()
+        def bidRequest = bidRequestWithPersonalData.tap {
+            regs.ext = new RegsExt(gdpr: 1)
+            user.ext.consent = tcfConsent
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = [(P2): new PurposeConfig(enforcePurpose: NO, enforceVendors: false)]
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        and: "Flush metric"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction requests"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should mask device and user personal data"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest) {
+            bidderRequest.device.ip == "43.77.114.0"
+            bidderRequest.device.ipv6 == "af47:892b:3e98:b400::"
+            bidderRequest.device.geo.lat == bidRequest.device.geo.lat.round(2)
+            bidderRequest.device.geo.lon == bidRequest.device.geo.lon.round(2)
+
+            bidderRequest.device.geo.country == bidRequest.device.geo.country
+            bidderRequest.device.geo.region == bidRequest.device.geo.region
+            bidderRequest.device.geo.utcoffset == bidRequest.device.geo.utcoffset
+        }
+
+        and: "Bidder request should mask device personal data"
+        verifyAll(bidderRequest.device) {
+            !didsha1
+            !didmd5
+            !dpidsha1
+            !ifa
+            !macsha1
+            !macmd5
+            !dpidmd5
+            !geo.metro
+            !geo.city
+            !geo.zip
+            !geo.accuracy
+            !geo.ipservice
+            !geo.ext
+        }
+
+        and: "Bidder request should mask user personal data"
+        verifyAll(bidderRequest.user) {
+            !id
+            !buyeruid
+            !yob
+            !gender
+            !eids
+            !data
+            !geo
+            !ext
+            !eids
+            !ext?.eids
+        }
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+    }
+
+    def "PBS auction should not update activity controls privacy metrics when tcf requirement allow privacy fields"() {
+        given: "Default Generic BidRequests with privacy data"
+        def tcfConsent = new TcfConsent.Builder().setSpecialFeatureOptIns(DEVICE_ACCESS).build()
+        def bidRequest = bidRequestWithPersonalData.tap {
+            regs.ext = new RegsExt(gdpr: 1)
+            user.ext.consent = tcfConsent
+        }
+
+        new TcfConsent.Builder().setPurposesConsent([]).build().consentString
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = [(P1): new PurposeConfig(enforcePurpose: NO, enforceVendors: false),
+                        (P2): new PurposeConfig(enforcePurpose: NO, enforceVendors: false),
+                        (P4): new PurposeConfig(enforcePurpose: NO, enforceVendors: false),
+        ]
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        and: "Flush metric"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction requests"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request shouldn't mask device and user personal data"
+        def bidderRequest = bidder.getBidderRequest(bidRequest.id)
+        verifyAll(bidderRequest) {
+            bidderRequest.device.didsha1 == bidRequest.device.didsha1
+            bidderRequest.device.didmd5 == bidRequest.device.didmd5
+            bidderRequest.device.dpidsha1 == bidRequest.device.dpidsha1
+            bidderRequest.device.ifa == bidRequest.device.ifa
+            bidderRequest.device.macsha1 == bidRequest.device.macsha1
+            bidderRequest.device.macmd5 == bidRequest.device.macmd5
+            bidderRequest.device.dpidmd5 == bidRequest.device.dpidmd5
+            bidderRequest.device.ip == bidRequest.device.ip
+            bidderRequest.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequest.device.geo.lat == bidRequest.device.geo.lat
+            bidderRequest.device.geo.lon == bidRequest.device.geo.lon
+            bidderRequest.device.geo.country == bidRequest.device.geo.country
+            bidderRequest.device.geo.region == bidRequest.device.geo.region
+            bidderRequest.device.geo.utcoffset == bidRequest.device.geo.utcoffset
+            bidderRequest.device.geo.metro == bidRequest.device.geo.metro
+            bidderRequest.device.geo.city == bidRequest.device.geo.city
+            bidderRequest.device.geo.zip == bidRequest.device.geo.zip
+            bidderRequest.device.geo.accuracy == bidRequest.device.geo.accuracy
+            bidderRequest.device.geo.ipservice == bidRequest.device.geo.ipservice
+            bidderRequest.device.geo.ext == bidRequest.device.geo.ext
+
+            bidderRequest.user.id == bidRequest.user.id
+            bidderRequest.user.buyeruid == bidRequest.user.buyeruid
+            bidderRequest.user.yob == bidRequest.user.yob
+            bidderRequest.user.gender == bidRequest.user.gender
+            bidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
+            bidderRequest.user.data == bidRequest.user.data
+            bidderRequest.user.geo.lat == bidRequest.user.geo.lat
+            bidderRequest.user.geo.lon == bidRequest.user.geo.lon
+            bidderRequest.user.ext.data.buyeruid == bidRequest.user.ext.data.buyeruid
+        }
+
+        and: "Metrics processed across activities shouldn't be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert !metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
+        assert !metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
+        assert !metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
+        assert !metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
+        assert !metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
+        assert !metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
+        assert !metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
     }
 }

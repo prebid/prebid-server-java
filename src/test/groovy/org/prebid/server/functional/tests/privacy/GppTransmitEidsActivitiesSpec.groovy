@@ -11,13 +11,9 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.auction.Activity
 import org.prebid.server.functional.model.request.auction.ActivityRule
 import org.prebid.server.functional.model.request.auction.AllowActivities
-import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Condition
 import org.prebid.server.functional.model.request.auction.Device
-import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.Geo
-import org.prebid.server.functional.model.request.auction.User
-import org.prebid.server.functional.model.request.auction.UserExt
 import org.prebid.server.functional.service.PrebidServerException
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.UsCaV1Consent
@@ -34,7 +30,6 @@ import java.time.Instant
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.DataActivity.CONSENT
 import static org.prebid.server.functional.model.config.DataActivity.NOTICE_NOT_PROVIDED
 import static org.prebid.server.functional.model.config.DataActivity.NOTICE_PROVIDED
@@ -60,6 +55,12 @@ import static org.prebid.server.functional.model.config.UsNationalPrivacySection
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
+import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_PROCESSED_RULES_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ALERT_GENERAL
+import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_RULES_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
@@ -80,17 +81,10 @@ import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 
 class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
-    private static final String ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT = "account.%s.activity.processedrules.count"
-    private static final String DISALLOWED_COUNT_FOR_ACCOUNT = "account.%s.activity.${TRANSMIT_EIDS.metricValue}.disallowed.count"
-    private static final String ACTIVITY_RULES_PROCESSED_COUNT = "requests.activity.processedrules.count"
-    private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${TRANSMIT_EIDS.metricValue}.disallowed.count"
-    private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${TRANSMIT_EIDS.metricValue}.disallowed.count"
-    private static final String ALERT_GENERAL = "alerts.general"
-
     def "PBS auction call when transmit EIDS activities is allowing requests should leave EIDS fields in request and update proper metrics"() {
         given: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def bidRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Activities set with generic bidder allowed"
         def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.defaultActivity)
@@ -103,22 +97,22 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have data in EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-        assert genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
     }
 
     def "PBS auction call when transmit EIDS activities is rejecting requests should remove EIDS fields in request and update disallowed metrics"() {
         given: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def bidRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Allow activities setup"
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
@@ -132,10 +126,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have empty EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
             !genericBidderRequest.user.eids
@@ -144,15 +138,15 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
     }
 
     def "PBS auction call when default activity setting set to false should remove EIDS fields from request"() {
         given: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def bidRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Allow activities setup"
         def activity = new Activity(defaultAction: false)
@@ -163,10 +157,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have empty EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
             !genericBidderRequest.user.eids
@@ -180,7 +174,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def bidRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Activities set for transmit EIDS with bidder allowed without type"
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
@@ -191,7 +185,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
@@ -209,7 +203,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when first rule allowing in activities should leave EIDS fields in request"() {
         given: "Default Generic BidRequests with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def bidRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Activity rules with same priority"
         def allowActivity = new ActivityRule(condition: Condition.baseCondition, allow: true)
@@ -224,17 +218,17 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have data in EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-        assert genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
     }
 
     def "PBS auction call when first rule disallowing in activities should remove EIDS fields in request"() {
         given: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def bidRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Activities set for actions with Generic bidder rejected by hierarchy setup"
         def disallowActivity = new ActivityRule(condition: Condition.baseCondition, allow: false)
@@ -249,10 +243,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have empty EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
             !genericBidderRequest.user.eids
@@ -263,7 +257,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction shouldn't allow rule when gppSid not intersect"() {
         given: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = regsGppSid
         }
 
@@ -286,16 +280,16 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have data in EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-        assert genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
 
         where:
         regsGppSid        | conditionGppSid
@@ -306,7 +300,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction should allow rule when gppSid intersect"() {
         given: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [USP_V1.intValue]
         }
 
@@ -329,10 +323,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have empty EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
             !genericBidderRequest.user.eids
@@ -341,15 +335,15 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
     }
 
     def "PBS auction should process rule when device.geo doesn't intersection"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.regs.gppSid = [USP_V1.intValue]
             it.device = new Device(geo: deviceGeo)
         }
@@ -382,8 +376,8 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
 
         where:
         deviceGeo                                           | conditionGeo
@@ -396,7 +390,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction should disallowed rule when device.geo intersection"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.setAccountId(accountId)
             it.device = new Device(geo: deviceGeo)
         }
@@ -433,9 +427,9 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
 
         where:
         deviceGeo                                           | conditionGeo
@@ -447,7 +441,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction should process rule when regs.ext.gpc doesn't intersection with condition.gpc"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.regs.ext.gpc = PBSUtils.randomNumber as String
         }
 
@@ -478,15 +472,15 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
     }
 
     def "PBS auction should disallowed rule when regs.ext.gpc intersection with condition.gpc"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
         def gpc = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.setAccountId(accountId)
             it.regs.ext.gpc = gpc
         }
@@ -522,15 +516,15 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
     }
 
     def "PBS auction should process rule when header gpc doesn't intersection with condition.gpc"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.regs.ext.gpc = PBSUtils.randomNumber as String
         }
 
@@ -562,14 +556,14 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
     }
 
     def "PBS auction should disallowed rule when header gpc intersection with condition.gpc"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.setAccountId(accountId)
             it.regs.ext.gpc = null
         }
@@ -605,15 +599,15 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
     }
 
     def "PBS auction call when privacy regulation match and rejecting should remove EIDS fields in request"() {
         given: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = SIMPLE_GPC_DISALLOW_LOGIC
         }
@@ -633,10 +627,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have empty EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
 
         verifyAll {
             !genericBidderRequest.user.eids
@@ -650,7 +644,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy module contain some part of disallow logic should remove EIDS fields in request"() {
         given: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = disallowGppLogic
         }
@@ -670,10 +664,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have empty EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
             !genericBidderRequest.user?.ext?.eids
@@ -806,7 +800,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy module contain some part of disallow logic which violates GPP validation should remove EIDS fields in request"() {
         given: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = disallowGppLogic
         }
@@ -826,10 +820,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have empty EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
             !genericBidderRequest.user?.ext?.eids
@@ -847,7 +841,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when request have different gpp consent but match and rejecting should remove EIDS fields in request"() {
         given: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [gppSid.intValue]
             regs.gpp = gppConsent
         }
@@ -867,10 +861,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have empty EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
             !genericBidderRequest.user?.ext?.eids
@@ -889,7 +883,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy modules contain allowing settings should leave EIDS fields in request"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = SIMPLE_GPC_DISALLOW_LOGIC
         }
@@ -906,11 +900,11 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have data in EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-        assert genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
 
         where:
         accountGppConfig << [
@@ -922,7 +916,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when regs.gpp in request is allowing should leave EIDS fields in request"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = regsGpp
         }
@@ -942,11 +936,11 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have data in EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-        assert genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
 
         where:
         regsGpp << ["", new UsNatV1Consent.Builder().build(), new UsNatV1Consent.Builder().setGpc(false).build()]
@@ -955,7 +949,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy regulation have duplicate should leave EIDS fields in request and update alerts metrics"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
         }
 
@@ -977,21 +971,21 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have data in EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-        assert genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS auction call when privacy module contain invalid property should respond with an error"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = SIMPLE_GPC_DISALLOW_LOGIC
         }
@@ -1010,7 +1004,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain error"
         def error = thrown(PrebidServerException)
@@ -1022,7 +1016,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def gppConsent = new UsNatV1Consent.Builder().setGpc(gpcValue).build()
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = gppConsent
         }
@@ -1045,11 +1039,11 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have data in EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(genericBidRequest.id)
-        assert genericBidderRequest.user.eids[0].source == genericBidRequest.user.eids[0].source
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
+        assert genericBidderRequest.user.eids[0].source == bidRequest.user.eids[0].source
 
         where:
         gpcValue | accountLogic
@@ -1062,7 +1056,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy regulation match custom requirement should remove EIDS fields in request"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = gppConsent
         }
@@ -1086,10 +1080,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have empty EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
             !genericBidderRequest.user?.ext?.eids
@@ -1110,7 +1104,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         given: "Generic BidRequest with gpp and account setup"
         def gppConsent = new UsNatV1Consent.Builder().setGpc(true).build()
         def accountId = PBSUtils.randomNumber as String
-        def genericBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             ext.prebid.trace = VERBOSE
             regs.gppSid = [US_CT_V1.intValue]
             regs.gpp = gppConsent
@@ -1138,7 +1132,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(genericBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain error"
         def error = thrown(PrebidServerException)
@@ -1147,13 +1141,13 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS auction call when custom privacy regulation with normalizing that match custom config should have empty EIDS fields"() {
         given: "Generic BidRequest with gpp and account setup"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             ext.prebid.trace = VERBOSE
             regs.gppSid = [gppSid.intValue]
             regs.gpp = gppStateConsent.build()
@@ -1180,10 +1174,10 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should have empty EIDS fields"
-        def genericBidderRequest = bidder.getBidderRequest(generalBidRequest.id)
+        def genericBidderRequest = bidder.getBidderRequest(bidRequest.id)
         verifyAll {
             !genericBidderRequest.user.eids
             !genericBidderRequest.user?.ext?.eids
@@ -1264,7 +1258,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when transmit EIDS activities is allowing request should leave EIDS fields field in active request and update proper metrics"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1294,13 +1288,13 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[PROCESSED_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
     }
 
     def "PBS amp call when transmit EIDS activities is rejecting request should remove EIDS fields field in active request and update disallowed metrics"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1334,14 +1328,14 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
     }
 
     def "PBS amp call when default activity setting set to false should remove EIDS fields from request"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1378,7 +1372,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1416,7 +1410,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when first rule allowing in activities should leave EIDS fields in request"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1450,7 +1444,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when first rule disallowing in activities should remove EIDS fields in request"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1487,7 +1481,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp should disallowed rule when header.gpc intersection with condition.gpc"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId).tap {
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.ext.gpc = null
         }
 
@@ -1528,14 +1522,14 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
     }
 
     def "PBS amp should allowed rule when gpc header doesn't intersection with condition.gpc"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1571,13 +1565,13 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[PROCESSED_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
     }
 
     def "PBS amp call when privacy regulation match and rejecting should remove EIDS fields in request"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1622,7 +1616,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when privacy module contain some part of disallow logic should remove EIDS fields in request"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1787,7 +1781,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when privacy module contain some part of disallow logic which violates GPP validation should remove EIDS fields in request"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1837,7 +1831,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when request have different gpp consent but match and rejecting should remove EIDS fields in request"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1888,7 +1882,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when privacy modules contain allowing settings should leave EIDS fields in request"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1930,7 +1924,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when regs.gpp in request is allowing should leave EIDS fields in request"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1972,7 +1966,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when privacy regulation have duplicate should leave EIDS fields in request and update alerts metrics"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2012,13 +2006,13 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS amp call when privacy module contain invalid property should respond with an error"() {
         given: "Default Generic BidRequest with EIDS fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2057,7 +2051,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when privacy regulation don't match custom requirement should leave EIDS fields in request"() {
         given: "Store bid request with link for account"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account and gpp"
         def gppConsent = new UsNatV1Consent.Builder().setGpc(gpcValue).build()
@@ -2107,7 +2101,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when privacy regulation match custom requirement should remove EIDS fields from request"() {
         given: "Store bid request with gpp string and link for account"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account and gppSid"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2163,7 +2157,7 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
         given: "Store bid request with link for account"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account and gpp string"
         def gppConsent = new UsNatV1Consent.Builder().setGpc(true).build()
@@ -2210,13 +2204,13 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS amp call when custom privacy regulation with normalizing should change request consent and call to bidder"() {
         given: "Store bid request with gpp string and link for account"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndEidsData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account and gppSid"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2333,15 +2327,5 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         US_CT_V1 | [new EqualityValueRule(CHILD_CONSENTS_BELOW_13, NO_CONSENT),
                     new EqualityValueRule(CHILD_CONSENTS_FROM_13_TO_16, NO_CONSENT)]       | new UsCtV1Consent.Builder()
                                                                                               .setKnownChildSensitiveDataConsents(PBSUtils.getRandomNumber(0, 2), 1, PBSUtils.getRandomNumber(0, 2))
-    }
-
-    private static BidRequest givenBidRequestWithAccountAndEidsData(String accountId) {
-        BidRequest.getDefaultBidRequest().tap {
-            it.setAccountId(accountId)
-            it.ext.prebid.trace = VERBOSE
-            it.user = User.defaultUser
-            it.user.eids = [Eid.defaultEid]
-            it.user.ext = new UserExt(eids: [Eid.defaultEid])
-        }
     }
 }
