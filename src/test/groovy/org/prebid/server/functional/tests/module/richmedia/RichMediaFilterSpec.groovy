@@ -2,6 +2,8 @@ package org.prebid.server.functional.tests.module.richmedia
 
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountHooksConfiguration
+import org.prebid.server.functional.model.config.ExecutionPlan
+import org.prebid.server.functional.model.config.HookId
 import org.prebid.server.functional.model.config.PbsModulesConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredResponse
@@ -15,7 +17,10 @@ import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.tests.module.ModuleBaseSpec
 import org.prebid.server.functional.util.PBSUtils
 
+import static org.prebid.server.functional.model.ModuleName.PB_RICHMEDIA_FILTER
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.config.Endpoint.OPENRTB2_AUCTION
+import static org.prebid.server.functional.model.config.Stage.ALL_PROCESSED_BID_RESPONSES
 import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 
 class RichMediaFilterSpec extends ModuleBaseSpec {
@@ -23,6 +28,10 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
     private static final String PATTERN_NAME = PBSUtils.randomString
     private static final String PATTERN_NAME_ACCOUNT = PBSUtils.randomString
     private final PrebidServerService pbsServiceWithEnabledMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME))
+    private final PrebidServerService pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy = pbsServiceFactory.getService(
+            (getRichMediaFilterSettings(PATTERN_NAME) + ["hooks.host-execution-plan": encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES).tap {
+                endpoints.values().first().stages.values().first().groups.first.hookSequenceSnakeCase = [new HookId(moduleCodeSnakeCase: PB_RICHMEDIA_FILTER.code, hookImplCodeSnakeCase: "${PB_RICHMEDIA_FILTER.code}-${ALL_PROCESSED_BID_RESPONSES.value}-hook")]})])
+                    .collectEntries { key, value -> [(key.toString()): value.toString()] })
     private final PrebidServerService pbsServiceWithDisabledMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME, false))
 
     def "PBS should process request without analytics when adm matches with pattern name and filter set to disabled in host config"() {
@@ -330,6 +339,47 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
 
         where:
         admValue << [PATTERN_NAME, PATTERN_NAME_ACCOUNT]
+    }
+
+    def "PBS should reject request with error and provide analytic when adm matches with pattern name and filter set to enabled in host config with different name case"() {
+        given: "BidRequest with stored response"
+        def storedResponseId = PBSUtils.randomNumber
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            it.ext.prebid.trace = VERBOSE
+            it.imp.first().ext.prebid.storedBidResponse = [new StoredBidResponse(id: storedResponseId, bidder: GENERIC)]
+        }
+
+        and: "Stored bid response in DB"
+        def storedBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            it.seatbid[0].bid[0].adm = admValue as String
+        }
+        def storedResponse = new StoredResponse(responseId: storedResponseId, storedBidResponse: storedBidResponse)
+        storedResponseDao.save(storedResponse)
+
+        and: "Account in the DB"
+        def account = new Account(uuid: bidRequest.getAccountId())
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def response = pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy.sendAuctionRequest(bidRequest)
+
+        then: "Response header shouldn't contain any seatbid"
+        assert !response.seatbid
+
+        and: "Response should contain error of invalid creation for imp with code 350"
+        def responseErrors = response.ext.errors
+        assert responseErrors[ErrorType.GENERIC]*.message == ['Invalid creatives']
+        assert responseErrors[ErrorType.GENERIC]*.code == [350]
+        assert responseErrors[ErrorType.GENERIC].collectMany { it.impIds } == bidRequest.imp.id
+
+        and: "Add an entry to the analytics tag for this rejected bid response"
+        def analyticsTags = getAnalyticResults(response)
+        assert analyticsTags.size() == 1
+        def analyticResult = analyticsTags.first()
+        assert analyticResult == AnalyticResult.buildFromImp(bidRequest.imp.first())
+
+        where:
+        admValue << [PATTERN_NAME, "${PBSUtils.randomString}-${PATTERN_NAME}", "${PATTERN_NAME}.${PBSUtils.randomString}"]
     }
 
     private static List<AnalyticResult> getAnalyticResults(BidResponse response) {

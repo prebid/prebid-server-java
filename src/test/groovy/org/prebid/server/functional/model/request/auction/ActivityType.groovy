@@ -1,6 +1,11 @@
 package org.prebid.server.functional.model.request.auction
 
 import com.fasterxml.jackson.annotation.JsonValue
+import org.prebid.server.functional.util.Case
+import org.prebid.server.functional.util.PBSUtils
+
+import static org.prebid.server.functional.util.PBSUtils.moveToKebabCase
+import static org.prebid.server.functional.util.PBSUtils.moveToSnakeCase
 
 enum ActivityType {
 
@@ -13,7 +18,6 @@ enum ActivityType {
     TRANSMIT_TID("transmitTid"),
     TRANSMIT_EIDS("transmitEids")
 
-    @JsonValue
     final String value
 
     ActivityType(String value) {
@@ -22,5 +26,16 @@ enum ActivityType {
 
     String getMetricValue() {
         name().toLowerCase()
+    }
+
+    @JsonValue
+    String getValue() {
+        def type = PBSUtils.getRandomEnum(Case.class)
+        if (type == Case.KEBAB) {
+            moveToKebabCase(value)
+        } else if (type == Case.SNAKE) {
+            moveToSnakeCase(value)
+        }
+        return value
     }
 }

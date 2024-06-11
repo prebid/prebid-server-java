@@ -69,6 +69,18 @@ class PBSUtils implements ObjectMapperWrapper {
         }.join()
     }
 
+    static def moveToKebabCase(String string) {
+        makeSpaceBeforeUpperCase(string).toLowerCase()
+                .replace(" ", "-")
+                .replace("_", "-")
+    }
+
+    static def moveToSnakeCase(String string) {
+        makeSpaceBeforeUpperCase(string).toLowerCase()
+                .replace(" ", "_")
+                .replace("-", "_")
+    }
+
     static Path createJsonFile(BidRequest bidRequest) {
         def data = encode(bidRequest)
         createTempFile(data, ".json")
@@ -110,5 +122,17 @@ class PBSUtils implements ObjectMapperWrapper {
     static <T extends Enum<T>> T getRandomEnum(Class<T> anEnum) {
         def values = anEnum.enumConstants
         values[getRandomNumber(0, values.length - 1)]
+    }
+
+    private static String makeSpaceBeforeUpperCase(String string) {
+        final StringBuilder stringBuilder = new StringBuilder()
+        def array = string.toCharArray()
+        for (i in 0..<string.length()) {
+            if (array[i].isUpperCase()) {
+                stringBuilder.append(" ")
+            }
+            stringBuilder.append(array[i])
+        }
+        stringBuilder
     }
 }
