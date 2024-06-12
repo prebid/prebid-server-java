@@ -74,7 +74,9 @@ class BidExpResponseSpec extends BaseSpec {
         }
 
         and: "Set bidder response without exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].exp = null
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
@@ -96,7 +98,9 @@ class BidExpResponseSpec extends BaseSpec {
         }
 
         and: "Set bidder response without exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].exp = null
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
@@ -115,7 +119,9 @@ class BidExpResponseSpec extends BaseSpec {
         }
 
         and: "Set bidder response without exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].exp = null
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
@@ -125,9 +131,11 @@ class BidExpResponseSpec extends BaseSpec {
         assert response.seatbid.bid.first.exp == [bidRequestExp]
     }
 
-    def "PBS auction should resolve exp from request.ext.prebid.cache for request when it have invalid type"() {
+    def "PBS auction shouldn't resolve exp from request.ext.prebid.cache for request when it have invalid type"() {
         given: "Set bidder response without exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].exp = null
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
@@ -153,7 +161,9 @@ class BidExpResponseSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Set bidder response without exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].exp = null
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
@@ -173,7 +183,9 @@ class BidExpResponseSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Set bidder response without exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].exp = null
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
@@ -194,7 +206,9 @@ class BidExpResponseSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Set bidder response without exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].exp = null
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
@@ -215,7 +229,9 @@ class BidExpResponseSpec extends BaseSpec {
         accountDao.save(account)
 
         and: "Set bidder response without exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].exp = null
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
@@ -241,7 +257,9 @@ class BidExpResponseSpec extends BaseSpec {
         def bidRequest = BidRequest.defaultVideoRequest
 
         and: "Set bidder response without exp"
-        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest)
+        def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid[0].bid[0].exp = null
+        }
         bidder.setResponse(bidRequest.id, bidResponse)
 
         when: "PBS processes auction request"
