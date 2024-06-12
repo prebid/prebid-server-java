@@ -827,7 +827,7 @@ public class ExchangeService {
         if (blockedRequestByTcf) {
             context.getBidRejectionTrackers()
                     .get(bidder)
-                    .rejectAll(BidRejectionReason.REJECTED_BY_PRIVACY);
+                    .rejectAll(BidRejectionReason.REQUEST_BLOCKED_PRIVACY);
 
             return AuctionParticipation.builder()
                     .bidder(bidder)
@@ -1262,7 +1262,7 @@ public class ExchangeService {
         if (mediaTypeProcessingResult.isRejected()) {
             auctionContext.getBidRejectionTrackers()
                     .get(bidderName)
-                    .rejectAll(BidRejectionReason.REJECTED_BY_MEDIA_TYPE);
+                    .rejectAll(BidRejectionReason.REQUEST_BLOCKED_UNSUPPORTED_MEDIA_TYPE);
             final BidderSeatBid bidderSeatBid = BidderSeatBid.builder()
                     .warnings(mediaTypeProcessingErrors)
                     .build();
@@ -1309,7 +1309,7 @@ public class ExchangeService {
         if (hookStageResult.isShouldReject()) {
             auctionContext.getBidRejectionTrackers()
                     .get(bidderRequest.getBidder())
-                    .rejectAll(BidRejectionReason.REJECTED_BY_HOOK);
+                    .rejectAll(BidRejectionReason.REQUEST_BLOCKED_GENERAL);
 
             return Future.succeededFuture(BidderResponse.of(bidderRequest.getBidder(), BidderSeatBid.empty(), 0));
         }
@@ -1679,7 +1679,7 @@ public class ExchangeService {
             case failed_to_request_bids -> MetricName.failedtorequestbids;
             case timeout -> MetricName.timeout;
             case invalid_bid -> MetricName.bid_validation;
-            case rejected_ipf, generic, invalid_creative -> MetricName.unknown_error;
+            case rejected_ipf, generic -> MetricName.unknown_error;
         };
     }
 
