@@ -1,5 +1,7 @@
 package org.prebid.server.functional.tests
 
+import org.prebid.server.functional.model.bidderspecific.BidderRequest
+import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.repository.HibernateRepositoryService
 import org.prebid.server.functional.repository.dao.AccountDao
 import org.prebid.server.functional.repository.dao.StoredImpDao
@@ -76,5 +78,13 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
     protected static String getRoundedTargetingValueWithDefaultPrecision(BigDecimal value) {
         "${value.setScale(DEFAULT_TARGETING_PRECISION, DOWN)}0"
+    }
+
+    protected static Map<String, List<BidderRequest>> getRequest(BidResponse bidResponse) {
+        bidResponse.ext.debug.bidders.collectEntries { bidderName, bidderCalls ->
+            [(bidderName) : bidderCalls.collect { bidderCall ->
+                decode(bidderCall.requestBody as String, BidderRequest)
+            }]
+        }
     }
 }

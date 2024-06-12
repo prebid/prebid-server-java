@@ -100,7 +100,8 @@ public class TripleliftNativeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unsupported publisher for triplelift_native");
+        assertThat(result.getErrors().getFirst().getMessage())
+                .startsWith("Unsupported publisher for triplelift_native");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -121,7 +122,8 @@ public class TripleliftNativeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unsupported publisher for triplelift_native");
+        assertThat(result.getErrors().getFirst().getMessage())
+                .startsWith("Unsupported publisher for triplelift_native");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -140,7 +142,8 @@ public class TripleliftNativeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Unsupported publisher for triplelift_native");
+        assertThat(result.getErrors().getFirst().getMessage())
+                .startsWith("Unsupported publisher for triplelift_native");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -199,8 +202,9 @@ public class TripleliftNativeBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage())
+                .startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 

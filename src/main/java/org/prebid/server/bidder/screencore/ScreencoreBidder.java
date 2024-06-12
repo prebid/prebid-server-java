@@ -48,7 +48,7 @@ public class ScreencoreBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final ScreencoreImpExt impExt;
-        final Imp firstImp = request.getImp().get(0);
+        final Imp firstImp = request.getImp().getFirst();
         try {
             impExt = parseImpExt(firstImp);
         } catch (PreBidException e) {
@@ -84,7 +84,7 @@ public class ScreencoreBidder implements Bidder<BidRequest> {
 
     private static BidRequest cleanUpFirstImpExt(BidRequest request) {
         final List<Imp> imps = new ArrayList<>(request.getImp());
-        imps.set(0, request.getImp().get(0).toBuilder().ext(null).build());
+        imps.set(0, request.getImp().getFirst().toBuilder().ext(null).build());
         return request.toBuilder().imp(imps).build();
     }
 

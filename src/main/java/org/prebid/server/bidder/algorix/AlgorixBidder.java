@@ -115,7 +115,7 @@ public class AlgorixBidder implements Bidder<BidRequest> {
         final Banner banner = imp.getBanner();
         if (!(isValidSizeValue(banner.getW()) && isValidSizeValue(banner.getH()))
                 && CollectionUtils.isNotEmpty(banner.getFormat())) {
-            final Format firstFormat = banner.getFormat().get(FIRST_INDEX);
+            final Format firstFormat = banner.getFormat().getFirst();
             return imp.toBuilder()
                     .banner(banner.toBuilder()
                             .w(firstFormat.getW())

@@ -3202,7 +3202,7 @@ public class RequestValidatorTest extends VertxTest {
 
     private static BidRequest overwriteBannerFormatInFirstImp(
             BidRequest bidRequest, UnaryOperator<FormatBuilder> formatModifier) {
-        final Banner banner = bidRequest.getImp().get(0).getBanner().toBuilder()
+        final Banner banner = bidRequest.getImp().getFirst().getBanner().toBuilder()
                 .format(singletonList(formatModifier.apply(Format.builder()).build())).build();
 
         return bidRequest.toBuilder().imp(singletonList(validImpBuilder().banner(banner).build())).build();
@@ -3210,7 +3210,7 @@ public class RequestValidatorTest extends VertxTest {
 
     private static BidRequest overwritePmpFirstDealInFirstImp(
             BidRequest bidRequest, UnaryOperator<DealBuilder> dealModifier) {
-        final Pmp pmp = bidRequest.getImp().get(0).getPmp().toBuilder()
+        final Pmp pmp = bidRequest.getImp().getFirst().getPmp().toBuilder()
                 .deals(singletonList(dealModifier.apply(dealModifier.apply(Deal.builder())).build())).build();
 
         return bidRequest.toBuilder().imp(singletonList(validImpBuilder().pmp(pmp).build())).build();

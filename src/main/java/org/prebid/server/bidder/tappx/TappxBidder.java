@@ -62,7 +62,7 @@ public class TappxBidder implements Bidder<BidRequest> {
         final ExtImpTappx extImpTappx;
         final String url;
         try {
-            extImpTappx = parseImpExt(imps.get(0));
+            extImpTappx = parseImpExt(imps.getFirst());
             url = resolveUrl(extImpTappx, request.getTest());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -82,7 +82,7 @@ public class TappxBidder implements Bidder<BidRequest> {
 
     private static List<Imp> modifyImps(List<Imp> imps, ExtImpTappx extImpTappx) {
         final List<Imp> modifiedImps = new ArrayList<>(imps);
-        modifiedImps.set(0, modifyImp(imps.get(0), extImpTappx));
+        modifiedImps.set(0, modifyImp(imps.getFirst(), extImpTappx));
 
         return modifiedImps;
     }

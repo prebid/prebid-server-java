@@ -1,6 +1,7 @@
 adapters:
   openx:
     endpoint: http://rtb.openx.net/prebid
+    endpoint-compression: gzip
     meta-info:
       maintainer-email: prebid@openx.com
       app-media-types:

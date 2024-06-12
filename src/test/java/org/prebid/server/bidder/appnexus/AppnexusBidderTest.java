@@ -644,11 +644,11 @@ public class AppnexusBidderTest extends VertxTest {
         assertThat(result.getValue())
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
-                .satisfies(exts -> assertThat(exts.get(0)).isNotSameAs(exts.get(1)))
+                .satisfies(exts -> assertThat(exts.getFirst()).isNotSameAs(exts.get(1)))
                 .extracting(ext -> ext.getProperty("appnexus"))
                 .extracting(appnexus -> appnexus.get("adpod_id"))
                 .hasSize(2)
-                .satisfies(ids -> assertThat(ids.get(0)).isNotSameAs(ids.get(1)));
+                .satisfies(ids -> assertThat(ids.getFirst()).isNotSameAs(ids.get(1)));
         assertThat(result.getErrors()).isEmpty();
     }
 

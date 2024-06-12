@@ -47,7 +47,7 @@ public class VideoHeroesBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> requestImps = request.getImp();
-        final Imp firstImp = requestImps.get(FIRST_IMP_INDEX);
+        final Imp firstImp = requestImps.getFirst();
 
         final ExtImpVideoHeroes impExt;
         try {
@@ -61,7 +61,7 @@ public class VideoHeroesBidder implements Bidder<BidRequest> {
 
     private static List<Imp> modifyFirstImp(List<Imp> imp) {
         final List<Imp> modifiedImps = new ArrayList<>(imp);
-        final Imp modifiedFirstImp = imp.get(FIRST_IMP_INDEX).toBuilder().ext(null).build();
+        final Imp modifiedFirstImp = imp.getFirst().toBuilder().ext(null).build();
         modifiedImps.set(FIRST_IMP_INDEX, modifiedFirstImp);
 
         return modifiedImps;

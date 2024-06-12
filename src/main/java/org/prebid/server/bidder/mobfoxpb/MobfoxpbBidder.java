@@ -55,7 +55,7 @@ public class MobfoxpbBidder implements Bidder<BidRequest> {
         final BidRequest outgoingRequest;
         final String uri;
         try {
-            final Imp firstImp = bidRequest.getImp().get(0);
+            final Imp firstImp = bidRequest.getImp().getFirst();
             final ExtImpMobfoxpb impExt = parseImpExt(firstImp);
 
             uri = buildUri(impExt.getKey());

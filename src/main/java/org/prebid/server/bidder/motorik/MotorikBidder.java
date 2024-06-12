@@ -50,7 +50,7 @@ public class MotorikBidder implements Bidder<BidRequest> {
         final ExtImpMotorik firstImpExt;
 
         try {
-            firstImpExt = parseImpExt(request.getImp().get(0));
+            firstImpExt = parseImpExt(request.getImp().getFirst());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }
@@ -71,7 +71,7 @@ public class MotorikBidder implements Bidder<BidRequest> {
     }
 
     private static List<Imp> prepareFirstImp(List<Imp> imps) {
-        final Imp firstImp = imps.get(0);
+        final Imp firstImp = imps.getFirst();
         final List<Imp> updatedImps = new ArrayList<>(imps);
         updatedImps.set(0, firstImp.toBuilder().ext(null).build());
 

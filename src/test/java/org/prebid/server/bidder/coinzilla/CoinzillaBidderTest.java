@@ -68,7 +68,7 @@ public class CoinzillaBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldHaveCorrectHeaders() throws JsonProcessingException {
+    public void makeHttpRequestsShouldHaveCorrectHeaders() {
         // given
         final BidRequest bidRequest = givenBidRequest(identity());
 

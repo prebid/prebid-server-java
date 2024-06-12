@@ -87,7 +87,7 @@ public class EpsilonBidder implements Bidder<BidRequest> {
             modifiedImps.add(modifyImp(imp, impExt));
         }
 
-        final Imp firstImp = requestImps.get(0);
+        final Imp firstImp = requestImps.getFirst();
         final ExtImpEpsilon extImp = parseImpExt(firstImp, 0);
         final String siteId = extImp.getSiteId();
         final Site requestSite = bidRequest.getSite();
@@ -217,7 +217,7 @@ public class EpsilonBidder implements Bidder<BidRequest> {
     }
 
     private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
+        final SeatBid firstSeatBid = bidResponse.getSeatbid().getFirst();
         final List<Bid> bids = firstSeatBid.getBid();
 
         if (CollectionUtils.isEmpty(bids)) {

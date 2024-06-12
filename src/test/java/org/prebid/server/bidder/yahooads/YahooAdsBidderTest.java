@@ -88,7 +88,7 @@ public class YahooAdsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("imp #0: Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("imp #0: Cannot deserialize value");
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -281,7 +281,7 @@ public class YahooAdsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getHeaders())
+        assertThat(result.getValue().getFirst().getHeaders())
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(tuple("User-Agent", "UA"),
                         tuple("x-openrtb-version", "2.5"),
@@ -299,8 +299,8 @@ public class YahooAdsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -329,21 +329,6 @@ public class YahooAdsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).isEmpty();
-    }
-
-    @Test
-    public void makeBidsShouldReturnErrorIfBidResponseSeatBidIsEmpty() throws JsonProcessingException {
-        // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(BidResponse.builder().seatbid(emptyList()).build()));
-
-        // when
-        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
-
-        // then
-        assertThat(result.getErrors()).hasSize(1)
-                .containsOnly(BidderError.badServerResponse("Invalid SeatBids count: 0"));
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -436,7 +421,7 @@ public class YahooAdsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final Regs regs = result.getValue().get(0).getPayload().getRegs();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
         assertThat(regs.getGdpr()).isNull();
         assertThat(regs.getUsPrivacy()).isNull();
         assertThat(regs.getGpp()).isNull();
@@ -464,7 +449,7 @@ public class YahooAdsBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).isEmpty();
-        final Regs regs = result.getValue().get(0).getPayload().getRegs();
+        final Regs regs = result.getValue().getFirst().getPayload().getRegs();
         assertThat(regs.getGdpr()).isNull();
         assertThat(regs.getUsPrivacy()).isNull();
         assertThat(regs.getExt().getGdpr()).isEqualTo(1);

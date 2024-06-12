@@ -18,9 +18,11 @@ adapters:
       app-media-types:
         - banner
         - native
+        - video
       site-media-types:
         - banner
         - native
+        - video
       supported-vendors:
       vendor-id: 16
     usersync:

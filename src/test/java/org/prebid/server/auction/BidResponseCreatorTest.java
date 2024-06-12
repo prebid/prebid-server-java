@@ -3058,7 +3058,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidResponse bidResponse = bidResponseCreator.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
 
         // then
-        assertThat(bidResponse.getExt().getErrors().get("prebid").get(0).getMessage()).isEqualTo(errorMessage);
+        assertThat(bidResponse.getExt().getErrors().get("prebid").getFirst().getMessage()).isEqualTo(errorMessage);
     }
 
     @Test
@@ -3110,7 +3110,7 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(bidResponse.getExt())
                 .extracting(ExtBidResponse::getErrors)
                 .extracting(error -> error.get(bidder1))
-                .extracting(extBidderErrors -> extBidderErrors.get(0))
+                .extracting(extBidderErrors -> extBidderErrors.getFirst())
                 .isEqualTo(ExtBidderError.of(3, "Could not find native imp"));
 
     }
@@ -3151,7 +3151,7 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(bidResponse.getExt())
                 .extracting(ExtBidResponse::getErrors)
                 .extracting(error -> error.get(bidder1))
-                .extracting(extBidderErrors -> extBidderErrors.get(0))
+                .extracting(extBidderErrors -> extBidderErrors.getFirst())
                 .isEqualTo(ExtBidderError.of(3, "No content to map due to end-of-input\n"
                         + " at [Source: (String)\"\"; line: 1, column: 0]"));
     }
@@ -3189,9 +3189,9 @@ public class BidResponseCreatorTest extends VertxTest {
         // then
         assertThat(bidResponse)
                 .extracting(BidResponse::getSeatbid)
-                .extracting(seatBids -> seatBids.get(0))
+                .extracting(seatBids -> seatBids.getFirst())
                 .extracting(SeatBid::getBid)
-                .extracting(bids -> bids.get(0))
+                .extracting(bids -> bids.getFirst())
                 .extracting(Bid::getAdm)
                 .isEqualTo(adm);
     }

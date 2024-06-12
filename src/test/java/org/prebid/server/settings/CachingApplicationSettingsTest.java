@@ -112,6 +112,52 @@ public class CachingApplicationSettingsTest {
     }
 
     @Test
+    public void getAccountByIdShouldReturnResultFromSeparateCallWhenCacheWasInvalidatedForAccount() {
+        // given
+        final Account account = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("med")
+                        .build())
+                .build();
+        given(delegateSettings.getAccountById(eq("accountId"), same(timeout)))
+                .willReturn(Future.succeededFuture(account));
+
+        // when
+        final Future<Account> future = target.getAccountById("accountId", timeout);
+        target.invalidateAccountCache(account.getId());
+        target.getAccountById("accountId", timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isSameAs(account);
+        verify(delegateSettings, times(2)).getAccountById(eq("accountId"), same(timeout));
+    }
+
+    @Test
+    public void getAccountByIdShouldReturnResultFromSeparateCallWhenCacheWasInvalidatedForAllAccounts() {
+        // given
+        final Account account = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("med")
+                        .build())
+                .build();
+        given(delegateSettings.getAccountById(eq("accountId"), same(timeout)))
+                .willReturn(Future.succeededFuture(account));
+
+        // when
+        final Future<Account> future = target.getAccountById("accountId", timeout);
+        target.invalidateAccountCache("accountId");
+        target.getAccountById("accountId", timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isSameAs(account);
+        verify(delegateSettings, times(2)).getAccountById(eq("accountId"), same(timeout));
+    }
+
+    @Test
     public void getAccountByIdShouldPropagateFailure() {
         // given
         given(delegateSettings.getAccountById(anyString(), any()))
@@ -143,6 +189,46 @@ public class CachingApplicationSettingsTest {
 
         // then
         verify(delegateSettings).getAccountById(anyString(), any());
+        assertThat(lastFuture.failed()).isTrue();
+        assertThat(lastFuture.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("error");
+    }
+
+    @Test
+    public void getAccountByIdShouldThrowSeparatePreBidExceptionWhenCacheWasInvalidatedForAccount() {
+        // given
+        given(delegateSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("error")));
+
+        // when
+        target.getAccountById("accountId", timeout);
+        target.invalidateAccountCache("accountId");
+        final Future<Account> lastFuture = target
+                .getAccountById("accountId", timeout);
+
+        // then
+        verify(delegateSettings, times(2)).getAccountById(eq("accountId"), same(timeout));
+        assertThat(lastFuture.failed()).isTrue();
+        assertThat(lastFuture.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("error");
+    }
+
+    @Test
+    public void getAccountByIdShouldThrowSeparatePreBidExceptionWhenCacheWasInvalidatedForAllAccounts() {
+        // given
+        given(delegateSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("error")));
+
+        // when
+        target.getAccountById("accountId", timeout);
+        target.invalidateAccountCache("accountId");
+        final Future<Account> lastFuture = target
+                .getAccountById("accountId", timeout);
+
+        // then
+        verify(delegateSettings, times(2)).getAccountById(eq("accountId"), same(timeout));
         assertThat(lastFuture.failed()).isTrue();
         assertThat(lastFuture.cause())
                 .isInstanceOf(PreBidException.class)

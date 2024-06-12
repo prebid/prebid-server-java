@@ -198,7 +198,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
 
     private BidRequest preparePodRequest(BidRequest bidRequest, List<Imp> imps, List<BidderError> errors) {
         try {
-            final ObjectNode impExt = imps.get(0).getExt();
+            final ObjectNode impExt = imps.getFirst().getExt();
             final ExtImpSmaato extImpSmaato =
                     mapper.mapper().convertValue(impExt, SMAATO_EXT_TYPE_REFERENCE).getBidder();
             final String publisherId = getIfNotNullOrThrow(extImpSmaato, ExtImpSmaato::getPublisherId, "publisherId");
@@ -326,7 +326,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         if (CollectionUtils.isEmpty(format)) {
             throw new PreBidException("No sizes provided for Banner.");
         }
-        final Format firstFormat = format.get(0);
+        final Format firstFormat = format.getFirst();
         return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
     }
 
@@ -395,7 +395,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
         }
 
         final List<String> categories = bid.getCat();
-        final String primaryCategory = CollectionUtils.isNotEmpty(categories) ? categories.get(0) : null;
+        final String primaryCategory = CollectionUtils.isNotEmpty(categories) ? categories.getFirst() : null;
         try {
             final SmaatoBidExt smaatoBidExt = mapper.mapper().convertValue(bidExt, SmaatoBidExt.class);
             return ExtBidPrebidVideo.of(smaatoBidExt.getDuration(), primaryCategory);

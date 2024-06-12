@@ -46,7 +46,7 @@ public class AidemBidder implements Bidder<BidRequest> {
     @Override
     public final Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest bidRequest) {
         try {
-            final ExtImpAidem impExt = parseImpExt(bidRequest.getImp().get(0));
+            final ExtImpAidem impExt = parseImpExt(bidRequest.getImp().getFirst());
             return Result.withValue(BidderUtil.defaultRequest(bidRequest, makeUrl(impExt), mapper));
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
@@ -93,12 +93,12 @@ public class AidemBidder implements Bidder<BidRequest> {
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
                 .filter(Objects::nonNull)
-                .map(bid -> makeBidderBid(bid, bidRequest.getImp(), bidResponse.getCur(), errors))
+                .map(bid -> makeBidderBid(bid, bidResponse.getCur(), errors))
                 .filter(Objects::nonNull)
                 .toList();
     }
 
-    private static BidderBid makeBidderBid(Bid bid, List<Imp> imps, String currency, List<BidderError> errors) {
+    private static BidderBid makeBidderBid(Bid bid, String currency, List<BidderError> errors) {
         try {
             return BidderBid.of(bid, resolveBidType(bid), currency);
         } catch (PreBidException e) {
