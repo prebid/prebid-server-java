@@ -31,8 +31,6 @@ import org.prebid.server.auction.privacy.contextfactory.AmpPrivacyContextFactory
 import org.prebid.server.auction.versionconverter.BidRequestOrtbVersionConversionManager;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.json.JacksonMapper;
-import org.prebid.server.log.Logger;
-import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.metric.MetricName;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.model.Endpoint;
@@ -65,8 +63,6 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class AmpRequestFactory {
-
-    private final Logger logger = LoggerFactory.getLogger(AmpRequestFactory.class);
 
     private static final String TAG_ID_REQUEST_PARAM = "tag_id";
     private static final String TARGETING_REQUEST_PARAM = "targeting";
@@ -198,7 +194,10 @@ public class AmpRequestFactory {
         final String addtlConsent = addtlConsentFromQueryStringParams(httpRequest);
         final Integer gdpr = gdprFromQueryStringParams(httpRequest);
         final Integer debug = debugFromQueryStringParam(httpRequest);
-        final GppSidExtraction gppSidExtraction = gppSidFromQueryStringParams(httpRequest, debug != null && debug == 1);
+        final GppSidExtraction gppSidExtraction = gppSidFromQueryStringParams(
+                httpRequest,
+                debug != null && debug == 1,
+                auctionContext.getDebugWarnings());
         final String gpc = implicitParametersExtractor.gpcFrom(httpRequest);
         final Long timeout = timeoutFromQueryString(httpRequest);
 
@@ -346,7 +345,10 @@ public class AmpRequestFactory {
         return null;
     }
 
-    private GppSidExtraction gppSidFromQueryStringParams(HttpRequestContext httpRequest, boolean debugEnabled) {
+    private GppSidExtraction gppSidFromQueryStringParams(HttpRequestContext httpRequest,
+                                                         boolean debugEnabled,
+                                                         List<String> debugWarnings) {
+
         final String gppSidParam = httpRequest.getQueryParams().get(GPP_SID_PARAM);
 
         try {
@@ -359,7 +361,7 @@ public class AmpRequestFactory {
             return GppSidExtraction.success(gppSid);
         } catch (IllegalArgumentException e) {
             if (debugEnabled) {
-                logger.warn("Failed to parse gppSid: '%s'".formatted(gppSidParam));
+                debugWarnings.add("Failed to parse gppSid: '%s'".formatted(gppSidParam));
             }
             return GppSidExtraction.failed();
         }
