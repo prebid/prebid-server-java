@@ -2,6 +2,7 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.v1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Future;
+import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
@@ -25,6 +26,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     public Future<InvocationResult<AuctionRequestPayload>> call(
             AuctionRequestPayload auctionRequestPayload,
             AuctionInvocationContext invocationContext) {
+
+        AuctionContext auctionContext = invocationContext.auctionContext();
+        System.out.println("auctionContext: " + auctionContext);
+
         return Future.succeededFuture();
     }
 
