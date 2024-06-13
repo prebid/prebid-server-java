@@ -47,6 +47,19 @@ hooks:
       "endpoints": {
         "/openrtb2/auction": {
           "stages": {
+            "processed-auction-request": {
+              "groups": [
+                {
+                  "timeout": 100,
+                  "hook-sequence": [
+                    {
+                      "module-code": "greenbids-real-time-data",
+                      "hook-impl-code": "greenbids-real-time-data-processed-auction-request-hook"
+                    }
+                  ]
+                }
+              ]
+            },
             "all-processed-bid-responses": {
               "groups": [
                 {
@@ -83,3 +96,6 @@ hooks:
         long-interval: 1800000
       scan-state-check-interval: 2900
       bidders-to-exclude-from-scan:
+    greenbids-real-time-data:
+      param1: "param1_val"
+      param2: 0.1
