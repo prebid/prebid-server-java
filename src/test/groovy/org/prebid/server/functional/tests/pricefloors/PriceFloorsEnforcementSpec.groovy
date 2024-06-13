@@ -235,10 +235,9 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             }
         }
 
-        and: "Account with disabled fetch in the DB"
+        and: "Account with enabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
-
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
@@ -281,14 +280,14 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
         bidder.setResponse(bidRequest.id, presetBidResponse)
 
-        and: "Account with disabled fetch in the DB"
+        and: "Account with enabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should remove imp.bidFlourCur and bidFloor from original request"
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
         def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
         assert bidderImp.bidFloorCur == floorCur
         assert bidderImp.bidFloor == floorValue
@@ -326,14 +325,14 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
         bidder.setResponse(bidRequest.id, presetBidResponse)
 
-        and: "Account with disabled fetch in the DB"
+        and: "Account with enabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should remove imp.bidFlourCur and bidFloor from original request"
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
         def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
         assert bidderImp.bidFloorCur == floorCur
         assert bidderImp.bidFloor == floorValue
@@ -357,7 +356,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             }
         }
 
-        and: "Account with disabled fetch in the DB"
+        and: "Account with enabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
 
@@ -409,7 +408,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should remove imp.bidFlourCur and bidFloor from original request"
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
         def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
         assert bidderImp.bidFloorCur == floorCur
         assert bidderImp.bidFloor == floorValue
@@ -447,14 +446,14 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
         bidder.setResponse(bidRequest.id, presetBidResponse)
 
-        and: "Account with disabled fetch in the DB"
+        and: "Account with enabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should remove imp.bidFlourCur and bidFloor from original request"
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
         def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
         assert bidderImp.bidFloorCur == floorCur
         assert bidderImp.bidFloor == floorValue
@@ -468,19 +467,17 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
     def "PBS should remove imp floors information when enforcement.noFloorSignalBidders contain bidder name or wildcard"() {
         given: "Default BidRequest with floors"
-        def floorValue = PBSUtils.randomFloorValue
-        def floorCur = USD
         def bidRequest = bidRequestWithFloors.tap {
-            cur = [floorCur]
+            cur = [USD]
             ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
                 enforcement = new ExtPrebidPriceFloorEnforcement(noFloorSignalBidders: [floorBidder])
                 data.tap {
-                    modelGroups[0].values = [(rule): floorValue]
+                    modelGroups[0].values = [(rule): PBSUtils.randomFloorValue]
                 }
             }
         }
 
-        and: "Account with disabled fetch in the DB"
+        and: "Account with enabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
 
@@ -523,14 +520,14 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
         bidder.setResponse(bidRequest.id, presetBidResponse)
 
-        and: "Account with disabled fetch in the DB"
+        and: "Account with enabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should remove imp.bidFlourCur and bidFloor from original request"
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
         def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
         assert bidderImp.bidFloorCur == floorCur
         assert bidderImp.bidFloor == floorValue
@@ -566,14 +563,14 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
         bidder.setResponse(bidRequest.id, presetBidResponse)
 
-        and: "Account with disabled fetch in the DB"
+        and: "Account with enabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should remove imp.bidFlourCur and bidFloor from original request"
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
         def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
         assert bidderImp.bidFloorCur == floorCur
         assert bidderImp.bidFloor == floorValue
@@ -609,14 +606,14 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
         bidder.setResponse(bidRequest.id, presetBidResponse)
 
-        and: "Account with disabled fetch in the DB"
+        and: "Account with enabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should remove imp.bidFlourCur and bidFloor from original request"
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
         def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
         assert bidderImp.bidFloorCur == floorCur
         assert bidderImp.bidFloor == floorValue
@@ -649,7 +646,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
         bidder.setResponse(bidRequest.id, presetBidResponse)
 
-        and: "Account with disabled fetch in the DB"
+        and: "Account with enabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
 
@@ -690,14 +687,14 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
         bidder.setResponse(bidRequest.id, presetBidResponse)
 
-        and: "Account with disabled fetch in the DB"
+        and: "Account with enabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
 
         when: "PBS processes auction request"
         def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "PBS should remove imp.bidFlourCur and bidFloor from original request"
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
         def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
         assert bidderImp.bidFloorCur == floorCur
         assert bidderImp.bidFloor == floorValue
@@ -728,7 +725,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
         bidder.setResponse(bidRequest.id, presetBidResponse)
 
-        and: "Account with disabled fetch in the DB"
+        and: "Account with enabled fetch in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.accountId)
         accountDao.save(account)
 
