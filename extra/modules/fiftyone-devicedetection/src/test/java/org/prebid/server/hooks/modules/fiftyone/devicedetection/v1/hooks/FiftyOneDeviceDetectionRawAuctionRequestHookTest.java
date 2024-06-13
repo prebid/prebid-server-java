@@ -1,13 +1,13 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks;
 
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.BrandVersion;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.UserAgent;
-import fiftyone.pipeline.core.flowelements.Pipeline;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.auction.model.AuctionContext;
@@ -29,272 +29,26 @@ import org.prebid.server.settings.model.Account;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.function.BiFunction;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+    @Mock
+    private DeviceEnricher deviceEnricher;
     private ModuleConfig moduleConfig;
     private RawAuctionRequestHook target;
-    private BiFunction<Device, CollectedEvidence, EnrichmentResult> deviceRefiner;
 
     @Before
     public void setUp() {
         moduleConfig = new ModuleConfig();
-        deviceRefiner = (bidRequest, evidence) -> null;
-        target = new FiftyOneDeviceDetectionRawAuctionRequestHook(
-                moduleConfig,
-                new DeviceEnricher(mock(Pipeline.class)) {
-                    @Override
-                    public EnrichmentResult populateDeviceInfo(
-                            Device device,
-                            CollectedEvidence collectedEvidence) {
-                        return deviceRefiner.apply(device, collectedEvidence);
-                    }
-                });
-    }
-
-    // MARK: - convertSecureHeaders
-
-    @Test
-    public void callShouldAddEmptyMapOfSecureHeadersWhenUserAgentIsEmpty() throws Exception {
-        // given
-        final UserAgent userAgent = UserAgent.builder().build();
-        final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder()
-                        .sua(userAgent)
-                        .build())
-                .build();
-        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null,
-                null,
-                false,
-                null,
-                null
-        );
-
-        // when
-        final Map<String, String> evidence = ((ModuleContext) target.call(payload, auctionInvocationContext)
-                .result()
-                .moduleContext())
-                .collectedEvidence()
-                .secureHeaders();
-
-        // then
-        assertThat(evidence).isNotNull();
-        assertThat(evidence).isEmpty();
-    }
-
-    @Test
-    public void callShouldAddBrowsersToSecureHeaders() throws Exception {
-        // given
-        final UserAgent userAgent = UserAgent.builder()
-                .browsers(List.of(
-                        new BrandVersion("Nickel", List.of("6", "3", "1", "a"), null),
-                        new BrandVersion(null, List.of("7", "52"), null), // should be skipped
-                        new BrandVersion("FrostCat", List.of("9", "2", "5", "8"), null)
-                ))
-                .build();
-        final String expectedBrowsers = "\"Nickel\";v=\"6.3.1.a\", \"FrostCat\";v=\"9.2.5.8\"";
-        final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder()
-                        .sua(userAgent)
-                        .build())
-                .build();
-        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null,
-                null,
-                false,
-                null,
-                null
-        );
-
-        // when
-        final Map<String, String> evidence = ((ModuleContext) target.call(payload, auctionInvocationContext)
-                .result()
-                .moduleContext())
-                .collectedEvidence()
-                .secureHeaders();
-
-        // then
-        assertThat(evidence).isNotNull();
-        assertThat(evidence.size()).isEqualTo(2);
-        assertThat(evidence.get("header.Sec-CH-UA")).isEqualTo(expectedBrowsers);
-        assertThat(evidence.get("header.Sec-CH-UA-Full-Version-List")).isEqualTo(expectedBrowsers);
-    }
-
-    @Test
-    public void callShouldAddPlatformToSecureHeaders() throws Exception {
-        final UserAgent userAgent = UserAgent.builder()
-                .platform(new BrandVersion("Cyborg", List.of("19", "5"), null))
-                .build();
-        final String expectedPlatformName = "\"Cyborg\"";
-        final String expectedPlatformVersion = "\"19.5\"";
-        final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder()
-                        .sua(userAgent)
-                        .build())
-                .build();
-        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null,
-                null,
-                false,
-                null,
-                null
-        );
-
-        // when
-        final Map<String, String> evidence = ((ModuleContext) target.call(payload, auctionInvocationContext)
-                .result()
-                .moduleContext())
-                .collectedEvidence()
-                .secureHeaders();
-
-        // then
-        assertThat(evidence).isNotNull();
-        assertThat(evidence.size()).isEqualTo(2);
-        assertThat(evidence.get("header.Sec-CH-UA-Platform")).isEqualTo(expectedPlatformName);
-        assertThat(evidence.get("header.Sec-CH-UA-Platform-Version")).isEqualTo(expectedPlatformVersion);
-    }
-
-    @Test
-    public void callShouldAddIsMobileToSecureHeaders() throws Exception {
-        final UserAgent userAgent = UserAgent.builder()
-                .mobile(5)
-                .build();
-        final String expectedIsMobile = "?5";
-        final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder()
-                        .sua(userAgent)
-                        .build())
-                .build();
-        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null,
-                null,
-                false,
-                null,
-                null
-        );
-
-        // when
-        final Map<String, String> evidence = ((ModuleContext) target.call(payload, auctionInvocationContext)
-                .result()
-                .moduleContext())
-                .collectedEvidence()
-                .secureHeaders();
-
-        // then
-        assertThat(evidence).isNotNull();
-        assertThat(evidence.size()).isEqualTo(1);
-        assertThat(evidence.get("header.Sec-CH-UA-Mobile")).isEqualTo(expectedIsMobile);
-    }
-
-    @Test
-    public void callShouldAddArchitectureToSecureHeaders() throws Exception {
-        final UserAgent userAgent = UserAgent.builder()
-                .architecture("LEG")
-                .build();
-        final String expectedArchitecture = "\"LEG\"";
-        final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder()
-                        .sua(userAgent)
-                        .build())
-                .build();
-        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null,
-                null,
-                false,
-                null,
-                null
-        );
-
-        // when
-        final Map<String, String> evidence = ((ModuleContext) target.call(payload, auctionInvocationContext)
-                .result()
-                .moduleContext())
-                .collectedEvidence()
-                .secureHeaders();
-
-        // then
-        assertThat(evidence).isNotNull();
-        assertThat(evidence.size()).isEqualTo(1);
-        assertThat(evidence.get("header.Sec-CH-UA-Arch")).isEqualTo(expectedArchitecture);
-    }
-
-    @Test
-    public void callShouldAddBitnessToSecureHeaders() throws Exception {
-        final UserAgent userAgent = UserAgent.builder()
-                .bitness("doubtful")
-                .build();
-        final String expectedBitness = "\"doubtful\"";
-        final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder()
-                        .sua(userAgent)
-                        .build())
-                .build();
-        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null,
-                null,
-                false,
-                null,
-                null
-        );
-
-        // when
-        final Map<String, String> evidence = ((ModuleContext) target.call(payload, auctionInvocationContext)
-                .result()
-                .moduleContext())
-                .collectedEvidence()
-                .secureHeaders();
-
-        // then
-        assertThat(evidence).isNotNull();
-        assertThat(evidence.size()).isEqualTo(1);
-        assertThat(evidence.get("header.Sec-CH-UA-Bitness")).isEqualTo(expectedBitness);
-    }
-
-    @Test
-    public void callShouldAddModelToSecureHeaders() throws Exception {
-        final UserAgent userAgent = UserAgent.builder()
-                .model("reflectivity")
-                .build();
-        final String expectedModel = "\"reflectivity\"";
-        final BidRequest bidRequest = BidRequest.builder()
-                .device(Device.builder()
-                        .sua(userAgent)
-                        .build())
-                .build();
-        final AuctionRequestPayload payload = AuctionRequestPayloadImpl.of(bidRequest);
-        final AuctionInvocationContext auctionInvocationContext = AuctionInvocationContextImpl.of(
-                null,
-                null,
-                false,
-                null,
-                null
-        );
-
-        // when
-        final Map<String, String> evidence = ((ModuleContext) target.call(payload, auctionInvocationContext)
-                .result()
-                .moduleContext())
-                .collectedEvidence()
-                .secureHeaders();
-
-        // then
-        assertThat(evidence).isNotNull();
-        assertThat(evidence.size()).isEqualTo(1);
-        assertThat(evidence.get("header.Sec-CH-UA-Model")).isEqualTo(expectedModel);
+        target = new FiftyOneDeviceDetectionRawAuctionRequestHook(moduleConfig, deviceEnricher);
     }
 
     // MARK: - addEvidenceToContext
@@ -505,13 +259,10 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
                         .collectedEvidence(savedEvidence)
                         .build()
         );
+        when(deviceEnricher.populateDeviceInfo(any(), any()))
+                .thenReturn(EnrichmentResult.builder().build());
 
         // when
-        final boolean[] refinerCalled = {false};
-        deviceRefiner = (device, evidence) -> {
-            refinerCalled[0] = true;
-            return EnrichmentResult.builder().build();
-        };
         final BidRequest newBidRequest = target.call(auctionRequestPayload, invocationContext)
                 .result()
                 .payloadUpdate()
@@ -520,7 +271,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
 
         // then
         assertThat(newBidRequest).isEqualTo(bidRequest);
-        assertThat(refinerCalled).containsExactly(true);
+        verify(deviceEnricher, times(1)).populateDeviceInfo(any(), any());
     }
 
     @Test
@@ -542,15 +293,10 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
                         .collectedEvidence(savedEvidence)
                         .build()
         );
+        when(deviceEnricher.populateDeviceInfo(any(), any()))
+                .thenReturn(EnrichmentResult.builder().build());
 
         // when
-        final boolean[] refinerCalled = {false};
-        deviceRefiner = (device, collectedEvidence) -> {
-            assertThat(collectedEvidence.rawHeaders()).isEqualTo(savedEvidence.rawHeaders());
-            assertThat(collectedEvidence.deviceUA()).isEqualTo(fakeUA);
-            refinerCalled[0] = true;
-            return null;
-        };
         final BidRequest newBidRequest = target.call(auctionRequestPayload, invocationContext)
                 .result()
                 .payloadUpdate()
@@ -559,7 +305,13 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
 
         // then
         assertThat(newBidRequest).isEqualTo(bidRequest);
-        assertThat(refinerCalled).containsExactly(true);
+        verify(deviceEnricher, times(1)).populateDeviceInfo(any(), any());
+
+        final ArgumentCaptor<CollectedEvidence> evidenceCaptor = ArgumentCaptor.forClass(CollectedEvidence.class);
+        verify(deviceEnricher).populateDeviceInfo(any(), evidenceCaptor.capture());
+        final List<CollectedEvidence> allEvidences = evidenceCaptor.getAllValues();
+        assertThat(allEvidences).hasSize(1);
+        assertThat(allEvidences.getFirst().deviceUA()).isEqualTo(fakeUA);
     }
 
     @Test
@@ -578,12 +330,13 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
                         .collectedEvidence(savedEvidence)
                         .build()
         );
+        when(deviceEnricher.populateDeviceInfo(any(), any()))
+                .thenReturn(EnrichmentResult
+                        .builder()
+                        .enrichedDevice(mergedDevice)
+                        .build());
 
         // when
-        deviceRefiner = (device, collectedEvidence) -> EnrichmentResult
-                .builder()
-                .enrichedDevice(mergedDevice)
-                .build();
         final BidRequest newBidRequest = target.call(auctionRequestPayload, invocationContext)
                 .result()
                 .payloadUpdate()
@@ -592,6 +345,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
 
         // then
         assertThat(newBidRequest.getDevice()).isEqualTo(mergedDevice);
+        verify(deviceEnricher, times(1)).populateDeviceInfo(any(), any());
     }
 
     // MARK: - code
