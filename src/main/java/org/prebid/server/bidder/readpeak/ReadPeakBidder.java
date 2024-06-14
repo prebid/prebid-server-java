@@ -32,6 +32,7 @@ import org.prebid.server.util.HttpUtil;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -130,55 +131,47 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
+        final List<BidderError> errors = new ArrayList<>();
         try {
             final BidResponse bidResponse = mapper.decodeValue(httpCall.getResponse().getBody(), BidResponse.class);
-            return extractBids(bidResponse);
+            return Result.of(extractBids(bidResponse, errors), errors);
         } catch (DecodeException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
     }
 
-    private Result<List<BidderBid>> extractBids(BidResponse bidResponse) {
+    private List<BidderBid> extractBids(BidResponse bidResponse, List<BidderError> errors) {
         if (bidResponse == null || CollectionUtils.isEmpty(bidResponse.getSeatbid())) {
-            return Result.withValues(Collections.emptyList());
+            return Collections.emptyList();
         }
-        return bidsFromResponse(bidResponse);
+        return bidsFromResponse(bidResponse, errors);
     }
 
-    private Result<List<BidderBid>> bidsFromResponse(BidResponse bidResponse) {
-        final List<BidderError> errors = new ArrayList<>();
-        final List<BidderBid> validBids = new ArrayList<>();
-
-        for (SeatBid seatBid : bidResponse.getSeatbid()) {
-            if (seatBid != null) {
-                for (Bid bid : seatBid.getBid()) {
-                    if (bid != null) {
-                        try {
-                            final BidderBid bidderBid = makeBid(bid, bidResponse);
-                            validBids.add(bidderBid);
-                        } catch (PreBidException e) {
-                            errors.add(BidderError.badInput(e.getMessage()));
-                        }
-                    }
-                }
-            }
-        }
-
-        if (!errors.isEmpty()) {
-            return Result.withErrors(errors);
-        }
-
-        return Result.withValues(validBids);
+    private List<BidderBid> bidsFromResponse(BidResponse bidResponse, List<BidderError> errors) {
+        return bidResponse.getSeatbid().stream()
+                .filter(Objects::nonNull)
+                .map(SeatBid::getBid)
+                .filter(Objects::nonNull)
+                .flatMap(Collection::stream)
+                .map(bid -> makeBid(bid, bidResponse.getCur(), errors))
+                .filter(Objects::nonNull)
+                .toList();
     }
 
-    private BidderBid makeBid(Bid bid, BidResponse bidResponse) {
-        final Bid resolvedBid = resolveMacros(bid);
-        final BidType bidType = getBidType(bid);
-        final Bid updatedBid = addBidMeta(resolvedBid);
-        return BidderBid.of(updatedBid, bidType, bidResponse.getCur());
+    private BidderBid makeBid(Bid bid, String currency, List<BidderError> errors) {
+        try {
+            final Bid resolvedBid = resolveMacros(bid);
+            final BidType bidType = getBidType(bid);
+            final Bid updatedBid = addBidMeta(resolvedBid);
+            return BidderBid.of(updatedBid, bidType, currency);
+        } catch (PreBidException e) {
+            errors.add(BidderError.badInput(e.getMessage()));
+            return null;
+        }
+
     }
 
-    private Bid resolveMacros(Bid bid) {
+    private static Bid resolveMacros(Bid bid) {
         final BigDecimal price = bid.getPrice();
         final String priceAsString = price != null ? price.toPlainString() : "0";
 
@@ -189,7 +182,7 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private BidType getBidType(Bid bid) {
+    private static BidType getBidType(Bid bid) {
         final Integer markupType = ObjectUtils.defaultIfNull(bid.getMtype(), 0);
 
         return switch (markupType) {

@@ -35,6 +35,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
+import static org.prebid.server.util.HttpUtil.ACCEPT_HEADER;
+import static org.prebid.server.util.HttpUtil.APPLICATION_JSON_CONTENT_TYPE;
+import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
+import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
 public class ReadPeakBidderTest extends VertxTest {
 
@@ -83,8 +87,8 @@ public class ReadPeakBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).hasSize(1); // Oczekujemy jednego błędu dla niepoprawnej impresji
-        assertThat(result.getValue()).hasSize(1); // Oczekujemy jednego żądania HTTP
+        assertThat(result.getErrors()).hasSize(1);
+        assertThat(result.getValue()).hasSize(1);
 
         final byte[] requestBody = result.getValue().get(0).getBody();
         final BidRequest capturedBidRequest = mapper.readValue(requestBody, BidRequest.class);
@@ -142,6 +146,78 @@ public class ReadPeakBidderTest extends VertxTest {
         final Imp capturedImp = capturedBidRequest.getImp().get(0);
 
         assertThat(capturedImp.getBidfloor()).isEqualByComparingTo(validBidFloor);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldUseCorrectUri() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(UnaryOperator.identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getUri)
+                .containsExactly(ENDPOINT_URL);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldReturnExpectedHeaders() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(UnaryOperator.identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue()).hasSize(1).first()
+                .extracting(HttpRequest::getHeaders)
+                .satisfies(headers -> assertThat(headers.get(CONTENT_TYPE_HEADER))
+                        .isEqualTo(APPLICATION_JSON_CONTENT_TYPE))
+                .satisfies(headers -> assertThat(headers.get(ACCEPT_HEADER))
+                        .isEqualTo(APPLICATION_JSON_VALUE));
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldIncludeCorrectPayload() throws IOException {
+        // given
+        final Imp imp = givenImp(impBuilder -> impBuilder.id("123"));
+        final BidRequest bidRequest = BidRequest.builder()
+                .imp(Collections.singletonList(imp))
+                .build();
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1);
+
+        final byte[] requestBody = result.getValue().get(0).getBody();
+        final BidRequest capturedBidRequest = mapper.readValue(requestBody, BidRequest.class);
+
+        assertThat(capturedBidRequest.getImp()).hasSize(1);
+        assertThat(capturedBidRequest.getImp().get(0).getId()).isEqualTo("123");
+    }
+
+    @Test
+    public void makeHttpRequestsShouldIncludeImpIds() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.id("imp1"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getId)
+                .containsExactly("imp1");
     }
 
     @Test
@@ -218,10 +294,9 @@ public class ReadPeakBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull2() throws JsonProcessingException {
+    public void makeBidsShouldReturnEmptyListIfBidResponseIsNull() throws JsonProcessingException {
         // given
-        final BidderCall<BidRequest> httpCall = givenHttpCall(null,
-                mapper.writeValueAsString(null));
+        final BidderCall<BidRequest> httpCall = givenHttpCall(null, mapper.writeValueAsString(null));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -271,8 +346,7 @@ public class ReadPeakBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(1))));
+                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(1)));
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
@@ -292,8 +366,7 @@ public class ReadPeakBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(4))));
+                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(4)));
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
@@ -313,14 +386,13 @@ public class ReadPeakBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(2))));
+                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123").mtype(2)));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
 
         // then
-        assertThat(result.getErrors()).isNotEmpty(); // This should pass
+        assertThat(result.getErrors()).isNotEmpty();
         assertThat(result.getErrors())
                 .extracting(BidderError::getMessage)
                 .containsExactly("Unable to fetch mediaType 2 in multi-format: 123");
@@ -336,8 +408,7 @@ public class ReadPeakBidderTest extends VertxTest {
                 BidRequest.builder()
                         .imp(singletonList(Imp.builder().id("123").banner(Banner.builder().build()).build()))
                         .build(),
-                mapper.writeValueAsString(
-                        givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123"))));
+                givenBidResponse(bidBuilder -> bidBuilder.ext(bidExt).impid("123")));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -426,12 +497,15 @@ public class ReadPeakBidderTest extends VertxTest {
                 .build().toBuilder()).build();
     }
 
-    private static BidResponse givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
-        return BidResponse.builder()
+    private static String givenBidResponse(UnaryOperator<Bid.BidBuilder> bidCustomizer) throws JsonProcessingException {
+        final BidResponse bidResponse = BidResponse.builder()
                 .cur("USD")
-                .seatbid(List.of(SeatBid.builder().bid(List.of(bidCustomizer.apply(Bid.builder().id("123")).build()))
+                .seatbid(List.of(SeatBid.builder()
+                        .bid(List.of(bidCustomizer.apply(Bid.builder().id("123")).build()))
                         .build()))
                 .build();
+
+        return mapper.writeValueAsString(bidResponse);
     }
 
     private static BidderCall<BidRequest> givenHttpCall(BidRequest bidRequest, String body) {
