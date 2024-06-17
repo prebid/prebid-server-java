@@ -35,6 +35,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -259,9 +260,10 @@ public class TcfDefinerService {
     }
 
     private Boolean isCountryInEea(String country, AccountGdprConfig accountGdprConfig) {
-        final Set<String> publisherEeaCountries = ObjectUtils.defaultIfNull(
-                accountGdprConfig != null ? eeaCountries(accountGdprConfig.getEeaCountries()) : null,
-                eeaCountries);
+        final Set<String> publisherEeaCountries = Optional.ofNullable(accountGdprConfig)
+                .map(AccountGdprConfig::getEeaCountries)
+                .map(TcfDefinerService::eeaCountries)
+                .orElse(eeaCountries);
         return country != null ? publisherEeaCountries.contains(country) : null;
     }
 
