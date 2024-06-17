@@ -14,4 +14,12 @@
     <name>greenbids-real-time-data</name>
     <description>Greenbids Real Time Data</description>
 
+    <dependencies>
+        <dependency>
+            <groupId>com.github.ua-parser</groupId>
+            <artifactId>uap-java</artifactId>
+            <version>1.6.1</version>
+        </dependency>
+    </dependencies>
+
 </project>
