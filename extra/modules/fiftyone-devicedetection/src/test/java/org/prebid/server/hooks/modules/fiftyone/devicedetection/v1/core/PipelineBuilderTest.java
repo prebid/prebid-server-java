@@ -1,11 +1,16 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core;
 
 import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
-import fiftyone.pipeline.core.flowelements.PipelineBuilderBase;
+import fiftyone.devicedetection.DeviceDetectionPipelineBuilder;
+import fiftyone.pipeline.core.flowelements.Pipeline;
 import fiftyone.pipeline.engines.Constants;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFile;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFileUpdate;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
@@ -13,23 +18,36 @@ import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.Per
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-public class PipelineBuilderBuilderTest {
+public class PipelineBuilderTest {
+    @Rule
+    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+
     private ModuleConfig moduleConfig;
     private DataFileUpdate dataFileUpdate;
     private PerformanceConfig performanceConfig;
 
+    @Mock
+    private DeviceDetectionPipelineBuilder builderPrime;
+    @Mock
+    private DeviceDetectionOnPremisePipelineBuilder builder;
+    @Mock
+    private Pipeline pipeline;
+
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         dataFileUpdate = new DataFileUpdate();
         performanceConfig = new PerformanceConfig();
         moduleConfig = new ModuleConfig();
         moduleConfig.setDataFile(new DataFile());
         moduleConfig.getDataFile().setUpdate(dataFileUpdate);
         moduleConfig.setPerformance(performanceConfig);
+        when(builderPrime.useOnPremise(any(), anyBoolean())).thenReturn(builder);
+        when(builder.build()).thenReturn(pipeline);
     }
 
     // MARK: - applyUpdateOptions
@@ -37,14 +55,10 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldIgnoreEmptyUrl() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         dataFileUpdate.setUrl("");
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder, never()).setPerformanceProfile(any());
@@ -53,16 +67,12 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldAssignURL() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         dataFileUpdate.setUrl("http://void/");
 
         final ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder).setDataUpdateUrl(argumentCaptor.capture());
@@ -72,14 +82,10 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldIgnoreEmptyLicenseKey() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         dataFileUpdate.setLicenseKey("");
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder, never()).setDataUpdateLicenseKey(any());
@@ -88,16 +94,12 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldAssignKey() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         dataFileUpdate.setLicenseKey("687-398475-34876-384678-34756-3487");
 
         final ArgumentCaptor<String> argumentCaptor = ArgumentCaptor.forClass(String.class);
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder).setDataUpdateLicenseKey(argumentCaptor.capture());
@@ -107,16 +109,12 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldAssignAuto() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         dataFileUpdate.setAuto(true);
 
         final ArgumentCaptor<Boolean> argumentCaptor = ArgumentCaptor.forClass(Boolean.class);
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder).setAutoUpdate(argumentCaptor.capture());
@@ -126,16 +124,12 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldAssignOnStartup() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         dataFileUpdate.setOnStartup(true);
 
         final ArgumentCaptor<Boolean> argumentCaptor = ArgumentCaptor.forClass(Boolean.class);
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder).setDataUpdateOnStartup(argumentCaptor.capture());
@@ -145,16 +139,12 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldAssignWatchFileSystem() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         dataFileUpdate.setWatchFileSystem(true);
 
         final ArgumentCaptor<Boolean> argumentCaptor = ArgumentCaptor.forClass(Boolean.class);
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder).setDataFileSystemWatcher(argumentCaptor.capture());
@@ -164,16 +154,12 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldAssignPollingInterval() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         dataFileUpdate.setPollingInterval(643);
 
         final ArgumentCaptor<Integer> argumentCaptor = ArgumentCaptor.forClass(Integer.class);
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder).setUpdatePollingInterval(argumentCaptor.capture());
@@ -185,15 +171,11 @@ public class PipelineBuilderBuilderTest {
     @Test(expected = IllegalArgumentException.class)
     public void buildShouldThrowWhenProfileIsUnknown() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         performanceConfig.setProfile("ghost");
 
         try {
             // when
-            new PipelineBuilderBuilder()
-                    .withPremadeBuilder(builder)
-                    .build(moduleConfig);
+            new PipelineBuilder(moduleConfig).build(builderPrime);
         } finally {
             // then
             verify(builder, never()).setPerformanceProfile(any());
@@ -203,14 +185,10 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldIgnoreEmptyProfile() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         performanceConfig.setProfile("");
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder, never()).setPerformanceProfile(any());
@@ -219,17 +197,13 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldAssignMaxPerformance() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         performanceConfig.setProfile("mAxperFORMance");
 
         final ArgumentCaptor<Constants.PerformanceProfiles> profilesArgumentCaptor
                 = ArgumentCaptor.forClass(Constants.PerformanceProfiles.class);
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder).setPerformanceProfile(profilesArgumentCaptor.capture());
@@ -239,16 +213,12 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldAssignConcurrency() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         performanceConfig.setConcurrency(398476);
 
         final ArgumentCaptor<Integer> concurrenciesArgumentCaptor = ArgumentCaptor.forClass(Integer.class);
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder).setConcurrency(concurrenciesArgumentCaptor.capture());
@@ -258,16 +228,12 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldAssignDifference() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         performanceConfig.setDifference(498756);
 
         final ArgumentCaptor<Integer> profilesArgumentCaptor = ArgumentCaptor.forClass(Integer.class);
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder).setDifference(profilesArgumentCaptor.capture());
@@ -277,16 +243,12 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldAssignAllowUnmatched() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         performanceConfig.setAllowUnmatched(true);
 
         final ArgumentCaptor<Boolean> allowUnmatchedArgumentCaptor = ArgumentCaptor.forClass(Boolean.class);
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder).setAllowUnmatched(allowUnmatchedArgumentCaptor.capture());
@@ -296,16 +258,12 @@ public class PipelineBuilderBuilderTest {
     @Test
     public void buildShouldAssignDrift() throws Exception {
         // given
-        final DeviceDetectionOnPremisePipelineBuilder builder = mock(DeviceDetectionOnPremisePipelineBuilder.class);
-
         performanceConfig.setDrift(1348);
 
         final ArgumentCaptor<Integer> driftsArgumentCaptor = ArgumentCaptor.forClass(Integer.class);
 
         // when
-        new PipelineBuilderBuilder()
-                .withPremadeBuilder(builder)
-                .build(moduleConfig);
+        new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
         verify(builder).setDrift(driftsArgumentCaptor.capture());
@@ -320,10 +278,10 @@ public class PipelineBuilderBuilderTest {
         moduleConfig.getDataFile().setPath("dummy.hash");
 
         // when
-        final PipelineBuilderBase<?> pipelineBuilder = new PipelineBuilderBuilder().build(moduleConfig);
+        final Pipeline returnedPipeline = new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
-        assertThat(pipelineBuilder).isNotNull();
+        assertThat(returnedPipeline).isEqualTo(pipeline);
     }
 
     @Test
@@ -333,10 +291,10 @@ public class PipelineBuilderBuilderTest {
         moduleConfig.getDataFile().setMakeTempCopy(true);
 
         // when
-        final PipelineBuilderBase<?> pipelineBuilder = new PipelineBuilderBuilder().build(moduleConfig);
+        final Pipeline returnedPipeline = new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
-        assertThat(pipelineBuilder).isNotNull();
+        assertThat(returnedPipeline).isEqualTo(pipeline);
     }
 
     @Test
@@ -347,9 +305,9 @@ public class PipelineBuilderBuilderTest {
         moduleConfig.setPerformance(null);
 
         // when
-        final PipelineBuilderBase<?> pipelineBuilder = new PipelineBuilderBuilder().build(moduleConfig);
+        final Pipeline returnedPipeline = new PipelineBuilder(moduleConfig).build(builderPrime);
 
         // then
-        assertThat(pipelineBuilder).isNotNull();
+        assertThat(returnedPipeline).isEqualTo(pipeline);
     }
 }

@@ -2,7 +2,7 @@ package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core;
 
 import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import fiftyone.devicedetection.DeviceDetectionPipelineBuilder;
-import fiftyone.pipeline.core.flowelements.PipelineBuilderBase;
+import fiftyone.pipeline.core.flowelements.Pipeline;
 import fiftyone.pipeline.engines.Constants;
 import fiftyone.pipeline.engines.services.DataUpdateServiceDefault;
 import org.apache.commons.lang3.BooleanUtils;
@@ -17,7 +17,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class PipelineBuilderBuilder {
+public class PipelineBuilder {
     private static final Collection<String> PROPERTIES_USED = List.of(
             "devicetype",
             "hardwarevendor",
@@ -40,29 +40,24 @@ public class PipelineBuilderBuilder {
             "GeoLocation",
             "HardwareModelVariants");
 
-    private DeviceDetectionOnPremisePipelineBuilder premadeBuilder = null;
+    private final ModuleConfig moduleConfig;
 
-    public PipelineBuilderBuilder withPremadeBuilder(DeviceDetectionOnPremisePipelineBuilder premadeBuilder) {
-        this.premadeBuilder = premadeBuilder;
-        return this;
+    public PipelineBuilder(ModuleConfig moduleConfig) {
+        this.moduleConfig = moduleConfig;
     }
 
-    public PipelineBuilderBase<?> build(ModuleConfig moduleConfig) throws Exception {
+    public Pipeline build(DeviceDetectionPipelineBuilder premadeBuilder) throws Exception {
         final DataFile dataFile = moduleConfig.getDataFile();
-        final DeviceDetectionOnPremisePipelineBuilder builder
-                = (premadeBuilder != null)
-                ? premadeBuilder
-                : makeRawBuilder(dataFile);
+
+        final Boolean shouldMakeDataCopy = dataFile.getMakeTempCopy();
+        final DeviceDetectionOnPremisePipelineBuilder builder = premadeBuilder.useOnPremise(
+                dataFile.getPath(),
+                BooleanUtils.isTrue(shouldMakeDataCopy));
+
         applyUpdateOptions(builder, dataFile.getUpdate());
         applyPerformanceOptions(builder, moduleConfig.getPerformance());
         PROPERTIES_USED.forEach(builder::setProperty);
-        return builder;
-    }
-
-    private static DeviceDetectionOnPremisePipelineBuilder makeRawBuilder(DataFile dataFile) throws Exception {
-        final Boolean shouldMakeDataCopy = dataFile.getMakeTempCopy();
-        return new DeviceDetectionPipelineBuilder()
-                .useOnPremise(dataFile.getPath(), BooleanUtils.isTrue(shouldMakeDataCopy));
+        return builder.build();
     }
 
     private static void applyUpdateOptions(DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,

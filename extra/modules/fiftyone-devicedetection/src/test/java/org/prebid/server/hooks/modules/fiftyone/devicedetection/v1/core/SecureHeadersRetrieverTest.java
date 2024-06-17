@@ -12,7 +12,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SecureHeadersRetrieverTest {
 
     @Test
-    public void callShouldAddEmptyMapOfSecureHeadersWhenUserAgentIsEmpty() throws Exception {
+    public void callShouldAddEmptyMapOfSecureHeadersWhenUserAgentIsEmpty() {
         // given
         final UserAgent userAgent = UserAgent.builder().build();
 
@@ -25,7 +25,7 @@ public class SecureHeadersRetrieverTest {
     }
 
     @Test
-    public void callShouldAddBrowsersToSecureHeaders() throws Exception {
+    public void callShouldAddBrowsersToSecureHeaders() {
         // given
         final UserAgent userAgent = UserAgent.builder()
                 .browsers(List.of(
@@ -47,7 +47,7 @@ public class SecureHeadersRetrieverTest {
     }
 
     @Test
-    public void callShouldAddPlatformToSecureHeaders() throws Exception {
+    public void callShouldAddPlatformToSecureHeaders() {
         final UserAgent userAgent = UserAgent.builder()
                 .platform(new BrandVersion("Cyborg", List.of("19", "5"), null))
                 .build();
@@ -65,7 +65,7 @@ public class SecureHeadersRetrieverTest {
     }
 
     @Test
-    public void callShouldAddIsMobileToSecureHeaders() throws Exception {
+    public void callShouldAddIsMobileToSecureHeaders() {
         final UserAgent userAgent = UserAgent.builder()
                 .mobile(5)
                 .build();
@@ -81,7 +81,7 @@ public class SecureHeadersRetrieverTest {
     }
 
     @Test
-    public void callShouldAddArchitectureToSecureHeaders() throws Exception {
+    public void callShouldAddArchitectureToSecureHeaders() {
         final UserAgent userAgent = UserAgent.builder()
                 .architecture("LEG")
                 .build();
@@ -97,7 +97,7 @@ public class SecureHeadersRetrieverTest {
     }
 
     @Test
-    public void callShouldAddBitnessToSecureHeaders() throws Exception {
+    public void callShouldAddBitnessToSecureHeaders() {
         final UserAgent userAgent = UserAgent.builder()
                 .bitness("doubtful")
                 .build();
@@ -113,7 +113,7 @@ public class SecureHeadersRetrieverTest {
     }
 
     @Test
-    public void callShouldAddModelToSecureHeaders() throws Exception {
+    public void callShouldAddModelToSecureHeaders() {
         final UserAgent userAgent = UserAgent.builder()
                 .model("reflectivity")
                 .build();

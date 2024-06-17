@@ -9,7 +9,6 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.AccountFilter;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.EnrichmentResult;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.SecureHeadersRetriever;
@@ -35,12 +34,12 @@ import java.util.function.Consumer;
 public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionRequestHook {
     private static final String CODE = "fiftyone-devicedetection-raw-auction-request-hook";
 
-    private final ModuleConfig moduleConfig;
+    private final AccountFilter accountFilter;
     private final DeviceEnricher deviceEnricher;
 
-    public FiftyOneDeviceDetectionRawAuctionRequestHook(@Nonnull ModuleConfig moduleConfig,
+    public FiftyOneDeviceDetectionRawAuctionRequestHook(@Nonnull AccountFilter accountFilter,
                                                         @Nonnull DeviceEnricher deviceEnricher) {
-        this.moduleConfig = Objects.requireNonNull(moduleConfig);
+        this.accountFilter = Objects.requireNonNull(accountFilter);
         this.deviceEnricher = Objects.requireNonNull(deviceEnricher);
     }
 
@@ -80,7 +79,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
     }
 
     private boolean isAccountAllowed(AuctionInvocationContext invocationContext) {
-        final AccountFilter accountFilter = moduleConfig.getAccountFilter();
         final List<String> allowList = ObjectUtil.getIfNotNull(accountFilter, AccountFilter::getAllowList);
         if (CollectionUtils.isEmpty(allowList)) {
             return true;

@@ -56,7 +56,7 @@ public class DeviceEnricherTest {
     // MARK: - populateDeviceInfo
 
     @Test
-    public void populateDeviceInfoShouldReportErrorWhenPipelineThrowsException() throws Exception {
+    public void populateDeviceInfoShouldReportErrorWhenPipelineThrowsException() {
         // given
         final Exception e = new RuntimeException();
         when(pipeline.createFlowData()).thenThrow(e);
@@ -69,7 +69,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldReportErrorWhenProcessThrowsException() throws Exception {
+    public void populateDeviceInfoShouldReportErrorWhenProcessThrowsException() {
         // given
         final Exception e = new RuntimeException();
         doThrow(e).when(flowData).process();
@@ -85,7 +85,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldReturnNullWhenDeviceDataIsNull() throws Exception {
+    public void populateDeviceInfoShouldReturnNullWhenDeviceDataIsNull() {
         // given
         final Exception e = new RuntimeException();
         when(flowData.get(DeviceData.class)).thenReturn(null);
@@ -104,7 +104,7 @@ public class DeviceEnricherTest {
     // MARK: - pickRelevantFrom
 
     @Test
-    public void populateDeviceInfoShouldPassToFlowDataHeadersMadeFromSuaWhenPresent() throws Exception {
+    public void populateDeviceInfoShouldPassToFlowDataHeadersMadeFromSuaWhenPresent() {
         // given
         final Map<String, String> secureHeaders = Collections.singletonMap("ua", "fake-ua");
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
@@ -125,7 +125,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldPassToFlowDataHeadersMadeFromUaWhenNoSuaPresent() throws Exception {
+    public void populateDeviceInfoShouldPassToFlowDataHeadersMadeFromUaWhenNoSuaPresent() {
         // given
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
                 .deviceUA("dummy-ua")
@@ -147,7 +147,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldPassToFlowDataMergedHeadersMadeFromUaAndSuaWhenBothPresent() throws Exception {
+    public void populateDeviceInfoShouldPassToFlowDataMergedHeadersMadeFromUaAndSuaWhenBothPresent() {
         // given
         final Map<String, String> suaHeaders = Collections.singletonMap("ua", "fake-ua");
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
@@ -171,7 +171,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldPassToFlowDataRawHeaderWhenNoDeviceInfoPresent() throws Exception {
+    public void populateDeviceInfoShouldPassToFlowDataRawHeaderWhenNoDeviceInfoPresent() {
         // given
         final List<Map.Entry<String, String>> rawHeaders = List.of(
                 new AbstractMap.SimpleEntry<>("ua", "zumba"),
@@ -200,7 +200,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldPassToFlowDataLatestRawHeaderWhenMultiplePresentWithSameKey() throws Exception {
+    public void populateDeviceInfoShouldPassToFlowDataLatestRawHeaderWhenMultiplePresentWithSameKey() {
         // given
         final String theKey = "ua";
         final List<Map.Entry<String, String>> rawHeaders = List.of(
@@ -225,7 +225,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldPassToFlowDataEmptyMapWhenNoEvidenceToPick() throws Exception {
+    public void populateDeviceInfoShouldPassToFlowDataEmptyMapWhenNoEvidenceToPick() {
         // given
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder().build();
 
@@ -244,7 +244,7 @@ public class DeviceEnricherTest {
     // MARK: - patchDevice
 
     @Test
-    public void populateDeviceInfoShouldEnrichAllPropertiesWhenDeviceIsEmpty() throws Exception {
+    public void populateDeviceInfoShouldEnrichAllPropertiesWhenDeviceIsEmpty() {
         // given
         final Device device = Device.builder().build();
 
@@ -260,7 +260,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldReturnNullWhenDeviceIsFull() throws Exception {
+    public void populateDeviceInfoShouldReturnNullWhenDeviceIsFull() {
         // given and when
         buildCompleteDeviceData();
         final Device device = buildCompleteDevice();
@@ -274,7 +274,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichDeviceTypeWhenItIsMissing() throws Exception {
+    public void populateDeviceInfoShouldEnrichDeviceTypeWhenItIsMissing() {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .devicetype(null)
@@ -293,7 +293,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichMakeWhenItIsMissing() throws Exception {
+    public void populateDeviceInfoShouldEnrichMakeWhenItIsMissing() {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .make(null)
@@ -312,7 +312,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichModelWithHWNameWhenHWModelIsMissing() throws Exception {
+    public void populateDeviceInfoShouldEnrichModelWithHWNameWhenHWModelIsMissing() {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .model(null)
@@ -334,7 +334,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichModelWhenItIsMissing() throws Exception {
+    public void populateDeviceInfoShouldEnrichModelWhenItIsMissing() {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .model(null)
@@ -353,7 +353,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichOsWhenItIsMissing() throws Exception {
+    public void populateDeviceInfoShouldEnrichOsWhenItIsMissing() {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .os(null)
@@ -372,7 +372,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichOsvWhenItIsMissing() throws Exception {
+    public void populateDeviceInfoShouldEnrichOsvWhenItIsMissing() {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .osv(null)
@@ -391,7 +391,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichHWhenItIsMissing() throws Exception {
+    public void populateDeviceInfoShouldEnrichHWhenItIsMissing() {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .h(null)
@@ -410,7 +410,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichWWhenItIsMissing() throws Exception {
+    public void populateDeviceInfoShouldEnrichWWhenItIsMissing() {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .w(null)
@@ -429,7 +429,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichPpiWhenItIsMissing() throws Exception {
+    public void populateDeviceInfoShouldEnrichPpiWhenItIsMissing() {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .ppi(null)
@@ -448,7 +448,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichPXRatioWhenItIsMissing() throws Exception {
+    public void populateDeviceInfoShouldEnrichPXRatioWhenItIsMissing() {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .pxratio(null)
@@ -467,7 +467,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichDeviceIDWhenItIsMissing() throws Exception {
+    public void populateDeviceInfoShouldEnrichDeviceIDWhenItIsMissing() {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .ext(null)
@@ -518,7 +518,7 @@ public class DeviceEnricherTest {
     // MARK: - convertDeviceType
 
     @Test
-    public void populateDeviceInfoShouldEnrichDeviceTypeWithFourWhenDeviceTypeStringIsPhone() throws Exception {
+    public void populateDeviceInfoShouldEnrichDeviceTypeWithFourWhenDeviceTypeStringIsPhone() {
         // given
         final String typeString = "Phone";
 
@@ -536,7 +536,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichDeviceTypeWithSevenWhenDeviceTypeStringIsMediaHub() throws Exception {
+    public void populateDeviceInfoShouldEnrichDeviceTypeWithSevenWhenDeviceTypeStringIsMediaHub() {
         // given
         final String typeString = "MediaHub";
 
@@ -554,7 +554,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldReturnNullWhenDeviceTypeStringIsUnexpected() throws Exception {
+    public void populateDeviceInfoShouldReturnNullWhenDeviceTypeStringIsUnexpected() {
         // given
         final String typeString = "BattleStar Atlantis";
 
