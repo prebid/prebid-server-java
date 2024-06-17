@@ -120,6 +120,7 @@ public class BidResponseCreator {
     private static final Integer DEFAULT_BID_LIMIT_MIN = 1;
     private static final Integer MAX_TARGETING_KEY_LENGTH = 11;
     private static final String DEFAULT_TARGETING_KEY_PREFIX = "hb";
+    public static final String DEFAULT_DEBUG_KEY = "prebid";
 
     private final CacheService cacheService;
     private final BidderCatalog bidderCatalog;
@@ -987,7 +988,7 @@ public class BidResponseCreator {
 
         final List<ExtBidderError> collectedErrors =
                 Stream.concat(contextErrors.stream(), storedErrors.stream()).toList();
-        return Collections.singletonMap(PREBID_EXT, collectedErrors);
+        return Collections.singletonMap(DEFAULT_DEBUG_KEY, collectedErrors);
     }
 
     /**
@@ -1062,7 +1063,7 @@ public class BidResponseCreator {
 
         return contextWarnings.isEmpty()
                 ? Collections.emptyMap()
-                : Collections.singletonMap(PREBID_EXT, contextWarnings);
+                : Collections.singletonMap(DEFAULT_DEBUG_KEY, contextWarnings);
     }
 
     /**
