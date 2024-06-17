@@ -410,12 +410,10 @@ class AuctionSpec extends BaseSpec {
     def "PBS call to alias should populate bidder request buyeruid from family user.buyeruids when it's contained in base bidder"() {
         given: "Pbs config with alias"
         def cookieName = PBSUtils.randomString
-        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_CONFIG
+        def prebidServerService = pbsServiceFactory.getService(PBS_CONFIG + GENERIC_CONFIG + GENERIC_ALIAS_CONFIG
                 + ["host-cookie.family"                          : GENERIC.value,
                    "host-cookie.cookie-name"                     : cookieName,
-                   "adapters.generic.usersync.cookie-family-name": GENERIC.value,
-                   "adapters.generic.aliases.alias.enabled"      : "true",
-                   "adapters.generic.aliases.alias.endpoint"     : "$networkServiceContainer.rootUri/auction".toString()])
+                   "adapters.generic.usersync.cookie-family-name": GENERIC.value])
 
         and: "Alias bid request"
         def buyeruid = PBSUtils.randomString
