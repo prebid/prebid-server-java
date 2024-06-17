@@ -40,6 +40,8 @@ admin-endpoints:
     on-application-port: true
     protected: false
 hooks:
+  greenbids-real-time-data:
+    enabled: true
   confiant-ad-quality:
     enabled: true
   host-execution-plan: >
