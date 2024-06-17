@@ -2141,7 +2141,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(eventsConfig, null))
+                .analytics(AccountAnalyticsConfig.of(false, eventsConfig, null))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -2188,7 +2188,10 @@ public class BidResponseCreatorTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(null, singletonMap("some-analytics", mapper.createObjectNode())))
+                .analytics(AccountAnalyticsConfig.of(
+                        false,
+                        null,
+                        singletonMap("some-analytics", mapper.createObjectNode())))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -2373,7 +2376,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(eventsConfig, null))
+                .analytics(AccountAnalyticsConfig.of(false, eventsConfig, null))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -3201,7 +3204,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final Account account = Account.builder()
                 .id("accountId")
-                .analytics(AccountAnalyticsConfig.of(accountAuctionEventConfig, emptyMap()))
+                .analytics(AccountAnalyticsConfig.of(false, accountAuctionEventConfig, emptyMap()))
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())

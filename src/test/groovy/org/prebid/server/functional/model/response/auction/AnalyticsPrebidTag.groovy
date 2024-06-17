@@ -6,7 +6,10 @@ import groovy.transform.ToString
 
 @ToString(includeNames = true, ignoreNulls = true)
 @JsonNaming(PropertyNamingStrategies.LowerCaseStrategy)
-class AnalyticStags {
+class AnalyticsPrebidTag {
 
+    String stage
+    String module
     List<AnalyticResult> activities
+    AnalyticsTag analyticsTags
 }

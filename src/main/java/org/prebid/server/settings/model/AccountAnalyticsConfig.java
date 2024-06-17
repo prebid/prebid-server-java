@@ -18,6 +18,9 @@ public class AccountAnalyticsConfig {
                 "app", true);
     }
 
+    @JsonProperty("allow-client-details")
+    boolean allowClientDetails;
+
     @JsonProperty("auction-events")
     AccountAuctionEventConfig auctionEvents;
 
