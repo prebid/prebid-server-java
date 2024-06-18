@@ -1365,7 +1365,7 @@ public class RequestValidatorTest extends VertxTest {
         // given
         final ObjectNode prebid = mapper.valueToTree(ExtImpPrebid.builder()
                 .storedBidResponse(singletonList(ExtStoredBidResponse.of("bidder", "id")))
-                .storedAuctionResponse(ExtStoredAuctionResponse.of("id"))
+                .storedAuctionResponse(ExtStoredAuctionResponse.of("id", null))
                 .build());
 
         final BidRequest bidRequest = validBidRequestBuilder()

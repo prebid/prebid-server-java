@@ -85,9 +85,9 @@ public class AuctionRequestFactory {
     }
 
     /**
-     * Creates {@link AuctionContext} based on {@link RoutingContext}.
+     * Creates {@link AuctionContext} and parses BidRequest based on {@link RoutingContext}.
      */
-    public Future<AuctionContext> fromRequest(RoutingContext routingContext, long startTime) {
+    public Future<AuctionContext> parseRequest(RoutingContext routingContext, long startTime) {
         final String body;
         try {
             body = extractAndValidateBody(routingContext);
@@ -103,9 +103,18 @@ public class AuctionRequestFactory {
                         .map(bidRequest -> ortb2RequestFactory
                                 .enrichAuctionContext(initialAuctionContext, httpRequest, bidRequest, startTime)
                                 .with(requestTypeMetric(bidRequest))))
+                .recover(ortb2RequestFactory::restoreResultFromRejection);
+    }
 
-                .compose(auctionContext -> ortb2RequestFactory.fetchAccount(auctionContext)
-                        .map(auctionContext::with))
+    /**
+     * Enriches {@link AuctionContext}.
+     */
+    public Future<AuctionContext> enrichAuctionContext(AuctionContext initialContext) {
+        if (initialContext.isRequestRejected()) {
+            return Future.succeededFuture(initialContext);
+        }
+
+        return ortb2RequestFactory.fetchAccount(initialContext).map(initialContext::with)
 
                 .map(auctionContext -> auctionContext.with(debugResolver.debugContextFrom(auctionContext)))
 
