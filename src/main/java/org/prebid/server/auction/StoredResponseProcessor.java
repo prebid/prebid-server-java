@@ -95,6 +95,16 @@ public class StoredResponseProcessor {
                                 impToBidderToStoredBidResponseId)));
     }
 
+    Future<StoredResponseResult> getStoredResponseResult(String storedId, Timeout timeout) {
+        return applicationSettings.getStoredResponses(Collections.singleton(storedId), timeout)
+                .recover(exception -> Future.failedFuture(new InvalidRequestException(
+                        "Stored response fetching failed with reason: " + exception.getMessage())))
+                .map(storedResponseDataResult -> StoredResponseResult.of(
+                        Collections.emptyList(),
+                        convertToSeatBid(storedResponseDataResult),
+                        Collections.emptyMap()));
+    }
+
     private List<Imp> excludeStoredAuctionResponseImps(List<Imp> imps,
                                                        Map<String, String> auctionStoredResponseToImpId) {
 
@@ -236,6 +246,23 @@ public class StoredResponseProcessor {
             resolvedSeatBids.addAll(seatBids.stream()
                     .map(seatBid -> updateSeatBidBids(seatBid, impId))
                     .toList());
+        }
+        return mergeSameBidderSeatBid(resolvedSeatBids);
+    }
+
+    private List<SeatBid> convertToSeatBid(StoredResponseDataResult storedResponseDataResult) {
+        final List<SeatBid> resolvedSeatBids = new ArrayList<>();
+        final Map<String, String> idToStoredResponses = storedResponseDataResult.getIdToStoredResponses();
+        for (final Map.Entry<String, String> storedIdToImpId : idToStoredResponses.entrySet()) {
+            final String id = storedIdToImpId.getKey();
+            final String rowSeatBid = storedIdToImpId.getValue();
+            if (rowSeatBid == null) {
+                throw new InvalidRequestException(
+                        "Failed to fetch stored auction response for storedAuctionResponse id = %s.".formatted(id));
+            }
+            final List<SeatBid> seatBids = parseSeatBid(id, rowSeatBid);
+            validateStoredSeatBid(seatBids);
+            resolvedSeatBids.addAll(seatBids);
         }
         return mergeSameBidderSeatBid(resolvedSeatBids);
     }
