@@ -69,18 +69,6 @@ class PBSUtils implements ObjectMapperWrapper {
         }.join()
     }
 
-    static def moveToKebabCase(String string) {
-        makeSpaceBeforeUpperCase(string).toLowerCase()
-                .replace(" ", "-")
-                .replace("_", "-")
-    }
-
-    static def moveToSnakeCase(String string) {
-        makeSpaceBeforeUpperCase(string).toLowerCase()
-                .replace(" ", "_")
-                .replace("-", "_")
-    }
-
     static Path createJsonFile(BidRequest bidRequest) {
         def data = encode(bidRequest)
         createTempFile(data, ".json")
@@ -124,15 +112,20 @@ class PBSUtils implements ObjectMapperWrapper {
         values[getRandomNumber(0, values.length - 1)]
     }
 
-    private static String makeSpaceBeforeUpperCase(String string) {
-        final StringBuilder stringBuilder = new StringBuilder()
-        def array = string.toCharArray()
-        for (i in 0..<string.length()) {
-            if (array[i].isUpperCase()) {
-                stringBuilder.append(" ")
-            }
-            stringBuilder.append(array[i])
+    static String convertCase(String input, Case caseType) {
+        def words = input.replaceAll(/([a-z])([A-Z])/) { match, p1, p2 -> "${p1}_${p2.toLowerCase()}" }
+                .split(/[_\-\s]+|\B(?=[A-Z])/).collect { it.toLowerCase() }
+
+        switch (caseType) {
+            case Case.KEBAB:
+                return words.join('-')
+            case Case.SNAKE:
+                return words.join('_')
+            case Case.CAMEL:
+                def camelCase = words.head() + words.tail().collect { it.capitalize() }.join('')
+                return camelCase
+            default:
+                throw new IllegalArgumentException("Unknown case type: $caseType")
         }
-        stringBuilder
     }
 }

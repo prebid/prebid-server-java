@@ -5,8 +5,6 @@ import groovy.transform.ToString
 import org.prebid.server.functional.util.Case
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.util.PBSUtils.moveToSnakeCase
-
 @ToString
 enum PurposeOneTreatmentInterpretation {
 
@@ -24,7 +22,7 @@ enum PurposeOneTreatmentInterpretation {
     String toString() {
         def type = PBSUtils.getRandomEnum(Case.class)
         if (type.SNAKE) {
-            return moveToSnakeCase(value)
+            return PBSUtils.convertCase(value, Case.SNAKE)
         }
         return value
     }

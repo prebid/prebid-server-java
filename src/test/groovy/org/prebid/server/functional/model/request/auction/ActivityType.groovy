@@ -4,9 +4,6 @@ import com.fasterxml.jackson.annotation.JsonValue
 import org.prebid.server.functional.util.Case
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.util.PBSUtils.moveToKebabCase
-import static org.prebid.server.functional.util.PBSUtils.moveToSnakeCase
-
 enum ActivityType {
 
     SYNC_USER("syncUser"),
@@ -32,9 +29,9 @@ enum ActivityType {
     String getValue() {
         def type = PBSUtils.getRandomEnum(Case.class)
         if (type == Case.KEBAB) {
-            moveToKebabCase(value)
+            PBSUtils.convertCase(value, Case.KEBAB)
         } else if (type == Case.SNAKE) {
-            moveToSnakeCase(value)
+            PBSUtils.convertCase(value, Case.SNAKE)
         }
         return value
     }

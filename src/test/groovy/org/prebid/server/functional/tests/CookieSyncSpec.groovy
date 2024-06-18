@@ -1,7 +1,6 @@
 //file:noinspection GroovyGStringKey
 package org.prebid.server.functional.tests
 
-import org.prebid.server.functional.model.AccountStatus
 import org.prebid.server.functional.model.UidsCookie
 import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
@@ -27,6 +26,7 @@ import org.prebid.server.functional.util.privacy.TcfConsent
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
+import static org.prebid.server.functional.model.AccountStatus.ACTIVE
 import static org.prebid.server.functional.model.bidder.BidderName.ACEEX
 import static org.prebid.server.functional.model.bidder.BidderName.ACUITYADS
 import static org.prebid.server.functional.model.bidder.BidderName.ADKERNEL
@@ -414,8 +414,8 @@ class CookieSyncSpec extends BaseSpec {
         assert bogusBidderStatus?.userSync == null
 
         where:
-        accountConfig << [new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: new AccountCookieSyncConfig(defaultLimit: 1)),
-                          new AccountConfig(status: AccountStatus.ACTIVE, cookieSyncSnakeCase: new AccountCookieSyncConfig(defaultLimit: 1))]
+        accountConfig << [new AccountConfig(status: ACTIVE, cookieSync: new AccountCookieSyncConfig(defaultLimit: 1)),
+                          new AccountConfig(status: ACTIVE, cookieSyncSnakeCase: new AccountCookieSyncConfig(defaultLimit: 1))]
     }
 
     def "PBS cookie sync request should reflect error even when response is full by PBS config limit"() {
@@ -847,7 +847,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie sync config"
         def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: 2)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -874,7 +874,7 @@ class CookieSyncSpec extends BaseSpec {
         and: "Save account with cookie config"
         def accountDefaultLimit = 1
         def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: accountDefaultLimit)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -962,7 +962,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie sync config"
         def cookieSyncConfig = new AccountCookieSyncConfig(maxLimit: accountMaxLimit, maxLimitSnakeCase: accountMaxLimitSnakeCase)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -1037,7 +1037,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: false))
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -1151,7 +1151,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: false))
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -1210,7 +1210,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(pri: [bidderName.value], coopSync: new AccountCoopSyncConfig(enabled: true))
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -1240,7 +1240,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(pri: [bidderName.value])
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -1270,7 +1270,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(coopSync: new AccountCoopSyncConfig(enabled: true))
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2004,7 +2004,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: 0)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2027,7 +2027,7 @@ class CookieSyncSpec extends BaseSpec {
         and: "Save account with cookie config"
         def maxLimit = 1
         def cookieSyncConfig = new AccountCookieSyncConfig(maxLimit: maxLimit, defaultLimit: 2)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2059,8 +2059,8 @@ class CookieSyncSpec extends BaseSpec {
         assert response.bidderStatus.size() == 2
 
         where:
-        accountConfig << [new AccountConfig(status: AccountStatus.ACTIVE, cookieSyncSnakeCase: new AccountCookieSyncConfig(maxLimit: 2)),
-                          new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: new AccountCookieSyncConfig(maxLimit: 2))]
+        accountConfig << [new AccountConfig(status: ACTIVE, cookieSyncSnakeCase: new AccountCookieSyncConfig(maxLimit: 2)),
+                          new AccountConfig(status: ACTIVE, cookieSync: new AccountCookieSyncConfig(maxLimit: 2))]
     }
 
     def "PBS cookie sync request should capped to max limit"() {
@@ -2076,7 +2076,7 @@ class CookieSyncSpec extends BaseSpec {
         and: "Save account with cookie config"
         def maxLimit = 1
         def cookieSyncConfig = new AccountCookieSyncConfig(maxLimit: maxLimit)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2102,7 +2102,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: accountDefaultLimit, defaultLimitSnakeCase: accountDefaultLimitSnakeCase)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2134,7 +2134,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie config"
         def cookieSyncConfig = new AccountCookieSyncConfig(defaultLimit: 2)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2155,7 +2155,7 @@ class CookieSyncSpec extends BaseSpec {
         }
 
         and: "Save account with cookie config"
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, cookieSync: cookieSyncConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, cookieSync: cookieSyncConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2201,7 +2201,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie and privacySandbox configs"
         def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: privacySandbox)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, auction: accountAuctionConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2230,7 +2230,7 @@ class CookieSyncSpec extends BaseSpec {
         and: "Save account with cookie and privacySandbox configs"
         def privacySandbox = PrivacySandbox.defaultPrivacySandbox
         def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: privacySandbox)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, auction: accountAuctionConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2254,7 +2254,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie and privacySandbox configs"
         def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: privacySandbox)
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, auction: accountAuctionConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -2281,7 +2281,7 @@ class CookieSyncSpec extends BaseSpec {
 
         and: "Save account with cookie and privacySandbox configs"
         def accountAuctionConfig = new AccountAuctionConfig(privacySandbox: PrivacySandbox.getDefaultPrivacySandbox(true, null))
-        def accountConfig = new AccountConfig(status: AccountStatus.ACTIVE, auction: accountAuctionConfig)
+        def accountConfig = new AccountConfig(status: ACTIVE, auction: accountAuctionConfig)
         def account = new Account(uuid: accountId, config: accountConfig)
         accountDao.save(account)
 
