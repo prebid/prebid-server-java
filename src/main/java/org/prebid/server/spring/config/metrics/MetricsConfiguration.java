@@ -197,8 +197,8 @@ public class MetricsConfiguration {
     }
 
     @Component
-    @ConfigurationProperties(prefix = "metrics.log")
-    @ConditionalOnProperty(prefix = "metrics.log", name = "enabled", havingValue = "true")
+    @ConfigurationProperties(prefix = "metrics.logback")
+    @ConditionalOnProperty(prefix = "metrics.logback", name = "enabled", havingValue = "true")
     @Validated
     @Data
     @NoArgsConstructor
