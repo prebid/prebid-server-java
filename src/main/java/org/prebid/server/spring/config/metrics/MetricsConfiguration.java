@@ -94,7 +94,7 @@ public class MetricsConfiguration {
     }
 
     @Bean
-    @ConditionalOnProperty(prefix = "metrics.log", name = "enabled", havingValue = "true")
+    @ConditionalOnProperty(prefix = "metrics.logback", name = "enabled", havingValue = "true")
     ScheduledReporter logReporter(MetricsLogProperties metricsLogProperties, MetricRegistry metricRegistry) {
         final ScheduledReporter reporter = Slf4jReporter.forRegistry(metricRegistry)
                 .outputTo(LoggerFactory.getLogger(metricsLogProperties.getName()))
