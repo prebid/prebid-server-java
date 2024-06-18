@@ -1,5 +1,9 @@
 package org.prebid.server.hooks.modules.greenbids.real.time.data.v1;
 
+import ai.onnxruntime.OnnxTensor;
+import ai.onnxruntime.OnnxValue;
+import ai.onnxruntime.OrtException;
+import ai.onnxruntime.OrtSession;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,6 +14,7 @@ import io.vertx.core.Future;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.GreenbidsUserAgent;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ThrottlingMessage;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
@@ -21,10 +26,12 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
@@ -41,9 +48,12 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
     private final JacksonMapper jacksonMapper;
 
-    public GreenbidsRealTimeDataProcessedAuctionRequestHook(ObjectMapper mapper) {
+    private final OnnxModelRunner modelRunner;
+
+    public GreenbidsRealTimeDataProcessedAuctionRequestHook(ObjectMapper mapper, OnnxModelRunner modelRunner) {
         this.mapper = Objects.requireNonNull(mapper);
         this.jacksonMapper = new JacksonMapper(mapper);
+        this.modelRunner = modelRunner;
     }
 
     @Override
@@ -61,15 +71,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         String userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
         GreenbidsUserAgent greenbidsUserAgent = new GreenbidsUserAgent(userAgentString);
 
-        System.out.println(
-                "GreenbidsRealTimeDataProcessedAuctionRequestHook/call" + "\n" +
-                        "greenbidsUserAgent: " + greenbidsUserAgent + "\n" + // OK
-                        "device: " + greenbidsUserAgent.getDevice() + "\n" + // OK
-                        "browser: " + greenbidsUserAgent.getBrowser() + "\n" + // OK
-                        "isPC: " + greenbidsUserAgent.isPC() + "\n" + // OK
-                        "isBot: " + greenbidsUserAgent.isBot() + "\n" // OK
-        );
-
         final BidRequest bidRequest = auctionContext.getBidRequest();
 
         List<ThrottlingMessage> throttlingMessages = extractThrottlingMessages(
@@ -77,6 +78,49 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 greenbidsUserAgent,
                 hourBucket,
                 minuteQuadrant);
+
+        String[][] throttlingInferenceRow = convertToArray(throttlingMessages);
+
+        System.out.println(
+                "GreenbidsRealTimeDataProcessedAuctionRequestHook/call" + "\n" +
+                        "greenbidsUserAgent: " + greenbidsUserAgent + "\n" +
+                        "device: " + greenbidsUserAgent.getDevice() + "\n" +
+                        "browser: " + greenbidsUserAgent.getBrowser() + "\n" +
+                        "isPC: " + greenbidsUserAgent.isPC() + "\n" +
+                        "isBot: " + greenbidsUserAgent.isBot() + "\n" +
+                        "throttlingMessages: " + throttlingMessages + "\n"
+        );
+
+        for (String[] row : throttlingInferenceRow) {
+            for (String col : row) {
+                System.out.print(col + " ");
+            }
+            System.out.println();
+        }
+
+        OrtSession.Result results;
+        try {
+            results = modelRunner.runModel(throttlingInferenceRow);
+        } catch (OrtException e) {
+            throw new RuntimeException(e);
+        }
+
+        StreamSupport.stream(results.spliterator(), false)
+                .filter(onnxItem -> Objects.equals(onnxItem.getKey(), "probabilities"))
+                .forEach(onnxItem -> {
+                    System.out.println("Output: " + onnxItem.getKey() + ": " + onnxItem.getValue().toString());
+                    OnnxValue onnxValue = onnxItem.getValue();
+                    OnnxTensor tensor = (OnnxTensor) onnxValue;
+                    try {
+                        float[][] probas = (float[][]) tensor.getValue();
+                        System.out.println(
+                                "    tensor.getValue(): " + tensor.getValue() +
+                                        "\n    probas: " + Arrays.deepToString(probas)
+                        );
+                    } catch (OrtException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
 
         return Future.succeededFuture();
     }
@@ -104,18 +148,19 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                             String bidderName = fieldNames.next();
                             throttlingImpMessages.add(
                                     ThrottlingMessage.builder()
-                                            .hourBucket(hourBucket)
-                                            .minuteQuadrant(minuteQuadrant)
-                                            .adUnitCode(impId)
+                                            .browser(greenbidsUserAgent.getBrowser())
                                             .bidder(bidderName)
+                                            .adUnitCode(impId)
+                                            .country("UK")
                                             .hostname(hostname)
                                             .device(greenbidsUserAgent.getDevice())
-                                            .browser(greenbidsUserAgent.getBrowser())
-                                            .isPc(greenbidsUserAgent.isPC())
-                                            .isBot(greenbidsUserAgent.isBot())
-                                            .isMobile(false)
-                                            .isTablet(false)
-                                            .isTouchCapable(false)
+                                            //.isPc(greenbidsUserAgent.isPC())
+                                            //.isBot(greenbidsUserAgent.isBot())
+                                            .isMobile("False")
+                                            .isTablet("False")
+                                            //.isTouchCapable(false)
+                                            .hourBucket(hourBucket.toString())
+                                            .minuteQuadrant(minuteQuadrant.toString())
                                             .build());
                         }
                     }
@@ -130,6 +175,24 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         } catch (JsonProcessingException e) {
             throw new PreBidException("Error decoding imp.ext.prebid: " + e.getMessage(), e);
         }
+    }
+
+    private static String[][] convertToArray(List<ThrottlingMessage> messages) {
+        String[][] result = new String[messages.size()][10];
+        for (int i = 0; i < messages.size(); i++) {
+            ThrottlingMessage message = messages.get(i);
+            result[i][0] = message.getBrowser();
+            result[i][1] = message.getBidder();
+            result[i][2] = message.getAdUnitCode();
+            result[i][3] = message.getCountry();
+            result[i][4] = message.getHostname();
+            result[i][5] = message.getDevice();
+            result[i][6] = message.getIsMobile();
+            result[i][7] = message.getIsTablet();
+            result[i][8] = message.getHourBucket();
+            result[i][9] = message.getMinuteQuadrant();
+        }
+        return result;
     }
 
     @Override
