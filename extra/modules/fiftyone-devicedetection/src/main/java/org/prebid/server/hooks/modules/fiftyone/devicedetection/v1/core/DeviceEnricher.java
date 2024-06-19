@@ -26,7 +26,7 @@ import java.util.function.Function;
 import java.util.stream.Stream;
 
 public class DeviceEnricher {
-    public static final String EXT_DEVICE_ID_KEY = "fiftyonedegrees_deviceId";
+    private static final String EXT_DEVICE_ID_KEY = "fiftyonedegrees_deviceId";
 
     private static final Map<String, Integer> DEVICE_FIELD_MAPPING = Map.ofEntries(
             Map.entry("Phone", OrtbDeviceType.PHONE.ordinal()),
@@ -214,7 +214,7 @@ public class DeviceEnricher {
      *
      * @see fiftyone.devicedetection.hash.engine.onpremise.data.DeviceDataHash#getDeviceId()
      */
-    public static String getDeviceId(Device device) {
+    private static String getDeviceId(Device device) {
         final ExtDevice ext = device.getExt();
         if (ext == null) {
             return null;

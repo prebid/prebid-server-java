@@ -28,8 +28,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher.EXT_DEVICE_ID_KEY;
-import static org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core.DeviceEnricher.getDeviceId;
 
 public class DeviceEnricherTest {
     @Rule
@@ -482,7 +480,8 @@ public class DeviceEnricherTest {
 
         // then
         assertThat(result.enrichedFields()).hasSize(1);
-        assertThat(getDeviceId(result.enrichedDevice())).isEqualTo(getDeviceId(buildCompleteDevice()));
+        assertThat(result.enrichedDevice().getExt().getProperty("fiftyonedegrees_deviceId").textValue())
+                .isEqualTo("fake-device-id");
     }
 
     private static Device buildCompleteDevice() {
@@ -498,7 +497,7 @@ public class DeviceEnricherTest {
                 .pxratio(BigDecimal.valueOf(1.5))
                 .ext(ExtDevice.empty())
                 .build();
-        device.getExt().addProperty(EXT_DEVICE_ID_KEY, new TextNode("fake-device-id"));
+        device.getExt().addProperty("fiftyonedegrees_deviceId", new TextNode("fake-device-id"));
         return device;
     }
 
