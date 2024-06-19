@@ -187,7 +187,7 @@ public class BidResponseCreatorTest extends VertxTest {
     private HookStageExecutor hookStageExecutor;
     @Mock
     private ActivityInfrastructure activityInfrastructure;
-    @Mock
+    @Mock(strictness = LENIENT)
     private CacheTtl mediaTypeCacheTtl;
 
     @Spy
