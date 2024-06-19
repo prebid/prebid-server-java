@@ -38,11 +38,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private static final String CODE = "greenbids-real-time-data-processed-auction-request-hook";
     private static final String ACTIVITY = "isKeptInAuction";
     private static final String SUCCESS_STATUS = "success";
-    //private static final List<Pattern> PHONE_PATTERNS =
-    //        createPatterns("Phone", "iPhone", "Android.*Mobile", "Mobile.*Android");
-    //private static final List<Pattern> TABLET_PATTERNS =
-    //        createPatterns("tablet", "iPad", "Windows NT.*touch", "touch.*Windows NT", "Android");
-
 
     private final ObjectMapper mapper;
 
@@ -98,12 +93,19 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
             System.out.println();
         }
 
+        // measure inf time
+        long startTime = System.nanoTime();
+
         OrtSession.Result results;
         try {
             results = modelRunner.runModel(throttlingInferenceRow);
         } catch (OrtException e) {
             throw new RuntimeException(e);
         }
+
+        long endTime = System.nanoTime();
+        long duration = (endTime - startTime); // in nanoseconds
+        System.out.println("Inference time: " + duration / 1000000.0 + " ms");
 
         StreamSupport.stream(results.spliterator(), false)
                 .filter(onnxItem -> Objects.equals(onnxItem.getKey(), "probabilities"))
