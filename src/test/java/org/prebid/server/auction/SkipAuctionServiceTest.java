@@ -182,6 +182,40 @@ public class SkipAuctionServiceTest {
     }
 
     @Test
+    public void skipAuctionShouldReturnEmptySeatBidsWhenSeatBidIsNull() {
+        // given
+        final ExtStoredAuctionResponse givenStoredResponse = ExtStoredAuctionResponse.of("id", singletonList(null));
+        final AuctionContext givenAuctionContext = AuctionContext.builder()
+                .debugWarnings(new ArrayList<>())
+                .bidRequest(BidRequest.builder()
+                        .ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .storedAuctionResponse(givenStoredResponse)
+                                .build()))
+                        .build())
+                .build();
+
+        final BidResponse givenBidResponse = BidResponse.builder().build();
+        given(bidResponseCreator.createOnSkippedAuction(any(), any()))
+                .willReturn(Future.succeededFuture(givenBidResponse));
+
+        // when
+        final Future<AuctionContext> result = target.skipAuction(givenAuctionContext);
+
+        // then
+        final AuctionContext expectedAuctionContext = givenAuctionContext.toBuilder()
+                .debugWarnings(List.of(
+                        "SeatBid can't be null in stored response",
+                        "no auction. response defined by storedauctionresponse"))
+                .build();
+
+        assertThat(result.succeeded()).isTrue();
+        assertThat(result.result()).isEqualTo(expectedAuctionContext.with(givenBidResponse).skipAuction());
+
+        verify(bidResponseCreator).createOnSkippedAuction(expectedAuctionContext, emptyList());
+        verifyNoInteractions(storedResponseProcessor);
+    }
+
+    @Test
     public void skipAuctionShouldReturnEmptySeatBidsWhenSeatIsEmpty() {
         // given
         final List<SeatBid> givenSeatBids = singletonList(SeatBid.builder().seat("").build());

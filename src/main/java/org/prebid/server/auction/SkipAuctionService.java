@@ -83,6 +83,10 @@ public class SkipAuctionService {
 
     private Future<List<SeatBid>> validateStoredSeatBid(List<SeatBid> seatBids) {
         for (final SeatBid seatBid : seatBids) {
+            if (seatBid == null) {
+                return Future.failedFuture(
+                        new InvalidRequestException("SeatBid can't be null in stored response"));
+            }
             if (StringUtils.isEmpty(seatBid.getSeat())) {
                 return Future.failedFuture(
                         new InvalidRequestException("Seat can't be empty in stored response seatBid"));
