@@ -117,12 +117,13 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         // given
         final Banner banner = givenBanner();
 
-        final ObjectNode prebidJsonNodes = mapper.valueToTree(
-                singletonMap("gpid", TextNode.valueOf("gpidvalue")));
+        final ObjectNode impExtNode = mapper.createObjectNode();
+        impExtNode.set("gpid", TextNode.valueOf("gpidvalue"));
+        impExtNode.set("prebid", givenPrebidNode());
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(prebidJsonNodes)
+                .ext(impExtNode)
                 .banner(banner)
                 .build();
 
@@ -169,10 +170,16 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     public void shouldReceiveValidResponseOnAuctionContextForVideo() throws IOException {
         // given
         final Video video = givenVideo();
+
+        final ObjectNode impExtNode = mapper.createObjectNode();
+        impExtNode.set("prebid", givenPrebidNode());
+
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
+                .ext(impExtNode)
                 .video(video)
                 .build();
+
         final AuctionContext auctionContext = givenAuctionContext(imp);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
@@ -215,10 +222,16 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     public void shouldReceiveValidResponseWhenBannerFormatIsNull() throws IOException {
         // given
         final Banner bannerWithoutFormat = givenBannerWithoutFormat();
+
+        final ObjectNode impExtNode = mapper.createObjectNode();
+        impExtNode.set("prebid", givenPrebidNode());
+
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
                 .banner(bannerWithoutFormat)
+                .ext(impExtNode)
                 .build();
+
         final AuctionContext auctionContext = givenAuctionContext(imp);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
@@ -433,26 +446,38 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .build();
 
         // bid response
-        final Bid bid = Bid.builder()
+        final Bid bid1 = Bid.builder()
                 .id("bid1")
                 .impid("adunitcodevalue")
                 .price(BigDecimal.valueOf(1.5))
                 .adm("<div>Ad Markup</div>")
                 .build();
 
-        final SeatBid seatBidWithBid = SeatBid.builder()
-                .bid(Collections.singletonList(bid))
+        final Bid bid2 = Bid.builder()
+                .id("bid2")
+                .impid("adunitcodevalue")
+                .price(BigDecimal.valueOf(0.5))
+                .adm("<div>Ad Markup</div>")
+                .build();
+
+        final SeatBid seatBidWithBid1 = SeatBid.builder()
+                .bid(Collections.singletonList(bid1))
                 .seat("seat1")
+                .build();
+
+        final SeatBid seatBidWithBid2 = SeatBid.builder()
+                .bid(Collections.singletonList(bid2))
+                .seat("seat2")
                 .build();
 
         final BidResponse bidResponse = BidResponse.builder()
                 .id("response1")
-                .seatbid(Collections.singletonList(seatBidWithBid))
+                .seatbid(List.of(seatBidWithBid1, seatBidWithBid2))
                 .cur("USD")
                 .build();
 
         final BidRejectionTracker bidRejectionTracker = new BidRejectionTracker(
-                "seat2",
+                "seat3",
                 Set.of("adunitcodevalue"),
                 1.0);
 
@@ -464,9 +489,33 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .bidResponse(bidResponse)
                 .bidRejectionTrackers(
                         singletonMap(
-                                "seat2",
+                                "seat3",
                                 bidRejectionTracker))
                 .build();
+    }
+
+    private static ObjectNode givenPrebidNode() {
+        final ObjectNode paramsSeat1 = mapper.createObjectNode()
+                .put("accountId", 1001)
+                .put("siteId", 267318)
+                .put("zoneId", 1861698);
+
+        final ObjectNode paramsSeat2 = mapper.createObjectNode()
+                .put("publisherId", 111)
+                .put("adSlotId", 123456);
+
+        final ObjectNode paramsSeat3 = mapper.createObjectNode()
+                .put("placementId", 222);
+
+        final ObjectNode bidderNode = mapper.createObjectNode();
+        bidderNode.set("seat1", paramsSeat1);
+        bidderNode.set("seat2", paramsSeat2);
+        bidderNode.set("seat3", paramsSeat3);
+
+        final ObjectNode prebidNode = mapper.createObjectNode();
+        prebidNode.set("bidder", bidderNode);
+
+        return prebidNode;
     }
 
     private static Banner givenBanner() {
@@ -532,6 +581,18 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     private static CommonMessage givenCommonMessageForBanner() {
+        final ObjectNode paramsSeat1 = mapper.createObjectNode()
+                .put("accountId", 1001)
+                .put("siteId", 267318)
+                .put("zoneId", 1861698);
+
+        final ObjectNode paramsSeat2 = mapper.createObjectNode()
+                .put("publisherId", 111)
+                .put("adSlotId", 123456);
+
+        final ObjectNode paramsSeat3 = mapper.createObjectNode()
+                .put("placementId", 222);
+
         return CommonMessage.builder()
                 .version("2.2.0")
                 .auctionId("request1")
@@ -551,14 +612,27 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                                         .build())
                                 .bids(List.of(
                                         GreenbidsBids.builder()
+                                                .bidder("seat2")
+                                                .isTimeout(false)
+                                                .hasBid(true)
+                                                .cpm(BigDecimal.valueOf(0.5))
+                                                .currency("USD")
+                                                .params(paramsSeat2)
+                                                .build(),
+                                        GreenbidsBids.builder()
                                                 .bidder("seat1")
                                                 .isTimeout(false)
                                                 .hasBid(true)
+                                                .cpm(BigDecimal.valueOf(1.5))
+                                                .currency("USD")
+                                                .params(paramsSeat1)
                                                 .build(),
                                         GreenbidsBids.builder()
-                                                .bidder("seat2")
+                                                .bidder("seat3")
                                                 .isTimeout(false)
                                                 .hasBid(false)
+                                                .currency("USD")
+                                                .params(paramsSeat3)
                                                 .build()
                                 ))
                                 .build()
@@ -568,6 +642,18 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     private static CommonMessage givenCommonMessageForVideo() {
+        final ObjectNode paramsSeat1 = mapper.createObjectNode()
+                .put("accountId", 1001)
+                .put("siteId", 267318)
+                .put("zoneId", 1861698);
+
+        final ObjectNode paramsSeat2 = mapper.createObjectNode()
+                .put("publisherId", 111)
+                .put("adSlotId", 123456);
+
+        final ObjectNode paramsSeat3 = mapper.createObjectNode()
+                .put("placementId", 222);
+
         return CommonMessage.builder()
                 .version("2.2.0")
                 .auctionId("request1")
@@ -588,14 +674,27 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                                         .build())
                                 .bids(List.of(
                                         GreenbidsBids.builder()
+                                                .bidder("seat2")
+                                                .isTimeout(false)
+                                                .hasBid(true)
+                                                .cpm(BigDecimal.valueOf(0.5))
+                                                .currency("USD")
+                                                .params(paramsSeat2)
+                                                .build(),
+                                        GreenbidsBids.builder()
                                                 .bidder("seat1")
                                                 .isTimeout(false)
                                                 .hasBid(true)
+                                                .cpm(BigDecimal.valueOf(1.5))
+                                                .currency("USD")
+                                                .params(paramsSeat1)
                                                 .build(),
                                         GreenbidsBids.builder()
-                                                .bidder("seat2")
+                                                .bidder("seat3")
                                                 .isTimeout(false)
                                                 .hasBid(false)
+                                                .currency("USD")
+                                                .params(paramsSeat3)
                                                 .build()
                                 ))
                                 .build()
@@ -605,6 +704,18 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     private static CommonMessage givenCommonMessageBannerWithoutFormat() {
+        final ObjectNode paramsSeat1 = mapper.createObjectNode()
+                .put("accountId", 1001)
+                .put("siteId", 267318)
+                .put("zoneId", 1861698);
+
+        final ObjectNode paramsSeat2 = mapper.createObjectNode()
+                .put("publisherId", 111)
+                .put("adSlotId", 123456);
+
+        final ObjectNode paramsSeat3 = mapper.createObjectNode()
+                .put("placementId", 222);
+
         return CommonMessage.builder()
                 .version("2.2.0")
                 .auctionId("request1")
@@ -625,14 +736,27 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                                         .build())
                                 .bids(List.of(
                                         GreenbidsBids.builder()
+                                                .bidder("seat2")
+                                                .isTimeout(false)
+                                                .hasBid(true)
+                                                .cpm(BigDecimal.valueOf(0.5))
+                                                .currency("USD")
+                                                .params(paramsSeat2)
+                                                .build(),
+                                        GreenbidsBids.builder()
                                                 .bidder("seat1")
                                                 .isTimeout(false)
                                                 .hasBid(true)
+                                                .cpm(BigDecimal.valueOf(1.5))
+                                                .currency("USD")
+                                                .params(paramsSeat1)
                                                 .build(),
                                         GreenbidsBids.builder()
-                                                .bidder("seat2")
+                                                .bidder("seat3")
                                                 .isTimeout(false)
                                                 .hasBid(false)
+                                                .currency("USD")
+                                                .params(paramsSeat3)
                                                 .build()
                                 ))
                                 .build()

@@ -24,10 +24,10 @@ import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBids;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsJacksonMapper;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsPrebidExt;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsSource;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsJacksonMapper;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionTracker;
@@ -62,6 +62,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     private static final String BID_REQUEST_ANALYTICS_EXTENSION_NAME = "greenbids";
     private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
     private static final Logger logger = LoggerFactory.getLogger(GreenbidsAnalyticsReporter.class);
+    private static final String ANALYTICS_REQUEST_ORIGIN_HEADER = "X-Request-Origin";
+    private static final String PREBID_SERVER_HEADER_VALUE = "Prebid Server";
 
     private final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
     private final GreenbidsJacksonMapper jacksonMapper;
@@ -127,7 +129,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON)
-                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON);
+                .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
+                .add(ANALYTICS_REQUEST_ORIGIN_HEADER, PREBID_SERVER_HEADER_VALUE);
 
         final Future<HttpClientResponse> responseFuture = httpClient.post(
                 greenbidsAnalyticsProperties.getAnalyticsServerUrl(),
@@ -227,7 +230,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                                 (existing, replacement) -> existing));
 
         final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream().map(imp -> createAdUnit(
-                imp, seatsWithBids, seatsWithNonBids)).toList();
+                imp, seatsWithBids, seatsWithNonBids, bidResponse)).toList();
 
         final String auctionId = bidRequest
                 .map(BidRequest::getId)
@@ -263,7 +266,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     private GreenbidsAdUnit createAdUnit(
             Imp imp,
             Map<String, Bid> seatsWithBids,
-            Map<String, NonBid> seatsWithNonBids) {
+            Map<String, NonBid> seatsWithNonBids,
+            BidResponse bidResponse) {
         final ExtBanner extBanner = getExtBanner(imp.getBanner());
         final Video video = imp.getVideo();
         final Native nativeObject = imp.getXNative();
@@ -286,11 +290,30 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         .source(GreenbidsSource.AD_UNIT_CODE_SOURCE.getValue())
                         .build());
 
+        final ObjectNode biddersOptional = Optional.ofNullable(impExt)
+                .map(ext -> extImpPrebid(ext.get("prebid")))
+                .map(ExtImpPrebid::getBidder)
+                .orElse(null);
+
+        final List<GreenbidsBids> bidsWithParams = bids.stream()
+                .map(bid -> {
+
+                    final JsonNode bidderParams = Optional.ofNullable(biddersOptional)
+                            .map(bidders -> bidders.get(bid.getBidder()))
+                            .orElse(null);
+
+                    return bid.toBuilder()
+                            .params(bidderParams)
+                            .currency(bidResponse.getCur())
+                            .build();
+                })
+                .toList();
+
         return GreenbidsAdUnit.builder()
                 .code(adUnitCode)
                 .unifiedCode(greenbidsUnifiedCode)
                 .mediaTypes(mediaTypes)
-                .bids(bids)
+                .bids(bidsWithParams)
                 .build();
     }
 
