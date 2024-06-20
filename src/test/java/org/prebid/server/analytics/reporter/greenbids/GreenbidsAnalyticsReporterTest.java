@@ -70,6 +70,12 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
+    @Captor
+    private ArgumentCaptor<String> jsonCaptor;
+
+    @Captor
+    private ArgumentCaptor<MultiMap> headersCaptor;
+
     @Mock
     private HttpClient httpClient;
 
@@ -78,12 +84,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
     @Mock
     private PrebidVersionProvider prebidVersionProvider;
-
-    @Captor
-    private ArgumentCaptor<String> jsonCaptor;
-
-    @Captor
-    private ArgumentCaptor<MultiMap> headersCaptor;
 
     private GreenbidsAnalyticsReporter target;
 
@@ -420,7 +420,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     private static AuctionContext givenAuctionContext(Imp imp) {
-        // bid request
         final Site site = Site.builder()
                 .domain("www.leparisien.fr")
                 .build();
@@ -432,7 +431,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .ext(givenExtRequest())
                 .build();
 
-        // bid response
         final Bid bid = Bid.builder()
                 .id("bid1")
                 .impid("adunitcodevalue")
@@ -499,7 +497,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     private static AuctionContext givenAuctionContextWithNoBidResponse() {
-        // bid request
         final Site site = Site.builder()
                 .domain("www.leparisien.fr")
                 .build();
@@ -540,15 +537,12 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .adUnits(
                         List.of(GreenbidsAdUnit.builder()
                                 .code("adunitcodevalue")
-                                .unifiedCode(GreenbidsUnifiedCode.builder()
-                                        .value("gpidvalue")
-                                        .source("gpidSource")
-                                        .build())
-                                .mediaTypes(MediaTypes.builder()
-                                        .banner(ExtBanner.builder()
+                                .unifiedCode(GreenbidsUnifiedCode
+                                        .of("gpidvalue", "gpidSource"))
+                                .mediaTypes(MediaTypes.of(
+                                        ExtBanner.builder()
                                                 .sizes(List.of(List.of(320, 50)))
-                                                .build())
-                                        .build())
+                                                .build(), null, null))
                                 .bids(List.of(
                                         GreenbidsBids.builder()
                                                 .bidder("seat1")
@@ -576,16 +570,13 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .adUnits(
                         List.of(GreenbidsAdUnit.builder()
                                 .code("adunitcodevalue")
-                                .unifiedCode(GreenbidsUnifiedCode.builder()
-                                        .value("adunitcodevalue")
-                                        .source("adUnitCodeSource")
-                                        .build())
-                                .mediaTypes(MediaTypes.builder()
-                                        .video(Video.builder()
+                                .unifiedCode(GreenbidsUnifiedCode
+                                        .of("adunitcodevalue", "adUnitCodeSource"))
+                                .mediaTypes(MediaTypes.of(null,
+                                        Video.builder()
                                                 .plcmt(1)
                                                 .pos(1)
-                                                .build())
-                                        .build())
+                                                .build(), null))
                                 .bids(List.of(
                                         GreenbidsBids.builder()
                                                 .bidder("seat1")
@@ -613,16 +604,13 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .adUnits(
                         List.of(GreenbidsAdUnit.builder()
                                 .code("adunitcodevalue")
-                                .unifiedCode(GreenbidsUnifiedCode.builder()
-                                        .value("adunitcodevalue")
-                                        .source("adUnitCodeSource")
-                                        .build())
-                                .mediaTypes(MediaTypes.builder()
-                                        .banner(ExtBanner.builder()
+                                .unifiedCode(GreenbidsUnifiedCode
+                                        .of("adunitcodevalue", "adUnitCodeSource"))
+                                .mediaTypes(MediaTypes.of(
+                                        ExtBanner.builder()
                                                 .sizes(List.of(List.of(728, 90)))
                                                 .pos(1)
-                                                .build())
-                                        .build())
+                                                .build(), null, null))
                                 .bids(List.of(
                                         GreenbidsBids.builder()
                                                 .bidder("seat1")

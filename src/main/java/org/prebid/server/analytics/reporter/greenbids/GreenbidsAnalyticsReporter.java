@@ -146,7 +146,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .filter(this::isNotEmptyObjectNode)
                 .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
                 .map(this::toGreenbidsPrebidExt)
-                .orElse(GreenbidsPrebidExt.builder().build());
+                .orElse(GreenbidsPrebidExt.of(null, null));
     }
 
     private GreenbidsPrebidExt toGreenbidsPrebidExt(ObjectNode adapterNode) {
@@ -208,23 +208,9 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(ExtRequestPrebid::getAuctiontimestamp)
                 .map(timestamp -> clock.millis() - timestamp).orElse(0L);
 
-        final Map<String, Bid> seatsWithBids = Stream.ofNullable(bidResponse.getSeatbid())
-                .flatMap(Collection::stream)
-                .filter(seatBid -> !seatBid.getBid().isEmpty())
-                .collect(
-                        Collectors.toMap(
-                                SeatBid::getSeat,
-                                seatBid -> seatBid.getBid().getFirst(),
-                                (existing, replacement) -> existing));
+        final Map<String, Bid> seatsWithBids = getSeatsWithBids(bidResponse);
 
-        final Map<String, NonBid> seatsWithNonBids = auctionContext.getBidRejectionTrackers().entrySet().stream()
-                .map(entry -> toSeatNonBid(entry.getKey(), entry.getValue()))
-                .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
-                .collect(
-                        Collectors.toMap(
-                                SeatNonBid::getSeat,
-                                seatNonBid -> seatNonBid.getNonBid().getFirst(),
-                                (existing, replacement) -> existing));
+        final Map<String, NonBid> seatsWithNonBids = getSeatsWithNonBids(auctionContext);
 
         final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream().map(imp -> createAdUnit(
                 imp, seatsWithBids, seatsWithNonBids)).toList();
@@ -252,6 +238,28 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         .build();
     }
 
+    private static Map<String, Bid> getSeatsWithBids(BidResponse bidResponse) {
+        return Stream.ofNullable(bidResponse.getSeatbid())
+                .flatMap(Collection::stream)
+                .filter(seatBid -> !seatBid.getBid().isEmpty())
+                .collect(
+                        Collectors.toMap(
+                                SeatBid::getSeat,
+                                seatBid -> seatBid.getBid().getFirst(),
+                                (existing, replacement) -> existing));
+    }
+
+    private static Map<String, NonBid> getSeatsWithNonBids(AuctionContext auctionContext) {
+        return auctionContext.getBidRejectionTrackers().entrySet().stream()
+                .map(entry -> toSeatNonBid(entry.getKey(), entry.getValue()))
+                .filter(seatNonBid -> !seatNonBid.getNonBid().isEmpty())
+                .collect(
+                        Collectors.toMap(
+                                SeatNonBid::getSeat,
+                                seatNonBid -> seatNonBid.getNonBid().getFirst(),
+                                (existing, replacement) -> existing));
+    }
+
     private static SeatNonBid toSeatNonBid(String bidder, BidRejectionTracker bidRejectionTracker) {
         final List<NonBid> nonBids = bidRejectionTracker.getRejectionReasons().entrySet().stream()
                 .map(entry -> NonBid.of(entry.getKey(), entry.getValue()))
@@ -268,11 +276,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final Video video = imp.getVideo();
         final Native nativeObject = imp.getXNative();
 
-        final MediaTypes mediaTypes = MediaTypes.builder()
-                .banner(extBanner)
-                .video(video)
-                .nativeObject(nativeObject)
-                .build();
+        final MediaTypes mediaTypes = MediaTypes.of(extBanner, video, nativeObject);
 
         final List<GreenbidsBids> bids = extractBidders(imp, seatsWithBids, seatsWithNonBids);
 
@@ -281,10 +285,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final GreenbidsUnifiedCode greenbidsUnifiedCode = getGpid(impExt)
                 .or(() -> getStoredRequestId(impExt))
-                .orElseGet(() -> GreenbidsUnifiedCode.builder()
-                        .value(adUnitCode)
-                        .source(GreenbidsSource.AD_UNIT_CODE_SOURCE.getValue())
-                        .build());
+                .orElseGet(() -> GreenbidsUnifiedCode.of(
+                        adUnitCode, GreenbidsSource.AD_UNIT_CODE_SOURCE.getValue()));
 
         return GreenbidsAdUnit.builder()
                 .code(adUnitCode)
@@ -332,10 +334,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(ext -> ext.get("gpid"))
                 .map(JsonNode::asText)
                 .map(gpid ->
-                        GreenbidsUnifiedCode.builder()
-                                .value(gpid)
-                                .source(GreenbidsSource.GPID_SOURCE.getValue())
-                                .build());
+                        GreenbidsUnifiedCode.of(gpid, GreenbidsSource.GPID_SOURCE.getValue()));
     }
 
     private Optional<GreenbidsUnifiedCode> getStoredRequestId(ObjectNode impExt) {
@@ -345,10 +344,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(ExtImpPrebid::getStoredrequest)
                 .map(ExtStoredRequest::getId)
                 .map(storedRequestId ->
-                        GreenbidsUnifiedCode.builder()
-                                .value(storedRequestId)
-                                .source(GreenbidsSource.STORED_REQUEST_ID_SOURCE.getValue())
-                                .build());
+                        GreenbidsUnifiedCode.of(
+                                storedRequestId, GreenbidsSource.STORED_REQUEST_ID_SOURCE.getValue()));
     }
 
     private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {

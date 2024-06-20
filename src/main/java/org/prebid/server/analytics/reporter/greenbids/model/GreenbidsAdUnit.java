@@ -17,6 +17,3 @@ public class GreenbidsAdUnit {
 
     List<GreenbidsBids> bids;
 }
-
-
-
