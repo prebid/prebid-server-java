@@ -258,6 +258,7 @@ See [metrics documentation](metrics.md) for complete list of metrics submitted a
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.
 - `cache.host` - set the external Cache Service destination in format `host:port`.
 - `cache.path` - set the external Cache Service path, for example `/cache`.
+- `cache.module.enabled` - If set to true, this will allow storing modules’ data in third-party storage.
 - `cache.module.path` - set the external Cache Service path for module caching, for example `/module/cache`.
 - `cache.api.key` - set the external Cache Service api key for secured calls.
 - `cache.query` - appends to the cache path as query string params (used for legacy Auction requests).

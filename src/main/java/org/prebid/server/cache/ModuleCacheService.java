@@ -21,7 +21,6 @@ public interface ModuleCacheService {
 
     class NoOpModuleCacheService implements ModuleCacheService {
 
-
         @Override
         public Future<Void> storeModuleEntry(String key,
                                              String value,

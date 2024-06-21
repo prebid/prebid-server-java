@@ -29,7 +29,6 @@ import org.prebid.server.cache.proto.request.bid.BidCacheRequest;
 import org.prebid.server.cache.proto.request.bid.BidPutObject;
 import org.prebid.server.cache.proto.response.bid.BidCacheResponse;
 import org.prebid.server.cache.proto.response.bid.CacheObject;
-import org.prebid.server.cache.utils.CacheServiceUtil;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.exception.PreBidException;
@@ -66,7 +65,6 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.entry;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -94,7 +92,7 @@ public class CoreCacheServiceTest extends VertxTest {
 
     private Clock clock;
 
-    private CoreCacheService coreCacheService;
+    private CoreCacheService target;
 
     private EventsContext eventsContext;
 
@@ -106,7 +104,7 @@ public class CoreCacheServiceTest extends VertxTest {
     public void setUp() throws MalformedURLException, JsonProcessingException {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
-        coreCacheService = new CoreCacheService(
+        target = new CoreCacheService(
                 httpClient,
                 new URL("http://cache-service/cache"),
                 "http://cache-service-host/cache?uuid=",
@@ -131,44 +129,9 @@ public class CoreCacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void getCacheEndpointUrlShouldFailOnInvalidCacheServiceUrl() {
-        assertThatIllegalArgumentException().isThrownBy(() ->
-                CacheServiceUtil.getCacheEndpointUrl("http", "{invalid:host}", "cache"));
-        assertThatIllegalArgumentException().isThrownBy(() ->
-                CacheServiceUtil.getCacheEndpointUrl("invalid-schema", "example-server:80808", "cache"));
-    }
-
-    @Test
-    public void getCacheEndpointUrlShouldReturnValidUrl() {
-        // when
-        final String result = CacheServiceUtil.getCacheEndpointUrl("http", "example.com", "cache").toString();
-
-        // then
-        assertThat(result).isEqualTo("http://example.com/cache");
-    }
-
-    @Test
-    public void getCachedAssetUrlTemplateShouldFailOnInvalidCacheServiceUrl() {
-        // when and then
-        assertThatIllegalArgumentException().isThrownBy(() ->
-                CacheServiceUtil.getCachedAssetUrlTemplate("http", "{invalid:host}", "cache", "qs"));
-        assertThatIllegalArgumentException().isThrownBy(() ->
-                CacheServiceUtil.getCachedAssetUrlTemplate("invalid-schema", "example-server:80808", "cache", "qs"));
-    }
-
-    @Test
-    public void getCachedAssetUrlTemplateShouldReturnValidUrl() {
-        // when
-        final String result = CacheServiceUtil.getCachedAssetUrlTemplate("http", "example.com", "cache", "qs");
-
-        // then
-        assertThat(result).isEqualTo("http://example.com/cache?qs");
-    }
-
-    @Test
     public void getCachedAssetURLShouldReturnExpectedValue() {
         // when
-        final String cachedAssetURL = coreCacheService.getCachedAssetURLTemplate();
+        final String cachedAssetURL = target.getCachedAssetURLTemplate();
 
         // then
         assertThat(cachedAssetURL).isEqualTo("http://cache-service-host/cache?uuid=");
@@ -177,7 +140,7 @@ public class CoreCacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldNeverCallCacheServiceIfNoBidsPassed() {
         // when
-        coreCacheService.cacheBidsOpenrtb(emptyList(), null, null, null);
+        target.cacheBidsOpenrtb(emptyList(), null, null, null);
 
         // then
         verifyNoInteractions(httpClient);
@@ -186,7 +149,7 @@ public class CoreCacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldPerformHttpRequestWithExpectedTimeout() {
         // when
-        coreCacheService.cacheBidsOpenrtb(
+        target.cacheBidsOpenrtb(
                 singletonList(givenBidInfo(identity())),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -201,7 +164,7 @@ public class CoreCacheServiceTest extends VertxTest {
     @Test
     public void cacheBidsOpenrtbShouldTolerateGlobalTimeoutAlreadyExpired() {
         // when
-        final Future<CacheServiceResult> future = coreCacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
                 singletonList(givenBidInfo(identity())),
                 givenAuctionContext().toBuilder()
                         .timeoutContext(TimeoutContext.of(0, expiredTimeout, 0))
@@ -227,7 +190,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .enabledForRequest(true)
                 .build();
         // when
-        coreCacheService.cacheBidsOpenrtb(
+        target.cacheBidsOpenrtb(
                 singletonList(givenBidInfo(builder -> builder.id("bidId1"), BidType.banner, "bidder")),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -255,7 +218,7 @@ public class CoreCacheServiceTest extends VertxTest {
         final BidInfo bidinfo = givenBidInfo(builder -> builder.id("bidId1"));
 
         // when
-        final Future<CacheServiceResult> future = coreCacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
                 singletonList(bidinfo),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -288,7 +251,7 @@ public class CoreCacheServiceTest extends VertxTest {
         final BidInfo bidinfo = givenBidInfo(builder -> builder.id("bidId1"));
 
         // when
-        final Future<CacheServiceResult> future = coreCacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
                 singletonList(bidinfo),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -321,7 +284,7 @@ public class CoreCacheServiceTest extends VertxTest {
         final BidInfo bidinfo = givenBidInfo(builder -> builder.id("bidId1"));
 
         // when
-        final Future<CacheServiceResult> future = coreCacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
                 singletonList(bidinfo),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -355,7 +318,7 @@ public class CoreCacheServiceTest extends VertxTest {
         final BidInfo bidinfo = givenBidInfo(builder -> builder.id("bidId1"));
 
         // when
-        final Future<CacheServiceResult> future = coreCacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
                 singletonList(bidinfo),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -387,7 +350,7 @@ public class CoreCacheServiceTest extends VertxTest {
         final BidInfo bidinfo = givenBidInfo(builder -> builder.id("bidId1"));
 
         // when
-        final Future<CacheServiceResult> future = coreCacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
                 singletonList(bidinfo),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -416,7 +379,7 @@ public class CoreCacheServiceTest extends VertxTest {
         final BidInfo bidinfo = givenBidInfo(builder -> builder.id("bidId1"));
 
         // when
-        final Future<CacheServiceResult> future = coreCacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
                 singletonList(bidinfo),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -447,7 +410,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .build();
 
         // when
-        coreCacheService.cacheBidsOpenrtb(
+        target.cacheBidsOpenrtb(
                 asList(bidInfo1, bidInfo2),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -485,7 +448,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .toBuilder().ttl(1000).build();
 
         // when
-        final Future<CacheServiceResult> future = coreCacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
                 singletonList(bidInfo),
                 givenAuctionContext(),
                 CacheContext.builder().shouldCacheBids(true).build(),
@@ -509,7 +472,7 @@ public class CoreCacheServiceTest extends VertxTest {
         final BidInfo givenBidInfo = givenBidInfo(bidBuilder -> bidBuilder.id("bidId1")).toBuilder().ttl(null).build();
 
         // when
-        final Future<CacheServiceResult> future = coreCacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
                 singletonList(givenBidInfo),
                 givenAuctionContext(),
                 CacheContext.builder().shouldCacheBids(true).build(),
@@ -533,7 +496,7 @@ public class CoreCacheServiceTest extends VertxTest {
         final BidInfo bidInfo = givenBidInfo(bidBuilder -> bidBuilder.id("bidId1"));
 
         // when
-        final Future<CacheServiceResult> future = coreCacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
                 singletonList(bidInfo),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -553,7 +516,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 "bidder");
 
         // when
-        final Future<CacheServiceResult> future = coreCacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
                 singletonList(bidInfo),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -576,7 +539,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .toBuilder().cachedDebugLog(new CachedDebugLog(true, 100, null, jacksonMapper)).build();
 
         // when
-        coreCacheService.cacheBidsOpenrtb(
+        target.cacheBidsOpenrtb(
                 singletonList(bidInfo),
                 auctionContext,
                 CacheContext.builder()
@@ -604,7 +567,7 @@ public class CoreCacheServiceTest extends VertxTest {
         final BidInfo bidInfo2 = givenBidInfo(builder -> builder.id("bidId2"), BidType.banner, "bidder2");
 
         // when
-        final Future<CacheServiceResult> future = coreCacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> future = target.cacheBidsOpenrtb(
                 asList(bidInfo1, bidInfo2),
                 givenAuctionContext(),
                 CacheContext.builder()
@@ -632,7 +595,7 @@ public class CoreCacheServiceTest extends VertxTest {
         given(idGenerator.generateId()).willReturn("randomId");
 
         // when
-        coreCacheService.cacheBidsOpenrtb(
+        target.cacheBidsOpenrtb(
                 singletonList(bidInfo1),
                 givenAuctionContext(bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp1))),
                 CacheContext.builder()
@@ -661,7 +624,7 @@ public class CoreCacheServiceTest extends VertxTest {
         given(vastModifier.createBidVastXml(any(), any(), any(), any(), any(), any(), any())).willReturn("adm");
 
         // when
-        coreCacheService.cacheBidsOpenrtb(
+        target.cacheBidsOpenrtb(
                 singletonList(bidInfo1),
                 givenAuctionContext(bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp1))),
                 CacheContext.builder()
@@ -694,7 +657,7 @@ public class CoreCacheServiceTest extends VertxTest {
         given(idGenerator.generateId()).willReturn("randomId");
 
         // when
-        final Future<CacheServiceResult> resultFuture = coreCacheService.cacheBidsOpenrtb(
+        final Future<CacheServiceResult> resultFuture = target.cacheBidsOpenrtb(
                 singletonList(bidInfo1),
                 givenAuctionContext(bidRequestBuilder -> bidRequestBuilder.imp(singletonList(imp1))),
                 CacheContext.builder()
@@ -713,7 +676,7 @@ public class CoreCacheServiceTest extends VertxTest {
     @Test
     public void cachePutObjectsShouldTolerateGlobalTimeoutAlreadyExpired() {
         // when
-        final Future<BidCacheResponse> future = coreCacheService.cachePutObjects(
+        final Future<BidCacheResponse> future = target.cachePutObjects(
                 singletonList(BidPutObject.builder().build()), true, emptySet(), "", "",
                 expiredTimeout);
 
@@ -725,7 +688,7 @@ public class CoreCacheServiceTest extends VertxTest {
     @Test
     public void cachePutObjectsShouldReturnResultWithEmptyListWhenPutObjectsIsEmpty() {
         // when
-        final Future<BidCacheResponse> result = coreCacheService.cachePutObjects(emptyList(), true,
+        final Future<BidCacheResponse> result = target.cachePutObjects(emptyList(), true,
                 emptySet(), null, null, null);
 
         // then
@@ -764,7 +727,7 @@ public class CoreCacheServiceTest extends VertxTest {
                 .willReturn(new TextNode("updatedVast"));
 
         // when
-        coreCacheService.cachePutObjects(
+        target.cachePutObjects(
                 asList(firstBidPutObject, secondBidPutObject, thirdBidPutObject),
                 true,
                 singleton("bidder1"),

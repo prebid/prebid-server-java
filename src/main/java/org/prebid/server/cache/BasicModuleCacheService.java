@@ -2,6 +2,7 @@ package org.prebid.server.cache;
 
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cache.proto.request.module.ModuleCacheRequest;
 import org.prebid.server.cache.proto.request.module.ModuleCacheType;
 import org.prebid.server.cache.proto.response.module.ModuleCacheResponse;
@@ -19,21 +20,23 @@ public class BasicModuleCacheService implements ModuleCacheService {
 
     public static final String MODULE_KEY_PREFIX = "module";
     public static final String MODULE_KEY_DELIMETER = ".";
-    public static final long CACHE_CALL_TIMEOUT_MS = 100L;
 
     private final HttpClient httpClient;
     private final URL endpointUrl;
-    private final String pbcApiKey;
+    private final String apiKey;
+    private final int callTimeoutMs;
     private final JacksonMapper mapper;
 
     public BasicModuleCacheService(HttpClient httpClient,
                                    URL endpointUrl,
-                                   String pbcApiKey,
+                                   String apiKey,
+                                   int callTimeoutMs,
                                    JacksonMapper mapper) {
 
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
-        this.pbcApiKey = Objects.requireNonNull(pbcApiKey);
+        this.apiKey = Objects.requireNonNull(apiKey);
+        this.callTimeoutMs = callTimeoutMs;
         this.mapper = Objects.requireNonNull(mapper);
     }
 
@@ -44,6 +47,11 @@ public class BasicModuleCacheService implements ModuleCacheService {
                                          Integer ttlseconds,
                                          String application,
                                          String moduleCode) {
+        try {
+            validateStoreData(key, value, type, moduleCode);
+        } catch (Throwable e) {
+            return Future.failedFuture(e);
+        }
 
         final ModuleCacheRequest moduleCacheRequest =
                 ModuleCacheRequest.of(constructEntryKey(key, moduleCode), type, value, application, ttlseconds);
@@ -51,15 +59,36 @@ public class BasicModuleCacheService implements ModuleCacheService {
         return httpClient.post(endpointUrl.toString(),
                         securedCallHeaders(),
                         mapper.encodeToString(moduleCacheRequest),
-                        CACHE_CALL_TIMEOUT_MS)
+                        callTimeoutMs)
                 .compose(response -> processStoreResponse(
                         response.getStatusCode(), response.getBody()));
 
     }
 
+    private static void validateStoreData(String key,
+                                          String value,
+                                          ModuleCacheType type,
+                                          String moduleCode) {
+        if (StringUtils.isBlank(key)) {
+            throw new PreBidException("Module cache 'key' can not be blank");
+        }
+
+        if (StringUtils.isBlank(value)) {
+            throw new PreBidException("Module cache 'value' can not be blank");
+        }
+
+        if (type == null) {
+            throw new PreBidException("Module cache 'type' can not be empty");
+        }
+
+        if (StringUtils.isBlank(moduleCode)) {
+            throw new PreBidException("Module cache 'moduleCode' can not be blank");
+        }
+    }
+
     private MultiMap securedCallHeaders() {
         return CacheServiceUtil.CACHE_HEADERS
-                .add(HttpUtil.X_PBC_API_KEY_HEADER, pbcApiKey);
+                .add(HttpUtil.X_PBC_API_KEY_HEADER, apiKey);
     }
 
     private String constructEntryKey(String key, String moduleCode) {
@@ -80,12 +109,28 @@ public class BasicModuleCacheService implements ModuleCacheService {
     public Future<ModuleCacheResponse> retrieveModuleEntry(String key,
                                                            String moduleCode) {
 
+        try {
+            validateRetrieveData(key, moduleCode);
+        } catch (Throwable e) {
+            return Future.failedFuture(e);
+        }
+
         return httpClient.get(getRetrieveEndpoint(key, moduleCode),
                         securedCallHeaders(),
-                        CACHE_CALL_TIMEOUT_MS)
+                        callTimeoutMs)
                 .map(response -> toBidCacheResponse(
                         response.getStatusCode(), response.getBody()));
 
+    }
+
+    private static void validateRetrieveData(String key, String moduleCode) {
+        if (StringUtils.isBlank(key)) {
+            throw new PreBidException("Module cache 'key' can not be blank");
+        }
+
+        if (StringUtils.isBlank(moduleCode)) {
+            throw new PreBidException("Module cache 'moduleCode' can not be blank");
+        }
     }
 
     private String getRetrieveEndpoint(String key,

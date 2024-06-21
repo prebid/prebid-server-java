@@ -192,14 +192,16 @@ public class ServiceConfiguration {
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
             @Value("${cache.module.path}") String path,
-            @Value("${cache.api.key}") String pbcApiKey,
+            @Value("${cache.module.call-timeout-ms}") int callTimeoutMs,
+            @Value("${cache.api.key}") String apiKey,
             HttpClient httpClient,
             JacksonMapper mapper) {
 
         return new BasicModuleCacheService(
                 httpClient,
                 CacheServiceUtil.getCacheEndpointUrl(scheme, host, path),
-                pbcApiKey,
+                apiKey,
+                callTimeoutMs,
                 mapper);
     }
 
