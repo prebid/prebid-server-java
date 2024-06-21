@@ -129,7 +129,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .banner(banner)
                 .build();
 
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp));
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -176,7 +176,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .id("adunitcodevalue")
                 .video(video)
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp));
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -222,7 +222,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .id("adunitcodevalue")
                 .banner(bannerWithoutFormat)
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp));
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -268,7 +268,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Test
     public void shouldFailWhenBidResponseIsNull() {
         // given
-        final AuctionContext auctionContext = givenAuctionContextWithNoBidResponse(context -> context);
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, null, false);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -305,7 +305,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final Imp imp = Imp.builder()
                 .banner(banner)
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp));
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -339,7 +339,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final Imp imp = Imp.builder()
                 .banner(banner)
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp));
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -406,7 +406,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .ext(prebidJsonNodes)
                 .banner(givenBanner())
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp));
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -424,21 +424,19 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
     private static AuctionContext givenAuctionContext(
             UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer,
-            List<Imp> imps) {
-        return auctionContextCustomizer.apply(AuctionContext.builder()
+            List<Imp> imps,
+            boolean includeBidResponse) {
+
+        final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
                 .httpRequest(HttpRequestContext.builder().build())
                 .bidRequest(givenBidRequest(request -> request, imps))
-                .bidResponse(givenBidResponse(response -> response))
-                .bidRejectionTrackers(Map.of("seat2", givenBidRejectionTracker())))
-                .build();
-    }
+                .bidRejectionTrackers(Map.of("seat2", givenBidRejectionTracker()));
 
-    private static AuctionContext givenAuctionContextWithNoBidResponse(
-            UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer) {
-        return auctionContextCustomizer.apply(AuctionContext.builder()
-                .httpRequest(HttpRequestContext.builder().build())
-                .bidRequest(givenBidRequest(request -> request, Collections.emptyList())))
-                .build();
+        if (includeBidResponse) {
+            auctionContextBuilder.bidResponse(givenBidResponse(response -> response));
+        }
+
+        return auctionContextCustomizer.apply(auctionContextBuilder).build();
     }
 
     private static BidRequest givenBidRequest(
