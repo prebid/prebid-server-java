@@ -53,7 +53,7 @@ public class BasicModuleCacheServiceTest extends VertxTest {
                 HttpClientResponse.of(200, null, "someBody")));
         given(httpClient.get(anyString(), any(), anyLong())).willReturn(Future.succeededFuture(
                 HttpClientResponse.of(200, null, mapper.writeValueAsString(
-                        ModuleCacheResponse.of("some-key", ModuleCacheType.TEXT, "some-value")))));
+                        ModuleCacheResponse.of("some-key", ModuleCacheType.JSON, "some-value")))));
     }
 
     @Test
@@ -83,7 +83,7 @@ public class BasicModuleCacheServiceTest extends VertxTest {
 
         // then
         final ModuleCacheRequest result = captureModuleCacheRequest();
-        assertThat(result.getValue()).isEqualTo("some-value");
+        assertThat(result.getValue()).isEqualTo("c29tZS12YWx1ZQ==");
     }
 
     @Test
@@ -262,7 +262,7 @@ public class BasicModuleCacheServiceTest extends VertxTest {
 
         // then
         assertThat(result.result())
-                .isEqualTo(ModuleCacheResponse.of("some-key", ModuleCacheType.TEXT, "some-value"));
+                .isEqualTo(ModuleCacheResponse.of("some-key", ModuleCacheType.JSON, "some-value"));
     }
 
     @SneakyThrows

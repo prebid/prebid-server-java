@@ -2,6 +2,7 @@ package org.prebid.server.cache;
 
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.cache.proto.request.module.ModuleCacheRequest;
 import org.prebid.server.cache.proto.request.module.ModuleCacheType;
@@ -54,7 +55,12 @@ public class BasicModuleCacheService implements ModuleCacheService {
         }
 
         final ModuleCacheRequest moduleCacheRequest =
-                ModuleCacheRequest.of(constructEntryKey(key, moduleCode), type, value, application, ttlseconds);
+                ModuleCacheRequest.of(
+                        constructEntryKey(key, moduleCode),
+                        type,
+                        prepareValueForStoring(value, type),
+                        application,
+                        ttlseconds);
 
         return httpClient.post(endpointUrl.toString(),
                         securedCallHeaders(),
@@ -84,6 +90,12 @@ public class BasicModuleCacheService implements ModuleCacheService {
         if (StringUtils.isBlank(moduleCode)) {
             throw new PreBidException("Module cache 'moduleCode' can not be blank");
         }
+    }
+
+    private static String prepareValueForStoring(String value, ModuleCacheType type) {
+        return type == ModuleCacheType.TEXT
+                ? new String(Base64.encodeBase64(value.getBytes()))
+                : value;
     }
 
     private MultiMap securedCallHeaders() {
@@ -118,7 +130,7 @@ public class BasicModuleCacheService implements ModuleCacheService {
         return httpClient.get(getRetrieveEndpoint(key, moduleCode),
                         securedCallHeaders(),
                         callTimeoutMs)
-                .map(response -> toBidCacheResponse(
+                .map(response -> toModuleCacheResponse(
                         response.getStatusCode(), response.getBody()));
 
     }
@@ -138,8 +150,8 @@ public class BasicModuleCacheService implements ModuleCacheService {
         return endpointUrl + "?key=" + constructEntryKey(key, moduleCode);
     }
 
-    private ModuleCacheResponse toBidCacheResponse(int statusCode,
-                                                   String responseBody) {
+    private ModuleCacheResponse toModuleCacheResponse(int statusCode,
+                                                      String responseBody) {
 
         if (statusCode != 200) {
             throw new PreBidException("HTTP status code " + statusCode);
@@ -152,6 +164,17 @@ public class BasicModuleCacheService implements ModuleCacheService {
             throw new PreBidException("Cannot parse response: " + responseBody, e);
         }
 
-        return moduleCacheResponse;
+        final String processedValue =
+                prepareValueAfterRetrieve(moduleCacheResponse.getValue(), moduleCacheResponse.getType());
+
+        return StringUtils.equals(moduleCacheResponse.getValue(), processedValue)
+                ? moduleCacheResponse
+                : moduleCacheResponse.toBuilder().value(processedValue).build();
+    }
+
+    private static String prepareValueAfterRetrieve(String value, ModuleCacheType type) {
+        return type == ModuleCacheType.TEXT
+                ? new String(Base64.decodeBase64(value.getBytes()))
+                : value;
     }
 }
