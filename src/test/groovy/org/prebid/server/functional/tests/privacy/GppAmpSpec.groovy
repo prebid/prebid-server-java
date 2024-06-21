@@ -18,8 +18,8 @@ class GppAmpSpec extends PrivacyBaseSpec {
 
     def "PBS should populate bid request with regs when consent type is GPP and consent string, gppSid are present"() {
         given: "Default AmpRequest with consent_type = gpp"
-        def consentString = PBSUtils.randomString
         def gppSids = "${TCF_EU_V2.value},${USP_V1.value}" as String
+        def consentString = new TcfEuV2Consent.Builder().build().toString()
         def ampRequest = getGppAmpRequest(consentString, gppSids)
         def ampStoredRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(ampRequest.account)
@@ -37,9 +37,8 @@ class GppAmpSpec extends PrivacyBaseSpec {
         assert bidderRequests.regs.gpp == consentString
         assert bidderRequests.regs.gppSid == [TCF_EU_V2.intValue, USP_V1.intValue]
 
-        and: "Repose should contain warning"
-        assert !ampResponse.ext?.warnings[PREBID]*.message[0]
-                .startsWith("Failed to parse gppSid: \'${gppSids}\'")
+        and: "Response shouldn't contain any warnings"
+        assert !ampResponse.ext?.warnings
     }
 
     def "PBS should populate bid request with regs.gppSid when consent type isn't GPP and gppSid is present"() {
