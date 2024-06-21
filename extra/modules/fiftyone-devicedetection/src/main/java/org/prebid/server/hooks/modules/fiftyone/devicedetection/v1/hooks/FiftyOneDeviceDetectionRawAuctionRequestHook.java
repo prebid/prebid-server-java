@@ -130,11 +130,15 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
     private AuctionRequestPayload updatePayload(AuctionRequestPayload existingPayload,
                                                 CollectedEvidence collectedEvidence) {
         final BidRequest currentRequest = existingPayload.bidRequest();
-        final BidRequest patchedRequest = enrichDevice(currentRequest, collectedEvidence);
-        return patchedRequest == null ? existingPayload : AuctionRequestPayloadImpl.of(patchedRequest);
+        try {
+            final BidRequest patchedRequest = enrichDevice(currentRequest, collectedEvidence);
+            return patchedRequest == null ? existingPayload : AuctionRequestPayloadImpl.of(patchedRequest);
+        } catch (Exception ignored) {
+            return existingPayload;
+        }
     }
 
-    private BidRequest enrichDevice(BidRequest bidRequest, CollectedEvidence collectedEvidence) {
+    private BidRequest enrichDevice(BidRequest bidRequest, CollectedEvidence collectedEvidence) throws Exception {
         if (bidRequest == null) {
             return null;
         }

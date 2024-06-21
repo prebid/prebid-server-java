@@ -244,7 +244,37 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    public void payloadUpdateShouldReturnOldRequestWhenMergedDeviceIsNull() {
+    public void payloadUpdateShouldReturnOldRequestWhenPopulateDeviceInfoThrows() throws Exception {
+        // given
+        final BidRequest bidRequest = BidRequest.builder().build();
+        final CollectedEvidence savedEvidence = CollectedEvidence.builder().build();
+        final AuctionRequestPayload auctionRequestPayload = AuctionRequestPayloadImpl.of(bidRequest);
+        final AuctionInvocationContext invocationContext = AuctionInvocationContextImpl.of(
+                null,
+                null,
+                false,
+                null,
+                ModuleContext.builder()
+                        .collectedEvidence(savedEvidence)
+                        .build()
+        );
+        final Exception e = new RuntimeException();
+        when(deviceEnricher.populateDeviceInfo(any(), any())).thenThrow(e);
+
+        // when
+        final BidRequest newBidRequest = target.call(auctionRequestPayload, invocationContext)
+                .result()
+                .payloadUpdate()
+                .apply(auctionRequestPayload)
+                .bidRequest();
+
+        // then
+        assertThat(newBidRequest).isEqualTo(bidRequest);
+        verify(deviceEnricher, times(1)).populateDeviceInfo(any(), any());
+    }
+
+    @Test
+    public void payloadUpdateShouldReturnOldRequestWhenMergedDeviceIsNull() throws Exception {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
         final CollectedEvidence savedEvidence = CollectedEvidence.builder().build();
@@ -274,7 +304,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    public void payloadUpdateShouldPassMergedEvidenceToDeviceRefiner() {
+    public void payloadUpdateShouldPassMergedEvidenceToDeviceRefiner() throws Exception {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
         final String fakeUA = "crystal-ball-navigator";
@@ -314,7 +344,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
     }
 
     @Test
-    public void payloadUpdateShouldInjectReturnedDevice() {
+    public void payloadUpdateShouldInjectReturnedDevice() throws Exception {
         // given
         final BidRequest bidRequest = BidRequest.builder().build();
         final CollectedEvidence savedEvidence = CollectedEvidence.builder().build();

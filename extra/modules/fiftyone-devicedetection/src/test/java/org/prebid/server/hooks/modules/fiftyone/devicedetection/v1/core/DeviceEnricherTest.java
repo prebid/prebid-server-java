@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -45,7 +46,7 @@ public class DeviceEnricherTest {
     private DeviceEnricher target;
 
     @Before
-    public void populateDeviceInfoSetUp() {
+    public void setUp() {
         when(pipeline.createFlowData()).thenReturn(flowData);
         when(flowData.get(DeviceData.class)).thenReturn(deviceData);
         target = new DeviceEnricher(pipeline);
@@ -59,11 +60,8 @@ public class DeviceEnricherTest {
         final Exception e = new RuntimeException();
         when(pipeline.createFlowData()).thenThrow(e);
 
-        // when
-        final EnrichmentResult result = target.populateDeviceInfo(null, null);
-
-        // then
-        assertThat(result.processingException()).isEqualTo(e);
+        // when and then
+        assertThatThrownBy(() -> target.populateDeviceInfo(null, null)).isEqualTo(e);
     }
 
     @Test
@@ -73,19 +71,13 @@ public class DeviceEnricherTest {
         doThrow(e).when(flowData).process();
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder().build();
 
-        // when
-        final EnrichmentResult result = target.populateDeviceInfo(
-                null,
-                collectedEvidence);
-
-        // then
-        assertThat(result.processingException()).isEqualTo(e);
+        // when and then
+        assertThatThrownBy(() -> target.populateDeviceInfo(null, collectedEvidence)).isEqualTo(e);
     }
 
     @Test
-    public void populateDeviceInfoShouldReturnNullWhenDeviceDataIsNull() {
+    public void populateDeviceInfoShouldReturnNullWhenDeviceDataIsNull() throws Exception {
         // given
-        final Exception e = new RuntimeException();
         when(flowData.get(DeviceData.class)).thenReturn(null);
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder().build();
 
@@ -102,7 +94,7 @@ public class DeviceEnricherTest {
     // MARK: - pickRelevantFrom
 
     @Test
-    public void populateDeviceInfoShouldPassToFlowDataHeadersMadeFromSuaWhenPresent() {
+    public void populateDeviceInfoShouldPassToFlowDataHeadersMadeFromSuaWhenPresent() throws Exception {
         // given
         final Map<String, String> secureHeaders = Collections.singletonMap("ua", "fake-ua");
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
@@ -123,7 +115,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldPassToFlowDataHeadersMadeFromUaWhenNoSuaPresent() {
+    public void populateDeviceInfoShouldPassToFlowDataHeadersMadeFromUaWhenNoSuaPresent() throws Exception {
         // given
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
                 .deviceUA("dummy-ua")
@@ -145,7 +137,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldPassToFlowDataMergedHeadersMadeFromUaAndSuaWhenBothPresent() {
+    public void populateDeviceInfoShouldPassToFlowDataMergedHeadersMadeFromUaAndSuaWhenBothPresent() throws Exception {
         // given
         final Map<String, String> suaHeaders = Collections.singletonMap("ua", "fake-ua");
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
@@ -169,7 +161,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldPassToFlowDataRawHeaderWhenNoDeviceInfoPresent() {
+    public void populateDeviceInfoShouldPassToFlowDataRawHeaderWhenNoDeviceInfoPresent() throws Exception {
         // given
         final List<Map.Entry<String, String>> rawHeaders = List.of(
                 new AbstractMap.SimpleEntry<>("ua", "zumba"),
@@ -198,7 +190,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldPassToFlowDataLatestRawHeaderWhenMultiplePresentWithSameKey() {
+    public void populateDeviceInfoShouldPassToFlowDataLatestRawHeaderWhenMultiplePresentWithSameKey() throws Exception {
         // given
         final String theKey = "ua";
         final List<Map.Entry<String, String>> rawHeaders = List.of(
@@ -223,7 +215,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldPassToFlowDataEmptyMapWhenNoEvidenceToPick() {
+    public void populateDeviceInfoShouldPassToFlowDataEmptyMapWhenNoEvidenceToPick() throws Exception {
         // given
         final CollectedEvidence collectedEvidence = CollectedEvidence.builder().build();
 
@@ -242,7 +234,7 @@ public class DeviceEnricherTest {
     // MARK: - patchDevice
 
     @Test
-    public void populateDeviceInfoShouldEnrichAllPropertiesWhenDeviceIsEmpty() {
+    public void populateDeviceInfoShouldEnrichAllPropertiesWhenDeviceIsEmpty() throws Exception {
         // given
         final Device device = Device.builder().build();
 
@@ -258,7 +250,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldReturnNullWhenDeviceIsFull() {
+    public void populateDeviceInfoShouldReturnNullWhenDeviceIsFull() throws Exception {
         // given and when
         buildCompleteDeviceData();
         final Device device = buildCompleteDevice();
@@ -272,7 +264,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichDeviceTypeWhenItIsMissing() {
+    public void populateDeviceInfoShouldEnrichDeviceTypeWhenItIsMissing() throws Exception {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .devicetype(null)
@@ -291,7 +283,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichMakeWhenItIsMissing() {
+    public void populateDeviceInfoShouldEnrichMakeWhenItIsMissing() throws Exception {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .make(null)
@@ -310,7 +302,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichModelWithHWNameWhenHWModelIsMissing() {
+    public void populateDeviceInfoShouldEnrichModelWithHWNameWhenHWModelIsMissing() throws Exception {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .model(null)
@@ -332,7 +324,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichModelWhenItIsMissing() {
+    public void populateDeviceInfoShouldEnrichModelWhenItIsMissing() throws Exception {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .model(null)
@@ -351,7 +343,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichOsWhenItIsMissing() {
+    public void populateDeviceInfoShouldEnrichOsWhenItIsMissing() throws Exception {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .os(null)
@@ -370,7 +362,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichOsvWhenItIsMissing() {
+    public void populateDeviceInfoShouldEnrichOsvWhenItIsMissing() throws Exception {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .osv(null)
@@ -389,7 +381,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichHWhenItIsMissing() {
+    public void populateDeviceInfoShouldEnrichHWhenItIsMissing() throws Exception {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .h(null)
@@ -408,7 +400,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichWWhenItIsMissing() {
+    public void populateDeviceInfoShouldEnrichWWhenItIsMissing() throws Exception {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .w(null)
@@ -427,7 +419,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichPpiWhenItIsMissing() {
+    public void populateDeviceInfoShouldEnrichPpiWhenItIsMissing() throws Exception {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .ppi(null)
@@ -446,7 +438,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichPXRatioWhenItIsMissing() {
+    public void populateDeviceInfoShouldEnrichPXRatioWhenItIsMissing() throws Exception {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .pxratio(null)
@@ -465,7 +457,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichDeviceIDWhenItIsMissing() {
+    public void populateDeviceInfoShouldEnrichDeviceIDWhenItIsMissing() throws Exception {
         // given
         final Device testDevice = buildCompleteDevice().toBuilder()
                 .ext(null)
@@ -517,7 +509,7 @@ public class DeviceEnricherTest {
     // MARK: - convertDeviceType
 
     @Test
-    public void populateDeviceInfoShouldEnrichDeviceTypeWithFourWhenDeviceTypeStringIsPhone() {
+    public void populateDeviceInfoShouldEnrichDeviceTypeWithFourWhenDeviceTypeStringIsPhone() throws Exception {
         // given
         final String typeString = "Phone";
 
@@ -535,7 +527,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldEnrichDeviceTypeWithSevenWhenDeviceTypeStringIsMediaHub() {
+    public void populateDeviceInfoShouldEnrichDeviceTypeWithSevenWhenDeviceTypeStringIsMediaHub() throws Exception {
         // given
         final String typeString = "MediaHub";
 
@@ -553,7 +545,7 @@ public class DeviceEnricherTest {
     }
 
     @Test
-    public void populateDeviceInfoShouldReturnNullWhenDeviceTypeStringIsUnexpected() {
+    public void populateDeviceInfoShouldReturnNullWhenDeviceTypeStringIsUnexpected() throws Exception {
         // given
         final String typeString = "BattleStar Atlantis";
 

@@ -52,7 +52,7 @@ public class DeviceEnricher {
         this.pipeline = Objects.requireNonNull(pipeline);
     }
 
-    public EnrichmentResult populateDeviceInfo(Device device, CollectedEvidence collectedEvidence) {
+    public EnrichmentResult populateDeviceInfo(Device device, CollectedEvidence collectedEvidence) throws Exception {
         try (FlowData data = pipeline.createFlowData()) {
             data.addEvidence(pickRelevantFrom(collectedEvidence));
             data.process();
@@ -62,8 +62,6 @@ public class DeviceEnricher {
             }
             final Device properDevice = Optional.ofNullable(device).orElseGet(() -> Device.builder().build());
             return patchDevice(properDevice, deviceData);
-        } catch (Exception e) {
-            return EnrichmentResult.builder().processingException(e).build();
         }
     }
 

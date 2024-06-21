@@ -8,7 +8,6 @@ import java.util.Collection;
 @Builder
 public record EnrichmentResult(
         Device enrichedDevice,
-        Collection<String> enrichedFields,
-        Exception processingException
+        Collection<String> enrichedFields
 ) {
 }
