@@ -69,6 +69,7 @@ import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
+import org.prebid.server.cache.BasicModuleCacheService;
 import org.prebid.server.cache.CoreCacheService;
 import org.prebid.server.cache.ModuleCacheService;
 import org.prebid.server.cache.model.CacheTtl;
@@ -180,7 +181,14 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    ModuleCacheService moduleCacheService(
+    @ConditionalOnProperty(prefix = "cache.module", name = "enabled", havingValue = "false", matchIfMissing = true)
+    ModuleCacheService noOpModuleCacheService() {
+        return ModuleCacheService.noOp();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "cache.module", name = "enabled", havingValue = "true")
+    ModuleCacheService basicModuleCacheService(
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
             @Value("${cache.module.path}") String path,
@@ -188,7 +196,7 @@ public class ServiceConfiguration {
             HttpClient httpClient,
             JacksonMapper mapper) {
 
-        return new ModuleCacheService(
+        return new BasicModuleCacheService(
                 httpClient,
                 CacheServiceUtil.getCacheEndpointUrl(scheme, host, path),
                 pbcApiKey,

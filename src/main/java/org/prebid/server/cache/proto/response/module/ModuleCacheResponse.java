@@ -11,4 +11,8 @@ public class ModuleCacheResponse {
     ModuleCacheType type;
 
     String value;
+
+    public static ModuleCacheResponse empty() {
+        return ModuleCacheResponse.of(null, null, null);
+    }
 }
