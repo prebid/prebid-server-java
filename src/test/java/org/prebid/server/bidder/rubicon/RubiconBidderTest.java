@@ -69,6 +69,7 @@ import org.prebid.server.bidder.rubicon.proto.request.RubiconTargetingExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconUserExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconVideoExt;
+import org.prebid.server.bidder.rubicon.proto.request.RubiconVideoExtRp;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconBid;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconBidResponse;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconSeatBid;
@@ -826,7 +827,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getVideo).doesNotContainNull()
                 .extracting(Video::getExt).doesNotContainNull()
                 .extracting(ext -> mapper.treeToValue(ext, RubiconVideoExt.class))
-                .containsOnly(RubiconVideoExt.of(5, 10, null));
+                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), null));
     }
 
     @Test
@@ -854,8 +855,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getVideo).doesNotContainNull()
                 .extracting(Video::getExt).doesNotContainNull()
                 .extracting(ex -> mapper.treeToValue(ex, RubiconVideoExt.class))
-                .extracting(RubiconVideoExt::getVideotype)
-                .containsOnly("rewarded");
+                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), "rewarded"));
     }
 
     @Test
@@ -882,8 +882,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getVideo).doesNotContainNull()
                 .extracting(Video::getExt).doesNotContainNull()
                 .extracting(ex -> mapper.treeToValue(ex, RubiconVideoExt.class))
-                .extracting(RubiconVideoExt::getVideotype)
-                .containsOnlyNulls();
+                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), null));
     }
 
     @Test
@@ -910,8 +909,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getVideo).doesNotContainNull()
                 .extracting(Video::getExt).doesNotContainNull()
                 .extracting(ex -> mapper.treeToValue(ex, RubiconVideoExt.class))
-                .extracting(RubiconVideoExt::getVideotype)
-                .containsOnlyNulls();
+                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), null));
     }
 
     @Test
@@ -959,8 +957,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getVideo).doesNotContainNull()
                 .extracting(Video::getExt).doesNotContainNull()
                 .extracting(ex -> mapper.treeToValue(ex, RubiconVideoExt.class))
-                .extracting(RubiconVideoExt::getVideotype)
-                .containsOnlyNulls();
+                .containsOnly(RubiconVideoExt.of(5, 10, RubiconVideoExtRp.of(14), null));
     }
 
     @Test

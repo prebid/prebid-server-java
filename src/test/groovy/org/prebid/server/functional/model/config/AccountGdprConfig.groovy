@@ -10,6 +10,7 @@ import org.prebid.server.functional.model.ChannelType
 class AccountGdprConfig {
 
     Boolean enabled
+    String eeaCountries
     Map<ChannelType, Boolean> channelEnabled
     Map<Purpose, PurposeConfig> purposes
     Map<SpecialFeature, SpecialFeatureConfig> specialFeatures
