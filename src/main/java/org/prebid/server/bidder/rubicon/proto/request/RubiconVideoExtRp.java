@@ -5,13 +5,7 @@ import lombok.Value;
 
 @AllArgsConstructor(staticName = "of")
 @Value
-public class RubiconVideoExt {
+public class RubiconVideoExtRp {
 
-    Integer skip;
-
-    Integer skipdelay;
-
-    RubiconVideoExtRp rp;
-
-    String videotype;
+    Integer sizeId;
 }
