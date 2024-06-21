@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.amp.ConsentType
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.Regs
+import org.prebid.server.functional.model.response.amp.AmpResponse
 import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.functional.util.privacy.gpp.TcfEuV2Consent
 import org.prebid.server.functional.util.privacy.gpp.UsV1Consent
@@ -74,12 +75,16 @@ class GppAmpSpec extends PrivacyBaseSpec {
         storedRequestDao.save(storedRequest)
 
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        def ampResponse = defaultPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request shouldn't contain regs.gpp"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
         assert !bidderRequests.regs.gpp
         assert !bidderRequests.regs.gppSid
+
+        and: "Repose should contain warning"
+        assert ampResponse.ext?.warnings[PREBID]*.code == [999]
+        assert ampResponse.ext?.warnings[PREBID]*.message[0].startsWith("Failed to parse gppSid: \'${gppSids}\'")
     }
 
     def "PBS should emit warning when consent_string is invalid"() {
