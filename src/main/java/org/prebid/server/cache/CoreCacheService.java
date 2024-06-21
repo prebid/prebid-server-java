@@ -241,14 +241,6 @@ public class CoreCacheService {
                 .toList();
     }
 
-    /**
-     * Makes cache for OpenRTB bids.
-     * <p>
-     * Stores JSON values for the given {@link com.iab.openrtb.response.Bid}s in the cache.
-     * Stores XML cache objects for the given video {@link com.iab.openrtb.response.Bid}s in the cache.
-     * <p>
-     * The returned result will always have the number of elements equals to sum of sizes of bids and video bids.
-     */
     private Future<CacheServiceResult> doCacheOpenrtb(List<CacheBid> bids,
                                                       List<CacheBid> videoBids,
                                                       AuctionContext auctionContext,
