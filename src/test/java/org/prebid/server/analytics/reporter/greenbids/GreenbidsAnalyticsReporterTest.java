@@ -48,10 +48,13 @@ import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -126,7 +129,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .banner(banner)
                 .build();
 
-        final AuctionContext auctionContext = givenAuctionContext(imp);
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp));
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -173,7 +176,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .id("adunitcodevalue")
                 .video(video)
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(imp);
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp));
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -219,7 +222,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .id("adunitcodevalue")
                 .banner(bannerWithoutFormat)
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(imp);
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp));
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -265,7 +268,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Test
     public void shouldFailWhenBidResponseIsNull() {
         // given
-        final AuctionContext auctionContext = givenAuctionContextWithNoBidResponse();
+        final AuctionContext auctionContext = givenAuctionContextWithNoBidResponse(context -> context);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -302,7 +305,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final Imp imp = Imp.builder()
                 .banner(banner)
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(imp);
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp));
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -336,7 +339,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final Imp imp = Imp.builder()
                 .banner(banner)
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(imp);
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp));
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -403,7 +406,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .ext(prebidJsonNodes)
                 .banner(givenBanner())
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(imp);
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp));
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -419,52 +422,137 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                         + "Cannot construct instance of `org.prebid.server.proto.openrtb.ext.request.ExtOptions`");
     }
 
-    private static AuctionContext givenAuctionContext(Imp imp) {
-        final Site site = Site.builder()
-                .domain("www.leparisien.fr")
+    private static AuctionContext givenAuctionContext(
+            UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer,
+            List<Imp> imps) {
+        return auctionContextCustomizer.apply(AuctionContext.builder()
+                .httpRequest(HttpRequestContext.builder().build())
+                .bidRequest(givenBidRequest(request -> request, imps))
+                .bidResponse(givenBidResponse(response -> response))
+                .bidRejectionTrackers(Map.of("seat2", givenBidRejectionTracker())))
                 .build();
+    }
 
-        final BidRequest bidRequest = BidRequest.builder()
+    private static AuctionContext givenAuctionContextWithNoBidResponse(
+            UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer) {
+        return auctionContextCustomizer.apply(AuctionContext.builder()
+                .httpRequest(HttpRequestContext.builder().build())
+                .bidRequest(givenBidRequest(request -> request, Collections.emptyList())))
+                .build();
+    }
+
+    private static BidRequest givenBidRequest(
+            UnaryOperator<BidRequest.BidRequestBuilder> bidRequestCustomizer,
+            List<Imp> imps) {
+        return bidRequestCustomizer.apply(BidRequest.builder()
                 .id("request1")
-                .imp(Collections.singletonList(imp))
-                .site(site)
-                .ext(givenExtRequest())
-                .build();
+                .imp(imps)
+                .site(givenSite(site -> site))
+                .ext(givenExtRequest())).build();
+    }
 
-        final Bid bid = Bid.builder()
+    private static Site givenSite(UnaryOperator<Site.SiteBuilder> siteCustomizer) {
+        return siteCustomizer.apply(Site.builder().domain("www.leparisien.fr")).build();
+    }
+
+    private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer) {
+        return bidResponseCustomizer.apply(BidResponse.builder()
+                .id("response1")
+                .seatbid(Collections.singletonList(givenSeatBid(seatBid -> seatBid)))
+                .cur("USD")).build();
+    }
+
+    private static SeatBid givenSeatBid(UnaryOperator<SeatBid.SeatBidBuilder> seatBidCostumizer) {
+        return seatBidCostumizer.apply(SeatBid.builder()
+                .bid(Collections.singletonList(givenBid(bid -> bid)))
+                .seat("seat1")).build();
+    }
+
+    private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
+        return bidCustomizer.apply(Bid.builder()
                 .id("bid1")
                 .impid("adunitcodevalue")
                 .price(BigDecimal.valueOf(1.5))
-                .adm("<div>Ad Markup</div>")
-                .build();
+                .adm("<div>Ad Markup</div>")).build();
+    }
 
-        final SeatBid seatBidWithBid = SeatBid.builder()
-                .bid(Collections.singletonList(bid))
-                .seat("seat1")
-                .build();
-
-        final BidResponse bidResponse = BidResponse.builder()
-                .id("response1")
-                .seatbid(Collections.singletonList(seatBidWithBid))
-                .cur("USD")
-                .build();
-
+    private static BidRejectionTracker givenBidRejectionTracker() {
         final BidRejectionTracker bidRejectionTracker = new BidRejectionTracker(
                 "seat2",
                 Set.of("adunitcodevalue"),
                 1.0);
-
         bidRejectionTracker.reject("imp1", BidRejectionReason.NO_BID);
+        return bidRejectionTracker;
+    }
 
-        return AuctionContext.builder()
-                .httpRequest(HttpRequestContext.builder().build())
-                .bidRequest(bidRequest)
-                .bidResponse(bidResponse)
-                .bidRejectionTrackers(
-                        singletonMap(
-                                "seat2",
-                                bidRejectionTracker))
+    private static ExtRequest givenExtRequest() {
+        final ObjectNode greenbidsNode = new ObjectMapper().createObjectNode();
+        greenbidsNode.put("pbuid", "leparisien");
+        greenbidsNode.put("greenbidsSampling", 1.0);
+
+        final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
+        analyticsNode.set("greenbids", greenbidsNode);
+
+        return ExtRequest.of(
+                ExtRequestPrebid
+                        .builder()
+                        .analytics(analyticsNode)
+                        .build());
+    }
+
+    private static CommonMessage givenCommonMessageForBanner() {
+        return givenCommonMessage(
+                adUnit -> adUnit
+                        .code("adunitcodevalue")
+                        .unifiedCode(GreenbidsUnifiedCode.of("gpidvalue", "gpidSource"))
+                        .mediaTypes(MediaTypes.of(givenExtBanner(320, 50, null), null, null))
+                        .bids(givenGreenbidsBids()));
+    }
+
+    private static CommonMessage givenCommonMessageForVideo() {
+        return givenCommonMessage(
+                adUnit -> adUnit
+                        .code("adunitcodevalue")
+                        .unifiedCode(GreenbidsUnifiedCode.of("adunitcodevalue", "adUnitCodeSource"))
+                        .mediaTypes(MediaTypes.of(null, givenVideo(), null))
+                        .bids(givenGreenbidsBids()));
+    }
+
+    private static CommonMessage givenCommonMessageBannerWithoutFormat() {
+        return givenCommonMessage(
+                adUnit -> adUnit
+                        .code("adunitcodevalue")
+                        .unifiedCode(GreenbidsUnifiedCode.of("adunitcodevalue", "adUnitCodeSource"))
+                        .mediaTypes(MediaTypes.of(givenExtBanner(728, 90, 1), null, null))
+                        .bids(givenGreenbidsBids()));
+    }
+
+    private static CommonMessage givenCommonMessage(
+            UnaryOperator<GreenbidsAdUnit.GreenbidsAdUnitBuilder>... greenbidsAdUnitCutomizers) {
+        return CommonMessage.builder()
+                .version("2.2.0")
+                .auctionId("request1")
+                .sampling(1.0)
+                .pbuid("leparisien")
+                .adUnits(
+                        Arrays.stream(greenbidsAdUnitCutomizers)
+                                .map(customizer -> customizer.apply(GreenbidsAdUnit.builder()).build())
+                                .collect(Collectors.toList()))
+                .auctionElapsed(0L)
                 .build();
+    }
+
+    private static List<GreenbidsBids> givenGreenbidsBids() {
+        return givenGreenbidsBidsWithCustomizer(
+                builder -> builder.bidder("seat1").isTimeout(false).hasBid(true),
+                builder -> builder.bidder("seat2").isTimeout(false).hasBid(false));
+    }
+
+    private static List<GreenbidsBids> givenGreenbidsBidsWithCustomizer(
+            UnaryOperator<GreenbidsBids.GreenbidsBidsBuilder>... greenbidsBidsCustomizers) {
+        return Arrays.stream(greenbidsBidsCustomizers)
+                .map(customizer -> customizer.apply(GreenbidsBids.builder()).build())
+                .collect(Collectors.toList());
     }
 
     private static Banner givenBanner() {
@@ -489,143 +577,17 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .build();
     }
 
+    private static ExtBanner givenExtBanner(Integer w, Integer h, Integer pos) {
+        return ExtBanner.builder()
+                .sizes(List.of(List.of(w, h)))
+                .pos(pos)
+                .build();
+    }
+
     private static Video givenVideo() {
         return Video.builder()
                 .pos(1)
                 .plcmt(1)
-                .build();
-    }
-
-    private static AuctionContext givenAuctionContextWithNoBidResponse() {
-        final Site site = Site.builder()
-                .domain("www.leparisien.fr")
-                .build();
-
-        final BidRequest bidRequest = BidRequest.builder()
-                .id("request1")
-                .site(site)
-                .ext(givenExtRequest())
-                .build();
-
-        return AuctionContext.builder()
-                .httpRequest(HttpRequestContext.builder().build())
-                .bidRequest(bidRequest)
-                .build();
-    }
-
-    private static ExtRequest givenExtRequest() {
-        final ObjectNode greenbidsNode = new ObjectMapper().createObjectNode();
-        greenbidsNode.put("pbuid", "leparisien");
-        greenbidsNode.put("greenbidsSampling", 1.0);
-
-        final ObjectNode analyticsNode = new ObjectMapper().createObjectNode();
-        analyticsNode.set("greenbids", greenbidsNode);
-
-        return ExtRequest.of(
-                ExtRequestPrebid
-                        .builder()
-                        .analytics(analyticsNode)
-                        .build());
-    }
-
-    private static CommonMessage givenCommonMessageForBanner() {
-        return CommonMessage.builder()
-                .version("2.2.0")
-                .auctionId("request1")
-                .sampling(1.0)
-                .pbuid("leparisien")
-                .adUnits(
-                        List.of(GreenbidsAdUnit.builder()
-                                .code("adunitcodevalue")
-                                .unifiedCode(GreenbidsUnifiedCode
-                                        .of("gpidvalue", "gpidSource"))
-                                .mediaTypes(MediaTypes.of(
-                                        ExtBanner.builder()
-                                                .sizes(List.of(List.of(320, 50)))
-                                                .build(), null, null))
-                                .bids(List.of(
-                                        GreenbidsBids.builder()
-                                                .bidder("seat1")
-                                                .isTimeout(false)
-                                                .hasBid(true)
-                                                .build(),
-                                        GreenbidsBids.builder()
-                                                .bidder("seat2")
-                                                .isTimeout(false)
-                                                .hasBid(false)
-                                                .build()
-                                ))
-                                .build()
-                        ))
-                .auctionElapsed(0L)
-                .build();
-    }
-
-    private static CommonMessage givenCommonMessageForVideo() {
-        return CommonMessage.builder()
-                .version("2.2.0")
-                .auctionId("request1")
-                .sampling(1.0)
-                .pbuid("leparisien")
-                .adUnits(
-                        List.of(GreenbidsAdUnit.builder()
-                                .code("adunitcodevalue")
-                                .unifiedCode(GreenbidsUnifiedCode
-                                        .of("adunitcodevalue", "adUnitCodeSource"))
-                                .mediaTypes(MediaTypes.of(null,
-                                        Video.builder()
-                                                .plcmt(1)
-                                                .pos(1)
-                                                .build(), null))
-                                .bids(List.of(
-                                        GreenbidsBids.builder()
-                                                .bidder("seat1")
-                                                .isTimeout(false)
-                                                .hasBid(true)
-                                                .build(),
-                                        GreenbidsBids.builder()
-                                                .bidder("seat2")
-                                                .isTimeout(false)
-                                                .hasBid(false)
-                                                .build()
-                                ))
-                                .build()
-                        ))
-                .auctionElapsed(0L)
-                .build();
-    }
-
-    private static CommonMessage givenCommonMessageBannerWithoutFormat() {
-        return CommonMessage.builder()
-                .version("2.2.0")
-                .auctionId("request1")
-                .sampling(1.0)
-                .pbuid("leparisien")
-                .adUnits(
-                        List.of(GreenbidsAdUnit.builder()
-                                .code("adunitcodevalue")
-                                .unifiedCode(GreenbidsUnifiedCode
-                                        .of("adunitcodevalue", "adUnitCodeSource"))
-                                .mediaTypes(MediaTypes.of(
-                                        ExtBanner.builder()
-                                                .sizes(List.of(List.of(728, 90)))
-                                                .pos(1)
-                                                .build(), null, null))
-                                .bids(List.of(
-                                        GreenbidsBids.builder()
-                                                .bidder("seat1")
-                                                .isTimeout(false)
-                                                .hasBid(true)
-                                                .build(),
-                                        GreenbidsBids.builder()
-                                                .bidder("seat2")
-                                                .isTimeout(false)
-                                                .hasBid(false)
-                                                .build()
-                                ))
-                                .build()
-                        ))
-                .auctionElapsed(0L)
                 .build();
     }
 }
