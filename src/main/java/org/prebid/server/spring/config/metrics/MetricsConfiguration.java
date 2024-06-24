@@ -104,7 +104,7 @@ public class MetricsConfiguration {
 
         return reporter;
     }
-    
+
     @Bean
     Metrics metrics(@Value("${metrics.metricType}") CounterType counterType, MetricRegistry metricRegistry,
                     AccountMetricsVerbosityResolver accountMetricsVerbosityResolver) {
@@ -210,7 +210,7 @@ public class MetricsConfiguration {
         @NotBlank
         private String name;
     }
-    
+
     @Component
     @ConfigurationProperties(prefix = "metrics.accounts")
     @Validated
