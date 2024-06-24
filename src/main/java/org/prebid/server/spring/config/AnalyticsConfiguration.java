@@ -1,6 +1,5 @@
 package org.prebid.server.spring.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Vertx;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,7 +8,6 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
 import org.prebid.server.analytics.reporter.greenbids.GreenbidsAnalyticsReporter;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsJacksonMapper;
 import org.prebid.server.analytics.reporter.log.LogAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.PubstackAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
@@ -65,7 +63,7 @@ public class AnalyticsConfiguration {
         @Bean
         GreenbidsAnalyticsReporter greenbidsAnalyticsReporter(
                 GreenbidsAnalyticsConfigurationProperties greenbidsAnalyticsConfigurationProperties,
-                GreenbidsJacksonMapper jacksonMapper,
+                JacksonMapper jacksonMapper,
                 HttpClient httpClient,
                 Clock clock,
                 PrebidVersionProvider prebidVersionProvider) {
@@ -75,12 +73,6 @@ public class AnalyticsConfiguration {
                     httpClient,
                     clock,
                     prebidVersionProvider);
-        }
-
-        @Bean
-        public GreenbidsJacksonMapper greenbidsJacksonMapper() {
-            final ObjectMapper greenbidsObjectMapper = new ObjectMapper();
-            return new GreenbidsJacksonMapper(greenbidsObjectMapper);
         }
 
         @Bean

@@ -30,13 +30,13 @@ import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBids;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsJacksonMapper;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionReason;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.json.EncodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.model.HttpRequestContext;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
@@ -92,12 +92,12 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
     private GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
 
-    private GreenbidsJacksonMapper jacksonMapper;
+    private JacksonMapper jacksonMapper;
 
     @Before
     public void setUp() {
         final ObjectMapper mapper = new ObjectMapper();
-        jacksonMapper = new GreenbidsJacksonMapper(mapper);
+        jacksonMapper = new JacksonMapper(mapper);
 
         greenbidsAnalyticsProperties = GreenbidsAnalyticsProperties.builder()
                 .exploratorySamplingSplit(0.9)
@@ -311,7 +311,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .bidResponse(auctionContext.getBidResponse())
                 .build();
 
-        final GreenbidsJacksonMapper mockJacksonMapper = mock(GreenbidsJacksonMapper.class);
+        final JacksonMapper mockJacksonMapper = mock(JacksonMapper.class);
         final ObjectMapper realObjectMapper = new ObjectMapper();
         when(mockJacksonMapper.mapper()).thenReturn(realObjectMapper);
         doThrow(new EncodeException("Failed to encode as JSON")).when(mockJacksonMapper).encodeToString(any());

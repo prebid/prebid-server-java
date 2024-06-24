@@ -27,12 +27,12 @@ import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBids;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsPrebidExt;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsSource;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsJacksonMapper;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.EncodeException;
+import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.Logger;
 import org.prebid.server.log.LoggerFactory;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
@@ -64,14 +64,14 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     private static final Logger logger = LoggerFactory.getLogger(GreenbidsAnalyticsReporter.class);
 
     private final GreenbidsAnalyticsProperties greenbidsAnalyticsProperties;
-    private final GreenbidsJacksonMapper jacksonMapper;
+    private final JacksonMapper jacksonMapper;
     private final HttpClient httpClient;
     private final Clock clock;
     private final PrebidVersionProvider prebidVersionProvider;
 
     public GreenbidsAnalyticsReporter(
             GreenbidsAnalyticsProperties greenbidsAnalyticsProperties,
-            GreenbidsJacksonMapper jacksonMapper,
+            JacksonMapper jacksonMapper,
             HttpClient httpClient,
             Clock clock,
             PrebidVersionProvider prebidVersionProvider) {
