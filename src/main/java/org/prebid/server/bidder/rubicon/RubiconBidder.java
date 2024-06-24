@@ -1000,19 +1000,23 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Integer skip = rubiconVideoParams != null ? rubiconVideoParams.getSkip() : null;
         final Integer skipDelay = rubiconVideoParams != null ? rubiconVideoParams.getSkipdelay() : null;
         final Integer sizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
-        validateVideoSizeId(sizeId, referer, imp.getId());
+
+        final Integer resolvedSizeId = BidderUtil.isNullOrZero(sizeId)
+                ? resolveVideoSizeId(video.getPlacement(), imp.getInstl())
+                : sizeId;
+        validateVideoSizeId(resolvedSizeId, referer, imp.getId());
 
         final Integer rewarded = imp.getRwdd();
         final String videoType = rewarded != null && rewarded == 1 ? "rewarded" : null;
 
         // optimization for empty ext params
-        if (skip == null && skipDelay == null && sizeId == null && videoType == null) {
+        if (skip == null && skipDelay == null && resolvedSizeId == null && videoType == null) {
             return video;
         }
 
         return video.toBuilder()
                 .ext(mapper.mapper().valueToTree(
-                        RubiconVideoExt.of(skip, skipDelay, RubiconVideoExtRp.of(sizeId), videoType)))
+                        RubiconVideoExt.of(skip, skipDelay, RubiconVideoExtRp.of(resolvedSizeId), videoType)))
                 .build();
     }
 
@@ -1024,6 +1028,23 @@ public class RubiconBidder implements Bidder<BidRequest> {
                             .formatted(referer, impId),
                     0.01d);
         }
+    }
+
+    private static Integer resolveVideoSizeId(Integer placement, Integer instl) {
+        if (placement != null) {
+            if (placement == 1) {
+                return 201;
+            }
+            if (placement == 3) {
+                return 203;
+            }
+        }
+
+        if (instl != null && instl == 1) {
+            return 202;
+        }
+
+        return null;
     }
 
     private Banner makeBanner(Imp imp) {
