@@ -27,9 +27,12 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -107,6 +110,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         long duration = (endTime - startTime); // in nanoseconds
         System.out.println("Inference time: " + duration / 1000000.0 + " ms");
 
+        double threshold = 0.15;
+        Map<String, Map<String, Boolean>> impsBiddersFilterMap = new HashMap<>();
+
         StreamSupport.stream(results.spliterator(), false)
                 .filter(onnxItem -> Objects.equals(onnxItem.getKey(), "probabilities"))
                 .forEach(onnxItem -> {
@@ -119,6 +125,17 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                                 "    tensor.getValue(): " + tensor.getValue() +
                                         "\n    probas: " + Arrays.deepToString(probas)
                         );
+
+                        // process probas and create map
+                        for (int i = 0; i < probas.length; i++) {
+                            ThrottlingMessage message = throttlingMessages.get(i);
+                            String impId = message.getAdUnitCode();
+                            String bidder = message.getBidder();
+                            boolean isKeptInAuction = probas[i][1] > threshold;
+
+                            impsBiddersFilterMap.computeIfAbsent(impId, k -> new HashMap<>())
+                                    .put(bidder, isKeptInAuction);
+                        }
                     } catch (OrtException e) {
                         throw new RuntimeException(e);
                     }
@@ -195,6 +212,38 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
             result[i][9] = message.getMinuteQuadrant();
         }
         return result;
+    }
+
+    private Imp updateImp(Imp imp, Map<String, Boolean> bidderFilterMap) {
+        return imp.toBuilder()
+                .ext(updateImpExt(imp.getExt(), bidderFilterMap))
+                .build();
+    }
+
+    private ObjectNode updateImpExt(ObjectNode impExt, Map<String, Boolean> bidderFilterMap) {
+
+        ObjectNode bidderNode = Optional.ofNullable(impExt)
+                .map(ext -> extImpPrebid(ext.get("prebid")))
+                .map(ExtImpPrebid::getBidder)
+                .orElse(null);
+
+        //final JsonNode extPrebid = ext.path("prebid");
+        //final JsonNode impExtNode = imp.getExt();
+        //final JsonNode bidderExtNode = isNotEmptyOrMissedNode(impExtNode) ? impExtNode.get("bidder") : null;
+        //JsonNode bidderNode = extImpPrebid(impExt.get("prebid")).getBidder();
+
+        //final JsonNode extPrebid = ext.path("prebid");
+        //JsonNode bidderNode = extImpPrebid(ext.get("prebid")).getBidder();
+
+        for(Map.Entry<String, Boolean> entry: bidderFilterMap.entrySet()) {
+            String bidderName = entry.getKey();
+            Boolean isKeptInAUction = entry.getValue();
+
+            if (!isKeptInAUction & bidderNode != null) {
+                bidderNode.remove(bidderName);
+            }
+        }
+        return bidderNode;
     }
 
     @Override
