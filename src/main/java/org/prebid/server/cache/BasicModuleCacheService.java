@@ -119,7 +119,8 @@ public class BasicModuleCacheService implements ModuleCacheService {
 
     @Override
     public Future<ModuleCacheResponse> retrieveModuleEntry(String key,
-                                                           String moduleCode) {
+                                                           String moduleCode,
+                                                           String application) {
 
         try {
             validateRetrieveData(key, moduleCode);
@@ -127,7 +128,7 @@ public class BasicModuleCacheService implements ModuleCacheService {
             return Future.failedFuture(e);
         }
 
-        return httpClient.get(getRetrieveEndpoint(key, moduleCode),
+        return httpClient.get(getRetrieveEndpoint(key, moduleCode, application),
                         securedCallHeaders(),
                         callTimeoutMs)
                 .map(response -> toModuleCacheResponse(
@@ -146,8 +147,12 @@ public class BasicModuleCacheService implements ModuleCacheService {
     }
 
     private String getRetrieveEndpoint(String key,
-                                       String moduleCode) {
-        return endpointUrl + "?key=" + constructEntryKey(key, moduleCode);
+                                       String moduleCode,
+                                       String application) {
+
+        return endpointUrl
+                + "?key=" + constructEntryKey(key, moduleCode)
+                + "&app=" + StringUtils.defaultString(application);
     }
 
     private ModuleCacheResponse toModuleCacheResponse(int statusCode,

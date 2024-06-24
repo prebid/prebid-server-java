@@ -214,7 +214,7 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     public void retrieveModuleEntryShouldReturnFailedFutureIfModuleKeyIsMissed() {
         // when
         final Future<ModuleCacheResponse> result =
-                target.retrieveModuleEntry(null, "some-module-code");
+                target.retrieveModuleEntry(null, "some-module-code", "some-app");
 
         // then
         assertThat(result.failed()).isTrue();
@@ -226,7 +226,7 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     public void retrieveModuleEntryShouldReturnFailedFutureIfModuleCodeIsMissed() {
         // when
         final Future<ModuleCacheResponse> result =
-                target.retrieveModuleEntry("some-key", null);
+                target.retrieveModuleEntry("some-key", null, "some-app");
 
         // then
         assertThat(result.failed()).isTrue();
@@ -237,7 +237,7 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     @Test
     public void retrieveModuleEntryShouldCreateCallWithApiKeyInHeader() {
         // when
-        target.retrieveModuleEntry("some-key", "some-module-code");
+        target.retrieveModuleEntry("some-key", "some-module-code", "some-app");
 
         // then
         final MultiMap result = captureRetrieveRequestHeaders();
@@ -247,18 +247,30 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     @Test
     public void retrieveModuleEntryShouldCreateCallWithKeyInParams() {
         // when
-        target.retrieveModuleEntry("some-key", "some-module-code");
+        target.retrieveModuleEntry("some-key", "some-module-code", "some-app");
 
         // then
         final String result = captureRetrieveUrl();
-        assertThat(result).isEqualTo("http://cache-service/cache?key=module.some-module-code.some-key");
+        assertThat(result)
+                .isEqualTo("http://cache-service/cache?key=module.some-module-code.some-key&app=some-app");
+    }
+
+    @Test
+    public void retrieveModuleEntryShouldCreateCallWithBlankAppInParams() {
+        // when
+        target.retrieveModuleEntry("some-key", "some-module-code", null);
+
+        // then
+        final String result = captureRetrieveUrl();
+        assertThat(result)
+                .isEqualTo("http://cache-service/cache?key=module.some-module-code.some-key&app=");
     }
 
     @Test
     public void retrieveModuleEntryShouldReturnExpectedResponse() {
         // when
         final Future<ModuleCacheResponse> result =
-                target.retrieveModuleEntry("some-key", "some-module-code");
+                target.retrieveModuleEntry("some-key", "some-module-code", "some-app");
 
         // then
         assertThat(result.result())

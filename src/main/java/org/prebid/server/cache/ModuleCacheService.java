@@ -13,7 +13,7 @@ public interface ModuleCacheService {
                                   String application,
                                   String moduleCode);
 
-    Future<ModuleCacheResponse> retrieveModuleEntry(String key, String moduleCode);
+    Future<ModuleCacheResponse> retrieveModuleEntry(String key, String moduleCode, String application);
 
     static ModuleCacheService.NoOpModuleCacheService noOp() {
         return new ModuleCacheService.NoOpModuleCacheService();
@@ -32,7 +32,7 @@ public interface ModuleCacheService {
         }
 
         @Override
-        public Future<ModuleCacheResponse> retrieveModuleEntry(String key, String moduleCode) {
+        public Future<ModuleCacheResponse> retrieveModuleEntry(String key, String moduleCode, String application) {
             return Future.succeededFuture(ModuleCacheResponse.empty());
         }
     }
