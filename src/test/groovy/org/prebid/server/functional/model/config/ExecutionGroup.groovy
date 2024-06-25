@@ -13,6 +13,6 @@ class ExecutionGroup {
     List<HookId> hookSequence
 
     static ExecutionGroup getModuleExecutionGroup(ModuleName name, Stage stage) {
-        new ExecutionGroup(timeout: 100, hookSequence: [new HookId(moduleCode: name.code, hookImplCode: "${name.code}-${stage.value}-hook")])
+        new ExecutionGroup(timeout: 100, hookSequence: [new HookId(moduleCode: name.code, hookImplCode: ModuleHookImplementation.forValue(name, stage).code)])
     }
 }

@@ -156,8 +156,6 @@ public class ServiceConfiguration {
             @Value("${cache.host}") String host,
             @Value("${cache.path}") String path,
             @Value("${cache.query}") String query,
-            @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
-            @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             VastModifier vastModifier,
             EventsService eventsService,
@@ -167,7 +165,6 @@ public class ServiceConfiguration {
             JacksonMapper mapper) {
 
         return new CacheService(
-                CacheTtl.of(bannerCacheTtl, videoCacheTtl),
                 httpClient,
                 CacheService.getCacheEndpointUrl(scheme, host, path),
                 CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
@@ -768,7 +765,9 @@ public class ServiceConfiguration {
             CategoryMappingService categoryMappingService,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
+            @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl) {
 
         return new BidResponseCreator(
                 cacheService,
@@ -782,7 +781,8 @@ public class ServiceConfiguration {
                 categoryMappingService,
                 truncateAttrChars,
                 clock,
-                mapper);
+                mapper,
+                CacheTtl.of(bannerCacheTtl, videoCacheTtl));
     }
 
     @Bean

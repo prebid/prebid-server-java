@@ -23,6 +23,8 @@ public class ExtBidResponsePrebid {
      */
     ExtModules modules;
 
+    ExtAnalytics analytics;
+
     /**
      * FLEDGE response as bidresponse.ext.prebid.fledge.auctionconfigs[]
      */
