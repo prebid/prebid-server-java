@@ -380,7 +380,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(storedResponseProcessor.getStoredResponseResult(any(), any()))
                 .willAnswer(inv -> Future.succeededFuture(StoredResponseResult.of(inv.getArgument(0), emptyList(),
                         emptyMap())));
-        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any(), any()))
                 .willAnswer(inv -> inv.getArgument(0));
         given(storedResponseProcessor.updateStoredBidResponse(any()))
                 .willAnswer(inv -> inv.getArgument(0));
@@ -646,7 +646,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<List<AuctionParticipation>> auctionParticipationCaptor =
                 ArgumentCaptor.forClass(List.class);
-        verify(storedResponseProcessor).mergeWithBidderResponses(auctionParticipationCaptor.capture(), any(), any());
+        verify(storedResponseProcessor).mergeWithBidderResponses(
+                auctionParticipationCaptor.capture(), any(), any(), any());
 
         assertThat(auctionParticipationCaptor.getValue())
                 .extracting(AuctionParticipation::getBidderResponse)
@@ -676,7 +677,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<List<AuctionParticipation>> auctionParticipationCaptor =
                 ArgumentCaptor.forClass(List.class);
-        verify(storedResponseProcessor).mergeWithBidderResponses(auctionParticipationCaptor.capture(), any(), any());
+        verify(storedResponseProcessor).mergeWithBidderResponses(
+                auctionParticipationCaptor.capture(), any(), any(), any());
 
         assertThat(auctionParticipationCaptor.getValue())
                 .extracting(AuctionParticipation::getBidderResponse)
@@ -1791,7 +1793,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidderBid bidderBid = BidderBid.of(Bid.builder().id("bidId1").price(ONE).build(), banner, "USD");
         final BidderSeatBid bidderSeatBid = BidderSeatBid.of(singletonList(bidderBid));
-        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any(), any()))
                 .willReturn(singletonList(
                         AuctionParticipation.builder()
                                 .bidderResponse(BidderResponse.of("someBidder", bidderSeatBid, 100))
@@ -1836,7 +1838,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         givenBidder(givenEmptySeatBid());
 
-        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any(), any()))
                 .willThrow(new PreBidException("Error"));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
