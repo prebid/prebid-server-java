@@ -1,5 +1,6 @@
 package org.prebid.server.settings.model;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Value;
@@ -12,6 +13,9 @@ public class AccountGdprConfig {
 
     @JsonProperty("enabled")
     Boolean enabled;
+
+    @JsonAlias("eea-countries")
+    String eeaCountries;
 
     @JsonProperty("channel-enabled")
     EnabledForRequestType enabledForRequestType;

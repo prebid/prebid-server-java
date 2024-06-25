@@ -130,9 +130,7 @@ class AliasSpec extends BaseSpec {
 
     def "PBS aliased bidder config should be independently from parent"() {
         given: "Pbs config"
-        def prebidServerService = pbsServiceFactory.getService(
-                ["adapters.generic.aliases.alias.enabled" : "true",
-                 "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
+        def prebidServerService = pbsServiceFactory.getService(GENERIC_ALIAS_CONFIG)
 
         and: "Default bid request with alias"
         def bidRequest = BidRequest.defaultBidRequest.tap {

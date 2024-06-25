@@ -66,6 +66,7 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -385,8 +386,10 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(priceFloorEnforcer.enforce(any(), any(), any(), any())).willAnswer(inv -> inv.getArgument(1));
         given(dsaEnforcer.enforce(any(), any(), any())).willAnswer(inv -> inv.getArgument(1));
-        given(priceFloorAdjuster.adjustForImp(any(), any(), any(), any()))
-                .willAnswer(inv -> ((Imp) inv.getArgument(0)).getBidfloor());
+        given(priceFloorAdjuster.adjustForImp(any(), any(), any(), any(), any()))
+                .willAnswer(inv -> Price.of(
+                        ((Imp) inv.getArgument(0)).getBidfloorcur(),
+                        ((Imp) inv.getArgument(0)).getBidfloor()));
 
         given(bidAdjustmentFactorResolver.resolve(any(ImpMediaType.class), any(), any())).willReturn(null);
 

@@ -55,6 +55,7 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -923,7 +924,8 @@ public class ExchangeService {
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
-                .imp(prepareImps(bidder, imps, bidRequest, transmitTid, useFirstPartyData, context.getAccount()))
+                .imp(prepareImps(bidder, imps, bidRequest, transmitTid,
+                        useFirstPartyData, context.getAccount(), context.getDebugWarnings()))
                 .app(isApp ? preparedApp : null)
                 .dooh(isDooh ? preparedDooh : null)
                 .site(isSite ? preparedSite : null)
@@ -954,11 +956,12 @@ public class ExchangeService {
                                   BidRequest bidRequest,
                                   boolean transmitTid,
                                   boolean useFirstPartyData,
-                                  Account account) {
+                                  Account account,
+                                  List<String> debugWarnings) {
 
         return imps.stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
-                .map(imp -> prepareImp(imp, bidder, bidRequest, transmitTid, useFirstPartyData, account))
+                .map(imp -> prepareImp(imp, bidder, bidRequest, transmitTid, useFirstPartyData, account, debugWarnings))
                 .toList();
     }
 
@@ -967,17 +970,24 @@ public class ExchangeService {
                            BidRequest bidRequest,
                            boolean transmitTid,
                            boolean useFirstPartyData,
-                           Account account) {
+                           Account account,
+                           List<String> debugWarnings) {
 
-        final BigDecimal adjustedFloor = resolveBidFloor(imp, bidder, bidRequest, account);
+        final Price adjustedPrice = resolveBidPrice(imp, bidder, bidRequest, account, debugWarnings);
         return imp.toBuilder()
-                .bidfloor(adjustedFloor)
-                .ext(prepareImpExt(bidder, imp.getExt(), adjustedFloor, transmitTid, useFirstPartyData))
+                .bidfloor(adjustedPrice.getValue())
+                .bidfloorcur(adjustedPrice.getCurrency())
+                .ext(prepareImpExt(bidder, imp.getExt(), adjustedPrice.getValue(), transmitTid, useFirstPartyData))
                 .build();
     }
 
-    private BigDecimal resolveBidFloor(Imp imp, String bidder, BidRequest bidRequest, Account account) {
-        return priceFloorAdjuster.adjustForImp(imp, bidder, bidRequest, account);
+    private Price resolveBidPrice(Imp imp,
+                                  String bidder,
+                                  BidRequest bidRequest,
+                                  Account account,
+                                  List<String> debugWarnings) {
+
+        return priceFloorAdjuster.adjustForImp(imp, bidder, bidRequest, account, debugWarnings);
     }
 
     private ObjectNode prepareImpExt(String bidder,

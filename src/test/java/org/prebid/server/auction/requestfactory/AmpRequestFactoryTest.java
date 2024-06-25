@@ -147,6 +147,7 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.amp))).willReturn(AuctionContext.builder()
                 .prebidErrors(new ArrayList<>())
+                .debugWarnings(new ArrayList<>())
                 .build());
         given(ortb2RequestFactory.executeEntrypointHooks(any(), any(), any()))
                 .willAnswer(invocation -> toHttpRequest(invocation.getArgument(0), invocation.getArgument(1)));
@@ -1513,6 +1514,21 @@ public class AmpRequestFactoryTest extends VertxTest {
 
         // then
         assertThat(result.getRegs()).isNull();
+    }
+
+    @Test
+    public void shouldomitDebugWarningInDebugModeIfGppSidCouldNotBeParsed() {
+        // given
+        routingContext.queryParams()
+                .add("debug", "1")
+                .add("gpp_sid", "1,2,ab");
+        givenBidRequest();
+
+        // when
+        final List<String> result = target.fromRequest(routingContext, 0L).result().getDebugWarnings();
+
+        // then
+        assertThat(result).containsOnly("Failed to parse gppSid: '1,2,ab'");
     }
 
     @Test

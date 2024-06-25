@@ -7,6 +7,7 @@ enum Country {
 
     USA("USA","US"),
     CAN("CAN","CA"),
+    BULGARIA("BGR","BG"),
     MULTIPLE("*","*")
 
     @JsonValue

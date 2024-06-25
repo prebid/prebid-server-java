@@ -66,6 +66,7 @@ import org.prebid.server.bidder.rubicon.proto.request.RubiconTargetingExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconUserExt;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconUserExtRp;
 import org.prebid.server.bidder.rubicon.proto.request.RubiconVideoExt;
+import org.prebid.server.bidder.rubicon.proto.request.RubiconVideoExtRp;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconBid;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconBidResponse;
 import org.prebid.server.bidder.rubicon.proto.response.RubiconSeatBid;
@@ -998,19 +999,52 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final Integer skip = rubiconVideoParams != null ? rubiconVideoParams.getSkip() : null;
         final Integer skipDelay = rubiconVideoParams != null ? rubiconVideoParams.getSkipdelay() : null;
+        final Integer sizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
+
+        final Integer resolvedSizeId = BidderUtil.isNullOrZero(sizeId)
+                ? resolveVideoSizeId(video.getPlacement(), imp.getInstl())
+                : sizeId;
+        validateVideoSizeId(resolvedSizeId, referer, imp.getId());
 
         final Integer rewarded = imp.getRwdd();
         final String videoType = rewarded != null && rewarded == 1 ? "rewarded" : null;
 
         // optimization for empty ext params
-        if (skip == null && skipDelay == null && videoType == null) {
+        if (skip == null && skipDelay == null && resolvedSizeId == null && videoType == null) {
             return video;
         }
 
         return video.toBuilder()
                 .ext(mapper.mapper().valueToTree(
-                        RubiconVideoExt.of(skip, skipDelay, videoType)))
+                        RubiconVideoExt.of(skip, skipDelay, RubiconVideoExtRp.of(resolvedSizeId), videoType)))
                 .build();
+    }
+
+    private static void validateVideoSizeId(Integer resolvedSizeId, String referer, String impId) {
+        // log only 1% of cases to monitor how often video impressions does not have size id
+        if (resolvedSizeId == null) {
+            MISSING_VIDEO_SIZE_LOGGER.warn(
+                    "RP adapter: video request with no size_id. Referrer URL = %s, impId = %s"
+                            .formatted(referer, impId),
+                    0.01d);
+        }
+    }
+
+    private static Integer resolveVideoSizeId(Integer placement, Integer instl) {
+        if (placement != null) {
+            if (placement == 1) {
+                return 201;
+            }
+            if (placement == 3) {
+                return 203;
+            }
+        }
+
+        if (instl != null && instl == 1) {
+            return 202;
+        }
+
+        return null;
     }
 
     private Banner makeBanner(Imp imp) {
