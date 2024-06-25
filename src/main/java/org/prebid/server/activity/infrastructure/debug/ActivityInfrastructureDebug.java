@@ -81,13 +81,20 @@ public class ActivityInfrastructureDebug {
         }
 
         if (!result) {
-            metrics.updateRequestsActivityDisallowedCount(activity);
-            if (atLeast(TraceLevel.verbose)) {
-                metrics.updateAccountActivityDisallowedCount(accountId, activity);
-            }
-            if (activityInvocationPayload.componentType() == ComponentType.BIDDER) {
-                metrics.updateAdapterActivityDisallowedCount(activityInvocationPayload.componentName(), activity);
-            }
+            updateActivityMetrics(
+                    activity,
+                    activityInvocationPayload.componentType(),
+                    activityInvocationPayload.componentName());
+        }
+    }
+
+    public void updateActivityMetrics(Activity activity, ComponentType componentType, String componentName) {
+        metrics.updateRequestsActivityDisallowedCount(activity);
+        if (atLeast(TraceLevel.verbose)) {
+            metrics.updateAccountActivityDisallowedCount(accountId, activity);
+        }
+        if (componentType == ComponentType.BIDDER) {
+            metrics.updateAdapterActivityDisallowedCount(componentName, activity);
         }
     }
 

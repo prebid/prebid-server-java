@@ -2,6 +2,7 @@
 package org.prebid.server.activity.infrastructure;
 
 import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDebug;
 import org.prebid.server.activity.infrastructure.payload.ActivityInvocationPayload;
 import org.prebid.server.proto.openrtb.ext.response.ExtTraceActivityInfrastructure;
@@ -38,6 +39,10 @@ public class ActivityInfrastructure {
         debug.emitActivityInvocationResult(activity, activityInvocationPayload, result);
 
         return result;
+    }
+
+    public void updateActivityMetrics(Activity activity, ComponentType componentType, String componentName) {
+        debug.updateActivityMetrics(activity, componentType, componentName);
     }
 
     public List<ExtTraceActivityInfrastructure> debugTrace() {

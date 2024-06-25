@@ -27,7 +27,7 @@ public class CoppaEnforcement {
     }
 
     public Future<List<BidderPrivacyResult>> enforce(AuctionContext auctionContext, Map<String, User> bidderToUser) {
-        metrics.updatePrivacyCoppaMetric();
+        metrics.updatePrivacyCoppaMetric(auctionContext.getActivityInfrastructure(), bidderToUser.keySet());
         return Future.succeededFuture(results(bidderToUser, auctionContext.getBidRequest().getDevice()));
     }
 

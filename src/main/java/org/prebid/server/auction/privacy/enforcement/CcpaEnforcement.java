@@ -52,30 +52,27 @@ public class CcpaEnforcement {
                                                      BidderAliases aliases) {
 
         final Ccpa ccpa = auctionContext.getPrivacyContext().getPrivacy().getCcpa();
-        metrics.updatePrivacyCcpaMetrics(ccpa.isNotEmpty(), ccpa.isEnforced());
-
-        return Future.succeededFuture(enforce(bidderToUser, ccpa, auctionContext, aliases));
-    }
-
-    private List<BidderPrivacyResult> enforce(Map<String, User> bidderToUser,
-                                              Ccpa ccpa,
-                                              AuctionContext auctionContext,
-                                              BidderAliases aliases) {
-
         final BidRequest bidRequest = auctionContext.getBidRequest();
-        final Device device = bidRequest.getDevice();
 
-        return isCcpaEnforced(ccpa, auctionContext.getAccount(), auctionContext.getRequestTypeMetric())
-                ? maskCcpa(bidderToUser, extractCcpaEnforcedBidders(bidderToUser.keySet(), bidRequest, aliases), device)
-                : Collections.emptyList();
+        final boolean isCcpaEnforced = ccpa.isEnforced();
+        final boolean isCcpaEnabled = isCcpaEnabled(auctionContext.getAccount(), auctionContext.getRequestTypeMetric());
+
+        final Set<String> enforcedBidders = isCcpaEnabled && isCcpaEnforced
+                ? extractCcpaEnforcedBidders(bidderToUser.keySet(), bidRequest, aliases)
+                : Collections.emptySet();
+
+        metrics.updatePrivacyCcpaMetrics(
+                auctionContext.getActivityInfrastructure(),
+                ccpa.isNotEmpty(),
+                isCcpaEnforced,
+                isCcpaEnabled,
+                enforcedBidders);
+
+        return Future.succeededFuture(maskCcpa(bidderToUser, enforcedBidders, bidRequest.getDevice()));
     }
 
     public boolean isCcpaEnforced(Ccpa ccpa, Account account) {
-        return isCcpaEnforced(ccpa, account, null);
-    }
-
-    private boolean isCcpaEnforced(Ccpa ccpa, Account account, MetricName requestType) {
-        return ccpa.isEnforced() && isCcpaEnabled(account, requestType);
+        return ccpa.isEnforced() && isCcpaEnabled(account, null);
     }
 
     private boolean isCcpaEnabled(Account account, MetricName requestType) {

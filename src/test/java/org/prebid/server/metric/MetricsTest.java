@@ -19,12 +19,15 @@ import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.prebid.server.activity.Activity;
+import org.prebid.server.activity.ComponentType;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
 import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.metric.model.AccountMetricsVerbosityLevel;
 import org.prebid.server.settings.model.Account;
 
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +40,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class MetricsTest {
 
@@ -49,8 +53,11 @@ public class MetricsTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private MetricRegistry metricRegistry;
+
     @Mock
     private AccountMetricsVerbosityResolver accountMetricsVerbosityResolver;
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
 
     private Metrics metrics;
 
@@ -675,9 +682,21 @@ public class MetricsTest {
     @Test
     public void updateAuctionTcfMetricsShouldIncrementMetrics() {
         // when
-        metrics.updateAuctionTcfMetrics(RUBICON, MetricName.openrtb2web, true, true, true, true, true);
-        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.openrtb2web, true, false, true, false, true);
-        metrics.updateAuctionTcfMetrics(CONVERSANT, MetricName.openrtb2app, false, true, false, true, false);
+        metrics.updateAuctionTcfAndLmtMetrics(
+                activityInfrastructure,
+                RUBICON,
+                MetricName.openrtb2web,
+                true, true, true, true, true, false);
+        metrics.updateAuctionTcfAndLmtMetrics(
+                activityInfrastructure,
+                CONVERSANT,
+                MetricName.openrtb2web,
+                true, false, true, false, true, false);
+        metrics.updateAuctionTcfAndLmtMetrics(
+                activityInfrastructure,
+                CONVERSANT,
+                MetricName.openrtb2app,
+                false, true, false, true, false, false);
 
         // then
         assertThat(metricRegistry.counter("adapter.rubicon.openrtb2-web.tcf.userfpd_masked").getCount()).isOne();
@@ -690,6 +709,78 @@ public class MetricsTest {
         assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.geo_masked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.conversant.openrtb2-app.tcf.analytics_blocked").getCount()).isOne();
         assertThat(metricRegistry.counter("adapter.conversant.openrtb2-web.tcf.request_blocked").getCount()).isOne();
+    }
+
+    @Test
+    public void updateAuctionTcfMetricsShouldUpdateTransitUfpdActivityMetricWhenUserFpdRemoved() {
+        // when
+        metrics.updateAuctionTcfAndLmtMetrics(
+                activityInfrastructure,
+                RUBICON,
+                MetricName.openrtb2web,
+                true, false, false, false, false, false);
+
+        // then
+        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_UFPD, ComponentType.BIDDER, RUBICON);
+        verifyNoMoreInteractions(activityInfrastructure);
+    }
+
+    @Test
+    public void updateAuctionTcfMetricsShouldUpdateTransitGeoActivityMetricWhenGeoMasked() {
+        // when
+        metrics.updateAuctionTcfAndLmtMetrics(
+                activityInfrastructure,
+                RUBICON,
+                MetricName.openrtb2web,
+                false, false, true, false, false, false);
+
+        // then
+        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_GEO, ComponentType.BIDDER, RUBICON);
+        verifyNoMoreInteractions(activityInfrastructure);
+    }
+
+    @Test
+    public void updateAuctionTcfMetricsShouldUpdateTransitEidsActivityMetricWhenGeoMasked() {
+        // when
+        metrics.updateAuctionTcfAndLmtMetrics(
+                activityInfrastructure,
+                RUBICON,
+                MetricName.openrtb2web,
+                false, true, false, false, false, false);
+
+        // then
+        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_EIDS, ComponentType.BIDDER, RUBICON);
+        verifyNoMoreInteractions(activityInfrastructure);
+    }
+
+    @Test
+    public void updateAuctionTcfMetricsShouldUpdateCallBidderActivityMetricWhenRequestIsBlocked() {
+        // when
+        metrics.updateAuctionTcfAndLmtMetrics(
+                activityInfrastructure,
+                RUBICON,
+                MetricName.openrtb2web,
+                false, false, false, false, true, false);
+
+        // then
+        verify(activityInfrastructure).updateActivityMetrics(Activity.CALL_BIDDER, ComponentType.BIDDER, RUBICON);
+        verifyNoMoreInteractions(activityInfrastructure);
+    }
+
+    @Test
+    public void updateAuctionTcfMetricsShouldUpdateTransmitUfpdEidsAndGeoActivityMetricsWhenLmtIsEnabled() {
+        // when
+        metrics.updateAuctionTcfAndLmtMetrics(
+                activityInfrastructure,
+                RUBICON,
+                MetricName.openrtb2web,
+                false, false, false, false, false, true);
+
+        // then
+        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_EIDS, ComponentType.BIDDER, RUBICON);
+        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_GEO, ComponentType.BIDDER, RUBICON);
+        verify(activityInfrastructure).updateActivityMetrics(Activity.TRANSMIT_UFPD, ComponentType.BIDDER, RUBICON);
+        verifyNoMoreInteractions(activityInfrastructure);
     }
 
     @Test
@@ -716,7 +807,7 @@ public class MetricsTest {
     @Test
     public void updatePrivacyCoppaMetricShouldIncrementMetric() {
         // when
-        metrics.updatePrivacyCoppaMetric();
+        metrics.updatePrivacyCoppaMetric(activityInfrastructure, Collections.emptyList());
 
         // then
         assertThat(metricRegistry.counter("privacy.coppa").getCount()).isOne();
@@ -725,7 +816,11 @@ public class MetricsTest {
     @Test
     public void updatePrivacyLmtMetricShouldIncrementMetric() {
         // when
-        metrics.updatePrivacyLmtMetric();
+        metrics.updateAuctionTcfAndLmtMetrics(
+                activityInfrastructure,
+                RUBICON,
+                MetricName.openrtb2web,
+                false, false, false, false, false, true);
 
         // then
         assertThat(metricRegistry.counter("privacy.lmt").getCount()).isOne();
@@ -734,7 +829,7 @@ public class MetricsTest {
     @Test
     public void updatePrivacyCcpaMetricsShouldIncrementMetrics() {
         // when
-        metrics.updatePrivacyCcpaMetrics(true, true);
+        metrics.updatePrivacyCcpaMetrics(activityInfrastructure, true, true, false, Collections.emptyList());
 
         // then
         assertThat(metricRegistry.counter("privacy.usp.specified").getCount()).isOne();
