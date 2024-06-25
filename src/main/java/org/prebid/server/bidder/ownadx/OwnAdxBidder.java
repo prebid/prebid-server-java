@@ -9,6 +9,7 @@ import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -87,9 +88,9 @@ public class OwnAdxBidder implements Bidder<BidRequest> {
     private String makeUrl(ExtImpOwnAdx extImpOwnAdx) {
         final Optional<ExtImpOwnAdx> ownAdx = Optional.ofNullable(extImpOwnAdx);
         return endpointUrl
-                .replace(ACCOUNT_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSspId).orElse(""))
-                .replace(ZONE_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSeatId).orElse(""))
-                .replace(SOURCE_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getTokenId).orElse(""));
+                .replace(ACCOUNT_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSspId).orElse(StringUtils.EMPTY))
+                .replace(ZONE_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getSeatId).orElse(StringUtils.EMPTY))
+                .replace(SOURCE_ID_MACROS_ENDPOINT, ownAdx.map(ExtImpOwnAdx::getTokenId).orElse(StringUtils.EMPTY));
     }
 
     private static MultiMap makeHeaders() {
