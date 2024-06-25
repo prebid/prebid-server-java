@@ -152,7 +152,7 @@ public class BasicModuleCacheService implements ModuleCacheService {
 
         return endpointUrl
                 + "?key=" + constructEntryKey(key, moduleCode)
-                + "&app=" + StringUtils.defaultString(application);
+                + "&application=" + StringUtils.defaultString(application);
     }
 
     private ModuleCacheResponse toModuleCacheResponse(int statusCode,

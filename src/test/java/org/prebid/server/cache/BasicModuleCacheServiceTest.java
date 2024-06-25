@@ -252,7 +252,7 @@ public class BasicModuleCacheServiceTest extends VertxTest {
         // then
         final String result = captureRetrieveUrl();
         assertThat(result)
-                .isEqualTo("http://cache-service/cache?key=module.some-module-code.some-key&app=some-app");
+                .isEqualTo("http://cache-service/cache?key=module.some-module-code.some-key&application=some-app");
     }
 
     @Test
@@ -263,7 +263,7 @@ public class BasicModuleCacheServiceTest extends VertxTest {
         // then
         final String result = captureRetrieveUrl();
         assertThat(result)
-                .isEqualTo("http://cache-service/cache?key=module.some-module-code.some-key&app=");
+                .isEqualTo("http://cache-service/cache?key=module.some-module-code.some-key&application=");
     }
 
     @Test
