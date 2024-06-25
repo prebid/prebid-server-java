@@ -243,7 +243,9 @@ class BidderFormatSpec extends BaseSpec {
         storedResponseDao.save(storedResponse)
 
         and: "Account in the DB with specified banner max size enforcement"
-        def account = getAccountWithSpecifiedBannerMax(bidRequest.accountId, accountCretiveMaxSize)
+        def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(bidValidationsSnakeCase:
+                new AccountBidValidationConfig(bannerMaxSizeEnforcementSnakeCase: accountCretiveMaxSizeSnakeCase, bannerMaxSizeEnforcement: accountCretiveMaxSize), debugAllow: true))
+        def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
         when: "Requesting PBS auction"
@@ -266,13 +268,19 @@ class BidderFormatSpec extends BaseSpec {
         assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
-        accountCretiveMaxSize | configCreativeMaxSize | responseWeight    | responseHeight
-        null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        null                  | SKIP.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1
-        SKIP                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
-        SKIP                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER
-        SKIP                  | null                  | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        accountCretiveMaxSizeSnakeCase | accountCretiveMaxSize | configCreativeMaxSize | responseWeight    | responseHeight
+        null                           | null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        null                           | null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        null                           | null                  | SKIP.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        null                           | SKIP                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        null                           | SKIP                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        null                           | SKIP                  | null                  | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        null                           | null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        null                           | null                  | SKIP.value            | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        null                           | null                  | SKIP.value            | RANDOM_NUMBER     | RANDOM_NUMBER + 1
+        SKIP                           | null                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER + 1
+        SKIP                           | null                  | null                  | RANDOM_NUMBER + 1 | RANDOM_NUMBER
+        SKIP                           | null                  | null                  | RANDOM_NUMBER     | RANDOM_NUMBER + 1
     }
 
     def "PBS should emit error and metrics and remove bid response from consideration when banner-creative-max-size: enforce and bid response W or H is larger that request W or H"() {
@@ -303,6 +311,9 @@ class BidderFormatSpec extends BaseSpec {
         and: "Account in the DB with specified banner max size enforcement"
         def account = getAccountWithSpecifiedBannerMax(bidRequest.accountId, accountCretiveMaxSize)
         accountDao.save(account)
+
+        and:
+        flushMetrics(pbsService)
 
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)
@@ -487,6 +498,9 @@ class BidderFormatSpec extends BaseSpec {
         and: "Account in the DB with specified banner max size enforcement"
         def account = getAccountWithSpecifiedBannerMax(bidRequest.accountId, accountCretiveMaxSize)
         accountDao.save(account)
+
+        and:
+        flushMetrics(pbsService)
 
         when: "Requesting PBS auction"
         def bidResponse = pbsService.sendAuctionRequest(bidRequest)

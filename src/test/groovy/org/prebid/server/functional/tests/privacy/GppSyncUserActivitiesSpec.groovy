@@ -99,9 +99,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
             it.account = accountId
         }
 
-        and: "Activities set for cookie sync with all bidders allowed"
-        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.defaultActivity)
-
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
@@ -118,6 +115,12 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.defaultActivity),
+                       new AllowActivities().tap { syncUserKebabCase = Activity.defaultActivity },
+                       new AllowActivities().tap { syncUserKebabCase = Activity.defaultActivity },
+        ]
     }
 
     def "PBS cookie sync call when bidder rejected in activities should exclude bidders URLs with proper message and update disallowed metrics"() {
@@ -126,10 +129,6 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def cookieSyncRequest = CookieSyncRequest.defaultCookieSyncRequest.tap {
             it.account = accountId
         }
-
-        and: "Activities set for cookie sync with all bidders rejected"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
-        def activities = AllowActivities.getDefaultAllowActivities(SYNC_USER, activity)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -148,6 +147,12 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(SYNC_USER, Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])),
+                       new AllowActivities().tap { syncUserKebabCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+                       new AllowActivities().tap { syncUserKebabCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+        ]
     }
 
     def "PBS cookie sync call when default activity setting set to false should exclude bidders URLs"() {
