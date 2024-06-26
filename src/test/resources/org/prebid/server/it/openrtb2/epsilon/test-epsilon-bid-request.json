@@ -8,6 +8,7 @@
         "w": 300,
         "h": 600
       },
+      "bidfloorcur": "USD",
       "displaymanager": "prebid-s2s",
       "displaymanagerver": "2.0.0",
       "ext": {

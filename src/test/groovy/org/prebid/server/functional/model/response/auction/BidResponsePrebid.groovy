@@ -12,4 +12,5 @@ class BidResponsePrebid {
     Map passThrough
     ExtBidResponseFledge fledge
     ExtModule modules
+    AnalyticsPrebid analytics
 }

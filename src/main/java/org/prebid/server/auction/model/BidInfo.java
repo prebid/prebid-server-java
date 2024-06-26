@@ -31,6 +31,10 @@ public class BidInfo {
 
     Boolean satisfiedPriority;
 
+    Integer ttl;
+
+    Integer videoTtl;
+
     public String getBidId() {
         final ObjectNode extNode = bid != null ? bid.getExt() : null;
         final JsonNode bidIdNode = extNode != null ? extNode.path("prebid").path("bidid") : null;

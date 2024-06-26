@@ -217,6 +217,12 @@ Also, each bidder could have its own bidder-specific options.
 So far metrics cannot be submitted simultaneously to many backends. Currently we support `graphite` and `influxdb`. 
 Also, for debug purposes you can use `console` as metrics backend.
 
+For `logback` backend type available next options:
+- `metrics.logback.enabled` - if equals to `true` then logback reporter will be started.
+- `metrics.logback.name` - name of logger element in the logback configuration file.
+- `metrics.logback.interval` - interval in seconds between successive sending metrics.
+
+
 For `graphite` backend type available next options:
 - `metrics.graphite.enabled` - if equals to `true` then `graphite` will be used to submit metrics.
 - `metrics.graphite.prefix` - the prefix of all metric names.
