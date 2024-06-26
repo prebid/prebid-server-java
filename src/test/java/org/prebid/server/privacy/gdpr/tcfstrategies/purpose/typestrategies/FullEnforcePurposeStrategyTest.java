@@ -5,13 +5,12 @@ import com.iabtcf.utils.IntIterable;
 import com.iabtcf.utils.IntIterator;
 import com.iabtcf.v2.PublisherRestriction;
 import com.iabtcf.v2.RestrictionType;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Spy;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.privacy.gdpr.model.PrivacyEnforcementAction;
 import org.prebid.server.privacy.gdpr.model.VendorPermission;
 import org.prebid.server.privacy.gdpr.model.VendorPermissionWithGvl;
@@ -29,38 +28,36 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class FullEnforcePurposeStrategyTest {
 
     private static final PurposeCode PURPOSE_CODE = PurposeCode.ONE;
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
     private FullEnforcePurposeStrategy target;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private TCString tcString;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IntIterable allowedVendors;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IntIterable allowedVendorsLI;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IntIterable purposesConsent;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IntIterable purposesLI;
     @Spy
     private IntIterable vendorIds;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private PublisherRestriction publisherRestriction;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(tcString.getVendorConsent()).willReturn(allowedVendors);
         given(tcString.getVendorLegitimateInterest()).willReturn(allowedVendorsLI);
@@ -77,8 +74,6 @@ public class FullEnforcePurposeStrategyTest {
         given(allowedVendorsLI.contains(anyInt())).willReturn(false);
         given(purposesConsent.contains(anyInt())).willReturn(false);
         given(purposesLI.contains(anyInt())).willReturn(false);
-
-        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         target = new FullEnforcePurposeStrategy();
     }
@@ -128,14 +123,11 @@ public class FullEnforcePurposeStrategyTest {
         final PublisherRestriction publisherRestriction1 = new PublisherRestriction(
                 PURPOSE_CODE.code(), RestrictionType.REQUIRE_CONSENT, requireConsentIterable);
         given(requireConsentIterable.intIterator()).willReturn(intIterator(1));
-        given(requireConsentIterable.contains(eq(1))).willReturn(true);
 
         final IntIterable notAllowedIterable = spy(IntIterable.class);
         final PublisherRestriction publisherRestriction2 = new PublisherRestriction(
                 PURPOSE_CODE.code(), RestrictionType.NOT_ALLOWED, notAllowedIterable);
         given(notAllowedIterable.intIterator()).willReturn(intIterator(4, 2));
-        given(notAllowedIterable.contains(eq(4))).willReturn(true);
-        given(notAllowedIterable.contains(eq(2))).willReturn(true);
 
         given(tcString.getPublisherRestrictions()).willReturn(asList(publisherRestriction1, publisherRestriction2));
 
@@ -186,6 +178,7 @@ public class FullEnforcePurposeStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -212,6 +205,7 @@ public class FullEnforcePurposeStrategyTest {
         setRestriction(RestrictionType.REQUIRE_CONSENT);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -238,6 +232,7 @@ public class FullEnforcePurposeStrategyTest {
         setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -262,6 +257,7 @@ public class FullEnforcePurposeStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         given(purposesLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -288,6 +284,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -314,6 +311,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -341,6 +339,7 @@ public class FullEnforcePurposeStrategyTest {
         final List<VendorPermissionWithGvl> vendorPermissionWithGvls = singletonList(vendorPermissionWitGvl);
 
         given(purposesLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -367,6 +366,7 @@ public class FullEnforcePurposeStrategyTest {
         setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
         given(purposesLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -394,6 +394,7 @@ public class FullEnforcePurposeStrategyTest {
         setRestriction(requireConsent);
 
         given(purposesLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -419,6 +420,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -446,6 +448,7 @@ public class FullEnforcePurposeStrategyTest {
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -477,6 +480,7 @@ public class FullEnforcePurposeStrategyTest {
         setRestriction(RestrictionType.REQUIRE_CONSENT);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -504,6 +508,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -531,6 +536,7 @@ public class FullEnforcePurposeStrategyTest {
         setRestriction(RestrictionType.REQUIRE_CONSENT);
 
         given(purposesLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -558,6 +564,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -586,6 +593,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -613,6 +621,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -639,6 +648,7 @@ public class FullEnforcePurposeStrategyTest {
         setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -666,6 +676,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -693,6 +704,7 @@ public class FullEnforcePurposeStrategyTest {
         setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
         given(purposesLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -720,6 +732,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -748,6 +761,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -776,6 +790,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -807,6 +822,7 @@ public class FullEnforcePurposeStrategyTest {
         setRestriction(RestrictionType.REQUIRE_CONSENT);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -834,6 +850,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -861,6 +878,7 @@ public class FullEnforcePurposeStrategyTest {
         setRestriction(RestrictionType.REQUIRE_CONSENT);
 
         given(purposesLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -888,6 +906,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -916,6 +935,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -944,6 +964,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -973,6 +994,7 @@ public class FullEnforcePurposeStrategyTest {
         setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -1000,6 +1022,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -1027,6 +1050,7 @@ public class FullEnforcePurposeStrategyTest {
         setRestriction(RestrictionType.REQUIRE_LEGITIMATE_INTEREST);
 
         given(purposesLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -1054,6 +1078,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -1082,6 +1107,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesConsent.contains(anyInt())).willReturn(true);
         given(allowedVendorsLI.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -1110,6 +1136,7 @@ public class FullEnforcePurposeStrategyTest {
 
         given(purposesLI.contains(anyInt())).willReturn(true);
         given(allowedVendors.contains(anyInt())).willReturn(true);
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(
@@ -1129,6 +1156,8 @@ public class FullEnforcePurposeStrategyTest {
         final VendorPermission vendorPermission2 = VendorPermission.of(2, null, PrivacyEnforcementAction.restrictAll());
         final VendorPermissionWithGvl vendorPermissionWitGvl1 = withGvl(vendorPermission1, Vendor.empty(1));
         final VendorPermissionWithGvl vendorPermissionWitGvl2 = withGvl(vendorPermission2, Vendor.empty(2));
+
+        given(vendorIds.intIterator()).willReturn(intIterator(1));
 
         // when
         final Stream<VendorPermission> result = target.allowedByTypeStrategy(

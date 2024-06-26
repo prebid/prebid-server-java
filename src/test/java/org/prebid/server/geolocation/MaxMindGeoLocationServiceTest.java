@@ -9,8 +9,8 @@ import com.maxmind.geoip2.record.Country;
 import com.maxmind.geoip2.record.Location;
 import com.maxmind.geoip2.record.Subdivision;
 import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.mockito.internal.util.reflection.ReflectionMemberAccessor;
 import org.prebid.server.geolocation.model.GeoInfo;
@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
@@ -31,7 +31,7 @@ public class MaxMindGeoLocationServiceTest {
 
     private MaxMindGeoLocationService maxMindGeoLocationService;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         maxMindGeoLocationService = new MaxMindGeoLocationService();
     }

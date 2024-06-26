@@ -3,7 +3,7 @@ package org.prebid.server.hooks.modules.ortb2.blocking.core;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedAttributes;
 
 import java.util.List;

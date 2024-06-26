@@ -1,10 +1,10 @@
 package org.prebid.server.activity.infrastructure.creator;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.activity.infrastructure.creator.rule.RuleCreator;
 
 import java.util.List;
@@ -15,10 +15,8 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class ActivityRuleFactoryTest {
-
-    @org.junit.Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private RuleCreator<Integer> ruleCreator1;
@@ -28,7 +26,7 @@ public class ActivityRuleFactoryTest {
 
     private ActivityRuleFactory target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(ruleCreator1.relatedConfigurationClass()).willReturn(Integer.class);
         given(ruleCreator2.relatedConfigurationClass()).willReturn(String.class);

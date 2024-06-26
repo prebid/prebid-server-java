@@ -1,6 +1,6 @@
 package org.prebid.server.floors;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.floors.model.PriceFloorData;

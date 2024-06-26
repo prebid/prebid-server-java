@@ -4,16 +4,13 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -21,11 +18,9 @@ import java.time.ZoneId;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@RunWith(VertxUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@ExtendWith(VertxExtension.class)
 public class CircuitBreakerTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private Vertx vertx;
 
@@ -33,22 +28,22 @@ public class CircuitBreakerTest {
 
     private CircuitBreaker circuitBreaker;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         circuitBreaker = new CircuitBreaker("name", vertx, 1, 100L, 200L, clock);
     }
 
-    @After
-    public void tearDown(TestContext context) {
-        vertx.close(context.asyncAssertSuccess());
+    @AfterEach
+    public void tearDown(VertxTestContext context) {
+        vertx.close(context.succeedingThenComplete());
     }
 
     @Test
-    public void executeShouldSucceedsIfOperationSucceeds(TestContext context) {
+    public void executeShouldSucceedsIfOperationSucceeds() {
         // when
-        final Future<?> future = executeWithSuccess(context, "value");
+        final Future<?> future = executeWithSuccess("value");
 
         // then
         assertThat(future.succeeded()).isTrue();
@@ -56,9 +51,9 @@ public class CircuitBreakerTest {
     }
 
     @Test
-    public void executeShouldFailsIfCircuitIsClosedAndOperationFails(TestContext context) {
+    public void executeShouldFailsIfCircuitIsClosedAndOperationFails() {
         // when
-        final Future<?> future = executeWithFail(context, "exception");
+        final Future<?> future = executeWithFail("exception");
 
         // then
         assertThat(future.failed()).isTrue();
@@ -66,11 +61,10 @@ public class CircuitBreakerTest {
     }
 
     @Test
-    public void executeShouldFailsIfCircuitIsHalfOpenedAndOperationFailsAndClosingTimeIsNotPassedBy(
-            TestContext context) {
+    public void executeShouldFailsIfCircuitIsHalfOpenedAndOperationFailsAndClosingTimeIsNotPassedBy() {
         // when
-        final Future<?> future1 = executeWithFail(context, "exception1");
-        final Future<?> future2 = executeWithFail(context, null);
+        final Future<?> future1 = executeWithFail("exception1");
+        final Future<?> future2 = executeWithFail(null);
 
         // then
         assertThat(future1.failed()).isTrue();
@@ -81,12 +75,12 @@ public class CircuitBreakerTest {
     }
 
     @Test
-    public void executeShouldFailsIfCircuitIsHalfOpenedAndOperationFails(TestContext context) {
+    public void executeShouldFailsIfCircuitIsHalfOpenedAndOperationFails() {
         // when
-        final Future<?> future1 = executeWithFail(context, "exception1");
-        final Future<?> future2 = executeWithFail(context, null);
-        waitForClosingInterval(context);
-        final Future<?> future3 = executeWithFail(context, "exception3");
+        final Future<?> future1 = executeWithFail("exception1");
+        final Future<?> future2 = executeWithFail(null);
+        waitForClosingInterval();
+        final Future<?> future3 = executeWithFail("exception3");
 
         // then
         assertThat(future1.failed()).isTrue();
@@ -100,12 +94,12 @@ public class CircuitBreakerTest {
     }
 
     @Test
-    public void executeShouldSucceedsIfCircuitIsHalfOpenedAndOperationSucceeds(TestContext context) {
+    public void executeShouldSucceedsIfCircuitIsHalfOpenedAndOperationSucceeds() {
         // when
-        final Future<?> future1 = executeWithFail(context, "exception1");
-        final Future<?> future2 = executeWithFail(context, "exception2");
-        waitForClosingInterval(context);
-        final Future<?> future3 = executeWithSuccess(context, "value after half-open");
+        final Future<?> future1 = executeWithFail("exception1");
+        final Future<?> future2 = executeWithFail("exception2");
+        waitForClosingInterval();
+        final Future<?> future3 = executeWithSuccess("value after half-open");
 
         // then
         assertThat(future1.failed()).isTrue();
@@ -119,14 +113,14 @@ public class CircuitBreakerTest {
     }
 
     @Test
-    public void executeShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
+    public void executeShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds() {
         // given
         circuitBreaker = new CircuitBreaker("name", vertx, 2, 100L, 200L, clock);
 
         // when
-        final Future<?> future1 = executeWithFail(context, "exception1");
-        waitForOpeningInterval(context);
-        final Future<?> future2 = executeWithFail(context, "exception2");
+        final Future<?> future1 = executeWithFail("exception1");
+        waitForOpeningInterval();
+        final Future<?> future2 = executeWithFail("exception2");
 
         // then
         assertThat(future1.failed()).isTrue();
@@ -136,35 +130,35 @@ public class CircuitBreakerTest {
         assertThat(future2.cause()).isInstanceOf(RuntimeException.class).hasMessage("exception2");
     }
 
-    private Future<String> executeWithSuccess(TestContext context, String result) {
-        return execute(context, operationPromise -> operationPromise.complete(result));
+    private Future<String> executeWithSuccess(String result) {
+        return execute(operationPromise -> operationPromise.complete(result));
     }
 
-    private Future<String> executeWithFail(TestContext context, String errorMessage) {
-        return execute(context, operationPromise -> operationPromise.fail(new RuntimeException(errorMessage)));
+    private Future<String> executeWithFail(String errorMessage) {
+        return execute(operationPromise -> operationPromise.fail(new RuntimeException(errorMessage)));
     }
 
-    private Future<String> execute(TestContext context, Handler<Promise<String>> handler) {
+    private Future<String> execute(Handler<Promise<String>> handler) {
         final Future<String> future = circuitBreaker.execute(handler);
 
-        final Async async = context.async();
-        future.onComplete(ar -> async.complete());
-        async.await();
+        final Promise<?> promise = Promise.promise();
+        future.onComplete(ar -> promise.complete());
+        promise.future().toCompletionStage().toCompletableFuture().join();
 
         return future;
     }
 
-    private void waitForOpeningInterval(TestContext context) {
-        waitForInterval(context, 150L);
+    private void waitForOpeningInterval() {
+        waitForInterval(150L);
     }
 
-    private void waitForClosingInterval(TestContext context) {
-        waitForInterval(context, 250L);
+    private void waitForClosingInterval() {
+        waitForInterval(250L);
     }
 
-    private void waitForInterval(TestContext context, long timeout) {
-        final Async async = context.async();
-        vertx.setTimer(timeout, id -> async.complete());
-        async.await();
+    private void waitForInterval(long timeout) {
+        final Promise<?> promise = Promise.promise();
+        vertx.setTimer(timeout, id -> promise.complete());
+        promise.future().toCompletionStage().toCompletableFuture().join();
     }
 }

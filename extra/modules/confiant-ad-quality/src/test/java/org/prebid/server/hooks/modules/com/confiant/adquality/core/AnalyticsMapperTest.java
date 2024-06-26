@@ -1,6 +1,6 @@
 package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.hooks.modules.com.confiant.adquality.util.AdQualityModuleTestUtils;
 import org.prebid.server.hooks.modules.com.confiant.adquality.v1.model.analytics.ActivityImpl;

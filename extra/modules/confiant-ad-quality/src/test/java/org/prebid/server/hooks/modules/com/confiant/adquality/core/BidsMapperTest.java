@@ -3,7 +3,7 @@ package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisBidResponseData;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisBidsData;

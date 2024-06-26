@@ -1,10 +1,10 @@
 package org.prebid.server.activity.infrastructure.creator.privacy.usnat;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.creator.PrivacyModuleCreationContext;
 import org.prebid.server.activity.infrastructure.privacy.PrivacyModule;
@@ -24,21 +24,20 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class USNatModuleCreatorTest {
 
-    @org.junit.Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private USNatGppReaderFactory gppReaderFactory;
 
     private USNatModuleCreator target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(gppReaderFactory.forSection(anyInt(), any())).willReturn(new USNationalGppReader(null));
 

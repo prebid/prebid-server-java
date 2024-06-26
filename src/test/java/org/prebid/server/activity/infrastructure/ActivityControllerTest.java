@@ -1,9 +1,9 @@
 package org.prebid.server.activity.infrastructure;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDebug;
 import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.activity.infrastructure.rule.TestRule;
@@ -17,10 +17,8 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class ActivityControllerTest {
-
-    @org.junit.Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private ActivityInfrastructureDebug debug;

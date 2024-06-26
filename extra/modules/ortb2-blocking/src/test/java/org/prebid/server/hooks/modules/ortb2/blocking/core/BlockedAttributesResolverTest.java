@@ -8,7 +8,7 @@ import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.config.ArrayOverride;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.config.Attribute;

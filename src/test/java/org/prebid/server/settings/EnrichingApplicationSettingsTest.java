@@ -1,12 +1,11 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.ActivitiesConfigResolver;
 import org.prebid.server.execution.Timeout;
@@ -23,21 +22,20 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 public class EnrichingApplicationSettingsTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private ApplicationSettings delegate;
-    @Mock
+    @Mock(strictness = LENIENT)
     private PriceFloorsConfigResolver priceFloorsConfigResolver;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ActivitiesConfigResolver activitiesConfigResolver;
 
     private final JsonMerger jsonMerger = new JsonMerger(jacksonMapper);
@@ -47,7 +45,7 @@ public class EnrichingApplicationSettingsTest extends VertxTest {
     @Mock
     private Timeout timeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(priceFloorsConfigResolver.resolve(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
         given(activitiesConfigResolver.resolve(any())).willAnswer(invocation -> invocation.getArgument(0));

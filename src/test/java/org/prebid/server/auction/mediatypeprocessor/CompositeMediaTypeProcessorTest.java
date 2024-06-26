@@ -1,12 +1,11 @@
 package org.prebid.server.auction.mediatypeprocessor;
 
 import com.iab.openrtb.request.BidRequest;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.bidder.model.BidderError;
 
@@ -17,13 +16,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class CompositeMediaTypeProcessorTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private MediaTypeProcessor mediaTypeProcessor1;
@@ -31,12 +29,12 @@ public class CompositeMediaTypeProcessorTest {
     @Mock
     private MediaTypeProcessor mediaTypeProcessor2;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderAliases bidderAliases;
 
     private CompositeMediaTypeProcessor target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new CompositeMediaTypeProcessor(asList(mediaTypeProcessor1, mediaTypeProcessor2));
         when(bidderAliases.resolveBidder(anyString())).thenAnswer(invocation -> invocation.getArgument(0));

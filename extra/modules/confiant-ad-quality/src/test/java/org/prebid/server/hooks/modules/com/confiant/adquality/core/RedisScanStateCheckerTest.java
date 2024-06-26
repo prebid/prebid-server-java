@@ -2,28 +2,25 @@ package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class RedisScanStateCheckerTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private BidsScanner bidsScanner;
 
     private RedisScanStateChecker scanStateChecker;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         scanStateChecker = new RedisScanStateChecker(bidsScanner, 1000L, Vertx.vertx());
     }

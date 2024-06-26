@@ -2,7 +2,7 @@ package org.prebid.server.auction;
 
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.BidInfo;
 
 import java.math.BigDecimal;

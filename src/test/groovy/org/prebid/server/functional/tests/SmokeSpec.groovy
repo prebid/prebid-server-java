@@ -13,7 +13,6 @@ import org.prebid.server.functional.util.PBSUtils
 import org.prebid.server.util.ResourceUtil
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
-import static org.prebid.server.functional.model.bidder.BidderName.bidderNameByString
 import static org.prebid.server.functional.model.response.status.Status.OK
 
 class SmokeSpec extends BaseSpec {

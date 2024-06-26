@@ -1,12 +1,11 @@
 package org.prebid.server.auction;
 
 import com.iab.openrtb.request.BidRequest;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.debug.DebugContext;
 import org.prebid.server.bidder.BidderCatalog;
@@ -25,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 public class DebugResolverTest {
 
     private static final String DEBUG_OVERRIDE_TOKEN = "debug_override_token";
@@ -32,15 +32,12 @@ public class DebugResolverTest {
             .add("x-pbs-debug-override", DEBUG_OVERRIDE_TOKEN)
             .build();
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
     @Mock
     private BidderCatalog bidderCatalog;
 
     private DebugResolver debugResolver;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         debugResolver = new DebugResolver(bidderCatalog, null);
     }

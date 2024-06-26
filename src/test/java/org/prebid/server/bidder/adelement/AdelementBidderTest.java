@@ -3,8 +3,8 @@ package org.prebid.server.bidder.adelement;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Imp;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -29,7 +29,7 @@ public class AdelementBidderTest extends VertxTest {
 
     private AdelementBidder adelementBidder;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         adelementBidder = new AdelementBidder(ENDPOINT_URL, jacksonMapper);
     }

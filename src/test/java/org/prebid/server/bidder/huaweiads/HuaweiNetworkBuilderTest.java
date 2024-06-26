@@ -1,7 +1,7 @@
 package org.prebid.server.bidder.huaweiads;
 
 import com.iab.openrtb.request.Device;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.bidder.huaweiads.model.request.CellInfo;
 import org.prebid.server.bidder.huaweiads.model.request.Network;
 

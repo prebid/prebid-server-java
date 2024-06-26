@@ -1,6 +1,6 @@
 package org.prebid.server.spring.config.bidder.util;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.bidder.UsersyncMethod;
 import org.prebid.server.bidder.UsersyncMethodType;
 import org.prebid.server.bidder.Usersyncer;

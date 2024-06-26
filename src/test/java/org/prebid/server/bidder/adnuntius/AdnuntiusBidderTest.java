@@ -17,8 +17,8 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.BooleanUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusAdUnit;
 import org.prebid.server.bidder.adnuntius.model.request.AdnuntiusMetaData;
@@ -61,7 +61,7 @@ public class AdnuntiusBidderTest extends VertxTest {
 
     private AdnuntiusBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         final Clock clock = Clock.system(ZoneId.of("UTC+05:00"));
         target = new AdnuntiusBidder("https://test.domain.dm/uri", clock, jacksonMapper);

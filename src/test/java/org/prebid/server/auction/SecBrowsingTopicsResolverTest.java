@@ -1,7 +1,7 @@
 package org.prebid.server.auction;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.SecBrowsingTopic;
 import org.prebid.server.model.CaseInsensitiveMultiMap;
 import org.prebid.server.util.HttpUtil;
@@ -17,7 +17,7 @@ public class SecBrowsingTopicsResolverTest {
 
     private SecBrowsingTopicsResolver target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new SecBrowsingTopicsResolver("topicsDomain");
     }

@@ -1,6 +1,6 @@
 package org.prebid.server.execution;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.time.Clock;
 import java.time.Instant;

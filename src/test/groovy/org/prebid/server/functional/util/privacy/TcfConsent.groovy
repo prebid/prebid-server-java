@@ -3,7 +3,6 @@ package org.prebid.server.functional.util.privacy
 import com.iabtcf.encoder.PublisherRestrictionEntry
 import com.iabtcf.encoder.TCStringEncoder
 import com.iabtcf.utils.BitSetIntIterable
-import com.iabtcf.v2.RestrictionType
 import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.util.PBSUtils
 

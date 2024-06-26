@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests
 
+import org.junit.jupiter.api.Disabled
 import org.prebid.server.functional.model.mock.services.pubstack.PubStackResponse
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.service.PrebidServerService
@@ -7,7 +8,6 @@ import org.prebid.server.functional.testcontainers.Dependencies
 import org.prebid.server.functional.testcontainers.PbsConfig
 import org.prebid.server.functional.testcontainers.scaffolding.PubStackAnalytics
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.Ignore
 import spock.lang.Shared
 
 class AnalyticsSpec extends BaseSpec {
@@ -20,7 +20,7 @@ class AnalyticsSpec extends BaseSpec {
         it.setResponse(PubStackResponse.getDefaultPubStackResponse(SCOPE_ID, Dependencies.networkServiceContainer.rootUri))
     }
 
-    @Ignore("Currently impossible to make this test pass 100% of the time")
+    @Disabled("Currently impossible to make this test pass 100% of the time")
     def "PBS should send PubStack analytics when analytics.pubstack.enabled=true"() {
         given: "Basic bid request"
         def bidRequest = BidRequest.defaultBidRequest

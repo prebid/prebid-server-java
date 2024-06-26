@@ -1,7 +1,7 @@
 package org.prebid.server.hooks.modules.ortb2.blocking.core;
 
 import com.iab.openrtb.response.Bid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedBids;
 import org.prebid.server.proto.openrtb.ext.response.BidType;

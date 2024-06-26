@@ -1,11 +1,10 @@
 package org.prebid.server.activity.infrastructure;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.debug.ActivityInfrastructureDebug;
@@ -29,10 +28,8 @@ import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class ActivityInfrastructureTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private ActivityController activityController;
@@ -42,7 +39,7 @@ public class ActivityInfrastructureTest {
 
     private ActivityInfrastructure infrastructure;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         infrastructure = new ActivityInfrastructure(
                 Arrays.stream(Activity.values())

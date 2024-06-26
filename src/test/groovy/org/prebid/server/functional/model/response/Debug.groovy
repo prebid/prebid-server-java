@@ -5,8 +5,8 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
 import org.prebid.server.functional.model.request.auction.BidRequest
 import org.prebid.server.functional.model.request.auction.PgMetrics
-import org.prebid.server.functional.model.response.auction.DebugPrivacy
 import org.prebid.server.functional.model.response.auction.BidderCall
+import org.prebid.server.functional.model.response.auction.DebugPrivacy
 import org.prebid.server.functional.model.response.auction.Trace
 
 @ToString(includeNames = true, ignoreNulls = true)

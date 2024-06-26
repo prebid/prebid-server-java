@@ -4,13 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.floors.model.PriceFloorData;
@@ -41,10 +40,8 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class BasicPriceFloorProcessorTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule rule = MockitoJUnit.rule();
 
     @Mock
     private PriceFloorFetcher priceFloorFetcher;
@@ -53,7 +50,7 @@ public class BasicPriceFloorProcessorTest extends VertxTest {
 
     private BasicPriceFloorProcessor priceFloorProcessor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         priceFloorProcessor = new BasicPriceFloorProcessor(
                 priceFloorFetcher,

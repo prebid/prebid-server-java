@@ -17,12 +17,11 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.DebugResolver;
@@ -86,50 +85,49 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 public class AmpRequestFactoryTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private Ortb2RequestFactory ortb2RequestFactory;
-    @Mock
+    @Mock(strictness = LENIENT)
     private StoredRequestProcessor storedRequestProcessor;
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
-    @Mock
+    @Mock(strictness = LENIENT)
     private AmpGppService ampGppService;
     @Mock
     private OrtbTypesResolver ortbTypesResolver;
     @Mock
     private ImplicitParametersExtractor implicitParametersExtractor;
-    @Mock
+    @Mock(strictness = LENIENT)
     private Ortb2ImplicitParametersResolver ortb2ImplicitParametersResolver;
-    @Mock
+    @Mock(strictness = LENIENT)
     private FpdResolver fpdResolver;
-    @Mock
+    @Mock(strictness = LENIENT)
     private AmpPrivacyContextFactory ampPrivacyContextFactory;
-    @Mock
+    @Mock(strictness = LENIENT)
     private DebugResolver debugResolver;
-    @Mock
+    @Mock(strictness = LENIENT)
     private GeoLocationServiceWrapper geoLocationServiceWrapper;
 
     private AmpRequestFactory target;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest httpRequest;
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
 
     private BidRequest defaultBidRequest;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         defaultBidRequest = BidRequest.builder().build();
 

@@ -1,7 +1,7 @@
 package org.prebid.server.hooks.modules.com.confiant.adquality.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.GroupByIssues;
 import org.prebid.server.hooks.modules.com.confiant.adquality.util.AdQualityModuleTestUtils;

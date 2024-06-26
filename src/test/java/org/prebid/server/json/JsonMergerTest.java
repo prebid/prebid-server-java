@@ -5,8 +5,8 @@ import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Dooh;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.proto.openrtb.ext.request.ExtBidderConfigOrtb;
 
@@ -18,7 +18,7 @@ public class JsonMergerTest extends VertxTest {
 
     private JsonMerger target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new JsonMerger(jacksonMapper);
     }

@@ -1,20 +1,19 @@
 package org.prebid.server.vertx.database;
 
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import io.vertx.junit5.Checkpoint;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
@@ -35,11 +34,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-@RunWith(VertxUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@ExtendWith(VertxExtension.class)
 public class CircuitBreakerSecuredDatabaseClientTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private Vertx vertx;
 
@@ -53,7 +50,7 @@ public class CircuitBreakerSecuredDatabaseClientTest {
 
     private Timeout timeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
@@ -62,16 +59,15 @@ public class CircuitBreakerSecuredDatabaseClientTest {
         target = new CircuitBreakerSecuredDatabaseClient(vertx, wrappedDatabaseClient, metrics, 1, 100L, 200L, clock);
     }
 
-    @After
-    public void tearDown(TestContext context) {
-        vertx.close(context.asyncAssertSuccess());
+    @AfterEach
+    public void tearDown(VertxTestContext context) {
+        vertx.close(context.succeedingThenComplete());
     }
 
     @Test
-    public void executeQueryShouldReturnResultIfCircuitIsClosedAndQuerySucceeded(TestContext context) {
+    public void executeQueryShouldReturnResultIfCircuitIsClosedAndQuerySucceeded(VertxTestContext context) {
         // given
-        givenExecuteQueryReturning(singletonList(
-                Future.succeededFuture("value")));
+        givenExecuteQueryReturning(singletonList(Future.succeededFuture("value")));
 
         // when
         final Future<?> future = target.executeQuery(
@@ -81,79 +77,92 @@ public class CircuitBreakerSecuredDatabaseClientTest {
                 timeout);
 
         // then
-        future.onComplete(context.asyncAssertSuccess(result -> assertThat(result).isEqualTo("value")));
+        future.onComplete(context.succeeding(result -> {
+            assertThat(result).isEqualTo("value");
+            context.completeNow();
+        }));
     }
 
     @Test
-    public void executeQueryShouldReturnExceptionIfCircuitIsClosedAndQueryFails(TestContext context) {
+    public void executeQueryShouldReturnExceptionIfCircuitIsClosedAndQueryFails(VertxTestContext context) {
         // given
-        givenExecuteQueryReturning(singletonList(
-                Future.failedFuture(new RuntimeException("exception1"))));
+        givenExecuteQueryReturning(singletonList(Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
         final Future<?> future = target.executeQuery("query", emptyList(), identity(), timeout);
 
         // then
-        future.onComplete(context.asyncAssertFailure(throwable ->
-                assertThat(throwable).isInstanceOf(RuntimeException.class).hasMessage("exception1")));
+        future.onComplete(context.failing(throwable -> {
+            assertThat(throwable)
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessage("exception1");
+            context.completeNow();
+        }));
     }
 
     @Test
-    public void executeQueryShouldNotExecuteQueryIfCircuitIsOpened(TestContext context) {
+    public void executeQueryShouldNotExecuteQueryIfCircuitIsOpened(VertxTestContext context) {
         // given
-        givenExecuteQueryReturning(singletonList(
-                Future.failedFuture(new RuntimeException("exception1"))));
+        givenExecuteQueryReturning(singletonList(Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
         final Future<?> future = target.executeQuery("query", emptyList(), identity(), timeout) // 1 call
                 .recover(ignored -> target.executeQuery("query", emptyList(), identity(), timeout)); // 2 call
 
         // then
-        future.onComplete(context.asyncAssertFailure(throwable -> {
-            assertThat(throwable).isInstanceOf(RuntimeException.class).hasMessage("open circuit");
+        future.onComplete(context.failing(throwable -> {
+            assertThat(throwable)
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessage("open circuit");
 
             verify(wrappedDatabaseClient)
                     .executeQuery(any(), any(), any(), any()); // invoked only on 1 call
+
+            context.completeNow();
         }));
     }
 
     @Test
-    public void executeQueryShouldReturnExceptionIfCircuitIsHalfOpenedAndQueryFails(TestContext context) {
+    public void executeQueryShouldReturnExceptionIfCircuitIsHalfOpenedAndQueryFails(VertxTestContext context) {
         // given
         givenExecuteQueryReturning(singletonList(
                 Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
-        final Async async = context.async();
+        final Promise<?> promise = Promise.promise();
         target.executeQuery("query", emptyList(), identity(), timeout) // 1 call
                 .recover(ignored -> target.executeQuery("query", emptyList(), identity(), timeout)) // 2 call
-                .onComplete(ignored -> vertx.setTimer(201L, id -> async.complete()));
-        async.await();
+                .onComplete(ignored -> vertx.setTimer(201L, id -> promise.complete()));
+        promise.future().toCompletionStage().toCompletableFuture().join();
 
         final Future<?> future = target.executeQuery("query", emptyList(), identity(), timeout); // 3 call
 
         // then
-        future.onComplete(context.asyncAssertFailure(exception -> {
-            assertThat(exception).isInstanceOf(RuntimeException.class).hasMessage("exception1");
+        future.onComplete(context.failing(exception -> {
+            assertThat(exception)
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessage("exception1");
 
             verify(wrappedDatabaseClient, times(2))
                     .executeQuery(any(), any(), any(), any()); // invoked only on 1 & 3 calls
+
+            context.completeNow();
         }));
     }
 
     @Test
-    public void executeQueryShouldReturnResultIfCircuitIsHalfOpenedAndQuerySucceeded(TestContext context) {
+    public void executeQueryShouldReturnResultIfCircuitIsHalfOpenedAndQuerySucceeded(VertxTestContext context) {
         // given
         givenExecuteQueryReturning(asList(
                 Future.failedFuture(new RuntimeException("exception1")),
                 Future.succeededFuture("value")));
 
         // when
-        final Async async = context.async();
+        final Promise<?> promise = Promise.promise();
         target.executeQuery("query", emptyList(), identity(), timeout) // 1 call
                 .recover(ignored -> target.executeQuery("query", emptyList(), identity(), timeout)) // 2 call
-                .onComplete(ignored -> vertx.setTimer(201L, id -> async.complete()));
-        async.await();
+                .onComplete(ignored -> vertx.setTimer(201L, id -> promise.complete()));
+        promise.future().toCompletionStage().toCompletableFuture().join();
 
         final Future<?> future = target.executeQuery(
                 "query",
@@ -162,16 +171,18 @@ public class CircuitBreakerSecuredDatabaseClientTest {
                 timeout); // 3 call
 
         // then
-        future.onComplete(context.asyncAssertSuccess(result -> {
+        future.onComplete(context.succeeding(result -> {
             assertThat(result).isEqualTo("value");
 
             verify(wrappedDatabaseClient, times(2))
                     .executeQuery(any(), any(), any(), any()); // invoked only on 1 & 3 calls
+
+            context.completeNow();
         }));
     }
 
     @Test
-    public void executeQueryShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
+    public void executeQueryShouldFailsWithOriginalExceptionIfOpeningIntervalExceeds(VertxTestContext context) {
         // given
         target = new CircuitBreakerSecuredDatabaseClient(vertx, wrappedDatabaseClient, metrics, 2, 100L, 200L, clock);
 
@@ -180,29 +191,39 @@ public class CircuitBreakerSecuredDatabaseClientTest {
                 Future.failedFuture(new RuntimeException("exception2"))));
 
         // when
-        final Async async = context.async();
+        final Promise<?> promise = Promise.promise();
         final Future<?> future1 = target.executeQuery("query", emptyList(), identity(), timeout) // 1 call
-                .onComplete(ignored -> vertx.setTimer(101L, id -> async.complete()));
-        async.await();
+                .onComplete(ignored -> vertx.setTimer(101L, id -> promise.complete()));
+        promise.future().toCompletionStage().toCompletableFuture().join();
 
         final Future<?> future2 = target.executeQuery("query", emptyList(), identity(), timeout); // 2 call
 
         // then
-        future1.onComplete(context.asyncAssertFailure(exception ->
-                assertThat(exception).isInstanceOf(RuntimeException.class).hasMessage("exception1")));
+        final Checkpoint checkpoint1 = context.checkpoint();
+        final Checkpoint checkpoint2 = context.checkpoint();
+        final Checkpoint checkpoint3 = context.checkpoint();
 
-        future2.onComplete(context.asyncAssertFailure(exception ->
-                assertThat(exception).isInstanceOf(RuntimeException.class).hasMessage("exception2")));
+        future1.onComplete(context.failing(exception -> {
+            assertThat(exception).isInstanceOf(RuntimeException.class).hasMessage("exception1");
+            checkpoint1.flag();
+        }));
 
-        verify(wrappedDatabaseClient, times(2))
-                .executeQuery(any(), any(), any(), any());
+        future2.onComplete(context.failing(exception -> {
+            assertThat(exception).isInstanceOf(RuntimeException.class).hasMessage("exception2");
+            checkpoint2.flag();
+        }));
+
+        Future.any(future1, future2).onComplete(ignored -> {
+            verify(wrappedDatabaseClient, times(2))
+                    .executeQuery(any(), any(), any(), any());
+            checkpoint3.flag();
+        });
     }
 
     @Test
-    public void circuitBreakerGaugeShouldReportOpenedWhenCircuitOpen(TestContext context) {
+    public void circuitBreakerGaugeShouldReportOpenedWhenCircuitOpen(VertxTestContext context) {
         // given
-        givenExecuteQueryReturning(singletonList(
-                Future.failedFuture(new RuntimeException("exception1"))));
+        givenExecuteQueryReturning(singletonList(Future.failedFuture(new RuntimeException("exception1"))));
 
         // when
         final Future<?> future = target.executeQuery("query", emptyList(), identity(), timeout);
@@ -212,23 +233,25 @@ public class CircuitBreakerSecuredDatabaseClientTest {
         verify(metrics).createDatabaseCircuitBreakerGauge(gaugeValueProviderCaptor.capture());
         final BooleanSupplier gaugeValueProvider = gaugeValueProviderCaptor.getValue();
 
-        future.onComplete(context.asyncAssertFailure(throwable ->
-                assertThat(gaugeValueProvider.getAsBoolean()).isTrue()));
+        future.onComplete(context.failing(throwable -> {
+            assertThat(gaugeValueProvider.getAsBoolean()).isTrue();
+            context.completeNow();
+        }));
     }
 
     @Test
-    public void circuitBreakerGaugeShouldReportClosedWhenCircuitClosed(TestContext context) {
+    public void circuitBreakerGaugeShouldReportClosedWhenCircuitClosed(VertxTestContext context) {
         // given
         givenExecuteQueryReturning(asList(
                 Future.failedFuture(new RuntimeException("exception1")),
                 Future.succeededFuture()));
 
         // when
-        final Async async = context.async();
+        final Promise<?> promise = Promise.promise();
         target.executeQuery("query", emptyList(), identity(), timeout) // 1 call
                 .recover(ignored -> target.executeQuery("query", emptyList(), identity(), timeout)) // 2 call
-                .onComplete(ignored -> vertx.setTimer(201L, id -> async.complete()));
-        async.await();
+                .onComplete(ignored -> vertx.setTimer(201L, id -> promise.complete()));
+        promise.future().toCompletionStage().toCompletableFuture().join();
 
         final Future<?> future = target.executeQuery(
                 "query",
@@ -241,8 +264,10 @@ public class CircuitBreakerSecuredDatabaseClientTest {
         verify(metrics).createDatabaseCircuitBreakerGauge(gaugeValueProviderCaptor.capture());
         final BooleanSupplier gaugeValueProvider = gaugeValueProviderCaptor.getValue();
 
-        future.onComplete(context.asyncAssertSuccess(throwable ->
-                assertThat(gaugeValueProvider.getAsBoolean()).isFalse()));
+        future.onComplete(context.succeeding(throwable -> {
+            assertThat(gaugeValueProvider.getAsBoolean()).isFalse();
+            context.completeNow();
+        }));
     }
 
     @SuppressWarnings("unchecked")

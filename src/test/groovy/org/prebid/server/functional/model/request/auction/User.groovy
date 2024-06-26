@@ -4,8 +4,6 @@ import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.util.PBSUtils
 
-import static org.prebid.server.functional.model.pricefloors.Country.MULTIPLE
-
 @ToString(includeNames = true, ignoreNulls = true)
 @EqualsAndHashCode
 class User {

@@ -9,7 +9,7 @@ import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.TitleObject;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.huaweiads.model.AdsType;
 import org.prebid.server.bidder.huaweiads.model.response.Content;

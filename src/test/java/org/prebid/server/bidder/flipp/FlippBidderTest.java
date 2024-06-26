@@ -14,7 +14,7 @@ import com.iab.openrtb.response.Bid;
 import com.iabtcf.encoder.TCStringEncoder;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.flipp.model.request.CampaignRequestBody;
 import org.prebid.server.bidder.flipp.model.request.CampaignRequestBodyUser;

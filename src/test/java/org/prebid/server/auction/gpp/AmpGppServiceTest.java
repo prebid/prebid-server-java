@@ -5,13 +5,12 @@ import com.iab.gpp.encoder.error.EncodingException;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.User;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
 import org.prebid.server.auction.gpp.model.GppContextWrapper;
@@ -33,17 +32,15 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 public class AmpGppServiceTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private GppService gppService;
 
     private AmpGppService ampGppService;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         ampGppService = new AmpGppService(gppService);
     }

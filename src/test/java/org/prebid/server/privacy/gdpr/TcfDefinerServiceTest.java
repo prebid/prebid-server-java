@@ -3,12 +3,11 @@ package org.prebid.server.privacy.gdpr;
 import com.iabtcf.decoder.TCString;
 import com.iabtcf.encoder.TCStringEncoder;
 import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.GeoLocationServiceWrapper;
 import org.prebid.server.auction.IpAddressHelper;
 import org.prebid.server.auction.model.IpAddress;
@@ -51,12 +50,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 public class TcfDefinerServiceTest {
 
     private static final String EEA_COUNTRY = "ua";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Tcf2Service tcf2Service;
@@ -71,7 +68,7 @@ public class TcfDefinerServiceTest {
 
     private TcfDefinerService target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         final GdprConfig gdprConfig = GdprConfig.builder()
                 .defaultValue("1")

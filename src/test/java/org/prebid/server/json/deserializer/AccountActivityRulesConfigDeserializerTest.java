@@ -6,12 +6,11 @@ import com.fasterxml.jackson.core.ObjectCodec;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.json.ObjectMapperProvider;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
 
@@ -23,25 +22,24 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doThrow;
 
+@ExtendWith(MockitoExtension.class)
 public class AccountActivityRulesConfigDeserializerTest {
 
     private final ObjectMapper mapper = ObjectMapperProvider.mapper();
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
     private AccountActivityRulesConfigDeserializer target;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private JsonParser parser;
     @Mock
     private DeserializationContext context;
     @Mock
     private ObjectCodec codec;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new AccountActivityRulesConfigDeserializer();
     }

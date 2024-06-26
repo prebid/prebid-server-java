@@ -4,12 +4,11 @@ import com.iab.openrtb.request.BidRequest;
 import io.vertx.core.Future;
 import io.vertx.core.http.HttpMethod;
 import org.assertj.core.api.Assertions;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -29,12 +28,10 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class BidderErrorNotifierTest extends VertxTest {
 
     private static final byte[] EMPTY_BODY = "{}".getBytes();
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private HttpClient httpClient;
@@ -45,7 +42,7 @@ public class BidderErrorNotifierTest extends VertxTest {
 
     private BidderErrorNotifier target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new BidderErrorNotifier(200, true, false, 1d, httpClient, metrics);
     }

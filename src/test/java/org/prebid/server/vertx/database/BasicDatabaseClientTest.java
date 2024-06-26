@@ -9,12 +9,11 @@ import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.SqlConnection;
 import io.vertx.sqlclient.Tuple;
 import lombok.Value;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.Metrics;
@@ -38,11 +37,11 @@ import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.withSettings;
+import static org.mockito.quality.Strictness.LENIENT;
 
+@ExtendWith(MockitoExtension.class)
 public class BasicDatabaseClientTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Pool pool;
@@ -54,7 +53,7 @@ public class BasicDatabaseClientTest {
 
     private Timeout timeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         timeout = new TimeoutFactory(clock).create(500L);
@@ -221,13 +220,13 @@ public class BasicDatabaseClientTest {
     }
 
     private RowSet<Row> givenRowSet(Row... rows) {
-        final RowSet<Row> rowSet = mock(RowSet.class);
+        final RowSet<Row> rowSet = mock(RowSet.class, withSettings().strictness(LENIENT));
         given(rowSet.iterator()).willReturn(CustomRowIterator.of(Arrays.asList(rows).iterator()));
         return rowSet;
     }
 
     private Row givenRow(Object... values) {
-        final Row row = mock(Row.class);
+        final Row row = mock(Row.class, withSettings().strictness(LENIENT));
         given(row.getString(anyInt())).willAnswer(invocation -> values[(Integer) invocation.getArgument(0)]);
         given(row.getValue(anyInt())).willAnswer(invocation -> values[(Integer) invocation.getArgument(0)]);
         return row;

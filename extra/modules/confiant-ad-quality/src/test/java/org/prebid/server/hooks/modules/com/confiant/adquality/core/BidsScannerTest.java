@@ -9,12 +9,11 @@ import io.vertx.redis.client.Command;
 import io.vertx.redis.client.RedisAPI;
 import io.vertx.redis.client.Response;
 import io.vertx.redis.client.ResponseType;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.GroupByIssues;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisBidResponseData;
@@ -28,10 +27,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class BidsScannerTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private RedisClient writeRedisNode;
@@ -44,7 +41,7 @@ public class BidsScannerTest {
 
     private BidsScanner bidsScannerTest;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         bidsScannerTest = new BidsScanner(writeRedisNode, readRedisNode, "api-key", new ObjectMapper());
     }

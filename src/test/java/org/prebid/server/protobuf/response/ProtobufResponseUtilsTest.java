@@ -16,12 +16,11 @@ import com.iab.openrtb.response.SeatBid;
 import com.iab.openrtb.response.TitleObject;
 import com.iab.openrtb.response.VideoObject;
 import com.iabtechlab.openrtb.v2.OpenRtb;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.openrtb.v2.OpenRtbTest;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
@@ -34,46 +33,45 @@ import java.util.function.UnaryOperator;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 
+@ExtendWith(MockitoExtension.class)
 public class ProtobufResponseUtilsTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.Asset.Title, TitleObject> titleMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.Asset.Data, DataObject> dataMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.Asset.Video, VideoObject> videoMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.Asset.Image, ImageObject> imageMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.Link, Link> linkMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.Asset, Asset> assetMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse.EventTracker, EventTracker> eventTrackerMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse, Response> nativeResponseMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.NativeResponse, String> nativeResponseStringMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.BidResponse.SeatBid.Bid, Bid> bidMapper;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ProtobufMapper<OpenRtb.BidResponse.SeatBid, SeatBid> seatBidMapper;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(titleMapper.map(givenProtobufNativeTitle())).willReturn(givenNativeTitle());
         given(dataMapper.map(givenProtobufNativeData())).willReturn(givenNativeData());

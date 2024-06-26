@@ -14,12 +14,11 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.HmacAlgorithms;
 import org.apache.commons.codec.digest.HmacUtils;
 import org.assertj.core.api.Assertions;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.huaweiads.model.AdsType;
 import org.prebid.server.bidder.huaweiads.model.request.AdSlot30;
@@ -64,6 +63,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.bidder.model.BidderError.badInput;
@@ -76,23 +76,22 @@ import static org.prebid.server.util.HttpUtil.CONTENT_TYPE_HEADER;
 import static org.prebid.server.util.HttpUtil.USER_AGENT_HEADER;
 import static org.springframework.util.MimeTypeUtils.APPLICATION_JSON_VALUE;
 
+@ExtendWith(MockitoExtension.class)
 public class HuaweiAdsBidderTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-    @Mock
+    @Mock(strictness = LENIENT)
     private HuaweiAdSlotBuilder adSlotBuilder;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HuaweiAppBuilder appBuilder;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HuaweiDeviceBuilder deviceBuilder;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HuaweiNetworkBuilder networkBuilder;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HuaweiAdmBuilder admBuilder;
-    @Mock
+    @Mock(strictness = LENIENT)
     private CountryCodeResolver countryCodeResolver;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HuaweiEndpointResolver endpointResolver;
 
     private HuaweiAdsBidder target;
@@ -101,7 +100,7 @@ public class HuaweiAdsBidderTest extends VertxTest {
     private Device defaultDevice;
     private Network defaultNetwork;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new HuaweiAdsBidder(
                 jacksonMapper,

@@ -11,7 +11,7 @@ import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.api.Assertions;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.invibes.model.InvibesBidParams;
 import org.prebid.server.bidder.invibes.model.InvibesBidRequest;

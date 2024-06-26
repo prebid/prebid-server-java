@@ -13,7 +13,7 @@ import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.eplanning.model.HbResponse;
 import org.prebid.server.bidder.eplanning.model.HbResponseAd;

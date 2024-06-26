@@ -7,7 +7,7 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 

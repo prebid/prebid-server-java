@@ -1,7 +1,7 @@
 package org.prebid.server.auction;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.model.IpAddress;
 
 import static java.util.Arrays.asList;
@@ -14,7 +14,7 @@ public class IpAddressHelperTest {
 
     private IpAddressHelper ipAddressHelper;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         ipAddressHelper = new IpAddressHelper(64, 56, asList("::1/128", "fc00::/7", "fe80::/10"));
     }

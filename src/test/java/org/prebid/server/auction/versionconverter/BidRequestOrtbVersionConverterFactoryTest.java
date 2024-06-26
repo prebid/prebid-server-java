@@ -2,7 +2,7 @@ package org.prebid.server.auction.versionconverter;
 
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 
 import static org.assertj.core.api.Assertions.assertThat;

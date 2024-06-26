@@ -11,12 +11,11 @@ import com.iab.openrtb.request.Regs;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.http.HttpMethod;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -52,19 +51,17 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class StroeerCoreBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test.endpoint.com";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private CurrencyConversionService currencyConversionService;
 
     private StroeerCoreBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new StroeerCoreBidder(ENDPOINT_URL, jacksonMapper, currencyConversionService);
     }

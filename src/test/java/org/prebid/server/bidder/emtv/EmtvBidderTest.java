@@ -11,7 +11,7 @@ import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.emtv.proto.EmtvImpExtBidder;
 import org.prebid.server.bidder.emtv.proto.EmtvImpExtBidder.EmtvImpExtBidderBuilder;
@@ -274,4 +274,3 @@ public class EmtvBidderTest extends VertxTest {
                 JsonNode.class));
     }
 }
-

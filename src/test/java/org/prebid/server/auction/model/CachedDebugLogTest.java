@@ -1,11 +1,10 @@
 package org.prebid.server.auction.model;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.json.EncodeException;
@@ -23,17 +22,15 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 public class CachedDebugLogTest extends VertxTest {
 
     private CachedDebugLog cachedDebugLog;
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
     @Mock
     private JacksonMapper jacksonMapperMock;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         cachedDebugLog = new CachedDebugLog(true, 2000, Pattern.compile("[<>]"), jacksonMapper);
     }

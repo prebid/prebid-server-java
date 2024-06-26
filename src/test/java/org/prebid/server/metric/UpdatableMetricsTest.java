@@ -1,11 +1,10 @@
 package org.prebid.server.metric;
 
 import com.codahale.metrics.MetricRegistry;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.function.Function;
 
@@ -16,15 +15,13 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class UpdatableMetricsTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private MetricRegistry metricRegistry;
     private UpdatableMetrics updatableMetrics;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         metricRegistry = new MetricRegistry();
         updatableMetrics = givenUpdatableMetricsWith(CounterType.counter);

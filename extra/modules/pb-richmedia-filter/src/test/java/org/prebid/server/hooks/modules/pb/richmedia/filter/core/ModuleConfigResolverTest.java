@@ -3,8 +3,8 @@ package org.prebid.server.hooks.modules.pb.richmedia.filter.core;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.modules.pb.richmedia.filter.model.PbRichMediaFilterProperties;
 import org.prebid.server.json.ObjectMapperProvider;
 
@@ -22,7 +22,7 @@ public class ModuleConfigResolverTest {
 
     private ModuleConfigResolver target;
 
-    @Before
+    @BeforeEach
     public void before() {
         target = new ModuleConfigResolver(OBJECT_MAPPER, GLOBAL_PROPERTIES);
     }

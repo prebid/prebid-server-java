@@ -1,12 +1,11 @@
 package org.prebid.server.log;
 
 import io.vertx.core.Vertx;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -14,10 +13,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class CriteriaManagerTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule rule = MockitoJUnit.rule();
 
     @Mock
     private CriteriaLogManager criteriaLogManager;
@@ -26,7 +23,7 @@ public class CriteriaManagerTest extends VertxTest {
 
     private CriteriaManager criteriaManager;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         criteriaManager = new CriteriaManager(criteriaLogManager, vertx);
     }

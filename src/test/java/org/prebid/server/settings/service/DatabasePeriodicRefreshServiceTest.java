@@ -4,12 +4,11 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.metric.MetricName;
@@ -33,20 +32,19 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class DatabasePeriodicRefreshServiceTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private CacheNotificationListener cacheNotificationListener;
     @Mock
     private Vertx vertx;
-    @Mock
+    @Mock(strictness = LENIENT)
     private DatabaseClient databaseClient;
     private final Clock clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
     private final TimeoutFactory timeoutFactory = new TimeoutFactory(clock);
@@ -56,7 +54,7 @@ public class DatabasePeriodicRefreshServiceTest {
     private final Map<String, String> expectedRequests = singletonMap("id1", "value1");
     private final Map<String, String> expectedImps = singletonMap("id2", "value2");
 
-    @Before
+    @BeforeEach
     public void setUp() {
         final StoredDataResult initialResult = StoredDataResult.of(singletonMap("id1", "value1"),
                 singletonMap("id2", "value2"), emptyList());

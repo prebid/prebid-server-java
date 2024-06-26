@@ -2,7 +2,7 @@ package org.prebid.server.it.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.matching.MatchResult;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.json.ObjectMapperProvider;
 
 import java.io.IOException;

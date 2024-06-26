@@ -1,7 +1,7 @@
 package org.prebid.server.auction.adjustment;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
@@ -15,7 +15,7 @@ public class BidAdjustmentFactorResolverTest {
 
     private BidAdjustmentFactorResolver bidAdjustmentFactorResolver;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         bidAdjustmentFactorResolver = new BidAdjustmentFactorResolver();
     }
@@ -66,4 +66,3 @@ public class BidAdjustmentFactorResolverTest {
         assertThat(result).isEqualTo(BigDecimal.valueOf(1.234));
     }
 }
-
