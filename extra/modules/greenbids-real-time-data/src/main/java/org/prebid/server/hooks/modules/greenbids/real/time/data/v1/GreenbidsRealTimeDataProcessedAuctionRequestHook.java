@@ -13,10 +13,14 @@ import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.GreenbidsUserAgent;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ThrottlingMessage;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.InvocationResultImpl;
+import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
+import org.prebid.server.hooks.v1.InvocationStatus;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
@@ -141,7 +145,59 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                     }
                 });
 
-        return Future.succeededFuture();
+        // update Bid Request with filtered bidders
+        List<Imp> impsWithFilteredBidders = updateImps(bidRequest, impsBiddersFilterMap);
+        BidRequest updatedBidRequest = bidRequest.toBuilder().imp(impsWithFilteredBidders).build();
+
+        // update invocation result
+        InvocationResult<AuctionRequestPayload> invocationResult = InvocationResultImpl.<AuctionRequestPayload>builder()
+                .status(InvocationStatus.success)
+                .action(InvocationAction.update)
+                .errors(null)
+                .debugMessages(null)
+                .analyticsTags(null)
+                .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(updatedBidRequest))
+                .build();
+
+        return Future.succeededFuture(invocationResult);
+    }
+
+    private List<Imp> updateImps(BidRequest bidRequest, Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
+        return bidRequest.getImp().stream()
+                .map(imp -> updateImp(imp, impsBiddersFilterMap.get(imp.getId())))
+                .toList();
+    }
+
+    private Imp updateImp(Imp imp, Map<String, Boolean> bidderFilterMap) {
+        return imp.toBuilder()
+                .ext(updateImpExt(imp.getExt(), bidderFilterMap))
+                .build();
+    }
+
+    private ObjectNode updateImpExt(ObjectNode impExt, Map<String, Boolean> bidderFilterMap) {
+
+        ObjectNode bidderNode = Optional.ofNullable(impExt)
+                .map(ext -> extImpPrebid(ext.get("prebid")))
+                .map(ExtImpPrebid::getBidder)
+                .orElse(null);
+
+        //final JsonNode extPrebid = ext.path("prebid");
+        //final JsonNode impExtNode = imp.getExt();
+        //final JsonNode bidderExtNode = isNotEmptyOrMissedNode(impExtNode) ? impExtNode.get("bidder") : null;
+        //JsonNode bidderNode = extImpPrebid(impExt.get("prebid")).getBidder();
+
+        //final JsonNode extPrebid = ext.path("prebid");
+        //JsonNode bidderNode = extImpPrebid(ext.get("prebid")).getBidder();
+
+        for(Map.Entry<String, Boolean> entry: bidderFilterMap.entrySet()) {
+            String bidderName = entry.getKey();
+            Boolean isKeptInAuction = entry.getValue();
+
+            if (!isKeptInAuction & bidderNode != null) {
+                bidderNode.remove(bidderName);
+            }
+        }
+        return bidderNode;
     }
 
     private List<ThrottlingMessage> extractThrottlingMessages(
@@ -212,38 +268,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
             result[i][9] = message.getMinuteQuadrant();
         }
         return result;
-    }
-
-    private Imp updateImp(Imp imp, Map<String, Boolean> bidderFilterMap) {
-        return imp.toBuilder()
-                .ext(updateImpExt(imp.getExt(), bidderFilterMap))
-                .build();
-    }
-
-    private ObjectNode updateImpExt(ObjectNode impExt, Map<String, Boolean> bidderFilterMap) {
-
-        ObjectNode bidderNode = Optional.ofNullable(impExt)
-                .map(ext -> extImpPrebid(ext.get("prebid")))
-                .map(ExtImpPrebid::getBidder)
-                .orElse(null);
-
-        //final JsonNode extPrebid = ext.path("prebid");
-        //final JsonNode impExtNode = imp.getExt();
-        //final JsonNode bidderExtNode = isNotEmptyOrMissedNode(impExtNode) ? impExtNode.get("bidder") : null;
-        //JsonNode bidderNode = extImpPrebid(impExt.get("prebid")).getBidder();
-
-        //final JsonNode extPrebid = ext.path("prebid");
-        //JsonNode bidderNode = extImpPrebid(ext.get("prebid")).getBidder();
-
-        for(Map.Entry<String, Boolean> entry: bidderFilterMap.entrySet()) {
-            String bidderName = entry.getKey();
-            Boolean isKeptInAUction = entry.getValue();
-
-            if (!isKeptInAUction & bidderNode != null) {
-                bidderNode.remove(bidderName);
-            }
-        }
-        return bidderNode;
     }
 
     @Override
