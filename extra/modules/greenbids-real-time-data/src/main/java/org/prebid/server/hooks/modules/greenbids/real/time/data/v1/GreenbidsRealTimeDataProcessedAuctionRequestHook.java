@@ -36,7 +36,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -114,7 +113,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         long duration = (endTime - startTime); // in nanoseconds
         System.out.println("Inference time: " + duration / 1000000.0 + " ms");
 
-        double threshold = 0.15;
+        //double threshold = 0.5;
+        List<Double> threshold = Arrays.asList(0.1, 0.9, 0.2);
         Map<String, Map<String, Boolean>> impsBiddersFilterMap = new HashMap<>();
 
         StreamSupport.stream(results.spliterator(), false)
@@ -135,7 +135,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                             ThrottlingMessage message = throttlingMessages.get(i);
                             String impId = message.getAdUnitCode();
                             String bidder = message.getBidder();
-                            boolean isKeptInAuction = probas[i][1] > threshold;
+                            boolean isKeptInAuction = probas[i][1] > threshold.get(i);
 
                             impsBiddersFilterMap.computeIfAbsent(impId, k -> new HashMap<>())
                                     .put(bidder, isKeptInAuction);
@@ -149,6 +149,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         List<Imp> impsWithFilteredBidders = updateImps(bidRequest, impsBiddersFilterMap);
         BidRequest updatedBidRequest = bidRequest.toBuilder().imp(impsWithFilteredBidders).build();
 
+
         // update invocation result
         InvocationResult<AuctionRequestPayload> invocationResult = InvocationResultImpl.<AuctionRequestPayload>builder()
                 .status(InvocationStatus.success)
@@ -158,6 +159,14 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 .analyticsTags(null)
                 .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(updatedBidRequest))
                 .build();
+
+        System.out.println(
+                "GreenbidsRealTimeDataProcessedAuctionRequestHook/call" + "\n" +
+                        "impsBiddersFilterMap: " + impsBiddersFilterMap + "\n" +
+                        "impsWithFilteredBidders: " + impsWithFilteredBidders + "\n" +
+                        "updatedBidRequest: " + updatedBidRequest + "\n" +
+                        "invocationResult: " + invocationResult
+        );
 
         return Future.succeededFuture(invocationResult);
     }
@@ -175,29 +184,23 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     }
 
     private ObjectNode updateImpExt(ObjectNode impExt, Map<String, Boolean> bidderFilterMap) {
+        ObjectNode updatedExt = impExt.deepCopy();
+        ObjectNode prebidNode = (ObjectNode) updatedExt.get("prebid");
+        if (prebidNode != null) {
+            ObjectNode bidderNode = (ObjectNode) prebidNode.get("bidder");
+            if (bidderNode != null) {
+                for(Map.Entry<String, Boolean> entry: bidderFilterMap.entrySet()) {
+                    String bidderName = entry.getKey();
+                    Boolean isKeptInAuction = entry.getValue();
 
-        ObjectNode bidderNode = Optional.ofNullable(impExt)
-                .map(ext -> extImpPrebid(ext.get("prebid")))
-                .map(ExtImpPrebid::getBidder)
-                .orElse(null);
-
-        //final JsonNode extPrebid = ext.path("prebid");
-        //final JsonNode impExtNode = imp.getExt();
-        //final JsonNode bidderExtNode = isNotEmptyOrMissedNode(impExtNode) ? impExtNode.get("bidder") : null;
-        //JsonNode bidderNode = extImpPrebid(impExt.get("prebid")).getBidder();
-
-        //final JsonNode extPrebid = ext.path("prebid");
-        //JsonNode bidderNode = extImpPrebid(ext.get("prebid")).getBidder();
-
-        for(Map.Entry<String, Boolean> entry: bidderFilterMap.entrySet()) {
-            String bidderName = entry.getKey();
-            Boolean isKeptInAuction = entry.getValue();
-
-            if (!isKeptInAuction & bidderNode != null) {
-                bidderNode.remove(bidderName);
+                    if (!isKeptInAuction) {
+                        bidderNode.remove(bidderName);
+                    }
+                }
             }
         }
-        return bidderNode;
+
+        return updatedExt;
     }
 
     private List<ThrottlingMessage> extractThrottlingMessages(
