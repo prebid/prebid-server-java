@@ -29,7 +29,7 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
     private static final String PATTERN_NAME_ACCOUNT = PBSUtils.randomString
     private final PrebidServerService pbsServiceWithEnabledMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME))
     private final PrebidServerService pbsServiceWithEnabledMediaFilterAndDifferentCaseStrategy = pbsServiceFactory.getService(
-            (getRichMediaFilterSettings(PATTERN_NAME) + ["hooks.host-execution-plan": encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_RICHMEDIA_FILTER, ALL_PROCESSED_BID_RESPONSES).tap {
+            (getRichMediaFilterSettings(PATTERN_NAME) + ["hooks.host-execution-plan": encode(ExecutionPlan.getSingleEndpointExecutionPlan(OPENRTB2_AUCTION, PB_RICHMEDIA_FILTER, [ALL_PROCESSED_BID_RESPONSES]).tap {
                 endpoints.values().first().stages.values().first().groups.first.hookSequenceSnakeCase = [new HookId(moduleCodeSnakeCase: PB_RICHMEDIA_FILTER.code, hookImplCodeSnakeCase: "${PB_RICHMEDIA_FILTER.code}-${ALL_PROCESSED_BID_RESPONSES.value}-hook")]})])
                     .collectEntries { key, value -> [(key.toString()): value.toString()] })
     private final PrebidServerService pbsServiceWithDisabledMediaFilter = pbsServiceFactory.getService(getRichMediaFilterSettings(PATTERN_NAME, false))
