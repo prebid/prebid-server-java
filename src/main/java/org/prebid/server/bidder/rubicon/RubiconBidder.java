@@ -141,12 +141,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private static final String FPD_GPID_FIELD = "gpid";
     private static final String FPD_SKADN_FIELD = "skadn";
-    private static final String FPD_SECTIONCAT_FIELD = "sectioncat";
-    private static final String FPD_PAGECAT_FIELD = "pagecat";
     private static final String FPD_PAGE_FIELD = "page";
-    private static final String FPD_REF_FIELD = "ref";
-    private static final String FPD_SEARCH_FIELD = "search";
-    private static final String FPD_CONTEXT_FIELD = "context";
     private static final String FPD_DATA_FIELD = "data";
     private static final String FPD_DATA_PBADSLOT_FIELD = "pbadslot";
     private static final String FPD_ADSERVER_FIELD = "adserver";
@@ -157,7 +152,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String PREBID_EXT = "prebid";
 
     private static final String PPUID_STYPE = "ppuid";
-    private static final String OTHER_STYPE = "other";
     private static final String SHA256EMAIL_STYPE = "sha256email";
     private static final String DMP_STYPE = "dmp";
     private static final String XAPI_CURRENCY = "USD";
@@ -728,16 +722,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
             populateFirstPartyDataAttributes(siteExt.getData(), result);
         }
 
-        // merge OPENRTB.site.sectioncat to every impression XAPI.imp[].ext.rp.target.sectioncat
-        mergeCollectionAttributeIntoArray(result, site, Site::getSectioncat, FPD_SECTIONCAT_FIELD);
-        // merge OPENRTB.site.pagecat to every impression XAPI.imp[].ext.rp.target.pagecat
-        mergeCollectionAttributeIntoArray(result, site, Site::getPagecat, FPD_PAGECAT_FIELD);
         // merge OPENRTB.site.page to every impression XAPI.imp[].ext.rp.target.page
         mergeStringAttributeIntoArray(result, site, Site::getPage, FPD_PAGE_FIELD);
-        // merge OPENRTB.site.ref to every impression XAPI.imp[].ext.rp.target.ref
-        mergeStringAttributeIntoArray(result, site, Site::getRef, FPD_REF_FIELD);
-        // merge OPENRTB.site.search to every impression XAPI.imp[].ext.rp.target.search
-        mergeStringAttributeIntoArray(result, site, Site::getSearch, FPD_SEARCH_FIELD);
     }
 
     private void mergeFirstPartyDataFromApp(App app, ObjectNode result) {
@@ -746,11 +732,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (appExt != null) {
             populateFirstPartyDataAttributes(appExt.getData(), result);
         }
-
-        // merge OPENRTB.app.sectioncat to every impression XAPI.imp[].ext.rp.target.sectioncat
-        mergeCollectionAttributeIntoArray(result, app, App::getSectioncat, FPD_SECTIONCAT_FIELD);
-        // merge OPENRTB.app.pagecat to every impression XAPI.imp[].ext.rp.target.pagecat
-        mergeCollectionAttributeIntoArray(result, app, App::getPagecat, FPD_PAGECAT_FIELD);
     }
 
     private void mergeFirstPartyDataFromImp(Imp imp,
@@ -761,12 +742,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         mergeFirstPartyDataKeywords(imp, result);
         // merge OPENRTB.imp[].ext.rubicon.keywords to XAPI.imp[].ext.rp.target.keywords
         mergeCollectionAttributeIntoArray(result, rubiconImpExt, ExtImpRubicon::getKeywords, FPD_KEYWORDS_FIELD);
-        // merge OPENRTB.imp[].ext.data.search to XAPI.imp[].ext.rp.target.search
-        mergeStringAttributeIntoArray(
-                result,
-                imp.getExt().get(FPD_DATA_FIELD),
-                node -> getTextValueFromNodeByPath(node, FPD_SEARCH_FIELD),
-                FPD_SEARCH_FIELD);
     }
 
     private void mergeFirstPartyDataFromData(Imp imp, ObjectNode result) {

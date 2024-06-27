@@ -385,6 +385,6 @@ class RichMediaFilterSpec extends ModuleBaseSpec {
     private static List<AnalyticResult> getAnalyticResults(BidResponse response) {
         response.ext.prebid.modules?.trace?.stages?.first()
                 ?.outcomes?.first()?.groups?.first()
-                ?.invocationResults?.first()?.analyticStags?.activities
+                ?.invocationResults?.first()?.analyticsTags?.activities
     }
 }

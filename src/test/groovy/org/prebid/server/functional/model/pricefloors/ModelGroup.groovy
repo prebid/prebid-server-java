@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import groovy.transform.EqualsAndHashCode
 import groovy.transform.ToString
 import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.util.PBSUtils
 
 @EqualsAndHashCode
@@ -18,6 +19,7 @@ class ModelGroup {
     Map<String, BigDecimal> values
     @JsonProperty("default")
     BigDecimal defaultFloor
+    List<BidderName> noFloorSignalBidders
 
     static ModelGroup getModelGroup() {
         new ModelGroup(

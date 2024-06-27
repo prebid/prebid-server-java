@@ -91,6 +91,7 @@ Removes and downloads file again if depending service cant process probably corr
 - `auction.validations.secure-markup` - enables secure markup validation. Possible values: `skip`, `enforce`, `warn`. Default is `skip`.
 - `auction.host-schain-node` - defines global schain node that will be appended to `request.source.ext.schain.nodes` passed to bidders
 - `auction.category-mapping-enabled` - if equals to `true` the category mapping feature will be active while auction.
+- `auction.strict-app-site-dooh` - if set to `true`, it will reject requests that contain more than one of app/site/dooh. Defaults to `false`.
 
 ## Event
 - `event.default-timeout-ms` - timeout for event notifications
@@ -215,6 +216,12 @@ Also, each bidder could have its own bidder-specific options.
 
 So far metrics cannot be submitted simultaneously to many backends. Currently we support `graphite` and `influxdb`. 
 Also, for debug purposes you can use `console` as metrics backend.
+
+For `logback` backend type available next options:
+- `metrics.logback.enabled` - if equals to `true` then logback reporter will be started.
+- `metrics.logback.name` - name of logger element in the logback configuration file.
+- `metrics.logback.interval` - interval in seconds between successive sending metrics.
+
 
 For `graphite` backend type available next options:
 - `metrics.graphite.enabled` - if equals to `true` then `graphite` will be used to submit metrics.

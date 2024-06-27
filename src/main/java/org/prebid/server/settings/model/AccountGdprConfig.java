@@ -13,6 +13,9 @@ public class AccountGdprConfig {
 
     Boolean enabled;
 
+    @JsonAlias("eea-countries")
+    String eeaCountries;
+
     @JsonProperty("channel_enabled")
     @JsonAlias("channel-enabled")
     EnabledForRequestType enabledForRequestType;

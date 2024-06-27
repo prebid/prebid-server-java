@@ -10,6 +10,7 @@ import groovy.transform.ToString
 class AccountAnalyticsConfig {
 
     Map<String, Boolean> auctionEvents
+    Boolean allowClientDetails
 
     @JsonProperty("auction_events")
     Map<String, Boolean> auctionEventsSnakeCase

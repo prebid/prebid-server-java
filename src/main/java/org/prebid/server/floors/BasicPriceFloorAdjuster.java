@@ -4,6 +4,7 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import org.apache.commons.lang3.ObjectUtils;
 import org.prebid.server.auction.adjustment.FloorAdjustmentFactorResolver;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.floors.model.PriceFloorEnforcement;
 import org.prebid.server.floors.model.PriceFloorRules;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
@@ -19,6 +20,7 @@ import org.prebid.server.util.ObjectUtil;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -33,21 +35,28 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
     }
 
     @Override
-    public BigDecimal adjustForImp(Imp imp, String bidder, BidRequest bidRequest, Account account) {
+    public Price adjustForImp(Imp imp,
+                              String bidder,
+                              BidRequest bidRequest,
+                              Account account,
+                              List<String> debugWarnings) {
+
         final ExtRequestBidAdjustmentFactors extractBidAdjustmentFactors = extractBidAdjustmentFactors(bidRequest);
         final BigDecimal impBidFloor = imp.getBidfloor();
 
         if (!shouldAdjustBidFloor(bidRequest, account) || impBidFloor == null || extractBidAdjustmentFactors == null) {
-            return impBidFloor;
+            return Price.of(imp.getBidfloorcur(), impBidFloor);
         }
 
         final Set<ImpMediaType> impMediaTypes = retrieveImpMediaTypes(imp);
         final BigDecimal factor = floorAdjustmentFactorResolver.resolve(
                 impMediaTypes, extractBidAdjustmentFactors, bidder);
 
-        return factor != null
+        final BigDecimal adjustedBidFloor = factor != null
                 ? BidderUtil.roundFloor(impBidFloor.divide(factor, ADJUSTMENT_SCALE, RoundingMode.HALF_EVEN))
                 : impBidFloor;
+
+        return Price.of(imp.getBidfloorcur(), adjustedBidFloor);
     }
 
     private static boolean shouldAdjustBidFloor(BidRequest bidRequest, Account account) {

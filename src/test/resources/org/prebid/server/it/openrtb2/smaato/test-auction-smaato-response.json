@@ -10,6 +10,7 @@
           "id": "bid_id",
           "impid": "imp_id",
           "price": 0.01,
+          "exp": 300,
           "ext": {
             "prebid": {
               "type": "banner"

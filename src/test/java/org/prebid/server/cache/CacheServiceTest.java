@@ -24,7 +24,6 @@ import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.CacheInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
-import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
@@ -42,7 +41,6 @@ import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.settings.model.Account;
-import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.vast.VastModifier;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -82,8 +80,6 @@ public class CacheServiceTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    private final CacheTtl mediaTypeCacheTtl = CacheTtl.of(null, null);
-
     @Mock
     private HttpClient httpClient;
     @Mock
@@ -110,7 +106,6 @@ public class CacheServiceTest extends VertxTest {
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
 
         cacheService = new CacheService(
-                mediaTypeCacheTtl,
                 httpClient,
                 new URL("http://cache-service/cache"),
                 "http://cache-service-host/cache?uuid=",
@@ -478,212 +473,42 @@ public class CacheServiceTest extends VertxTest {
     }
 
     @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlAndSetTtlFromBid() throws IOException {
+    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlFromBidInfo() throws IOException {
         // given
         final BidInfo bidInfo = givenBidInfo(
                 bidBuilder -> bidBuilder.id("bidId1").exp(10),
-                impBuilder -> impBuilder.id("impId1").exp(20));
+                impBuilder -> impBuilder.id("impId1").exp(20))
+                .toBuilder().ttl(1000).build();
 
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
                 singletonList(bidInfo),
                 givenAuctionContext(),
-                CacheContext.builder()
-                        .shouldCacheBids(true)
-                        .cacheBidsTtl(30)
-                        .build(),
+                CacheContext.builder().shouldCacheBids(true).build(),
                 eventsContext);
 
         // then
         final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
         assertThat(bidCacheRequest.getPuts()).hasSize(1)
                 .extracting(PutObject::getTtlseconds)
-                .containsOnly(10);
+                .containsOnly(1000);
 
         final CacheServiceResult result = future.result();
         assertThat(result.getCacheBids().values())
                 .flatExtracting(CacheInfo::getTtl)
-                .containsExactly(10);
-    }
-
-    @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlAndSetTtlFromImp() throws IOException {
-        // given
-        final BidInfo bidInfo = givenBidInfo(
-                bidBuilder -> bidBuilder.id("bidId1"),
-                impBuilder -> impBuilder.id("impId1").exp(10));
-
-        // when
-        final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
-                singletonList(bidInfo),
-                givenAuctionContext(),
-                CacheContext.builder()
-                        .shouldCacheBids(true)
-                        .cacheBidsTtl(20)
-                        .build(),
-                eventsContext);
-
-        // then
-        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
-        assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .extracting(PutObject::getTtlseconds)
-                .containsOnly(10);
-
-        final CacheServiceResult result = future.result();
-        assertThat(result.getCacheBids().values())
-                .flatExtracting(CacheInfo::getTtl)
-                .containsExactly(10);
-    }
-
-    @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlAndSetTtlFromRequest() throws IOException {
-        // when
-        final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
-                singletonList(givenBidInfo(bidBuilder -> bidBuilder.id("bidId1"))),
-                givenAuctionContext(),
-                CacheContext.builder()
-                        .shouldCacheBids(true)
-                        .cacheBidsTtl(10)
-                        .build(),
-                eventsContext);
-
-        // then
-        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
-        assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .extracting(PutObject::getTtlseconds)
-                .containsOnly(10);
-
-        final CacheServiceResult result = future.result();
-        assertThat(result.getCacheBids().values())
-                .flatExtracting(CacheInfo::getTtl)
-                .containsExactly(10);
-    }
-
-    @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlAndSetTtlFromAccountBannerTtl()
-            throws IOException {
-        // given
-        cacheService = new CacheService(
-                CacheTtl.of(20, null),
-                httpClient,
-                new URL("http://cache-service/cache"),
-                "http://cache-service-host/cache?uuid=",
-                100L,
-                vastModifier,
-                eventsService,
-                metrics,
-                clock,
-                idGenerator,
-                jacksonMapper);
-
-        // when
-        final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
-                singletonList(givenBidInfo(bidBuilder -> bidBuilder.id("bidId1"))),
-                givenAuctionContext(
-                        accountBuilder -> accountBuilder.auction(AccountAuctionConfig.builder()
-                                .bannerCacheTtl(10)
-                                .build()),
-                        identity()),
-                CacheContext.builder()
-                        .shouldCacheBids(true)
-                        .build(),
-                eventsContext);
-
-        // then
-        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
-        assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .extracting(PutObject::getTtlseconds)
-                .containsOnly(10);
-
-        final CacheServiceResult result = future.result();
-        assertThat(result.getCacheBids().values())
-                .flatExtracting(CacheInfo::getTtl)
-                .containsExactly(10);
-    }
-
-    @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithExpectedTtlAndSetTtlFromMediaTypeTtl() throws IOException {
-        // given
-        cacheService = new CacheService(
-                CacheTtl.of(10, null),
-                httpClient,
-                new URL("http://cache-service/cache"),
-                "http://cache-service-host/cache?uuid=",
-                100L,
-                vastModifier,
-                eventsService,
-                metrics,
-                clock,
-                idGenerator,
-                jacksonMapper);
-
-        // when
-        final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
-                singletonList(givenBidInfo(bidBuilder -> bidBuilder.id("bidId1"))),
-                givenAuctionContext(),
-                CacheContext.builder()
-                        .shouldCacheBids(true)
-                        .build(),
-                eventsContext);
-
-        // then
-        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
-        assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .extracting(PutObject::getTtlseconds)
-                .containsOnly(10);
-
-        final CacheServiceResult result = future.result();
-        assertThat(result.getCacheBids().values())
-                .flatExtracting(CacheInfo::getTtl)
-                .containsExactly(10);
-    }
-
-    @Test
-    public void cacheBidsOpenrtbShouldSendCacheRequestWithTtlFromMediaTypeWhenAccountIsEmpty() throws IOException {
-        // given
-        cacheService = new CacheService(
-                CacheTtl.of(10, null),
-                httpClient,
-                new URL("http://cache-service/cache"),
-                "http://cache-service-host/cache?uuid=",
-                100L,
-                vastModifier,
-                eventsService,
-                metrics,
-                clock,
-                idGenerator,
-                jacksonMapper);
-
-        // when
-        final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
-                singletonList(givenBidInfo(bidBuilder -> bidBuilder.id("bidId1"))),
-                givenAuctionContext(),
-                CacheContext.builder()
-                        .shouldCacheBids(true)
-                        .build(),
-                eventsContext);
-
-        // then
-        final BidCacheRequest bidCacheRequest = captureBidCacheRequest();
-        assertThat(bidCacheRequest.getPuts()).hasSize(1)
-                .extracting(PutObject::getTtlseconds)
-                .containsOnly(10);
-
-        final CacheServiceResult result = future.result();
-        assertThat(result.getCacheBids().values())
-                .flatExtracting(CacheInfo::getTtl)
-                .containsExactly(10);
+                .containsExactly(1000);
     }
 
     @Test
     public void cacheBidsOpenrtbShouldSendCacheRequestWithNoTtlAndSetEmptyTtl() throws IOException {
+        // given
+        final BidInfo givenBidInfo = givenBidInfo(bidBuilder -> bidBuilder.id("bidId1")).toBuilder().ttl(null).build();
+
         // when
         final Future<CacheServiceResult> future = cacheService.cacheBidsOpenrtb(
-                singletonList(givenBidInfo(bidBuilder -> bidBuilder.id("bidId1"))),
+                singletonList(givenBidInfo),
                 givenAuctionContext(),
-                CacheContext.builder()
-                        .shouldCacheBids(true)
-                        .build(),
+                CacheContext.builder().shouldCacheBids(true).build(),
                 eventsContext);
 
         // then

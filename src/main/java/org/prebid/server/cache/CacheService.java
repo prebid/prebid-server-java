@@ -3,13 +3,11 @@ package org.prebid.server.cache;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import lombok.Value;
 import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidInfo;
@@ -20,7 +18,6 @@ import org.prebid.server.cache.model.CacheHttpRequest;
 import org.prebid.server.cache.model.CacheHttpResponse;
 import org.prebid.server.cache.model.CacheInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
-import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.cache.proto.request.BidCacheRequest;
 import org.prebid.server.cache.proto.request.PutObject;
@@ -76,7 +73,6 @@ public class CacheService {
     private static final String XML_CREATIVE_TYPE = "xml";
     private static final String JSON_CREATIVE_TYPE = "json";
 
-    private final CacheTtl mediaTypeCacheTtl;
     private final HttpClient httpClient;
     private final URL endpointUrl;
     private final String cachedAssetUrlTemplate;
@@ -88,8 +84,7 @@ public class CacheService {
     private final UUIDIdGenerator idGenerator;
     private final JacksonMapper mapper;
 
-    public CacheService(CacheTtl mediaTypeCacheTtl,
-                        HttpClient httpClient,
+    public CacheService(HttpClient httpClient,
                         URL endpointUrl,
                         String cachedAssetUrlTemplate,
                         long expectedCacheTimeMs,
@@ -100,7 +95,6 @@ public class CacheService {
                         UUIDIdGenerator idGenerator,
                         JacksonMapper mapper) {
 
-        this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
         this.httpClient = Objects.requireNonNull(httpClient);
         this.endpointUrl = Objects.requireNonNull(endpointUrl);
         this.cachedAssetUrlTemplate = Objects.requireNonNull(cachedAssetUrlTemplate);
@@ -247,81 +241,28 @@ public class CacheService {
             return Future.succeededFuture(CacheServiceResult.empty());
         }
 
-        final List<Imp> imps = auctionContext.getBidRequest().getImp();
-        final boolean isAnyEmptyExpImp = imps.stream()
-                .map(Imp::getExp)
-                .anyMatch(Objects::isNull);
-
-        final Account account = auctionContext.getAccount();
-        final CacheTtl accountCacheTtl = accountCacheTtl(isAnyEmptyExpImp, account);
-
         final List<CacheBid> cacheBids = cacheContext.isShouldCacheBids()
-                ? getCacheBids(bidsToCache, cacheContext.getCacheBidsTtl(), accountCacheTtl)
+                ? getCacheBids(bidsToCache)
                 : Collections.emptyList();
 
         final List<CacheBid> videoCacheBids = cacheContext.isShouldCacheVideoBids()
-                ? getVideoCacheBids(bidsToCache, cacheContext.getCacheVideoBidsTtl(), accountCacheTtl)
+                ? getVideoCacheBids(bidsToCache)
                 : Collections.emptyList();
 
         return doCacheOpenrtb(cacheBids, videoCacheBids, auctionContext, eventsContext);
     }
 
-    /**
-     * Fetches {@link CacheTtl} from {@link Account}.
-     * <p>
-     * Returns empty {@link CacheTtl} when there are no impressions without expiration or
-     * if {@link Account} has neither of banner or video cache ttl.
-     */
-    private CacheTtl accountCacheTtl(boolean impWithNoExpExists, Account account) {
-        final AccountAuctionConfig accountAuctionConfig = account.getAuction();
-        final Integer bannerCacheTtl = accountAuctionConfig != null ? accountAuctionConfig.getBannerCacheTtl() : null;
-        final Integer videoCacheTtl = accountAuctionConfig != null ? accountAuctionConfig.getVideoCacheTtl() : null;
-
-        return impWithNoExpExists && (bannerCacheTtl != null || videoCacheTtl != null)
-                ? CacheTtl.of(bannerCacheTtl, videoCacheTtl)
-                : CacheTtl.empty();
-    }
-
-    private List<CacheBid> getCacheBids(List<BidInfo> bidInfos,
-                                        Integer cacheBidsTtl,
-                                        CacheTtl accountCacheTtl) {
-
+    private List<CacheBid> getCacheBids(List<BidInfo> bidInfos) {
         return bidInfos.stream()
-                .map(bidInfo -> toCacheBid(bidInfo, cacheBidsTtl, accountCacheTtl, false))
+                .map(bidInfo -> CacheBid.of(bidInfo, bidInfo.getTtl()))
                 .toList();
     }
 
-    private List<CacheBid> getVideoCacheBids(List<BidInfo> bidInfos,
-                                             Integer cacheBidsTtl,
-                                             CacheTtl accountCacheTtl) {
-
+    private List<CacheBid> getVideoCacheBids(List<BidInfo> bidInfos) {
         return bidInfos.stream()
                 .filter(bidInfo -> Objects.equals(bidInfo.getBidType(), BidType.video))
-                .map(bidInfo -> toCacheBid(bidInfo, cacheBidsTtl, accountCacheTtl, true))
+                .map(bidInfo -> CacheBid.of(bidInfo, bidInfo.getVideoTtl()))
                 .toList();
-    }
-
-    /**
-     * Creates {@link CacheBid} from given {@link BidInfo} and determined cache ttl.
-     */
-    private CacheBid toCacheBid(BidInfo bidInfo,
-                                Integer requestTtl,
-                                CacheTtl accountCacheTtl,
-                                boolean isVideoBid) {
-
-        final Bid bid = bidInfo.getBid();
-        final Integer bidTtl = bid.getExp();
-        final Imp correspondingImp = bidInfo.getCorrespondingImp();
-        final Integer impTtl = correspondingImp != null ? correspondingImp.getExp() : null;
-        final Integer accountMediaTypeTtl = isVideoBid
-                ? accountCacheTtl.getVideoCacheTtl()
-                : accountCacheTtl.getBannerCacheTtl();
-        final Integer mediaTypeTtl = isVideoBid
-                ? mediaTypeCacheTtl.getVideoCacheTtl()
-                : mediaTypeCacheTtl.getBannerCacheTtl();
-        final Integer ttl = ObjectUtils.firstNonNull(bidTtl, impTtl, requestTtl, accountMediaTypeTtl, mediaTypeTtl);
-
-        return CacheBid.of(bidInfo, ttl);
     }
 
     /**

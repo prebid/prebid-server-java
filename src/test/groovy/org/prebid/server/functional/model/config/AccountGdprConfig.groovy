@@ -11,6 +11,7 @@ import org.prebid.server.functional.model.ChannelType
 class AccountGdprConfig {
 
     Boolean enabled
+    String eeaCountries
     Map<ChannelType, Boolean> channelEnabled
     @JsonProperty("channel_enabled")
     Map<ChannelType, Boolean> channelEnabledSnakeCase
