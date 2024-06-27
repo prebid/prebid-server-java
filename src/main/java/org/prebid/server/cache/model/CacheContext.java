@@ -12,9 +12,5 @@ public class CacheContext {
 
     boolean shouldCacheBids;
 
-    Integer cacheBidsTtl;
-
     boolean shouldCacheVideoBids;
-
-    Integer cacheVideoBidsTtl;
 }

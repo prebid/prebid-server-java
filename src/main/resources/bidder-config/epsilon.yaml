@@ -1,6 +1,6 @@
 adapters:
   epsilon:
-    endpoint: http://api.hb.ad.cpe.dotomi.com/s2s/header/24
+    endpoint: http://api.hb.ad.cpe.dotomi.com/cvx/server/hb/ortb/25
     aliases:
       conversant:
         usersync:

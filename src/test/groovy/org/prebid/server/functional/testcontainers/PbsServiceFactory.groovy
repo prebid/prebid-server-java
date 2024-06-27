@@ -48,6 +48,12 @@ class PbsServiceFactory {
         remove(containers)
     }
 
+    static void removeContainer(Map<String, String> config) {
+        def container = containers.get(config)
+        container.stop()
+        containers.remove(config)
+    }
+
     private static void remove(Map<Map<String, String>, PrebidServerContainer> map) {
         map.each { key, value ->
             value.stop()

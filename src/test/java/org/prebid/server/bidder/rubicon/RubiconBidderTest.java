@@ -2535,30 +2535,6 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldMergeSiteSearchAndCopyToRubiconImpExtRpTarget()
-            throws JsonProcessingException {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.site(Site.builder().search("site search").build()),
-                impBuilder -> impBuilder.video(Video.builder().build()),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
-                .extracting(RubiconImpExt::getRp)
-                .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.readTree("{\"search\":[\"site search\"]}"));
-    }
-
-    @Test
     public void makeHttpRequestsShouldMergeSiteAttributesAndCopyToRubiconImpExtRpTarget() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -2585,16 +2561,7 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(RubiconImpExt::getRp)
                 .extracting(RubiconImpExtRp::getTarget)
                 .containsOnly(mapper.createObjectNode()
-                        .<ObjectNode>set("sectioncat", mapper.createArrayNode()
-                                .add("site sectioncat"))
-                        .<ObjectNode>set("pagecat", mapper.createArrayNode()
-                                .add("site pagecat"))
-                        .<ObjectNode>set("page", mapper.createArrayNode()
-                                .add("site page"))
-                        .<ObjectNode>set("ref", mapper.createArrayNode()
-                                .add("site ref"))
-                        .set("search", mapper.createArrayNode()
-                                .add("site search")));
+                        .<ObjectNode>set("page", mapper.createArrayNode().add("site page")));
     }
 
     @Test
@@ -2646,36 +2613,6 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Imp::getExt)
                 .extracting(ext -> ext.at("/rp/target/dfp_ad_unit_code"))
                 .containsExactly(TextNode.valueOf("adslotvalue"));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldMergeAppAttributesAndCopyToRubiconImpExtRpTarget() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                requestBuilder -> requestBuilder.app(App.builder()
-                        .sectioncat(singletonList("app sectioncat"))
-                        .pagecat(singletonList("app pagecat"))
-                        .build()),
-                impBuilder -> impBuilder.video(Video.builder().build()),
-                identity());
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getExt)
-                .extracting(objectNode -> mapper.convertValue(objectNode, RubiconImpExt.class))
-                .extracting(RubiconImpExt::getRp)
-                .extracting(RubiconImpExtRp::getTarget)
-                .containsOnly(mapper.createObjectNode()
-                        .<ObjectNode>set("sectioncat", mapper.createArrayNode()
-                                .add("app sectioncat"))
-                        .<ObjectNode>set("pagecat", mapper.createArrayNode()
-                                .add("app pagecat")));
     }
 
     @Test

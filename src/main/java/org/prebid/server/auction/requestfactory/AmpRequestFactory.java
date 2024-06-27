@@ -191,9 +191,12 @@ public class AmpRequestFactory {
 
         final String addtlConsent = addtlConsentFromQueryStringParams(httpRequest);
         final Integer gdpr = gdprFromQueryStringParams(httpRequest);
-        final GppSidExtraction gppSidExtraction = gppSidFromQueryStringParams(httpRequest);
-        final String gpc = implicitParametersExtractor.gpcFrom(httpRequest);
         final Integer debug = debugFromQueryStringParam(httpRequest);
+        final GppSidExtraction gppSidExtraction = gppSidFromQueryStringParams(
+                httpRequest,
+                debug != null && debug == 1,
+                auctionContext.getDebugWarnings());
+        final String gpc = implicitParametersExtractor.gpcFrom(httpRequest);
         final Long timeout = timeoutFromQueryString(httpRequest);
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -340,7 +343,10 @@ public class AmpRequestFactory {
         return null;
     }
 
-    private static GppSidExtraction gppSidFromQueryStringParams(HttpRequestContext httpRequest) {
+    private GppSidExtraction gppSidFromQueryStringParams(HttpRequestContext httpRequest,
+                                                         boolean debugEnabled,
+                                                         List<String> debugWarnings) {
+
         final String gppSidParam = httpRequest.getQueryParams().get(GPP_SID_PARAM);
 
         try {
@@ -352,6 +358,9 @@ public class AmpRequestFactory {
 
             return GppSidExtraction.success(gppSid);
         } catch (IllegalArgumentException e) {
+            if (debugEnabled) {
+                debugWarnings.add("Failed to parse gppSid: '%s'".formatted(gppSidParam));
+            }
             return GppSidExtraction.failed();
         }
     }

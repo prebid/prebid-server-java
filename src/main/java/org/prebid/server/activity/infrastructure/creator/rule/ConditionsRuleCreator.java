@@ -5,9 +5,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.activity.ComponentType;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.creator.ActivityControllerCreationContext;
-import org.prebid.server.activity.infrastructure.rule.GeoRule;
+import org.prebid.server.activity.infrastructure.rule.ConditionsRule;
 import org.prebid.server.activity.infrastructure.rule.Rule;
-import org.prebid.server.settings.model.activity.rule.AccountActivityGeoRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityConditionsRuleConfig;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -16,20 +16,20 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class GeoRuleCreator extends AbstractRuleCreator<AccountActivityGeoRuleConfig> {
+public class ConditionsRuleCreator extends AbstractRuleCreator<AccountActivityConditionsRuleConfig> {
 
-    public GeoRuleCreator() {
-        super(AccountActivityGeoRuleConfig.class);
+    public ConditionsRuleCreator() {
+        super(AccountActivityConditionsRuleConfig.class);
     }
 
     @Override
-    protected Rule fromConfiguration(AccountActivityGeoRuleConfig ruleConfiguration,
+    protected Rule fromConfiguration(AccountActivityConditionsRuleConfig ruleConfiguration,
                                      ActivityControllerCreationContext creationContext) {
 
         final boolean allow = allowFromConfig(ruleConfiguration.getAllow());
-        final AccountActivityGeoRuleConfig.Condition condition = ruleConfiguration.getCondition();
+        final AccountActivityConditionsRuleConfig.Condition condition = ruleConfiguration.getCondition();
 
-        return new GeoRule(
+        return new ConditionsRule(
                 condition != null ? setOf(condition.getComponentTypes()) : null,
                 condition != null ? caseInsensitiveSetOf(condition.getComponentNames()) : null,
                 sidsMatched(condition, creationContext.getGppContext().scope().getSectionsIds()),
@@ -56,7 +56,7 @@ public class GeoRuleCreator extends AbstractRuleCreator<AccountActivityGeoRuleCo
         return caseInsensitiveSet;
     }
 
-    private static boolean sidsMatched(AccountActivityGeoRuleConfig.Condition condition, Set<Integer> gppSids) {
+    private static boolean sidsMatched(AccountActivityConditionsRuleConfig.Condition condition, Set<Integer> gppSids) {
         final List<Integer> sids = condition != null ? condition.getSids() : null;
         return sids == null || intersects(sids, gppSids);
     }
@@ -66,28 +66,28 @@ public class GeoRuleCreator extends AbstractRuleCreator<AccountActivityGeoRuleCo
                 && !CollectionUtils.intersection(configurationSids, gppSids).isEmpty();
     }
 
-    private static List<GeoRule.GeoCode> geoCodes(List<String> stringGeoCodes) {
+    private static List<ConditionsRule.GeoCode> geoCodes(List<String> stringGeoCodes) {
         return stringGeoCodes != null
                 ? stringGeoCodes.stream()
-                .map(GeoRuleCreator::from)
+                .map(ConditionsRuleCreator::from)
                 .filter(Objects::nonNull)
                 .toList()
                 : null;
     }
 
-    private static GeoRule.GeoCode from(String stringGeoCode) {
+    private static ConditionsRule.GeoCode from(String stringGeoCode) {
         if (StringUtils.isBlank(stringGeoCode)) {
             return null;
         }
 
         final int firstDot = stringGeoCode.indexOf(".");
         if (firstDot == -1) {
-            return GeoRule.GeoCode.of(stringGeoCode, null);
+            return ConditionsRule.GeoCode.of(stringGeoCode, null);
         } else if (firstDot == stringGeoCode.length() - 1) {
-            return GeoRule.GeoCode.of(stringGeoCode.substring(0, firstDot), null);
+            return ConditionsRule.GeoCode.of(stringGeoCode.substring(0, firstDot), null);
         }
 
-        return GeoRule.GeoCode.of(
+        return ConditionsRule.GeoCode.of(
                 stringGeoCode.substring(0, firstDot),
                 stringGeoCode.substring(firstDot + 1));
     }
