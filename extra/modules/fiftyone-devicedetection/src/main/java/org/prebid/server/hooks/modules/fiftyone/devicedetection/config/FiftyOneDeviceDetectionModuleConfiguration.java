@@ -11,21 +11,14 @@ import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.Mod
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.Module;
-import org.prebid.server.spring.env.YamlPropertySourceFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Configuration
-@PropertySource(
-        value = "classpath:/module-config/" + FiftyOneDeviceDetectionModule.CODE + ".yaml",
-        factory = YamlPropertySourceFactory.class)
 @ConditionalOnProperty(prefix = "hooks." + FiftyOneDeviceDetectionModule.CODE, name = "enabled", havingValue = "true")
 public class FiftyOneDeviceDetectionModuleConfiguration {
     @Bean
@@ -46,10 +39,10 @@ public class FiftyOneDeviceDetectionModuleConfiguration {
 
     @Bean
     Module fiftyOneDeviceDetectionModule(ModuleConfig moduleConfig, DeviceEnricher deviceEnricher) {
-        final Set<? extends Hook<?, ? extends InvocationContext>> hooks = Stream.of(
+        final Set<? extends Hook<?, ? extends InvocationContext>> hooks = Set.of(
                 new FiftyOneDeviceDetectionEntrypointHook(),
                 new FiftyOneDeviceDetectionRawAuctionRequestHook(moduleConfig.getAccountFilter(), deviceEnricher)
-        ).collect(Collectors.toSet());
+        );
 
         return new FiftyOneDeviceDetectionModule(hooks);
     }

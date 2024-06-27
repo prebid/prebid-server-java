@@ -52,6 +52,38 @@ public class DeviceEnricherTest {
         target = new DeviceEnricher(pipeline);
     }
 
+    // MARK: - shouldSkipEnriching
+
+    @Test
+    public void shouldSkipEnrichingShouldReturnFalseWhenExtIsNull() {
+        // given
+        final Device device = Device.builder().build();
+
+        // when and then
+        assertThat(DeviceEnricher.shouldSkipEnriching(device)).isFalse();
+    }
+
+    @Test
+    public void shouldSkipEnrichingShouldReturnFalseWhenExtIsEmpty() {
+        // given
+        final ExtDevice ext = ExtDevice.empty();
+        final Device device = Device.builder().ext(ext).build();
+
+        // when and then
+        assertThat(DeviceEnricher.shouldSkipEnriching(device)).isFalse();
+    }
+
+    @Test
+    public void shouldSkipEnrichingShouldReturnTrueWhenExtContainsProfileID() {
+        // given
+        final ExtDevice ext = ExtDevice.empty();
+        ext.addProperty("fiftyonedegrees_deviceId", new TextNode("0-0-0-0"));
+        final Device device = Device.builder().ext(ext).build();
+
+        // when and then
+        assertThat(DeviceEnricher.shouldSkipEnriching(device)).isTrue();
+    }
+
     // MARK: - populateDeviceInfo
 
     @Test
@@ -246,7 +278,18 @@ public class DeviceEnricherTest {
         final EnrichmentResult result = target.populateDeviceInfo(device, collectedEvidence);
 
         // then
-        assertThat(result.enrichedFields()).hasSize(10);
+        assertThat(result.enrichedFields()).containsExactly(
+                "devicetype",
+                "make",
+                "model",
+                "os",
+                "osv",
+                "h",
+                "w",
+                "ppi",
+                "pxratio",
+                "ext.fiftyonedegrees_deviceId"
+        );
     }
 
     @Test
@@ -435,6 +478,25 @@ public class DeviceEnricherTest {
         // then
         assertThat(result.enrichedFields()).hasSize(1);
         assertThat(result.enrichedDevice().getPpi()).isEqualTo(buildCompleteDevice().getPpi());
+    }
+
+    @Test
+    public void populateDeviceInfoShouldReturnNullWhenScreenInchesHeightIsZero() throws Exception {
+        // given
+        final Device testDevice = buildCompleteDevice().toBuilder()
+                .ppi(null)
+                .build();
+
+        // when
+        buildCompleteDeviceData();
+        when(deviceData.getScreenInchesHeight()).thenReturn(aspectPropertyValueWith(0.0));
+        final CollectedEvidence collectedEvidence = CollectedEvidence.builder()
+                .deviceUA("fake-UserAgent")
+                .build();
+        final EnrichmentResult result = target.populateDeviceInfo(testDevice, collectedEvidence);
+
+        // then
+        assertThat(result).isNull();
     }
 
     @Test

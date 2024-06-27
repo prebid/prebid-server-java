@@ -24,12 +24,8 @@ import io.vertx.core.Future;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.util.ObjectUtil;
 
-import jakarta.annotation.Nonnull;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
 
 public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionRequestHook {
     private static final String CODE = "fiftyone-devicedetection-raw-auction-request-hook";
@@ -37,10 +33,9 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
     private final AccountFilter accountFilter;
     private final DeviceEnricher deviceEnricher;
 
-    public FiftyOneDeviceDetectionRawAuctionRequestHook(@Nonnull AccountFilter accountFilter,
-                                                        @Nonnull DeviceEnricher deviceEnricher) {
-        this.accountFilter = Objects.requireNonNull(accountFilter);
-        this.deviceEnricher = Objects.requireNonNull(deviceEnricher);
+    public FiftyOneDeviceDetectionRawAuctionRequestHook(AccountFilter accountFilter, DeviceEnricher deviceEnricher) {
+        this.accountFilter = accountFilter;
+        this.deviceEnricher = deviceEnricher;
     }
 
     @Override
@@ -51,11 +46,9 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
     @Override
     public Future<InvocationResult<AuctionRequestPayload>> call(AuctionRequestPayload payload,
                                                                 AuctionInvocationContext invocationContext) {
-        final ModuleContext oldModuleContext = (ModuleContext) ObjectUtil.getIfNotNull(
-                invocationContext,
-                AuctionInvocationContext::moduleContext);
+        final ModuleContext oldModuleContext = (ModuleContext) invocationContext.moduleContext();
 
-        if (!isAccountAllowed(invocationContext)) {
+        if (shouldSkipEnriching(payload, invocationContext)) {
             return Future.succeededFuture(
                     InvocationResultImpl.<AuctionRequestPayload>builder()
                             .status(InvocationStatus.success)
@@ -66,7 +59,7 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
 
         final ModuleContext moduleContext = addEvidenceToContext(
                 oldModuleContext,
-                builder -> collectEvidence(builder, payload.bidRequest()));
+                payload.bidRequest());
 
         return Future.succeededFuture(
                 InvocationResultImpl.<AuctionRequestPayload>builder()
@@ -76,6 +69,14 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
                         .moduleContext(moduleContext)
                         .build()
         );
+    }
+
+    private boolean shouldSkipEnriching(AuctionRequestPayload payload, AuctionInvocationContext invocationContext) {
+        if (!isAccountAllowed(invocationContext)) {
+            return true;
+        }
+        final Device device = ObjectUtil.getIfNotNull(payload.bidRequest(), BidRequest::getDevice);
+        return device != null && DeviceEnricher.shouldSkipEnriching(device);
     }
 
     private boolean isAccountAllowed(AuctionInvocationContext invocationContext) {
@@ -92,14 +93,13 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
                 .orElse(false);
     }
 
-    private ModuleContext addEvidenceToContext(ModuleContext moduleContext,
-                                               Consumer<CollectedEvidence.CollectedEvidenceBuilder> evidenceInjector) {
+    private ModuleContext addEvidenceToContext(ModuleContext moduleContext, BidRequest bidRequest) {
         final CollectedEvidence.CollectedEvidenceBuilder evidenceBuilder = Optional.ofNullable(moduleContext)
                 .map(ModuleContext::collectedEvidence)
                 .map(CollectedEvidence::toBuilder)
                 .orElseGet(CollectedEvidence::builder);
 
-        evidenceInjector.accept(evidenceBuilder);
+        collectEvidence(evidenceBuilder, bidRequest);
 
         return Optional.ofNullable(moduleContext)
                 .map(ModuleContext::toBuilder)
@@ -119,12 +119,8 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHook implements RawAuctionR
         }
         final UserAgent sua = device.getSua();
         if (sua != null) {
-            evidenceBuilder.secureHeaders(convertSecureHeaders(sua));
+            evidenceBuilder.secureHeaders(SecureHeadersRetriever.retrieveFrom(sua));
         }
-    }
-
-    private Map<String, String> convertSecureHeaders(UserAgent userAgent) {
-        return SecureHeadersRetriever.retrieveFrom(userAgent);
     }
 
     private AuctionRequestPayload updatePayload(AuctionRequestPayload existingPayload,

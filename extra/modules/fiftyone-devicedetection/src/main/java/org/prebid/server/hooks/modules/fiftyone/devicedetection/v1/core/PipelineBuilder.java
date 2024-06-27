@@ -67,31 +67,62 @@ public class PipelineBuilder {
         }
         pipelineBuilder.setDataUpdateService(new DataUpdateServiceDefault());
 
+        resolveAutoUpdate(pipelineBuilder, updateConfig);
+        resolveUpdateOnStartup(pipelineBuilder, updateConfig);
+        resolveUpdateURL(pipelineBuilder, updateConfig);
+        resolveLicenseKey(pipelineBuilder, updateConfig);
+        resolveWatchFileSystem(pipelineBuilder, updateConfig);
+        resolveUpdatePollingInterval(pipelineBuilder, updateConfig);
+    }
+
+    private static void resolveAutoUpdate(
+            DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
+            DataFileUpdate updateConfig) {
         final Boolean auto = updateConfig.getAuto();
         if (auto != null) {
             pipelineBuilder.setAutoUpdate(auto);
         }
+    }
 
+    private static void resolveUpdateOnStartup(
+            DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
+            DataFileUpdate updateConfig) {
         final Boolean onStartup = updateConfig.getOnStartup();
         if (onStartup != null) {
             pipelineBuilder.setDataUpdateOnStartup(onStartup);
         }
+    }
 
+    private static void resolveUpdateURL(
+            DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
+            DataFileUpdate updateConfig) {
         final String url = updateConfig.getUrl();
         if (StringUtils.isNotEmpty(url)) {
             pipelineBuilder.setDataUpdateUrl(url);
         }
+    }
 
+    private static void resolveLicenseKey(
+            DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
+            DataFileUpdate updateConfig) {
         final String licenseKey = updateConfig.getLicenseKey();
         if (StringUtils.isNotEmpty(licenseKey)) {
             pipelineBuilder.setDataUpdateLicenseKey(licenseKey);
         }
+    }
 
+    private static void resolveWatchFileSystem(
+            DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
+            DataFileUpdate updateConfig) {
         final Boolean watchFileSystem = updateConfig.getWatchFileSystem();
         if (watchFileSystem != null) {
             pipelineBuilder.setDataFileSystemWatcher(watchFileSystem);
         }
+    }
 
+    private static void resolveUpdatePollingInterval(
+            DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
+            DataFileUpdate updateConfig) {
         final Integer pollingInterval = updateConfig.getPollingInterval();
         if (pollingInterval != null) {
             pipelineBuilder.setUpdatePollingInterval(pollingInterval);
@@ -103,35 +134,20 @@ public class PipelineBuilder {
         if (performanceConfig == null) {
             return;
         }
-        final String profile = performanceConfig.getProfile();
-        if (StringUtils.isNotEmpty(profile)) {
-            setPerformanceProfile(pipelineBuilder, profile);
-        }
-
-        final Integer concurrency = performanceConfig.getConcurrency();
-        if (concurrency != null) {
-            pipelineBuilder.setConcurrency(concurrency);
-        }
-
-        final Integer difference = performanceConfig.getDifference();
-        if (difference != null) {
-            pipelineBuilder.setDifference(difference);
-        }
-
-        final Boolean allowUnmatched = performanceConfig.getAllowUnmatched();
-        if (allowUnmatched != null) {
-            pipelineBuilder.setAllowUnmatched(allowUnmatched);
-        }
-
-        final Integer drift = performanceConfig.getDrift();
-        if (drift != null) {
-            pipelineBuilder.setDrift(drift);
-        }
+        resolvePerformanceProfile(pipelineBuilder, performanceConfig);
+        resolveConcurrency(pipelineBuilder, performanceConfig);
+        resolveDifference(pipelineBuilder, performanceConfig);
+        resolveAllowUnmatched(pipelineBuilder, performanceConfig);
+        resolveDrift(pipelineBuilder, performanceConfig);
     }
 
-    private static void setPerformanceProfile(
+    private static void resolvePerformanceProfile(
             DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
-            String profile) {
+            PerformanceConfig performanceConfig) {
+        final String profile = performanceConfig.getProfile();
+        if (StringUtils.isEmpty(profile)) {
+            return;
+        }
         for (Constants.PerformanceProfiles nextProfile : Constants.PerformanceProfiles.values()) {
             if (StringUtils.equalsIgnoreCase(nextProfile.name(), profile)) {
                 pipelineBuilder.setPerformanceProfile(nextProfile);
@@ -147,4 +163,41 @@ public class PipelineBuilder {
                         .collect(Collectors.joining(", "))
         );
     }
+
+    private static void resolveConcurrency(
+            DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
+            PerformanceConfig performanceConfig) {
+        final Integer concurrency = performanceConfig.getConcurrency();
+        if (concurrency != null) {
+            pipelineBuilder.setConcurrency(concurrency);
+        }
+    }
+
+    private static void resolveDifference(
+            DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
+            PerformanceConfig performanceConfig) {
+        final Integer difference = performanceConfig.getDifference();
+        if (difference != null) {
+            pipelineBuilder.setDifference(difference);
+        }
+    }
+
+    private static void resolveAllowUnmatched(
+            DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
+            PerformanceConfig performanceConfig) {
+        final Boolean allowUnmatched = performanceConfig.getAllowUnmatched();
+        if (allowUnmatched != null) {
+            pipelineBuilder.setAllowUnmatched(allowUnmatched);
+        }
+    }
+
+    private static void resolveDrift(
+            DeviceDetectionOnPremisePipelineBuilder pipelineBuilder,
+            PerformanceConfig performanceConfig) {
+        final Integer drift = performanceConfig.getDrift();
+        if (drift != null) {
+            pipelineBuilder.setDrift(drift);
+        }
+    }
+
 }

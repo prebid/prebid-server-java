@@ -11,6 +11,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
+import org.prebid.server.model.UpdateResult;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 
 import jakarta.annotation.Nonnull;
@@ -28,28 +29,14 @@ import java.util.stream.Stream;
 public class DeviceEnricher {
     private static final String EXT_DEVICE_ID_KEY = "fiftyonedegrees_deviceId";
 
-    private static final Map<String, Integer> DEVICE_FIELD_MAPPING = Map.ofEntries(
-            Map.entry("Phone", OrtbDeviceType.PHONE.ordinal()),
-            Map.entry("Console", OrtbDeviceType.SET_TOP_BOX.ordinal()),
-            Map.entry("Desktop", OrtbDeviceType.PERSONAL_COMPUTER.ordinal()),
-            Map.entry("EReader", OrtbDeviceType.PERSONAL_COMPUTER.ordinal()),
-            Map.entry("IoT", OrtbDeviceType.CONNECTED_DEVICE.ordinal()),
-            Map.entry("Kiosk", OrtbDeviceType.OOH_DEVICE.ordinal()),
-            Map.entry("MediaHub", OrtbDeviceType.SET_TOP_BOX.ordinal()),
-            Map.entry("Mobile", OrtbDeviceType.MOBILE_TABLET.ordinal()),
-            Map.entry("Router", OrtbDeviceType.CONNECTED_DEVICE.ordinal()),
-            Map.entry("SmallScreen", OrtbDeviceType.CONNECTED_DEVICE.ordinal()),
-            Map.entry("SmartPhone", OrtbDeviceType.MOBILE_TABLET.ordinal()),
-            Map.entry("SmartSpeaker", OrtbDeviceType.CONNECTED_DEVICE.ordinal()),
-            Map.entry("SmartWatch", OrtbDeviceType.CONNECTED_DEVICE.ordinal()),
-            Map.entry("Tablet", OrtbDeviceType.TABLET.ordinal()),
-            Map.entry("Tv", OrtbDeviceType.CONNECTED_TV.ordinal()),
-            Map.entry("Vehicle Display", OrtbDeviceType.PERSONAL_COMPUTER.ordinal()));
-
     private final Pipeline pipeline;
 
     public DeviceEnricher(@Nonnull Pipeline pipeline) {
         this.pipeline = Objects.requireNonNull(pipeline);
+    }
+
+    public static boolean shouldSkipEnriching(Device device) {
+        return StringUtils.isNotEmpty(getDeviceId(device));
     }
 
     public EnrichmentResult populateDeviceInfo(Device device, CollectedEvidence collectedEvidence) throws Exception {
@@ -91,100 +78,64 @@ public class DeviceEnricher {
         final List<String> updatedFields = new ArrayList<>();
         final Device.DeviceBuilder deviceBuilder = device.toBuilder();
 
-        final Integer currentDeviceType = device.getDevicetype();
-        if (!isPositive(currentDeviceType)) {
-            final String rawDeviceType = getSafe(deviceData, DeviceData::getDeviceType);
-            if (rawDeviceType != null) {
-                final Integer properDeviceType = convertDeviceType(rawDeviceType);
-                if (isPositive(properDeviceType)) {
-                    deviceBuilder.devicetype(properDeviceType);
-                    updatedFields.add("devicetype");
-                }
-            }
+        final UpdateResult<Integer> resolvedDeviceType = resolveDeviceType(device, deviceData);
+        if (resolvedDeviceType.isUpdated()) {
+            deviceBuilder.devicetype(resolvedDeviceType.getValue());
+            updatedFields.add("devicetype");
         }
 
-        final String currentMake = device.getMake();
-        if (StringUtils.isBlank(currentMake)) {
-            final String make = getSafe(deviceData, DeviceData::getHardwareVendor);
-            if (StringUtils.isNotBlank(make)) {
-                deviceBuilder.make(make);
-                updatedFields.add("make");
-            }
+        final UpdateResult<String> resolvedMake = resolveMake(device, deviceData);
+        if (resolvedMake.isUpdated()) {
+            deviceBuilder.make(resolvedMake.getValue());
+            updatedFields.add("make");
         }
 
-        if (StringUtils.isBlank(device.getModel())) {
-            final String model = getSafe(deviceData, DeviceData::getHardwareModel);
-            if (StringUtils.isNotBlank(model)) {
-                deviceBuilder.model(model);
-                updatedFields.add("model");
-            } else {
-                final List<String> names = getSafe(deviceData, DeviceData::getHardwareName);
-                if (CollectionUtils.isNotEmpty(names)) {
-                    deviceBuilder.model(String.join(",", names));
-                    updatedFields.add("model");
-                }
-            }
+        final UpdateResult<String> resolvedModel = resolveModel(device, deviceData);
+        if (resolvedModel.isUpdated()) {
+            deviceBuilder.model(resolvedModel.getValue());
+            updatedFields.add("model");
         }
 
-        if (StringUtils.isBlank(device.getOs())) {
-            final String os = getSafe(deviceData, DeviceData::getPlatformName);
-            if (StringUtils.isNotBlank(os)) {
-                deviceBuilder.os(os);
-                updatedFields.add("os");
-            }
+        final UpdateResult<String> resolvedOs = resolveOs(device, deviceData);
+        if (resolvedOs.isUpdated()) {
+            deviceBuilder.os(resolvedOs.getValue());
+            updatedFields.add("os");
         }
 
-        if (StringUtils.isBlank(device.getOsv())) {
-            final String osv = getSafe(deviceData, DeviceData::getPlatformVersion);
-            if (StringUtils.isNotBlank(osv)) {
-                deviceBuilder.osv(osv);
-                updatedFields.add("osv");
-            }
+        final UpdateResult<String> resolvedOsv = resolveOsv(device, deviceData);
+        if (resolvedOsv.isUpdated()) {
+            deviceBuilder.osv(resolvedOsv.getValue());
+            updatedFields.add("osv");
         }
 
-        if (!isPositive(device.getH())) {
-            final Integer h = getSafe(deviceData, DeviceData::getScreenPixelsHeight);
-            if (isPositive(h)) {
-                deviceBuilder.h(h);
-                updatedFields.add("h");
-            }
+        final UpdateResult<Integer> resolvedH = resolveH(device, deviceData);
+        if (resolvedH.isUpdated()) {
+            deviceBuilder.h(resolvedH.getValue());
+            updatedFields.add("h");
         }
 
-        if (!isPositive(device.getW())) {
-            final Integer w = getSafe(deviceData, DeviceData::getScreenPixelsWidth);
-            if (isPositive(w)) {
-                deviceBuilder.w(w);
-                updatedFields.add("w");
-            }
+        final UpdateResult<Integer> resolvedW = resolveW(device, deviceData);
+        if (resolvedW.isUpdated()) {
+            deviceBuilder.w(resolvedW.getValue());
+            updatedFields.add("w");
         }
 
-        if (!isPositive(device.getPpi())) {
-            final Integer pixelsHeight = getSafe(deviceData, DeviceData::getScreenPixelsHeight);
-            if (pixelsHeight != null) {
-                final Double inchesHeight = getSafe(deviceData, DeviceData::getScreenInchesHeight);
-                if (isPositive(inchesHeight)) {
-                    deviceBuilder.ppi((int) Math.round(pixelsHeight / inchesHeight));
-                    updatedFields.add("ppi");
-                }
-            }
+        final UpdateResult<Integer> resolvedPpi = resolvePpi(device, deviceData);
+        if (resolvedPpi.isUpdated()) {
+            deviceBuilder.ppi(resolvedPpi.getValue());
+            updatedFields.add("ppi");
         }
 
-        final BigDecimal currentPixelRatio = device.getPxratio();
-        if (!(currentPixelRatio != null && currentPixelRatio.intValue() > 0)) {
-            final Double rawRatio = getSafe(deviceData, DeviceData::getPixelRatio);
-            if (isPositive(rawRatio)) {
-                deviceBuilder.pxratio(BigDecimal.valueOf(rawRatio));
-                updatedFields.add("pxratio");
-            }
+        final UpdateResult<BigDecimal> resolvedPixelRatio = resolvePixelRatio(device, deviceData);
+        if (resolvedPixelRatio.isUpdated()) {
+            deviceBuilder.pxratio(resolvedPixelRatio.getValue());
+            updatedFields.add("pxratio");
         }
 
-        final String currentDeviceId = getDeviceId(device);
-        if (StringUtils.isBlank(currentDeviceId)) {
-            final String deviceID = getSafe(deviceData, DeviceData::getDeviceId);
-            if (StringUtils.isNotBlank(deviceID)) {
-                setDeviceId(deviceBuilder, device, deviceID);
-                updatedFields.add("ext." + EXT_DEVICE_ID_KEY);
-            }
+        final UpdateResult<String> resolvedDeviceId = resolveDeviceId(device, deviceData);
+        if (resolvedDeviceId.isUpdated()) {
+            setDeviceId(deviceBuilder, device, resolvedDeviceId.getValue());
+            updatedFields.add("ext." + EXT_DEVICE_ID_KEY);
         }
 
         if (updatedFields.isEmpty()) {
@@ -195,6 +146,141 @@ public class DeviceEnricher {
                 .enrichedDevice(deviceBuilder.build())
                 .enrichedFields(updatedFields)
                 .build();
+    }
+
+    private UpdateResult<Integer> resolveDeviceType(Device device, DeviceData deviceData) {
+        final Integer currentDeviceType = device.getDevicetype();
+        if (isPositive(currentDeviceType)) {
+            return UpdateResult.unaltered(currentDeviceType);
+        }
+
+        final String rawDeviceType = getSafe(deviceData, DeviceData::getDeviceType);
+        if (rawDeviceType == null) {
+            return UpdateResult.unaltered(currentDeviceType);
+        }
+
+        final OrtbDeviceType properDeviceType = OrtbDeviceType.resolveFrom(rawDeviceType);
+        return properDeviceType != OrtbDeviceType.UNKNOWN
+                ? UpdateResult.updated(properDeviceType.ordinal())
+                : UpdateResult.unaltered(currentDeviceType);
+    }
+
+    private UpdateResult<String> resolveMake(Device device, DeviceData deviceData) {
+        final String currentMake = device.getMake();
+        if (StringUtils.isNotBlank(currentMake)) {
+            return UpdateResult.unaltered(currentMake);
+        }
+
+        final String make = getSafe(deviceData, DeviceData::getHardwareVendor);
+        return StringUtils.isNotBlank(make)
+                ? UpdateResult.updated(make)
+                : UpdateResult.unaltered(currentMake);
+    }
+
+    private UpdateResult<String> resolveModel(Device device, DeviceData deviceData) {
+        final String currentModel = device.getModel();
+        if (StringUtils.isNotBlank(currentModel)) {
+            return UpdateResult.unaltered(currentModel);
+        }
+
+        final String model = getSafe(deviceData, DeviceData::getHardwareModel);
+        if (StringUtils.isNotBlank(model)) {
+            return UpdateResult.updated(model);
+        }
+
+        final List<String> names = getSafe(deviceData, DeviceData::getHardwareName);
+        return CollectionUtils.isNotEmpty(names)
+                ? UpdateResult.updated(String.join(",", names))
+                : UpdateResult.unaltered(currentModel);
+    }
+
+    private UpdateResult<String> resolveOs(Device device, DeviceData deviceData) {
+        final String currentOs = device.getOs();
+        if (StringUtils.isNotBlank(currentOs)) {
+            return UpdateResult.unaltered(currentOs);
+        }
+
+        final String os = getSafe(deviceData, DeviceData::getPlatformName);
+        return StringUtils.isNotBlank(os)
+                ? UpdateResult.updated(os)
+                : UpdateResult.unaltered(currentOs);
+    }
+
+    private UpdateResult<String> resolveOsv(Device device, DeviceData deviceData) {
+        final String currentOsv = device.getOsv();
+        if (StringUtils.isNotBlank(currentOsv)) {
+            return UpdateResult.unaltered(currentOsv);
+        }
+
+        final String osv = getSafe(deviceData, DeviceData::getPlatformVersion);
+        return StringUtils.isNotBlank(osv)
+                ? UpdateResult.updated(osv)
+                : UpdateResult.unaltered(currentOsv);
+    }
+
+    private UpdateResult<Integer> resolveH(Device device, DeviceData deviceData) {
+        final Integer currentH = device.getH();
+        if (isPositive(currentH)) {
+            return UpdateResult.unaltered(currentH);
+        }
+
+        final Integer h = getSafe(deviceData, DeviceData::getScreenPixelsHeight);
+        return isPositive(h)
+                ? UpdateResult.updated(h)
+                : UpdateResult.unaltered(currentH);
+    }
+
+    private UpdateResult<Integer> resolveW(Device device, DeviceData deviceData) {
+        final Integer currentW = device.getW();
+        if (isPositive(currentW)) {
+            return UpdateResult.unaltered(currentW);
+        }
+
+        final Integer w = getSafe(deviceData, DeviceData::getScreenPixelsWidth);
+        return isPositive(w)
+                ? UpdateResult.updated(w)
+                : UpdateResult.unaltered(currentW);
+    }
+
+    private UpdateResult<Integer> resolvePpi(Device device, DeviceData deviceData) {
+        final Integer currentPpi = device.getPpi();
+        if (isPositive(currentPpi)) {
+            return UpdateResult.unaltered(currentPpi);
+        }
+
+        final Integer pixelsHeight = getSafe(deviceData, DeviceData::getScreenPixelsHeight);
+        if (pixelsHeight == null) {
+            return UpdateResult.unaltered(currentPpi);
+        }
+
+        final Double inchesHeight = getSafe(deviceData, DeviceData::getScreenInchesHeight);
+        return isPositive(inchesHeight)
+                ? UpdateResult.updated((int) Math.round(pixelsHeight / inchesHeight))
+                : UpdateResult.unaltered(currentPpi);
+    }
+
+    private UpdateResult<BigDecimal> resolvePixelRatio(Device device, DeviceData deviceData) {
+        final BigDecimal currentPixelRatio = device.getPxratio();
+        if (currentPixelRatio != null && currentPixelRatio.intValue() > 0) {
+            return UpdateResult.unaltered(currentPixelRatio);
+        }
+
+        final Double rawRatio = getSafe(deviceData, DeviceData::getPixelRatio);
+        return isPositive(rawRatio)
+                ? UpdateResult.updated(BigDecimal.valueOf(rawRatio))
+                : UpdateResult.unaltered(currentPixelRatio);
+    }
+
+    private UpdateResult<String> resolveDeviceId(Device device, DeviceData deviceData) {
+        final String currentDeviceId = getDeviceId(device);
+        if (StringUtils.isNotBlank(currentDeviceId)) {
+            return UpdateResult.unaltered(currentDeviceId);
+        }
+
+        final String deviceID = getSafe(deviceData, DeviceData::getDeviceId);
+        return StringUtils.isNotBlank(deviceID)
+                ? UpdateResult.updated(deviceID)
+                : UpdateResult.unaltered(currentDeviceId);
     }
 
     private static boolean isPositive(Integer value) {
@@ -253,10 +339,6 @@ public class DeviceEnricher {
             // nop -- not interested in errors on getting missing values.
         }
         return null;
-    }
-
-    private Integer convertDeviceType(String deviceType) {
-        return Optional.ofNullable(DEVICE_FIELD_MAPPING.get(deviceType)).orElse(OrtbDeviceType.UNKNOWN.ordinal());
     }
 }
 
