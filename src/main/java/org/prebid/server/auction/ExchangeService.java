@@ -173,6 +173,7 @@ public class ExchangeService {
     private final StoredResponseProcessor storedResponseProcessor;
     private final PrivacyEnforcementService privacyEnforcementService;
     private final FpdResolver fpdResolver;
+    private final ImpAdjuster impAdjuster;
     private final SupplyChainResolver supplyChainResolver;
     private final DebugResolver debugResolver;
     private final MediaTypeProcessor mediaTypeProcessor;
@@ -202,6 +203,7 @@ public class ExchangeService {
                            StoredResponseProcessor storedResponseProcessor,
                            PrivacyEnforcementService privacyEnforcementService,
                            FpdResolver fpdResolver,
+                           ImpAdjuster impAdjuster,
                            SupplyChainResolver supplyChainResolver,
                            DebugResolver debugResolver,
                            MediaTypeProcessor mediaTypeProcessor,
@@ -231,6 +233,7 @@ public class ExchangeService {
         this.storedResponseProcessor = Objects.requireNonNull(storedResponseProcessor);
         this.privacyEnforcementService = Objects.requireNonNull(privacyEnforcementService);
         this.fpdResolver = Objects.requireNonNull(fpdResolver);
+        this.impAdjuster = Objects.requireNonNull(impAdjuster);
         this.supplyChainResolver = Objects.requireNonNull(supplyChainResolver);
         this.debugResolver = Objects.requireNonNull(debugResolver);
         this.mediaTypeProcessor = Objects.requireNonNull(mediaTypeProcessor);
@@ -920,12 +923,20 @@ public class ExchangeService {
         final boolean isDooh = !isApp && preparedDooh != null;
         final boolean isSite = !isApp && !isDooh && preparedSite != null;
 
+        final List<Imp> preparedImps = prepareImps(
+                bidder,
+                imps,
+                bidRequest,
+                transmitTid,
+                useFirstPartyData,
+                context.getAccount(),
+                context.getDebugWarnings());
+
         return bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
-                .imp(prepareImps(bidder, imps, bidRequest, transmitTid,
-                        useFirstPartyData, context.getAccount(), context.getDebugWarnings()))
+                .imp(preparedImps)
                 .app(isApp ? preparedApp : null)
                 .dooh(isDooh ? preparedDooh : null)
                 .site(isSite ? preparedSite : null)
@@ -961,6 +972,7 @@ public class ExchangeService {
 
         return imps.stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
+                .map(imp -> impAdjuster.adjust(imp, bidder, debugWarnings))
                 .map(imp -> prepareImp(imp, bidder, bidRequest, transmitTid, useFirstPartyData, account, debugWarnings))
                 .toList();
     }

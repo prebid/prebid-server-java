@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Geo;
 import com.iab.openrtb.request.Publisher;
 import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.junit.MockitoJUnit;
@@ -33,12 +32,7 @@ public class FpdResolverTest extends VertxTest {
     @Rule
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    private FpdResolver target;
-
-    @Before
-    public void setUp() {
-        target = new FpdResolver(jacksonMapper, new JsonMerger(jacksonMapper));
-    }
+    private final FpdResolver target = new FpdResolver(jacksonMapper, new JsonMerger(jacksonMapper));
 
     @Test
     public void resolveUserShouldOverrideFpdFieldsFromFpdUser() {
