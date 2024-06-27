@@ -13,7 +13,7 @@ import org.prebid.server.activity.infrastructure.payload.GpcActivityInvocationPa
 import java.util.List;
 import java.util.Set;
 
-public final class GeoRule extends AbstractMatchRule implements Loggable {
+public final class ConditionsRule extends AbstractMatchRule implements Loggable {
 
     private final Set<ComponentType> componentTypes;
     private final Set<String> componentNames;
@@ -22,12 +22,12 @@ public final class GeoRule extends AbstractMatchRule implements Loggable {
     private final String gpc;
     private final boolean allowed;
 
-    public GeoRule(Set<ComponentType> componentTypes,
-                   Set<String> componentNames,
-                   boolean sidsMatched,
-                   List<GeoCode> geoCodes,
-                   String gpc,
-                   boolean allowed) {
+    public ConditionsRule(Set<ComponentType> componentTypes,
+                          Set<String> componentNames,
+                          boolean sidsMatched,
+                          List<GeoCode> geoCodes,
+                          String gpc,
+                          boolean allowed) {
 
         this.componentTypes = componentTypes;
         this.componentNames = componentNames;

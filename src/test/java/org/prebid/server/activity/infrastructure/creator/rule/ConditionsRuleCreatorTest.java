@@ -14,20 +14,20 @@ import org.prebid.server.activity.infrastructure.rule.Rule;
 import org.prebid.server.auction.gpp.model.GppContext;
 import org.prebid.server.auction.gpp.model.GppContextCreator;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
-import org.prebid.server.settings.model.activity.rule.AccountActivityGeoRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityConditionsRuleConfig;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class GeoRuleCreatorTest {
+public class ConditionsRuleCreatorTest {
 
-    private final GeoRuleCreator target = new GeoRuleCreator();
+    private final ConditionsRuleCreator target = new ConditionsRuleCreator();
 
     @Test
     public void fromShouldCreateDefaultRule() {
         // given
-        final AccountActivityGeoRuleConfig config = AccountActivityGeoRuleConfig.of(null, null);
+        final AccountActivityConditionsRuleConfig config = AccountActivityConditionsRuleConfig.of(null, null);
         final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
         final ActivityControllerCreationContext creationContext = creationContext(gppContext);
 
@@ -41,8 +41,8 @@ public class GeoRuleCreatorTest {
     @Test
     public void fromShouldCreateExpectedRule() {
         // given
-        final AccountActivityGeoRuleConfig config = AccountActivityGeoRuleConfig.of(
-                AccountActivityGeoRuleConfig.Condition.of(
+        final AccountActivityConditionsRuleConfig config = AccountActivityConditionsRuleConfig.of(
+                AccountActivityConditionsRuleConfig.Condition.of(
                         singletonList(ComponentType.BIDDER),
                         singletonList("name"),
                         asList(1, 2),

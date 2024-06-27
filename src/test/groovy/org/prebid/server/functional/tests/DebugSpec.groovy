@@ -105,7 +105,6 @@ class DebugSpec extends BaseSpec {
         bidRequest.ext.prebid.debug = 1
 
         and: "Account in the DB"
-        def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(debugAllow: false))
         def account = new Account(uuid: bidRequest.site.publisher.id, config: accountConfig)
         accountDao.save(account)
 
@@ -121,6 +120,10 @@ class DebugSpec extends BaseSpec {
         //TODO possibly change message after clarifications
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
                 ["Debug turned off for account"]
+
+        where:
+        accountConfig << [new AccountConfig(auction: new AccountAuctionConfig(debugAllow: false)),
+                          new AccountConfig(auction: new AccountAuctionConfig(debugAllowSnakeCase: false))]
     }
 
     def "PBS should not return debug information when bidder-level setting debug.allowed = false is overridden by account-level setting debug-allowed = true"() {
@@ -132,7 +135,6 @@ class DebugSpec extends BaseSpec {
         bidRequest.ext.prebid.debug = 1
 
         and: "Account in the DB"
-        def accountConfig = new AccountConfig(auction: new AccountAuctionConfig(debugAllow: true))
         def account = new Account(uuid: bidRequest.site.publisher.id, config: accountConfig)
         accountDao.save(account)
 
@@ -147,6 +149,10 @@ class DebugSpec extends BaseSpec {
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.code } == [999]
         assert response.ext?.warnings[ErrorType.PREBID]?.collect { it.message } ==
                 ["Debug turned off for bidder: $GENERIC.value" as String]
+
+        where:
+        accountConfig << [new AccountConfig(auction: new AccountAuctionConfig(debugAllow: true)),
+                          new AccountConfig(auction: new AccountAuctionConfig(debugAllowSnakeCase: true))]
     }
 
     def "PBS should not return debug information when bidder-level setting debug.allowed = true is overridden by account-level setting debug-allowed = false"() {

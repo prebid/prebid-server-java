@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.config
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.EqualsAndHashCode
@@ -20,6 +21,8 @@ class AccountConfig {
     AccountCookieSyncConfig cookieSync
     AccountHooksConfiguration hooks
     AccountSetting settings
+    @JsonProperty("cookie_sync")
+    AccountCookieSyncConfig cookieSyncSnakeCase
 
     static getDefaultAccountConfig() {
         new AccountConfig(status: AccountStatus.ACTIVE)

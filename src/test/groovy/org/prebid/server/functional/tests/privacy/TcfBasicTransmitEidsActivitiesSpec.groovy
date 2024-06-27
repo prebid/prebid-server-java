@@ -42,7 +42,7 @@ class TcfBasicTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Save account config with requireConsent into DB"
-        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, true)
+        def purposes = TcfUtils.getPurposeConfigsForPersonalizedAdsWithSnakeCase(enforcementRequirements, true)
         def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC.value])
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
@@ -104,7 +104,7 @@ class TcfBasicTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Save account config with requireConsent into DB"
         def purposes = TcfUtils.getPurposeConfigsForPersonalizedAds(enforcementRequirements, true)
-        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendors: [GENERIC.value])
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes, basicEnforcementVendorsSnakeCase: [GENERIC.value])
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, true)])
         def account = getAccountWithGdpr(bidRequest.accountId, accountGdprConfig).tap {
             config.privacy.allowActivities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity)

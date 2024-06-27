@@ -8,5 +8,4 @@ public class AccountPrivacySandboxConfig {
 
     @JsonProperty("cookiedeprecation")
     AccountPrivacySandboxCookieDeprecationConfig cookieDeprecation;
-
 }
