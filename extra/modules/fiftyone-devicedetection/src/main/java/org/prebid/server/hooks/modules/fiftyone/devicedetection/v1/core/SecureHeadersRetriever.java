@@ -90,13 +90,11 @@ public class SecureHeadersRetriever {
         if (CollectionUtils.isEmpty(versions)) {
             return;
         }
-        boolean isFirstVersionFragment = true;
-        for (String nextFragment : versions) {
-            if (!isFirstVersionFragment) {
-                stringBuilder.append('.');
-            }
-            stringBuilder.append(nextFragment);
-            isFirstVersionFragment = false;
+
+        stringBuilder.append(versions.getFirst());
+        for (int i = 1; i < versions.size(); i++) {
+            stringBuilder.append('.');
+            stringBuilder.append(versions.get(i));
         }
     }
 }
