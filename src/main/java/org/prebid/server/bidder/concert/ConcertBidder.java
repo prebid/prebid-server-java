@@ -63,7 +63,7 @@ public class ConcertBidder implements Bidder<BidRequest> {
         try {
             return mapper.mapper().convertValue(imp.getExt(), CONCERT_EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException("bidder ext: " + e.getMessage());
+            throw new PreBidException("get bidder ext: bidder ext: " + e.getMessage());
         }
     }
 
