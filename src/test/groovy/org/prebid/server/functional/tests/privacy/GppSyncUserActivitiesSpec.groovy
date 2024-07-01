@@ -58,10 +58,10 @@ import static org.prebid.server.functional.model.config.UsNationalPrivacySection
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
-import static org.prebid.server.functional.model.privacy.Metric.ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.ALERT_GENERAL
-import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_RULES_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.REQUEST_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
@@ -117,7 +117,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_RULES_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
     }
 
     def "PBS cookie sync call when bidder rejected in activities should exclude bidders URLs with proper message and update disallowed metrics"() {
@@ -146,8 +146,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
-        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
     }
 
     def "PBS cookie sync call when default activity setting set to false should exclude bidders URLs"() {
@@ -291,7 +291,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_RULES_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
 
         where:
         gppSid       | conditionGppSid
@@ -333,8 +333,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
-        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
     }
 
     def "PBS cookie sync call when privacy regulation match and rejecting should exclude bidders URLs"() {
@@ -919,7 +919,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_RULES_COUNT.getValue(setuidRequest, SYNC_USER)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(setuidRequest, SYNC_USER)] == 1
     }
 
     def "PBS setuid request when bidder restriction by activities should reject bidders with status code invalidStatusCode and update disallowed metrics"() {
@@ -953,8 +953,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(setuidRequest, SYNC_USER)] == 1
-        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(setuidRequest, SYNC_USER)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(setuidRequest, SYNC_USER)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(setuidRequest, SYNC_USER)] == 1
     }
 
     def "PBS setuid when default activity setting set to false should reject bidders with status code invalidStatusCode"() {
@@ -1121,7 +1121,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_RULES_COUNT.getValue(setuidRequest, SYNC_USER)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(setuidRequest, SYNC_USER)] == 1
 
         where:
         gppSid       | conditionGppSid
@@ -1812,7 +1812,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = prebidServerService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_RULES_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
 
         where:
         countyConfig  | regionConfig          | conditionGeo
@@ -1868,7 +1868,7 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = prebidServerService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_RULES_COUNT.getValue(setuidRequest, SYNC_USER)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(setuidRequest, SYNC_USER)] == 1
 
         where:
         countyConfig  | regionConfig          | conditionGeo
@@ -1920,8 +1920,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = prebidServerService.sendCollectedMetricsRequest()
-        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
-        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
 
         where:
         countyConfig  | regionConfig         | conditionGeo
@@ -2023,8 +2023,8 @@ class GppSyncUserActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = prebidServerService.sendCollectedMetricsRequest()
-        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
-        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(cookieSyncRequest, SYNC_USER)] == 1
 
         and: "Metrics processed across activities should be updated"
         assert metrics[GEO_LOCATION_REQUESTS] == 1

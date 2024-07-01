@@ -56,12 +56,12 @@ import static org.prebid.server.functional.model.config.UsNationalPrivacySection
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
-import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_PROCESSED_RULES_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.privacy.Metric.ALERT_GENERAL
-import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_RULES_COUNT
-import static org.prebid.server.functional.model.privacy.Metric.REQUEST_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
@@ -108,7 +108,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
         assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
     }
 
@@ -139,9 +139,9 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
     }
 
     def "PBS auction call when default activity setting set to false should skip call to restricted bidder"() {
@@ -284,7 +284,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
         assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         where:
@@ -326,9 +326,9 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
     }
 
     def "PBS auction should process rule when device.geo doesn't intersection"() {
@@ -366,7 +366,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
         assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         where:
@@ -412,9 +412,9 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         where:
         deviceGeo                                           | conditionGeo
@@ -457,9 +457,9 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
     }
 
     def "PBS auction shouldn't disallowed rule when regs.ext.gpc doesn't intersect"() {
@@ -495,7 +495,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
         assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
     }
 
@@ -531,9 +531,9 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
-        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         where:
         gpcHeader << [VALID_VALUE_FOR_GPC_HEADER as Integer, VALID_VALUE_FOR_GPC_HEADER]
@@ -571,7 +571,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
         assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         where:
@@ -989,7 +989,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_RULES_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
     }
 
     def "PBS amp call when bidder rejected in activities should skip call to restricted bidders and update disallowed metrics"() {
@@ -1027,8 +1027,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
-        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
     }
 
     def "PBS amp call when default activity setting set to false should skip call to restricted bidder"() {
@@ -1223,7 +1223,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[PROCESSED_RULES_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
     }
 
     def "PBS amp should disallow rule when header gpc intersection with condition.gpc"() {
@@ -1266,8 +1266,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
-        assert metrics[ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
     }
 
     def "PBS amp call when privacy regulation match should call bid adapter"() {

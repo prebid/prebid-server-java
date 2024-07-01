@@ -8,11 +8,11 @@ import org.prebid.server.functional.model.request.setuid.SetuidRequest
 enum Metric {
 
     ALERT_GENERAL("alerts.general"),
-    PROCESSED_RULES_COUNT("requests.activity.processedrules.count"),
+    PROCESSED_ACTIVITY_RULES_COUNT("requests.activity.processedrules.count"),
     ACCOUNT_PROCESSED_RULES_COUNT("requests.activity.processedrules.count"),
-    ADAPTER_DISALLOWED_COUNT("adapter.{bidderName}.activity.{activityType}.disallowed.count"),
-    ACCOUNT_DISALLOWED_COUNT("account.{accountId}.activity.{activityType}.disallowed.count"),
-    REQUEST_DISALLOWED_COUNT("requests.activity.{activityType}.disallowed.count"),
+    TEMPLATE_ADAPTER_DISALLOWED_COUNT("adapter.{bidderName}.activity.{activityType}.disallowed.count"),
+    TEMPLATE_ACCOUNT_DISALLOWED_COUNT("account.{accountId}.activity.{activityType}.disallowed.count"),
+    TEMPLATE_REQUEST_DISALLOWED_COUNT("requests.activity.{activityType}.disallowed.count"),
 
     final String value
 
@@ -22,26 +22,20 @@ enum Metric {
 
     String getValue(BidRequest bidRequest, ActivityType activityType) {
         if (bidRequest.imp.size() != 1) {
-            throw new IllegalStateException("No bidder found")
+            throw new IllegalStateException("No imp found")
         }
-        def bidderName = bidRequest.imp.first.bidderName.value
-        def accountId = bidRequest.accountId
-        replaceValues(bidderName, accountId, activityType.metricValue)
+        replaceValues(bidRequest.imp.first.bidderName.value, bidRequest.accountId, activityType.metricValue)
     }
 
     String getValue(CookieSyncRequest syncRequest, ActivityType activityType) {
         if (syncRequest.bidders.size() != 1) {
             throw new IllegalStateException("No bidder found")
         }
-        def bidderName = syncRequest.bidders.first.value
-        def accountId = syncRequest.account
-        replaceValues(bidderName, accountId, activityType.metricValue)
+        replaceValues(syncRequest.bidders.first.value, syncRequest.account, activityType.metricValue)
     }
 
     String getValue(SetuidRequest syncRequest, ActivityType activityType) {
-        def bidderName = syncRequest.bidder.value
-        def accountId = syncRequest.account
-        replaceValues(bidderName, accountId, activityType.metricValue)
+        replaceValues(syncRequest.bidder.value, syncRequest.account, activityType.metricValue)
     }
 
     private String replaceValues(String bidderName, String accountId, String activityType) {

@@ -144,10 +144,10 @@ abstract class PrivacyBaseSpec extends BaseSpec {
         }
     }
 
-    protected static BidRequest getBidRequestWithPersonalData(String specificAccountId = null, DistributionChannel channel = SITE) {
+    protected static BidRequest getBidRequestWithPersonalData(String accountId = null, DistributionChannel channel = SITE) {
         getBidRequestWithGeo(channel).tap {
-            if(specificAccountId != null) {
-                setAccountId(specificAccountId)
+            if(accountId != null) {
+                setAccountId(accountId)
             }
             ext.prebid.trace = VERBOSE
             device.tap {
