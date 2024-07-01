@@ -5,14 +5,14 @@ services:
     build:
       context: ../
       dockerfile: Dockerfile
-      args:
-        - TEST=false
     image: pbs-sample
     container_name: 001_banner
     privileged: true
+    environment:
+      JAVA_OPTS: "-Dspring.config.additional-location=/app/prebid-server/app.yaml"
     ports:
       - "8000:8000"
       - "6060:6060"
     volumes:
-      - /sample/prebid-config.yaml:/app/prebid-server/app.yaml
-      - /sample/sample-app-settings.yaml:/sample/sample-app-settings.yaml
+      - ./prebid-config.yaml:/app/prebid-server/app.yaml
+      - ./sample-app-settings.yaml:/sample/sample-app-settings.yaml
