@@ -11,16 +11,24 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import io.vertx.core.Future;
+import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.AnalyticsResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.GreenbidsUserAgent;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.OnnxModelRunner;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ThrottlingMessage;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.InvocationResultImpl;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ActivityImpl;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.AppliedToImpl;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ResultImpl;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.TagsImpl;
 import org.prebid.server.hooks.v1.InvocationAction;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.InvocationStatus;
+import org.prebid.server.hooks.v1.analytics.Result;
+import org.prebid.server.hooks.v1.analytics.Tags;
 import org.prebid.server.hooks.v1.auction.AuctionInvocationContext;
 import org.prebid.server.hooks.v1.auction.AuctionRequestPayload;
 import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
@@ -31,6 +39,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -42,7 +51,7 @@ import java.util.stream.StreamSupport;
 public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements ProcessedAuctionRequestHook {
 
     private static final String CODE = "greenbids-real-time-data-processed-auction-request-hook";
-    private static final String ACTIVITY = "isKeptInAuction";
+    private static final String ACTIVITY = "greenbids-filter";
     private static final String SUCCESS_STATUS = "success";
 
     private final ObjectMapper mapper;
@@ -149,6 +158,10 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         List<Imp> impsWithFilteredBidders = updateImps(bidRequest, impsBiddersFilterMap);
         BidRequest updatedBidRequest = bidRequest.toBuilder().imp(impsWithFilteredBidders).build();
 
+        final String greenbidsId = "test-greenbids-id"; //UUID.randomUUID().toString();
+
+        final AnalyticsResult analyticsResult = AnalyticsResult.of(
+                "success", Map.of("greenbidsId", greenbidsId), null, null);
 
         // update invocation result
         InvocationResult<AuctionRequestPayload> invocationResult = InvocationResultImpl.<AuctionRequestPayload>builder()
@@ -158,6 +171,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 .debugMessages(null)
                 .analyticsTags(null)
                 .payloadUpdate(payload -> AuctionRequestPayloadImpl.of(updatedBidRequest))
+                .analyticsTags(toAnalyticsTags(Collections.singletonList(analyticsResult)))
                 .build();
 
         System.out.println(
@@ -165,10 +179,42 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                         "impsBiddersFilterMap: " + impsBiddersFilterMap + "\n" +
                         "impsWithFilteredBidders: " + impsWithFilteredBidders + "\n" +
                         "updatedBidRequest: " + updatedBidRequest + "\n" +
+                        "AnalyticsTag: " + toAnalyticsTags(Collections.singletonList(analyticsResult)) + "\n" +
                         "invocationResult: " + invocationResult
         );
 
         return Future.succeededFuture(invocationResult);
+    }
+
+    private Tags toAnalyticsTags(List<AnalyticsResult> analyticsResults) {
+        if (CollectionUtils.isEmpty(analyticsResults)) {
+            return null;
+        }
+
+        return TagsImpl.of(Collections.singletonList(ActivityImpl.of(
+                ACTIVITY,
+                SUCCESS_STATUS,
+                toResults(analyticsResults))));
+    }
+
+    private List<Result> toResults(List<AnalyticsResult> analyticsResults) {
+        return analyticsResults.stream()
+                .map(this::toResult)
+                .toList();
+    }
+
+    private Result toResult(AnalyticsResult analyticsResult) {
+        return ResultImpl.of(
+                analyticsResult.getStatus(),
+                toObjectNode(analyticsResult.getValues()),
+                AppliedToImpl.builder()
+                        .bidders(Collections.singletonList(analyticsResult.getBidder()))
+                        .impIds(Collections.singletonList(analyticsResult.getImpId()))
+                        .build());
+    }
+
+    private ObjectNode toObjectNode(Map<String, Object> values) {
+        return values != null ? mapper.valueToTree(values) : null;
     }
 
     private List<Imp> updateImps(BidRequest bidRequest, Map<String, Map<String, Boolean>> impsBiddersFilterMap) {
