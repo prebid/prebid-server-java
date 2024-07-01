@@ -28,10 +28,10 @@ There are two ways to configure application settings: database and file. This do
 - `auction.price-floors.fetch.max-rules` - maximum number of rules per model group.
 - `auction.price-floors.fetch.max-age-sec` - maximum time that fetched price floors data remains in cache.
 - `auction.price-floors.fetch.period-sec` - time between two consecutive fetches.
-- `auction.price-floors.enforce-floors-rate`
-- `auction.price-floors.adjust-for-bid-adjustment`
-- `auction.price-floors.enforce-deal-floors`
-- `auction.price-floors.use-dynamic-data`
+- `auction.price-floors.enforce-floors-rate` - what percentage of the time a defined floor is enforced. Default is 100.
+- `auction.price-floors.adjust-for-bid-adjustment` - boolean for whether to use the bidAdjustment function to adjust the floor per bidder. Defaults to true.
+- `auction.price-floors.enforce-deal-floors` - boolean for whether to enforce floors on deals. Defaults to false.
+- `auction.price-floors.use-dynamic-data` - boolean that can be used as an emergency override to start ignoring dynamic floors data if something goes wrong. Defaults to true.
 - `auction.targeting.includewinners` - whether to include targeting for the winning bids in response. Default `false`.
 - `auction.targeting.includebidderkeys` - whether to include targeting for the best bid from each bidder in response. Default `false`.
 - `auction.targeting.includeformat` - whether to include the “hb_format” targeting key. Default `false`.
@@ -43,11 +43,11 @@ Keep in mind following restrictions:
     - prefix length is limited by `auction.truncate-target-attr`
     - if custom prefix may produce keywords that exceed `auction.truncate-target-attr`, prefix value will drop to default `hb`
 - `auction.preferredmediatype.<bidder>.<media-type>` - <media-type> that will be left for <bidder> that doesn't support multi-format. Other media types will be removed. Acceptable values: `banner`, `video`, `audio`, `native`.
-- `auction.privacysandbox.cookiedeprecation.enabled` - enables cookie deprecation if true.
-- `auction.privacysandbox.cookiedeprecation.ttlsec` - time a cookie will be alive until it is deprecated.
+- `auction.privacysandbox.cookiedeprecation.enabled` - boolean that turns on setting and reading of the Chrome Privacy Sandbox testing label header. Defaults to false.
+- `auction.privacysandbox.cookiedeprecation.ttlsec` - if the above setting is true, how long to set the receive-cookie-deprecation cookie's expiration
 - `privacy.gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in
   application.yaml.
-- `privacy.gdpr.eea-countries`
+- `privacy.gdpr.eea-countries` - overrides the host-level list of 2-letter country codes where TCF processing is applied
 - `privacy.gdpr.channel-enabled.web` - overrides `privacy.gdpr.enabled` property behaviour for web requests type.
 - `privacy.gdpr.channel-enabled.amp` - overrides `privacy.gdpr.enabled` property behaviour for amp requests type.
 - `privacy.gdpr.channel-enabled.app` - overrides `privacy.gdpr.enabled` property behaviour for app requests type.
@@ -70,22 +70,22 @@ Keep in mind following restrictions:
   to `sfN.enforce` value.
 - `privacy.gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
   Values: ignore, no-access-allowed, access-allowed.
-- `privacy.gdpr.basic-enforcement-vendors`
+- `privacy.gdpr.basic-enforcement-vendors` - bypass vendor-level checks for these biddercodes.
 - `privacy.ccpa.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
 - `privacy.ccpa.channel-enabled.web` - overrides `ccpa.enforce` property behaviour for web requests type.
 - `privacy.ccpa.channel-enabled.amp` - overrides `ccpa.enforce` property behaviour for amp requests type.
 - `privacy.ccpa.channel-enabled.app` - overrides `ccpa.enforce` property behaviour for app requests type.
 - `privacy.ccpa.channel-enabled.video` - overrides `ccpa.enforce` property behaviour for video requests type.
 - `privacy.ccpa.channel-enabled.dooh` - overrides `ccpa.enforce` property behaviour for dooh requests type.
-- `privacy.dsa.default.dsarequired`
-- `privacy.dsa.default.pubrender`
-- `privacy.dsa.default.datatopub`
-- `privacy.dsa.default.transparency[].domain`
-- `privacy.dsa.default.transparency[].dsaparams`
-- `privacy.dsa.gdpr-only`
+- `privacy.dsa.default.dsarequired` - inject this dsarequired value for this account. See https://github.com/InteractiveAdvertisingBureau/openrtb/blob/main/extensions/community_extensions/dsa_transparency.md for details.
+- `privacy.dsa.default.pubrender` - inject this pubrender value for this account. See https://github.com/InteractiveAdvertisingBureau/openrtb/blob/main/extensions/community_extensions/dsa_transparency.md for details.
+- `privacy.dsa.default.datatopub` - inject this datatopub value for this account. See https://github.com/InteractiveAdvertisingBureau/openrtb/blob/main/extensions/community_extensions/dsa_transparency.md for details.
+- `privacy.dsa.default.transparency[].domain` - inject this domain value for this account. See https://github.com/InteractiveAdvertisingBureau/openrtb/blob/main/extensions/community_extensions/dsa_transparency.md for details.
+- `privacy.dsa.default.transparency[].dsaparams` - inject this dsaparams value for this account. See https://github.com/InteractiveAdvertisingBureau/openrtb/blob/main/extensions/community_extensions/dsa_transparency.md for details.
+- `privacy.dsa.gdpr-only` - When true, DSA default injection only happens when in GDPR scope. Defaults to false, meaning all the time.
 - `privacy.allowactivities` - configuration for Activity Infrastructure. For further details, see: https://docs.prebid.org/prebid-server/features/pbs-activitycontrols.html
 - `privacy.modules` - configuration for Privacy Modules. Each privacy module have own configuration.
-- `analytics.allow-client-details` - adds Prebid Server Modules analytics tags to the response if true.
+- `analytics.allow-client-details` - when true, this boolean setting allows responses to transmit the server-side analytics tags to support client-side analytics adapters. Defaults to false.
 - `analytics.auction-events.<channel>` - defines which channels are supported by analytics for this account
 - `analytics.modules.<module-name>.*` - space for `module-name` analytics module specific configuration, may be of any shape
 - `metrics.verbosity-level` - defines verbosity level of metrics for this account, overrides `metrics.accounts` application settings configuration. 
