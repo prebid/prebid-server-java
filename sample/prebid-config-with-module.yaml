@@ -12,6 +12,9 @@ adapters:
     enabled: true
 metrics:
   prefix: prebid
+analytics:
+  greenbids:
+    enabled: true
 cache:
   scheme: http
   host: localhost
@@ -40,6 +43,8 @@ admin-endpoints:
     on-application-port: true
     protected: false
 hooks:
+  greenbids-real-time-data:
+    enabled: true
   confiant-ad-quality:
     enabled: true
   host-execution-plan: >
@@ -47,6 +52,19 @@ hooks:
       "endpoints": {
         "/openrtb2/auction": {
           "stages": {
+            "processed-auction-request": {
+              "groups": [
+                {
+                  "timeout": 100,
+                  "hook-sequence": [
+                    {
+                      "module-code": "greenbids-real-time-data",
+                      "hook-impl-code": "greenbids-real-time-data-processed-auction-request-hook"
+                    }
+                  ]
+                }
+              ]
+            },
             "all-processed-bid-responses": {
               "groups": [
                 {
@@ -83,3 +101,6 @@ hooks:
         long-interval: 1800000
       scan-state-check-interval: 2900
       bidders-to-exclude-from-scan:
+    greenbids-real-time-data:
+      param1: "param1_val"
+      param2: 0.1

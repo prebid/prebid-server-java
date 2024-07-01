@@ -35,6 +35,11 @@
             <artifactId>pb-richmedia-filter</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.prebid.server.hooks.modules</groupId>
+            <artifactId>greenbids-real-time-data</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

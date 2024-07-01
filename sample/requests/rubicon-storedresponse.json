@@ -15,7 +15,14 @@
 			    "accountId": 1001,
 			    "siteId": 267318,
 			    "zoneId": 1861698
-			}
+			},
+      "appnexus": {
+        "placementId": 123456
+      },
+      "pubmatic": {
+        "publisherId": "156209",
+        "adSlot": "slot1@300x250"
+      }
             }}},
             "secure": 1,
             "banner": {
@@ -37,10 +44,17 @@
     },
     "ext": {
       "prebid": {
+        "trace": "verbose",
 	"targeting": {
                 "includewinners": true,
                 "includebidderkeys": true
-	}
+	},
+        "analytics": {
+          "greenbids": {
+            "pbuid": "PBUID_FROM_GREENBIDS",
+            "greenbidsSampling": 1.0
+          }
+        }
       }
     }
 }
