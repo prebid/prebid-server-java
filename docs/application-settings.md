@@ -42,9 +42,9 @@ Keep in mind following restrictions:
     - this prefix value may be overridden by correspond property from bid request
     - prefix length is limited by `auction.truncate-target-attr`
     - if custom prefix may produce keywords that exceed `auction.truncate-target-attr`, prefix value will drop to default `hb`
-- `auction.preferredmediatype`
-- `auction.privacysandbox.cookiedeprecation.enabled`
-- `auction.privacysandbox.cookiedeprecation.ttlsec`
+- `auction.preferredmediatype.<bidder>.<media-type>` - <media-type> that will be left for <bidder> that doesn't support multi-format. Other media types will be removed. Acceptable values: `banner`, `video`, `audio`, `native`.
+- `auction.privacysandbox.cookiedeprecation.enabled` - enables cookie deprecation if true.
+- `auction.privacysandbox.cookiedeprecation.ttlsec` - time a cookie will be alive until it is deprecated.
 - `privacy.gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in
   application.yaml.
 - `privacy.gdpr.eea-countries`
@@ -83,9 +83,9 @@ Keep in mind following restrictions:
 - `privacy.dsa.default.transparency[].domain`
 - `privacy.dsa.default.transparency[].dsaparams`
 - `privacy.dsa.gdpr-only`
-- `privacy.allowactivities`
-- `privacy.modules`
-- `analytics.allow-client-details`
+- `privacy.allowactivities` - configuration for Activity Infrastructure. For further details, see: https://docs.prebid.org/prebid-server/features/pbs-activitycontrols.html
+- `privacy.modules` - configuration for Privacy Modules. Each privacy module have own configuration.
+- `analytics.allow-client-details` - adds Prebid Server Modules analytics tags to the response if true.
 - `analytics.auction-events.<channel>` - defines which channels are supported by analytics for this account
 - `analytics.modules.<module-name>.*` - space for `module-name` analytics module specific configuration, may be of any shape
 - `metrics.verbosity-level` - defines verbosity level of metrics for this account, overrides `metrics.accounts` application settings configuration. 
@@ -94,8 +94,8 @@ Keep in mind following restrictions:
   value
 - `cookie-sync.pri` - a list of prioritized bidder codes
 - `cookie-sync.coop-sync.default` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this
-- `hooks`
-- `settings.geo-lookup`
+- `hooks` - configuration for Prebid Server Modules. For further details, see: https://docs.prebid.org/prebid-server/pbs-modules/index.html#2-define-an-execution-plan
+- `settings.geo-lookup` - enables geo lookup for account if true.
 
 Here are the definitions of the "purposes" that can be defined in the GDPR setting configurations:
 
