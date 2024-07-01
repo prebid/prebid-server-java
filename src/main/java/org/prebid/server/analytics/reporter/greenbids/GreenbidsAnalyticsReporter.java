@@ -32,6 +32,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.exception.PreBidException;
+import org.prebid.server.hooks.execution.model.Stage;
 import org.prebid.server.json.EncodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.log.Logger;
@@ -40,6 +41,16 @@ import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtStoredRequest;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtModules;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTrace;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceAnalyticsTags;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceGroup;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceInvocationResult;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStage;
+import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.NonBid;
 import org.prebid.server.proto.openrtb.ext.response.seatnonbid.SeatNonBid;
 import org.prebid.server.util.HttpUtil;
@@ -113,6 +124,13 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final String greenbidsId = UUID.randomUUID().toString();
         final String billingId = UUID.randomUUID().toString();
 
+        final String greenbidsIdFromAnalyticsTag = extractGreenbidsIdFromAnalyticsTag(bidResponse);
+
+        System.out.println(
+                "GreenbidsAnalyticsReporter/processEvent" + "\n" +
+                        "greenbidsIdFromAnalyticsTag: " + greenbidsIdFromAnalyticsTag
+        );
+
         if (!isSampled(greenbidsBidRequestExt.getGreenbidsSampling(), greenbidsId)) {
             return Future.succeededFuture();
         }
@@ -149,6 +167,86 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 greenbidsAnalyticsProperties.getTimeoutMs());
 
         return responseFuture.compose(this::processAnalyticServerResponse);
+    }
+
+    private String extractGreenbidsIdFromAnalyticsTag(BidResponse bidResponse) {
+        final Optional<ExtBidResponse> extBidResponse = Optional.ofNullable(bidResponse)
+                .map(BidResponse::getExt);
+
+        final Optional<ExtBidResponsePrebid> extBidResponsePrebid = extBidResponse
+                .map(ExtBidResponse::getPrebid);
+
+        final Optional<ExtModules> extModules = extBidResponsePrebid
+                .map(ExtBidResponsePrebid::getModules);
+
+        final List<ExtModulesTraceStageOutcome> stageOutcomes = Optional.ofNullable(bidResponse)
+                .map(BidResponse::getExt)
+                .map(ExtBidResponse::getPrebid)
+                .map(ExtBidResponsePrebid::getModules)
+                .map(ExtModules::getTrace)
+                .map(ExtModulesTrace::getStages)
+                .flatMap(stages -> stages.stream()
+                        .filter(stage -> Stage.processed_auction_request.equals(stage.getStage()))
+                        .findFirst())
+                .map(ExtModulesTraceStage::getOutcomes).orElse(null); // OK
+
+        Optional<ExtModulesTraceInvocationResult> extModulesTraceInvocationResult = Optional.ofNullable(stageOutcomes)
+                .flatMap(outcomes -> outcomes.stream()
+                        .filter(outcome -> "auction-request".equals(outcome.getEntity()))
+                        .findFirst())
+                .map(ExtModulesTraceStageOutcome::getGroups)
+                .flatMap(groups -> groups.stream().findFirst())
+                .map(ExtModulesTraceGroup::getInvocationResults)
+                .flatMap(invocationResults -> invocationResults.stream()
+                        .filter(invocationResult -> "greenbids-real-time-data"
+                                .equals(invocationResult.getHookId().getModuleCode()))
+                        .findFirst()); // OK
+
+        Optional<ObjectNode> analyticsResultValue = extModulesTraceInvocationResult
+                .map(ExtModulesTraceInvocationResult::getAnalyticsTags)
+                .map(ExtModulesTraceAnalyticsTags::getActivities)
+                .flatMap(activities -> activities.stream()
+                        .flatMap(activity -> activity.getResults().stream())
+                        .findFirst())
+                .map(ExtModulesTraceAnalyticsResult::getValues);
+
+        System.out.println(
+                "GreenbidsAnalyticsReporter/extractGreenbidsIdFromAnalyticsTag" + "\n" +
+                        "extBidResponsePrebid: " + extBidResponsePrebid + "\n" +
+                        "extModules: " + extModules + "\n" +
+                        "outcomes: " + stageOutcomes + "\n" +
+                        "extModulesTraceInvocationResult: " + extModulesTraceInvocationResult + "\n" +
+                        "analyticsResultValue: " + analyticsResultValue
+        );
+
+        return Optional.ofNullable(bidResponse)
+                .map(BidResponse::getExt)
+                .map(ExtBidResponse::getPrebid)
+                .map(ExtBidResponsePrebid::getModules)
+                .map(ExtModules::getTrace)
+                .map(ExtModulesTrace::getStages)
+                .flatMap(stages -> stages.stream()
+                        .filter(stage -> Stage.processed_auction_request.equals(stage.getStage()))
+                        .findFirst())
+                .map(ExtModulesTraceStage::getOutcomes) // OK
+                .flatMap(outcomes -> outcomes.stream()
+                        .filter(outcome -> "auction-request".equals(outcome.getEntity()))
+                        .findFirst())
+                .map(ExtModulesTraceStageOutcome::getGroups)
+                .flatMap(groups -> groups.stream().findFirst())
+                .map(ExtModulesTraceGroup::getInvocationResults)
+                .flatMap(invocationResults -> invocationResults.stream()
+                        .filter(invocationResult -> "greenbids-real-time-data"
+                                .equals(invocationResult.getHookId().getModuleCode()))
+                        .findFirst()) // OK
+                .map(ExtModulesTraceInvocationResult::getAnalyticsTags)
+                .map(ExtModulesTraceAnalyticsTags::getActivities)
+                .flatMap(activities -> activities.stream()
+                        .flatMap(activity -> activity.getResults().stream())
+                        .findFirst())
+                .map(ExtModulesTraceAnalyticsResult::getValues)
+                .map(values -> values.get("greenbidsId"))
+                .map(JsonNode::asText).orElse(null);
     }
 
     private GreenbidsPrebidExt parseBidRequestExt(BidRequest bidRequest) {

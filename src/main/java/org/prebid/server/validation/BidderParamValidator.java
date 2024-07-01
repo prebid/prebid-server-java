@@ -43,6 +43,9 @@ public class BidderParamValidator {
      * Validates the {@link JsonNode} input parameter against bidder's JSON-schema
      */
     public Set<String> validate(String bidder, JsonNode jsonNode) {
+
+        System.out.println("bidder: " + bidder + " jsonNode: " + jsonNode);
+
         return bidderSchemas.get(bidder).validate(jsonNode).stream()
                 .map(ValidationMessage::getMessage)
                 .collect(Collectors.toSet());
