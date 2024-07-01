@@ -210,7 +210,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
                 return convertIfRequired(customBidderFloor, priceFloorInfo.getCurrency(), bidderBidRequest, bidRequest);
             }
 
-            final Imp imp = correspondingImp(bidderBid.getBid(), bidRequest.getImp());
+            final Imp imp = correspondingImp(bidderBid.getBid(), bidderBidRequest.getImp());
             final String bidRequestCurrency = resolveBidRequestCurrency(bidRequest);
             return convertCurrency(imp.getBidfloor(), bidRequest, imp.getBidfloorcur(), bidRequestCurrency);
         } catch (PreBidException e) {
