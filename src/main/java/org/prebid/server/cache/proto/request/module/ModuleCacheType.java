@@ -11,7 +11,7 @@ public enum ModuleCacheType {
     @JsonValue
     private final String text;
 
-    ModuleCacheType(final String text) {
+    ModuleCacheType(String text) {
         this.text = text;
     }
 }

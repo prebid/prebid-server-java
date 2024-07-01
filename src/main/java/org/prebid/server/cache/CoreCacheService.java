@@ -153,7 +153,8 @@ public class CoreCacheService {
         }
 
         final long startTime = clock.millis();
-        return httpClient.post(endpointUrl.toString(),
+        return httpClient.post(
+                        endpointUrl.toString(),
                         CacheServiceUtil.CACHE_HEADERS,
                         mapper.encodeToString(bidCacheRequest),
                         remainingTimeout)

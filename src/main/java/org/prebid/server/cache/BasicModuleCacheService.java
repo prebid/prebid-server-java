@@ -48,9 +48,10 @@ public class BasicModuleCacheService implements ModuleCacheService {
                                          Integer ttlseconds,
                                          String application,
                                          String moduleCode) {
+
         try {
             validateStoreData(key, value, type, moduleCode);
-        } catch (Throwable e) {
+        } catch (PreBidException e) {
             return Future.failedFuture(e);
         }
 
@@ -62,12 +63,12 @@ public class BasicModuleCacheService implements ModuleCacheService {
                         application,
                         ttlseconds);
 
-        return httpClient.post(endpointUrl.toString(),
+        return httpClient.post(
+                        endpointUrl.toString(),
                         securedCallHeaders(),
                         mapper.encodeToString(moduleCacheRequest),
                         callTimeoutMs)
-                .compose(response -> processStoreResponse(
-                        response.getStatusCode(), response.getBody()));
+                .compose(response -> processStoreResponse(response.getStatusCode(), response.getBody()));
 
     }
 
@@ -75,6 +76,7 @@ public class BasicModuleCacheService implements ModuleCacheService {
                                           String value,
                                           ModuleCacheType type,
                                           String moduleCode) {
+
         if (StringUtils.isBlank(key)) {
             throw new PreBidException("Module cache 'key' can not be blank");
         }
@@ -108,7 +110,6 @@ public class BasicModuleCacheService implements ModuleCacheService {
     }
 
     private Future<Void> processStoreResponse(int statusCode, String responseBody) {
-
         if (statusCode != 204) {
             throw new PreBidException("HTTP status code: '%s', body: '%s' "
                     .formatted(statusCode, responseBody));
@@ -124,15 +125,15 @@ public class BasicModuleCacheService implements ModuleCacheService {
 
         try {
             validateRetrieveData(key, moduleCode);
-        } catch (Throwable e) {
+        } catch (PreBidException e) {
             return Future.failedFuture(e);
         }
 
-        return httpClient.get(getRetrieveEndpoint(key, moduleCode, application),
+        return httpClient.get(
+                        getRetrieveEndpoint(key, moduleCode, application),
                         securedCallHeaders(),
                         callTimeoutMs)
-                .map(response -> toModuleCacheResponse(
-                        response.getStatusCode(), response.getBody()));
+                .map(response -> toModuleCacheResponse(response.getStatusCode(), response.getBody()));
 
     }
 
@@ -155,9 +156,7 @@ public class BasicModuleCacheService implements ModuleCacheService {
                 + "&a=" + StringUtils.defaultString(application);
     }
 
-    private ModuleCacheResponse toModuleCacheResponse(int statusCode,
-                                                      String responseBody) {
-
+    private ModuleCacheResponse toModuleCacheResponse(int statusCode, String responseBody) {
         if (statusCode != 200) {
             throw new PreBidException("HTTP status code " + statusCode);
         }
@@ -172,9 +171,10 @@ public class BasicModuleCacheService implements ModuleCacheService {
         final String processedValue =
                 prepareValueAfterRetrieve(moduleCacheResponse.getValue(), moduleCacheResponse.getType());
 
-        return StringUtils.equals(moduleCacheResponse.getValue(), processedValue)
+        // Use == instead of equals, because it is enough to check if the reference has changed
+        return moduleCacheResponse.getValue() == processedValue
                 ? moduleCacheResponse
-                : moduleCacheResponse.toBuilder().value(processedValue).build();
+                : ModuleCacheResponse.of(moduleCacheResponse.getKey(), moduleCacheResponse.getType(), processedValue);
     }
 
     private static String prepareValueAfterRetrieve(String value, ModuleCacheType type) {
