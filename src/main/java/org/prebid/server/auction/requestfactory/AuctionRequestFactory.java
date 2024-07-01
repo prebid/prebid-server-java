@@ -3,6 +3,7 @@ package org.prebid.server.auction.requestfactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Regs;
 import io.vertx.core.Future;
 import io.vertx.ext.web.RoutingContext;
@@ -187,7 +188,15 @@ public class AuctionRequestFactory {
 
     private BidRequest jsonNodeAsBidRequest(JsonNode bidRequestNode) {
         try {
-            return mapper.mapper().treeToValue(bidRequestNode, BidRequest.class);
+
+            BidRequest parsedBidRequest = mapper.mapper().treeToValue(bidRequestNode, BidRequest.class);
+
+            System.out.println(
+                    "AuctionRequestFactory/jsonNodeAsBidRequest: " + "\n" +
+                            "parsedBidRequest.imp[].ext: " + parsedBidRequest.getImp().stream().map(Imp::getExt).toList()
+            );
+
+            return parsedBidRequest;
         } catch (JsonProcessingException e) {
             throw new InvalidRequestException("Error decoding bidRequest: " + e.getMessage());
         }
