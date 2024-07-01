@@ -20,17 +20,17 @@ There are two ways to configure application settings: database and file. This do
     - "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject
       the bid and log an operational warning.
 - `auction.events.enabled` - enables events for account if true
-- `auction.price-floors.enabeled` - enables price floors for account if true.
-- `auction.price-floors.fetch.enabled`- enables data fetch for price floors for account if true.
+- `auction.price-floors.enabeled` - enables price floors for account if true. Defaults to true.
+- `auction.price-floors.fetch.enabled`- enables data fetch for price floors for account if true. Defaults to false.
 - `auction.price-floors.fetch.url` - url to fetch price floors data from.
-- `auction.price-floors.fetch.timeout-ms` - timeout for fetching price floors data.
-- `auction.price-floors.fetch.max-file-size-kb` - maximum size of price floors data to be fetched.
-- `auction.price-floors.fetch.max-rules` - maximum number of rules per model group.
-- `auction.price-floors.fetch.max-age-sec` - maximum time that fetched price floors data remains in cache.
-- `auction.price-floors.fetch.period-sec` - time between two consecutive fetches.
+- `auction.price-floors.fetch.timeout-ms` - timeout for fetching price floors data. Defaults to 5000.
+- `auction.price-floors.fetch.max-file-size-kb` - maximum size of price floors data to be fetched. Defaults to 200.
+- `auction.price-floors.fetch.max-rules` - maximum number of rules per model group. Defaults to 0.
+- `auction.price-floors.fetch.max-age-sec` - maximum time that fetched price floors data remains in cache. Defaults to 86400.
+- `auction.price-floors.fetch.period-sec` - time between two consecutive fetches. Defaults to 3600.
 - `auction.price-floors.enforce-floors-rate` - what percentage of the time a defined floor is enforced. Default is 100.
 - `auction.price-floors.adjust-for-bid-adjustment` - boolean for whether to use the bidAdjustment function to adjust the floor per bidder. Defaults to true.
-- `auction.price-floors.enforce-deal-floors` - boolean for whether to enforce floors on deals. Defaults to false.
+- `auction.price-floors.enforce-deal-floors` - boolean for whether to enforce floors on deals. Defaults to true.
 - `auction.price-floors.use-dynamic-data` - boolean that can be used as an emergency override to start ignoring dynamic floors data if something goes wrong. Defaults to true.
 - `auction.targeting.includewinners` - whether to include targeting for the winning bids in response. Default `false`.
 - `auction.targeting.includebidderkeys` - whether to include targeting for the best bid from each bidder in response. Default `false`.
@@ -95,7 +95,7 @@ Keep in mind following restrictions:
 - `cookie-sync.pri` - a list of prioritized bidder codes
 - `cookie-sync.coop-sync.default` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this
 - `hooks` - configuration for Prebid Server Modules. For further details, see: https://docs.prebid.org/prebid-server/pbs-modules/index.html#2-define-an-execution-plan
-- `settings.geo-lookup` - enables geo lookup for account if true.
+- `settings.geo-lookup` - enables geo lookup for account if true. Defaults to false.
 
 Here are the definitions of the "purposes" that can be defined in the GDPR setting configurations:
 
