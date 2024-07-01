@@ -1,5 +1,6 @@
 package org.prebid.server.functional.model.config
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.PropertyNamingStrategies
 import com.fasterxml.jackson.databind.annotation.JsonNaming
 import groovy.transform.ToString
@@ -11,4 +12,6 @@ class AccountCcpaConfig {
 
     Boolean enabled
     Map<ChannelType, Boolean> channelEnabled
+    @JsonProperty("channel_enabled")
+    Map<ChannelType, Boolean> channelEnabledSnakeCase
 }

@@ -369,7 +369,10 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
     def "PBS should not update imp[0].bidFloor when bidadjustment is disallowed"() {
         given: "Pbs with PF configuration with adjustForBidAdjustment"
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
-            auction.priceFloors.adjustForBidAdjustment = pbsConfigBidAdjustmentFlag
+            auction.priceFloors.tap {
+                adjustForBidAdjustment = pbsConfigBidAdjustmentFlag
+                adjustForBidAdjustmentSnakeCase = pbsConfigBidAdjustmentFlagSnakeCase
+            }
         }
         def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
                 ["settings.default-account-config": encode(defaultAccountConfigSettings)])
@@ -386,6 +389,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         def accountId = bidRequest.app.publisher.id
         def account = getAccountWithEnabledFetch(accountId).tap {
             config.auction.priceFloors.adjustForBidAdjustment = accountBidAdjustmentFlag
+            config.auction.priceFloors.adjustForBidAdjustmentSnakeCase = accountBidAdjustmentFlagSnakeCase
         }
         accountDao.save(account)
 
@@ -405,9 +409,11 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].ext.prebid.floors.floorValue == floorsProviderFloorValue
 
         where:
-        pbsConfigBidAdjustmentFlag | requestBidAdjustmentFlag | accountBidAdjustmentFlag
-        false                      | false                    | null
-        true                       | null                     | false
+        pbsConfigBidAdjustmentFlagSnakeCase | pbsConfigBidAdjustmentFlag | requestBidAdjustmentFlag | accountBidAdjustmentFlag | accountBidAdjustmentFlagSnakeCase
+        null                                | false                      | false                    | null                     | false
+        null                                | true                       | null                     | false                    | null
+        false                               | null                       | false                    | null                     | false
+        true                                | null                       | null                     | false                    | null
     }
 
     def "PBS should choose most aggressive adjustment when request contains multiple media-types"() {
