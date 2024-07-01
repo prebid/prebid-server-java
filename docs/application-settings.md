@@ -11,6 +11,7 @@ There are two ways to configure application settings: database and file. This do
 - `auction.video-cache-ttl`- how long (in seconds) video creative will be available via the external Cache Service.
 - `auction.truncate-target-attr` - Maximum targeting attributes size. Values between 1 and 255.
 - `auction.default-integration` - Default integration to assume.
+- `auction.debug-allow` - enables debug output in the auction response. Default `true`.
 - `auction.bid-validations.banner-creative-max-size` - Overrides creative max size validation for banners. Valid values
   are:
     - "skip": don't do anything about creative max size for this publisher
@@ -19,7 +20,18 @@ There are two ways to configure application settings: database and file. This do
     - "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject
       the bid and log an operational warning.
 - `auction.events.enabled` - enables events for account if true
-- `auction.debug-allow` - enables debug output in the auction response. Default `true`.
+- `auction.price-floors.enabeled`
+- `auction.price-floors.fetch.enabled`
+- `auction.price-floors.fetch.url`
+- `auction.price-floors.fetch.timeout-ms`
+- `auction.price-floors.fetch.max-file-size-kb`
+- `auction.price-floors.fetch.max-rules`
+- `auction.price-floors.fetch.max-age-sec`
+- `auction.price-floors.fetch.period-sec`
+- `auction.price-floors.enforce-floors-rate`
+- `auction.price-floors.adjust-for-bid-adjustment`
+- `auction.price-floors.enforce-deal-floors`
+- `auction.price-floors.use-dynamic-data`
 - `auction.targeting.includewinners` - whether to include targeting for the winning bids in response. Default `false`.
 - `auction.targeting.includebidderkeys` - whether to include targeting for the best bid from each bidder in response. Default `false`.
 - `auction.targeting.includeformat` - whether to include the “hb_format” targeting key. Default `false`.
@@ -30,17 +42,18 @@ Keep in mind following restrictions:
     - this prefix value may be overridden by correspond property from bid request
     - prefix length is limited by `auction.truncate-target-attr`
     - if custom prefix may produce keywords that exceed `auction.truncate-target-attr`, prefix value will drop to default `hb`
-- `privacy.ccpa.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
-- `privacy.ccpa.channel-enabled.web` - overrides `ccpa.enforce` property behaviour for web requests type.
-- `privacy.ccpa.channel-enabled.amp` - overrides `ccpa.enforce` property behaviour for amp requests type.
-- `privacy.ccpa.channel-enabled.app` - overrides `ccpa.enforce` property behaviour for app requests type.
-- `privacy.ccpa.channel-enabled.video` - overrides `ccpa.enforce` property behaviour for video requests type.
+- `auction.preferredmediatype`
+- `auction.privacysandbox.cookiedeprecation.enabled`
+- `auction.privacysandbox.cookiedeprecation.ttlsec`
 - `privacy.gdpr.enabled` - enables gdpr verifications if true. Has higher priority than configuration in
   application.yaml.
+- `privacy.gdpr.eea-countries`
 - `privacy.gdpr.channel-enabled.web` - overrides `privacy.gdpr.enabled` property behaviour for web requests type.
 - `privacy.gdpr.channel-enabled.amp` - overrides `privacy.gdpr.enabled` property behaviour for amp requests type.
 - `privacy.gdpr.channel-enabled.app` - overrides `privacy.gdpr.enabled` property behaviour for app requests type.
 - `privacy.gdpr.channel-enabled.video` - overrides `privacy.gdpr.enabled` property behaviour for video requests
+  type.
+- `privacy.gdpr.channel-enabled.dooh` - overrides `privacy.gdpr.enabled` property behaviour for dooh requests
   type.
 - `privacy.gdpr.purposes.[p1-p10].enforce-purpose` - define type of enforcement confirmation: `no`/`basic`/`full`.
   Default `full`
@@ -48,24 +61,41 @@ Keep in mind following restrictions:
   Purposes will be omitted. Default `true`
 - `privacy.gdpr.purposes.[p1-p10].vendor-exceptions[]` - bidder names that will be treated opposite
   to `pN.enforce-vendors` value.
-- `privacy.gdpr.special-features.[f1-f2].enforce`- if equals to `true`, special feature will be enforced for purpose.
+- `privacy.gdpr.purposes.p4.eid.activity_transition` - defaults to `true`. If `true` and transmitEids is not specified, but transmitUfpd is specified, then the logic of transmitUfpd is used. This is to avoid breaking changes to existing configurations. The default value of the flag will be changed in a future release. 
+- `privacy.gdpr.purposes.p4.eid.require_consent` - if equals to `true`, transmitting EIDs require P4 legal basis unless excepted.
+- `privacy.gdpr.purposes.p4.eid.exceptions` - list of EID sources that are excepted from P4 enforcement and will be transmitted if any P2-P10 is consented.
+- `privacy.gdpr.special-features.[sf1-sf2].enforce`- if equals to `true`, special feature will be enforced for purpose.
   Default `true`
-- `privacy.gdpr.special-features.[f1-f2].vendor-exceptions` - bidder names that will be treated opposite
+- `privacy.gdpr.special-features.[sf1-sf2].vendor-exceptions` - bidder names that will be treated opposite
   to `sfN.enforce` value.
 - `privacy.gdpr.purpose-one-treatment-interpretation` - option that allows to skip the Purpose one enforcement workflow.
   Values: ignore, no-access-allowed, access-allowed.
-- `privacy.gdpr.purposes.p4.eid.require_consent` - if equals to `true`, transmitting EIDs require P4 legal basis unless excepted.
-- `privacy.gdpr.purposes.p4.eid.exceptions` - list of EID sources that are excepted from P4 enforcement and will be transmitted if any P2-P10 is consented.
-- `privacy.gdpr.purposes.p4.eid.activity_transition` - defaults to `true`. If `true` and transmitEids is not specified, but transmitUfpd is specified, then the logic of transmitUfpd is used. This is to avoid breaking changes to existing configurations. The default value of the flag will be changed in a future release. 
-- `metrics.verbosity-level` - defines verbosity level of metrics for this account, overrides `metrics.accounts` application settings configuration. 
+- `privacy.gdpr.basic-enforcement-vendors`
+- `privacy.ccpa.enabled` - enables gdpr verifications if true. Has higher priority than configuration in application.yaml.
+- `privacy.ccpa.channel-enabled.web` - overrides `ccpa.enforce` property behaviour for web requests type.
+- `privacy.ccpa.channel-enabled.amp` - overrides `ccpa.enforce` property behaviour for amp requests type.
+- `privacy.ccpa.channel-enabled.app` - overrides `ccpa.enforce` property behaviour for app requests type.
+- `privacy.ccpa.channel-enabled.video` - overrides `ccpa.enforce` property behaviour for video requests type.
+- `privacy.ccpa.channel-enabled.dooh` - overrides `ccpa.enforce` property behaviour for dooh requests type.
+- `privacy.dsa.default.dsarequired`
+- `privacy.dsa.default.pubrender`
+- `privacy.dsa.default.datatopub`
+- `privacy.dsa.default.transparency[].domain`
+- `privacy.dsa.default.transparency[].dsaparams`
+- `privacy.dsa.gdpr-only`
+- `privacy.allowactivities`
+- `privacy.modules`
+- `analytics.allow-client-details`
 - `analytics.auction-events.<channel>` - defines which channels are supported by analytics for this account
 - `analytics.modules.<module-name>.*` - space for `module-name` analytics module specific configuration, may be of any shape
-- `cookie-sync.default-timeout-ms` - overrides host level config
+- `metrics.verbosity-level` - defines verbosity level of metrics for this account, overrides `metrics.accounts` application settings configuration. 
 - `cookie-sync.default-limit` - if the "limit" isn't specified in the `/cookie_sync` request, this is what to use
-- `cookie-sync.pri` - a list of prioritized bidder codes 
 - `cookie-sync.max-limit` - if the "limit" is specified in the `/cookie_sync` request, it can't be greater than this
   value
+- `cookie-sync.pri` - a list of prioritized bidder codes
 - `cookie-sync.coop-sync.default` - if the "coopSync" value isn't specified in the `/cookie_sync` request, use this
+- `hooks`
+- `settings.geo-lookup`
 
 Here are the definitions of the "purposes" that can be defined in the GDPR setting configurations:
 
