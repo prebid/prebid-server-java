@@ -1821,6 +1821,8 @@ public class ExchangeService {
                 .filter(Objects::nonNull)
                 .toList();
 
+        System.out.println("ExchangeService/toHookTrace/ stages: " + stages + "\n traceLevel" + traceLevel);
+
         if (stages.isEmpty()) {
             return null;
         }
