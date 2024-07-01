@@ -20,14 +20,14 @@ There are two ways to configure application settings: database and file. This do
     - "enforce": if a bidder returns a creative that's larger in height or width than any of the allowed sizes, reject
       the bid and log an operational warning.
 - `auction.events.enabled` - enables events for account if true
-- `auction.price-floors.enabeled`
-- `auction.price-floors.fetch.enabled`
-- `auction.price-floors.fetch.url`
-- `auction.price-floors.fetch.timeout-ms`
-- `auction.price-floors.fetch.max-file-size-kb`
-- `auction.price-floors.fetch.max-rules`
-- `auction.price-floors.fetch.max-age-sec`
-- `auction.price-floors.fetch.period-sec`
+- `auction.price-floors.enabeled` - enables price floors for account if true.
+- `auction.price-floors.fetch.enabled`- enables data fetch for price floors for account if true.
+- `auction.price-floors.fetch.url` - url to fetch price floors data from.
+- `auction.price-floors.fetch.timeout-ms` - timeout for fetching price floors data.
+- `auction.price-floors.fetch.max-file-size-kb` - maximum size of price floors data to be fetched.
+- `auction.price-floors.fetch.max-rules` - maximum number of rules per model group.
+- `auction.price-floors.fetch.max-age-sec` - maximum time that fetched price floors data remains in cache.
+- `auction.price-floors.fetch.period-sec` - time between two consecutive fetches.
 - `auction.price-floors.enforce-floors-rate`
 - `auction.price-floors.adjust-for-bid-adjustment`
 - `auction.price-floors.enforce-deal-floors`
