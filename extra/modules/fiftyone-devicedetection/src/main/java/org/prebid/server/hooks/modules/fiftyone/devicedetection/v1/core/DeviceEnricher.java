@@ -291,13 +291,6 @@ public class DeviceEnricher {
         return value != null && value > 0;
     }
 
-    /**
-     * Consists of four components separated by a hyphen symbol:
-     * Hardware-Platform-Browser-IsCrawler where
-     * each Component represents an ID of the corresponding Profile.
-     *
-     * @see fiftyone.devicedetection.hash.engine.onpremise.data.DeviceDataHash#getDeviceId()
-     */
     private static String getDeviceId(Device device) {
         final ExtDevice ext = device.getExt();
         if (ext == null) {
@@ -307,16 +300,6 @@ public class DeviceEnricher {
         return (savedValue != null && savedValue.isTextual()) ? savedValue.textValue() : null;
     }
 
-    /**
-     * Consists of four components separated by a hyphen symbol:
-     * Hardware-Platform-Browser-IsCrawler where
-     * each Component represents an ID of the corresponding Profile.
-     *
-     * @param deviceBuilder Writable builder to save device ID into.
-     * @param device        Raw (non-builder) form of device before modification.
-     * @param deviceId      New Device ID value.
-     * @see fiftyone.devicedetection.hash.engine.onpremise.data.DeviceDataHash#getDeviceId()
-     */
     private static void setDeviceId(Device.DeviceBuilder deviceBuilder, Device device, String deviceId) {
         ExtDevice ext = null;
         if (device != null) {

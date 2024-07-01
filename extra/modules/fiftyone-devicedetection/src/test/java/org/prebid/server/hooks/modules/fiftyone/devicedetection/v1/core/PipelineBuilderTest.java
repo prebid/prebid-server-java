@@ -50,8 +50,6 @@ public class PipelineBuilderTest {
         when(builder.build()).thenReturn(pipeline);
     }
 
-    // MARK: - applyUpdateOptions
-
     @Test
     public void buildShouldIgnoreEmptyUrl() throws Exception {
         // given
@@ -166,8 +164,6 @@ public class PipelineBuilderTest {
         assertThat(argumentCaptor.getAllValues()).containsExactly(dataFileUpdate.getPollingInterval());
     }
 
-    // MARK: - applyPerformanceOptions
-
     @Test(expected = IllegalArgumentException.class)
     public void buildShouldThrowWhenProfileIsUnknown() throws Exception {
         // given
@@ -269,8 +265,6 @@ public class PipelineBuilderTest {
         verify(builder).setDrift(driftsArgumentCaptor.capture());
         assertThat(driftsArgumentCaptor.getAllValues()).containsExactly(performanceConfig.getDrift());
     }
-
-    // MARK: - build
 
     @Test
     public void buildShouldReturnNonNull() throws Exception {

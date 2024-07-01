@@ -52,8 +52,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
         target = new FiftyOneDeviceDetectionRawAuctionRequestHook(accountFilter, deviceEnricher);
     }
 
-    // MARK: - addEvidenceToContext
-
     @Test
     public void callShouldMakeNewContextWhenNullIsPassedIn() {
         // given
@@ -141,8 +139,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
         assertThat(newEvidence.secureHeaders()).isEqualTo(sua);
     }
 
-    // MARK: - collectEvidence
-
     @Test
     public void callShouldNotFailWhenNoDevice() {
         // given
@@ -217,8 +213,6 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
         // then
         assertThat(evidence.secureHeaders()).isEmpty();
     }
-
-    // MARK: - enrichDevice
 
     @Test
     public void payloadUpdateShouldReturnNullWhenRequestIsNull() {
@@ -379,15 +373,11 @@ public class FiftyOneDeviceDetectionRawAuctionRequestHookTest {
         verify(deviceEnricher, times(1)).populateDeviceInfo(any(), any());
     }
 
-    // MARK: - code
-
     @Test
     public void codeShouldStartWithModuleCode() {
         // when and then
         assertThat(target.code()).startsWith(FiftyOneDeviceDetectionModule.CODE);
     }
-
-    // MARK: - isAccountAllowed
 
     @Test
     public void callShouldReturnUpdateActionWhenFilterIsNull() {

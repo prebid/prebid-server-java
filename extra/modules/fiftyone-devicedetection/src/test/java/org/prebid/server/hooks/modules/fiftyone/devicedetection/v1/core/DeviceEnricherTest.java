@@ -52,8 +52,6 @@ public class DeviceEnricherTest {
         target = new DeviceEnricher(pipeline);
     }
 
-    // MARK: - shouldSkipEnriching
-
     @Test
     public void shouldSkipEnrichingShouldReturnFalseWhenExtIsNull() {
         // given
@@ -83,8 +81,6 @@ public class DeviceEnricherTest {
         // when and then
         assertThat(DeviceEnricher.shouldSkipEnriching(device)).isTrue();
     }
-
-    // MARK: - populateDeviceInfo
 
     @Test
     public void populateDeviceInfoShouldReportErrorWhenPipelineThrowsException() {
@@ -122,8 +118,6 @@ public class DeviceEnricherTest {
         assertThat(result).isNull();
         verify(flowData, times(1)).get(DeviceData.class);
     }
-
-    // MARK: - pickRelevantFrom
 
     @Test
     public void populateDeviceInfoShouldPassToFlowDataHeadersMadeFromSuaWhenPresent() throws Exception {
@@ -262,8 +256,6 @@ public class DeviceEnricherTest {
         assertThat(evidence).isNotNull();
         assertThat(evidence).isEmpty();
     }
-
-    // MARK: - patchDevice
 
     @Test
     public void populateDeviceInfoShouldEnrichAllPropertiesWhenDeviceIsEmpty() throws Exception {
@@ -567,8 +559,6 @@ public class DeviceEnricherTest {
         when(deviceData.getPixelRatio()).thenReturn(aspectPropertyValueWith(1.5));
         when(deviceData.getDeviceId()).thenReturn(aspectPropertyValueWith("fake-device-id"));
     }
-
-    // MARK: - convertDeviceType
 
     @Test
     public void populateDeviceInfoShouldEnrichDeviceTypeWithFourWhenDeviceTypeStringIsPhone() throws Exception {
