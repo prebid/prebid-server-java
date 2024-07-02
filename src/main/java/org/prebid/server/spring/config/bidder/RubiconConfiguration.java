@@ -47,6 +47,7 @@ public class RubiconConfiguration {
                 .usersyncerCreator(UsersyncerCreator.create(externalUrl))
                 .bidderCreator(config ->
                         new RubiconBidder(
+                                BIDDER_NAME,
                                 config.getEndpoint(),
                                 config.getXapi().getUsername(),
                                 config.getXapi().getPassword(),

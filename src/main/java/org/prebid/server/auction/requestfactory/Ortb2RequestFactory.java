@@ -369,10 +369,6 @@ public class Ortb2RequestFactory {
         return stageResult.getPayload().bidRequest();
     }
 
-    public AuctionContext enrichWithPriceFloors(AuctionContext auctionContext) {
-        return priceFloorProcessor.enrichWithPriceFloors(auctionContext);
-    }
-
     public AuctionContext updateTimeout(AuctionContext auctionContext) {
         final TimeoutContext timeoutContext = auctionContext.getTimeoutContext();
         final long startTime = timeoutContext.getStartTime();

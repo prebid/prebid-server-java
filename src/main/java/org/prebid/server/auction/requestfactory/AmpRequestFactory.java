@@ -170,8 +170,6 @@ public class AmpRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
-                .map(ortb2RequestFactory::enrichWithPriceFloors)
-
                 .map(ortb2RequestFactory::updateTimeout)
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
