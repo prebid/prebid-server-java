@@ -41,7 +41,7 @@ import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
 import org.prebid.server.bidder.model.BidderSeatBidInfo;
-import org.prebid.server.cache.CacheService;
+import org.prebid.server.cache.CoreCacheService;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
@@ -123,7 +123,7 @@ public class BidResponseCreator {
     private static final String DEFAULT_TARGETING_KEY_PREFIX = "hb";
     public static final String DEFAULT_DEBUG_KEY = "prebid";
 
-    private final CacheService cacheService;
+    private final CoreCacheService coreCacheService;
     private final BidderCatalog bidderCatalog;
     private final VastModifier vastModifier;
     private final EventsService eventsService;
@@ -141,7 +141,7 @@ public class BidResponseCreator {
     private final String cachePath;
     private final String cacheAssetUrlTemplate;
 
-    public BidResponseCreator(CacheService cacheService,
+    public BidResponseCreator(CoreCacheService coreCacheService,
                               BidderCatalog bidderCatalog,
                               VastModifier vastModifier,
                               EventsService eventsService,
@@ -155,7 +155,7 @@ public class BidResponseCreator {
                               JacksonMapper mapper,
                               CacheTtl mediaTypeCacheTtl) {
 
-        this.cacheService = Objects.requireNonNull(cacheService);
+        this.coreCacheService = Objects.requireNonNull(coreCacheService);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
         this.vastModifier = Objects.requireNonNull(vastModifier);
         this.eventsService = Objects.requireNonNull(eventsService);
@@ -169,10 +169,9 @@ public class BidResponseCreator {
         this.mapper = Objects.requireNonNull(mapper);
         this.mediaTypeCacheTtl = Objects.requireNonNull(mediaTypeCacheTtl);
 
-        cacheHost = Objects.requireNonNull(cacheService.getEndpointHost());
-        cachePath = Objects.requireNonNull(cacheService.getEndpointPath());
-        cacheAssetUrlTemplate = Objects.requireNonNull(cacheService.getCachedAssetURLTemplate());
-
+        cacheHost = Objects.requireNonNull(coreCacheService.getEndpointHost());
+        cachePath = Objects.requireNonNull(coreCacheService.getEndpointPath());
+        cacheAssetUrlTemplate = Objects.requireNonNull(coreCacheService.getCachedAssetURLTemplate());
     }
 
     private static int validateTruncateAttrChars(int truncateAttrChars) {
@@ -849,7 +848,7 @@ public class BidResponseCreator {
                 .shouldCacheVideoBids(cacheInfo.isShouldCacheVideoBids())
                 .build();
 
-        return cacheService.cacheBidsOpenrtb(bidsValidToBeCached, auctionContext, cacheContext, eventsContext)
+        return coreCacheService.cacheBidsOpenrtb(bidsValidToBeCached, auctionContext, cacheContext, eventsContext)
                 .map(cacheResult -> addNotCachedBids(cacheResult, bidsToCache));
     }
 

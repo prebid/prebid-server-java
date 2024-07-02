@@ -24,7 +24,7 @@ import org.prebid.server.auction.requestfactory.AmpRequestFactory;
 import org.prebid.server.auction.requestfactory.AuctionRequestFactory;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.cache.CacheService;
+import org.prebid.server.cache.CoreCacheService;
 import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.UidsCookieService;
@@ -259,7 +259,7 @@ public class ApplicationServerConfiguration {
             VideoRequestFactory videoRequestFactory,
             VideoResponseFactory videoResponseFactory,
             ExchangeService exchangeService,
-            CacheService cacheService,
+            CoreCacheService coreCacheService,
             AnalyticsReporterDelegator analyticsReporter,
             Metrics metrics,
             Clock clock,
@@ -270,7 +270,7 @@ public class ApplicationServerConfiguration {
                 videoRequestFactory,
                 videoResponseFactory,
                 exchangeService,
-                cacheService, analyticsReporter,
+                coreCacheService, analyticsReporter,
                 metrics,
                 clock,
                 prebidVersionProvider,
@@ -357,7 +357,7 @@ public class ApplicationServerConfiguration {
             @Value("${vtrack.modify-vast-for-unknown-bidder}") boolean modifyVastForUnknownBidder,
             ApplicationSettings applicationSettings,
             BidderCatalog bidderCatalog,
-            CacheService cacheService,
+            CoreCacheService coreCacheService,
             TimeoutFactory timeoutFactory,
             JacksonMapper mapper) {
 
@@ -367,7 +367,7 @@ public class ApplicationServerConfiguration {
                 modifyVastForUnknownBidder,
                 applicationSettings,
                 bidderCatalog,
-                cacheService,
+                coreCacheService,
                 timeoutFactory,
                 mapper);
     }

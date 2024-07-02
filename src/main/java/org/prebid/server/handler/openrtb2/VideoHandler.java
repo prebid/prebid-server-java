@@ -15,7 +15,7 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
-import org.prebid.server.cache.CacheService;
+import org.prebid.server.cache.CoreCacheService;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
 import org.prebid.server.json.JacksonMapper;
@@ -53,7 +53,7 @@ public class VideoHandler implements ApplicationResource {
     private final VideoRequestFactory videoRequestFactory;
     private final VideoResponseFactory videoResponseFactory;
     private final ExchangeService exchangeService;
-    private final CacheService cacheService;
+    private final CoreCacheService coreCacheService;
     private final AnalyticsReporterDelegator analyticsDelegator;
     private final Metrics metrics;
     private final Clock clock;
@@ -63,7 +63,7 @@ public class VideoHandler implements ApplicationResource {
     public VideoHandler(VideoRequestFactory videoRequestFactory,
                         VideoResponseFactory videoResponseFactory,
                         ExchangeService exchangeService,
-                        CacheService cacheService, AnalyticsReporterDelegator analyticsDelegator,
+                        CoreCacheService coreCacheService, AnalyticsReporterDelegator analyticsDelegator,
                         Metrics metrics,
                         Clock clock,
                         PrebidVersionProvider prebidVersionProvider,
@@ -72,7 +72,7 @@ public class VideoHandler implements ApplicationResource {
         this.videoRequestFactory = Objects.requireNonNull(videoRequestFactory);
         this.videoResponseFactory = Objects.requireNonNull(videoResponseFactory);
         this.exchangeService = Objects.requireNonNull(exchangeService);
-        this.cacheService = Objects.requireNonNull(cacheService);
+        this.coreCacheService = Objects.requireNonNull(coreCacheService);
         this.analyticsDelegator = Objects.requireNonNull(analyticsDelegator);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
@@ -202,7 +202,7 @@ public class VideoHandler implements ApplicationResource {
         final Integer videoCacheTtl =
                 ObjectUtil.getIfNotNull(accountAuctionConfig, AccountAuctionConfig::getVideoCacheTtl);
 
-        return cacheService.cacheVideoDebugLog(cachedDebugLog, videoCacheTtl);
+        return coreCacheService.cacheVideoDebugLog(cachedDebugLog, videoCacheTtl);
     }
 
     private VideoEvent updateEventWithDebugCacheMessage(VideoEvent videoEvent, String cacheKey) {

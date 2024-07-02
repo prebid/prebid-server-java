@@ -1,4 +1,4 @@
-package org.prebid.server.cache.proto.request;
+package org.prebid.server.cache.proto.request.bid;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.Builder;
@@ -6,7 +6,7 @@ import lombok.Value;
 
 @Builder(toBuilder = true)
 @Value
-public class PutObject {
+public class BidPutObject {
 
     String type;
 
