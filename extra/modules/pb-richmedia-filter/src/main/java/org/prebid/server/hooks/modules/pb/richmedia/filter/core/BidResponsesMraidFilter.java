@@ -2,6 +2,8 @@ package org.prebid.server.hooks.modules.pb.richmedia.filter.core;
 
 import com.iab.openrtb.response.Bid;
 import org.apache.commons.lang3.StringUtils;
+import org.prebid.server.auction.model.BidRejectionReason;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
@@ -23,7 +25,10 @@ public class BidResponsesMraidFilter {
     private static final String TAG_STATUS = "success-block";
     private static final Map<String, Object> TAG_VALUES = Map.of("richmedia-format", "mraid");
 
-    public MraidFilterResult filterByPattern(String mraidScriptPattern, List<BidderResponse> responses) {
+    public MraidFilterResult filterByPattern(String mraidScriptPattern,
+                                             List<BidderResponse> responses,
+                                             Map<String, BidRejectionTracker> bidRejectionTrackers) {
+
         List<BidderResponse> filteredResponses = new ArrayList<>();
         List<AnalyticsResult> analyticsResults = new ArrayList<>();
 
@@ -43,18 +48,21 @@ public class BidResponsesMraidFilter {
                         .map(BidderBid::getBid)
                         .map(Bid::getImpid)
                         .toList();
+
+                final String bidder = bidderResponse.getBidder();
+
                 final AnalyticsResult analyticsResult = AnalyticsResult.of(
                         TAG_STATUS,
                         TAG_VALUES,
-                        bidderResponse.getBidder(),
+                        bidder,
                         rejectedImps);
                 analyticsResults.add(analyticsResult);
 
+                bidRejectionTrackers.get(bidder)
+                        .reject(rejectedImps, BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
+
                 final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
-                errors.add(BidderError.of(
-                        "Invalid creatives",
-                        BidderError.Type.invalid_creative,
-                        new HashSet<>(rejectedImps)));
+                errors.add(BidderError.of("Invalid bid", BidderError.Type.invalid_bid, new HashSet<>(rejectedImps)));
                 filteredResponses.add(bidderResponse.with(seatBid.with(validBids, errors)));
             }
         }

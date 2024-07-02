@@ -5,9 +5,12 @@ import lombok.Builder;
 import lombok.Value;
 import lombok.experimental.Accessors;
 import org.prebid.server.auction.model.AuctionContext;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.execution.Timeout;
 import org.prebid.server.hooks.v1.bidder.BidderInvocationContext;
 import org.prebid.server.model.Endpoint;
+
+import java.util.Map;
 
 @Accessors(fluent = true)
 @Builder
@@ -28,9 +31,16 @@ public class BidderInvocationContextImpl implements BidderInvocationContext {
 
     String bidder;
 
-    public static BidderInvocationContext of(String bidder, ObjectNode accountConfig, boolean debugEnabled) {
+    public static BidderInvocationContext of(String bidder,
+                                             BidRejectionTracker bidRejectionTracker,
+                                             ObjectNode accountConfig,
+                                             boolean debugEnabled) {
+
         return BidderInvocationContextImpl.builder()
                 .bidder(bidder)
+                .auctionContext(AuctionContext.builder()
+                        .bidRejectionTrackers(Map.of(bidder, bidRejectionTracker))
+                        .build())
                 .accountConfig(accountConfig)
                 .debugEnabled(debugEnabled)
                 .build();
