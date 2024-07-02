@@ -1,7 +1,6 @@
 package org.prebid.server.bidder.readpeak;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
@@ -36,10 +35,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class ReadPeakBidder implements Bidder<BidRequest> {
 
     private static final TypeReference<ExtPrebid<?, ExtImpReadPeak>> READPEAK_EXT_TYPE_REFERENCE =
+            new TypeReference<>() {
+            };
+
+    private static final TypeReference<ExtPrebid<ExtBidPrebid, ?>> EXT_PREBID_TYPE_REFERENCE =
             new TypeReference<>() {
             };
 
@@ -56,27 +60,26 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final List<Imp> modifiedImps = new ArrayList<>();
-        final List<ExtImpReadPeak> extImpReadPeaks = new ArrayList<>();
         final List<BidderError> errors = new ArrayList<>();
 
+        ExtImpReadPeak extImp = null;
         for (Imp imp : request.getImp()) {
             try {
-                final ExtImpReadPeak extImpReadPeak = parseImpExt(imp);
-                final Imp modifiedImp = modifyImp(imp, extImpReadPeak);
+                extImp = parseImpExt(imp);
+                final Imp modifiedImp = modifyImp(imp, extImp);
                 modifiedImps.add(modifiedImp);
-                extImpReadPeaks.add(extImpReadPeak);
             } catch (PreBidException e) {
                 errors.add(BidderError.badInput(e.getMessage()));
             }
         }
 
         if (modifiedImps.isEmpty()) {
-            return Result.withError(BidderError
-                    .badInput(String.format("Failed to find compatible impressions for request %s", request.getId())));
+            return Result.withError(BidderError.badInput(
+                    String.format("Failed to find compatible impressions for request %s", request.getId())));
         }
 
         final BidRequest modifiedRequest = request.toBuilder().imp(modifiedImps).build();
-        final HttpRequest<BidRequest> httpRequest = makeHttpRequest(modifiedRequest, extImpReadPeaks.get(0));
+        final HttpRequest<BidRequest> httpRequest = makeHttpRequest(modifiedRequest, extImp);
 
         return Result.of(Collections.singletonList(httpRequest), errors);
     }
@@ -96,37 +99,32 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
                 .build();
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, ExtImpReadPeak extImpReadPeak) {
-        final Publisher publisher = Publisher.builder()
-                .id(extImpReadPeak.getPublisherId())
-                .build();
-
-        final BidRequest.BidRequestBuilder requestBuilder = request.toBuilder();
-
-        final boolean hasSite = request.getSite() != null;
-        final boolean hasApp = !hasSite && request.getApp() != null;
-
-        final BidRequest outgoingRequest = requestBuilder
-                .site(hasSite ? modifySite(request.getSite(),
-                        extImpReadPeak.getSiteId(), publisher) : request.getSite())
-                .app(hasApp ? modifyApp(request.getApp(), extImpReadPeak, publisher) : request.getApp())
-                .build();
-
-        return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
-    }
-
-    private Site modifySite(Site site, String siteId, Publisher publisher) {
+    private static Site modifySite(Site site, String siteId, Publisher publisher) {
         return site.toBuilder()
                 .id(StringUtils.isNotBlank(siteId) ? siteId : site.getId())
                 .publisher(publisher)
                 .build();
     }
 
-    private App modifyApp(App app, ExtImpReadPeak extImpReadPeak, Publisher publisher) {
+    private static App modifyApp(App app, ExtImpReadPeak extImp, Publisher publisher) {
         return app.toBuilder()
-                .id(StringUtils.isNotBlank(extImpReadPeak.getSiteId()) ? extImpReadPeak.getSiteId() : app.getId())
+                .id(StringUtils.isNotBlank(extImp.getSiteId()) ? extImp.getSiteId() : app.getId())
                 .publisher(publisher)
                 .build();
+    }
+
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, ExtImpReadPeak extImp) {
+        final Publisher publisher = Publisher.builder().id(extImp.getPublisherId()).build();
+
+        final boolean hasSite = request.getSite() != null;
+        final boolean hasApp = !hasSite && request.getApp() != null;
+
+        final BidRequest outgoingRequest = request.toBuilder()
+                .site(hasSite ? modifySite(request.getSite(), extImp.getSiteId(), publisher) : null)
+                .app(hasApp ? modifyApp(request.getApp(), extImp, publisher) : null)
+                .build();
+
+        return BidderUtil.defaultRequest(outgoingRequest, endpointUrl, mapper);
     }
 
     @Override
@@ -194,23 +192,32 @@ public class ReadPeakBidder implements Bidder<BidRequest> {
     }
 
     private Bid addBidMeta(Bid bid) {
-        final ExtBidPrebidMeta extBidPrebidMeta = ExtBidPrebidMeta.builder()
+        final ExtBidPrebid prebid = parseExtBidPrebid(bid);
+
+        final ExtBidPrebidMeta modifiedMeta = Optional.ofNullable(prebid).map(ExtBidPrebid::getMeta)
+                .map(ExtBidPrebidMeta::toBuilder)
+                .orElseGet(ExtBidPrebidMeta::builder)
                 .advertiserDomains(bid.getAdomain())
                 .build();
 
-        final ExtBidPrebidMeta modifiedMeta = ExtBidPrebidMeta.builder()
-                .advertiserDomains(bid.getAdomain())
-                .build();
-
-        final ExtBidPrebid modifiedPrebid = ExtBidPrebid.builder()
+        final ExtBidPrebid modifiedPrebid = Optional.ofNullable(prebid)
+                .map(ExtBidPrebid::toBuilder)
+                .orElseGet(ExtBidPrebid::builder)
                 .meta(modifiedMeta)
                 .build();
 
-        final ObjectNode modifiedBidExt = mapper.mapper()
-                .valueToTree(ExtPrebid.of(modifiedPrebid, null));
-
         return bid.toBuilder()
-                .ext(modifiedBidExt)
+                .ext(mapper.mapper().valueToTree(ExtPrebid.of(modifiedPrebid, null)))
                 .build();
+    }
+
+    private ExtBidPrebid parseExtBidPrebid(Bid bid) {
+        try {
+            return Optional.ofNullable(mapper.mapper().convertValue(bid.getExt(), EXT_PREBID_TYPE_REFERENCE))
+                    .map(ExtPrebid::getPrebid)
+                    .orElse(null);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }
