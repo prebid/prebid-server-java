@@ -11,6 +11,22 @@
         "h": 250
       },
       "ext": {
+        "prebid": {
+          "imp": {
+            "generic": {
+              "pmp": {
+                "deals": [
+                  {
+                    "id": "dealId"
+                  }
+                ]
+              },
+              "ext": {
+                "someExt": "someExt"
+              }
+            }
+          }
+        },
         "generic": {
           "accountId": 2001,
           "siteId": 3001,

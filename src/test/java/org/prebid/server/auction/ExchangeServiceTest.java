@@ -229,6 +229,9 @@ public class ExchangeServiceTest extends VertxTest {
     private FpdResolver fpdResolver;
 
     @Mock
+    private ImpAdjuster impAdjuster;
+
+    @Mock
     private SupplyChainResolver supplyChainResolver;
 
     @Mock
@@ -346,6 +349,8 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveApp(any(), any())).willAnswer(invocation -> invocation.getArgument(0));
         given(fpdResolver.resolveImpExt(any(), anyBoolean()))
                 .willAnswer(invocation -> invocation.getArgument(0));
+
+        given(impAdjuster.adjust(any(), any(), any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(supplyChainResolver.resolveForBidder(anyString(), any())).willReturn(null);
 
@@ -4707,7 +4712,7 @@ public class ExchangeServiceTest extends VertxTest {
                 storedResponseProcessor,
                 privacyEnforcementService,
                 fpdResolver,
-                supplyChainResolver,
+                impAdjuster, supplyChainResolver,
                 debugResolver,
                 mediaTypeProcessor,
                 uidUpdater,
