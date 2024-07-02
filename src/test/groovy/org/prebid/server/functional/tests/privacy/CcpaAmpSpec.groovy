@@ -14,8 +14,14 @@ import spock.lang.PendingFeature
 
 import static org.prebid.server.functional.model.ChannelType.AMP
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_1
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
+import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
 
@@ -100,7 +106,9 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         def ampRequest = getCcpaAmpRequest(validCcpa)
 
         and: "Save storedRequest into DB"
-        def ampStoredRequest = storedRequestWithGeo
+        def ampStoredRequest = storedRequestWithGeo.tap {
+            ext.prebid.trace = VERBOSE
+        }
         def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
         storedRequestDao.save(storedRequest)
 
@@ -110,12 +118,24 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         def account = new Account(uuid: ampRequest.account, config: accountConfig)
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
+
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should contain masked values"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
         assert bidderRequests.device?.geo == maskGeo(ampStoredRequest)
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_PRECISE_GEO)] == 1
 
         where:
         ccpaConfig << [new AccountCcpaConfig(enabled: false, channelEnabled: [(AMP): true]),
@@ -138,13 +158,25 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
         def account = new Account(uuid: ampRequest.account, config: accountConfig)
         accountDao.save(account)
 
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
+
         when: "PBS processes amp request"
-        defaultPbsService.sendAmpRequest(ampRequest)
+        privacyPbsService.sendAmpRequest(ampRequest)
 
         then: "Bidder request should contain not masked values"
         def bidderRequests = bidder.getBidderRequest(ampStoredRequest.id)
         assert bidderRequests.device?.geo?.lat == ampStoredRequest.device.geo.lat
         assert bidderRequests.device?.geo?.lon == ampStoredRequest.device.geo.lon
+
+        and: "Metrics processed across activities shouldn't be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, ampRequest.account, TRANSMIT_PRECISE_GEO)]
 
         where:
         ccpaConfig << [new AccountCcpaConfig(enabled: true, channelEnabled: [(AMP): false]),

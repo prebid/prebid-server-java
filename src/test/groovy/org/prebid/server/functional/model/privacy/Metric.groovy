@@ -20,6 +20,13 @@ enum Metric {
         this.value = value
     }
 
+    String getValue(BidRequest bidRequest, String accountId, ActivityType activityType) {
+        if (bidRequest.imp.size() != 1) {
+            throw new IllegalStateException("No imp found")
+        }
+        replaceValues(bidRequest.imp.first.bidderName.value, accountId, activityType.metricValue)
+    }
+
     String getValue(BidRequest bidRequest, ActivityType activityType) {
         if (bidRequest.imp.size() != 1) {
             throw new IllegalStateException("No imp found")
