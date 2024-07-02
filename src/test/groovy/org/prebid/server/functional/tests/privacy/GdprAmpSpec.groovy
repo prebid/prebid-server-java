@@ -5,6 +5,7 @@ import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountGdprConfig
 import org.prebid.server.functional.model.config.AccountPrivacyConfig
+import org.prebid.server.functional.model.config.PurposeConfig
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.request.auction.BidRequest
@@ -20,13 +21,25 @@ import spock.lang.PendingFeature
 import java.time.Instant
 
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.config.Purpose.P1
+import static org.prebid.server.functional.model.config.Purpose.P2
+import static org.prebid.server.functional.model.config.Purpose.P4
+import static org.prebid.server.functional.model.config.PurposeEnforcement.BASIC
+import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.amp.ConsentType.BOGUS
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_1
 import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
+import static org.prebid.server.functional.model.request.auction.ActivityType.FETCH_BIDS
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
 import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
 import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.BASIC_ADS
+import static org.prebid.server.functional.util.privacy.TcfConsent.PurposeId.DEVICE_ACCESS
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V2
 import static org.prebid.server.functional.util.privacy.TcfConsent.TcfPolicyVersion.TCF_POLICY_V3
 
@@ -429,5 +442,194 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
+    }
+
+    def "PBS amp should update activity controls fetch bids metrics when tcf requirement disallow request"() {
+        given: "Default ampStoredRequests with personal data"
+        def ampStoredRequest = bidRequestWithPersonalData
+
+        and: "Amp default request"
+        def tcfConsent = new TcfConsent.Builder().build()
+        def ampRequest = getGdprAmpRequest(tcfConsent).tap {
+            account = ampStoredRequest.accountId
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = [(P2): new PurposeConfig(enforcePurpose: BASIC, enforceVendors: true)]
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def account = getAccountWithGdpr(ampStoredRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Flush metric"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction requests"
+        privacyPbsService.sendAmpRequest(ampRequest)
+
+        then: "PBS should cansel request"
+        assert !bidder.getBidderRequests(ampStoredRequest.id)
+
+        then: "Metrics processed across activities should be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+    }
+
+    def "PBS auction should update activity controls privacy metrics when tcf requirement disallow privacy fields"() {
+        given: "Default ampStoredRequests with personal data"
+        def ampStoredRequest = bidRequestWithPersonalData
+
+        and: "Amp default request"
+        def tcfConsent = new TcfConsent.Builder().build()
+        def ampRequest = getGdprAmpRequest(tcfConsent).tap {
+            account = ampStoredRequest.accountId
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = [(P2): new PurposeConfig(enforcePurpose: NO, enforceVendors: false)]
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def account = getAccountWithGdpr(ampStoredRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Flush metric"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction requests"
+        privacyPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request should mask device and user personal data"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        verifyAll(bidderRequest) {
+            bidderRequest.device.ip == "43.77.114.0"
+            bidderRequest.device.ipv6 == "af47:892b:3e98:b400::"
+            bidderRequest.device.geo.lat == ampStoredRequest.device.geo.lat.round(2)
+            bidderRequest.device.geo.lon == ampStoredRequest.device.geo.lon.round(2)
+
+            bidderRequest.device.geo.country == ampStoredRequest.device.geo.country
+            bidderRequest.device.geo.region == ampStoredRequest.device.geo.region
+            bidderRequest.device.geo.utcoffset == ampStoredRequest.device.geo.utcoffset
+        }
+
+        and: "Bidder request should mask device personal data"
+        verifyAll(bidderRequest.device) {
+            !didsha1
+            !didmd5
+            !dpidsha1
+            !ifa
+            !macsha1
+            !macmd5
+            !dpidmd5
+            !geo.metro
+            !geo.city
+            !geo.zip
+            !geo.accuracy
+            !geo.ipservice
+            !geo.ext
+        }
+
+        and: "Bidder request should mask user personal data"
+        verifyAll(bidderRequest.user) {
+            !id
+            !buyeruid
+            !yob
+            !gender
+            !eids
+            !data
+            !geo
+            !ext
+            !eids
+            !ext?.eids
+        }
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)] == 1
+    }
+
+    def "PBS auction should not update activity controls privacy metrics when tcf requirement allow privacy fields"() {
+        given: "Default ampStoredRequests with personal data"
+        def ampStoredRequest = bidRequestWithPersonalData
+
+        and: "Amp default request"
+        def tcfConsent = new TcfConsent.Builder().setSpecialFeatureOptIns(DEVICE_ACCESS).build()
+        def ampRequest = getGdprAmpRequest(tcfConsent).tap {
+            account = ampStoredRequest.accountId
+        }
+
+        and: "Save account config with requireConsent into DB"
+        def purposes = [(P1): new PurposeConfig(enforcePurpose: NO, enforceVendors: false),
+                        (P2): new PurposeConfig(enforcePurpose: NO, enforceVendors: false),
+                        (P4): new PurposeConfig(enforcePurpose: NO, enforceVendors: false),
+        ]
+        def accountGdprConfig = new AccountGdprConfig(purposes: purposes)
+        def account = getAccountWithGdpr(ampStoredRequest.accountId, accountGdprConfig)
+        accountDao.save(account)
+
+        and: "Stored request in DB"
+        def storedRequest = StoredRequest.getStoredRequest(ampRequest, ampStoredRequest)
+        storedRequestDao.save(storedRequest)
+
+        and: "Flush metric"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction requests"
+        privacyPbsService.sendAmpRequest(ampRequest)
+
+        then: "Bidder request shouldn't mask device and user personal data"
+        def bidderRequest = bidder.getBidderRequest(ampStoredRequest.id)
+        verifyAll(bidderRequest) {
+            bidderRequest.device.didsha1 == ampStoredRequest.device.didsha1
+            bidderRequest.device.didmd5 == ampStoredRequest.device.didmd5
+            bidderRequest.device.dpidsha1 == ampStoredRequest.device.dpidsha1
+            bidderRequest.device.ifa == ampStoredRequest.device.ifa
+            bidderRequest.device.macsha1 == ampStoredRequest.device.macsha1
+            bidderRequest.device.macmd5 == ampStoredRequest.device.macmd5
+            bidderRequest.device.dpidmd5 == ampStoredRequest.device.dpidmd5
+            bidderRequest.device.ip == ampStoredRequest.device.ip
+            bidderRequest.device.ipv6 == "af47:892b:3e98:b49a::"
+            bidderRequest.device.geo.lat == ampStoredRequest.device.geo.lat
+            bidderRequest.device.geo.lon == ampStoredRequest.device.geo.lon
+            bidderRequest.device.geo.country == ampStoredRequest.device.geo.country
+            bidderRequest.device.geo.region == ampStoredRequest.device.geo.region
+            bidderRequest.device.geo.utcoffset == ampStoredRequest.device.geo.utcoffset
+            bidderRequest.device.geo.metro == ampStoredRequest.device.geo.metro
+            bidderRequest.device.geo.city == ampStoredRequest.device.geo.city
+            bidderRequest.device.geo.zip == ampStoredRequest.device.geo.zip
+            bidderRequest.device.geo.accuracy == ampStoredRequest.device.geo.accuracy
+            bidderRequest.device.geo.ipservice == ampStoredRequest.device.geo.ipservice
+            bidderRequest.device.geo.ext == ampStoredRequest.device.geo.ext
+
+            bidderRequest.user.id == ampStoredRequest.user.id
+            bidderRequest.user.buyeruid == ampStoredRequest.user.buyeruid
+            bidderRequest.user.yob == ampStoredRequest.user.yob
+            bidderRequest.user.gender == ampStoredRequest.user.gender
+            bidderRequest.user.eids[0].source == ampStoredRequest.user.eids[0].source
+            bidderRequest.user.data == ampStoredRequest.user.data
+            bidderRequest.user.geo.lat == ampStoredRequest.user.geo.lat
+            bidderRequest.user.geo.lon == ampStoredRequest.user.geo.lon
+            bidderRequest.user.ext.data.buyeruid == ampStoredRequest.user.ext.data.buyeruid
+        }
+
+        and: "Metrics processed across activities shouldn't be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_PRECISE_GEO)]
     }
 }

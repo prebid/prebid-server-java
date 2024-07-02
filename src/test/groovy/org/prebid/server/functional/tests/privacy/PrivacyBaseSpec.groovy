@@ -16,14 +16,17 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.amp.ConsentType
 import org.prebid.server.functional.model.request.auction.AllowActivities
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Data
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DistributionChannel
+import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.GeoExt
 import org.prebid.server.functional.model.request.auction.GeoExtGeoProvider
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
+import org.prebid.server.functional.model.request.auction.UserExtData
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.VendorList
 import org.prebid.server.functional.tests.BaseSpec
@@ -45,6 +48,7 @@ import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_2
 import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
+import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
@@ -136,6 +140,34 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                 geo = new Geo(
                         lat: PBSUtils.getRandomDecimal(0, 90),
                         lon: PBSUtils.getRandomDecimal(0, 90))
+            }
+        }
+    }
+
+    protected static BidRequest getBidRequestWithPersonalData(String accountId = null, DistributionChannel channel = SITE) {
+        getBidRequestWithGeo(channel).tap {
+            if(accountId != null) {
+                setAccountId(accountId)
+            }
+            ext.prebid.trace = VERBOSE
+            device.tap {
+                didsha1 = PBSUtils.randomString
+                didmd5 = PBSUtils.randomString
+                dpidsha1 = PBSUtils.randomString
+                ifa = PBSUtils.randomString
+                macsha1 = PBSUtils.randomString
+                macmd5 = PBSUtils.randomString
+                dpidmd5 = PBSUtils.randomString
+            }
+            user.tap {
+                customdata = PBSUtils.randomString
+                eids = [Eid.defaultEid]
+                data = [new Data(name: PBSUtils.randomString)]
+                buyeruid = PBSUtils.randomString
+                yob = PBSUtils.randomNumber
+                gender = PBSUtils.randomString
+                geo = Geo.FPDGeo
+                ext = new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString))
             }
         }
     }
