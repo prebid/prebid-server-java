@@ -27,6 +27,11 @@
         </dependency>
         <dependency>
             <groupId>org.prebid.server.hooks.modules</groupId>
+            <artifactId>fiftyone-devicedetection</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.prebid.server.hooks.modules</groupId>
             <artifactId>ortb2-blocking</artifactId>
             <version>${project.version}</version>
         </dependency>
