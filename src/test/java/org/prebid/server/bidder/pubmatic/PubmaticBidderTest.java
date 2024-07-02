@@ -671,7 +671,8 @@ public class PubmaticBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(PubmaticBidderImpExt.of(ExtImpPubmatic.builder().build(), null, 1, null)))
+                        .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
+                                ExtImpPubmatic.builder().build(), null, 1, null)))
                         .build()))
                 .build();
 
@@ -695,7 +696,8 @@ public class PubmaticBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(Banner.builder().build())
-                        .ext(mapper.valueToTree(PubmaticBidderImpExt.of(ExtImpPubmatic.builder().build(), null, null, "gpId")))
+                        .ext(mapper.valueToTree(PubmaticBidderImpExt.of(
+                                ExtImpPubmatic.builder().build(), null, null, "gpId")))
                         .build()))
                 .build();
 
