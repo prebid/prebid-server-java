@@ -27,7 +27,7 @@ settings:
     stored-responses-dir: /sample/stored
     categories-dir:
 gdpr:
-  default-value: 1
+  default-value: 0
   vendorlist:
     v2:
       cache-dir: /var/tmp/vendor2
