@@ -1,11 +1,12 @@
 package org.prebid.server.bidder.appnexus.proto;
 
 import lombok.Value;
+import org.prebid.server.proto.openrtb.ext.request.appnexus.ExtImpAppnexus;
 
 @Value(staticConstructor = "of")
-public class AppnexusImpExt {
+public class ExtImp {
 
-    AppnexusImpExtAppnexus appnexus;
+    ExtImpAppnexus bidder;
 
     String gpid;
 
