@@ -23,10 +23,10 @@
                         "origbidcur": "USD",
                         "prebid": {
                             "meta": {
-                                "adaptercode": "pubmatic"
+                                "adaptercode": "generic"
                             },
                             "targeting": {
-                                "hb_bidder": "pubmatic",
+                                "hb_bidder": "generic",
                                 "hb_pb": "1.00",
                                 "hb_size": "300x250"
                             },
@@ -39,7 +39,7 @@
                     }
                 }
             ],
-            "seat": "pubmatic"
+            "seat": "generic"
         }
     ],
     "cur": "USD"
