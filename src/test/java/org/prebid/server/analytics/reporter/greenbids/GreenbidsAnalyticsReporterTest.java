@@ -470,15 +470,14 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         return siteCustomizer.apply(Site.builder().domain("www.leparisien.fr")).build();
     }
 
-
     private static Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
         return deviceCustomizer.apply(Device.builder().ua(givenUserAgent()))
                 .build();
     }
 
     private static String givenUserAgent() {
-        return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8)" +
-                "AppleWebKit/537.13 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2";
+        return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8)"
+                + "AppleWebKit/537.13 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2";
     }
 
     private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer) {
@@ -536,18 +535,18 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     private static ObjectNode givenPrebidObjectNode(UnaryOperator<ObjectNode>... bidderCustomizers) {
-        ObjectNode bidderNode = mapper.createObjectNode();
+        final ObjectNode bidderNode = mapper.createObjectNode();
         Arrays.stream(bidderCustomizers).forEach(customizer -> customizer.apply(bidderNode));
 
-        ObjectNode prebidNode = mapper.createObjectNode();
+        final ObjectNode prebidNode = mapper.createObjectNode();
         prebidNode.set("bidder", bidderNode);
         return prebidNode;
     }
 
     private static UnaryOperator<ObjectNode> createBidderParams(
-            String bidder,UnaryOperator<ObjectNode> paramsCustomizer) {
+            String bidder, UnaryOperator<ObjectNode> paramsCustomizer) {
         return bidderNode -> {
-            ObjectNode paramsNode = mapper.createObjectNode();
+            final ObjectNode paramsNode = mapper.createObjectNode();
             paramsCustomizer.apply(paramsNode);
             bidderNode.set(bidder, paramsNode);
             return bidderNode;
