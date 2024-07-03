@@ -1,5 +1,5 @@
 {
-    "id": "test-imp-id",
+    "id": "test-stored-request",
     "banner": {
         "format": [
             {
@@ -21,7 +21,7 @@
                 }
             },
             "storedbidresponse": [
-               { "bidder": "pubmatic", "id": "test-bid-id" }
+               { "bidder": "pubmatic", "id": "test-stored-response" }
             ]
         }
     }

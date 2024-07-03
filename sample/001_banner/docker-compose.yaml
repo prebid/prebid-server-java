@@ -16,6 +16,6 @@ services:
     volumes:
       - ./configs/config.yaml:/app/prebid-server/app.yaml
       - ./configs/file-settings.yaml:/sample/file-settings.yaml
-      - ./data/test-imp-id.json:/sample/stored/test-imp-id.json
-      - ./data/test-bid-id.json:/sample/stored/test-bid-id.json
+      - ./data/test-stored-request.json:/sample/stored/test-stored-request.json
+      - ./data/test-stored-response.json:/sample/stored/test-stored-response.json
       - ./data/pbjs.html:/app/prebid-server/static/pbjs.html
