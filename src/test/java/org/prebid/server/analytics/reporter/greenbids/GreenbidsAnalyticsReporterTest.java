@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
+import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Site;
@@ -116,12 +117,13 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         // given
         final Banner banner = givenBanner();
 
-        final ObjectNode prebidJsonNodes = mapper.valueToTree(
-                singletonMap("gpid", TextNode.valueOf("gpidvalue")));
+        final ObjectNode impExtNode = mapper.createObjectNode();
+        impExtNode.set("gpid", TextNode.valueOf("gpidvalue"));
+        impExtNode.set("prebid", givenPrebidBidderParamsNode());
 
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
-                .ext(prebidJsonNodes)
+                .ext(impExtNode)
                 .banner(banner)
                 .build();
 
@@ -162,16 +164,24 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
         assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
+        assertThat(headersCaptor.getValue().get(HttpUtil.USER_AGENT_HEADER))
+                .isEqualTo(givenUserAgent());
     }
 
     @Test
     public void shouldReceiveValidResponseOnAuctionContextForVideo() throws IOException {
         // given
         final Video video = givenVideo();
+
+        final ObjectNode impExtNode = mapper.createObjectNode();
+        impExtNode.set("prebid", givenPrebidBidderParamsNode());
+
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
+                .ext(impExtNode)
                 .video(video)
                 .build();
+
         final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
@@ -208,16 +218,24 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
         assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
+        assertThat(headersCaptor.getValue().get(HttpUtil.USER_AGENT_HEADER))
+                .isEqualTo(givenUserAgent());
     }
 
     @Test
     public void shouldReceiveValidResponseWhenBannerFormatIsNull() throws IOException {
         // given
         final Banner bannerWithoutFormat = givenBannerWithoutFormat();
+
+        final ObjectNode impExtNode = mapper.createObjectNode();
+        impExtNode.set("prebid", givenPrebidBidderParamsNode());
+
         final Imp imp = Imp.builder()
                 .id("adunitcodevalue")
                 .banner(bannerWithoutFormat)
+                .ext(impExtNode)
                 .build();
+
         final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
@@ -259,6 +277,8 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
         assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
+        assertThat(headersCaptor.getValue().get(HttpUtil.USER_AGENT_HEADER))
+                .isEqualTo(givenUserAgent());
     }
 
     @Test
@@ -426,7 +446,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final AuctionContext.AuctionContextBuilder auctionContextBuilder = AuctionContext.builder()
                 .httpRequest(HttpRequestContext.builder().build())
                 .bidRequest(givenBidRequest(request -> request, imps))
-                .bidRejectionTrackers(Map.of("seat2", givenBidRejectionTracker()));
+                .bidRejectionTrackers(Map.of("seat3", givenBidRejectionTracker()));
 
         if (includeBidResponse) {
             auctionContextBuilder.bidResponse(givenBidResponse(response -> response));
@@ -442,6 +462,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .id("request1")
                 .imp(imps)
                 .site(givenSite(site -> site))
+                .device(givenDevice(device -> device))
                 .ext(givenExtRequest())).build();
     }
 
@@ -449,34 +470,88 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         return siteCustomizer.apply(Site.builder().domain("www.leparisien.fr")).build();
     }
 
+
+    private static Device givenDevice(UnaryOperator<Device.DeviceBuilder> deviceCustomizer) {
+        return deviceCustomizer.apply(Device.builder().ua(givenUserAgent()))
+                .build();
+    }
+
+    private static String givenUserAgent() {
+        return "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8)" +
+                "AppleWebKit/537.13 (KHTML, like Gecko) Version/5.1.7 Safari/534.57.2";
+    }
+
     private static BidResponse givenBidResponse(UnaryOperator<BidResponse.BidResponseBuilder> bidResponseCustomizer) {
         return bidResponseCustomizer.apply(BidResponse.builder()
                 .id("response1")
-                .seatbid(Collections.singletonList(givenSeatBid(seatBid -> seatBid)))
+                .seatbid(List.of(
+                        givenSeatBid(
+                                seatBid -> seatBid.seat("seat1"),
+                                bid -> bid.id("bid1").price(BigDecimal.valueOf(1.5))),
+                        givenSeatBid(
+                                seatBid -> seatBid.seat("seat2"),
+                                bid -> bid.id("bid2").price(BigDecimal.valueOf(0.5)))))
                 .cur("USD")).build();
     }
 
-    private static SeatBid givenSeatBid(UnaryOperator<SeatBid.SeatBidBuilder> seatBidCostumizer) {
+    private static SeatBid givenSeatBid(UnaryOperator<SeatBid.SeatBidBuilder> seatBidCostumizer,
+                                        UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
         return seatBidCostumizer.apply(SeatBid.builder()
-                .bid(Collections.singletonList(givenBid(bid -> bid)))
-                .seat("seat1")).build();
+                        .bid(givenBids(bidCustomizers))).build();
+    }
+
+    private static List<Bid> givenBids(UnaryOperator<Bid.BidBuilder>... bidCustomizers) {
+        return Arrays.stream(bidCustomizers)
+                .map(GreenbidsAnalyticsReporterTest::givenBid)
+                .toList();
     }
 
     private static Bid givenBid(UnaryOperator<Bid.BidBuilder> bidCustomizer) {
         return bidCustomizer.apply(Bid.builder()
-                .id("bid1")
                 .impid("adunitcodevalue")
-                .price(BigDecimal.valueOf(1.5))
                 .adm("<div>Ad Markup</div>")).build();
     }
 
     private static BidRejectionTracker givenBidRejectionTracker() {
         final BidRejectionTracker bidRejectionTracker = new BidRejectionTracker(
-                "seat2",
+                "seat3",
                 Set.of("adunitcodevalue"),
                 1.0);
         bidRejectionTracker.reject("imp1", BidRejectionReason.NO_BID);
         return bidRejectionTracker;
+    }
+
+    private static ObjectNode givenPrebidBidderParamsNode() {
+        return givenPrebidObjectNode(
+                createBidderParams("seat1", params -> params
+                        .put("accountId", 1001)
+                        .put("siteId", 267318)
+                        .put("zoneId", 1861698)),
+                createBidderParams("seat2", params -> params
+                        .put("publisherId", 111)
+                        .put("adSlotId", 123456)),
+                createBidderParams("seat3", params -> params
+                        .put("placementId", 222))
+        );
+    }
+
+    private static ObjectNode givenPrebidObjectNode(UnaryOperator<ObjectNode>... bidderCustomizers) {
+        ObjectNode bidderNode = mapper.createObjectNode();
+        Arrays.stream(bidderCustomizers).forEach(customizer -> customizer.apply(bidderNode));
+
+        ObjectNode prebidNode = mapper.createObjectNode();
+        prebidNode.set("bidder", bidderNode);
+        return prebidNode;
+    }
+
+    private static UnaryOperator<ObjectNode> createBidderParams(
+            String bidder,UnaryOperator<ObjectNode> paramsCustomizer) {
+        return bidderNode -> {
+            ObjectNode paramsNode = mapper.createObjectNode();
+            paramsCustomizer.apply(paramsNode);
+            bidderNode.set(bidder, paramsNode);
+            return bidderNode;
+        };
     }
 
     private static ExtRequest givenExtRequest() {
@@ -537,9 +612,25 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     private static List<GreenbidsBids> givenGreenbidsBids() {
+        final ObjectNode paramsSeat1 = mapper.createObjectNode()
+                .put("accountId", 1001)
+                .put("siteId", 267318)
+                .put("zoneId", 1861698);
+
+        final ObjectNode paramsSeat2 = mapper.createObjectNode()
+                .put("publisherId", 111)
+                .put("adSlotId", 123456);
+
+        final ObjectNode paramsSeat3 = mapper.createObjectNode()
+                .put("placementId", 222);
+
         return givenGreenbidsBidsWithCustomizer(
-                builder -> builder.bidder("seat1").isTimeout(false).hasBid(true),
-                builder -> builder.bidder("seat2").isTimeout(false).hasBid(false));
+                builder -> builder.bidder("seat2").isTimeout(false).hasBid(true)
+                        .cpm(BigDecimal.valueOf(0.5)).currency("USD").params(paramsSeat2),
+                builder -> builder.bidder("seat1").isTimeout(false).hasBid(true)
+                        .cpm(BigDecimal.valueOf(1.5)).currency("USD").params(paramsSeat1),
+                builder -> builder.bidder("seat3").isTimeout(false).hasBid(false)
+                        .currency("USD").params(paramsSeat3));
     }
 
     private static List<GreenbidsBids> givenGreenbidsBidsWithCustomizer(
