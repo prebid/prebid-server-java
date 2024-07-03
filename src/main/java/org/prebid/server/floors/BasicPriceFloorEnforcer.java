@@ -135,7 +135,12 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         final BidderResponse bidderResponse = auctionParticipation.getBidderResponse();
         final BidderSeatBid seatBid = ObjectUtil.getIfNotNull(bidderResponse, BidderResponse::getSeatBid);
         final List<BidderBid> bidderBids = ObjectUtil.getIfNotNull(seatBid, BidderSeatBid::getBids);
-        if (CollectionUtils.isEmpty(bidderBids)) {
+
+        final BidRequest bidderBidRequest = Optional.ofNullable(auctionParticipation.getBidderRequest())
+                .map(BidderRequest::getBidRequest)
+                .orElse(null);
+
+        if (CollectionUtils.isEmpty(bidderBids) || bidderBidRequest == null) {
             return auctionParticipation;
         }
 
@@ -143,9 +148,6 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         final List<BidderError> errors = new ArrayList<>(seatBid.getErrors());
         final List<BidderError> warnings = new ArrayList<>(seatBid.getWarnings());
 
-        final BidRequest bidderBidRequest = Optional.ofNullable(auctionParticipation.getBidderRequest())
-                .map(BidderRequest::getBidRequest)
-                .orElse(null);
         final boolean enforceDealFloors = enforceDealFloors(auctionParticipation, account);
 
         for (BidderBid bidderBid : bidderBids) {
