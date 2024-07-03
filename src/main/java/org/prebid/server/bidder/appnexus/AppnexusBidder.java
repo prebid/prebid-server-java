@@ -30,7 +30,7 @@ import org.prebid.server.bidder.appnexus.proto.AppnexusImpExt;
 import org.prebid.server.bidder.appnexus.proto.AppnexusImpExtAppnexus;
 import org.prebid.server.bidder.appnexus.proto.AppnexusKeyVal;
 import org.prebid.server.bidder.appnexus.proto.AppnexusReqExtAppnexus;
-import org.prebid.server.bidder.appnexus.proto.ExtImp;
+import org.prebid.server.bidder.appnexus.proto.AppnexusExtImp;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
 import org.prebid.server.bidder.model.BidderError;
@@ -76,9 +76,6 @@ public class AppnexusBidder implements Bidder<BidRequest> {
     private static final String POD_SEPARATOR = "_";
     private static final int MAX_IMP_PER_REQUEST = 10;
 
-    private static final TypeReference<ExtImp> APPNEXUS_EXT_TYPE_REFERENCE =
-            new TypeReference<>() {
-            };
     private static final TypeReference<Map<String, List<String>>> KEYWORDS_OBJECT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
@@ -112,7 +109,7 @@ public class AppnexusBidder implements Bidder<BidRequest> {
 
         for (Imp imp : bidRequest.getImp()) {
             try {
-                final ExtImp extImp = parseImpExt(imp);
+                final AppnexusExtImp extImp = parseImpExt(imp);
                 final ExtImpAppnexus extImpAppnexus = extImp.getBidder();
                 final String gpid = extImp.getGpid();
                 validateExtImpAppnexus(extImpAppnexus, memberValidator, generateAdPodIdValidator);
@@ -164,9 +161,9 @@ public class AppnexusBidder implements Bidder<BidRequest> {
                 : null;
     }
 
-    private ExtImp parseImpExt(Imp imp) {
+    private AppnexusExtImp parseImpExt(Imp imp) {
         try {
-            return mapper.mapper().convertValue(imp.getExt(), APPNEXUS_EXT_TYPE_REFERENCE);
+            return mapper.mapper().convertValue(imp.getExt(), AppnexusExtImp.class);
         } catch (IllegalArgumentException e) {
             throw new PreBidException(e.getMessage(), e);
         }
