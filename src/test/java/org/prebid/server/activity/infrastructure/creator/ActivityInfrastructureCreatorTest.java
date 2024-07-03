@@ -24,7 +24,7 @@ import org.prebid.server.settings.model.PurposeEid;
 import org.prebid.server.settings.model.Purposes;
 import org.prebid.server.settings.model.activity.AccountActivityConfiguration;
 import org.prebid.server.settings.model.activity.privacy.AccountUSNatModuleConfig;
-import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityConditionsRuleConfig;
 
 import java.util.Map;
 
@@ -92,7 +92,7 @@ public class ActivityInfrastructureCreatorTest {
         final Account account = Account.builder()
                 .privacy(AccountPrivacyConfig.builder()
                         .activities(Map.of(Activity.SYNC_USER, AccountActivityConfiguration.of(
-                                null, singletonList(AccountActivityComponentRuleConfig.of(null, null)))))
+                                null, singletonList(AccountActivityConditionsRuleConfig.of(null, null)))))
                         .modules(asList(
                                 AccountUSNatModuleConfig.of(null, null),
                                 AccountUSNatModuleConfig.of(null, null)))
@@ -117,13 +117,13 @@ public class ActivityInfrastructureCreatorTest {
                                 Activity.CALL_BIDDER, AccountActivityConfiguration.of(false, null),
                                 Activity.MODIFY_UFDP, AccountActivityConfiguration.of(true, null),
                                 Activity.TRANSMIT_UFPD, AccountActivityConfiguration.of(true, singletonList(
-                                        AccountActivityComponentRuleConfig.of(null, null)))))
+                                        AccountActivityConditionsRuleConfig.of(null, null)))))
                         .build())
                 .build();
         final GppContext gppContext = GppContextCreator.from(null, null).build().getGppContext();
 
         given(activityRuleFactory.from(
-                same(account.getPrivacy().getActivities().get(Activity.TRANSMIT_UFPD).getRules().get(0)),
+                same(account.getPrivacy().getActivities().get(Activity.TRANSMIT_UFPD).getRules().getFirst()),
                 argThat(arg -> arg.getGppContext() == gppContext)))
                 .willReturn(TestRule.disallowIfMatches(payload -> true));
 

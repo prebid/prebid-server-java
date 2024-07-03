@@ -271,6 +271,7 @@ class GdprAmpSpec extends PrivacyBaseSpec {
 
         where:
         gdprConfig << [new AccountGdprConfig(enabled: false, channelEnabled: [(ChannelType.AMP): true]),
+                       new AccountGdprConfig(enabled: false, channelEnabledSnakeCase: [(ChannelType.AMP): true]),
                        new AccountGdprConfig(enabled: true)]
     }
 

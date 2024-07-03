@@ -115,7 +115,7 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
             return extImpNextMillennium.getPlacementId();
         }
 
-        final String size = formattedSizeFromBanner(bidRequest.getImp().get(0).getBanner());
+        final String size = formattedSizeFromBanner(bidRequest.getImp().getFirst().getBanner());
         final String domain = ObjectUtils.firstNonNull(
                 ObjectUtil.getIfNotNull(bidRequest.getSite(), Site::getDomain),
                 ObjectUtil.getIfNotNull(bidRequest.getApp(), App::getDomain),
@@ -130,7 +130,7 @@ public class NextMillenniumBidder implements Bidder<BidRequest> {
         }
 
         final List<Format> formats = banner.getFormat();
-        final Format firstFormat = CollectionUtils.isNotEmpty(formats) ? formats.get(0) : null;
+        final Format firstFormat = CollectionUtils.isNotEmpty(formats) ? formats.getFirst() : null;
 
         return ObjectUtils.firstNonNull(
                 formatSize(

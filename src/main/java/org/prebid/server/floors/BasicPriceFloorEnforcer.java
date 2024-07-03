@@ -261,7 +261,7 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
 
     private static String resolveBidRequestCurrency(BidRequest bidRequest) {
         final List<String> currencies = ObjectUtil.getIfNotNull(bidRequest, BidRequest::getCur);
-        return CollectionUtils.isEmpty(currencies) ? null : currencies.get(0);
+        return CollectionUtils.isEmpty(currencies) ? null : currencies.getFirst();
     }
 
     private static Imp correspondingImp(Bid bid, List<Imp> imps) {

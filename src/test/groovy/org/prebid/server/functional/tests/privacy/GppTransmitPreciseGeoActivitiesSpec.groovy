@@ -88,9 +88,6 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
             setAccountId(accountId)
         }
 
-        and: "Activities set with bidder allowed"
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.defaultActivity)
-
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
@@ -131,6 +128,12 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
         assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.defaultActivity),
+                       new AllowActivities().tap { transmitPreciseGeoKebabCase = Activity.defaultActivity },
+                       new AllowActivities().tap { transmitPreciseGeoSnakeCase = Activity.defaultActivity },
+        ]
     }
 
     def "PBS auction call with bidder rejected in activities should round lat/lon data to 2 digits and update disallowed metrics"() {
@@ -140,10 +143,6 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
             setAccountId(accountId)
             ext.prebid.trace = VERBOSE
         }
-
-        and: "Activities set with bidder allowed"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, activity)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -189,6 +188,12 @@ class GppTransmitPreciseGeoActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
         assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
         assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_PRECISE_GEO, Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])),
+                       new AllowActivities().tap { transmitPreciseGeoKebabCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+                       new AllowActivities().tap { transmitPreciseGeoSnakeCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+        ]
     }
 
     def "PBS auction call when default activity setting set to false should round lat/lon data to 2 digits"() {

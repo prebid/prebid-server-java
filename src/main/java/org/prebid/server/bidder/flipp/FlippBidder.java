@@ -144,7 +144,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
         final Format format = Optional.ofNullable(imp.getBanner())
                 .map(Banner::getFormat)
                 .filter(CollectionUtils::isNotEmpty)
-                .map(formats -> formats.get(0))
+                .map(formats -> formats.getFirst())
                 .orElse(null);
 
         return PrebidRequest.builder()
@@ -297,7 +297,7 @@ public class FlippBidder implements Bidder<CampaignRequestBody> {
     private static Bid constructBid(Inline inline) {
         final Prebid prebid = inline.getPrebid();
         final Data data = Optional.ofNullable(inline.getContents())
-                .map(content -> content.get(0))
+                .map(content -> content.getFirst())
                 .map(Content::getData)
                 .orElse(null);
 

@@ -768,7 +768,7 @@ public class FlippBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(identity());
 
         // and
-        final Integer creativeId = 1;
+        final int creativeId = 1;
         final BidderCall<CampaignRequestBody> httpCall = givenHttpCall(CampaignRequestBody.builder().build(),
                 mapper.writeValueAsString(givenCampaignResponseBody(inlineBuilder ->
                         inlineBuilder.creativeId(creativeId))));
@@ -781,7 +781,7 @@ public class FlippBidderTest extends VertxTest {
         assertThat(result.getValue()).hasSize(1)
                 .extracting(BidderBid::getBid)
                 .extracting(Bid::getCrid)
-                .containsExactly(creativeId.toString());
+                .containsExactly(Integer.toString(creativeId));
     }
 
     @Test

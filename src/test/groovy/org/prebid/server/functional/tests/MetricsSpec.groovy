@@ -48,7 +48,6 @@ class MetricsSpec extends BaseSpec {
 
         and: "Account in the DB"
         def accountId = bidRequest.site.publisher.id
-        def accountMetricsConfig = new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: BASIC))
         def account = new Account(uuid: accountId, config: accountMetricsConfig)
         accountDao.save(account)
 
@@ -62,6 +61,10 @@ class MetricsSpec extends BaseSpec {
         and: "account.<account-id>.generic and requests.type.openrtb2-web metrics shouldn't populated"
         assert !metrics.findAll({ it.key.startsWith("account.${accountId}.generic") })
         assert !metrics["account.${accountId}.requests.type.openrtb2-web" as String]
+
+        where:
+        accountMetricsConfig << [new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevel: BASIC)),
+                                 new AccountConfig(metrics: new AccountMetricsConfig(verbosityLevelSnakeCase: BASIC))]
     }
 
     def "PBS should update account.<account-id>.* metrics when verbosity level is detailed"() {

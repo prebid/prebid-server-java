@@ -133,7 +133,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Account with enabled fetch, fetch.url, maxAgeSec in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.app.publisher.id).tap {
-            config.auction.priceFloors.fetch.maxAgeSec = DEFAULT_MAX_AGE_SEC - 1
+            config.auction.priceFloors.fetch = fetchConfig(bidRequest.app.publisher.id, DEFAULT_MAX_AGE_SEC - 1)
         }
         accountDao.save(account)
 
@@ -146,6 +146,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS floors validation failure should not reject the entire auction"
         assert !response.seatbid.isEmpty()
+
+        where:
+        fetchConfig << [{ String id, int max -> new PriceFloorsFetch(url: basicFetchUrl + id, enabled: true, maxAgeSec: max) },
+                        { String id, int max -> new PriceFloorsFetch(url: basicFetchUrl + id, enabled: true, maxAgeSecSnakeCase: max) }]
     }
 
     def "PBS should validate fetch.period-sec from account config"() {
@@ -171,7 +175,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         where:
         fetchConfig << [{ int minPeriodSec, int maxAgeSec -> new PriceFloorsFetch(periodSec: minPeriodSec - 1) },
-                        { int minPeriodSec, int maxAgeSec -> new PriceFloorsFetch(periodSec: maxAgeSec + 1) }]
+                        { int minPeriodSec, int maxAgeSec -> new PriceFloorsFetch(periodSec: maxAgeSec + 1) },
+                        { int minPeriodSec, int maxAgeSec -> new PriceFloorsFetch(periodSecSnakeCase: minPeriodSec - 1) },
+                        { int minPeriodSec, int maxAgeSec -> new PriceFloorsFetch(periodSecSnakeCase: maxAgeSec + 1) }]
     }
 
     def "PBS should validate fetch.max-file-size-kb from account config"() {
@@ -187,7 +193,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
-        then: "Metric alerts.account_config.ACCOUNT.price-floors  should be update"
+        then: "Metric alerts.account_config.ACCOUNT.price-floors should be update"
         def metrics = floorsPbsService.sendCollectedMetricsRequest()
         assert metrics[INVALID_CONFIG_METRIC(bidRequest.app.publisher.id) as String] == 1
 
@@ -238,7 +244,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         where:
         fetchConfig << [{ int min, int max -> new PriceFloorsFetch(timeoutMs: min - 1) },
-                        { int min, int max -> new PriceFloorsFetch(timeoutMs: max + 1) }]
+                        { int min, int max -> new PriceFloorsFetch(timeoutMs: max + 1) },
+                        { int min, int max -> new PriceFloorsFetch(timeoutMsSnakeCase: min - 1) },
+                        { int min, int max -> new PriceFloorsFetch(timeoutMsSnakeCase: max + 1) }]
     }
 
     def "PBS should validate fetch.enforce-floors-rate from account config"() {
@@ -247,7 +255,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Account with enabled fetch, fetch.url, enforceFloorsRate in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.app.publisher.id).tap {
-            config.auction.priceFloors.enforceFloorsRate = enforceFloorsRate
+            config.auction.priceFloors.tap {
+                it.enforceFloorsRate = enforceFloorsRate
+                it.enforceFloorsRateSnakeCase = enforceFloorsRateSnakeCase
+            }
         }
         accountDao.save(account)
 
@@ -262,7 +273,11 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert !response.seatbid?.isEmpty()
 
         where:
-        enforceFloorsRate << [PBSUtils.randomNegativeNumber, MAX_ENFORCE_FLOORS_RATE + 1]
+        enforceFloorsRate             | enforceFloorsRateSnakeCase
+        PBSUtils.randomNegativeNumber | null
+        MAX_ENFORCE_FLOORS_RATE + 1   | null
+        null                          | PBSUtils.randomNegativeNumber
+        null                          | MAX_ENFORCE_FLOORS_RATE + 1
     }
 
     def "PBS should fetch data from provider when price-floors.fetch.enabled = true in account config"() {
@@ -317,7 +332,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
     def "PBS should fetch data from provider when use-dynamic-data = true"() {
         given: "Pbs with PF configuration with useDynamicData"
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
-            auction.priceFloors.useDynamicData = pbsConfigUseDynamicData
+            auction.priceFloors.tap {
+                useDynamicData = pbsConfigUseDynamicData
+                useDynamicDataSnakeCase = pbsConfigUseDynamicDataSnakeCase
+            }
         }
         def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
                 ["settings.default-account-config": encode(defaultAccountConfigSettings)])
@@ -329,8 +347,8 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Account with enabled fetch, fetch.url in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.app.publisher.id).tap {
-            config.auction.priceFloors.fetch.enabled = true
             config.auction.priceFloors.useDynamicData = accountUseDynamicData
+            config.auction.priceFloors.useDynamicDataSnakeCase = accountUseDynamicDataSnakeCase
         }
         accountDao.save(account)
 
@@ -352,11 +370,15 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert bidderRequest.imp[0].bidFloor == floorValue
 
         where:
-        pbsConfigUseDynamicData | accountUseDynamicData
-        false                   | true
-        true                    | true
-        true                    | null
-        null                    | true
+        pbsConfigUseDynamicData | accountUseDynamicData | pbsConfigUseDynamicDataSnakeCase | accountUseDynamicDataSnakeCase
+        false                   | true                  | null                             | null
+        true                    | true                  | null                             | null
+        true                    | null                  | null                             | null
+        null                    | true                  | null                             | null
+        null                    | null                  | false                            | true
+        null                    | null                  | true                             | true
+        null                    | null                  | true                             | null
+        null                    | null                  | null                             | true
     }
 
     def "PBS should process floors from request when use-dynamic-data = false"() {
@@ -601,7 +623,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert !response.seatbid?.isEmpty()
     }
 
-    def "PBS should log error and increase #FETCH_FAILURE_METRIC when Floors Provider response has more than fetch.max-rules"() {
+    def "PBS should log error and increase FETCH_FAILURE_METRIC when Floors Provider response has more than fetch.max-rules"() {
         given: "Test start time"
         def startTime = Instant.now()
 
@@ -615,7 +637,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def accountId = bidRequest.app.publisher.id
         def maxRules = 1
         def account = getAccountWithEnabledFetch(accountId).tap {
-            config.auction.priceFloors.fetch.maxRules = maxRules
+            config.auction.priceFloors.fetch = fetchConfig(accountId, maxRules)
         }
         accountDao.save(account)
 
@@ -644,6 +666,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
+
+        where:
+        fetchConfig << [{ String id, int max -> new PriceFloorsFetch(url: basicFetchUrl + id, enabled: true, maxRules: max) },
+                        { String id, int max -> new PriceFloorsFetch(url: basicFetchUrl + id, enabled: true, maxRulesSnakeCase: max) }]
     }
 
     def "PBS should log error and increase #FETCH_FAILURE_METRIC when fetch request exceeds fetch.timeout-ms"() {
@@ -687,7 +713,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         assert !response.seatbid?.isEmpty()
     }
 
-    def "PBS should log error and increase #FETCH_FAILURE_METRIC when Floors Provider's response size is more than fetch.max-file-size-kb"() {
+    def "PBS should log error and increase FETCH_FAILURE_METRIC when Floors Provider's response size is more than fetch.max-file-size-kb"() {
         given: "Test start time"
         def startTime = Instant.now()
 
@@ -701,7 +727,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         def accountId = bidRequest.app.publisher.id
         def maxSize = PBSUtils.getRandomNumber(1, 5)
         def account = getAccountWithEnabledFetch(accountId).tap {
-            config.auction.priceFloors.fetch.maxFileSizeKb = maxSize
+            config.auction.priceFloors.fetch = fetchConfig(accountId, maxSize)
         }
         accountDao.save(account)
 
@@ -729,6 +755,10 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "Floors validation failure cannot reject the entire auction"
         assert !response.seatbid?.isEmpty()
+
+        where:
+        fetchConfig << [{ String id, int maxKbSize -> new PriceFloorsFetch(url: basicFetchUrl + id, enabled: true, maxFileSizeKb: maxKbSize) },
+                        { String id, int maxKbSize -> new PriceFloorsFetch(url: basicFetchUrl + id, enabled: true, maxFileSizeKbSnakeCase: maxKbSize) }]
     }
 
     def "PBS should prefer data from stored request when request doesn't contain floors data"() {
@@ -774,9 +804,9 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         }
 
         where:
-        request                              | accountId                    | bidRequestWithFloors
-        BidRequest.defaultBidRequest         | request.site.publisher.id    | bidRequestWithFloors
-        BidRequest.getDefaultBidRequest(APP) | request.app.publisher.id     | getBidRequestWithFloors(APP)
+        request                              | accountId                 | bidRequestWithFloors
+        BidRequest.defaultBidRequest         | request.site.publisher.id | bidRequestWithFloors
+        BidRequest.getDefaultBidRequest(APP) | request.app.publisher.id  | getBidRequestWithFloors(APP)
     }
 
     def "PBS should prefer data from request when fetch is disabled in account config"() {

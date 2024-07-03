@@ -6,5 +6,5 @@ import lombok.AllArgsConstructor;
 public enum DatabaseType {
 
     postgres,
-    mysql;
+    mysql
 }

@@ -63,7 +63,7 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldHaveCorrectHeaders() throws JsonProcessingException {
+    public void makeHttpRequestsShouldHaveCorrectHeaders() {
         // given
         final BidRequest bidRequest = givenSiteBidRequest(identity());
 
@@ -84,7 +84,7 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldHaveCorrectURIForSiteRequest() throws JsonProcessingException {
+    public void makeHttpRequestsShouldHaveCorrectURIForSiteRequest() {
         // given
         final BidRequest bidRequest = givenSiteBidRequest(identity());
 
@@ -99,7 +99,7 @@ public class ConsumableBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldHaveCorrectURIForAppRequest() throws JsonProcessingException {
+    public void makeHttpRequestsShouldHaveCorrectURIForAppRequest() {
         // given
         final BidRequest bidRequest = givenAppBidRequest(identity());
 
@@ -141,7 +141,7 @@ public class ConsumableBidderTest extends VertxTest {
         // then
         assertThat(result.getValue()).isEmpty();
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
     }
 
     @Test

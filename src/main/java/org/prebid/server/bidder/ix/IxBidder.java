@@ -166,7 +166,7 @@ public class IxBidder implements Bidder<BidRequest> {
             final Banner modifiedBanner = banner.toBuilder().format(newFormats).build();
             return UpdateResult.updated(modifiedBanner);
         } else if (formats.size() == 1) {
-            final Format format = formats.get(0);
+            final Format format = formats.getFirst();
             final Banner modifiedBanner = banner.toBuilder().w(format.getW()).h(format.getH()).build();
             return UpdateResult.updated(modifiedBanner);
         }

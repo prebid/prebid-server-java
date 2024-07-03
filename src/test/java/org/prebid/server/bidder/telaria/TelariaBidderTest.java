@@ -91,7 +91,7 @@ public class TelariaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Cannot deserialize value");
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Cannot deserialize value");
     }
 
     @Test

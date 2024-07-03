@@ -90,9 +90,6 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
             setAccountId(accountId)
         }
 
-        and: "Activities set with all bidders allowed"
-        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.defaultActivity)
-
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
@@ -110,6 +107,12 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
         assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.defaultActivity),
+                       new AllowActivities().tap { fetchBidsKebabCase = Activity.defaultActivity },
+                       new AllowActivities().tap { fetchBidsSnakeCase = Activity.defaultActivity },
+        ]
     }
 
     def "PBS auction call when fetch bid activities is rejecting should skip call to restricted bidder and update disallowed metrics"() {
@@ -119,10 +122,6 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
             setAccountId(accountId)
             ext.prebid.trace = VERBOSE
         }
-
-        and: "Activities set with all bidders rejected"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
-        def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -142,6 +141,12 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
         assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
         assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])),
+                       new AllowActivities().tap { fetchBidsKebabCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+                       new AllowActivities().tap { fetchBidsSnakeCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+        ]
     }
 
     def "PBS auction call when default activity setting set to false should skip call to restricted bidder"() {
@@ -303,11 +308,6 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         }
 
         and: "Setup activity"
-        def condition = Condition.baseCondition.tap {
-            componentType = null
-            componentName = null
-            gppSid = [USP_V1.intValue]
-        }
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(condition, false)])
         def activities = AllowActivities.getDefaultAllowActivities(FETCH_BIDS, activity)
 
@@ -329,6 +329,21 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
         assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
         assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+
+        where:
+        condition << [Condition.baseCondition.tap {
+            componentType = null
+            componentName = null
+            gppSid = [USP_V1.intValue]
+        }, Condition.baseCondition.tap {
+            componentType = null
+            componentName = null
+            gppSidKebabCase = [USP_V1.intValue]
+        }, Condition.baseCondition.tap {
+            componentType = null
+            componentName = null
+            gppSidSnakeCase = [USP_V1.intValue]
+        }]
     }
 
     def "PBS auction should process rule when device.geo doesn't intersection"() {
@@ -669,11 +684,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
-        and: "Account gpp privacy regulation configs with conflict"
-        def accountGppUsNatAllowConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [US_NAT_V1]), enabled: false)
-        def accountGppUsNatRejectConfig = new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: []), enabled: true)
-
-        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, [accountGppUsNatAllowConfig, accountGppUsNatRejectConfig])
+        and: "Save account with gpp config"
+        def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities, gppAccountsConfig)
         accountDao.save(account)
 
         when: "PBS processes auction requests"
@@ -685,6 +697,14 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ALERT_GENERAL.getValue()] == 1
+
+        where:
+        gppAccountsConfig << [[new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [US_NAT_V1]), enabled: false),
+                               new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: []), enabled: true)],
+                              [new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSidsKebabCase: [US_NAT_V1]), enabled: false),
+                               new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSidsKebabCase: []), enabled: true)],
+                              [new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSidsSnakeCase: [US_NAT_V1]), enabled: false),
+                               new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSidsSnakeCase: []), enabled: true)]]
     }
 
     def "PBS auction call when privacy module contain invalid property should respond with an error"() {
@@ -738,7 +758,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         def accountGppConfig = new AccountGppConfig().tap {
             it.code = IAB_US_CUSTOM_LOGIC
             it.enabled = true
-            it.config = GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], accountLogic), [US_NAT_V1], false)
+            it.config = accountLogic
         }
 
         and: "Existed account with privacy regulation setup"
@@ -753,10 +773,15 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         where:
         gpcValue | accountLogic
-        false    | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])
-        true     | LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED),
-                                                                            new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])
+        false    | GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])), [US_NAT_V1], false)
+        true     | GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])), [US_NAT_V1], false)
+        true     | GppModuleConfig.getDefaultModuleConfig(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED), new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])), [US_NAT_V1], false)
+        false    | GppModuleConfig.getDefaultModuleConfigKebabCase(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])), [US_NAT_V1], false)
+        true     | GppModuleConfig.getDefaultModuleConfigKebabCase(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])), [US_NAT_V1], false)
+        true     | GppModuleConfig.getDefaultModuleConfigKebabCase(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED), new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])), [US_NAT_V1], false)
+        false    | GppModuleConfig.getDefaultModuleConfigSnakeCase(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new EqualityValueRule(GPC, NOTICE_PROVIDED)])), [US_NAT_V1], false)
+        true     | GppModuleConfig.getDefaultModuleConfigSnakeCase(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(OR, [new InequalityValueRule(GPC, NOTICE_PROVIDED)])), [US_NAT_V1], false)
+        true     | GppModuleConfig.getDefaultModuleConfigSnakeCase(new ActivityConfig([FETCH_BIDS], LogicalRestrictedRule.generateSingleRestrictedRule(AND, [new EqualityValueRule(GPC, NOTICE_PROVIDED), new EqualityValueRule(SHARING_NOTICE, NOTICE_PROVIDED)])), [US_NAT_V1], false)
     }
 
     def "PBS auction call when privacy regulation match custom requirement should ignore call to bidder"() {

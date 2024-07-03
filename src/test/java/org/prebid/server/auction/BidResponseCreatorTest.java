@@ -53,10 +53,11 @@ import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
-import org.prebid.server.cache.CacheService;
+import org.prebid.server.cache.CoreCacheService;
 import org.prebid.server.cache.model.CacheContext;
 import org.prebid.server.cache.model.CacheInfo;
 import org.prebid.server.cache.model.CacheServiceResult;
+import org.prebid.server.cache.model.CacheTtl;
 import org.prebid.server.cache.model.DebugHttpCall;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
@@ -170,7 +171,7 @@ public class BidResponseCreatorTest extends VertxTest {
     public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
-    private CacheService cacheService;
+    private CoreCacheService coreCacheService;
     @Mock
     private BidderCatalog bidderCatalog;
     @Mock
@@ -187,6 +188,8 @@ public class BidResponseCreatorTest extends VertxTest {
     private HookStageExecutor hookStageExecutor;
     @Mock
     private ActivityInfrastructure activityInfrastructure;
+    @Mock
+    private CacheTtl mediaTypeCacheTtl;
 
     @Spy
     private WinningBidComparatorFactory winningBidComparatorFactory;
@@ -199,9 +202,12 @@ public class BidResponseCreatorTest extends VertxTest {
 
     @Before
     public void setUp() {
-        given(cacheService.getEndpointHost()).willReturn("testHost");
-        given(cacheService.getEndpointPath()).willReturn("testPath");
-        given(cacheService.getCachedAssetURLTemplate()).willReturn("uuid=");
+        given(coreCacheService.getEndpointHost()).willReturn("testHost");
+        given(coreCacheService.getEndpointPath()).willReturn("testPath");
+        given(coreCacheService.getCachedAssetURLTemplate()).willReturn("uuid=");
+
+        given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(null);
+        given(mediaTypeCacheTtl.getVideoCacheTtl()).willReturn(null);
 
         given(categoryMappingService.createCategoryMapping(any(), any(), any()))
                 .willAnswer(invocationOnMock -> Future.succeededFuture(
@@ -279,7 +285,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .set("prebid", mapper.valueToTree(extBidPrebid)))
                 .build();
         final BidInfo bidInfo = toBidInfo(expectedBid, imp, bidder, banner, true);
-        verify(cacheService).cacheBidsOpenrtb(eq(singletonList(bidInfo)), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(eq(singletonList(bidInfo)), any(), any(), any());
     }
 
     @Test
@@ -368,7 +374,7 @@ public class BidResponseCreatorTest extends VertxTest {
         bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
 
         // then
-        verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @SuppressWarnings("unchecked")
@@ -424,7 +430,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // then
         final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
         final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(cacheService).cacheBidsOpenrtb(
+        verify(coreCacheService).cacheBidsOpenrtb(
                 bidsArgumentCaptor.capture(),
                 same(auctionContext),
                 contextArgumentCaptor.capture(),
@@ -441,8 +447,6 @@ public class BidResponseCreatorTest extends VertxTest {
                 .satisfies(context -> {
                     assertThat(context.isShouldCacheBids()).isTrue();
                     assertThat(context.isShouldCacheVideoBids()).isTrue();
-                    assertThat(context.getCacheBidsTtl()).isEqualTo(99);
-                    assertThat(context.getCacheVideoBidsTtl()).isEqualTo(101);
                 });
     }
 
@@ -488,7 +492,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(cacheService).cacheBidsOpenrtb(
+        verify(coreCacheService).cacheBidsOpenrtb(
                 bidsArgumentCaptor.capture(),
                 same(auctionContext),
                 any(),
@@ -571,7 +575,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         eq(emptyList()));
 
         final ArgumentCaptor<List<BidInfo>> bidInfoCaptor = ArgumentCaptor.forClass(List.class);
-        verify(cacheService).cacheBidsOpenrtb(
+        verify(coreCacheService).cacheBidsOpenrtb(
                 bidInfoCaptor.capture(),
                 same(auctionContext),
                 eq(CacheContext.builder().shouldCacheVideoBids(true).build()),
@@ -643,7 +647,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(cacheService).cacheBidsOpenrtb(
+        verify(coreCacheService).cacheBidsOpenrtb(
                 bidsArgumentCaptor.capture(),
                 same(auctionContext),
                 eq(CacheContext.builder().build()),
@@ -680,7 +684,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .ignoringFields("nbr", "seatbid")
                 .isEqualTo(responseWithExpectedFields);
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -695,7 +699,7 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(bidResponse).returns(0, BidResponse::getNbr);
         assertThat(bidResponse).returns(emptyList(), BidResponse::getSeatbid);
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -713,7 +717,7 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(bidResponse).returns(0, BidResponse::getNbr);
         assertThat(bidResponse).returns(emptyList(), BidResponse::getSeatbid);
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -734,7 +738,7 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(bidResponse.getNbr()).isNull();
         assertThat(bidResponse.getSeatbid()).hasSize(1);
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -755,7 +759,7 @@ public class BidResponseCreatorTest extends VertxTest {
         // then
         assertThat(bidResponse.getSeatbid()).hasSize(1);
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -791,7 +795,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .first()
                 .isEqualTo("de7fc739-0a6e-41ad-8961-701c30c82166");
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -853,7 +857,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .build();
 
         final BidInfo expectedBidInfo = toBidInfo(expectedBid, imp, bidder, banner, true);
-        verify(cacheService).cacheBidsOpenrtb(eq(singletonList(expectedBidInfo)), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(eq(singletonList(expectedBidInfo)), any(), any(), any());
 
         verify(eventsService).createEvent(eq(generatedBidId), anyString(), anyString(), anyBoolean(), any());
     }
@@ -894,7 +898,7 @@ public class BidResponseCreatorTest extends VertxTest {
         expectedBidExt.put("origbidcur", "USD");
 
         final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(cacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
 
         assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBid().getExt())
                 .containsOnly(expectedBidExt);
@@ -1051,7 +1055,7 @@ public class BidResponseCreatorTest extends VertxTest {
         expectedBidExt.set("skadn", mapper.convertValue(singletonMap("skadnKey", "skadnValue"), JsonNode.class));
 
         final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(cacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
 
         assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBid().getExt())
                 .containsOnly(expectedBidExt);
@@ -1115,7 +1119,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .data(com.iab.openrtb.response.DataObject.builder().type(2).build())
                         .build());
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -1379,7 +1383,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Bid::getAdm)
                 .containsNull();
 
-        verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -1409,7 +1413,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Bid::getAdm)
                 .containsNull();
 
-        verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -1439,7 +1443,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Bid::getExp)
                 .containsOnly(100);
 
-        verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -1469,7 +1473,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(Bid::getExp)
                 .containsOnly(200);
 
-        verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -1498,7 +1502,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .ext(expectedBidExt)
                         .build());
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -1570,7 +1574,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_bidder", "bidder1"),
                         tuple("hb_bidder_bidder1", "bidder1"));
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -1588,7 +1592,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
 
         final BidResponseCreator bidResponseCreator = new BidResponseCreator(
-                cacheService,
+                coreCacheService,
                 bidderCatalog,
                 vastModifier,
                 eventsService,
@@ -1599,7 +1603,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 categoryMappingService,
                 20,
                 clock,
-                jacksonMapper);
+                jacksonMapper,
+                mediaTypeCacheTtl);
 
         // when
         final BidResponse bidResponse = bidResponseCreator.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
@@ -1753,7 +1758,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("bidder1Bid1", null, null, null),
                         tuple("bidder1Bid5", bidder1, bidder1, null));
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -1877,7 +1882,7 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(result.getSeatbid())
                 .flatExtracting(SeatBid::getBid)
                 .contains(expectedBidder1Bid4, expectedBidder1Bid2, expectedBidder1Bid1, expectedBidder1Bid5);
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -1917,7 +1922,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("bidId2", null, "bidder1", null),
                         tuple("bidId3", "bidder2", null, "bidder2"));
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -1967,7 +1972,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_pb_bidder1", "5.000"),
                         tuple("hb_bidder_bidder1", "bidder1"));
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -2011,7 +2016,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("hb_cache_host_bidder1", "testHost"),
                         tuple("hb_cache_path_bidder1", "testPath"));
 
-        verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -2119,7 +2124,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(cacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
 
         assertThat(bidsArgumentCaptor.getValue())
                 .extracting(bidInfo -> toExtBidPrebid(bidInfo.getBid().getExt()).getEvents())
@@ -2141,7 +2146,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(eventsConfig, null))
+                .analytics(AccountAnalyticsConfig.of(false, eventsConfig, null))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -2177,7 +2182,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(responseBid -> toExtBidPrebid(responseBid.getExt()).getEvents())
                 .containsOnly(events);
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -2188,7 +2193,10 @@ public class BidResponseCreatorTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(null, singletonMap("some-analytics", mapper.createObjectNode())))
+                .analytics(AccountAnalyticsConfig.of(
+                        false,
+                        null,
+                        singletonMap("some-analytics", mapper.createObjectNode())))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -2224,7 +2232,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .extracting(responseBid -> toExtBidPrebid(responseBid.getExt()).getEvents())
                 .containsOnly(events);
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @SuppressWarnings("unchecked")
@@ -2253,7 +2261,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(cacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
 
         assertThat(bidsArgumentCaptor.getValue())
                 .extracting(bidInfo -> toExtBidPrebid(bidInfo.getBid().getExt()).getVideo())
@@ -2373,7 +2381,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
-                .analytics(AccountAnalyticsConfig.of(eventsConfig, null))
+                .analytics(AccountAnalyticsConfig.of(false, eventsConfig, null))
                 .build();
         final BidRequest bidRequest = givenBidRequest(
                 identity(),
@@ -2438,7 +2446,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         CacheAsset.of("uuid=cacheId", "cacheId"),
                         CacheAsset.of("uuid=videoId", "videoId")));
 
-        verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -2484,7 +2492,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .containsOnly(
                         tuple("bidId", null, "bidder1"));
 
-        verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -2530,7 +2538,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 .containsOnly(
                         tuple("bidId", "bidder1", null));
 
-        verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -2569,7 +2577,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         tuple("bidder1", null, null),
                         tuple("bidder2", "cacheId2", "cacheId2"));
 
-        verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @SuppressWarnings("unchecked")
@@ -2598,7 +2606,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         // then
         final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(cacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
 
         assertThat(bidsArgumentCaptor.getValue()).extracting(bidInfo -> bidInfo.getBid().getId())
                 .containsOnly("bidId2");
@@ -2658,7 +2666,69 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(responseExt.getResponsetimemillis()).hasSize(2)
                 .containsOnly(entry("bidder1", 100), entry("cache", 666));
 
-        verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void shouldPopulateBidExpBasedOnCachedResult() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").impid("impId").exp(10).price(BigDecimal.valueOf(5.67)).build();
+        final Imp imp = Imp.builder().id("impId").exp(20).build();
+        final List<BidderResponse> bidderResponses = asList(BidderResponse.of(
+                "bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")),
+                100));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
+                .doCaching(true)
+                .shouldCacheBids(true)
+                .shouldCacheVideoBids(true)
+                .cacheBidsTtl(30)
+                .cacheVideoBidsTtl(40)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .events(mapper.createObjectNode())
+                        .build())), imp),
+                builder -> builder.account(Account.builder()
+                        .id("accountId")
+                        .auction(AccountAuctionConfig.builder()
+                                .bannerCacheTtl(60)
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()))
+                .with(toAuctionParticipant(bidderResponses));
+
+        // just a stub to get through method call chain
+        givenCacheServiceResult(singletonList(CacheInfo.of("cacheId", null, 100, null)));
+        given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
+
+        // when
+        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+
+        // then
+        final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
+        final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
+
+        assertThat(response.succeeded()).isTrue();
+        assertThat(response.result().getSeatbid()).flatExtracting(SeatBid::getBid).extracting(Bid::getExp)
+                .containsExactly(100);
+
+        verify(coreCacheService).cacheBidsOpenrtb(
+                bidsArgumentCaptor.capture(),
+                same(auctionContext),
+                contextArgumentCaptor.capture(),
+                any());
+
+        final List<BidInfo> capturedBidInfo = bidsArgumentCaptor.getValue();
+        assertThat(capturedBidInfo).extracting(bidInfo -> bidInfo.getBid().getId()).containsOnly("bidId");
+        assertThat(capturedBidInfo).extracting(BidInfo::getTtl).containsOnly(10);
+        assertThat(contextArgumentCaptor.getValue())
+                .satisfies(context -> {
+                    assertThat(context.isShouldCacheBids()).isTrue();
+                    assertThat(context.isShouldCacheVideoBids()).isTrue();
+                });
     }
 
     @Test
@@ -2751,7 +2821,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 eq(timeout));
 
         final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
-        verify(cacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(bidsArgumentCaptor.capture(), any(), any(), any());
 
         assertThat(bidsArgumentCaptor.getValue())
                 .extracting(bidInfo -> toExtBidPrebid(bidInfo.getBid().getExt()).getStoredRequestAttributes())
@@ -2841,7 +2911,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         .prebid(ExtBidResponsePrebid.builder().auctiontimestamp(1000L).build())
                         .build());
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -2935,7 +3005,7 @@ public class BidResponseCreatorTest extends VertxTest {
                                 ExtBidderError.of(BidderError.Type.generic.getCode(), "warning1"),
                                 ExtBidderError.of(BidderError.Type.generic.getCode(), "warning2"))));
 
-        verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(), any());
     }
 
     @Test
@@ -2979,7 +3049,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final Future<BidResponse> result = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
 
         // then
-        verify(cacheService).cacheBidsOpenrtb(anyList(), any(), any(),
+        verify(coreCacheService).cacheBidsOpenrtb(anyList(), any(), any(),
                 argThat(eventsContext -> eventsContext.getIntegration().equals("integration")));
 
         assertThat(result.result().getSeatbid())
@@ -3055,7 +3125,7 @@ public class BidResponseCreatorTest extends VertxTest {
         final BidResponse bidResponse = bidResponseCreator.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
 
         // then
-        assertThat(bidResponse.getExt().getErrors().get("prebid").get(0).getMessage()).isEqualTo(errorMessage);
+        assertThat(bidResponse.getExt().getErrors().get("prebid").getFirst().getMessage()).isEqualTo(errorMessage);
     }
 
     @Test
@@ -3107,7 +3177,7 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(bidResponse.getExt())
                 .extracting(ExtBidResponse::getErrors)
                 .extracting(error -> error.get(bidder1))
-                .extracting(extBidderErrors -> extBidderErrors.get(0))
+                .extracting(extBidderErrors -> extBidderErrors.getFirst())
                 .isEqualTo(ExtBidderError.of(3, "Could not find native imp"));
 
     }
@@ -3148,7 +3218,7 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(bidResponse.getExt())
                 .extracting(ExtBidResponse::getErrors)
                 .extracting(error -> error.get(bidder1))
-                .extracting(extBidderErrors -> extBidderErrors.get(0))
+                .extracting(extBidderErrors -> extBidderErrors.getFirst())
                 .isEqualTo(ExtBidderError.of(3, "No content to map due to end-of-input\n"
                         + " at [Source: (String)\"\"; line: 1, column: 0]"));
     }
@@ -3186,9 +3256,9 @@ public class BidResponseCreatorTest extends VertxTest {
         // then
         assertThat(bidResponse)
                 .extracting(BidResponse::getSeatbid)
-                .extracting(seatBids -> seatBids.get(0))
+                .extracting(seatBids -> seatBids.getFirst())
                 .extracting(SeatBid::getBid)
-                .extracting(bids -> bids.get(0))
+                .extracting(bids -> bids.getFirst())
                 .extracting(Bid::getAdm)
                 .isEqualTo(adm);
     }
@@ -3201,7 +3271,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
         final Account account = Account.builder()
                 .id("accountId")
-                .analytics(AccountAnalyticsConfig.of(accountAuctionEventConfig, emptyMap()))
+                .analytics(AccountAnalyticsConfig.of(false, accountAuctionEventConfig, emptyMap()))
                 .auction(AccountAuctionConfig.builder()
                         .events(AccountEventsConfig.of(true))
                         .build())
@@ -3692,7 +3762,551 @@ public class BidResponseCreatorTest extends VertxTest {
         assertThat(bidResponse.getExt().getWarnings()).containsOnly(entry("targeting", singletonList(
                 ExtBidderError.of(BidderError.Type.bad_input.getCode(), expectedErrorMsg))));
 
-        verify(cacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+        verify(coreCacheService, never()).cacheBidsOpenrtb(anyList(), any(), any(), any());
+    }
+
+    @Test
+    public void createShouldSendCacheRequestWithExpectedTtlAndSetTtlFromBid() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").impid("impId").exp(10).price(BigDecimal.valueOf(5.67)).build();
+        final Imp imp = Imp.builder().id("impId").exp(20).build();
+        final List<BidderResponse> bidderResponses = asList(BidderResponse.of(
+                "bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")),
+                100));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
+                .doCaching(true)
+                .shouldCacheBids(true)
+                .shouldCacheVideoBids(true)
+                .cacheBidsTtl(30)
+                .cacheVideoBidsTtl(40)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                                .events(mapper.createObjectNode())
+                                .build())), imp),
+                builder -> builder.account(Account.builder()
+                        .id("accountId")
+                        .auction(AccountAuctionConfig.builder()
+                                .bannerCacheTtl(60)
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()))
+                .with(toAuctionParticipant(bidderResponses));
+
+        // just a stub to get through method call chain
+        givenCacheServiceResult(singletonList(CacheInfo.empty()));
+        given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
+
+        // when
+        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+
+        // then
+        final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
+        final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
+
+        assertThat(response.succeeded()).isTrue();
+        assertThat(response.result().getSeatbid()).flatExtracting(SeatBid::getBid).extracting(Bid::getExp)
+                .containsExactly(10);
+
+        verify(coreCacheService).cacheBidsOpenrtb(
+                bidsArgumentCaptor.capture(),
+                same(auctionContext),
+                contextArgumentCaptor.capture(),
+                any());
+
+        final List<BidInfo> capturedBidInfo = bidsArgumentCaptor.getValue();
+        assertThat(capturedBidInfo).extracting(bidInfo -> bidInfo.getBid().getId()).containsOnly("bidId");
+        assertThat(capturedBidInfo).extracting(BidInfo::getTtl).containsOnly(10);
+        assertThat(contextArgumentCaptor.getValue())
+                .satisfies(context -> {
+                    assertThat(context.isShouldCacheBids()).isTrue();
+                    assertThat(context.isShouldCacheVideoBids()).isTrue();
+                });
+    }
+
+    @Test
+    public void createShouldSendCacheRequestWithExpectedTtlAndSetTtlFromImp() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").impid("impId").exp(null).price(BigDecimal.valueOf(5.67)).build();
+        final Imp imp = Imp.builder().id("impId").exp(20).build();
+        final List<BidderResponse> bidderResponses = asList(BidderResponse.of(
+                "bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")),
+                100));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
+                .doCaching(true)
+                .shouldCacheBids(true)
+                .shouldCacheVideoBids(true)
+                .cacheBidsTtl(30)
+                .cacheVideoBidsTtl(40)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .events(mapper.createObjectNode())
+                        .build())), imp),
+                builder -> builder.account(Account.builder()
+                        .id("accountId")
+                        .auction(AccountAuctionConfig.builder()
+                                .bannerCacheTtl(60)
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()))
+                .with(toAuctionParticipant(bidderResponses));
+
+        // just a stub to get through method call chain
+        givenCacheServiceResult(singletonList(CacheInfo.empty()));
+        given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
+
+        // when
+        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+
+        // then
+        final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
+        final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
+
+        assertThat(response.succeeded()).isTrue();
+        assertThat(response.result().getSeatbid()).flatExtracting(SeatBid::getBid).extracting(Bid::getExp)
+                .containsExactly(20);
+
+        verify(coreCacheService).cacheBidsOpenrtb(
+                bidsArgumentCaptor.capture(),
+                same(auctionContext),
+                contextArgumentCaptor.capture(),
+                any());
+
+        final List<BidInfo> capturedBidInfo = bidsArgumentCaptor.getValue();
+        assertThat(capturedBidInfo).extracting(bidInfo -> bidInfo.getBid().getId()).containsOnly("bidId");
+        assertThat(capturedBidInfo).extracting(BidInfo::getTtl).containsOnly(20);
+        assertThat(contextArgumentCaptor.getValue())
+                .satisfies(context -> {
+                    assertThat(context.isShouldCacheBids()).isTrue();
+                    assertThat(context.isShouldCacheVideoBids()).isTrue();
+                });
+    }
+
+    @Test
+    public void createShouldSendCacheRequestWithExpectedTtlAndSetTtlFromRequest() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").impid("impId").exp(null).price(BigDecimal.valueOf(5.67)).build();
+        final Imp imp = Imp.builder().id("impId").exp(null).build();
+        final List<BidderResponse> bidderResponses = asList(BidderResponse.of(
+                "bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")),
+                100));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
+                .doCaching(true)
+                .shouldCacheBids(true)
+                .shouldCacheVideoBids(true)
+                .cacheBidsTtl(30)
+                .cacheVideoBidsTtl(40)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .events(mapper.createObjectNode())
+                        .build())), imp),
+                builder -> builder.account(Account.builder()
+                        .id("accountId")
+                        .auction(AccountAuctionConfig.builder()
+                                .bannerCacheTtl(60)
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()))
+                .with(toAuctionParticipant(bidderResponses));
+
+        // just a stub to get through method call chain
+        givenCacheServiceResult(singletonList(CacheInfo.empty()));
+        given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
+
+        // when
+        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+
+        // then
+        final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
+        final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
+
+        assertThat(response.succeeded()).isTrue();
+        assertThat(response.result().getSeatbid()).flatExtracting(SeatBid::getBid).extracting(Bid::getExp)
+                .containsExactly(30);
+
+        verify(coreCacheService).cacheBidsOpenrtb(
+                bidsArgumentCaptor.capture(),
+                same(auctionContext),
+                contextArgumentCaptor.capture(),
+                any());
+
+        final List<BidInfo> capturedBidInfo = bidsArgumentCaptor.getValue();
+        assertThat(capturedBidInfo).extracting(bidInfo -> bidInfo.getBid().getId()).containsOnly("bidId");
+        assertThat(capturedBidInfo).extracting(BidInfo::getTtl).containsOnly(30);
+        assertThat(contextArgumentCaptor.getValue())
+                .satisfies(context -> {
+                    assertThat(context.isShouldCacheBids()).isTrue();
+                    assertThat(context.isShouldCacheVideoBids()).isTrue();
+                });
+    }
+
+    @Test
+    public void createShouldSendCacheRequestWithExpectedTtlAndSetTtlFromAccountBannerTtl() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").impid("impId").exp(null).price(BigDecimal.valueOf(5.67)).build();
+        final Imp imp = Imp.builder().id("impId").exp(null).build();
+        final List<BidderResponse> bidderResponses = asList(BidderResponse.of(
+                "bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")),
+                100));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
+                .doCaching(true)
+                .shouldCacheBids(true)
+                .shouldCacheVideoBids(true)
+                .cacheBidsTtl(null)
+                .cacheVideoBidsTtl(40)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .events(mapper.createObjectNode())
+                        .build())), imp),
+                builder -> builder.account(Account.builder()
+                        .id("accountId")
+                        .auction(AccountAuctionConfig.builder()
+                                .bannerCacheTtl(60)
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()))
+                .with(toAuctionParticipant(bidderResponses));
+
+        // just a stub to get through method call chain
+        givenCacheServiceResult(singletonList(CacheInfo.empty()));
+        given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
+
+        // when
+        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+
+        // then
+        final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
+        final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
+
+        assertThat(response.succeeded()).isTrue();
+        assertThat(response.result().getSeatbid()).flatExtracting(SeatBid::getBid).extracting(Bid::getExp)
+                .containsExactly(60);
+
+        verify(coreCacheService).cacheBidsOpenrtb(
+                bidsArgumentCaptor.capture(),
+                same(auctionContext),
+                contextArgumentCaptor.capture(),
+                any());
+
+        final List<BidInfo> capturedBidInfo = bidsArgumentCaptor.getValue();
+        assertThat(capturedBidInfo).extracting(bidInfo -> bidInfo.getBid().getId()).containsOnly("bidId");
+        assertThat(capturedBidInfo).extracting(BidInfo::getTtl).containsOnly(60);
+        assertThat(contextArgumentCaptor.getValue())
+                .satisfies(context -> {
+                    assertThat(context.isShouldCacheBids()).isTrue();
+                    assertThat(context.isShouldCacheVideoBids()).isTrue();
+                });
+    }
+
+    @Test
+    public void createShouldSendCacheRequestWithExpectedTtlAndSetTtlFromMediaTypeTtl() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").impid("impId").exp(null).price(BigDecimal.valueOf(5.67)).build();
+        final Imp imp = Imp.builder().id("impId").exp(null).build();
+        final List<BidderResponse> bidderResponses = asList(BidderResponse.of(
+                "bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")),
+                100));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
+                .doCaching(true)
+                .shouldCacheBids(true)
+                .shouldCacheVideoBids(true)
+                .cacheBidsTtl(null)
+                .cacheVideoBidsTtl(40)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .events(mapper.createObjectNode())
+                        .build())), imp),
+                builder -> builder.account(Account.builder()
+                        .id("accountId")
+                        .auction(AccountAuctionConfig.builder()
+                                .bannerCacheTtl(null)
+                                .events(AccountEventsConfig.of(true))
+                                .build())
+                        .build()))
+                .with(toAuctionParticipant(bidderResponses));
+
+        // just a stub to get through method call chain
+        givenCacheServiceResult(singletonList(CacheInfo.empty()));
+        given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
+
+        // when
+        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+
+        // then
+        final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
+        final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
+
+        assertThat(response.succeeded()).isTrue();
+        assertThat(response.result().getSeatbid()).flatExtracting(SeatBid::getBid).extracting(Bid::getExp)
+                .containsExactly(50);
+
+        verify(coreCacheService).cacheBidsOpenrtb(
+                bidsArgumentCaptor.capture(),
+                same(auctionContext),
+                contextArgumentCaptor.capture(),
+                any());
+
+        final List<BidInfo> capturedBidInfo = bidsArgumentCaptor.getValue();
+        assertThat(capturedBidInfo).extracting(bidInfo -> bidInfo.getBid().getId()).containsOnly("bidId");
+        assertThat(capturedBidInfo).extracting(BidInfo::getTtl).containsOnly(50);
+        assertThat(contextArgumentCaptor.getValue())
+                .satisfies(context -> {
+                    assertThat(context.isShouldCacheBids()).isTrue();
+                    assertThat(context.isShouldCacheVideoBids()).isTrue();
+                });
+    }
+
+    @Test
+    public void createShouldSendCacheRequestWithTtlFromMediaTypeWhenAccountIsEmpty() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").impid("impId").exp(null).price(BigDecimal.valueOf(5.67)).build();
+        final Imp imp = Imp.builder().id("impId").exp(null).build();
+        final List<BidderResponse> bidderResponses = asList(BidderResponse.of(
+                "bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")),
+                100));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
+                .doCaching(true)
+                .shouldCacheBids(true)
+                .shouldCacheVideoBids(true)
+                .cacheBidsTtl(null)
+                .cacheVideoBidsTtl(40)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .events(mapper.createObjectNode())
+                        .build())), imp),
+                builder -> builder.account(Account.builder()
+                        .id("accountId")
+                        .build()))
+                .with(toAuctionParticipant(bidderResponses));
+
+        // just a stub to get through method call chain
+        givenCacheServiceResult(singletonList(CacheInfo.empty()));
+        given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
+
+        // when
+        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+
+        // then
+        final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
+        final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
+
+        assertThat(response.succeeded()).isTrue();
+        assertThat(response.result().getSeatbid()).flatExtracting(SeatBid::getBid).extracting(Bid::getExp)
+                .containsExactly(50);
+
+        verify(coreCacheService).cacheBidsOpenrtb(
+                bidsArgumentCaptor.capture(),
+                same(auctionContext),
+                contextArgumentCaptor.capture(),
+                any());
+
+        final List<BidInfo> capturedBidInfo = bidsArgumentCaptor.getValue();
+        assertThat(capturedBidInfo).extracting(bidInfo -> bidInfo.getBid().getId()).containsOnly("bidId");
+        assertThat(capturedBidInfo).extracting(BidInfo::getTtl).containsOnly(50);
+        assertThat(contextArgumentCaptor.getValue())
+                .satisfies(context -> {
+                    assertThat(context.isShouldCacheBids()).isTrue();
+                    assertThat(context.isShouldCacheVideoBids()).isTrue();
+                });
+    }
+
+    @Test
+    public void createShouldSendCacheRequestWithNoTtlAndSetEmptyTtl() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").impid("impId").exp(null).price(BigDecimal.valueOf(5.67)).build();
+        final Imp imp = Imp.builder().id("impId").exp(null).build();
+        final List<BidderResponse> bidderResponses = asList(BidderResponse.of(
+                "bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")),
+                100));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
+                .doCaching(true)
+                .shouldCacheBids(true)
+                .shouldCacheVideoBids(true)
+                .cacheBidsTtl(null)
+                .cacheVideoBidsTtl(null)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .events(mapper.createObjectNode())
+                        .build())), imp),
+                builder -> builder.account(Account.builder()
+                        .id("accountId")
+                        .build()))
+                .with(toAuctionParticipant(bidderResponses));
+
+        // just a stub to get through method call chain
+        givenCacheServiceResult(singletonList(CacheInfo.empty()));
+        given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(null);
+
+        // when
+        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+
+        // then
+        final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
+        final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
+
+        assertThat(response.succeeded()).isTrue();
+        assertThat(response.result().getSeatbid()).flatExtracting(SeatBid::getBid).extracting(Bid::getExp)
+                .containsOnlyNulls();
+
+        verify(coreCacheService).cacheBidsOpenrtb(
+                bidsArgumentCaptor.capture(),
+                same(auctionContext),
+                contextArgumentCaptor.capture(),
+                any());
+
+        final List<BidInfo> capturedBidInfo = bidsArgumentCaptor.getValue();
+        assertThat(capturedBidInfo).extracting(bidInfo -> bidInfo.getBid().getId()).containsOnly("bidId");
+        assertThat(capturedBidInfo).extracting(BidInfo::getTtl).containsOnlyNulls();
+        assertThat(contextArgumentCaptor.getValue())
+                .satisfies(context -> {
+                    assertThat(context.isShouldCacheBids()).isTrue();
+                    assertThat(context.isShouldCacheVideoBids()).isTrue();
+                });
+    }
+
+    @Test
+    public void createShouldSendCacheRequestWithVideoBidWithTtlMaxOfTtlAndVideoTtl() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").impid("impId").exp(null).price(BigDecimal.valueOf(5.67)).build();
+        final Imp imp = Imp.builder().id("impId").exp(null).build();
+        final List<BidderResponse> bidderResponses = asList(BidderResponse.of(
+                "bidder1",
+                givenSeatBid(BidderBid.of(bid, video, "USD")),
+                100));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
+                .doCaching(true)
+                .shouldCacheBids(true)
+                .shouldCacheVideoBids(true)
+                .cacheBidsTtl(30)
+                .cacheVideoBidsTtl(40)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .events(mapper.createObjectNode())
+                        .build())), imp),
+                builder -> builder.account(Account.builder()
+                        .id("accountId")
+                        .build()))
+                .with(toAuctionParticipant(bidderResponses));
+
+        // just a stub to get through method call chain
+        givenCacheServiceResult(singletonList(CacheInfo.empty()));
+        given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(null);
+
+        // when
+        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+
+        // then
+        assertThat(response.succeeded()).isTrue();
+        assertThat(response.result().getSeatbid()).flatExtracting(SeatBid::getBid).extracting(Bid::getExp)
+                .containsExactly(40);
+
+        final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
+        final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
+
+        verify(coreCacheService).cacheBidsOpenrtb(
+                bidsArgumentCaptor.capture(),
+                same(auctionContext),
+                contextArgumentCaptor.capture(),
+                any());
+
+        final List<BidInfo> capturedBidInfo = bidsArgumentCaptor.getValue();
+        assertThat(capturedBidInfo).extracting(bidInfo -> bidInfo.getBid().getId()).containsOnly("bidId");
+        assertThat(capturedBidInfo).extracting(BidInfo::getTtl).containsExactly(30);
+        assertThat(capturedBidInfo).extracting(BidInfo::getVideoTtl).containsExactly(40);
+        assertThat(contextArgumentCaptor.getValue())
+                .satisfies(context -> {
+                    assertThat(context.isShouldCacheBids()).isTrue();
+                    assertThat(context.isShouldCacheVideoBids()).isTrue();
+                });
+    }
+
+    @Test
+    public void createShouldSendCacheRequestWithBannerBidWithTtlMaxOfTtlAndVideoTtl() {
+        // given
+        final Bid bid = Bid.builder().id("bidId").impid("impId").exp(null).price(BigDecimal.valueOf(5.67)).build();
+        final Imp imp = Imp.builder().id("impId").exp(null).build();
+        final List<BidderResponse> bidderResponses = asList(BidderResponse.of(
+                "bidder1",
+                givenSeatBid(BidderBid.of(bid, banner, "USD")),
+                100));
+
+        final BidRequestCacheInfo cacheInfo = BidRequestCacheInfo.builder()
+                .doCaching(true)
+                .shouldCacheBids(true)
+                .shouldCacheVideoBids(true)
+                .cacheBidsTtl(30)
+                .cacheVideoBidsTtl(40)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(
+                givenBidRequest(builder -> builder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .events(mapper.createObjectNode())
+                        .build())), imp),
+                builder -> builder.account(Account.builder()
+                        .id("accountId")
+                        .build()))
+                .with(toAuctionParticipant(bidderResponses));
+
+        // just a stub to get through method call chain
+        givenCacheServiceResult(singletonList(CacheInfo.empty()));
+        given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(null);
+
+        // when
+        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+
+        // then
+        assertThat(response.succeeded()).isTrue();
+        assertThat(response.result().getSeatbid()).flatExtracting(SeatBid::getBid).extracting(Bid::getExp)
+                .containsExactly(30);
+
+        final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
+        final ArgumentCaptor<List<BidInfo>> bidsArgumentCaptor = ArgumentCaptor.forClass(List.class);
+
+        verify(coreCacheService).cacheBidsOpenrtb(
+                bidsArgumentCaptor.capture(),
+                same(auctionContext),
+                contextArgumentCaptor.capture(),
+                any());
+
+        final List<BidInfo> capturedBidInfo = bidsArgumentCaptor.getValue();
+        assertThat(capturedBidInfo).extracting(bidInfo -> bidInfo.getBid().getId()).containsOnly("bidId");
+        assertThat(capturedBidInfo).extracting(BidInfo::getTtl).containsExactly(30);
+        assertThat(capturedBidInfo).extracting(BidInfo::getVideoTtl).containsOnlyNulls();
+        assertThat(contextArgumentCaptor.getValue())
+                .satisfies(context -> {
+                    assertThat(context.isShouldCacheBids()).isTrue();
+                    assertThat(context.isShouldCacheVideoBids()).isTrue();
+                });
     }
 
     private AuctionContext givenAuctionContext(BidRequest bidRequest,
@@ -3726,7 +4340,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     private void givenCacheServiceResult(List<CacheInfo> cacheInfos) {
-        given(cacheService.cacheBidsOpenrtb(anyList(), any(), any(), any()))
+        given(coreCacheService.cacheBidsOpenrtb(anyList(), any(), any(), any()))
                 .willAnswer(invocation -> Future.succeededFuture(CacheServiceResult.of(
                         null,
                         null,
@@ -3734,7 +4348,7 @@ public class BidResponseCreatorTest extends VertxTest {
     }
 
     private void givenCacheServiceResult(CacheServiceResult cacheServiceResult) {
-        given(cacheService.cacheBidsOpenrtb(anyList(), any(), any(), any()))
+        given(coreCacheService.cacheBidsOpenrtb(anyList(), any(), any(), any()))
                 .willReturn(Future.succeededFuture(cacheServiceResult));
     }
 
@@ -3860,7 +4474,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
     private BidResponseCreator givenBidResponseCreator(int truncateAttrChars) {
         return new BidResponseCreator(
-                cacheService,
+                coreCacheService,
                 bidderCatalog,
                 vastModifier,
                 eventsService,
@@ -3871,7 +4485,8 @@ public class BidResponseCreatorTest extends VertxTest {
                 categoryMappingService,
                 truncateAttrChars,
                 clock,
-                jacksonMapper);
+                jacksonMapper,
+                mediaTypeCacheTtl);
     }
 
     private static String toTargetingByKey(Bid bid, String targetingKey) {

@@ -139,6 +139,7 @@ class CcpaAmpSpec extends PrivacyBaseSpec {
 
         where:
         ccpaConfig << [new AccountCcpaConfig(enabled: false, channelEnabled: [(AMP): true]),
+                       new AccountCcpaConfig(enabled: false, channelEnabledSnakeCase: [(AMP): true]),
                        new AccountCcpaConfig(enabled: true)]
     }
 

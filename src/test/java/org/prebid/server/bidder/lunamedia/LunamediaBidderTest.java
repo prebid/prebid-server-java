@@ -170,7 +170,7 @@ public class LunamediaBidderTest extends VertxTest {
         assertThat(result.getValue()).element(0).isNotNull()
                 .returns(HttpMethod.POST, HttpRequest::getMethod)
                 .returns("http://test/get?pubid=pubid", HttpRequest::getUri);
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+        assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsExactlyInAnyOrder(
                         tuple(HttpUtil.CONTENT_TYPE_HEADER.toString(), "application/json;charset=utf-8"),

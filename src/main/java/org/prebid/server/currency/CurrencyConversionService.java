@@ -318,7 +318,7 @@ public class CurrencyConversionService implements Initializable {
 
             if (!sharedCurrencies.isEmpty()) {
                 // pick any found shared currency
-                final String sharedCurrency = sharedCurrencies.get(0);
+                final String sharedCurrency = sharedCurrencies.getFirst();
                 final BigDecimal directCurrencyRateIntermediate = directCurrencyRates.get(sharedCurrency);
                 final BigDecimal reverseCurrencyRateIntermediate = reverseCurrencyRates.get(sharedCurrency);
                 conversionRate = directCurrencyRateIntermediate.divide(reverseCurrencyRateIntermediate,

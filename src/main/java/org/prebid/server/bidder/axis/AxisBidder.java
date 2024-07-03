@@ -53,7 +53,7 @@ public class AxisBidder implements Bidder<BidRequest> {
             } catch (PreBidException e) {
                 continue;
             }
-            httpRequests.add(makeRequest(request, imp, extImpAxis));
+            httpRequests.add(makeRequest(request, imp));
         }
 
         return Result.withValues(httpRequests);
@@ -67,7 +67,7 @@ public class AxisBidder implements Bidder<BidRequest> {
         }
     }
 
-    private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, Imp imp, ExtImpAxis extImpAxis) {
+    private HttpRequest<BidRequest> makeRequest(BidRequest bidRequest, Imp imp) {
         final BidRequest modifyBidRequest = bidRequest.toBuilder()
                 .imp(Collections.singletonList(imp))
                 .build();

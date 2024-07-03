@@ -90,9 +90,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "Activities set with generic bidder allowed"
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.defaultActivity)
-
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
@@ -130,16 +127,18 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
         assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.defaultActivity),
+                       new AllowActivities().tap { transmitUfpdSnakeCase = Activity.defaultActivity },
+                       new AllowActivities().tap { transmitUfpdKebabCase = Activity.defaultActivity },
+        ]
     }
 
     def "PBS auction call when transmit UFPD activities is rejecting requests should remove UFPD fields in request and update disallowed metrics"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId)
-
-        and: "Allow activities setup"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity as Activity)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -179,6 +178,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
         assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
         assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])),
+                       new AllowActivities().tap { transmitUfpdKebabCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+                       new AllowActivities().tap { transmitUfpdSnakeCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+        ]
     }
 
     def "PBS auction call when default activity setting set to false should remove UFPD fields from request"() {
@@ -3014,7 +3019,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities).tap {
-            it.config.privacy.gdpr = new AccountGdprConfig(purposes: [(Purpose.P4): new PurposeConfig(eid: new PurposeEid(activityTransition: false))])
+            it.config.privacy.gdpr = new AccountGdprConfig(purposes: [(Purpose.P4): new PurposeConfig(eid: eid)])
         }
         accountDao.save(account)
 
@@ -3049,5 +3054,34 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
         assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
         assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+
+        where:
+        eid << [new PurposeEid(activityTransition: false),
+                new PurposeEid(activityTransitionKebabCase: false)]
+    }
+
+    private static BidRequest givenBidRequestWithAccountAndUfpdData(String accountId) {
+        BidRequest.getDefaultBidRequest().tap {
+            it.setAccountId(accountId)
+            it.ext.prebid.trace = VERBOSE
+            it.device = new Device().tap {
+                didsha1 = PBSUtils.randomString
+                didmd5 = PBSUtils.randomString
+                dpidsha1 = PBSUtils.randomString
+                ifa = PBSUtils.randomString
+                macsha1 = PBSUtils.randomString
+                macmd5 = PBSUtils.randomString
+                dpidmd5 = PBSUtils.randomString
+            }
+            it.user = User.defaultUser
+            it.user.customdata = PBSUtils.randomString
+            it.user.eids = [Eid.defaultEid]
+            it.user.data = [new Data(name: PBSUtils.randomString)]
+            it.user.buyeruid = PBSUtils.randomString
+            it.user.yob = PBSUtils.randomNumber
+            it.user.gender = PBSUtils.randomString
+            it.user.geo = Geo.FPDGeo
+            it.user.ext = new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString))
+        }
     }
 }

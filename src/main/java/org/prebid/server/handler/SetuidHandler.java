@@ -364,25 +364,31 @@ public class SetuidHandler implements ApplicationResource {
         final String message = error.getMessage();
         final HttpResponseStatus status;
         final String body;
-        if (error instanceof InvalidRequestException) {
-            metrics.updateUserSyncBadRequestMetric();
-            status = HttpResponseStatus.BAD_REQUEST;
-            body = "Invalid request format: " + message;
-        } else if (error instanceof UnauthorizedUidsException) {
-            metrics.updateUserSyncOptoutMetric();
-            status = HttpResponseStatus.UNAUTHORIZED;
-            body = "Unauthorized: " + message;
-        } else if (error instanceof UnavailableForLegalReasonsException) {
-            status = HttpResponseStatus.valueOf(451);
-            body = "Unavailable For Legal Reasons.";
-        } else if (error instanceof InvalidAccountConfigException) {
-            metrics.updateUserSyncBadRequestMetric();
-            status = HttpResponseStatus.BAD_REQUEST;
-            body = "Invalid account configuration: " + message;
-        } else {
-            status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            body = "Unexpected setuid processing error: " + message;
-            logger.warn(body, error);
+        switch (error) {
+            case InvalidRequestException invalidRequestException -> {
+                metrics.updateUserSyncBadRequestMetric();
+                status = HttpResponseStatus.BAD_REQUEST;
+                body = "Invalid request format: " + message;
+            }
+            case UnauthorizedUidsException unauthorizedUidsException -> {
+                metrics.updateUserSyncOptoutMetric();
+                status = HttpResponseStatus.UNAUTHORIZED;
+                body = "Unauthorized: " + message;
+            }
+            case UnavailableForLegalReasonsException unavailableForLegalReasonsException -> {
+                status = HttpResponseStatus.valueOf(451);
+                body = "Unavailable For Legal Reasons.";
+            }
+            case InvalidAccountConfigException invalidAccountConfigException -> {
+                metrics.updateUserSyncBadRequestMetric();
+                status = HttpResponseStatus.BAD_REQUEST;
+                body = "Invalid account configuration: " + message;
+            }
+            default -> {
+                status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
+                body = "Unexpected setuid processing error: " + message;
+                logger.warn(body, error);
+            }
         }
 
         HttpUtil.executeSafely(routingContext, Endpoint.setuid,

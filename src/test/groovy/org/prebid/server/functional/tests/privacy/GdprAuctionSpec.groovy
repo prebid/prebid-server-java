@@ -21,6 +21,9 @@ import java.time.Instant
 import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
+import static org.prebid.server.functional.model.pricefloors.Country.CAN
+import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.config.Purpose.P1
 import static org.prebid.server.functional.model.config.Purpose.P2
 import static org.prebid.server.functional.model.config.Purpose.P4
@@ -383,6 +386,118 @@ class GdprAuctionSpec extends PrivacyBaseSpec {
 
         where:
         tcfPolicyVersion << [TCF_POLICY_V2, TCF_POLICY_V3]
+    }
+
+    def "PBS should apply gdpr and emit metrics when host and device.geo.country contains same eea-country"() {
+        given: "Valid consent string"
+        def validConsentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "Gpdr bid request with override country"
+        def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString).tap {
+            device.geo.country = BULGARIA
+        }
+
+        and: "Save account config into DB"
+        accountDao.save(getAccountWithGdpr(bidRequest.app.publisher.id,
+                new AccountGdprConfig(enabled: true, eeaCountries: null)))
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBs should increment metrics when eea-country matched"
+        def metricsRequest = privacyPbsService.sendCollectedMetricsRequest()
+        assert metricsRequest["privacy.tcf.v2.in-geo"] == 1
+        assert !metricsRequest["privacy.tcf.v2.out-geo"]
+    }
+
+    def "PBS should apply gdpr and not emit metrics when host and device.geo.country doesn't contain same eea-country"() {
+        given: "Valid consent string"
+        def validConsentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "Gpdr bid request with override country"
+        def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString).tap {
+            device.geo.country = USA
+        }
+
+        and: "Save account config into DB"
+        accountDao.save(getAccountWithGdpr(bidRequest.app.publisher.id,
+                new AccountGdprConfig(enabled: true, eeaCountries: null)))
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBs should increment metrics when eea-country doens't matched"
+        def metricsRequest = privacyPbsService.sendCollectedMetricsRequest()
+        assert !metricsRequest["privacy.tcf.v2.in-geo"]
+        assert metricsRequest["privacy.tcf.v2.out-geo"] == 1
+    }
+
+    def "PBS should apply gdpr and emit metrics when account and device.geo.country contains same eea-country"() {
+        given: "Valid consent string"
+        def validConsentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "Gpdr bid request with override country"
+        def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString).tap {
+            device.geo.country = USA
+        }
+
+        and: "Save account config into DB"
+        accountDao.save(getAccountWithGdpr(bidRequest.app.publisher.id,
+                new AccountGdprConfig(enabled: true, eeaCountries: USA.ISOAlpha2)))
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBs should increment metrics when eea-country matched"
+        def metricsRequest = privacyPbsService.sendCollectedMetricsRequest()
+        assert metricsRequest["privacy.tcf.v2.in-geo"] == 1
+        assert !metricsRequest["privacy.tcf.v2.out-geo"]
+    }
+
+    def "PBS should apply gdpr and not emit metrics when account and device.geo.country doesn't contain same eea-country"() {
+        given: "Valid consent string"
+        def validConsentString = new TcfConsent.Builder()
+                .setPurposesLITransparency(BASIC_ADS)
+                .setVendorLegitimateInterest([GENERIC_VENDOR_ID])
+                .build()
+
+        and: "Gpdr bid request with override country"
+        def bidRequest = getGdprBidRequest(DistributionChannel.APP, validConsentString).tap {
+            device.geo.country = USA
+        }
+
+        and: "Save account config into DB"
+        accountDao.save(getAccountWithGdpr(bidRequest.app.publisher.id,
+                new AccountGdprConfig(enabled: true, eeaCountries: CAN.ISOAlpha2)))
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBs shouldn't increment metrics when eea-country matched"
+        def metricsRequest = privacyPbsService.sendCollectedMetricsRequest()
+        assert !metricsRequest["privacy.tcf.v2.in-geo"]
+        assert metricsRequest["privacy.tcf.v2.out-geo"] == 1
     }
 
     def "PBS auction should update activity controls fetch bids metrics when tcf requirement disallow request"() {

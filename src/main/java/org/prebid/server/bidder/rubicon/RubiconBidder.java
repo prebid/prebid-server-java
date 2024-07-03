@@ -139,16 +139,9 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String TK_XINT_QUERY_PARAMETER = "tk_xint";
     private static final String PREBID_SERVER_USER_AGENT = "prebid-server/1.0";
 
-    private static final String SOURCE_RUBICON = "rubiconproject.com";
-
     private static final String FPD_GPID_FIELD = "gpid";
     private static final String FPD_SKADN_FIELD = "skadn";
-    private static final String FPD_SECTIONCAT_FIELD = "sectioncat";
-    private static final String FPD_PAGECAT_FIELD = "pagecat";
     private static final String FPD_PAGE_FIELD = "page";
-    private static final String FPD_REF_FIELD = "ref";
-    private static final String FPD_SEARCH_FIELD = "search";
-    private static final String FPD_CONTEXT_FIELD = "context";
     private static final String FPD_DATA_FIELD = "data";
     private static final String FPD_DATA_PBADSLOT_FIELD = "pbadslot";
     private static final String FPD_ADSERVER_FIELD = "adserver";
@@ -159,7 +152,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String PREBID_EXT = "prebid";
 
     private static final String PPUID_STYPE = "ppuid";
-    private static final String OTHER_STYPE = "other";
     private static final String SHA256EMAIL_STYPE = "sha256email";
     private static final String DMP_STYPE = "dmp";
     private static final String XAPI_CURRENCY = "USD";
@@ -317,7 +309,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         return targetings != null
                 ? targetings.stream()
                 .filter(targeting -> !CollectionUtils.isEmpty(targeting.getValues()))
-                .collect(Collectors.toMap(RubiconTargeting::getKey, targeting -> targeting.getValues().get(0)))
+                .collect(Collectors.toMap(RubiconTargeting::getKey, targeting -> targeting.getValues().getFirst()))
                 : Collections.emptyMap();
     }
 
@@ -696,7 +688,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         mergeFirstPartyDataFromApp(app, result);
         mergeFirstPartyDataFromImp(imp, rubiconImpExt, result);
 
-        return result.size() > 0 ? result : null;
+        return !result.isEmpty() ? result : null;
     }
 
     private RubiconImpExtPrebid makeRubiconExtPrebid(PriceFloorResult priceFloorResult,
@@ -730,16 +722,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
             populateFirstPartyDataAttributes(siteExt.getData(), result);
         }
 
-        // merge OPENRTB.site.sectioncat to every impression XAPI.imp[].ext.rp.target.sectioncat
-        mergeCollectionAttributeIntoArray(result, site, Site::getSectioncat, FPD_SECTIONCAT_FIELD);
-        // merge OPENRTB.site.pagecat to every impression XAPI.imp[].ext.rp.target.pagecat
-        mergeCollectionAttributeIntoArray(result, site, Site::getPagecat, FPD_PAGECAT_FIELD);
         // merge OPENRTB.site.page to every impression XAPI.imp[].ext.rp.target.page
         mergeStringAttributeIntoArray(result, site, Site::getPage, FPD_PAGE_FIELD);
-        // merge OPENRTB.site.ref to every impression XAPI.imp[].ext.rp.target.ref
-        mergeStringAttributeIntoArray(result, site, Site::getRef, FPD_REF_FIELD);
-        // merge OPENRTB.site.search to every impression XAPI.imp[].ext.rp.target.search
-        mergeStringAttributeIntoArray(result, site, Site::getSearch, FPD_SEARCH_FIELD);
     }
 
     private void mergeFirstPartyDataFromApp(App app, ObjectNode result) {
@@ -748,11 +732,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (appExt != null) {
             populateFirstPartyDataAttributes(appExt.getData(), result);
         }
-
-        // merge OPENRTB.app.sectioncat to every impression XAPI.imp[].ext.rp.target.sectioncat
-        mergeCollectionAttributeIntoArray(result, app, App::getSectioncat, FPD_SECTIONCAT_FIELD);
-        // merge OPENRTB.app.pagecat to every impression XAPI.imp[].ext.rp.target.pagecat
-        mergeCollectionAttributeIntoArray(result, app, App::getPagecat, FPD_PAGECAT_FIELD);
     }
 
     private void mergeFirstPartyDataFromImp(Imp imp,
@@ -763,12 +742,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         mergeFirstPartyDataKeywords(imp, result);
         // merge OPENRTB.imp[].ext.rubicon.keywords to XAPI.imp[].ext.rp.target.keywords
         mergeCollectionAttributeIntoArray(result, rubiconImpExt, ExtImpRubicon::getKeywords, FPD_KEYWORDS_FIELD);
-        // merge OPENRTB.imp[].ext.data.search to XAPI.imp[].ext.rp.target.search
-        mergeStringAttributeIntoArray(
-                result,
-                imp.getExt().get(FPD_DATA_FIELD),
-                node -> getTextValueFromNodeByPath(node, FPD_SEARCH_FIELD),
-                FPD_SEARCH_FIELD);
     }
 
     private void mergeFirstPartyDataFromData(Imp imp, ObjectNode result) {
@@ -929,7 +902,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final List<ExtRequestPrebidMultiBid> multibids = extRequestPrebid != null
                 ? extRequestPrebid.getMultibid() : null;
         final ExtRequestPrebidMultiBid extRequestPrebidMultiBid =
-                CollectionUtils.isNotEmpty(multibids) ? multibids.get(0) : null;
+                CollectionUtils.isNotEmpty(multibids) ? multibids.getFirst() : null;
         final Integer multibidMaxBids = extRequestPrebidMultiBid != null ? extRequestPrebidMultiBid.getMaxBids() : null;
 
         return multibidMaxBids != null ? multibidMaxBids : 1;
@@ -1123,8 +1096,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final String userId = user != null ? user.getId() : null;
         final List<Eid> userEids = user != null ? user.getEids() : null;
         final String resolvedId = userId == null ? resolveUserId(userEids) : null;
-        final String userBuyeruid = user != null ? user.getBuyeruid() : null;
-        final String resolvedBuyeruid = userBuyeruid != null ? userBuyeruid : resolveBuyeruidFromEids(userEids);
         final ExtUser extUser = user != null ? user.getExt() : null;
         final boolean hasStypeToRemove = hasStypeToRemove(userEids);
         final List<Eid> resolvedUserEids = hasStypeToRemove
@@ -1138,9 +1109,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 && userExtData == null
                 && resolvedUserEids == null
                 && resolvedId == null
-                && Objects.equals(userBuyeruid, resolvedBuyeruid)
-                && !hasStypeToRemove
-        ) {
+                && !hasStypeToRemove) {
 
             return hasDataToRemove
                     ? user.toBuilder().data(null).build()
@@ -1159,7 +1128,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         return userBuilder
                 .id(ObjectUtils.defaultIfNull(resolvedId, userId))
-                .buyeruid(resolvedBuyeruid)
                 .gender(null)
                 .yob(null)
                 .geo(null)
@@ -1258,20 +1226,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 extUserEidUid.getId(),
                 extUserEidUid.getAtype(),
                 extUserEidUidExtCopy);
-    }
-
-    private static String resolveBuyeruidFromEids(List<Eid> eids) {
-        return CollectionUtils.emptyIfNull(eids).stream()
-                .filter(Objects::nonNull)
-                .filter(eid -> SOURCE_RUBICON.equals(eid.getSource()))
-                .map(Eid::getUids)
-                .filter(Objects::nonNull)
-                .flatMap(Collection::stream)
-                .filter(Objects::nonNull)
-                .map(Uid::getId)
-                .findFirst()
-                .orElse(null);
-
     }
 
     private RubiconUserExtRp rubiconUserExtRp(User user, ExtImpRubicon rubiconImpExt) {
@@ -1502,7 +1456,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private List<HttpRequest<BidRequest>> createDealsRequests(BidRequest bidRequest, String uri) {
-        final Imp singleImp = bidRequest.getImp().get(0);
+        final Imp singleImp = bidRequest.getImp().getFirst();
         return singleImp.getPmp().getDeals().stream()
                 .map(deal -> mapper.mapper().convertValue(deal.getExt(), ExtDeal.class))
                 .filter(Objects::nonNull)
@@ -1694,7 +1648,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static BidType bidType(BidRequest bidRequest) {
-        final ImpMediaType impMediaType = impType(bidRequest.getImp().get(0));
+        final ImpMediaType impMediaType = impType(bidRequest.getImp().getFirst());
         return switch (impMediaType) {
             case video -> BidType.video;
             case banner -> BidType.banner;

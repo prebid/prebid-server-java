@@ -49,7 +49,7 @@ public class AxonixBidder implements Bidder<BidRequest> {
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
         final ExtImpAxonix extImpAxonix;
         try {
-            extImpAxonix = parseImpExt(request.getImp().get(0));
+            extImpAxonix = parseImpExt(request.getImp().getFirst());
         } catch (PreBidException e) {
             return Result.withError(BidderError.badInput(e.getMessage()));
         }

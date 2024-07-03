@@ -43,7 +43,7 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     private static final int CURRENCY_CONVERSION_PRECISION = 3
     private static final int FLOOR_VALUE_PRECISION = 4
 
-    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG)
+    protected final PrebidServerService floorsPbsService = pbsServiceFactory.getService(FLOORS_CONFIG + GENERIC_ALIAS_CONFIG)
 
     def setupSpec() {
         floorsProvider.setResponse()

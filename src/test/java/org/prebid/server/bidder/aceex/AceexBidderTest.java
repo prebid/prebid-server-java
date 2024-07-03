@@ -41,7 +41,7 @@ public class AceexBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "https://test-url.com/?param={{AccountId}}";
 
-    private AceexBidder target = new AceexBidder(ENDPOINT_URL, jacksonMapper);
+    private final AceexBidder target = new AceexBidder(ENDPOINT_URL, jacksonMapper);
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {

@@ -86,9 +86,6 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId)
 
-        and: "Activities set with generic bidder allowed"
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.defaultActivity)
-
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
@@ -107,16 +104,18 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
         assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.defaultActivity),
+                       new AllowActivities().tap { transmitEidsKebabCase = Activity.defaultActivity },
+                       new AllowActivities().tap { transmitEidsSnakeCase = Activity.defaultActivity },
+        ]
     }
 
     def "PBS auction call when transmit EIDS activities is rejecting requests should remove EIDS fields in request and update disallowed metrics"() {
         given: "Default Generic BidRequests with EIDS fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = getBidRequestWithPersonalData(accountId)
-
-        and: "Allow activities setup"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, activity as Activity)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -141,6 +140,12 @@ class GppTransmitEidsActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
         assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
         assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_EIDS, Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])),
+                       new AllowActivities().tap { transmitEidsSnakeCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+                       new AllowActivities().tap { transmitEidsKebabCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+        ]
     }
 
     def "PBS auction call when default activity setting set to false should remove EIDS fields from request"() {

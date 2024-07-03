@@ -122,7 +122,7 @@ public class AdviewBidder implements Bidder<BidRequest> {
     private static Banner resolveBanner(Banner banner) {
         final List<Format> formats = banner != null ? banner.getFormat() : null;
         if (CollectionUtils.isNotEmpty(formats)) {
-            final Format firstFormat = formats.get(0);
+            final Format firstFormat = formats.getFirst();
             return firstFormat != null
                     ? banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build()
                     : banner;
