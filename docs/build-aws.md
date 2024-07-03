@@ -44,7 +44,7 @@ where
 
 If you follow same naming convention, your `run.sh` script should be similar to:
 ```
-exec java -jar prebid-server.jar -Dlogging.config=prebid-logging.xml  --spring.config.additional-location=sample/prebid-config.yaml
+exec java -jar prebid-server.jar -Dlogging.config=prebid-logging.xml  --spring.config.additional-location=sample/configs/prebid-config.yaml
 ```
 
 Make run.sh executable using the next command:
