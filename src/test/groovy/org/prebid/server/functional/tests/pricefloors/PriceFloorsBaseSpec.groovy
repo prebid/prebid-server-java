@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
 import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
@@ -105,10 +106,11 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
         BidRequest.defaultBidRequest.tap { imp[0].video = Video.defaultVideo }
     }
 
-    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService,
-                                            BidRequest bidRequest,
+    protected void cacheFloorsProviderRules(BidRequest bidRequest,
+                                            BidderName bidderName,
+                                            PrebidServerService pbsService = floorsPbsService,
                                             BigDecimal expectedFloorValue) {
-        PBSUtils.waitUntil({ pbsService.sendAuctionRequest(bidRequest).ext.debug.resolvedRequest.imp[0].bidFloor == expectedFloorValue },
+        PBSUtils.waitUntil({ getRequest(pbsService.sendAuctionRequest(bidRequest))[bidderName.value].first.imp[0].bidFloor == expectedFloorValue},
                 5000,
                 1000)
     }

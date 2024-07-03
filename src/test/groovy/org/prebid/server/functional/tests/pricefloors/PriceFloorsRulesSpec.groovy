@@ -405,32 +405,38 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 site.domain = publisherDomain
                 site.publisher.id = publisherAccountId
-        }   }
+            }
+        }
         SITE                | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 site.publisher.domain = publisherDomain
                 site.publisher.id = publisherAccountId
-        }   }
+            }
+        }
         APP                 | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 app.domain = publisherDomain
                 app.publisher.id = publisherAccountId
-        }   }
+            }
+        }
         APP                 | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 app.publisher.domain = publisherDomain
                 app.publisher.id = publisherAccountId
-        }   }
-        DOOH                 | { String publisherDomain, String publisherAccountId ->
+            }
+        }
+        DOOH                | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 dooh.domain = publisherDomain
                 dooh.publisher.id = publisherAccountId
-            }   }
-        DOOH                 | { String publisherDomain, String publisherAccountId ->
+            }
+        }
+        DOOH                | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 dooh.publisher.domain = publisherDomain
                 dooh.publisher.id = publisherAccountId
-            }   }
+            }
+        }
     }
 
     def "PBS should choose correct rule when siteDomain is defined in rules for #distributionChannel channel"() {
@@ -476,7 +482,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
                 app.publisher.id = publisherAccountId
             }
         }
-        DOOH                 | { String publisherDomain, String publisherAccountId ->
+        DOOH                | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 dooh.domain = publisherDomain
                 dooh.publisher.id = publisherAccountId
@@ -527,7 +533,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
                 app.publisher.id = publisherAccountId
             }
         }
-        DOOH                 | { String publisherDomain, String publisherAccountId ->
+        DOOH                | { String publisherDomain, String publisherAccountId ->
             BidRequest.getDefaultBidRequest(distributionChannel).tap {
                 dooh.publisher.domain = publisherDomain
                 dooh.publisher.id = publisherAccountId
@@ -923,7 +929,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, GENERIC, pbsService, floorValue)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -970,7 +976,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, GENERIC, pbsService, floorValue)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {

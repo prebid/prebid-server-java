@@ -1,5 +1,6 @@
 package org.prebid.server.functional.tests.pricefloors
 
+import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.pricefloors.ModelGroup
@@ -17,6 +18,7 @@ import java.time.Instant
 import static org.mockserver.model.HttpStatusCode.BAD_REQUEST_400
 import static org.prebid.server.functional.model.Currency.EUR
 import static org.prebid.server.functional.model.Currency.JPY
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.pricefloors.Country.MULTIPLE
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
@@ -360,7 +362,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 
         when: "PBS cache rules and processes auction request"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, GENERIC, pbsService, floorValue)
 
         then: "PBS should fetch data from floors provider"
         assert floorsProvider.getRequestCount(bidRequest.app.publisher.id) == 1
@@ -911,7 +913,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         when: "PBS cache rules and processes auction request"
-        cacheFloorsProviderRules(bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, GENERIC)
 
         then: "Bidder request should contain floors data from floors provider"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
@@ -1396,7 +1398,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(accountId, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, GENERIC, pbsService)
 
         and: "Set Floors Provider response  with status code != 200"
         floorsProvider.setResponse(accountId, BAD_REQUEST_400)
@@ -1711,7 +1713,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(accountId, floorsResponse, header)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, GENERIC)
 
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1744,7 +1746,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(accountId, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, GENERIC)
 
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
