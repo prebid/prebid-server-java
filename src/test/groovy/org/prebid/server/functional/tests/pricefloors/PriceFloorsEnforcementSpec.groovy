@@ -17,7 +17,6 @@ import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.model.response.auction.ErrorType
 import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.IgnoreRest
 
 import static org.prebid.server.functional.model.Currency.USD
 import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
@@ -1009,7 +1008,6 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         0                                | null        | null
     }
 
-    @IgnoreRest
     def "PBS should suppress any bids below the adjusted floor value when ext.prebid.bidadjustmentfactors is defined"() {
         given: "BidRequest with bidAdjustment"
         def floorValue = PBSUtils.randomFloorValue
@@ -1029,6 +1027,9 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         }
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 
+        and: "PBS cache rules"
+        cacheFloorsProviderRules(bidRequest)
+
         and: "Bid response with 2 bids: bid.price = floorValue, dealBid.price < floorValue"
         def adjustedFloorValue = floorValue / bidAdjustment
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -1037,9 +1038,6 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             seatbid.first().bid.last().price = adjustedFloorValue - 0.1
         }
         bidder.setResponse(bidRequest.id, bidResponse)
-
-        and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
