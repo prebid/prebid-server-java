@@ -110,21 +110,24 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
                                             BidderName bidderName,
                                             PrebidServerService pbsService = floorsPbsService,
                                             BigDecimal expectedFloorValue) {
-        PBSUtils.waitUntil({ getRequest(pbsService.sendAuctionRequest(bidRequest))[bidderName.value].first.imp[0].bidFloor == expectedFloorValue},
+        PBSUtils.waitUntil({ getRequest(pbsService.sendAuctionRequest(bidRequest))[bidderName.value].first.imp[0].bidFloor == expectedFloorValue },
                 5000,
                 1000)
     }
 
-    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService, BidRequest bidRequest) {
-        PBSUtils.waitUntil({ pbsService.sendAuctionRequest(bidRequest).ext?.debug?.resolvedRequest?.ext?.prebid?.floors?.fetchStatus != INPROGRESS },
+    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService,
+                                            BidRequest bidRequest,
+                                            BidderName bidderName = BidderName.GENERIC) {
+        PBSUtils.waitUntil({ getRequest(pbsService.sendAuctionRequest(bidRequest))[bidderName.value]?.first?.ext?.prebid?.floors?.fetchStatus != INPROGRESS },
                 5000,
                 1000)
     }
 
     protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService,
                                             AmpRequest ampRequest,
-                                            BigDecimal expectedFloorValue) {
-        PBSUtils.waitUntil({ pbsService.sendAmpRequest(ampRequest).ext.debug.resolvedRequest.imp[0].bidFloor == expectedFloorValue },
+                                            BigDecimal expectedFloorValue,
+                                            BidderName bidderName = BidderName.GENERIC) {
+        PBSUtils.waitUntil({ getRequest(pbsService.sendAmpRequest(ampRequest))[bidderName.value].first.imp[0].bidFloor == expectedFloorValue },
                 5000,
                 1000)
     }

@@ -17,6 +17,7 @@ enum PriceFloorField {
     AD_UNIT_CODE("adUnitCode"),
     COUNTRY("country"),
     DEVICE_TYPE("deviceType"),
+    BIDDER("bidder"),
     BOGUS("bogus")
 
     @JsonValue

@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.bidderspecific.BidderRequest
+import org.prebid.server.functional.model.response.amp.AmpResponse
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.repository.HibernateRepositoryService
 import org.prebid.server.functional.repository.dao.AccountDao
@@ -84,6 +85,14 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
 
     protected static Map<String, List<BidderRequest>> getRequest(BidResponse bidResponse) {
         bidResponse.ext.debug.bidders.collectEntries { bidderName, bidderCalls ->
+            [(bidderName) : bidderCalls.collect { bidderCall ->
+                decode(bidderCall.requestBody as String, BidderRequest)
+            }]
+        }
+    }
+
+    protected static Map<String, List<BidderRequest>> getRequest(AmpResponse ampResponse) {
+        ampResponse.ext.debug.bidders.collectEntries { bidderName, bidderCalls ->
             [(bidderName) : bidderCalls.collect { bidderCall ->
                 decode(bidderCall.requestBody as String, BidderRequest)
             }]

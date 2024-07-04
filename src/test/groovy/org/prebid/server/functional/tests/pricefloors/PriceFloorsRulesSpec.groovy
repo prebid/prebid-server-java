@@ -1,6 +1,7 @@
 package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.ChannelType
+import org.prebid.server.functional.model.bidder.Openx
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
@@ -24,6 +25,7 @@ import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.OPENX
 import static org.prebid.server.functional.model.pricefloors.Country.USA
 import static org.prebid.server.functional.model.pricefloors.DeviceType.DESKTOP
 import static org.prebid.server.functional.model.pricefloors.DeviceType.MULTIPLE
@@ -32,6 +34,7 @@ import static org.prebid.server.functional.model.pricefloors.DeviceType.TABLET
 import static org.prebid.server.functional.model.pricefloors.MediaType.BANNER
 import static org.prebid.server.functional.model.pricefloors.MediaType.VIDEO
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.AD_UNIT_CODE
+import static org.prebid.server.functional.model.pricefloors.PriceFloorField.BIDDER
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.BOGUS
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.BUNDLE
 import static org.prebid.server.functional.model.pricefloors.PriceFloorField.CHANNEL
@@ -50,6 +53,7 @@ import static org.prebid.server.functional.model.request.auction.FetchStatus.ERR
 import static org.prebid.server.functional.model.request.auction.Location.NO_DATA
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
 import static org.prebid.server.functional.model.response.auction.BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR
+import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 
 class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
@@ -993,5 +997,55 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
 
         where:
         enforcePbs << [true, null]
+    }
+
+    def "PBS should use correct rule for each bidder when bidder is define with valid bid floor value"() {
+        given: "PBS config with openX bidder"
+        def floorsPbsService = pbsServiceFactory.getService(
+                FLOORS_CONFIG + GENERIC_ALIAS_CONFIG +
+                        ["adapters.openx.enabled" : "true",
+                         "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
+
+        and: "BidRequest with generic and openx bidder"
+        def bidRequest = BidRequest.defaultBidRequest.tap {
+            addImp(Imp.defaultImpression.tap {
+                ext.prebid.bidder.generic = null
+                ext.prebid.bidder.openx = Openx.defaultOpenx
+            })
+        }
+
+        and: "Account with enabled fetch, fetch.url in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        and: "Set Floors Provider response"
+        def floorsResponse = PriceFloorData.priceFloorData.tap {
+            modelGroups[0].schema = new PriceFloorSchema(fields: [BIDDER])
+            modelGroups[0].values = [(new Rule(bidder: GENERIC).rule): genericBidFloorRuleValue,
+                                     (new Rule(bidder: OPENX).rule)  : openxBidFloorRuleValue]
+        }
+        floorsProvider.setResponse(bidRequest.accountId, floorsResponse)
+
+        and: "PBS fetch rules from floors provider"
+        cacheFloorsProviderRules(floorsPbsService, bidRequest)
+
+        when: "PBS processes auction request"
+        def response = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request bidFloor should correspond to appropriate rule"
+        def bidderRequest = getRequest(response)
+        assert bidderRequest.size() == 2
+        assert bidderRequest[GENERIC.value].first.imp[0].bidFloor == genericBidFloorRuleValue
+        assert bidderRequest[OPENX.value].first.imp[0].bidFloor == openxBidFloorRuleValue
+
+        and: "Bidder request should contain proper bid floor value"
+        def bidderRequests = bidder.getBidderRequests(bidRequest.id)
+        assert bidderRequests.imp.bidFloor.toSet().flatten()
+                .any { bidFloor -> bidFloor == genericBidFloorRuleValue || bidFloor == openxBidFloorRuleValue }
+        where:
+        genericBidFloorRuleValue  | openxBidFloorRuleValue
+        null                      | PBSUtils.randomFloorValue
+        PBSUtils.randomFloorValue | null
+        PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
     }
 }

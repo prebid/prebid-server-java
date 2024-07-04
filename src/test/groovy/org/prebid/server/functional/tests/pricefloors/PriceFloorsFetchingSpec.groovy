@@ -1,6 +1,5 @@
 package org.prebid.server.functional.tests.pricefloors
 
-import org.prebid.server.functional.model.bidder.BidderName
 import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.db.StoredRequest
 import org.prebid.server.functional.model.pricefloors.ModelGroup
@@ -492,7 +491,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl)
+        def floorsLogs = getLogsByText(logs, "$basicFetchUrl$accountId")
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Failed to parse price floor " +
@@ -913,7 +912,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         when: "PBS cache rules and processes auction request"
-        cacheFloorsProviderRules(bidRequest, GENERIC)
+        cacheFloorsProviderRules(bidRequest, GENERIC, floorsPbsService, floorValue)
 
         then: "Bidder request should contain floors data from floors provider"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
@@ -1398,7 +1397,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(accountId, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, GENERIC, pbsService)
+        cacheFloorsProviderRules(bidRequest, GENERIC, pbsService, floorValue)
 
         and: "Set Floors Provider response  with status code != 200"
         floorsProvider.setResponse(accountId, BAD_REQUEST_400)
@@ -1531,7 +1530,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl)
+        def floorsLogs = getLogsByText(logs, "$basicFetchUrl$accountId")
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Price floor data skipRate" +
@@ -1590,7 +1589,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl)
+        def floorsLogs = getLogsByText(logs, "$basicFetchUrl$accountId")
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Price floor modelGroup skipRate" +
@@ -1649,7 +1648,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
 
         and: "PBS log should contain error"
         def logs = floorsPbsService.getLogsByTime(startTime)
-        def floorsLogs = getLogsByText(logs, basicFetchUrl)
+        def floorsLogs = getLogsByText(logs, "$basicFetchUrl$accountId")
         assert floorsLogs.size() == 1
         assert floorsLogs[0].contains("Failed to fetch price floor from provider for fetch.url: " +
                 "'$basicFetchUrl$accountId', account = $accountId with a reason : Price floor modelGroup default" +
@@ -1713,7 +1712,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(accountId, floorsResponse, header)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, GENERIC)
+        cacheFloorsProviderRules(bidRequest, GENERIC, floorsPbsService, floorValue)
 
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
@@ -1746,7 +1745,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(accountId, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, GENERIC)
+        cacheFloorsProviderRules(bidRequest, GENERIC, floorsPbsService, floorValue)
 
         when: "PBS processes auction request"
         floorsPbsService.sendAuctionRequest(bidRequest)
