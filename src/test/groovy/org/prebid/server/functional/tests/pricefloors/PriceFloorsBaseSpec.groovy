@@ -107,9 +107,9 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
     }
 
     protected void cacheFloorsProviderRules(BidRequest bidRequest,
-                                            BidderName bidderName,
+                                            BigDecimal expectedFloorValue,
                                             PrebidServerService pbsService = floorsPbsService,
-                                            BigDecimal expectedFloorValue) {
+                                            BidderName bidderName = BidderName.GENERIC) {
         PBSUtils.waitUntil({ getRequest(pbsService.sendAuctionRequest(bidRequest))[bidderName.value].first.imp[0].bidFloor == expectedFloorValue },
                 5000,
                 1000)

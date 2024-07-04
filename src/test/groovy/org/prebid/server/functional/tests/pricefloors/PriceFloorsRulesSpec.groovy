@@ -933,7 +933,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, GENERIC, pbsService, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, pbsService)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -980,7 +980,7 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, GENERIC, pbsService, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, pbsService)
 
         and: "Set bidder response"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
