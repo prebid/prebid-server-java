@@ -24,7 +24,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
 import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBids;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBid;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsPrebidExt;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsSource;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
@@ -128,17 +128,15 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             return Future.failedFuture(new PreBidException("Failed to encode as JSON: ", e));
         }
 
-        final String userAgent = Optional.ofNullable(auctionContext)
-                .map(AuctionContext::getBidRequest)
-                .map(BidRequest::getDevice)
-                .map(Device::getUa)
-                .orElse(null);
-
-        MultiMap headers = MultiMap.caseInsensitiveMultiMap()
+        final MultiMap headers = MultiMap.caseInsensitiveMultiMap()
                 .add(HttpUtil.ACCEPT_HEADER, HttpHeaderValues.APPLICATION_JSON)
                 .add(HttpUtil.CONTENT_TYPE_HEADER, HttpHeaderValues.APPLICATION_JSON)
                 .add(ANALYTICS_REQUEST_ORIGIN_HEADER, PREBID_SERVER_HEADER_VALUE);
-        headers = userAgent != null ? headers.add(HttpUtil.USER_AGENT_HEADER, userAgent) : headers;
+
+        Optional.ofNullable(auctionContext.getBidRequest())
+                .map(BidRequest::getDevice)
+                .map(Device::getUa)
+                .ifPresent(userAgent -> headers.add(HttpUtil.USER_AGENT_HEADER, userAgent));
 
         final Future<HttpClientResponse> responseFuture = httpClient.post(
                 greenbidsAnalyticsProperties.getAnalyticsServerUrl(),
@@ -224,7 +222,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final Map<String, NonBid> seatsWithNonBids = getSeatsWithNonBids(auctionContext);
 
         final List<GreenbidsAdUnit> adUnitsWithBidResponses = imps.stream().map(imp -> createAdUnit(
-                imp, seatsWithBids, seatsWithNonBids, bidResponse)).toList();
+                imp, seatsWithBids, seatsWithNonBids, bidResponse.getCur())).toList();
 
         final String auctionId = bidRequest
                 .map(BidRequest::getId)
@@ -283,47 +281,37 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             Imp imp,
             Map<String, Bid> seatsWithBids,
             Map<String, NonBid> seatsWithNonBids,
-            BidResponse bidResponse) {
+            String currency) {
         final ExtBanner extBanner = getExtBanner(imp.getBanner());
         final Video video = imp.getVideo();
         final Native nativeObject = imp.getXNative();
 
         final MediaTypes mediaTypes = MediaTypes.of(extBanner, video, nativeObject);
 
-        final List<GreenbidsBids> bids = extractBidders(imp, seatsWithBids, seatsWithNonBids);
-
         final ObjectNode impExt = imp.getExt();
         final String adUnitCode = imp.getId();
 
+        final Optional<ExtImpPrebid> extImpPrebid = Optional.ofNullable(impExt)
+                .map(ext -> ext.get("prebid"))
+                .map(this::extImpPrebid);
+
         final GreenbidsUnifiedCode greenbidsUnifiedCode = getGpid(impExt)
-                .or(() -> getStoredRequestId(impExt))
+                .or(() -> getStoredRequestId(extImpPrebid))
                 .orElseGet(() -> GreenbidsUnifiedCode.of(
                         adUnitCode, GreenbidsSource.AD_UNIT_CODE_SOURCE.getValue()));
 
-        final ObjectNode biddersOptional = Optional.ofNullable(impExt)
-                .map(ext -> extImpPrebid(ext.get("prebid")))
+        final ObjectNode biddersExtImpPrebid = extImpPrebid
                 .map(ExtImpPrebid::getBidder)
                 .orElse(null);
 
-        final List<GreenbidsBids> bidsWithParams = bids.stream()
-                .map(bid -> {
-
-                    final JsonNode bidderParams = Optional.ofNullable(biddersOptional)
-                            .map(bidders -> bidders.get(bid.getBidder()))
-                            .orElse(null);
-
-                    return bid.toBuilder()
-                            .params(bidderParams)
-                            .currency(bidResponse.getCur())
-                            .build();
-                })
-                .toList();
+        final List<GreenbidsBid> bids = extractBidders(
+                imp, seatsWithBids, seatsWithNonBids, biddersExtImpPrebid, currency);
 
         return GreenbidsAdUnit.builder()
                 .code(adUnitCode)
                 .unifiedCode(greenbidsUnifiedCode)
                 .mediaTypes(mediaTypes)
-                .bids(bidsWithParams)
+                .bids(bids)
                 .build();
     }
 
@@ -348,16 +336,30 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .build();
     }
 
-    private List<GreenbidsBids> extractBidders(
-            Imp imp, Map<String, Bid> seatsWithBids, Map<String, NonBid> seatsWithNonBids) {
+    private List<GreenbidsBid> extractBidders(
+            Imp imp,
+            Map<String, Bid> seatsWithBids,
+            Map<String, NonBid> seatsWithNonBids,
+            ObjectNode biddersExtImpPrebid,
+            String currency) {
         return Stream.concat(
                 seatsWithBids.entrySet().stream()
                         .filter(entry -> entry.getValue().getImpid().equals(imp.getId()))
-                        .map(entry -> GreenbidsBids.ofBid(entry.getKey(), entry.getValue())),
+                        .map(entry -> GreenbidsBid.ofBid(entry.getKey(), entry.getValue())),
                 seatsWithNonBids.entrySet().stream()
                         .filter(entry -> entry.getValue().getImpId().equals(imp.getId()))
-                        .map(entry -> GreenbidsBids.ofNonBid(entry.getKey(), entry.getValue())))
-                .collect(Collectors.toList());
+                        .map(entry -> GreenbidsBid.ofNonBid(entry.getKey(), entry.getValue())))
+                .map(bid -> {
+                    final JsonNode bidderParams = Optional.ofNullable(biddersExtImpPrebid)
+                            .map(bidders -> bidders.get(bid.getBidder()))
+                            .orElse(null);
+
+                    return bid.toBuilder()
+                            .params(bidderParams)
+                            .currency(currency)
+                            .build();
+                })
+                .toList();
     }
 
     private static Optional<GreenbidsUnifiedCode> getGpid(ObjectNode impExt) {
@@ -368,10 +370,8 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         GreenbidsUnifiedCode.of(gpid, GreenbidsSource.GPID_SOURCE.getValue()));
     }
 
-    private Optional<GreenbidsUnifiedCode> getStoredRequestId(ObjectNode impExt) {
-        return Optional.ofNullable(impExt)
-                .map(ext -> ext.get("prebid"))
-                .map(this::extImpPrebid)
+    private Optional<GreenbidsUnifiedCode> getStoredRequestId(Optional<ExtImpPrebid> extImpPrebid) {
+        return extImpPrebid
                 .map(ExtImpPrebid::getStoredrequest)
                 .map(ExtStoredRequest::getId)
                 .map(storedRequestId ->

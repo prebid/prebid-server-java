@@ -29,7 +29,7 @@ import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
 import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
-import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBids;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsBid;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsUnifiedCode;
 import org.prebid.server.analytics.reporter.greenbids.model.MediaTypes;
 import org.prebid.server.auction.model.AuctionContext;
@@ -610,7 +610,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .build();
     }
 
-    private static List<GreenbidsBids> givenGreenbidsBids() {
+    private static List<GreenbidsBid> givenGreenbidsBids() {
         final ObjectNode paramsSeat1 = mapper.createObjectNode()
                 .put("accountId", 1001)
                 .put("siteId", 267318)
@@ -632,10 +632,10 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                         .currency("USD").params(paramsSeat3));
     }
 
-    private static List<GreenbidsBids> givenGreenbidsBidsWithCustomizer(
-            UnaryOperator<GreenbidsBids.GreenbidsBidsBuilder>... greenbidsBidsCustomizers) {
+    private static List<GreenbidsBid> givenGreenbidsBidsWithCustomizer(
+            UnaryOperator<GreenbidsBid.GreenbidsBidBuilder>... greenbidsBidsCustomizers) {
         return Arrays.stream(greenbidsBidsCustomizers)
-                .map(customizer -> customizer.apply(GreenbidsBids.builder()).build())
+                .map(customizer -> customizer.apply(GreenbidsBid.builder()).build())
                 .collect(Collectors.toList());
     }
 
