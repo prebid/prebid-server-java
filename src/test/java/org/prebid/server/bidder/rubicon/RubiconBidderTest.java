@@ -1148,11 +1148,11 @@ public class RubiconBidderTest extends VertxTest {
                 builder -> builder.site(Site.builder()
                         .content(Content.builder()
                                 .data(asList(
-                                        givenDataWithSegments(1, "firstSegmentId_", 10),
-                                        givenDataWithSegments(2, "secondSegmentId_", 5),
-                                        givenDataWithSegments(3, "thirdSegmentId_", 100),
-                                        givenDataWithSegments(4, "fourthSegmentId_", 100),
-                                        givenDataWithSegments(5, "fifthSegmentId_", 100),
+                                        givenDataWithSegments(1, "firstSegmentId_", 5),
+                                        givenDataWithSegments(2, "secondSegmentId_", 4),
+                                        givenDataWithSegments(3, "thirdSegmentId_", 3),
+                                        givenDataWithSegments(4, "fourthSegmentId_", 2),
+                                        givenDataWithSegments(5, "fifthSegmentId_", 1),
                                         givenDataWithSegments(6, "sixthSegmentId_", 100)))
                                 .build())
                         .build()),
@@ -1171,20 +1171,20 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(targetNode.elements()).toIterable().hasSize(3);
 
         final List<String> expectedIabValues = Streams.concat(
-                        IntStream.range(1, 11).mapToObj(i -> "firstSegmentId_" + i),
-                        IntStream.range(1, 6).mapToObj(i -> "secondSegmentId_" + i),
-                        IntStream.range(80, 101).mapToObj(i -> "fifthSegmentId_" + i),
-                        IntStream.range(79, 101).mapToObj(i -> "sixthSegmentId_" + i))
+                        IntStream.range(1, 6).mapToObj(i -> "firstSegmentId_" + i),
+                        IntStream.range(1, 5).mapToObj(i -> "secondSegmentId_" + i),
+                        IntStream.range(1, 2).mapToObj(i -> "fifthSegmentId_" + i),
+                        IntStream.range(16, 101).mapToObj(i -> "sixthSegmentId_" + i))
                 .toList();
 
         assertThat(targetNode.get("iab").elements()).toIterable().extracting(JsonNode::asText)
                 .containsExactlyInAnyOrderElementsOf(expectedIabValues);
 
-        final List<String> expectedTax3Values = IntStream.range(80, 101).mapToObj(i -> "thirdSegmentId_" + i).toList();
+        final List<String> expectedTax3Values = IntStream.range(1, 4).mapToObj(i -> "thirdSegmentId_" + i).toList();
         assertThat(targetNode.get("tax3").elements()).toIterable().extracting(JsonNode::asText)
                 .containsExactlyInAnyOrderElementsOf(expectedTax3Values);
 
-        final List<String> expectedTax4Values = IntStream.range(80, 101).mapToObj(i -> "fourthSegmentId_" + i).toList();
+        final List<String> expectedTax4Values = IntStream.range(1, 3).mapToObj(i -> "fourthSegmentId_" + i).toList();
         assertThat(targetNode.get("tax4").elements()).toIterable().extracting(JsonNode::asText)
                 .containsExactlyInAnyOrderElementsOf(expectedTax4Values);
     }
@@ -1229,11 +1229,11 @@ public class RubiconBidderTest extends VertxTest {
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.user(User.builder()
                         .data(asList(
-                                givenDataWithSegments(1, "firstSegmentId_", 10),
-                                givenDataWithSegments(2, "secondSegmentId_", 5),
-                                givenDataWithSegments(3, "thirdSegmentId_", 100),
-                                givenDataWithSegments(4, "fourthSegmentId_", 100),
-                                givenDataWithSegments(5, "fifthSegmentId_", 100),
+                                givenDataWithSegments(1, "firstSegmentId_", 5),
+                                givenDataWithSegments(2, "secondSegmentId_", 4),
+                                givenDataWithSegments(3, "thirdSegmentId_", 3),
+                                givenDataWithSegments(4, "fourthSegmentId_", 2),
+                                givenDataWithSegments(5, "fifthSegmentId_", 1),
                                 givenDataWithSegments(6, "sixthSegmentId_", 100)))
                         .build()),
                 builder -> builder.video(Video.builder().build()),
@@ -1250,27 +1250,27 @@ public class RubiconBidderTest extends VertxTest {
 
         assertThat(targetNode.elements()).toIterable().hasSize(6);
 
-        final List<String> expectedIabValues = IntStream.range(80, 101).mapToObj(i -> "fourthSegmentId_" + i).toList();
+        final List<String> expectedIabValues = IntStream.range(1, 3).mapToObj(i -> "fourthSegmentId_" + i).toList();
         assertThat(targetNode.get("iab").elements()).toIterable().extracting(JsonNode::asText)
                 .containsExactlyInAnyOrderElementsOf(expectedIabValues);
 
-        final List<String> expectedTax1Values = IntStream.range(1, 11).mapToObj(i -> "firstSegmentId_" + i).toList();
+        final List<String> expectedTax1Values = IntStream.range(1, 6).mapToObj(i -> "firstSegmentId_" + i).toList();
         assertThat(targetNode.get("tax1").elements()).toIterable().extracting(JsonNode::asText)
                 .containsExactlyInAnyOrderElementsOf(expectedTax1Values);
 
-        final List<String> expectedTax2Values = IntStream.range(1, 6).mapToObj(i -> "secondSegmentId_" + i).toList();
+        final List<String> expectedTax2Values = IntStream.range(1, 5).mapToObj(i -> "secondSegmentId_" + i).toList();
         assertThat(targetNode.get("tax2").elements()).toIterable().extracting(JsonNode::asText)
                 .containsExactlyInAnyOrderElementsOf(expectedTax2Values);
 
-        final List<String> expectedTax3Values = IntStream.range(80, 101).mapToObj(i -> "thirdSegmentId_" + i).toList();
+        final List<String> expectedTax3Values = IntStream.range(1, 4).mapToObj(i -> "thirdSegmentId_" + i).toList();
         assertThat(targetNode.get("tax3").elements()).toIterable().extracting(JsonNode::asText)
                 .containsExactlyInAnyOrderElementsOf(expectedTax3Values);
 
-        final List<String> expectedTax5Values = IntStream.range(80, 101).mapToObj(i -> "fifthSegmentId_" + i).toList();
+        final List<String> expectedTax5Values = IntStream.range(1, 2).mapToObj(i -> "fifthSegmentId_" + i).toList();
         assertThat(targetNode.get("tax5").elements()).toIterable().extracting(JsonNode::asText)
                 .containsExactlyInAnyOrderElementsOf(expectedTax5Values);
 
-        final List<String> expectedTax6Values = IntStream.range(79, 101).mapToObj(i -> "sixthSegmentId_" + i).toList();
+        final List<String> expectedTax6Values = IntStream.range(16, 101).mapToObj(i -> "sixthSegmentId_" + i).toList();
         assertThat(targetNode.get("tax6").elements()).toIterable().extracting(JsonNode::asText)
                 .containsExactlyInAnyOrderElementsOf(expectedTax6Values);
     }

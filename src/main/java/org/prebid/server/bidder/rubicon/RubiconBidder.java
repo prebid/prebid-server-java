@@ -108,15 +108,18 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ListUtil;
 import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -129,7 +132,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class RubiconBidder implements Bidder<BidRequest> {
@@ -1274,15 +1276,17 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static void enrichWithIabAndSegtaxAttribute(ObjectNode target, List<Data> data, Set<Integer> segtaxValues) {
-        final Map<Integer, List<Segment>> segments = CollectionUtils.emptyIfNull(data).stream()
+        final Map<Integer, Deque<Segment>> segments = CollectionUtils.emptyIfNull(data).stream()
                 .filter(Objects::nonNull)
                 .map(RubiconBidder::getValidSegments)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue,
-                        (value1, value2) -> Stream.concat(value1.stream(), value2.stream())
-                                .collect(Collectors.toCollection(ArrayList::new))));
+                        (first, second) -> {
+                            first.addAll(second);
+                            return first;
+                        }));
 
         if (MapUtils.isEmpty(segments)) {
             return;
@@ -1298,62 +1302,64 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private static Map<String, List<String>> groupBySegtaxValues(Map<Integer, List<String>> segments,
-                                                                  Set<Integer> segtaxValues) {
+                                                                 Set<Integer> segtaxValues) {
 
         return segments.entrySet().stream()
-                .map(entry -> Map.entry(resolveSegmentName(entry.getKey(), segtaxValues), entry.getValue()))
                 .collect(Collectors.toMap(
-                        Map.Entry::getKey,
+                        entry -> resolveSegmentName(entry.getKey(), segtaxValues),
                         Map.Entry::getValue,
-                        (value1, value2) -> Stream.concat(value1.stream(), value2.stream())
-                                .collect(Collectors.toCollection(ArrayList::new))));
+                        ListUtil::union));
     }
 
     private static String resolveSegmentName(Integer taxonomyId, Set<Integer> segtaxValues) {
         return segtaxValues.contains(taxonomyId) ? SEGTAX_IAB : SEGTAX_TAX + taxonomyId;
     }
 
-    private static Map.Entry<Integer, List<Segment>> getValidSegments(Data data) {
+    private static Map.Entry<Integer, Deque<Segment>> getValidSegments(Data data) {
         final ObjectNode ext = data.getExt();
         final JsonNode taxonomyId = ext != null ? ext.get(SEGTAX) : null;
-
-        if (taxonomyId != null && taxonomyId.isInt()) {
-            final List<Segment> segments = getValidOnlySegments(data.getSegment());
-            if (CollectionUtils.isNotEmpty(segments)) {
-                return Map.entry(taxonomyId.intValue(), segments);
-            }
+        if (taxonomyId == null || !taxonomyId.isInt()) {
+            return null;
         }
 
-        return null;
+        final Deque<Segment> segments = getValidOnlySegments(data.getSegment());
+        return CollectionUtils.isNotEmpty(segments) ? Map.entry(taxonomyId.intValue(), segments) : null;
     }
 
-    private static List<Segment> getValidOnlySegments(List<Segment> segments) {
-        return segments.stream()
+    private static Deque<Segment> getValidOnlySegments(List<Segment> segments) {
+        return CollectionUtils.isNotEmpty(segments)
+                ? segments.stream()
                 .filter(segment -> StringUtils.isNotBlank(segment.getId()))
-                .collect(Collectors.toCollection(ArrayList::new));
+                .collect(Collectors.toCollection(ArrayDeque::new))
+                : null;
     }
 
-    private static Map<Integer, List<String>> pickRelevantSegments(final Map<Integer, List<Segment>> segments) {
+    private static Map<Integer, List<String>> pickRelevantSegments(final Map<Integer, Deque<Segment>> segments) {
         final Map<Integer, List<String>> result = new HashMap<>();
         final List<Integer> segmentsKeys = new ArrayList<>(segments.keySet());
-        segmentsKeys.forEach(key -> result.put(key, new ArrayList<>()));
 
-        for (int i = 0; i < MAX_NUMBER_OF_SEGMENTS; i++) {
-            final int segmentsIndex = i % segmentsKeys.size();
-            final Integer segmentKey = segmentsKeys.get(segmentsIndex);
-            final List<Segment> currentSegments = segments.get(segmentKey);
+        for (int i = 0; i < MAX_NUMBER_OF_SEGMENTS; ) {
+            final List<Integer> emptySegmentKeys = new ArrayList<>();
 
-            result.computeIfPresent(segmentKey, (key, value) -> {
-                value.add(getAndRemoveLastSegment(currentSegments).getId());
-                return value;
-            });
+            for (Integer segmentKey : segmentsKeys) {
+                final Deque<Segment> currentSegments = segments.get(segmentKey);
+                final Segment lastSegment = currentSegments.pollLast();
+                result.computeIfAbsent(segmentKey, key -> new ArrayList<>()).add(lastSegment.getId());
 
-            if (CollectionUtils.isEmpty(currentSegments)) {
-                segmentsKeys.remove(segmentKey);
+                if (CollectionUtils.isEmpty(currentSegments)) {
+                    emptySegmentKeys.add(segmentKey);
+                }
+
+                i++;
+            }
+
+            if (!emptySegmentKeys.isEmpty()) {
+                segmentsKeys.removeAll(emptySegmentKeys);
                 if (CollectionUtils.isEmpty(segmentsKeys)) {
                     break;
                 }
             }
+
         }
 
         return result;
