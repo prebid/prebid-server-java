@@ -30,7 +30,7 @@ public class GreenbidsBids {
     public static GreenbidsBids ofNonBid(String seat, NonBid nonBid) {
         return GreenbidsBids.builder()
                 .bidder(seat)
-                .isTimeout(nonBid.getStatusCode() == BidRejectionReason.TIMED_OUT)
+                .isTimeout(nonBid.getStatusCode() == BidRejectionReason.ERROR_TIMED_OUT)
                 .hasBid(false)
                 .build();
     }
