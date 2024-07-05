@@ -260,7 +260,6 @@ public class BasicPriceFloorResolver implements PriceFloorResolver {
             case adUnitCode -> adUnitCodeFromImp(imp);
             case country -> countryFromRequest(bidRequest);
             case deviceType -> resolveDeviceTypeFromRequest(bidRequest);
-            //todo: do we need to check whether the imp contains the bidder?
             case bidder -> SimpleDirectParameter.of(bidder);
         };
     }
