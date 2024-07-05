@@ -453,9 +453,7 @@ class DsaSpec extends PrivacyBaseSpec {
         }
 
         and: "Account with default DSA config"
-        def accountDsa = Dsa.defaultDsa
-        def account = getAccountWithDsa(accountId,
-                new AccountDsaConfig(defaultDsa: accountDsa, gdprOnly: true))
+        def account = getAccountWithDsa(accountId, accountDsaConfig)
         accountDao.save(account)
 
         when: "PBS processes auction request"
@@ -463,6 +461,10 @@ class DsaSpec extends PrivacyBaseSpec {
 
         then: "Bidder request shouldn't contain DSA"
         assert !bidder.getBidderRequest(bidRequest.id)?.regs?.ext?.dsa
+
+        where:
+        accountDsaConfig << [new AccountDsaConfig(defaultDsa: Dsa.defaultDsa, gdprOnly: true),
+                             new AccountDsaConfig(defaultDsa: Dsa.defaultDsa, gdprOnlySnakeCase: true)]
     }
 
     def "Auction request should reject bids with DSA when pubRender is #pubRender and adRender is #adRender"() {

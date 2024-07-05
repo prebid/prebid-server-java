@@ -98,9 +98,6 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId)
 
-        and: "Activities set with generic bidder allowed"
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.defaultActivity)
-
         and: "Flush metrics"
         flushMetrics(activityPbsService)
 
@@ -138,16 +135,18 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         def metrics = activityPbsService.sendCollectedMetricsRequest()
         assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
         assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.defaultActivity),
+                       new AllowActivities().tap { transmitUfpdSnakeCase = Activity.defaultActivity },
+                       new AllowActivities().tap { transmitUfpdKebabCase = Activity.defaultActivity },
+        ]
     }
 
     def "PBS auction call when transmit UFPD activities is rejecting requests should remove UFPD fields in request and update disallowed metrics"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
         def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId)
-
-        and: "Allow activities setup"
-        def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
-        def activities = AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, activity as Activity)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -187,6 +186,12 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
         assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+
+        where: "Activities fields name in different case"
+        activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])),
+                       new AllowActivities().tap { transmitUfpdKebabCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+                       new AllowActivities().tap { transmitUfpdSnakeCase = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)]) },
+        ]
     }
 
     def "PBS auction call when default activity setting set to false should remove UFPD fields from request"() {
@@ -3022,7 +3027,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Save account config with allow activities into DB"
         def account = getAccountWithAllowActivitiesAndPrivacyModule(accountId, activities).tap {
-            it.config.privacy.gdpr = new AccountGdprConfig(purposes: [(Purpose.P4): new PurposeConfig(eid: new PurposeEid(activityTransition: false))])
+            it.config.privacy.gdpr = new AccountGdprConfig(purposes: [(Purpose.P4): new PurposeConfig(eid: eid)])
         }
         accountDao.save(account)
 
@@ -3057,6 +3062,10 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
         assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
         assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+
+        where:
+        eid << [new PurposeEid(activityTransition: false),
+                new PurposeEid(activityTransitionKebabCase: false)]
     }
 
     private static BidRequest givenBidRequestWithAccountAndUfpdData(String accountId) {

@@ -312,6 +312,45 @@ public class TcfDefinerServiceTest {
     }
 
     @Test
+    public void resolveTcfContextShouldUseEeaListFromAccountConfig() {
+        // given
+        final GdprConfig gdprConfig = GdprConfig.builder()
+                .enabled(true)
+                .consentStringMeansInScope(true)
+                .build();
+
+        target = new TcfDefinerService(
+                gdprConfig,
+                singleton(EEA_COUNTRY),
+                tcf2Service,
+                geoLocationServiceWrapper,
+                bidderCatalog,
+                ipAddressHelper,
+                metrics);
+
+        final String vendorConsent = "CPBCa-mPBCa-mAAAAAENA0CAAEAAAAAAACiQAaQAwAAgAgABoAAAAAA";
+
+        // when
+        final Future<TcfContext> result = target.resolveTcfContext(
+                Privacy.builder().consentString(vendorConsent).build(),
+                "country",
+                null,
+                AccountGdprConfig.builder().eeaCountries("").build(),
+                null,
+                null,
+                null,
+                null);
+
+        // then
+        assertThat(result).isSucceeded();
+        assertThat(result.result())
+                .extracting(TcfContext::getInEea)
+                .isEqualTo(false);
+
+        verify(metrics).updatePrivacyTcfGeoMetric(2, false);
+    }
+
+    @Test
     public void resolveTcfContextShouldReturnGdprFromCountryWhenGdprFromRequestIsNotValidAndGeoLookupSkipped() {
         // given
         final Privacy privacy = Privacy.builder().gdpr(EMPTY).consentString("consent").build();

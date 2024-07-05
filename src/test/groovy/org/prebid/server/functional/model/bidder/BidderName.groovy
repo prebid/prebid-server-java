@@ -7,6 +7,7 @@ enum BidderName {
 
     WILDCARD("*"),
     UNKNOWN("unknown"),
+    EMPTY(""),
     BOGUS("bogus"),
     ALIAS("alias"),
     GENERIC_CAMEL_CASE("GeNerIc"),

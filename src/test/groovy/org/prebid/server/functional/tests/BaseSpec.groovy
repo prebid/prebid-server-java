@@ -38,6 +38,8 @@ abstract class BaseSpec extends Specification implements ObjectMapperWrapper {
     private static final int MIN_TIMEOUT = DEFAULT_TIMEOUT
     private static final int DEFAULT_TARGETING_PRECISION = 1
     private static final String DEFAULT_CACHE_DIRECTORY = "/app/prebid-server/data"
+    protected static final Map<String, String> GENERIC_ALIAS_CONFIG = ["adapters.generic.aliases.alias.enabled" : "true",
+                                                                     "adapters.generic.aliases.alias.endpoint": "$networkServiceContainer.rootUri/auction".toString()]
 
     protected final PrebidServerService defaultPbsService = pbsServiceFactory.getService([:])
 

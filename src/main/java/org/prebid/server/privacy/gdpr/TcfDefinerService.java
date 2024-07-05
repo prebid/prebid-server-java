@@ -30,10 +30,12 @@ import org.prebid.server.settings.model.GdprConfig;
 import org.prebid.server.util.ObjectUtil;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -99,7 +101,7 @@ public class TcfDefinerService {
 
         final Future<TcfContext> tcfContextFuture = !isGdprEnabled(accountGdprConfig, requestType)
                 ? Future.succeededFuture(TcfContext.empty())
-                : prepareTcfContext(privacy, country, ipAddress, requestLogInfo, timeout, geoInfo);
+                : prepareTcfContext(privacy, country, ipAddress, accountGdprConfig, requestLogInfo, timeout, geoInfo);
 
         return tcfContextFuture.map(this::updateTcfGeoMetrics);
     }
@@ -185,6 +187,7 @@ public class TcfDefinerService {
     private Future<TcfContext> prepareTcfContext(Privacy privacy,
                                                  String country,
                                                  String ipAddress,
+                                                 AccountGdprConfig accountGdprConfig,
                                                  RequestLogInfo requestLogInfo,
                                                  Timeout timeout,
                                                  GeoInfo geoInfo) {
@@ -195,7 +198,7 @@ public class TcfDefinerService {
         final boolean consentValid = isConsentValid(consent);
 
         final String effectiveIpAddress = maybeMaskIp(ipAddress, consent);
-        final Boolean inEea = isCountryInEea(country);
+        final Boolean inEea = isCountryInEea(country, accountGdprConfig);
 
         final TcfContext defaultContext = TcfContext.builder()
                 .inGdprScope(inScopeOfGdpr(gdprDefaultValue))
@@ -218,7 +221,7 @@ public class TcfDefinerService {
 
         return geoLocationServiceWrapper.doLookup(effectiveIpAddress, country, timeout)
                 .recover(ignored -> Future.succeededFuture(geoInfo))
-                .map(lookupResult -> enrichWithGeoInfo(defaultContext, lookupResult, country));
+                .map(lookupResult -> enrichWithGeoInfo(defaultContext, lookupResult, country, accountGdprConfig));
     }
 
     private String maybeMaskIp(String ipAddress, TCString consent) {
@@ -240,9 +243,13 @@ public class TcfDefinerService {
         return isConsentValid(consent) && consent.getVersion() == 2 && !consent.getSpecialFeatureOptIns().contains(1);
     }
 
-    private TcfContext enrichWithGeoInfo(TcfContext defaultTcfContext, GeoInfo geoInfo, String defaultCountry) {
+    private TcfContext enrichWithGeoInfo(TcfContext defaultTcfContext,
+                                         GeoInfo geoInfo,
+                                         String defaultCountry,
+                                         AccountGdprConfig accountGdprConfig) {
+
         final String country = ObjectUtil.getIfNotNullOrDefault(geoInfo, GeoInfo::getCountry, () -> defaultCountry);
-        final Boolean inEea = isCountryInEea(country);
+        final Boolean inEea = isCountryInEea(country, accountGdprConfig);
         final boolean inScope = inScopeOfGdpr(inEea);
 
         return defaultTcfContext.toBuilder()
@@ -252,8 +259,19 @@ public class TcfDefinerService {
                 .build();
     }
 
-    private Boolean isCountryInEea(String country) {
-        return country != null ? eeaCountries.contains(country) : null;
+    private Boolean isCountryInEea(String country, AccountGdprConfig accountGdprConfig) {
+        final Set<String> publisherEeaCountries = Optional.ofNullable(accountGdprConfig)
+                .map(AccountGdprConfig::getEeaCountries)
+                .map(TcfDefinerService::eeaCountries)
+                .orElse(eeaCountries);
+        return country != null ? publisherEeaCountries.contains(country) : null;
+    }
+
+    private static Set<String> eeaCountries(String eeaCountriesAsString) {
+        return Arrays.stream(eeaCountriesAsString.split(","))
+                .map(StringUtils::strip)
+                .filter(StringUtils::isNotBlank)
+                .collect(Collectors.toSet());
     }
 
     private TcfContext updateTcfGeoMetrics(TcfContext tcfContext) {

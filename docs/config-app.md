@@ -217,6 +217,12 @@ Also, each bidder could have its own bidder-specific options.
 So far metrics cannot be submitted simultaneously to many backends. Currently we support `graphite` and `influxdb`. 
 Also, for debug purposes you can use `console` as metrics backend.
 
+For `logback` backend type available next options:
+- `metrics.logback.enabled` - if equals to `true` then logback reporter will be started.
+- `metrics.logback.name` - name of logger element in the logback configuration file.
+- `metrics.logback.interval` - interval in seconds between successive sending metrics.
+
+
 For `graphite` backend type available next options:
 - `metrics.graphite.enabled` - if equals to `true` then `graphite` will be used to submit metrics.
 - `metrics.graphite.prefix` - the prefix of all metric names.
@@ -258,6 +264,9 @@ See [metrics documentation](metrics.md) for complete list of metrics submitted a
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.
 - `cache.host` - set the external Cache Service destination in format `host:port`.
 - `cache.path` - set the external Cache Service path, for example `/cache`.
+- `cache.module.enabled` - If set to true, this will allow storing modules’ data in third-party storage.
+- `cache.module.path` - set the external Cache Service path for module caching, for example `/module/cache`.
+- `cache.api.key` - set the external Cache Service api key for secured calls.
 - `cache.query` - appends to the cache path as query string params (used for legacy Auction requests).
 - `cache.banner-ttl-seconds` - how long (in seconds) banner will be available via the external Cache Service.
 - `cache.video-ttl-seconds` - how long (in seconds) video creative will be available via the external Cache Service.

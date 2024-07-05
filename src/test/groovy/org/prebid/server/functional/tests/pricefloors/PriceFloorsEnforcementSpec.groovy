@@ -19,8 +19,13 @@ import org.prebid.server.functional.model.response.auction.SeatBid
 import org.prebid.server.functional.util.PBSUtils
 
 import static org.prebid.server.functional.model.Currency.USD
+import static org.prebid.server.functional.model.bidder.BidderName.ALIAS
+import static org.prebid.server.functional.model.bidder.BidderName.EMPTY
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.bidder.BidderName.GENERIC_CAMEL_CASE
+import static org.prebid.server.functional.model.bidder.BidderName.WILDCARD
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.APP
+import static org.prebid.server.functional.model.response.auction.ErrorType.PREBID
 
 class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
@@ -214,6 +219,531 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         assert response.seatbid?.first()?.bid?.collect { it.price } == [floorValue]
     }
 
+    def "PBS should remove imp floors information when data.noFloorSignalBidders contain original bidder name or wildcard"() {
+        given: "Default BidRequest with floors"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorCur = USD
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
+            imp[0].bidFloor = floorValue
+            imp[0].bidFloorCur = floorCur
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
+                data = PriceFloorData.priceFloorData.tap {
+                    modelGroups[0].values = [(rule): floorValue]
+                    noFloorSignalBidders = [floorBidder]
+                }
+            }
+        }
+
+        and: "Account with enabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should remove imp.bidFlourCur and bidFloor from original request"
+        def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
+        assert !bidderImp.bidFloorCur
+        assert !bidderImp.bidFloor
+
+        and: "Response should contain specific code and text in ext.warnings.prebid"
+        verifyAll(bidResponse.ext.warnings[PREBID]) {
+            it.code == [999]
+            it.message == ["noFloorSignal to bidder generic"]
+        }
+
+        where:
+        floorBidder << [GENERIC, GENERIC_CAMEL_CASE, WILDCARD]
+    }
+
+    def "PBS shouldn't remove imp floors information when data.noFloorSignalBidders contain empty bidder name"() {
+        given: "Default BidRequest with floors"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorCur = USD
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
+            imp[0].bidFloor = floorValue
+            imp[0].bidFloorCur = floorCur
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
+                data = PriceFloorData.priceFloorData.tap {
+                    modelGroups[0].values = [(rule): floorValue]
+                    noFloorSignalBidders = floorBidders
+                }
+            }
+        }
+
+        and: "Bid response with price equal or bigger then in request"
+        def presetBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.last().price = PBSUtils.getRandomFloorValue(floorValue)
+            cur = floorCur
+        }
+        bidder.setResponse(bidRequest.id, presetBidResponse)
+
+        and: "Account with enabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
+        def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
+        assert bidderImp.bidFloorCur == floorCur
+        assert bidderImp.bidFloor == floorValue
+
+        and: "Response shouldn't contain any warnings"
+        assert !bidResponse.ext.warnings
+
+        where:
+        floorBidders << [[EMPTY], [null], null]
+    }
+
+    def "PBS shouldn't remove imp floors information when data.noFloorSignalBidders contain alias bidder"() {
+        given: "Default BidRequest with floors"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorCur = USD
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
+            ext.prebid.aliases = [(ALIAS.value): GENERIC]
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.generic = null
+            imp[0].bidFloor = floorValue
+            imp[0].bidFloorCur = floorCur
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
+                data = PriceFloorData.priceFloorData.tap {
+                    modelGroups[0].values = [(rule): floorValue]
+                    noFloorSignalBidders = [floorBidder]
+                }
+            }
+        }
+
+        and: "Bid response with price equal or bigger then in request"
+        def presetBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.last().price = PBSUtils.getRandomFloorValue(floorValue)
+            cur = floorCur
+        }
+        bidder.setResponse(bidRequest.id, presetBidResponse)
+
+        and: "Account with enabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
+        def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
+        assert bidderImp.bidFloorCur == floorCur
+        assert bidderImp.bidFloor == floorValue
+
+        and: "Response shouldn't contain any warnings"
+        assert !bidResponse.ext.warnings
+
+        where:
+        floorBidder << [GENERIC, GENERIC_CAMEL_CASE]
+    }
+
+    def "PBS should remove imp floors information when data.modelGroups[].noFloorSignalBidders contain bidder name or wildcard"() {
+        given: "Default BidRequest with floors"
+        def floorCur = USD
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
+                data = PriceFloorData.priceFloorData.tap {
+                    modelGroups.first.noFloorSignalBidders = [floorBidder]
+                }
+            }
+        }
+
+        and: "Account with enabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should remove imp.bidFlourCur and bidFloor from original request"
+        def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
+        assert !bidderImp.bidFloorCur
+        assert !bidderImp.bidFloor
+
+        and: "Response should contain specific code and text in ext.warnings.prebid"
+        verifyAll(bidResponse.ext.warnings[PREBID]) {
+            it.code == [999]
+            it.message == ["noFloorSignal to bidder generic"]
+        }
+
+        where:
+        floorBidder << [GENERIC, GENERIC_CAMEL_CASE, WILDCARD]
+    }
+
+    def "PBS shouldn't remove imp floors information when data.modelGroups[].noFloorSignalBidders contain empty bidder name"() {
+        given: "Default BidRequest with floors"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorCur = USD
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
+                data = PriceFloorData.priceFloorData.tap {
+                    modelGroups[0].tap {
+                        values = [(rule): floorValue]
+                        noFloorSignalBidders = floorBidders
+                    }
+                }
+            }
+        }
+
+        and: "Bid response with price equal or bigger then in request"
+        def presetBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.last().price = PBSUtils.getRandomFloorValue(floorValue)
+            cur = floorCur
+        }
+        bidder.setResponse(bidRequest.id, presetBidResponse)
+
+        and: "Account with disabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
+        def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
+        assert bidderImp.bidFloorCur == floorCur
+        assert bidderImp.bidFloor == floorValue
+
+        and: "Response shouldn't contain any warnings"
+        assert !bidResponse.ext.warnings
+
+        where:
+        floorBidders << [[EMPTY], [null], null]
+    }
+
+    def "PBS shouldn't remove imp floors information when data.modelGroups[].noFloorSignalBidders contain alias bidder"() {
+        given: "Default BidRequest with floors"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorCur = USD
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
+            ext.prebid.aliases = [(ALIAS.value): GENERIC]
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.generic = null
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
+                data = PriceFloorData.priceFloorData.tap {
+                    modelGroups[0].tap {
+                        values = [(rule): floorValue]
+                        noFloorSignalBidders = [floorBidder]
+                    }
+                }
+            }
+        }
+
+        and: "Bid response with price equal or bigger then in request"
+        def presetBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.last().price = PBSUtils.getRandomFloorValue(floorValue)
+            cur = floorCur
+        }
+        bidder.setResponse(bidRequest.id, presetBidResponse)
+
+        and: "Account with enabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
+        def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
+        assert bidderImp.bidFloorCur == floorCur
+        assert bidderImp.bidFloor == floorValue
+
+        and: "Response shouldn't contain any warnings"
+        assert !bidResponse.ext.warnings
+
+        where:
+        floorBidder << [GENERIC, GENERIC_CAMEL_CASE]
+    }
+
+    def "PBS should remove imp floors information when enforcement.noFloorSignalBidders contain bidder name or wildcard"() {
+        given: "Default BidRequest with floors"
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [USD]
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
+                enforcement = new ExtPrebidPriceFloorEnforcement(noFloorSignalBidders: [floorBidder])
+                data.tap {
+                    modelGroups[0].values = [(rule): PBSUtils.randomFloorValue]
+                }
+            }
+        }
+
+        and: "Account with enabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should remove imp.bidFlourCur and bidFloor from original request"
+        def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
+        assert !bidderImp.bidFloorCur
+        assert !bidderImp.bidFloor
+
+        and: "Response should contain specific code and text in ext.warnings.prebid"
+        verifyAll(bidResponse.ext.warnings[PREBID]) {
+            it.code == [999]
+            it.message == ["noFloorSignal to bidder generic"]
+        }
+
+        where:
+        floorBidder << [GENERIC, GENERIC_CAMEL_CASE, WILDCARD]
+    }
+
+    def "PBS shouldn't remove imp floors information when enforcement.noFloorSignalBidders contain empty bidder name"() {
+        given: "Default BidRequest with floors"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorCur = USD
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
+                enforcement = new ExtPrebidPriceFloorEnforcement(noFloorSignalBidders: floorBidders)
+                data.tap {
+                    modelGroups[0].values = [(rule): floorValue]
+                }
+            }
+        }
+
+        and: "Bid response with price equal or bigger then in request"
+        def presetBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.last().price = PBSUtils.getRandomFloorValue(floorValue)
+            cur = floorCur
+        }
+        bidder.setResponse(bidRequest.id, presetBidResponse)
+
+        and: "Account with enabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
+        def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
+        assert bidderImp.bidFloorCur == floorCur
+        assert bidderImp.bidFloor == floorValue
+
+        and: "Response shouldn't contain any warnings"
+        assert !bidResponse.ext.warnings
+
+        where:
+        floorBidders << [[EMPTY], [null], null]
+    }
+
+    def "PBS shouldn't remove imp floors information when enforcement.noFloorSignalBidders contain alias bidder"() {
+        given: "Default BidRequest with floors"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorCur = USD
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
+            ext.prebid.aliases = [(ALIAS.value): GENERIC]
+            imp[0].ext.prebid.bidder.alias = new Generic()
+            imp[0].ext.prebid.bidder.generic = null
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
+                enforcement = new ExtPrebidPriceFloorEnforcement(noFloorSignalBidders: [floorBidder])
+                data.tap {
+                    modelGroups[0].values = [(rule): floorValue]
+                }
+            }
+        }
+
+        and: "Bid response with price equal or bigger then in request"
+        def presetBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.last().price = PBSUtils.getRandomFloorValue(floorValue)
+            cur = floorCur
+        }
+        bidder.setResponse(bidRequest.id, presetBidResponse)
+
+        and: "Account with enabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
+        def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
+        assert bidderImp.bidFloorCur == floorCur
+        assert bidderImp.bidFloor == floorValue
+
+        and: "Response shouldn't contain any warnings"
+        assert !bidResponse.ext.warnings
+
+        where:
+        floorBidder << [GENERIC, GENERIC_CAMEL_CASE]
+    }
+
+    def "PBS should prioritize data.modelGroups[].noFloorSignalBidders over data.noFloorSignalBidders and include imp floors when both are present"() {
+        given: "Default BidRequest with floors"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorCur = USD
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
+                data = PriceFloorData.priceFloorData.tap {
+                    noFloorSignalBidders = [GENERIC]
+                        modelGroups[0].tap {
+                            values = [(rule): floorValue]
+                            noFloorSignalBidders = []
+                        }
+                }
+            }
+        }
+
+        and: "Bid response with price equal or bigger then in request"
+        def presetBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.last().price = PBSUtils.getRandomFloorValue(floorValue)
+            cur = floorCur
+        }
+        bidder.setResponse(bidRequest.id, presetBidResponse)
+
+        and: "Account with enabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
+        def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
+        assert bidderImp.bidFloorCur == floorCur
+        assert bidderImp.bidFloor == floorValue
+
+        and: "Response shouldn't contain any warnings"
+        assert !bidResponse.ext.warnings
+    }
+
+    def "PBS should prioritize data.modelGroups[].noFloorSignalBidders over data.noFloorSignalBidders and exclude imp floors when both are present"() {
+        given: "Default BidRequest with floors"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorCur = USD
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
+                data = PriceFloorData.priceFloorData.tap {
+                    noFloorSignalBidders = []
+                    modelGroups[0].tap {
+                        values = [(rule): floorValue]
+                        noFloorSignalBidders = [GENERIC]
+                    }
+                }
+            }
+        }
+
+        and: "Bid response with price equal or bigger then in request"
+        def presetBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.last().price = PBSUtils.getRandomFloorValue(floorValue)
+            cur = floorCur
+        }
+        bidder.setResponse(bidRequest.id, presetBidResponse)
+
+        and: "Account with enabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should remove imp.bidFlourCur and bidFloor from original request"
+        def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
+        assert !bidderImp.bidFloorCur
+        assert !bidderImp.bidFloor
+
+        and: "Response should contain specific code and text in ext.warnings.prebid"
+        verifyAll(bidResponse.ext.warnings[PREBID]) {
+            it.code == [999]
+            it.message == ["noFloorSignal to bidder generic"]
+        }
+    }
+
+    def "PBS should prioritize data.noFloorSignalBidders over enforcement.noFloorSignalBidders and include imp floors when both are present"() {
+        given: "Default BidRequest with floors"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorCur = USD
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
+                enforcement = new ExtPrebidPriceFloorEnforcement(noFloorSignalBidders: [GENERIC])
+                data = PriceFloorData.priceFloorData.tap {
+                    noFloorSignalBidders = []
+                    modelGroups[0].values = [(rule): floorValue]
+                }
+            }
+        }
+
+        and: "Bid response with price equal or bigger then in request"
+        def presetBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.last().price = PBSUtils.getRandomFloorValue(floorValue)
+            cur = floorCur
+        }
+        bidder.setResponse(bidRequest.id, presetBidResponse)
+
+        and: "Account with enabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS shouldn't remove imp.bidFlourCur and bidFloor from original request"
+        def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
+        assert bidderImp.bidFloorCur == floorCur
+        assert bidderImp.bidFloor == floorValue
+
+        and: "Response shouldn't contain any warnings"
+        assert !bidResponse.ext.warnings
+    }
+
+    def "PBS should prioritize data.noFloorSignalBidders over enforcement.noFloorSignalBidders and exclude imp floors when both are present"() {
+        given: "Default BidRequest with floors"
+        def floorValue = PBSUtils.randomFloorValue
+        def floorCur = USD
+        def bidRequest = bidRequestWithFloors.tap {
+            cur = [floorCur]
+            ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
+                enforcement = new ExtPrebidPriceFloorEnforcement(noFloorSignalBidders: [])
+                data = PriceFloorData.priceFloorData.tap {
+                    noFloorSignalBidders = [GENERIC]
+                    modelGroups[0].values = [(rule): floorValue]
+                }
+            }
+        }
+
+        and: "Bid response with price equal or bigger then in request"
+        def presetBidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
+            seatbid.first().bid.last().price = PBSUtils.getRandomFloorValue(floorValue)
+            cur = floorCur
+        }
+        bidder.setResponse(bidRequest.id, presetBidResponse)
+
+        and: "Account with enabled fetch in the DB"
+        def account = getAccountWithEnabledFetch(bidRequest.accountId)
+        accountDao.save(account)
+
+        when: "PBS processes auction request"
+        def bidResponse = floorsPbsService.sendAuctionRequest(bidRequest)
+
+        then: "PBS should remove imp.bidFlourCur and bidFloor from original request"
+        def bidderImp = bidder.getBidderRequest(bidRequest.id).imp.first
+        assert !bidderImp.bidFloorCur
+        assert !bidderImp.bidFloor
+
+        and: "Response should contain specific code and text in ext.warnings.prebid"
+        verifyAll(bidResponse.ext.warnings[PREBID]) {
+            it.code == [999]
+            it.message == ["noFloorSignal to bidder generic"]
+        }
+    }
+
     def "PBS should prefer ext.prebid.floors for PF enforcement"() {
         given: "Default BidRequest with floors"
         def floorValue = PBSUtils.randomFloorValue
@@ -252,7 +782,10 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
     def "PBS should suppress deal that are below the matched floor when enforce-deal-floors = true"() {
         given: "Pbs with PF configuration with enforceDealFloors"
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
-            auction.priceFloors.enforceDealFloors = false
+            auction.priceFloors.tap {
+                enforceDealFloors = defaultAccountEnforeDealFloors
+                enforceDealFloorsSnakeCase = defaultAccountEnforeDealFloorsSnakeCase
+            }
         }
         def pbsService = pbsServiceFactory.getService(FLOORS_CONFIG +
                 ["settings.default-account-config": encode(defaultAccountConfigSettings)])
@@ -265,7 +798,10 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
 
         and: "Account with enabled fetch, fetch.url,enforceDealFloors in the DB"
         def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
-            config.auction.priceFloors.enforceDealFloors = true
+            config.auction.priceFloors.tap {
+                enforceDealFloors = accountEnforeDealFloors
+                enforceDealFloorsSnakeCase = accountEnforeDealFloorsSnakeCase
+            }
         }
         accountDao.save(account)
 
@@ -296,6 +832,13 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         then: "PBS should suppress bid lower than floorRuleValue"
         assert response.seatbid?.first()?.bid?.collect { it.id } == [bidResponse.seatbid.first().bid.last().id]
         assert response.seatbid.first().bid.collect { it.price } == [floorValue]
+
+        where:
+        defaultAccountEnforeDealFloors | defaultAccountEnforeDealFloorsSnakeCase | accountEnforeDealFloors | accountEnforeDealFloorsSnakeCase
+        false                          | null                                    | true                    | null
+        null                           | false                                   | null                    | true
+        null                           | false                                   | true                    | null
+        false                          | null                                    | null                    | true
     }
 
     def "PBS should not suppress deal that are below the matched floor according to ext.prebid.floors.enforcement.enforcePBS"() {

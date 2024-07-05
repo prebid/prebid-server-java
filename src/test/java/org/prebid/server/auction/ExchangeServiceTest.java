@@ -31,6 +31,7 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.MapUtils;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -66,6 +67,7 @@ import org.prebid.server.bidder.Usersyncer;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.InvalidRequestException;
@@ -127,8 +129,11 @@ import org.prebid.server.proto.openrtb.ext.request.ExtUserPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 import org.prebid.server.proto.openrtb.ext.request.TraceLevel;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtAnalytics;
+import org.prebid.server.proto.openrtb.ext.response.ExtAnalyticsTags;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidResponse;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidResponsePrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidderError;
 import org.prebid.server.proto.openrtb.ext.response.ExtHttpCall;
 import org.prebid.server.proto.openrtb.ext.response.ExtModules;
@@ -144,6 +149,7 @@ import org.prebid.server.proto.openrtb.ext.response.ExtModulesTraceStageOutcome;
 import org.prebid.server.proto.openrtb.ext.response.ExtResponseDebug;
 import org.prebid.server.proto.openrtb.ext.response.FledgeAuctionConfig;
 import org.prebid.server.settings.model.Account;
+import org.prebid.server.settings.model.AccountAnalyticsConfig;
 import org.prebid.server.settings.model.AccountAuctionConfig;
 import org.prebid.server.settings.model.AccountEventsConfig;
 import org.prebid.server.spring.config.bidder.model.CompressionType;
@@ -382,8 +388,10 @@ public class ExchangeServiceTest extends VertxTest {
 
         given(priceFloorEnforcer.enforce(any(), any(), any(), any())).willAnswer(inv -> inv.getArgument(1));
         given(dsaEnforcer.enforce(any(), any(), any())).willAnswer(inv -> inv.getArgument(1));
-        given(priceFloorAdjuster.adjustForImp(any(), any(), any(), any()))
-                .willAnswer(inv -> ((Imp) inv.getArgument(0)).getBidfloor());
+        given(priceFloorAdjuster.adjustForImp(any(), any(), any(), any(), any()))
+                .willAnswer(inv -> Price.of(
+                        ((Imp) inv.getArgument(0)).getBidfloorcur(),
+                        ((Imp) inv.getArgument(0)).getBidfloor()));
 
         given(bidAdjustmentFactorResolver.resolve(any(ImpMediaType.class), any(), any())).willReturn(null);
 
@@ -4250,6 +4258,84 @@ public class ExchangeServiceTest extends VertxTest {
     }
 
     @Test
+    public void shouldReturnBidResponseWithAnalyticsTagsWhenRequested() {
+        // given
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
+
+        final ObjectNode analyticsNode = mapper.createObjectNode();
+        final ObjectNode optionsNode = analyticsNode.putObject("options");
+        optionsNode.put("enableclientdetails", true);
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap("bidder", 2)),
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .analytics(analyticsNode)
+                        .build())));
+        final Account account = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder().events(AccountEventsConfig.of(true)).build())
+                .analytics(AccountAnalyticsConfig.of(true, null, null))
+                .build();
+        final AuctionContext auctionContext = givenRequestContext(bidRequest, account).toBuilder()
+                .hookExecutionContext(HookExecutionContext.of(
+                        Endpoint.openrtb2_auction,
+                        stageOutcomes(givenAppliedToImpl(identity()))))
+                .build();
+
+        // when
+        final AuctionContext result = target.holdAuction(auctionContext).result();
+
+        // then
+        final BidResponse bidResponse = result.getBidResponse();
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getPrebid)
+                .extracting(ExtBidResponsePrebid::getAnalytics)
+                .extracting(ExtAnalytics::getTags)
+                .asInstanceOf(InstanceOfAssertFactories.list(ExtAnalyticsTags.class))
+                .hasSize(1)
+                .allSatisfy(extAnalyticsTags -> {
+                    assertThat(extAnalyticsTags.getStage()).isEqualTo(Stage.entrypoint);
+                    assertThat(extAnalyticsTags.getModule()).isEqualTo("module1");
+                    assertThat(extAnalyticsTags.getAnalyticsTags()).isNotNull();
+                });
+    }
+
+    @Test
+    public void shouldReturnBidResponseWithWarningWhenAnalyticsTagsDisabledAndRequested() {
+        // given
+        given(httpBidderRequester.requestBids(any(), any(), any(), any(), any(), any(), anyBoolean()))
+                .willReturn(Future.succeededFuture(givenSeatBid(emptyList())));
+
+        final ObjectNode analyticsNode = mapper.createObjectNode();
+        final ObjectNode optionsNode = analyticsNode.putObject("options");
+        optionsNode.put("enableclientdetails", true);
+
+        final BidRequest bidRequest = givenBidRequest(
+                givenSingleImp(singletonMap("bidder", 2)),
+                request -> request.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .analytics(analyticsNode)
+                        .build())));
+        final AuctionContext auctionContext = givenRequestContext(bidRequest).toBuilder()
+                .hookExecutionContext(HookExecutionContext.of(
+                        Endpoint.openrtb2_auction,
+                        stageOutcomes(givenAppliedToImpl(identity()))))
+                .build();
+
+        // when
+        final AuctionContext result = target.holdAuction(auctionContext).result();
+
+        // then
+        final BidResponse bidResponse = result.getBidResponse();
+        assertThat(bidResponse.getExt())
+                .extracting(ExtBidResponse::getWarnings)
+                .extracting(warnigns -> warnigns.get("prebid"))
+                .asInstanceOf(InstanceOfAssertFactories.list(ExtBidderError.class))
+                .containsExactly(
+                        ExtBidderError.of(999, "analytics.options.enableclientdetails not enabled for account"));
+    }
+
+    @Test
     public void shouldIncrementHooksGlobalMetrics() {
         // given
         final AuctionContext auctionContext = AuctionContext.builder()
@@ -4663,6 +4749,7 @@ public class ExchangeServiceTest extends VertxTest {
                 .uidsCookie(uidsCookie)
                 .bidRequest(bidRequest)
                 .debugWarnings(new ArrayList<>())
+                .prebidErrors(new ArrayList<>())
                 .account(account)
                 .requestTypeMetric(MetricName.openrtb2web)
                 .timeoutContext(TimeoutContext.of(clock.millis(), timeout, 90))

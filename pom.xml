@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>3.3.0-SNAPSHOT</version>
+        <version>3.5.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -25,17 +25,17 @@
         <jetty.version>9.4.53.v20231009</jetty.version>
 
         <!-- plugin versions -->
-        <checkstyle-plugin.version>3.1.2</checkstyle-plugin.version>
-        <checkstyle.version>10.3</checkstyle.version>
-        <download-plugin.version>1.2.0</download-plugin.version>
-        <jacoco-plugin.version>0.8.11</jacoco-plugin.version>
-        <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
+        <checkstyle-plugin.version>3.4.0</checkstyle-plugin.version>
+        <checkstyle.version>10.17.0</checkstyle.version>
+        <download-plugin.version>1.9.0</download-plugin.version>
+        <jacoco-plugin.version>0.8.12</jacoco-plugin.version>
+        <git-commmit-plugin.version>4.9.10</git-commmit-plugin.version>
 
         <gmavenplus-plugin.version>3.0.2</gmavenplus-plugin.version>
         <skipFunctionalTests>false</skipFunctionalTests>
         <skipModuleFunctionalTests>true</skipModuleFunctionalTests>
-        <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
-        <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
+        <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
+        <build-helper-maven-plugin.version>3.6.0</build-helper-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
     </properties>
 

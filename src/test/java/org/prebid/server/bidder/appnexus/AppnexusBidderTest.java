@@ -1,6 +1,7 @@
 package org.prebid.server.bidder.appnexus;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
@@ -341,6 +342,24 @@ public class AppnexusBidderTest extends VertxTest {
                         .extInvCode("5")
                         .externalImpId("6")
                         .build());
+        assertThat(result.getErrors()).isEmpty();
+    }
+
+    @Test
+    public void makeHttpRequestsShouldForwardImpExtGpid() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(givenImp(givenExt(identity()), "gpidValue"));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getValue())
+                .extracting(HttpRequest::getPayload)
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getExt)
+                .extracting(ext -> ext.get("gpid").asText())
+                .containsExactly("gpidValue");
         assertThat(result.getErrors()).isEmpty();
     }
 
@@ -872,6 +891,14 @@ public class AppnexusBidderTest extends VertxTest {
 
     private static Imp givenImp(ExtImpAppnexus extImpAppnexus) {
         return givenImp(imp -> imp.ext(mapper.valueToTree(ExtPrebid.of(null, extImpAppnexus))));
+    }
+
+    private static Imp givenImp(ExtImpAppnexus extImpAppnexus, String gpid) {
+        final ObjectNode ext = mapper.createObjectNode()
+                .put("gpid", gpid)
+                .set("bidder", mapper.valueToTree(extImpAppnexus));
+
+        return givenImp(imp -> imp.ext(ext));
     }
 
     private static Imp givenImp(UnaryOperator<Imp.ImpBuilder> impCustomizer, ExtImpAppnexus extImpAppnexus) {

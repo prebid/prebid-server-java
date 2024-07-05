@@ -67,6 +67,7 @@ public final class HttpUtil {
     public static final CharSequence CONTENT_ENCODING_HEADER = HttpHeaders.createOptimized("Content-Encoding");
     public static final CharSequence X_OPENRTB_VERSION_HEADER = HttpHeaders.createOptimized("x-openrtb-version");
     public static final CharSequence X_PREBID_HEADER = HttpHeaders.createOptimized("x-prebid");
+    public static final CharSequence X_PBC_API_KEY_HEADER = HttpHeaders.createOptimized("x-pbc-api-key");
     private static final Set<String> SENSITIVE_HEADERS = Set.of(AUTHORIZATION_HEADER.toString());
 
     //the low-entropy client hints

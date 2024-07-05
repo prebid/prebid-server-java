@@ -8,6 +8,7 @@ import org.prebid.server.floors.BasicPriceFloorAdjuster;
 import org.prebid.server.floors.BasicPriceFloorEnforcer;
 import org.prebid.server.floors.BasicPriceFloorProcessor;
 import org.prebid.server.floors.BasicPriceFloorResolver;
+import org.prebid.server.floors.NoSignalBidderPriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
 import org.prebid.server.floors.PriceFloorFetcher;
@@ -23,6 +24,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class PriceFloorsConfiguration {
@@ -93,14 +95,22 @@ public class PriceFloorsConfiguration {
     }
 
     @Bean
+    @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
     FloorAdjustmentFactorResolver floorsAdjustmentFactorResolver() {
         return new FloorAdjustmentFactorResolver();
     }
 
     @Bean
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
-    PriceFloorAdjuster basicPriceFloorAdjuster(FloorAdjustmentFactorResolver floorAdjustmentFactorResolver) {
+    BasicPriceFloorAdjuster basicPriceFloorAdjuster(FloorAdjustmentFactorResolver floorAdjustmentFactorResolver) {
         return new BasicPriceFloorAdjuster(floorAdjustmentFactorResolver);
+    }
+
+    @Bean
+    @Primary
+    @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
+    PriceFloorAdjuster noSignalBidderPriceFloorAdjuster(BasicPriceFloorAdjuster basicPriceFloorAdjuster) {
+        return new NoSignalBidderPriceFloorAdjuster(basicPriceFloorAdjuster);
     }
 
     @Bean

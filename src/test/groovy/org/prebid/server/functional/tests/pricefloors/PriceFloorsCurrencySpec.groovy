@@ -1,6 +1,8 @@
 package org.prebid.server.functional.tests.pricefloors
 
 import org.prebid.server.functional.model.Currency
+import org.prebid.server.functional.model.config.AccountPriceFloorsConfig
+import org.prebid.server.functional.model.config.PriceFloorsFetch
 import org.prebid.server.functional.model.mock.services.currencyconversion.CurrencyConversionRatesResponse
 import org.prebid.server.functional.model.pricefloors.PriceFloorData
 import org.prebid.server.functional.model.request.auction.ImpExtPrebidFloors
@@ -238,8 +240,10 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         }
 
         and: "Account with disabled fetch in the DB"
-        def account = getAccountWithEnabledFetch(bidRequest.site.publisher.id).tap {
-            config.auction.priceFloors.fetch.enabled = false
+        def account = getAccountWithEnabledFetch(bidRequest.accountId).tap {
+            config.auction.priceFloors.fetch.enabled = priceFloors
+            config.auction.priceFloorsSnakeCase = new AccountPriceFloorsConfig(enabled: true,
+                    fetch: new PriceFloorsFetch(url: basicFetchUrl + bidRequest.accountId, enabled: priceFloorsSnakeCase))
         }
         accountDao.save(account)
 
@@ -253,6 +257,11 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
             imp[0].bidFloorCur == floorCur
             ext?.prebid?.floors?.fetchStatus == NONE
         }
+
+        where:
+        priceFloors | priceFloorsSnakeCase
+        false       | null
+        null        | false
     }
 
     def "PBS should prefer ext.prebid.floors for setting bidFloor, bidFloorCur for signalling"() {
