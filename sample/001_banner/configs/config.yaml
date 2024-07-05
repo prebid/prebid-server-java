@@ -1,14 +1,6 @@
 status-response: "ok"
 adapters:
-  appnexus:
-    enabled: true
-  ix:
-    enabled: true
-  openx:
-    enabled: true
-  pubmatic:
-    enabled: true
-  rubicon:
+  generic:
     enabled: true
 metrics:
   prefix: prebid
@@ -21,13 +13,13 @@ settings:
   enforce-valid-account: false
   generate-storedrequest-bidrequest-id: true
   filesystem:
-    settings-filename: sample/sample-app-settings.yaml
-    stored-requests-dir: sample/stored
-    stored-imps-dir: sample/stored
-    stored-responses-dir: sample/stored
+    settings-filename: /sample/file-settings.yaml
+    stored-requests-dir: /sample/stored
+    stored-imps-dir: /sample/stored
+    stored-responses-dir: /sample/stored
     categories-dir:
 gdpr:
-  default-value: 1
+  default-value: 0
   vendorlist:
     v2:
       cache-dir: /var/tmp/vendor2
