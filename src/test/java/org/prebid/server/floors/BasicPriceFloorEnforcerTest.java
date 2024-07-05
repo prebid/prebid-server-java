@@ -99,7 +99,6 @@ public class BasicPriceFloorEnforcerTest {
         assertSame(result, auctionParticipation);
     }
 
-
     @Test
     public void shouldNotEnforceIfRequestFloorsSkipped() {
         // given
