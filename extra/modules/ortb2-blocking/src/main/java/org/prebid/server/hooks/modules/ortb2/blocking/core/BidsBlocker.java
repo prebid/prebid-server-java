@@ -270,17 +270,15 @@ public class BidsBlocker {
     private void rejectBlockedBids(List<Result<BlockingResult>> blockedBidResults) {
         blockedBidResults.stream()
                 .map(Result::getValue)
-                .forEach(blockingResult -> {
-                    if (blockingResult.isBlocked()) {
-                        rejectBlockedBid(blockingResult);
-                    }
-                });
+                .filter(BlockingResult::isBlocked)
+                .forEach(this::rejectBlockedBid);
     }
 
     private void rejectBlockedBid(BlockingResult blockingResult) {
         if (blockingResult.getBattrCheckResult().isFailed()
                 || blockingResult.getBappCheckResult().isFailed()
                 || blockingResult.getBcatCheckResult().isFailed()) {
+
             bidRejectionTracker.reject(
                     blockingResult.getImpId(),
                     BidRejectionReason.RESPONSE_REJECTED_INVALID_CREATIVE);
