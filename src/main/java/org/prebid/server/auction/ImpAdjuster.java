@@ -26,18 +26,19 @@ public class ImpAdjuster {
     public ImpAdjuster(JacksonMapper jacksonMapper,
                        JsonMerger jsonMerger,
                        ImpValidator impValidator) {
+
         this.impValidator = Objects.requireNonNull(impValidator);
         this.jacksonMapper = Objects.requireNonNull(jacksonMapper);
         this.jsonMerger = Objects.requireNonNull(jsonMerger);
     }
 
-    public Imp adjust(Imp originalImp, String bidder, List<String> debugMessages) {
+    public Imp adjust(Imp originalImp, String bidder, BidderAliases bidderAliases, List<String> debugMessages) {
         final JsonNode impExtPrebidImp = bidderParamsFromImpExtPrebidImp(originalImp.getExt());
         if (impExtPrebidImp == null) {
             return originalImp;
         }
 
-        final JsonNode bidderNode = getBidderNode(bidder, impExtPrebidImp);
+        final JsonNode bidderNode = getBidderNode(bidder, bidderAliases, impExtPrebidImp);
 
         if (bidderNode == null || bidderNode.isEmpty()) {
             return originalImp;
@@ -71,11 +72,11 @@ public class ImpAdjuster {
                 .orElse(null);
     }
 
-    private static JsonNode getBidderNode(String bidderName, JsonNode node) {
+    private static JsonNode getBidderNode(String bidderName, BidderAliases bidderAliases, JsonNode node) {
         final Iterator<String> fieldNames = node.fieldNames();
         while (fieldNames.hasNext()) {
             final String fieldName = fieldNames.next();
-            if (fieldName.equalsIgnoreCase(bidderName)) {
+            if (bidderAliases.isSame(fieldName, bidderName)) {
                 return node.get(fieldName);
             }
         }

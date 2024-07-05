@@ -350,7 +350,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(fpdResolver.resolveImpExt(any(), anyBoolean()))
                 .willAnswer(invocation -> invocation.getArgument(0));
 
-        given(impAdjuster.adjust(any(), any(), any())).willAnswer(invocation -> invocation.getArgument(0));
+        given(impAdjuster.adjust(any(), any(), any(), any())).willAnswer(invocation -> invocation.getArgument(0));
 
         given(supplyChainResolver.resolveForBidder(anyString(), any())).willReturn(null);
 
