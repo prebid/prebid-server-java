@@ -16,6 +16,7 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
@@ -49,10 +50,15 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
     private static final int ENFORCE_RATE_MAX = 100;
 
     private final CurrencyConversionService currencyConversionService;
+    private final PriceFloorAdjuster priceFloorAdjuster;
     private final Metrics metrics;
 
-    public BasicPriceFloorEnforcer(CurrencyConversionService currencyConversionService, Metrics metrics) {
+    public BasicPriceFloorEnforcer(CurrencyConversionService currencyConversionService,
+                                   PriceFloorAdjuster priceFloorAdjuster,
+                                   Metrics metrics) {
+
         this.currencyConversionService = Objects.requireNonNull(currencyConversionService);
+        this.priceFloorAdjuster = Objects.requireNonNull(priceFloorAdjuster);
         this.metrics = Objects.requireNonNull(metrics);
     }
 
@@ -159,7 +165,13 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             }
 
             final BigDecimal price = bid.getPrice();
-            final BigDecimal floor = resolveFloor(bidderBid, bidderBidRequest, bidRequest, errors);
+            final BigDecimal floor = resolveFloor(
+                    bidderResponse.getBidder(),
+                    account,
+                    bidderBid,
+                    bidderBidRequest,
+                    bidRequest,
+                    errors);
 
             if (isPriceBelowFloor(price, floor)) {
                 final String impId = bid.getImpid();
@@ -199,7 +211,9 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
         return BooleanUtils.isTrue(requestEnforceDealFloors) && BooleanUtils.isTrue(accountEnforceDealFloors);
     }
 
-    private BigDecimal resolveFloor(BidderBid bidderBid,
+    private BigDecimal resolveFloor(String bidder,
+                                    Account account,
+                                    BidderBid bidderBid,
                                     BidRequest bidderBidRequest,
                                     BidRequest bidRequest,
                                     List<BidderError> errors) {
@@ -213,8 +227,14 @@ public class BasicPriceFloorEnforcer implements PriceFloorEnforcer {
             }
 
             final Imp imp = correspondingImp(bidderBid.getBid(), bidderBidRequest.getImp());
+            final Price correctedImpFloor = priceFloorAdjuster.revertAdjustmentForImp(imp, bidder, bidRequest, account);
             final String bidRequestCurrency = resolveBidRequestCurrency(bidRequest);
-            return convertCurrency(imp.getBidfloor(), bidRequest, imp.getBidfloorcur(), bidRequestCurrency);
+
+            return convertCurrency(
+                    correctedImpFloor.getValue(),
+                    bidRequest,
+                    correctedImpFloor.getCurrency(),
+                    bidRequestCurrency);
         } catch (PreBidException e) {
             final String logMessage = "Price floors enforcement failed for request id: %s, reason: %s"
                     .formatted(bidRequest.getId(), e.getMessage());

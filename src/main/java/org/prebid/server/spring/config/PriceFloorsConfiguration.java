@@ -53,8 +53,9 @@ public class PriceFloorsConfiguration {
     @Bean
     @ConditionalOnProperty(prefix = "price-floors", name = "enabled", havingValue = "true")
     PriceFloorEnforcer basicPriceFloorEnforcer(CurrencyConversionService currencyConversionService,
+                                               PriceFloorAdjuster priceFloorAdjuster,
                                                Metrics metrics) {
-        return new BasicPriceFloorEnforcer(currencyConversionService, metrics);
+        return new BasicPriceFloorEnforcer(currencyConversionService, priceFloorAdjuster, metrics);
     }
 
     @Bean

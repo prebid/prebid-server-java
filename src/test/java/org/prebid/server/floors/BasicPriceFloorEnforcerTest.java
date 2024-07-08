@@ -17,6 +17,7 @@ import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderError;
 import org.prebid.server.bidder.model.BidderSeatBid;
+import org.prebid.server.bidder.model.Price;
 import org.prebid.server.bidder.model.PriceFloorInfo;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.exception.PreBidException;
@@ -44,6 +45,7 @@ import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class BasicPriceFloorEnforcerTest {
@@ -56,13 +58,19 @@ public class BasicPriceFloorEnforcerTest {
     @Mock
     private CurrencyConversionService currencyConversionService;
     @Mock
+    private PriceFloorAdjuster priceFloorAdjuster;
+    @Mock
     private Metrics metrics;
 
     private BasicPriceFloorEnforcer priceFloorEnforcer;
 
     @Before
     public void setUp() {
-        priceFloorEnforcer = new BasicPriceFloorEnforcer(currencyConversionService, metrics);
+        given(priceFloorAdjuster.revertAdjustmentForImp(any(), any(), any(), any())).willAnswer(invocation -> {
+            final Imp argument = invocation.getArgument(0);
+            return Price.of(argument.getBidfloorcur(), argument.getBidfloor());
+        });
+        priceFloorEnforcer = new BasicPriceFloorEnforcer(currencyConversionService, priceFloorAdjuster, metrics);
     }
 
     @Test
@@ -311,23 +319,36 @@ public class BasicPriceFloorEnforcerTest {
     public void shouldRejectBidsHavingPriceBelowFloor() {
         // given
         final BidRequest bidRequest = givenBidRequest(request ->
+                request.imp(givenImps(imp -> imp.id("impId1"), imp -> imp.id("impId2"))).cur(singletonList("USD")));
+
+        final BidRequest bidderBidRequest = givenBidRequest(request ->
                 request.imp(givenImps(
-                        imp -> imp.id("impId1").bidfloor(BigDecimal.ONE),
-                        imp -> imp.id("impId2").bidfloor(BigDecimal.ONE))));
+                        imp -> imp.id("impId1").bidfloor(new BigDecimal("0.11")).bidfloorcur("USD"),
+                        imp -> imp.id("impId2").bidfloor(new BigDecimal("0.22")).bidfloorcur("USD"))));
 
         final AuctionParticipation auctionParticipation = givenAuctionParticipation(
-                bidRequest,
+                bidderBidRequest,
                 givenBidderSeatBid(
-                        bid -> bid.id("bidId1").impid("impId1").price(BigDecimal.ZERO),
+                        bid -> bid.id("bidId1").impid("impId1").price(BigDecimal.ONE),
                         bid -> bid.id("bidId2").impid("impId2").price(BigDecimal.TEN)));
 
         final Account account = givenAccount(identity());
+
+        final String givenBidder = auctionParticipation.getBidderResponse().getBidder();
+        final List<Imp> givenImps = bidderBidRequest.getImp();
+
+        given(priceFloorAdjuster.revertAdjustmentForImp(givenImps.get(0), givenBidder, bidRequest, account))
+                .willReturn(Price.of("USD", new BigDecimal("1.1")));
+        given(priceFloorAdjuster.revertAdjustmentForImp(givenImps.get(1), givenBidder, bidRequest, account))
+                .willReturn(Price.of("USD", new BigDecimal("2.2")));
 
         // when
         final AuctionParticipation result = priceFloorEnforcer.enforce(
                 bidRequest, auctionParticipation, account, rejectionTracker);
 
         // then
+        verify(priceFloorAdjuster, times(2)).revertAdjustmentForImp(any(), any(), any(), any());
+
         verify(rejectionTracker).reject("impId1", BidRejectionReason.REJECTED_DUE_TO_PRICE_FLOOR);
         assertThat(singleton(result))
                 .extracting(AuctionParticipation::getBidderResponse)
@@ -336,8 +357,11 @@ public class BasicPriceFloorEnforcerTest {
                 .containsExactly(
                         singletonList(BidderBid.of(
                                 Bid.builder().id("bidId2").impid("impId2").price(BigDecimal.TEN).build(), null, null)),
-                        singletonList(BidderError.of("Bid with id 'bidId1' was rejected by floor enforcement: "
-                                + "price 0 is below the floor 1", BidderError.Type.rejected_ipf, singleton("impId1"))));
+                        singletonList(BidderError.of(
+                                "Bid with id 'bidId1' was rejected by floor enforcement: "
+                                + "price 1 is below the floor 1.1",
+                                BidderError.Type.rejected_ipf,
+                                singleton("impId1"))));
     }
 
     @Test
