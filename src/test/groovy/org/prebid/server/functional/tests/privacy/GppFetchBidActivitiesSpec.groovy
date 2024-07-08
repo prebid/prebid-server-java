@@ -31,7 +31,6 @@ import java.time.Instant
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.DataActivity.CONSENT
 import static org.prebid.server.functional.model.config.DataActivity.NOTICE_NOT_PROVIDED
 import static org.prebid.server.functional.model.config.DataActivity.NOTICE_PROVIDED
@@ -57,6 +56,12 @@ import static org.prebid.server.functional.model.config.UsNationalPrivacySection
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_PROCESSED_RULES_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ALERT_GENERAL
+import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
@@ -77,17 +82,10 @@ import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 
 class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
-    private static final String ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT = "account.%s.activity.processedrules.count"
-    private static final String DISALLOWED_COUNT_FOR_ACCOUNT = "account.%s.activity.${FETCH_BIDS.metricValue}.disallowed.count"
-    private static final String ACTIVITY_RULES_PROCESSED_COUNT = "requests.activity.processedrules.count"
-    private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${FETCH_BIDS.metricValue}.disallowed.count"
-    private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${FETCH_BIDS.metricValue}.disallowed.count"
-    private static final String ALERT_GENERAL = "alerts.general"
-
     def "PBS auction call when fetch bid activities is allowing should process bid request and update processed metrics"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.trace = VERBOSE
             setAccountId(accountId)
         }
@@ -100,15 +98,15 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder should be called due to positive allow in activities"
-        assert bidder.getBidderRequest(generalBidRequest.id)
+        assert bidder.getBidderRequest(bidRequest.id)
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         where: "Activities fields name in different case"
         activities << [AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.defaultActivity),
@@ -120,7 +118,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when fetch bid activities is rejecting should skip call to restricted bidder and update disallowed metrics"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
             ext.prebid.trace = VERBOSE
         }
@@ -133,16 +131,16 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should be ignored"
-        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
+        assert bidder.getBidderRequests(bidRequest.id).size() == 0
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         where: "Activities fields name in different case"
         activities << [AllowActivities.getDefaultAllowActivities(FETCH_BIDS, Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])),
@@ -154,7 +152,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when default activity setting set to false should skip call to restricted bidder"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
 
@@ -167,10 +165,10 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should be ignored"
-        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
+        assert bidder.getBidderRequests(bidRequest.id).size() == 0
     }
 
     def "PBS auction call when bidder allowed activities have invalid condition type should skip this rule and emit an error"() {
@@ -179,7 +177,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
 
@@ -192,7 +190,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain error"
         def logs = activityPbsService.getLogsByTime(startTime)
@@ -209,7 +207,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when first rule allowing in activities should call bid adapter"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
 
@@ -226,16 +224,16 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder should be called due to positive allow in activities"
-        assert bidder.getBidderRequest(generalBidRequest.id)
+        assert bidder.getBidderRequest(bidRequest.id)
     }
 
     def "PBS auction call when first rule disallowing in activities should skip call to restricted bidder"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             setAccountId(accountId)
         }
 
@@ -252,16 +250,16 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should be ignored"
-        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
+        assert bidder.getBidderRequests(bidRequest.id).size() == 0
     }
 
     def "PBS auction should process rule when gppSid doesn't intersection"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             regs.gppSid = regsGppSid
             setAccountId(accountId)
             ext.prebid.trace = VERBOSE
@@ -284,15 +282,15 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder should be called due to positive allow in activities"
-        assert bidder.getBidderRequest(generalBidRequest.id)
+        assert bidder.getBidderRequest(bidRequest.id)
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         where:
         regsGppSid        | conditionGppSid
@@ -303,7 +301,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction should disallowed rule when gppSid intersection"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             regs.gppSid = [USP_V1.intValue]
             setAccountId(accountId)
             ext.prebid.trace = VERBOSE
@@ -321,16 +319,16 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should be ignored"
-        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
+        assert bidder.getBidderRequests(bidRequest.id).size() == 0
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         where:
         condition << [Condition.baseCondition.tap {
@@ -351,7 +349,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction should process rule when device.geo doesn't intersection"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             it.setAccountId(accountId)
             it.regs.gppSid = [USP_V1.intValue]
             it.ext.prebid.trace = VERBOSE
@@ -376,15 +374,15 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder should be called due to positive allow in activities"
-        assert bidder.getBidderRequest(generalBidRequest.id)
+        assert bidder.getBidderRequest(bidRequest.id)
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         where:
         deviceGeo                                           | conditionGeo
@@ -397,7 +395,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction should disallowed rule when device.geo intersection"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             it.setAccountId(accountId)
             it.regs.gppSid = null
             it.ext.prebid.trace = VERBOSE
@@ -422,16 +420,16 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should be ignored"
-        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
+        assert bidder.getBidderRequests(bidRequest.id).size() == 0
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         where:
         deviceGeo                                           | conditionGeo
@@ -444,7 +442,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
         def randomGpc = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             it.setAccountId(accountId)
             it.ext.prebid.trace = VERBOSE
             it.regs.ext.gpc = randomGpc
@@ -467,22 +465,22 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should be ignored"
-        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
+        assert bidder.getBidderRequests(bidRequest.id).size() == 0
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
     }
 
     def "PBS auction shouldn't disallowed rule when regs.ext.gpc doesn't intersect"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             it.setAccountId(accountId)
             it.ext.prebid.trace = VERBOSE
             it.regs.ext.gpc = PBSUtils.randomNumber as String
@@ -505,21 +503,21 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder should be called due to positive allow in activities"
-        assert bidder.getBidderRequest(generalBidRequest.id)
+        assert bidder.getBidderRequest(bidRequest.id)
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
     }
 
     def "PBS auction should disallowed rule when header sec-gpc intersect with condition.gpc"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             it.setAccountId(accountId)
             it.ext.prebid.trace = VERBOSE
         }
@@ -541,16 +539,16 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests with headers"
-        activityPbsService.sendAuctionRequest(generalBidRequest, ["Sec-GPC": gpcHeader])
+        activityPbsService.sendAuctionRequest(bidRequest, ["Sec-GPC": gpcHeader])
 
         then: "Generic bidder request should be ignored"
-        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
+        assert bidder.getBidderRequests(bidRequest.id).size() == 0
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         where:
         gpcHeader << [VALID_VALUE_FOR_GPC_HEADER as Integer, VALID_VALUE_FOR_GPC_HEADER]
@@ -559,7 +557,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction shouldn't disallowed rule when header sec-gpc doesn't intersect with condition"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             it.setAccountId(accountId)
             it.ext.prebid.trace = VERBOSE
         }
@@ -581,15 +579,15 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests with headers"
-        activityPbsService.sendAuctionRequest(generalBidRequest, ["Sec-GPC": gpcHeader])
+        activityPbsService.sendAuctionRequest(bidRequest, ["Sec-GPC": gpcHeader])
 
         then: "Generic bidder should be called due to positive allow in activities"
-        assert bidder.getBidderRequest(generalBidRequest.id)
+        assert bidder.getBidderRequest(bidRequest.id)
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, FETCH_BIDS)] == 1
 
         where:
         gpcHeader << [1, "1"]
@@ -698,7 +696,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
 
         where:
         gppAccountsConfig << [[new AccountGppConfig(code: IAB_US_GENERAL, config: new GppModuleConfig(skipSids: [US_NAT_V1]), enabled: false),
@@ -744,7 +742,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def gppConsent = new UsNatV1Consent.Builder().setGpc(gpcValue).build()
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = gppConsent
             setAccountId(accountId)
@@ -768,10 +766,10 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder should be called due to positive allow in activities"
-        assert bidder.getBidderRequest(generalBidRequest.id)
+        assert bidder.getBidderRequest(bidRequest.id)
 
         where:
         gpcValue | accountLogic
@@ -789,7 +787,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy regulation match custom requirement should ignore call to bidder"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = gppConsent
             setAccountId(accountId)
@@ -814,10 +812,10 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should be ignored"
-        assert bidder.getBidderRequests(generalBidRequest.id).size() == 0
+        assert bidder.getBidderRequests(bidRequest.id).size() == 0
 
         where:
         gppConsent                                                      | valueRules
@@ -834,7 +832,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         given: "Generic BidRequest with gpp and account setup"
         def gppConsent = new UsNatV1Consent.Builder().setGpc(true).build()
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.trace = VERBOSE
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = gppConsent
@@ -863,7 +861,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Response should contain error"
         def error = thrown(PrebidServerException)
@@ -872,13 +870,13 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS auction call when custom privacy regulation with normalizing should ignore call to bidder"() {
         given: "Generic BidRequest with gpp and account setup"
         def accountId = PBSUtils.randomNumber as String
-        def generalBidRequest = BidRequest.defaultBidRequest.tap {
+        def bidRequest = BidRequest.defaultBidRequest.tap {
             regs.gppSid = [gppSid.intValue]
             regs.gpp = gppStateConsent.build()
             setAccountId(accountId)
@@ -905,10 +903,10 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
         accountDao.save(account)
 
         when: "PBS processes auction requests"
-        activityPbsService.sendAuctionRequest(generalBidRequest)
+        activityPbsService.sendAuctionRequest(bidRequest)
 
         then: "Generic bidder request should be ignored"
-        assert !bidder.getBidderRequests(generalBidRequest.id)
+        assert !bidder.getBidderRequests(bidRequest.id)
 
         where:
         gppSid   | equalityValueRules                                                      | gppStateConsent
@@ -1016,7 +1014,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
     }
 
     def "PBS amp call when bidder rejected in activities should skip call to restricted bidders and update disallowed metrics"() {
@@ -1054,8 +1052,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
     }
 
     def "PBS amp call when default activity setting set to false should skip call to restricted bidder"() {
@@ -1250,7 +1248,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
     }
 
     def "PBS amp should disallow rule when header gpc intersection with condition.gpc"() {
@@ -1293,8 +1291,8 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, FETCH_BIDS)] == 1
     }
 
     def "PBS amp call when privacy regulation match should call bid adapter"() {
@@ -1431,7 +1429,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS amp call when privacy module contain invalid property should respond with an error"() {
@@ -1630,7 +1628,7 @@ class GppFetchBidActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS amp call when custom privacy regulation with normalizing should ignore call to bidder"() {
