@@ -315,11 +315,38 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     @Test
-    public void shouldFailOnEncodeException() {
+    public void shouldFailOnEmptyImpExtension() {
         // given
         final Banner banner = givenBanner();
         final Imp imp = Imp.builder()
                 .banner(banner)
+                .build();
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
+        final AuctionEvent event = AuctionEvent.builder()
+                .auctionContext(auctionContext)
+                .bidResponse(auctionContext.getBidResponse())
+                .build();
+
+        // when
+        final Future<Void> result = target.processEvent(event);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause())
+                .hasMessageStartingWith("ImpPrebid extension should not be empty");
+    }
+
+    @Test
+    public void shouldFailOnEncodeException() {
+        // given
+        final ObjectNode impExtNode = mapper.createObjectNode();
+        impExtNode.set("gpid", TextNode.valueOf("gpidvalue"));
+        impExtNode.set("prebid", givenPrebidBidderParamsNode());
+
+        final Banner banner = givenBanner();
+        final Imp imp = Imp.builder()
+                .banner(banner)
+                .ext(impExtNode)
                 .build();
         final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
@@ -351,9 +378,14 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Test
     public void shouldFailOnUnexpectedResponseStatus() {
         // given
+        final ObjectNode impExtNode = mapper.createObjectNode();
+        impExtNode.set("gpid", TextNode.valueOf("gpidvalue"));
+        impExtNode.set("prebid", givenPrebidBidderParamsNode());
+
         final Banner banner = givenBanner();
         final Imp imp = Imp.builder()
                 .banner(banner)
+                .ext(impExtNode)
                 .build();
         final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
