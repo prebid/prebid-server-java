@@ -1338,28 +1338,23 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final Map<Integer, List<String>> result = new HashMap<>();
         final List<Integer> segmentsKeys = new ArrayList<>(segments.keySet());
 
-        for (int i = 0; i < MAX_NUMBER_OF_SEGMENTS; ) {
-            final List<Integer> emptySegmentKeys = new ArrayList<>();
+        int i = 0;
+        int consumedSegmentsCount = 0;
 
-            for (Integer segmentKey : segmentsKeys) {
-                final Deque<Segment> currentSegments = segments.get(segmentKey);
-                final Segment lastSegment = currentSegments.pollLast();
-                result.computeIfAbsent(segmentKey, key -> new ArrayList<>()).add(lastSegment.getId());
+        while (consumedSegmentsCount < MAX_NUMBER_OF_SEGMENTS && !segmentsKeys.isEmpty()) {
+            final int segmentsIndex = i % segmentsKeys.size();
+            final Integer segmentKey = segmentsKeys.get(segmentsIndex);
+            final Deque<Segment> currentSegments = segments.get(segmentKey);
 
-                if (CollectionUtils.isEmpty(currentSegments)) {
-                    emptySegmentKeys.add(segmentKey);
-                }
+            final Segment lastSegment = currentSegments.pollLast();
+            result.computeIfAbsent(segmentKey, key -> new ArrayList<>()).add(lastSegment.getId());
+            consumedSegmentsCount++;
 
-                i++;
+            if (currentSegments.isEmpty()) {
+                segmentsKeys.remove(segmentKey);
+                i--;
             }
-
-            if (!emptySegmentKeys.isEmpty()) {
-                segmentsKeys.removeAll(emptySegmentKeys);
-                if (CollectionUtils.isEmpty(segmentsKeys)) {
-                    break;
-                }
-            }
-
+            i++;
         }
 
         return result;
