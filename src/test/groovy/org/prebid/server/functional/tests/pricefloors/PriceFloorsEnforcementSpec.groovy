@@ -116,7 +116,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, floorsPbsService)
 
         and: "Bid response with 2 bids: price = floorValue, price < floorValue"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -168,7 +168,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, floorsPbsService)
 
         and: "Bid response with 2 bids: price = floorValue, price < floorValue"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -591,10 +591,10 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
             ext.prebid.floors = ExtPrebidFloors.extPrebidFloors.tap {
                 data = PriceFloorData.priceFloorData.tap {
                     noFloorSignalBidders = [GENERIC]
-                        modelGroups[0].tap {
-                            values = [(rule): floorValue]
-                            noFloorSignalBidders = []
-                        }
+                    modelGroups[0].tap {
+                        values = [(rule): floorValue]
+                        noFloorSignalBidders = []
+                    }
                 }
             }
         }
@@ -813,7 +813,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, pbsService)
 
         and: "Bid response with 2 bids: bid.price = floorValue, dealBid.price < floorValue"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -869,7 +869,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, floorsPbsService)
 
         and: "Bid response with 2 bids: bid.price = floorValue, dealBid.price < floorValue"
         def dealBidPrice = floorValue - 0.1
@@ -925,7 +925,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, pbsService)
 
         and: "Bid response with 2 bids: price = floorValue, price < floorValue"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
@@ -980,7 +980,7 @@ class PriceFloorsEnforcementSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS cache rules"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorValue)
+        cacheFloorsProviderRules(bidRequest, floorValue, floorsPbsService)
 
         and: "Bid response with 2 bids: price = floorValue, price < floorValue"
         def bidResponse = BidResponse.getDefaultBidResponse(bidRequest).tap {
