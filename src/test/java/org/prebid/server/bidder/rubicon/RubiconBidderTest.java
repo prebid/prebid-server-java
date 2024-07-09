@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.IntNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import com.google.common.collect.Streams;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Audio;
 import com.iab.openrtb.request.Banner;
@@ -118,6 +119,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
+import java.util.stream.IntStream;
 
 import static java.math.BigDecimal.ONE;
 import static java.math.BigDecimal.TEN;
@@ -1088,6 +1090,34 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
+    public void makeHttpRequestsShouldFillUserExtRpWithSegtaxValuesWithSegtaxesFromEachData() {
+        // given
+        final List<Data> dataWithSegments = asList(givenTestDataWithSegmentEntries(3),
+                givenDataWithSegmentEntry(3, "Included_SegmentId_1"),
+                givenDataWithSegmentEntry(3, "Included_SegmentId_2"));
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().data(dataWithSegments).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .extracting(User::getExt)
+                .extracting(userExt -> userExt.getProperty("rp"))
+                .extracting(rp -> rp.get("target"))
+                .extracting(target -> target.get("tax3"))
+                .flatExtracting(tax3 -> mapper.convertValue(tax3, List.class))
+                .contains("Included_SegmentId_1", "Included_SegmentId_2");
+    }
+
+    @Test
     public void makeHttpRequestsShouldRemoveUserDataObject() {
         // given
         final BidRequest bidRequest = givenBidRequest(
@@ -1110,49 +1140,21 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldFillUserExtRpWithIabAttributeOnlyIfSegtaxIsEqualFour() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.user(User.builder()
-                        .data(asList(
-                                givenDataWithSegmentEntry(4, "segmentId"),
-                                givenDataWithSegmentEntry(2, "secondSegmentId")))
-                        .build()),
-                builder -> builder.video(Video.builder().build()),
-                identity());
+    public void makeHttpRequestsShouldFillSiteExtRpWithSegtaxValuesWithNoMoreThanHundredEntriesWithEvenDistribution()
+            throws IOException {
 
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        final ObjectNode expectedTarget = mapper.createObjectNode();
-        final ArrayNode expectedIabAttribute = expectedTarget.putArray("iab");
-        expectedIabAttribute.add("segmentId");
-
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getUser).doesNotContainNull()
-                .extracting(User::getExt)
-                .containsOnly(jacksonMapper.fillExtension(
-                        ExtUser.builder().build(),
-                        RubiconUserExt.builder()
-                                .rp(RubiconUserExtRp.of(expectedTarget))
-                                .build()));
-    }
-
-    @Test
-    public void makeHttpRequestsShouldFillSiteExtRpWithIabAttributeIfSegtaxEqualsOneOrTwoOrFiveOrSix() {
         // given
         final BidRequest bidRequest = givenBidRequest(
                 builder -> builder.site(Site.builder()
                         .content(Content.builder()
                                 .data(asList(
-                                        givenDataWithSegmentEntry(1, "firstSegmentId"),
-                                        givenDataWithSegmentEntry(2, "secondSegmentId"),
-                                        givenDataWithSegmentEntry(3, "thirdSegmentId"),
-                                        givenDataWithSegmentEntry(5, "fifthSegmentId"),
-                                        givenDataWithSegmentEntry(6, "sixthSegmentId")))
+                                        givenDataWithSegments(1, "firstSegmentId_", 5),
+                                        givenDataWithSegments(2, "secondSegmentId_", 4),
+                                        givenDataWithSegments(3, "thirdSegmentId_", 3),
+                                        givenDataWithSegments(4, "fourthSegmentId_", 2),
+                                        givenDataWithSegments(5, "fifthSegmentId_", 1),
+                                        givenDataWithSegments(6, "sixthSegmentId_", 100),
+                                        givenDataWithSegments(7, "seventhSegmentId_", 100)))
                                 .build())
                         .build()),
                 builder -> builder.video(Video.builder().build()),
@@ -1162,13 +1164,61 @@ public class RubiconBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        final ObjectNode expectedTarget = mapper.createObjectNode();
-        final ArrayNode expectedIabAttribute = expectedTarget.putArray("iab");
-        expectedIabAttribute.add("firstSegmentId");
-        expectedIabAttribute.add("secondSegmentId");
-        expectedIabAttribute.add("fifthSegmentId");
-        expectedIabAttribute.add("sixthSegmentId");
+        assertThat(result.getErrors()).isEmpty();
 
+        final BidRequest capturedBidRequest = mapper.readValue(result.getValue().get(0).getBody(), BidRequest.class);
+        final JsonNode targetNode = capturedBidRequest.getSite().getExt().getProperty("rp").get("target");
+
+        assertThat(targetNode.elements()).toIterable().hasSize(4);
+
+        final List<String> expectedIabValues = Streams.concat(
+                        IntStream.range(1, 6).mapToObj(i -> "firstSegmentId_" + i),
+                        IntStream.range(1, 5).mapToObj(i -> "secondSegmentId_" + i),
+                        IntStream.range(1, 2).mapToObj(i -> "fifthSegmentId_" + i),
+                        IntStream.range(59, 101).mapToObj(i -> "sixthSegmentId_" + i))
+                .toList();
+
+        assertThat(targetNode.get("iab").elements()).toIterable().hasSize(52)
+                .extracting(JsonNode::asText)
+                .containsExactlyInAnyOrderElementsOf(expectedIabValues);
+
+        final List<String> expectedTax3Values = IntStream.range(1, 4).mapToObj(i -> "thirdSegmentId_" + i).toList();
+        assertThat(targetNode.get("tax3").elements()).toIterable().hasSize(3)
+                .extracting(JsonNode::asText)
+                .containsExactlyInAnyOrderElementsOf(expectedTax3Values);
+
+        final List<String> expectedTax4Values = IntStream.range(1, 3).mapToObj(i -> "fourthSegmentId_" + i).toList();
+        assertThat(targetNode.get("tax4").elements()).toIterable().hasSize(2)
+                .extracting(JsonNode::asText)
+                .containsExactlyInAnyOrderElementsOf(expectedTax4Values);
+
+        final List<String> expectedTax7Values = IntStream.range(58, 101).mapToObj(i -> "seventhSegmentId_" + i)
+                .toList();
+        assertThat(targetNode.get("tax7").elements()).toIterable().hasSize(43)
+                .extracting(JsonNode::asText)
+                .containsExactlyInAnyOrderElementsOf(expectedTax7Values);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFillSiteExtRpWithSegtaxValuesWithNoMoreThanHundredEntries() {
+        // given
+        final List<Data> segments = IntStream.range(0, 150)
+                .mapToObj(index -> givenDataWithSegmentEntry(3, "SegmentId_" + index))
+                .toList();
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.site(Site.builder()
+                        .content(Content.builder()
+                                .data(segments)
+                                .build())
+                        .build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue()).hasSize(1).doesNotContainNull()
                 .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
@@ -1176,7 +1226,112 @@ public class RubiconBidderTest extends VertxTest {
                 .extracting(Site::getExt)
                 .extracting(ext -> ext.getProperty("rp"))
                 .extracting(rp -> rp.get("target"))
-                .containsExactly(expectedTarget);
+                .extracting(rp -> rp.get("tax3"))
+                .extracting(JsonNode::size)
+                .containsExactly(100);
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFillUserExtRpWithSegtaxValuesWithNoMoreThanHundredEntriesWithEvenDistribution()
+            throws IOException {
+
+        // given
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder()
+                        .data(asList(
+                                givenDataWithSegments(1, "firstSegmentId_", 5),
+                                givenDataWithSegments(2, "secondSegmentId_", 4),
+                                givenDataWithSegments(3, "thirdSegmentId_", 3),
+                                givenDataWithSegments(4, "fourthSegmentId_", 2),
+                                givenDataWithSegments(5, "fifthSegmentId_", 1),
+                                givenDataWithSegments(6, "sixthSegmentId_", 100),
+                                givenDataWithSegments(7, "seventhSegmentId_", 100)))
+                        .build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+
+        final BidRequest capturedBidRequest = mapper.readValue(result.getValue().get(0).getBody(), BidRequest.class);
+        final JsonNode targetNode = capturedBidRequest.getUser().getExt().getProperty("rp").get("target");
+
+        assertThat(targetNode.elements()).toIterable().hasSize(7);
+
+        final List<String> expectedIabValues = IntStream.range(1, 3).mapToObj(i -> "fourthSegmentId_" + i).toList();
+        assertThat(targetNode.get("iab").elements()).toIterable()
+                .hasSize(2)
+                .extracting(JsonNode::asText)
+                .containsExactlyInAnyOrderElementsOf(expectedIabValues);
+
+        final List<String> expectedTax1Values = IntStream.range(1, 6).mapToObj(i -> "firstSegmentId_" + i).toList();
+        assertThat(targetNode.get("tax1").elements()).toIterable()
+                .hasSize(5)
+                .extracting(JsonNode::asText)
+                .containsExactlyInAnyOrderElementsOf(expectedTax1Values);
+
+        final List<String> expectedTax2Values = IntStream.range(1, 5).mapToObj(i -> "secondSegmentId_" + i).toList();
+        assertThat(targetNode.get("tax2").elements()).toIterable()
+                .hasSize(4)
+                .extracting(JsonNode::asText)
+                .containsExactlyInAnyOrderElementsOf(expectedTax2Values);
+
+        final List<String> expectedTax3Values = IntStream.range(1, 4).mapToObj(i -> "thirdSegmentId_" + i).toList();
+        assertThat(targetNode.get("tax3").elements()).toIterable()
+                .hasSize(3)
+                .extracting(JsonNode::asText)
+                .containsExactlyInAnyOrderElementsOf(expectedTax3Values);
+
+        final List<String> expectedTax5Values = IntStream.range(1, 2).mapToObj(i -> "fifthSegmentId_" + i).toList();
+        assertThat(targetNode.get("tax5").elements()).toIterable()
+                .hasSize(1)
+                .extracting(JsonNode::asText)
+                .containsExactlyInAnyOrderElementsOf(expectedTax5Values);
+
+        final List<String> expectedTax6Values = IntStream.range(59, 101).mapToObj(i -> "sixthSegmentId_" + i).toList();
+        assertThat(targetNode.get("tax6").elements()).toIterable()
+                .hasSize(42)
+                .extracting(JsonNode::asText)
+                .containsExactlyInAnyOrderElementsOf(expectedTax6Values);
+
+        final List<String> expectedTax7Values = IntStream.range(58, 101).mapToObj(i -> "seventhSegmentId_" + i)
+                .toList();
+        assertThat(targetNode.get("tax7").elements()).toIterable()
+                .hasSize(43)
+                .extracting(JsonNode::asText)
+                .containsExactlyInAnyOrderElementsOf(expectedTax7Values);
+
+    }
+
+    @Test
+    public void makeHttpRequestsShouldFillUserExtRpWithSegtaxValuesWithNoMoreThanHundredEntries() {
+        // given
+        final List<Data> segments = IntStream.range(0, 150)
+                .mapToObj(index -> givenDataWithSegmentEntry(3, "SegmentId_" + index))
+                .toList();
+
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.user(User.builder().data(segments).build()),
+                builder -> builder.video(Video.builder().build()),
+                identity());
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .extracting(BidRequest::getUser).doesNotContainNull()
+                .extracting(User::getExt)
+                .extracting(ext -> ext.getProperty("rp"))
+                .extracting(rp -> rp.get("target"))
+                .extracting(rp -> rp.get("tax3"))
+                .extracting(JsonNode::size)
+                .containsExactly(100);
     }
 
     @Test
@@ -3681,6 +3836,15 @@ public class RubiconBidderTest extends VertxTest {
                 .build();
     }
 
+    private static Data givenDataWithSegments(Integer segtax, String idPrefix, int num) {
+        return Data.builder()
+                .segment(IntStream.range(0, num)
+                        .mapToObj(i -> Segment.builder().id(idPrefix + (i + 1)).build())
+                        .toList())
+                .ext(mapper.createObjectNode().put("segtax", segtax))
+                .build();
+    }
+
     private static PriceFloorRules givenFloors(
             UnaryOperator<PriceFloorRules.PriceFloorRulesBuilder> floorsCustomizer) {
 
@@ -3725,6 +3889,16 @@ public class RubiconBidderTest extends VertxTest {
 
     private static RubiconBid givenRubiconBid(UnaryOperator<RubiconBid.RubiconBidBuilder> bidCustomizer) {
         return bidCustomizer.apply(RubiconBid.builder()).build();
+    }
+
+    private static Data givenTestDataWithSegmentEntries(Integer segtax) {
+        final List<Segment> segments = IntStream.range(0, 1000)
+                .mapToObj(index -> Segment.builder().id("segmentId_" + index).build())
+                .toList();
+        return Data.builder()
+                .segment(segments)
+                .ext(mapper.createObjectNode().put("segtax", segtax))
+                .build();
     }
 
     @AllArgsConstructor(staticName = "of")
