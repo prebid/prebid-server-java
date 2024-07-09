@@ -110,24 +110,24 @@ abstract class PriceFloorsBaseSpec extends BaseSpec {
                                             BigDecimal expectedFloorValue,
                                             PrebidServerService pbsService = floorsPbsService,
                                             BidderName bidderName = BidderName.GENERIC) {
-        PBSUtils.waitUntil({ getRequest(pbsService.sendAuctionRequest(bidRequest))[bidderName.value].first.imp[0].bidFloor == expectedFloorValue },
+        PBSUtils.waitUntil({ getRequests(pbsService.sendAuctionRequest(bidRequest))[bidderName.value].first.imp[0].bidFloor == expectedFloorValue },
                 5000,
                 1000)
     }
 
-    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService,
-                                            BidRequest bidRequest,
+    protected void cacheFloorsProviderRules(BidRequest bidRequest,
+                                            PrebidServerService pbsService = floorsPbsService,
                                             BidderName bidderName = BidderName.GENERIC) {
-        PBSUtils.waitUntil({ getRequest(pbsService.sendAuctionRequest(bidRequest))[bidderName.value]?.first?.ext?.prebid?.floors?.fetchStatus != INPROGRESS },
+        PBSUtils.waitUntil({ getRequests(pbsService.sendAuctionRequest(bidRequest))[bidderName.value]?.first?.ext?.prebid?.floors?.fetchStatus != INPROGRESS },
                 5000,
                 1000)
     }
 
-    protected void cacheFloorsProviderRules(PrebidServerService pbsService = floorsPbsService,
-                                            AmpRequest ampRequest,
+    protected void cacheFloorsProviderRules(AmpRequest ampRequest,
                                             BigDecimal expectedFloorValue,
+                                            PrebidServerService pbsService = floorsPbsService,
                                             BidderName bidderName = BidderName.GENERIC) {
-        PBSUtils.waitUntil({ getRequest(pbsService.sendAmpRequest(ampRequest))[bidderName.value].first.imp[0].bidFloor == expectedFloorValue },
+        PBSUtils.waitUntil({ getRequests(pbsService.sendAmpRequest(ampRequest))[bidderName.value].first.imp[0].bidFloor == expectedFloorValue },
                 5000,
                 1000)
     }

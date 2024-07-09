@@ -55,7 +55,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(pbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, pbsService)
 
         when: "PBS processes auction request"
         pbsService.sendAuctionRequest(bidRequest)
@@ -82,7 +82,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(pbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, pbsService)
 
         when: "PBS processes auction request"
         pbsService.sendAuctionRequest(bidRequest)
@@ -400,7 +400,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         accountDao.save(account)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(pbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, pbsService)
 
         when: "PBS processes auction request"
         pbsService.sendAuctionRequest(bidRequest)
@@ -438,7 +438,7 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(accountId, BAD_REQUEST_400)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(floorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, floorsPbsService)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)

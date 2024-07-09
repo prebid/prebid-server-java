@@ -62,7 +62,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         when: "PBS processes auction request"
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)
@@ -94,7 +94,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         and: "Get currency rates"
         def currencyRatesResponse = currencyFloorsPbsService.sendCurrencyRatesRequest()
@@ -149,7 +149,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         when: "PBS processes auction request"
         currencyFloorsPbsService.sendAuctionRequest(bidRequest)
@@ -193,7 +193,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(pbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, pbsService)
 
         and: "Flush metrics"
         flushMetrics(pbsService)
@@ -316,7 +316,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         and: "Get currency rates"
         def currencyRatesResponse = currencyFloorsPbsService.sendCurrencyRatesRequest()
@@ -376,7 +376,7 @@ class PriceFloorsCurrencySpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(currencyFloorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, currencyFloorsPbsService)
 
         and: "Flush metrics"
         flushMetrics(currencyFloorsPbsService)

@@ -3,6 +3,7 @@ package org.prebid.server.functional.tests.pricefloors
 import org.prebid.server.functional.model.ChannelType
 import org.prebid.server.functional.model.bidder.Generic
 import org.prebid.server.functional.model.bidder.Openx
+import org.prebid.server.functional.model.bidderspecific.BidderRequest
 import org.prebid.server.functional.model.db.StoredImp
 import org.prebid.server.functional.model.pricefloors.Country
 import org.prebid.server.functional.model.pricefloors.MediaType
@@ -1001,14 +1002,14 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         enforcePbs << [true, null]
     }
 
-    def "PBS should use correct rule for each bidder when bidder is define with valid bid floor value"() {
+    def "PBS should use correct rule for each bidder when a bidder is defined with valid bid floor value"() {
         given: "PBS config with openX bidder"
         def floorsPbsService = pbsServiceFactory.getService(
                 FLOORS_CONFIG + GENERIC_ALIAS_CONFIG +
                         ["adapters.openx.enabled" : "true",
                          "adapters.openx.endpoint": "$networkServiceContainer.rootUri/auction".toString()])
 
-        and: "BidRequest with generic and openx bidder"
+        and: "Default bid Request with generic and openx bidder within separate imps"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             addImp(Imp.defaultImpression.tap {
                 ext.prebid.bidder.generic = null
@@ -1029,21 +1030,22 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.accountId, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(floorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, floorsPbsService)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = getRequest(response)
+        def bidderRequest = getRequests(response)
         assert bidderRequest.size() == 2
         assert bidderRequest[GENERIC.value].first.imp[0].bidFloor == genericBidFloorRuleValue
         assert bidderRequest[OPENX.value].first.imp[0].bidFloor == openxBidFloorRuleValue
 
         and: "Bidder request should contain proper bid floor value"
         def bidderRequests = bidder.getBidderRequests(bidRequest.id)
-        assert bidderRequests.imp.bidFloor.toSet().flatten()
-                .any { bidFloor -> bidFloor == genericBidFloorRuleValue || bidFloor == openxBidFloorRuleValue }
+        def impIdToBidderCallImp =  impIdToBidderCallImp(bidderRequests)
+        assert impIdToBidderCallImp[bidRequest.imp[0].id].bidFloor == genericBidFloorRuleValue
+        assert impIdToBidderCallImp[bidRequest.imp[1].id].bidFloor == openxBidFloorRuleValue
 
         where:
         genericBidFloorRuleValue  | openxBidFloorRuleValue
@@ -1052,11 +1054,14 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
     }
 
-    def "PBS shouldn't apply rule for alias bidder when rule contain main bidder"() {
-        given: "BidRequest with generic and alias bidder"
+    def "PBS shouldn't apply the floor rule for the main bidder to alias bidder"() {
+        given: "Default bid request with generic and alias bidder within separate imps"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.aliases = [(ALIAS.value): GENERIC]
-            imp[0].ext.prebid.bidder.alias = new Generic()
+            addImp(Imp.defaultImpression.tap {
+                ext.prebid.bidder.generic = null
+                ext.prebid.bidder.alias = new Generic()
+            })
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -1066,26 +1071,27 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [BIDDER])
-            modelGroups[0].values = [(new Rule(bidder: GENERIC).rule)  : genericBidFloorRuleValue]
+            modelGroups[0].values = [(new Rule(bidder: GENERIC).rule): genericBidFloorRuleValue]
         }
         floorsProvider.setResponse(bidRequest.accountId, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(floorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, floorsPbsService)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = getRequest(response)
+        def bidderRequest = getRequests(response)
         assert bidderRequest.size() == 2
         assert bidderRequest[GENERIC.value].first.imp[0].bidFloor == genericBidFloorRuleValue
         assert !bidderRequest[ALIAS.value].first.imp[0].bidFloor
 
         and: "Bidder request should contain proper bid floor value"
         def bidderRequests = bidder.getBidderRequests(bidRequest.id)
-        assert bidderRequests.imp.bidFloor.toSet().flatten()
-                .any { bidFloor -> bidFloor == genericBidFloorRuleValue }
+        def impIdToBidderCallImp = impIdToBidderCallImp(bidderRequests)
+        assert impIdToBidderCallImp[bidRequest.imp[0].id].bidFloor == genericBidFloorRuleValue
+        assert !impIdToBidderCallImp[bidRequest.imp[1].id].bidFloor
 
         where:
         genericBidFloorRuleValue  | aliasBidFloorRuleValue
@@ -1094,11 +1100,14 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
     }
 
-    def "PBS shouldn't apply rule for main bidder when rule contain alias bidder"() {
-        given: "BidRequest with generic and alias bidder"
+    def "PBS shouldn't apply the floor rule for the alias bidder to main bidder"() {
+        given: "Default bid request with generic and alias bidder within separate imp"
         def bidRequest = BidRequest.defaultBidRequest.tap {
             ext.prebid.aliases = [(ALIAS.value): GENERIC]
-            imp[0].ext.prebid.bidder.alias = new Generic()
+            addImp(Imp.defaultImpression.tap {
+                ext.prebid.bidder.generic = null
+                ext.prebid.bidder.alias = new Generic()
+            })
         }
 
         and: "Account with enabled fetch, fetch.url in the DB"
@@ -1108,31 +1117,36 @@ class PriceFloorsRulesSpec extends PriceFloorsBaseSpec {
         and: "Set Floors Provider response"
         def floorsResponse = PriceFloorData.priceFloorData.tap {
             modelGroups[0].schema = new PriceFloorSchema(fields: [BIDDER])
-            modelGroups[0].values = [(new Rule(bidder: ALIAS).rule)  : aliasBidFloorRuleValue]
+            modelGroups[0].values = [(new Rule(bidder: ALIAS).rule): aliasBidFloorRuleValue]
         }
         floorsProvider.setResponse(bidRequest.accountId, floorsResponse)
 
         and: "PBS fetch rules from floors provider"
-        cacheFloorsProviderRules(floorsPbsService, bidRequest)
+        cacheFloorsProviderRules(bidRequest, floorsPbsService)
 
         when: "PBS processes auction request"
         def response = floorsPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request bidFloor should correspond to appropriate rule"
-        def bidderRequest = getRequest(response)
+        def bidderRequest = getRequests(response)
         assert bidderRequest.size() == 2
         assert bidderRequest[ALIAS.value].first.imp[0].bidFloor == aliasBidFloorRuleValue
         assert !bidderRequest[GENERIC.value].first.imp[0].bidFloor
 
         and: "Bidder request should contain proper bid floor value"
         def bidderRequests = bidder.getBidderRequests(bidRequest.id)
-        assert bidderRequests.imp.bidFloor.toSet().flatten()
-                .any { bidFloor -> bidFloor == aliasBidFloorRuleValue }
+        def impIdToBidderCallImp = impIdToBidderCallImp(bidderRequests)
+        assert impIdToBidderCallImp[bidRequest.imp[1].id].bidFloor == aliasBidFloorRuleValue
+        assert !impIdToBidderCallImp[bidRequest.imp[0].id].bidFloor
 
         where:
         genericBidFloorRuleValue  | aliasBidFloorRuleValue
         null                      | PBSUtils.randomFloorValue
         PBSUtils.randomFloorValue | null
         PBSUtils.randomFloorValue | PBSUtils.randomFloorValue
+    }
+
+    private static Map<String, Imp> impIdToBidderCallImp(List<BidderRequest> bidderRequests) {
+        bidderRequests.imp.flatten().collectEntries { [it.id, it] } as Map<String, Imp>
     }
 }
