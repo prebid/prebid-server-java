@@ -1,6 +1,7 @@
 adapters:
   ix:
     endpoint: https://
+    ortb-version: "2.6"
     meta-info:
       maintainer-email: pdu-supply-prebid@indexexchange.com
       app-media-types:
