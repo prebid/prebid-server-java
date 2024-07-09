@@ -91,6 +91,11 @@ class TcfConsent implements ConsentString {
             this
         }
 
+        Builder setSpecialFeatureOptIns(PurposeId purposeId) {
+            tcStringEncoder.addSpecialFeatureOptIns(purposeId.value)
+            this
+        }
+
         Builder setPublisherRestrictionEntry(PurposeId purposeId, List<RestrictionType> restrictionTypes, Integer vendorId) {
             restrictionTypes.each { restrictionType ->
                 def publisherRestrictionEntry = PublisherRestrictionEntry

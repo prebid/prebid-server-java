@@ -54,4 +54,22 @@ class TcfUtils {
         builder.setVendorListVersion(enforcementRequirements.vendorListVersion ?: TCF_POLICY_V2.vendorListVersion)
         return builder.build()
     }
+
+    static Map<Purpose, PurposeConfig> getPurposeConfigsForPersonalizedAdsWithSnakeCase(EnforcementRequirement enforcementRequirements, boolean requireConsent = false, List<String> eidsExceptions = []) {
+        def purpose = enforcementRequirements.purpose
+        // Basic Ads required for any bidder call, should be present at least as company consent
+        def purposes = [(Purpose.P2): new PurposeConfig(enforcePurposeSnakeCase: NO, enforceVendors: false)]
+        def purposeConfig = new PurposeConfig(enforcePurposeSnakeCase: enforcementRequirements.enforcePurpose,
+                enforceVendorsSnakeCase: enforcementRequirements?.enforceVendor,
+                vendorExceptionsSnakeCase: enforcementRequirements?.vendorExceptions?.value)
+        def purposeEid = new PurposeEid(requireConsent: requireConsent, exceptions: eidsExceptions)
+        if (purpose == Purpose.P4) {
+            purposeConfig.eid = purposeEid
+            purposes[Purpose.P4] = purposeConfig
+        } else {
+            purposes[purpose] = purposeConfig
+            purposes[Purpose.P4] = new PurposeConfig(eid: purposeEid)
+        }
+        purposes
+    }
 }

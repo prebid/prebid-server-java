@@ -1,0 +1,25 @@
+{
+    "id": "test-stored-request",
+    "banner": {
+        "format": [
+            {
+                "w": 300,
+                "h": 250
+            },
+            {
+                "w": 300,
+                "h": 600
+            }
+        ]
+    },
+    "ext": {
+        "prebid": {
+            "bidder": {
+                "generic": {}
+            },
+            "storedbidresponse": [
+               { "bidder": "generic", "id": "test-stored-response" }
+            ]
+        }
+    }
+}

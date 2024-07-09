@@ -25,7 +25,7 @@ import org.prebid.server.auction.model.CachedDebugLog;
 import org.prebid.server.auction.model.TimeoutContext;
 import org.prebid.server.auction.model.WithPodErrors;
 import org.prebid.server.auction.requestfactory.VideoRequestFactory;
-import org.prebid.server.cache.CacheService;
+import org.prebid.server.cache.CoreCacheService;
 import org.prebid.server.cookie.UidsCookie;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.UnauthorizedAccountException;
@@ -69,7 +69,7 @@ public class VideoHandlerTest extends VertxTest {
     @Mock
     private ExchangeService exchangeService;
     @Mock
-    private CacheService cacheService;
+    private CoreCacheService coreCacheService;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
     @Mock
@@ -112,7 +112,7 @@ public class VideoHandlerTest extends VertxTest {
         videoHandler = new VideoHandler(
                 videoRequestFactory,
                 videoResponseFactory,
-                exchangeService, cacheService,
+                exchangeService, coreCacheService,
                 analyticsReporterDelegator,
                 metrics,
                 clock,
@@ -306,13 +306,13 @@ public class VideoHandlerTest extends VertxTest {
         given(videoRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContextWithPodErrors));
         given(exchangeService.holdAuction(any())).willThrow(new RuntimeException("Unexpected exception"));
-        given(cacheService.cacheVideoDebugLog(any(), anyInt())).willReturn("cacheKey");
+        given(coreCacheService.cacheVideoDebugLog(any(), anyInt())).willReturn("cacheKey");
 
         // when
         videoHandler.handle(routingContext);
 
         // then
-        verify(cacheService).cacheVideoDebugLog(any(), anyInt());
+        verify(coreCacheService).cacheVideoDebugLog(any(), anyInt());
         final ArgumentCaptor<VideoEvent> videoEventArgumentCaptor = ArgumentCaptor.forClass(VideoEvent.class);
         verify(analyticsReporterDelegator).processEvent(videoEventArgumentCaptor.capture(), any());
         assertThat(videoEventArgumentCaptor.getValue().getErrors())
@@ -333,7 +333,7 @@ public class VideoHandlerTest extends VertxTest {
         final WithPodErrors<AuctionContext> auctionContextWithPodErrors = WithPodErrors.of(auctionContext, emptyList());
         given(videoRequestFactory.fromRequest(any(), anyLong()))
                 .willReturn(Future.succeededFuture(auctionContextWithPodErrors));
-        given(cacheService.cacheVideoDebugLog(any(), anyInt())).willReturn("cacheKey");
+        given(coreCacheService.cacheVideoDebugLog(any(), anyInt())).willReturn("cacheKey");
         given(exchangeService.holdAuction(any()))
                 .willAnswer(inv -> Future.succeededFuture(((AuctionContext) inv.getArgument(0)).toBuilder()
                         .bidResponse(BidResponse.builder().build())
@@ -346,7 +346,7 @@ public class VideoHandlerTest extends VertxTest {
         videoHandler.handle(routingContext);
 
         // then
-        verify(cacheService).cacheVideoDebugLog(any(), anyInt());
+        verify(coreCacheService).cacheVideoDebugLog(any(), anyInt());
         final ArgumentCaptor<VideoEvent> videoEventArgumentCaptor = ArgumentCaptor.forClass(VideoEvent.class);
         verify(analyticsReporterDelegator).processEvent(videoEventArgumentCaptor.capture(), any());
         assertThat(videoEventArgumentCaptor.getValue().getErrors())

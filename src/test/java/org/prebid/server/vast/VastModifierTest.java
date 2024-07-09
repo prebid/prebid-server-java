@@ -8,7 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.cache.proto.request.PutObject;
+import org.prebid.server.cache.proto.request.bid.BidPutObject;
 import org.prebid.server.events.EventsContext;
 import org.prebid.server.events.EventsService;
 import org.prebid.server.metric.MetricName;
@@ -430,8 +430,8 @@ public class VastModifierTest {
         assertThat(result).isEqualTo(admWithNoImpression);
     }
 
-    private static PutObject givenPutObject(TextNode adm) {
-        return PutObject.builder()
+    private static BidPutObject givenPutObject(TextNode adm) {
+        return BidPutObject.builder()
                 .type("xml")
                 .bidid("bidId2")
                 .bidder(BIDDER)
@@ -440,7 +440,7 @@ public class VastModifierTest {
                 .build();
     }
 
-    private static PutObject putObject() {
+    private static BidPutObject putObject() {
         return givenPutObject(nodeAdm());
     }
 

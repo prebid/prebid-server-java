@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
@@ -27,8 +28,10 @@ import org.prebid.server.settings.model.AccountPrivacyConfig;
 import org.prebid.server.settings.model.EnabledForRequestType;
 import org.prebid.server.spring.config.bidder.model.Ortb;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import static java.util.Collections.singletonList;
@@ -55,6 +58,8 @@ public class CcpaEnforcementTest {
 
     @Mock(strictness = LENIENT)
     private BidderAliases aliases;
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
 
     @BeforeEach
     public void setUp() {
@@ -93,7 +98,12 @@ public class CcpaEnforcementTest {
 
         // then
         assertThat(result).isEmpty();
-        verify(metrics).updatePrivacyCcpaMetrics(eq(true), eq(false));
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(false),
+                eq(true),
+                eq(Collections.emptySet()));
     }
 
     @Test
@@ -108,7 +118,12 @@ public class CcpaEnforcementTest {
 
         // then
         assertThat(result).isEmpty();
-        verify(metrics).updatePrivacyCcpaMetrics(eq(true), eq(true));
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(true),
+                eq(false),
+                eq(Collections.emptySet()));
     }
 
     @Test
@@ -126,6 +141,12 @@ public class CcpaEnforcementTest {
 
         // then
         assertThat(result).isEmpty();
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(true),
+                eq(false),
+                eq(Collections.emptySet()));
     }
 
     @Test
@@ -139,6 +160,12 @@ public class CcpaEnforcementTest {
 
         // then
         assertThat(result).isEmpty();
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(true),
+                eq(false),
+                eq(Collections.emptySet()));
     }
 
     @Test
@@ -161,6 +188,12 @@ public class CcpaEnforcementTest {
 
         // then
         assertThat(result).isEmpty();
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(true),
+                eq(true),
+                eq(Collections.emptySet()));
     }
 
     @Test
@@ -196,6 +229,12 @@ public class CcpaEnforcementTest {
 
         // then
         assertThat(result).isEmpty();
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(true),
+                eq(true),
+                eq(Collections.emptySet()));
     }
 
     @Test
@@ -223,12 +262,19 @@ public class CcpaEnforcementTest {
                     assertThat(privacyResult.getUser()).isSameAs(maskedUser);
                     assertThat(privacyResult.getDevice()).isSameAs(maskedDevice);
                 });
+        verify(metrics).updatePrivacyCcpaMetrics(
+                eq(activityInfrastructure),
+                eq(true),
+                eq(true),
+                eq(true),
+                eq(Set.of("bidder")));
     }
 
-    private static AuctionContext givenAuctionContext(
+    private AuctionContext givenAuctionContext(
             UnaryOperator<AuctionContext.AuctionContextBuilder> auctionContextCustomizer) {
 
         final AuctionContext.AuctionContextBuilder initialContext = AuctionContext.builder()
+                .activityInfrastructure(activityInfrastructure)
                 .bidRequest(BidRequest.builder()
                         .device(Device.builder().ip("originalDevice").build())
                         .ext(ExtRequest.of(ExtRequestPrebid.builder()

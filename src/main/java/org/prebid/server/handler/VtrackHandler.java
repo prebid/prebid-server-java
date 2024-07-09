@@ -11,10 +11,10 @@ import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.bidder.BidderCatalog;
-import org.prebid.server.cache.CacheService;
-import org.prebid.server.cache.proto.request.BidCacheRequest;
-import org.prebid.server.cache.proto.request.PutObject;
-import org.prebid.server.cache.proto.response.BidCacheResponse;
+import org.prebid.server.cache.CoreCacheService;
+import org.prebid.server.cache.proto.request.bid.BidCacheRequest;
+import org.prebid.server.cache.proto.request.bid.BidPutObject;
+import org.prebid.server.cache.proto.response.bid.BidCacheResponse;
 import org.prebid.server.events.EventUtil;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -52,7 +52,7 @@ public class VtrackHandler implements ApplicationResource {
     private final boolean modifyVastForUnknownBidder;
     private final ApplicationSettings applicationSettings;
     private final BidderCatalog bidderCatalog;
-    private final CacheService cacheService;
+    private final CoreCacheService coreCacheService;
     private final TimeoutFactory timeoutFactory;
     private final JacksonMapper mapper;
 
@@ -61,7 +61,7 @@ public class VtrackHandler implements ApplicationResource {
                          boolean modifyVastForUnknownBidder,
                          ApplicationSettings applicationSettings,
                          BidderCatalog bidderCatalog,
-                         CacheService cacheService,
+                         CoreCacheService coreCacheService,
                          TimeoutFactory timeoutFactory,
                          JacksonMapper mapper) {
 
@@ -70,7 +70,7 @@ public class VtrackHandler implements ApplicationResource {
         this.modifyVastForUnknownBidder = modifyVastForUnknownBidder;
         this.applicationSettings = Objects.requireNonNull(applicationSettings);
         this.bidderCatalog = Objects.requireNonNull(bidderCatalog);
-        this.cacheService = Objects.requireNonNull(cacheService);
+        this.coreCacheService = Objects.requireNonNull(coreCacheService);
         this.timeoutFactory = Objects.requireNonNull(timeoutFactory);
         this.mapper = Objects.requireNonNull(mapper);
     }
@@ -83,7 +83,7 @@ public class VtrackHandler implements ApplicationResource {
     @Override
     public void handle(RoutingContext routingContext) {
         final String accountId;
-        final List<PutObject> vtrackPuts;
+        final List<BidPutObject> vtrackPuts;
         final String integration;
         try {
             accountId = accountId(routingContext);
@@ -110,7 +110,7 @@ public class VtrackHandler implements ApplicationResource {
         return accountId;
     }
 
-    private List<PutObject> vtrackPuts(RoutingContext routingContext) {
+    private List<BidPutObject> vtrackPuts(RoutingContext routingContext) {
         final Buffer body = routingContext.getBody();
         if (body == null || body.length() == 0) {
             throw new IllegalArgumentException("Incoming request has no body");
@@ -123,27 +123,27 @@ public class VtrackHandler implements ApplicationResource {
             throw new IllegalArgumentException("Failed to parse request body", e);
         }
 
-        final List<PutObject> putObjects = ListUtils.emptyIfNull(bidCacheRequest.getPuts());
-        for (PutObject putObject : putObjects) {
-            validatePutObject(putObject);
+        final List<BidPutObject> bidPutObjects = ListUtils.emptyIfNull(bidCacheRequest.getPuts());
+        for (BidPutObject bidPutObject : bidPutObjects) {
+            validatePutObject(bidPutObject);
         }
-        return putObjects;
+        return bidPutObjects;
     }
 
-    private static void validatePutObject(PutObject putObject) {
-        if (StringUtils.isEmpty(putObject.getBidid())) {
+    private static void validatePutObject(BidPutObject bidPutObject) {
+        if (StringUtils.isEmpty(bidPutObject.getBidid())) {
             throw new IllegalArgumentException("'bidid' is required field and can't be empty");
         }
 
-        if (StringUtils.isEmpty(putObject.getBidder())) {
+        if (StringUtils.isEmpty(bidPutObject.getBidder())) {
             throw new IllegalArgumentException("'bidder' is required field and can't be empty");
         }
 
-        if (!StringUtils.equals(putObject.getType(), TYPE_XML)) {
+        if (!StringUtils.equals(bidPutObject.getType(), TYPE_XML)) {
             throw new IllegalArgumentException("vtrack only accepts type xml");
         }
 
-        final JsonNode value = putObject.getValue();
+        final JsonNode value = bidPutObject.getValue();
         final String valueAsString = value != null ? value.asText() : null;
         if (!StringUtils.containsIgnoreCase(valueAsString, "<vast")) {
             throw new IllegalArgumentException("vtrack content must be vast");
@@ -171,7 +171,7 @@ public class VtrackHandler implements ApplicationResource {
 
     private void handleAccountResult(AsyncResult<Account> asyncAccount,
                                      RoutingContext routingContext,
-                                     List<PutObject> vtrackPuts,
+                                     List<BidPutObject> vtrackPuts,
                                      String accountId,
                                      String integration,
                                      Timeout timeout) {
@@ -182,7 +182,8 @@ public class VtrackHandler implements ApplicationResource {
             // insert impression tracking if account allows events and bidder allows VAST modification
             final Boolean isEventEnabled = accountEventsEnabled(asyncAccount.result());
             final Set<String> allowedBidders = biddersAllowingVastUpdate(vtrackPuts);
-            cacheService.cachePutObjects(vtrackPuts, isEventEnabled, allowedBidders, accountId, integration, timeout)
+            coreCacheService.cachePutObjects(
+                    vtrackPuts, isEventEnabled, allowedBidders, accountId, integration, timeout)
                     .onComplete(asyncCache -> handleCacheResult(asyncCache, routingContext));
         }
     }
@@ -198,9 +199,9 @@ public class VtrackHandler implements ApplicationResource {
     /**
      * Returns list of bidders that allow VAST XML modification.
      */
-    private Set<String> biddersAllowingVastUpdate(List<PutObject> vtrackPuts) {
+    private Set<String> biddersAllowingVastUpdate(List<BidPutObject> vtrackPuts) {
         return vtrackPuts.stream()
-                .map(PutObject::getBidder)
+                .map(BidPutObject::getBidder)
                 .filter(this::isAllowVastForBidder)
                 .collect(Collectors.toSet());
     }

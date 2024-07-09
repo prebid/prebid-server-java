@@ -11,23 +11,23 @@ import java.util.List;
 @Value
 public class AccountGdprConfig {
 
-    @JsonProperty("enabled")
     Boolean enabled;
 
     @JsonAlias("eea-countries")
     String eeaCountries;
 
-    @JsonProperty("channel-enabled")
+    @JsonProperty("channel_enabled")
+    @JsonAlias("channel-enabled")
     EnabledForRequestType enabledForRequestType;
 
     Purposes purposes;
 
-    @JsonProperty("special-features")
+    @JsonAlias("special-features")
     SpecialFeatures specialFeatures;
 
-    @JsonProperty("purpose-one-treatment-interpretation")
+    @JsonAlias("purpose-one-treatment-interpretation")
     PurposeOneTreatmentInterpretation purposeOneTreatmentInterpretation;
 
-    @JsonProperty("basic-enforcement-vendors")
+    @JsonAlias("basic-enforcement-vendors")
     List<String> basicEnforcementVendors;
 }

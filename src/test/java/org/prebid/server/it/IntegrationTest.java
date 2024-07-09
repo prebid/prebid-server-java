@@ -20,10 +20,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.prebid.server.VertxTest;
-import org.prebid.server.cache.proto.request.BidCacheRequest;
-import org.prebid.server.cache.proto.request.PutObject;
-import org.prebid.server.cache.proto.response.BidCacheResponse;
-import org.prebid.server.cache.proto.response.CacheObject;
+import org.prebid.server.cache.proto.request.bid.BidCacheRequest;
+import org.prebid.server.cache.proto.request.bid.BidPutObject;
+import org.prebid.server.cache.proto.response.bid.BidCacheResponse;
+import org.prebid.server.cache.proto.response.bid.CacheObject;
 import org.prebid.server.it.hooks.TestHooksConfiguration;
 import org.prebid.server.it.util.BidCacheRequestPattern;
 import org.prebid.server.model.Endpoint;
@@ -185,13 +185,13 @@ public abstract class IntegrationTest extends VertxTest {
             String requestAsString, String requestCacheIdMapFile) throws IOException {
 
         try {
-            final BidCacheRequest cacheRequest = mapper.readValue(requestAsString, BidCacheRequest.class);
+            final BidCacheRequest bidCacheRequest = mapper.readValue(requestAsString, BidCacheRequest.class);
             final JsonNode jsonNodeMatcher =
                     mapper.readTree(IntegrationTest.class.getResourceAsStream(requestCacheIdMapFile));
-            final List<PutObject> puts = cacheRequest.getPuts();
+            final List<BidPutObject> puts = bidCacheRequest.getPuts();
 
             final List<CacheObject> responseCacheObjects = new ArrayList<>();
-            for (PutObject putItem : puts) {
+            for (BidPutObject putItem : puts) {
                 final String id = putItem.getType().equals("json")
                         ? putItem.getValue().get("id").textValue() + "@" + resolvePriceForJsonMediaType(putItem)
                         : putItem.getValue().textValue();
@@ -205,7 +205,7 @@ public abstract class IntegrationTest extends VertxTest {
         }
     }
 
-    private static String resolvePriceForJsonMediaType(PutObject putItem) {
+    private static String resolvePriceForJsonMediaType(BidPutObject putItem) {
         final JsonNode extObject = putItem.getValue().get("ext");
         final JsonNode origBidCpm = extObject != null ? extObject.get("origbidcpm") : null;
         return origBidCpm != null ? origBidCpm.toString() : putItem.getValue().get("price").toString();

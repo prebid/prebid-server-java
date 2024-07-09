@@ -244,6 +244,62 @@ public class ActivityInfrastructureDebugTest extends VertxTest {
         verifyNoMoreInteractions(metrics);
     }
 
+    @Test
+    public void updateActivityMetricsShouldReturnExpectedResultIfActivityDisallowed() {
+        // given
+        final ActivityInfrastructureDebug debug = debug(null);
+
+        // when
+        debug.updateActivityMetrics(Activity.CALL_BIDDER, null, null);
+
+        // then
+        verify(metrics).updateRequestsActivityDisallowedCount(eq(Activity.CALL_BIDDER));
+        verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void updateActivityMetricsShouldReturnExpectedResultIfActivityDisallowedAndComponentTypeIsBidder() {
+        // given
+        final ActivityInfrastructureDebug debug = debug(null);
+
+        // when
+        debug.updateActivityMetrics(Activity.CALL_BIDDER, ComponentType.BIDDER, "bidder");
+
+        // then
+        verify(metrics).updateRequestsActivityDisallowedCount(eq(Activity.CALL_BIDDER));
+        verify(metrics).updateAdapterActivityDisallowedCount(eq("bidder"), eq(Activity.CALL_BIDDER));
+        verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void updateActivityMetricsShouldReturnExpectedResultIfTraceLevelIsBasic() {
+        // given
+        final ActivityInfrastructureDebug debug = debug(TraceLevel.basic);
+
+        // when
+        debug.updateActivityMetrics(Activity.CALL_BIDDER, ComponentType.BIDDER, "bidder");
+
+        // then
+        verify(metrics).updateRequestsActivityDisallowedCount(eq(Activity.CALL_BIDDER));
+        verify(metrics).updateAdapterActivityDisallowedCount(eq("bidder"), eq(Activity.CALL_BIDDER));
+        verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void updateActivityMetricsShouldReturnExpectedResultIfTraceLevelIsVerbose() {
+        // given
+        final ActivityInfrastructureDebug debug = debug(TraceLevel.verbose);
+
+        // when
+        debug.updateActivityMetrics(Activity.CALL_BIDDER, ComponentType.BIDDER, "bidder");
+
+        // then
+        verify(metrics).updateRequestsActivityDisallowedCount(eq(Activity.CALL_BIDDER));
+        verify(metrics).updateAccountActivityDisallowedCount(eq("accountId"), eq(Activity.CALL_BIDDER));
+        verify(metrics).updateAdapterActivityDisallowedCount(eq("bidder"), eq(Activity.CALL_BIDDER));
+        verifyNoMoreInteractions(metrics);
+    }
+
     private ActivityInfrastructureDebug debug(TraceLevel traceLevel) {
         return new ActivityInfrastructureDebug("accountId", traceLevel, metrics, jacksonMapper);
     }

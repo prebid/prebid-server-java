@@ -139,7 +139,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void resolveShouldReturnGivenAccountIfTimeoutLessThanMinimumValue() {
         // given
-        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.timeout(9L));
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.timeoutMs(9L));
 
         // when
         final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
@@ -152,7 +152,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void resolveShouldReturnGivenAccountIfTimeoutMoreThanMaximumValue() {
         // given
-        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.timeout(12000L));
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.timeoutMs(12000L));
 
         // when
         final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
@@ -191,7 +191,7 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void resolveShouldReturnGivenAccountIfMaxFileSizeLessThanMinimumValue() {
         // given
-        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxFileSize(-1L));
+        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxFileSizeKb(-1L));
 
         // when
         final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
@@ -204,7 +204,8 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
     @Test
     public void resolveShouldReturnGivenAccountIfMaxFileSizeMoreThanMaximumValue() {
         // given
-        final Account givenAccount = accountWithFloorsFetchConfig(config -> config.maxFileSize(Integer.MAX_VALUE + 1L));
+        final Account givenAccount = accountWithFloorsFetchConfig(config ->
+                config.maxFileSizeKb(Integer.MAX_VALUE + 1L));
 
         // when
         final Account actualAccount = target.resolve(givenAccount, defaultPriceConfig());
@@ -222,12 +223,12 @@ public class PriceFloorsConfigResolverTest extends VertxTest {
                         .priceFloors(AccountPriceFloorsConfig.builder()
                                 .enforceFloorsRate(10)
                                 .fetch(configCustomizer.apply(
-                                        AccountPriceFloorsFetchConfig.builder()
-                                                .maxAgeSec(1000L)
-                                                .periodSec(600L)
-                                                .timeout(100L)
-                                                .maxRules(100L)
-                                                .maxFileSize(100L))
+                                                AccountPriceFloorsFetchConfig.builder()
+                                                        .maxAgeSec(1000L)
+                                                        .periodSec(600L)
+                                                        .timeoutMs(100L)
+                                                        .maxRules(100L)
+                                                        .maxFileSizeKb(100L))
                                         .build())
                                 .build())
                         .build())

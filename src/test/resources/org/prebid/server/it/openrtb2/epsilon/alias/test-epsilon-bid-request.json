@@ -43,9 +43,7 @@
     "USD"
   ],
   "regs": {
-    "ext": {
       "gdpr": 0
-    }
   },
   "ext": {
     "prebid": {

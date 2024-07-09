@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
@@ -43,7 +44,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mock.Strictness.LENIENT;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,6 +62,9 @@ public class TcfEnforcementTest {
 
     @Mock(strictness = LENIENT)
     private BidderAliases aliases;
+
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
 
     @BeforeEach
     public void setUp() {
@@ -132,15 +135,15 @@ public class TcfEnforcementTest {
         target.enforce(auctionContext, bidderToUser, bidders, aliases);
 
         // then
-        verifyMetric("bidder0", false, false, false, false, false);
-        verifyMetric("bidder1", false, false, false, false, false);
+        verifyMetric("bidder0", false, false, false, false, false, true);
+        verifyMetric("bidder1", false, false, false, false, false, true);
 
-        verifyMetric("bidder2", false, false, false, false, true);
-        verifyMetric("bidder3", false, false, false, true, false);
-        verifyMetric("bidder4", false, false, true, false, false);
-        verifyMetric("bidder5", false, true, false, false, false);
-        verifyMetric("bidder6", true, false, false, false, false);
-        verifyMetric("bidder7", true, false, false, false, false);
+        verifyMetric("bidder2", false, false, false, false, true, true);
+        verifyMetric("bidder3", false, false, false, true, false, true);
+        verifyMetric("bidder4", false, false, true, false, false, true);
+        verifyMetric("bidder5", false, true, false, false, false, true);
+        verifyMetric("bidder6", true, false, false, false, false, true);
+        verifyMetric("bidder7", true, false, false, false, false, true);
     }
 
     @Test
@@ -162,9 +165,9 @@ public class TcfEnforcementTest {
         target.enforce(auctionContext, bidderToUser, bidders, aliases);
 
         // then
-        verifyMetric("bidder0", false, false, true, false, false);
-        verifyMetric("bidder1", false, false, false, false, false);
-        verifyMetric("bidder2", true, false, false, false, false);
+        verifyMetric("bidder0", false, false, true, false, false, false);
+        verifyMetric("bidder1", false, false, false, false, false, false);
+        verifyMetric("bidder2", true, false, false, false, false, false);
     }
 
     @Test
@@ -189,10 +192,10 @@ public class TcfEnforcementTest {
         target.enforce(auctionContext, bidderToUser, bidders, aliases);
 
         // then
-        verifyMetric("bidder0", false, false, true, false, false);
-        verifyMetric("bidder1", false, false, false, false, false);
-        verifyMetric("bidder2", true, false, false, false, false);
-        verifyMetric("bidder3", false, false, false, false, false);
+        verifyMetric("bidder0", false, false, true, false, false, true);
+        verifyMetric("bidder1", false, false, false, false, false, true);
+        verifyMetric("bidder2", true, false, false, false, false, true);
+        verifyMetric("bidder3", false, false, false, false, false, true);
     }
 
     @Test
@@ -214,8 +217,8 @@ public class TcfEnforcementTest {
         target.enforce(auctionContext, bidderToUser, bidders, aliases);
 
         // then
-        verifyMetric("bidder0", false, false, false, false, false);
-        verifyMetric("bidder1", false, false, false, false, false);
+        verifyMetric("bidder0", false, false, false, false, false, false);
+        verifyMetric("bidder1", false, false, false, false, false, false);
     }
 
     @Test
@@ -231,7 +234,7 @@ public class TcfEnforcementTest {
         target.enforce(auctionContext, bidderToUser, bidders, aliases);
 
         // then
-        verify(metrics).updatePrivacyLmtMetric();
+        verifyMetric("bidder", false, false, false, false, false, true);
     }
 
     @Test
@@ -247,7 +250,8 @@ public class TcfEnforcementTest {
         target.enforce(auctionContext, bidderToUser, bidders, aliases);
 
         // then
-        verify(metrics, times(0)).updatePrivacyLmtMetric();
+        verifyMetric("bidder", false, false, false, false, false, false);
+
     }
 
     @Test
@@ -265,7 +269,8 @@ public class TcfEnforcementTest {
         target.enforce(auctionContext, bidderToUser, bidders, aliases);
 
         // then
-        verify(metrics, times(0)).updatePrivacyLmtMetric();
+        verifyMetric("bidder", false, false, false, false, false, false);
+
     }
 
     @Test
@@ -361,8 +366,9 @@ public class TcfEnforcementTest {
                 .willReturn(Future.succeededFuture(TcfResponse.of(null, actions, null)));
     }
 
-    private static AuctionContext givenAuctionContext(Device device) {
+    private AuctionContext givenAuctionContext(Device device) {
         return AuctionContext.builder()
+                .activityInfrastructure(activityInfrastructure)
                 .bidRequest(BidRequest.builder().device(device).build())
                 .requestTypeMetric(MetricName.openrtb2web)
                 .account(Account.builder()
@@ -415,15 +421,18 @@ public class TcfEnforcementTest {
                               boolean userIdsRemoved,
                               boolean geoMasked,
                               boolean analyticsBlocked,
-                              boolean requestBlocked) {
+                              boolean requestBlocked,
+                              boolean lmtEnabled) {
 
-        verify(metrics).updateAuctionTcfMetrics(
+        verify(metrics).updateAuctionTcfAndLmtMetrics(
+                eq(activityInfrastructure),
                 eq(bidder),
                 any(),
                 eq(userFpdRemoved),
                 eq(userIdsRemoved),
                 eq(geoMasked),
                 eq(analyticsBlocked),
-                eq(requestBlocked));
+                eq(requestBlocked),
+                eq(lmtEnabled));
     }
 }
