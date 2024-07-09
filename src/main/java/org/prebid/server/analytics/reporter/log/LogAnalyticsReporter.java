@@ -30,25 +30,18 @@ public class LogAnalyticsReporter implements AnalyticsReporter {
 
     @Override
     public <T> Future<Void> processEvent(T event) {
-        final LogEvent<?> logEvent;
-
-        if (event instanceof AmpEvent ampEvent) {
-            logEvent = LogEvent.of("/openrtb2/amp", ampEvent.getBidResponse());
-        } else if (event instanceof AuctionEvent auctionEvent) {
-            logEvent = LogEvent.of("/openrtb2/auction", auctionEvent.getBidResponse());
-        } else if (event instanceof CookieSyncEvent cookieSyncEvent) {
-            logEvent = LogEvent.of("/cookie_sync", cookieSyncEvent.getBidderStatus());
-        } else if (event instanceof NotificationEvent notificationEvent) {
-            logEvent = LogEvent.of("/event", notificationEvent.getType() + notificationEvent.getBidId());
-        } else if (event instanceof SetuidEvent setuidEvent) {
-            logEvent = LogEvent.of(
+        final LogEvent<?> logEvent = switch (event) {
+            case AmpEvent ampEvent -> LogEvent.of("/openrtb2/amp", ampEvent.getBidResponse());
+            case AuctionEvent auctionEvent -> LogEvent.of("/openrtb2/auction", auctionEvent.getBidResponse());
+            case CookieSyncEvent cookieSyncEvent -> LogEvent.of("/cookie_sync", cookieSyncEvent.getBidderStatus());
+            case NotificationEvent notificationEvent ->
+                    LogEvent.of("/event", notificationEvent.getType() + notificationEvent.getBidId());
+            case SetuidEvent setuidEvent -> LogEvent.of(
                     "/setuid",
                     setuidEvent.getBidder() + ":" + setuidEvent.getUid() + ":" + setuidEvent.getSuccess());
-        } else if (event instanceof VideoEvent videoEvent) {
-            logEvent = LogEvent.of("/openrtb2/video", videoEvent.getBidResponse());
-        } else {
-            logEvent = LogEvent.of("unknown", null);
-        }
+            case VideoEvent videoEvent -> LogEvent.of("/openrtb2/video", videoEvent.getBidResponse());
+            case null, default -> LogEvent.of("unknown", null);
+        };
 
         logger.debug(mapper.encodeToString(logEvent));
 

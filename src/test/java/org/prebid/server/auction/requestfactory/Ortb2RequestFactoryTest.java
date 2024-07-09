@@ -60,7 +60,6 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -1368,7 +1367,11 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .id(accountId)
                 .privacy(AccountPrivacyConfig.builder()
                         .dsa(AccountDsaConfig.of(
-                                DefaultDsa.of(0, 1, 2, List.of(DsaTransparency.of("", List.of(0)))), null))
+                                DefaultDsa.of(
+                                        0,
+                                        1,
+                                        2,
+                                        List.of(DsaTransparency.of("", List.of(0)))), null))
                         .build())
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
@@ -1392,8 +1395,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                     assertThat(dsa.getPubRender()).isEqualTo(1);
                     assertThat(dsa.getDataToPub()).isEqualTo(2);
                     assertThat(dsa.getTransparency()).satisfies(transparencies ->
-                            assertThat(transparencies).isEqualTo(List.of(ExtRegsDsaTransparency.of("",
-                                    List.of(0)))));
+                            assertThat(transparencies).isEqualTo(
+                                    List.of(org.prebid.server.proto.openrtb.ext.request.DsaTransparency.of(
+                                            "",
+                                            List.of(0)))));
                 });
     }
 
@@ -1459,7 +1464,9 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                                 ExtRegsDsa.of(0,
                                         1,
                                         2,
-                                        List.of(ExtRegsDsaTransparency.of("", List.of(0))))))
+                                        List.of(org.prebid.server.proto.openrtb.ext.request.DsaTransparency.of(
+                                                "",
+                                                List.of(0))))))
                         .build())
         );
 
@@ -1477,7 +1484,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .id(accountId)
                 .privacy(AccountPrivacyConfig.builder()
                         .dsa(AccountDsaConfig.of(
-                                DefaultDsa.of(3, 4, 5, List.of(DsaTransparency.of("domain", List.of(1)))), null))
+                                DefaultDsa.of(
+                                        3,
+                                        4,
+                                        5,
+                                        List.of(org.prebid.server.settings.model.DsaTransparency.of(
+                                                "domain",
+                                                List.of(1)))),
+                                null))
                         .build())
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
@@ -1501,8 +1515,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                     assertThat(dsa.getPubRender()).isEqualTo(1);
                     assertThat(dsa.getDataToPub()).isEqualTo(2);
                     assertThat(dsa.getTransparency()).satisfies(transparencies ->
-                            assertThat(transparencies).isEqualTo(List.of(ExtRegsDsaTransparency.of("",
-                                    List.of(0)))));
+                            assertThat(transparencies).isEqualTo(
+                                    List.of(org.prebid.server.proto.openrtb.ext.request.DsaTransparency.of(
+                                            "",
+                                            List.of(0)))));
                 });
     }
 
@@ -1530,7 +1546,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .id(accountId)
                 .privacy(AccountPrivacyConfig.builder()
                         .dsa(AccountDsaConfig.of(
-                                DefaultDsa.of(0, 1, 2, List.of(DsaTransparency.of("", List.of(0)))), true))
+                                DefaultDsa.of(
+                                        0,
+                                        1,
+                                        2,
+                                        List.of(org.prebid.server.settings.model.DsaTransparency.of(
+                                                "",
+                                                List.of(0)))),
+                                true))
                         .build())
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));
@@ -1554,8 +1577,10 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                     assertThat(dsa.getPubRender()).isEqualTo(1);
                     assertThat(dsa.getDataToPub()).isEqualTo(2);
                     assertThat(dsa.getTransparency()).satisfies(transparencies ->
-                            assertThat(transparencies).isEqualTo(List.of(ExtRegsDsaTransparency.of("",
-                                    List.of(0)))));
+                            assertThat(transparencies).isEqualTo(
+                                    List.of(org.prebid.server.proto.openrtb.ext.request.DsaTransparency.of(
+                                            "",
+                                            List.of(0)))));
                 });
     }
 
@@ -1585,7 +1610,14 @@ public class Ortb2RequestFactoryTest extends VertxTest {
                 .id(accountId)
                 .privacy(AccountPrivacyConfig.builder()
                         .dsa(AccountDsaConfig.of(
-                                DefaultDsa.of(0, 1, 2, List.of(DsaTransparency.of("", List.of(0)))), true))
+                                DefaultDsa.of(
+                                        0,
+                                        1,
+                                        2,
+                                        List.of(org.prebid.server.settings.model.DsaTransparency.of(
+                                                "",
+                                                List.of(0)))),
+                                true))
                         .build())
                 .build();
         given(applicationSettings.getAccountById(any(), any())).willReturn(Future.succeededFuture(account));

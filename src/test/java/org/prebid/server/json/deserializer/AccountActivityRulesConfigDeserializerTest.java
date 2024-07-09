@@ -42,7 +42,7 @@ public class AccountActivityRulesConfigDeserializerTest {
     private ObjectCodec codec;
 
     @Before
-    public void setUp() throws IOException {
+    public void setUp() {
         target = new AccountActivityRulesConfigDeserializer();
     }
 

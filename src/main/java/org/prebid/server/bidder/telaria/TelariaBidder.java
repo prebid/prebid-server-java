@@ -61,7 +61,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
         final String publisherId = getPublisherId(bidRequest);
         final String seatCode;
         final ExtImpTelaria extImp;
-        Imp modifyImp = bidRequest.getImp().get(0);
+        Imp modifyImp = bidRequest.getImp().getFirst();
 
         try {
             extImp = parseImpExt(modifyImp);
@@ -193,7 +193,7 @@ public class TelariaBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidResponse bidResponse, BidRequest bidRequest) {
-        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
+        final SeatBid firstSeatBid = bidResponse.getSeatbid().getFirst();
         final List<Bid> bids = firstSeatBid.getBid();
         final List<Imp> imps = bidRequest.getImp();
 

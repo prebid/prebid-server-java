@@ -3,8 +3,6 @@ package org.prebid.server.bidder.huaweiads.model.response;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 @Getter
@@ -33,19 +31,18 @@ public enum MonitorEventType {
     private static final Map<String, MonitorEventType> EVENT_TYPE_MAP = stringToEventTypeMap();
 
     private static Map<String, MonitorEventType> stringToEventTypeMap() {
-        final Map<String, MonitorEventType> result = new HashMap<>();
-        result.put("imp", IMP);
-        result.put("click", CLICK);
-        result.put("vastError", VAST_ERROR);
-        result.put("userclose", USER_CLOSE);
-        result.put("playStart", PLAY_START);
-        result.put("playEnd", PLAY_END);
-        result.put("playResume", PLAY_RESUME);
-        result.put("playPause", PLAY_PAUSE);
-        result.put("soundClickOff", SOUND_CLICK_OFF);
-        result.put("soundClickOn", SOUND_CLICK_ON);
-        result.put("win", WIN);
-        return Collections.unmodifiableMap(result);
+        return Map.ofEntries(
+                Map.entry("imp", IMP),
+                Map.entry("click", CLICK),
+                Map.entry("vastError", VAST_ERROR),
+                Map.entry("userclose", USER_CLOSE),
+                Map.entry("playStart", PLAY_START),
+                Map.entry("playEnd", PLAY_END),
+                Map.entry("playResume", PLAY_RESUME),
+                Map.entry("playPause", PLAY_PAUSE),
+                Map.entry("soundClickOff", SOUND_CLICK_OFF),
+                Map.entry("soundClickOn", SOUND_CLICK_ON),
+                Map.entry("win", WIN));
     }
 }
 

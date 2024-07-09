@@ -1,5 +1,6 @@
 package org.prebid.server.settings.model.activity.privacy;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.Value;
@@ -28,10 +29,12 @@ public class AccountUSCustomLogicModuleConfig implements AccountPrivacyModuleCon
 
         Set<Integer> sids;
 
-        @JsonProperty("normalizeFlags")
+        @JsonProperty("normalize_flags")
+        @JsonAlias({"normalizeFlags", "normalize-flags"})
         Boolean normalizeSections;
 
-        @JsonProperty("activityConfig")
+        @JsonProperty("activity_config")
+        @JsonAlias({"activityConfig", "activity-config"})
         List<ActivityConfig> activitiesConfigs;
     }
 
@@ -40,7 +43,8 @@ public class AccountUSCustomLogicModuleConfig implements AccountPrivacyModuleCon
 
         Set<Activity> activities;
 
-        @JsonProperty("restrictIfTrue")
+        @JsonProperty("restrict_if_true")
+        @JsonAlias({"restrictIfTrue", "restrict-if-true"})
         ObjectNode jsonLogicNode;
     }
 }

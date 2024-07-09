@@ -127,7 +127,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
             }
 
             final List<Format> formatSkipFirst = bannerFormats.subList(1, bannerFormats.size());
-            final Format firstFormat = bannerFormats.get(0);
+            final Format firstFormat = bannerFormats.getFirst();
 
             return banner.toBuilder()
                     .format(formatSkipFirst)
@@ -211,7 +211,7 @@ public class AdvangelistsBidder implements Bidder<BidRequest> {
     }
 
     private static List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
-        final SeatBid firstSeatBid = bidResponse.getSeatbid().get(0);
+        final SeatBid firstSeatBid = bidResponse.getSeatbid().getFirst();
         final List<Bid> bids = firstSeatBid.getBid();
 
         if (CollectionUtils.isEmpty(bids)) {

@@ -140,7 +140,7 @@ public class GammaBidderTest extends VertxTest {
                 .returns(HttpMethod.GET, HttpRequest::getMethod)
                 .returns("https://test.endpoint.com/?id=id&zid=zid&wid=wid&bidid=&hb=pbmobile",
                         HttpRequest::getUri);
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+        assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("Accept", "*/*"),
@@ -184,7 +184,7 @@ public class GammaBidderTest extends VertxTest {
                                 + "&device_ip=123.123.123.12&device_model=Model&device_os=OS&device_ua=userAgent"
                                 + "&device_ifa=ifa&app_id=appId&app_bundle=bundle&app_name=appName",
                         HttpRequest::getUri);
-        assertThat(result.getValue().get(0).getHeaders()).isNotNull()
+        assertThat(result.getValue().getFirst().getHeaders()).isNotNull()
                 .extracting(Map.Entry::getKey, Map.Entry::getValue)
                 .containsOnly(
                         tuple("Accept", "*/*"),
@@ -220,8 +220,8 @@ public class GammaBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("bad server response: body is empty");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("bad server response: body is empty");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 

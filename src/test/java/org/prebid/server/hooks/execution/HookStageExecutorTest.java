@@ -295,7 +295,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
                                         assertThat(groups).hasSize(2);
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks).hasSize(2);
 
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
@@ -473,7 +473,7 @@ public class HookStageExecutorTest extends VertxTest {
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -588,7 +588,7 @@ public class HookStageExecutorTest extends VertxTest {
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -689,7 +689,7 @@ public class HookStageExecutorTest extends VertxTest {
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -781,7 +781,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
                                         assertThat(groups).hasSize(1);
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -861,7 +861,7 @@ public class HookStageExecutorTest extends VertxTest {
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
                                         assertThat(groups).hasSize(2);
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks).hasSize(2);
 
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
@@ -963,7 +963,7 @@ public class HookStageExecutorTest extends VertxTest {
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -1051,7 +1051,7 @@ public class HookStageExecutorTest extends VertxTest {
                     .hasEntrySatisfying(
                             Stage.entrypoint,
                             stageOutcomes ->
-                                    assertThat(stageOutcomes.get(0).getGroups().get(0).getHooks().get(0))
+                                    assertThat(stageOutcomes.getFirst().getGroups().getFirst().getHooks().getFirst())
                                             .satisfies(hookOutcome -> {
                                                 assertThat(hookOutcome.getHookId())
                                                         .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -1306,7 +1306,7 @@ public class HookStageExecutorTest extends VertxTest {
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
                                         assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
@@ -2719,8 +2719,8 @@ public class HookStageExecutorTest extends VertxTest {
 
                                         final List<GroupExecutionOutcome> groups = stageOutcome.getGroups();
 
-                                        final List<HookExecutionOutcome> group0Hooks = groups.get(0).getHooks();
-                                        assertThat(group0Hooks.get(0)).satisfies(hookOutcome -> {
+                                        final List<HookExecutionOutcome> group0Hooks = groups.getFirst().getHooks();
+                                        assertThat(group0Hooks.getFirst()).satisfies(hookOutcome -> {
                                             assertThat(hookOutcome.getHookId())
                                                     .isEqualTo(HookId.of("module-alpha", "hook-a"));
                                             assertThat(hookOutcome.getStatus())

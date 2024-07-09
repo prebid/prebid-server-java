@@ -1,0 +1,15 @@
+adapters:
+  readpeak:
+    endpoint: https://dsp.readpeak.com/header/prebid
+    geoscope:
+      - EEA
+    meta-info:
+      maintainer-email: devteam@readpeak.com
+      app-media-types:
+        - banner
+        - native
+      site-media-types:
+        - banner
+        - native
+      supported-vendors:
+      vendor-id: 290

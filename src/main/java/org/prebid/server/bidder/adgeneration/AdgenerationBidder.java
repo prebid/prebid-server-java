@@ -152,7 +152,7 @@ public class AdgenerationBidder implements Bidder<Void> {
         final List<String> currencies = bidRequest.getCur();
         return CollectionUtils.isEmpty(currencies)
                 ? DEFAULT_REQUEST_CURRENCY
-                : currencies.contains(DEFAULT_REQUEST_CURRENCY) ? DEFAULT_REQUEST_CURRENCY : currencies.get(0);
+                : currencies.contains(DEFAULT_REQUEST_CURRENCY) ? DEFAULT_REQUEST_CURRENCY : currencies.getFirst();
     }
 
     private static HttpRequest<Void> createSingleRequest(String uri, Device device) {

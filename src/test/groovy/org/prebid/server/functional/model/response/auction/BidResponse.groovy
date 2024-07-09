@@ -18,7 +18,7 @@ class BidResponse implements ResponseModel {
     String bidid
     Currency cur
     String customdata
-    Integer nbr
+    NoBidResponse nbr
     BidResponseExt ext
 
     static BidResponse getDefaultBidResponse(BidRequest bidRequest, BidderName bidderName = GENERIC) {

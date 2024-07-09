@@ -74,8 +74,8 @@ public class ConnectadBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -175,7 +175,7 @@ public class ConnectadBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
                 .hasSize(1)
-                .extracting(imp -> imp.get(0).getSecure())
+                .extracting(imp -> imp.getFirst().getSecure())
                 .hasSize(1)
                 .containsOnly(1);
     }

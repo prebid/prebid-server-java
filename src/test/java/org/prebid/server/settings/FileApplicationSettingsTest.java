@@ -177,6 +177,7 @@ public class FileApplicationSettingsTest extends VertxTest {
                                 .build())
                         .build())
                 .analytics(AccountAnalyticsConfig.of(
+                        false,
                         expectedEventsConfig,
                         singletonMap(
                                 "some-analytics",
