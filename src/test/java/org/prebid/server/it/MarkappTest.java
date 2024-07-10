@@ -16,20 +16,20 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static java.util.Collections.singletonList;
 
 @RunWith(SpringRunner.class)
-public class SmarthubTest extends IntegrationTest {
+public class MarkappTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromSmarthub() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromMarkapp() throws IOException, JSONException {
         // given
-        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smarthub-exchange"))
-                .withRequestBody(equalToJson(jsonFrom("openrtb2/smarthub/test-smarthub-bid-request.json")))
-                .willReturn(aResponse().withBody(jsonFrom("openrtb2/smarthub/test-smarthub-bid-response.json"))));
+        WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/markapp-exchange"))
+                .withRequestBody(equalToJson(jsonFrom("openrtb2/markapp/test-markapp-bid-request.json")))
+                .willReturn(aResponse().withBody(jsonFrom("openrtb2/markapp/test-markapp-bid-response.json"))));
 
         // when
-        final Response response = responseFor("openrtb2/smarthub/test-auction-smarthub-request.json",
+        final Response response = responseFor("openrtb2/markapp/test-auction-markapp-request.json",
                 Endpoint.openrtb2_auction);
 
         // then
-        assertJsonEquals("openrtb2/smarthub/test-auction-smarthub-response.json", response, singletonList("smarthub"));
+        assertJsonEquals("openrtb2/markapp/test-auction-markapp-response.json", response, singletonList("markapp"));
     }
 }
