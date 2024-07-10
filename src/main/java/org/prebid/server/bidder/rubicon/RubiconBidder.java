@@ -178,6 +178,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             };
     private static final boolean DEFAULT_MULTIFORMAT_VALUE = false;
 
+    private final String bidderName;
     private final String endpointUrl;
     private final Set<String> supportedVendors;
     private final boolean generateBidId;
@@ -187,7 +188,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private final MultiMap headers;
 
-    public RubiconBidder(String endpoint,
+    public RubiconBidder(String bidderName,
+                         String endpoint,
                          String xapiUsername,
                          String xapiPassword,
                          List<String> supportedVendors,
@@ -196,6 +198,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                          PriceFloorResolver floorResolver,
                          JacksonMapper mapper) {
 
+        this.bidderName = Objects.requireNonNull(bidderName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.supportedVendors = Set.copyOf(Objects.requireNonNull(supportedVendors));
         this.generateBidId = generateBidId;
@@ -543,6 +546,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 imp,
                 mediaType,
                 null,
+                bidderName,
                 warnings);
     }
 

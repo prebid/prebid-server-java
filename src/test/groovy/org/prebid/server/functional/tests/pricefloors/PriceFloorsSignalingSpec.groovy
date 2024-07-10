@@ -99,7 +99,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.site.publisher.id, floorsResponse)
 
         when: "PBS cache rules and processes auction request"
-        cacheFloorsProviderRules(bidRequest, floorsProviderFloorValue)
+        cacheFloorsProviderRules(bidRequest, floorsProviderFloorValue, floorsPbsService)
 
         then: "Bidder request bidFloor should correspond to floors provider"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
@@ -349,7 +349,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(bidRequest.app.publisher.id, floorsResponse)
 
         when: "PBS cache rules and processes auction request"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorsProviderFloorValue)
+        cacheFloorsProviderRules(bidRequest, floorsProviderFloorValue / bidAdjustment, pbsService)
 
         then: "Bidder request bidFloor should be update according to bidAdjustment"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
@@ -400,7 +400,7 @@ class PriceFloorsSignalingSpec extends PriceFloorsBaseSpec {
         floorsProvider.setResponse(accountId, floorsResponse)
 
         when: "PBS cache rules and processes auction request"
-        cacheFloorsProviderRules(pbsService, bidRequest, floorsProviderFloorValue)
+        cacheFloorsProviderRules(bidRequest, floorsProviderFloorValue, pbsService)
 
         then: "Bidder request bidFloor should be changed"
         def bidderRequest = bidder.getBidderRequests(bidRequest.id).last()
