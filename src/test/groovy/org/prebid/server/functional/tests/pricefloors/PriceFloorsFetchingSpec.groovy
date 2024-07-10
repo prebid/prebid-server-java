@@ -11,7 +11,6 @@ import org.prebid.server.functional.model.request.auction.ExtPrebidFloors
 import org.prebid.server.functional.model.request.auction.PrebidStoredRequest
 import org.prebid.server.functional.model.response.auction.BidResponse
 import org.prebid.server.functional.util.PBSUtils
-import spock.lang.IgnoreRest
 
 import java.time.Instant
 
@@ -331,7 +330,6 @@ class PriceFloorsFetchingSpec extends PriceFloorsBaseSpec {
         fetch << [new PriceFloorsFetch(enabled: false, url: basicFetchUrl), new PriceFloorsFetch(url: basicFetchUrl)]
     }
 
-    @IgnoreRest
     def "PBS should fetch data from provider when use-dynamic-data = true"() {
         given: "Pbs with PF configuration with useDynamicData"
         def defaultAccountConfigSettings = defaultAccountConfigSettings.tap {
