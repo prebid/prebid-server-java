@@ -313,7 +313,10 @@ public class ExchangeService {
                         .map(CompositeFuture::<AuctionParticipation>list)
                         .map(storedResponseProcessor::updateStoredBidResponse)
                         .map(auctionParticipations -> storedResponseProcessor.mergeWithBidderResponses(
-                                auctionParticipations, storedAuctionResponses, bidRequest.getImp()))
+                                auctionParticipations,
+                                storedAuctionResponses,
+                                bidRequest.getImp(),
+                                context.getBidRejectionTrackers()))
                         .map(auctionParticipations -> dropZeroNonDealBids(auctionParticipations, debugWarnings))
                         .map(auctionParticipations -> validateAndAdjustBids(auctionParticipations, context, aliases))
                         .map(auctionParticipations -> updateResponsesMetrics(auctionParticipations, account, aliases))

@@ -35,6 +35,6 @@
     }
   },
   "ext": {
-    "client": "prebid_server_0.4"
+    "client": "prebid_server_0.7"
   }
 }

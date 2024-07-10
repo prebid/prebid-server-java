@@ -106,8 +106,10 @@ public class MetricsConfiguration {
     }
 
     @Bean
-    Metrics metrics(@Value("${metrics.metricType}") CounterType counterType, MetricRegistry metricRegistry,
+    Metrics metrics(@Value("${metrics.metricType}") CounterType counterType,
+                    MetricRegistry metricRegistry,
                     AccountMetricsVerbosityResolver accountMetricsVerbosityResolver) {
+
         return new Metrics(metricRegistry, counterType, accountMetricsVerbosityResolver);
     }
 

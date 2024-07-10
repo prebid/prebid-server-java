@@ -61,6 +61,10 @@ Removes and downloads file again if depending service cant process probably corr
 - `<SERVICE>.remote-file-syncer.tmp-filepath` - full path to the temporary file.
 - `<SERVICE>.remote-file-syncer.retry-count` - how many times try to download.
 - `<SERVICE>.remote-file-syncer.retry-interval-ms` - how long to wait between failed retries.
+- `<SERVICE>.remote-file-syncer.retry.delay-millis` - initial time of how long to wait between failed retries.
+- `<SERVICE>.remote-file-syncer.retry.max-delay-millis` - maximum allowed value for `delay-millis`.
+- `<SERVICE>.remote-file-syncer.retry.factor` - factor for the `delay-millis` value, that will be applied after each failed retry to modify `delay-millis` value. 
+- `<SERVICE>.remote-file-syncer.retry.jitter` - jitter (multiplicative) for `delay-millis` parameter.
 - `<SERVICE>.remote-file-syncer.timeout-ms` - default operation timeout for obtaining database file.
 - `<SERVICE>.remote-file-syncer.update-interval-ms` - time interval between updates of the usable file.
 - `<SERVICE>.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
@@ -264,6 +268,9 @@ See [metrics documentation](metrics.md) for complete list of metrics submitted a
 - `cache.scheme` - set the external Cache Service protocol: `http`, `https`, etc.
 - `cache.host` - set the external Cache Service destination in format `host:port`.
 - `cache.path` - set the external Cache Service path, for example `/cache`.
+- `cache.module.enabled` - If set to true, this will allow storing modules’ data in third-party storage.
+- `cache.module.path` - set the external Cache Service path for module caching, for example `/module/cache`.
+- `cache.api.key` - set the external Cache Service api key for secured calls.
 - `cache.query` - appends to the cache path as query string params (used for legacy Auction requests).
 - `cache.banner-ttl-seconds` - how long (in seconds) banner will be available via the external Cache Service.
 - `cache.video-ttl-seconds` - how long (in seconds) video creative will be available via the external Cache Service.

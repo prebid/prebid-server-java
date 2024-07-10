@@ -40,7 +40,6 @@ import java.time.Instant
 
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED
-import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
 import static org.prebid.server.functional.model.config.DataActivity.CONSENT
 import static org.prebid.server.functional.model.config.DataActivity.NOTICE_NOT_PROVIDED
 import static org.prebid.server.functional.model.config.DataActivity.NOTICE_PROVIDED
@@ -66,6 +65,12 @@ import static org.prebid.server.functional.model.config.UsNationalPrivacySection
 import static org.prebid.server.functional.model.config.UsNationalPrivacySection.SHARING_NOTICE
 import static org.prebid.server.functional.model.pricefloors.Country.CAN
 import static org.prebid.server.functional.model.pricefloors.Country.USA
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ACCOUNT_PROCESSED_RULES_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.ALERT_GENERAL
+import static org.prebid.server.functional.model.privacy.Metric.PROCESSED_ACTIVITY_RULES_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
 import static org.prebid.server.functional.model.request.GppSectionId.USP_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CA_V1
 import static org.prebid.server.functional.model.request.GppSectionId.US_CO_V1
@@ -86,17 +91,10 @@ import static org.prebid.server.functional.util.privacy.model.State.ONTARIO
 
 class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
-    private static final String ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT = "account.%s.activity.processedrules.count"
-    private static final String DISALLOWED_COUNT_FOR_ACCOUNT = "account.%s.activity.${TRANSMIT_UFPD.metricValue}.disallowed.count"
-    private static final String ACTIVITY_RULES_PROCESSED_COUNT = "requests.activity.processedrules.count"
-    private static final String DISALLOWED_COUNT_FOR_ACTIVITY_RULE = "requests.activity.${TRANSMIT_UFPD.metricValue}.disallowed.count"
-    private static final String DISALLOWED_COUNT_FOR_GENERIC_ADAPTER = "adapter.${GENERIC.value}.activity.${TRANSMIT_UFPD.metricValue}.disallowed.count"
-    private static final String ALERT_GENERAL = "alerts.general"
-
     def "PBS auction call when transmit UFPD activities is allowing requests should leave UFPD fields in request and update proper metrics"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def bidRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -133,8 +131,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
 
         where: "Activities fields name in different case"
         activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.defaultActivity),
@@ -146,7 +144,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when transmit UFPD activities is rejecting requests should remove UFPD fields in request and update disallowed metrics"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def bidRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Flush metrics"
         flushMetrics(activityPbsService)
@@ -183,9 +181,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
 
         where: "Activities fields name in different case"
         activities << [AllowActivities.getDefaultAllowActivities(TRANSMIT_UFPD, Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])),
@@ -197,7 +195,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when default activity setting set to false should remove UFPD fields from request"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def bidRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Allow activities setup"
         def activity = new Activity(defaultAction: false)
@@ -240,7 +238,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def bidRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Activities set for transmit ufpd with bidder allowed without type"
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(conditions, isAllowed)])
@@ -269,7 +267,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when first rule allowing in activities should leave UFPD fields in request"() {
         given: "Default Generic BidRequests with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def bidRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Activity rules with same priority"
         def allowActivity = new ActivityRule(condition: Condition.baseCondition, allow: true)
@@ -313,7 +311,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when first rule disallowing in activities should remove UFPD fields in request"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def bidRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Activities set for actions with Generic bidder rejected by hierarchy setup"
         def disallowActivity = new ActivityRule(condition: Condition.baseCondition, allow: false)
@@ -356,7 +354,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction shouldn't allow rule when gppSid not intersect"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = regsGppSid
         }
 
@@ -406,8 +404,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
 
         where:
         regsGppSid        | conditionGppSid
@@ -418,7 +416,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction should allow rule when gppSid intersect"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [USP_V1.intValue]
         }
 
@@ -468,15 +466,15 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS auction should process rule when device.geo doesn't intersection"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.regs.gppSid = [USP_V1.intValue]
             it.device = new Device(geo: deviceGeo)
         }
@@ -528,8 +526,8 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
 
         where:
         deviceGeo                                           | conditionGeo
@@ -542,7 +540,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction should disallowed rule when device.geo intersection"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.setAccountId(accountId)
             it.device = new Device(geo: deviceGeo)
         }
@@ -594,9 +592,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
 
         where:
         deviceGeo                                           | conditionGeo
@@ -608,7 +606,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction should process rule when regs.ext.gpc doesn't intersection with condition.gpc"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.regs.ext.gpc = PBSUtils.randomNumber as String
         }
 
@@ -658,15 +656,15 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS auction should disallowed rule when regs.ext.gpc intersection with condition.gpc"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
         def gpc = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.setAccountId(accountId)
             it.regs.ext.gpc = gpc
         }
@@ -717,15 +715,15 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS auction should process rule when header gpc doesn't intersection with condition.gpc"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.regs.ext.gpc = PBSUtils.randomNumber as String
         }
 
@@ -776,14 +774,14 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
-        assert metrics[ACTIVITY_PROCESSED_RULES_FOR_ACCOUNT.formatted(accountId)] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[ACCOUNT_PROCESSED_RULES_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS auction should disallowed rule when header gpc intersection with condition.gpc"() {
         given: "Generic bid request with account connection"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             it.setAccountId(accountId)
             it.regs.ext.gpc = null
         }
@@ -834,15 +832,15 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS auction call when privacy regulation match and rejecting should remove UFPD fields in request"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = SIMPLE_GPC_DISALLOW_LOGIC
         }
@@ -893,7 +891,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy module contain some part of disallow logic should remove UFPD fields in request"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = disallowGppLogic
         }
@@ -1064,7 +1062,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy module contain some part of disallow logic which violates GPP validation should remove UFPD fields in request"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = disallowGppLogic
         }
@@ -1120,7 +1118,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when request have different gpp consent but match and rejecting should remove UFPD fields in request"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [gppSid.intValue]
             regs.gpp = gppConsent
         }
@@ -1177,7 +1175,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy modules contain allowing settings should leave UFPD fields in request"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = SIMPLE_GPC_DISALLOW_LOGIC
         }
@@ -1230,7 +1228,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when regs.gpp in request is allowing should leave UFPD fields in request"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = regsGpp
         }
@@ -1283,7 +1281,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy regulation have duplicate should leave UFPD fields in request and update alerts metrics"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
         }
 
@@ -1333,13 +1331,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS auction call when privacy module contain invalid property should respond with an error"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = SIMPLE_GPC_DISALLOW_LOGIC
         }
@@ -1370,7 +1368,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         given: "Default basic generic BidRequest"
         def gppConsent = new UsNatV1Consent.Builder().setGpc(gpcValue).build()
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = gppConsent
         }
@@ -1428,7 +1426,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when privacy regulation match custom requirement should remove UFPD fields in request"() {
         given: "Default basic generic BidRequest"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.gppSid = [US_NAT_V1.intValue]
             regs.gpp = gppConsent
         }
@@ -1491,7 +1489,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
         given: "Generic BidRequest with gpp and account setup"
         def gppConsent = new UsNatV1Consent.Builder().setGpc(true).build()
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             ext.prebid.trace = VERBOSE
             regs.gppSid = [US_CT_V1.intValue]
             regs.gpp = gppConsent
@@ -1528,13 +1526,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS auction call when custom privacy regulation with normalizing that match custom config should have empty UFPD fields"() {
         given: "Generic BidRequest with gpp and account setup"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def bidRequest = getBidRequestWithPersonalData(accountId).tap {
             ext.prebid.trace = VERBOSE
             regs.gppSid = [gppSid.intValue]
             regs.gpp = gppStateConsent.build()
@@ -1660,7 +1658,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when transmit UFPD activities is allowing request should leave UFPD fields field in active request and update proper metrics"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1709,13 +1707,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS amp call when transmit UFPD activities is rejecting request should remove UFPD fields field in active request and update disallowed metrics"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1764,14 +1762,14 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS amp call when default activity setting set to false should remove UFPD fields from request"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1823,7 +1821,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1861,7 +1859,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when first rule allowing in activities should leave UFPD fields in request"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1914,7 +1912,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when first rule disallowing in activities should remove UFPD fields in request"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -1966,7 +1964,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp should disallowed rule when header.gpc intersection with condition.gpc"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId).tap {
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId).tap {
             regs.ext.gpc = null
         }
 
@@ -2022,14 +2020,14 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS amp should allowed rule when gpc header doesn't intersection with condition.gpc"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2084,13 +2082,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics processed across activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ACTIVITY_RULES_PROCESSED_COUNT] == 1
+        assert metrics[PROCESSED_ACTIVITY_RULES_COUNT.getValue(ampStoredRequest, TRANSMIT_UFPD)] == 1
     }
 
     def "PBS amp call when privacy regulation match and rejecting should remove UFPD fields in request"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2150,7 +2148,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when privacy module contain some part of disallow logic should remove UFPD fields in request"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2330,7 +2328,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when privacy module contain some part of disallow logic which violates GPP validation should remove UFPD fields in request"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2395,7 +2393,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when request have different gpp consent but match and rejecting should remove UFPD fields in request"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2461,7 +2459,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when privacy modules contain allowing settings should leave UFPD fields in request"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2522,7 +2520,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when regs.gpp in request is allowing should leave UFPD fields in request"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2583,7 +2581,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when privacy regulation have duplicate should leave UFPD fields in request and update alerts metrics"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2642,13 +2640,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS amp call when privacy module contain invalid property should respond with an error"() {
         given: "Default Generic BidRequest with UFPD fields field and account id"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2687,7 +2685,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when privacy regulation don't match custom requirement should leave UFPD fields in request"() {
         given: "Store bid request with link for account"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account and gpp"
         def gppConsent = new UsNatV1Consent.Builder().setGpc(gpcValue).build()
@@ -2755,7 +2753,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when privacy regulation match custom requirement should remove UFPD fields from request"() {
         given: "Store bid request with gpp string and link for account"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account and gppSid"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -2826,7 +2824,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS amp call when custom privacy regulation empty and normalize is disabled should respond with an error and update metric"() {
         given: "Store bid request with link for account"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account and gpp string"
         def gppConsent = new UsNatV1Consent.Builder().setGpc(true).build()
@@ -2873,13 +2871,13 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[ALERT_GENERAL] == 1
+        assert metrics[ALERT_GENERAL.getValue()] == 1
     }
 
     def "PBS amp call when custom privacy regulation with normalizing should change request consent and call to bidder"() {
         given: "Store bid request with gpp string and link for account"
         def accountId = PBSUtils.randomNumber as String
-        def ampStoredRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def ampStoredRequest = getBidRequestWithPersonalData(accountId)
 
         and: "amp request with link to account and gppSid"
         def ampRequest = AmpRequest.defaultAmpRequest.tap {
@@ -3016,7 +3014,7 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
     def "PBS auction call when transmit UFPD activities is rejecting requests with activityTransition false should remove only UFPD fields in request"() {
         given: "Default Generic BidRequests with UFPD fields and account id"
         def accountId = PBSUtils.randomNumber as String
-        def bidRequest = givenBidRequestWithAccountAndUfpdData(accountId)
+        def bidRequest = getBidRequestWithPersonalData(accountId)
 
         and: "Allow activities setup"
         def activity = Activity.getDefaultActivity([ActivityRule.getDefaultActivityRule(Condition.baseCondition, false)])
@@ -3059,9 +3057,9 @@ class GppTransmitUfpdActivitiesSpec extends PrivacyBaseSpec {
 
         and: "Metrics for disallowed activities should be updated"
         def metrics = activityPbsService.sendCollectedMetricsRequest()
-        assert metrics[DISALLOWED_COUNT_FOR_ACTIVITY_RULE] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_ACCOUNT.formatted(accountId)] == 1
-        assert metrics[DISALLOWED_COUNT_FOR_GENERIC_ADAPTER] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
 
         where:
         eid << [new PurposeEid(activityTransition: false),

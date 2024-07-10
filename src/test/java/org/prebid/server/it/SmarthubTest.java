@@ -19,7 +19,7 @@ import static java.util.Collections.singletonList;
 public class SmarthubTest extends IntegrationTest {
 
     @Test
-    public void openrtb2AuctionShouldRespondWithBidsFromBetween() throws IOException, JSONException {
+    public void openrtb2AuctionShouldRespondWithBidsFromSmarthub() throws IOException, JSONException {
         // given
         WIRE_MOCK_RULE.stubFor(post(urlPathEqualTo("/smarthub-exchange"))
                 .withRequestBody(equalToJson(jsonFrom("openrtb2/smarthub/test-smarthub-bid-request.json")))

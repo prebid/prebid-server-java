@@ -10,29 +10,29 @@ import java.util.List;
 @Value
 public class CommonMessage {
 
-    private final String version;
+    String version;
 
     @JsonProperty("auctionId")
-    private final String auctionId;
+    String auctionId;
 
-    private final String referrer;
+    String referrer;
 
-    private final double sampling;
+    double sampling;
 
     @JsonProperty("prebidServer")
-    private final String prebidServer;
+    String prebidServer;
 
     @JsonProperty("greenbidsId")
-    private final String greenbidsId;
+    String greenbidsId;
 
-    private final String pbuid;
+    String pbuid;
 
     @JsonProperty("billingId")
-    private final String billingId;
+    String billingId;
 
     @JsonProperty("adUnits")
-    private final List<GreenbidsAdUnit> adUnits;
+    List<GreenbidsAdUnit> adUnits;
 
     @JsonProperty("auctionElapsed")
-    private final Long auctionElapsed;
+    Long auctionElapsed;
 }

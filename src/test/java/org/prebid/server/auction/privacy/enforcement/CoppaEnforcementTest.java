@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidderPrivacyResult;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdCoppaMask;
@@ -18,6 +19,7 @@ import org.prebid.server.privacy.model.PrivacyContext;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,6 +35,8 @@ public class CoppaEnforcementTest {
     private UserFpdCoppaMask userFpdCoppaMask;
     @Mock
     private Metrics metrics;
+    @Mock
+    private ActivityInfrastructure activityInfrastructure;
 
     private CoppaEnforcement target;
 
@@ -73,6 +77,7 @@ public class CoppaEnforcementTest {
         given(userFpdCoppaMask.maskDevice(any())).willReturn(maskedDevice);
 
         final AuctionContext auctionContext = AuctionContext.builder()
+                .activityInfrastructure(activityInfrastructure)
                 .bidRequest(BidRequest.builder().device(Device.builder().ip("originalDevice").build()).build())
                 .build();
         final Map<String, User> bidderToUser = Map.of("bidder", User.builder().id("originalUser").build());
@@ -85,6 +90,6 @@ public class CoppaEnforcementTest {
             assertThat(privacyResult.getUser()).isSameAs(maskedUser);
             assertThat(privacyResult.getDevice()).isSameAs(maskedDevice);
         });
-        verify(metrics).updatePrivacyCoppaMetric();
+        verify(metrics).updatePrivacyCoppaMetric(activityInfrastructure, Set.of("bidder"));
     }
 }

@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
@@ -139,7 +138,7 @@ public class SmaatoBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getExt)
                 .containsExactly(jacksonMapper.fillExtension(ExtRequest.empty(),
-                        SmaatoBidRequestExt.of("prebid_server_0.4")));
+                        SmaatoBidRequestExt.of("prebid_server_0.7")));
     }
 
     @Test
@@ -510,19 +509,6 @@ public class SmaatoBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeIndividualHttpRequestsShouldReturnErrorIfBannerSizesAndFormatsAreAbsent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(Banner.builder().build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getValue()).isEmpty();
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("No sizes provided for Banner."));
-    }
-
-    @Test
     public void makeIndividualHttpRequestsShouldNotModifyBannerIfBannerSizesArePresent() {
         // given
         final BidRequest bidRequest = givenBidRequest(impBuilder ->
@@ -538,24 +524,6 @@ public class SmaatoBidderTest extends VertxTest {
                 .flatExtracting(BidRequest::getImp)
                 .extracting(Imp::getBanner)
                 .containsExactly(Banner.builder().w(1).h(1).build());
-    }
-
-    @Test
-    public void makeIndividualHttpRequestsShouldReplaceBannerSizesWithFirstFormatIfFormatsArePresent() {
-        // given
-        final Banner banner = Banner.builder().format(singletonList(Format.builder().w(2).h(2).build())).build();
-        final BidRequest bidRequest = givenBidRequest(impBuilder -> impBuilder.banner(banner));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getBanner)
-                .containsExactly(banner.toBuilder().w(2).h(2).build());
     }
 
     @Test
