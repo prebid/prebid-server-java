@@ -50,7 +50,7 @@ public class BasicModuleCacheService implements ModuleCacheService {
                                          String moduleCode) {
 
         try {
-            validateStoreData(key, value, type, moduleCode);
+            validateStoreData(key, value, application, type, moduleCode);
         } catch (PreBidException e) {
             return Future.failedFuture(e);
         }
@@ -74,6 +74,7 @@ public class BasicModuleCacheService implements ModuleCacheService {
 
     private static void validateStoreData(String key,
                                           String value,
+                                          String application,
                                           ModuleCacheType type,
                                           String moduleCode) {
 
@@ -83,6 +84,10 @@ public class BasicModuleCacheService implements ModuleCacheService {
 
         if (StringUtils.isBlank(value)) {
             throw new PreBidException("Module cache 'value' can not be blank");
+        }
+
+        if (StringUtils.isBlank(application)) {
+            throw new PreBidException("Module cache 'application' can not be blank");
         }
 
         if (type == null) {
@@ -124,7 +129,7 @@ public class BasicModuleCacheService implements ModuleCacheService {
                                                            String application) {
 
         try {
-            validateRetrieveData(key, moduleCode);
+            validateRetrieveData(key, application, moduleCode);
         } catch (PreBidException e) {
             return Future.failedFuture(e);
         }
@@ -137,9 +142,13 @@ public class BasicModuleCacheService implements ModuleCacheService {
 
     }
 
-    private static void validateRetrieveData(String key, String moduleCode) {
+    private static void validateRetrieveData(String key, String application, String moduleCode) {
         if (StringUtils.isBlank(key)) {
             throw new PreBidException("Module cache 'key' can not be blank");
+        }
+
+        if (StringUtils.isBlank(application)) {
+            throw new PreBidException("Module cache 'application' can not be blank");
         }
 
         if (StringUtils.isBlank(moduleCode)) {
@@ -153,7 +162,7 @@ public class BasicModuleCacheService implements ModuleCacheService {
 
         return endpointUrl
                 + "?k=" + constructEntryKey(key, moduleCode)
-                + "&a=" + StringUtils.defaultString(application);
+                + "&a=" + application;
     }
 
     private ModuleCacheResponse toModuleCacheResponse(int statusCode, String responseBody) {
