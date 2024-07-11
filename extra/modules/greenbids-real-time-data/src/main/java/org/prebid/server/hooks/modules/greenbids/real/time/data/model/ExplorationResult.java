@@ -5,13 +5,11 @@ import lombok.Value;
 import java.util.Map;
 
 @Value(staticConstructor = "of")
-public class AnalyticsResult {
+public class ExplorationResult {
 
-    String status;
+    String greenbidsId;
 
-    Map<String, Ort2ImpExtResult> values;
+    Map<String, Boolean> keptInAuction;
 
-    String bidder;
-
-    String impId;
+    Boolean isExploration;
 }
