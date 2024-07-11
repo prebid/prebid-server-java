@@ -16,8 +16,10 @@ import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.hooks.execution.v1.auction.AuctionRequestPayloadImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.AnalyticsResult;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ExplorationResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.GreenbidsUserAgent;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.OnnxModelRunner;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.Ort2ImpExtResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ThrottlingMessage;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ActivityImpl;
@@ -45,6 +47,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -53,6 +56,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     private static final String CODE = "greenbids-real-time-data-processed-auction-request-hook";
     private static final String ACTIVITY = "greenbids-filter";
     private static final String SUCCESS_STATUS = "success";
+    private static final Double EXPLORATION_RATE = 0.0001;
+    private static final int RANGE_16_BIT_INTEGER_DIVISION_BASIS = 0x10000;
 
     private final ObjectMapper mapper;
 
@@ -154,14 +159,23 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                     }
                 });
 
+        // exploration result for analytics adapter
+        final String greenbidsId = UUID.randomUUID().toString(); //"test-greenbids-id"; //UUID.randomUUID().toString();
+        final int hashInt = Integer.parseInt(
+                greenbidsId.substring(greenbidsId.length() - 4), 16);
+        final boolean isExploration = hashInt < EXPLORATION_RATE * RANGE_16_BIT_INTEGER_DIVISION_BASIS;
+
         // update Bid Request with filtered bidders
         List<Imp> impsWithFilteredBidders = updateImps(bidRequest, impsBiddersFilterMap);
-        BidRequest updatedBidRequest = bidRequest.toBuilder().imp(impsWithFilteredBidders).build();
+        BidRequest updatedBidRequest = isExploration
+                ? bidRequest.toBuilder().imp(impsWithFilteredBidders).build()
+                : bidRequest;
 
-        final String greenbidsId = "test-greenbids-id"; //UUID.randomUUID().toString();
 
+        final Map<String, Ort2ImpExtResult> ort2ImpExtResultMap = createOrtb2ImpExt(
+                bidRequest, impsBiddersFilterMap, greenbidsId, isExploration);
         final AnalyticsResult analyticsResult = AnalyticsResult.of(
-                "success", Map.of("greenbidsId", greenbidsId), null, null);
+                "success", ort2ImpExtResultMap, null, null);
 
         // update invocation result
         InvocationResult<AuctionRequestPayload> invocationResult = InvocationResultImpl.<AuctionRequestPayload>builder()
@@ -178,12 +192,33 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 "GreenbidsRealTimeDataProcessedAuctionRequestHook/call" + "\n" +
                         "impsBiddersFilterMap: " + impsBiddersFilterMap + "\n" +
                         "impsWithFilteredBidders: " + impsWithFilteredBidders + "\n" +
-                        "updatedBidRequest: " + updatedBidRequest + "\n" +
+                        //"updatedBidRequest: " + updatedBidRequest + "\n" +
                         "AnalyticsTag: " + toAnalyticsTags(Collections.singletonList(analyticsResult)) + "\n" +
-                        "invocationResult: " + invocationResult
+                        "invocationResult: " + invocationResult + "\n" +
+                        "ort2ImpExtResultMap: " + ort2ImpExtResultMap + "\n" +
+                        "analyticsResult: " + analyticsResult
         );
 
         return Future.succeededFuture(invocationResult);
+    }
+
+    private Map<String, Ort2ImpExtResult> createOrtb2ImpExt(
+            BidRequest bidRequest,
+            Map<String, Map<String, Boolean>> impsBiddersFilterMap,
+            String greenbidsId,
+            Boolean isExploration) {
+        return bidRequest.getImp().stream()
+                .collect(Collectors.toMap(
+                        Imp::getId,
+                        imp -> {
+                            String tid = imp.getExt().get("tid").asText();
+                            Map<String, Boolean> impBiddersFilterMap = impsBiddersFilterMap.get(imp.getId());
+                            ExplorationResult explorationResult = ExplorationResult.of(
+                                    greenbidsId, impBiddersFilterMap, isExploration);
+                            return Ort2ImpExtResult.of(
+                                    explorationResult, tid);
+                        }
+                ));
     }
 
     private Tags toAnalyticsTags(List<AnalyticsResult> analyticsResults) {
@@ -213,7 +248,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                         .build());
     }
 
-    private ObjectNode toObjectNode(Map<String, Object> values) {
+    private ObjectNode toObjectNode(Map<String, Ort2ImpExtResult> values) {
         return values != null ? mapper.valueToTree(values) : null;
     }
 
