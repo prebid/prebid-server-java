@@ -264,7 +264,9 @@ public class YeahmobiBidderTest extends VertxTest {
                 mapper.writeValueAsString(
                         givenBidResponse(bidBuilder -> bidBuilder
                                 .impid("123")
-                                .ext(mapper.valueToTree(Map.of("video", Map.of("duration", 1)))))));
+                                .ext(mapper.valueToTree(Map.of("video", Map.of(
+                                        "duration", 1,
+                                        "primary_category", "cat")))))));
 
         // when
         final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
@@ -275,7 +277,9 @@ public class YeahmobiBidderTest extends VertxTest {
                 .containsExactly(BidderBid.builder()
                         .bid(Bid.builder()
                                 .impid("123")
-                                .ext(mapper.valueToTree(Map.of("video", Map.of("duration", 1))))
+                                .ext(mapper.valueToTree(Map.of("video", Map.of(
+                                        "duration", 1,
+                                        "primary_category", "cat"))))
                                 .build())
                         .type(xNative)
                         .bidCurrency("EUR")
