@@ -287,7 +287,7 @@ public class IxBidder implements Bidder<BidRequest> {
                 .bid(updatedBid)
                 .type(bidType)
                 .bidCurrency(bidResponse.getCur())
-                .videoInfo(bidType == BidType.video ? extBidPrebidVideo : null)
+                .videoInfo(bidType == BidType.video ? videoInfo(extBidPrebidVideo) : null)
                 .build();
     }
 
@@ -334,6 +334,18 @@ public class IxBidder implements Bidder<BidRequest> {
         throw new PreBidException("Unmatched impression id " + impId);
     }
 
+    private ExtBidPrebidVideo parseBidExtPrebidVideo(ObjectNode bidExt) {
+        if (bidExt == null) {
+            return null;
+        }
+
+        try {
+            return mapper.mapper().treeToValue(bidExt.path("prebid").path("video"), ExtBidPrebidVideo.class);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
+
     private Bid updateBidWithVideoAttributes(Bid bid, ExtBidPrebidVideo extBidPrebidVideo) {
         final List<String> cat = bid.getCat();
         return CollectionUtils.isEmpty(cat) && extBidPrebidVideo != null
@@ -341,14 +353,6 @@ public class IxBidder implements Bidder<BidRequest> {
                 .cat(Collections.singletonList(extBidPrebidVideo.getPrimaryCategory()))
                 .build()
                 : bid;
-    }
-
-    private ExtBidPrebidVideo parseBidExtPrebidVideo(ObjectNode bidExt) {
-        try {
-            return mapper.mapper().treeToValue(bidExt.path("prebid").path("video"), ExtBidPrebidVideo.class);
-        } catch (JsonProcessingException e) {
-            return null;
-        }
     }
 
     private Bid updateBidAdmWithNativeAttributes(Bid bid) {
@@ -396,6 +400,12 @@ public class IxBidder implements Bidder<BidRequest> {
     private static boolean isImpTracker(EventTracker tracker) {
         return Objects.equals(tracker.getMethod(), EventType.IMPRESSION.getValue())
                 || Objects.equals(tracker.getEvent(), EventTrackingMethod.IMAGE.getValue());
+    }
+
+    private static ExtBidPrebidVideo videoInfo(ExtBidPrebidVideo extBidPrebidVideo) {
+        return extBidPrebidVideo != null
+                ? ExtBidPrebidVideo.of(extBidPrebidVideo.getDuration(), null)
+                : null;
     }
 
     private List<FledgeAuctionConfig> extractFledge(IxBidResponse bidResponse) {
