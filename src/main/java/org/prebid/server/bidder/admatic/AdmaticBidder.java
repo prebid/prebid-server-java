@@ -64,6 +64,18 @@ public class AdmaticBidder implements Bidder<BidRequest> {
         return Result.of(requests, errors);
     }
 
+    private AdmaticImpExt parseImpExt(Imp imp) {
+        try {
+            return mapper.mapper().convertValue(imp.getExt(), TYPE_REFERENCE).getBidder();
+        } catch (IllegalArgumentException e) {
+            throw new PreBidException(e.getMessage());
+        }
+    }
+
+    private String resolveEndpoint(AdmaticImpExt impExt) {
+        return endpointUrl.replace(HOST_MACRO, HttpUtil.encodeUrl(impExt.getHost()));
+    }
+
     @Override
     public Result<List<BidderBid>> makeBids(BidderCall<BidRequest> httpCall, BidRequest bidRequest) {
         try {
@@ -72,23 +84,6 @@ public class AdmaticBidder implements Bidder<BidRequest> {
         } catch (DecodeException | PreBidException e) {
             return Result.withError(BidderError.badServerResponse(e.getMessage()));
         }
-    }
-
-    public static BidType getBidType(Bid bid, Map<String, Imp> impIdToImpMap) {
-        final String impId = bid.getImpid();
-        return Optional.ofNullable(impIdToImpMap.get(impId))
-                .map(imp -> {
-                    if (imp.getBanner() != null) {
-                        return BidType.banner;
-                    } else if (imp.getVideo() != null) {
-                        return BidType.video;
-                    } else if (imp.getXNative() != null) {
-                        return BidType.xNative;
-                    }
-                    return null;
-                })
-                .orElseThrow(() -> new PreBidException(
-                        "The impression with ID %s is not present into the request".formatted(impId)));
     }
 
     private static List<BidderBid> extractBids(BidRequest bidRequest,
@@ -110,16 +105,21 @@ public class AdmaticBidder implements Bidder<BidRequest> {
                 .toList();
     }
 
-    private AdmaticImpExt parseImpExt(Imp imp) {
-        try {
-            return mapper.mapper().convertValue(imp.getExt(), TYPE_REFERENCE).getBidder();
-        } catch (IllegalArgumentException e) {
-            throw new PreBidException(e.getMessage());
-        }
-    }
-
-    private String resolveEndpoint(AdmaticImpExt impExt) {
-        return endpointUrl.replace(HOST_MACRO, HttpUtil.encodeUrl(impExt.getHost()));
+    private static BidType getBidType(Bid bid, Map<String, Imp> impIdToImpMap) {
+        final String impId = bid.getImpid();
+        return Optional.ofNullable(impIdToImpMap.get(impId))
+                .map(imp -> {
+                    if (imp.getBanner() != null) {
+                        return BidType.banner;
+                    } else if (imp.getVideo() != null) {
+                        return BidType.video;
+                    } else if (imp.getXNative() != null) {
+                        return BidType.xNative;
+                    }
+                    return null;
+                })
+                .orElseThrow(() -> new PreBidException(
+                        "The impression with ID %s is not present into the request".formatted(impId)));
     }
 
 }
