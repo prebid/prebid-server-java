@@ -121,7 +121,6 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             return Future.succeededFuture();
         }
 
-        final String greenbidsId = UUID.randomUUID().toString();
         final String billingId = UUID.randomUUID().toString();
 
         final String greenbidsIdFromAnalyticsTag = extractGreenbidsIdFromAnalyticsTag(bidResponse);
@@ -131,7 +130,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         "greenbidsIdFromAnalyticsTag: " + greenbidsIdFromAnalyticsTag
         );
 
-        if (!isSampled(greenbidsBidRequestExt.getGreenbidsSampling(), greenbidsId)) {
+        if (!isSampled(greenbidsBidRequestExt.getGreenbidsSampling(), greenbidsIdFromAnalyticsTag)) {
             return Future.succeededFuture();
         }
 
@@ -140,7 +139,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
             final CommonMessage commonMessage = createBidMessage(
                     auctionContext,
                     bidResponse,
-                    greenbidsId,
+                    greenbidsIdFromAnalyticsTag,
                     billingId,
                     greenbidsBidRequestExt);
             commonMessageJson = jacksonMapper.encodeToString(commonMessage);
@@ -190,7 +189,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                         .findFirst())
                 .map(ExtModulesTraceStage::getOutcomes).orElse(null); // OK
 
-        Optional<ExtModulesTraceInvocationResult> extModulesTraceInvocationResult = Optional.ofNullable(stageOutcomes)
+        final Optional<ExtModulesTraceInvocationResult> extModulesTraceInvocationResult = Optional.ofNullable(stageOutcomes)
                 .flatMap(outcomes -> outcomes.stream()
                         .filter(outcome -> "auction-request".equals(outcome.getEntity()))
                         .findFirst())
@@ -202,13 +201,22 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                                 .equals(invocationResult.getHookId().getModuleCode()))
                         .findFirst()); // OK
 
-        Optional<ObjectNode> analyticsResultValue = extModulesTraceInvocationResult
+        final Optional<ObjectNode> analyticsResultValue = extModulesTraceInvocationResult
                 .map(ExtModulesTraceInvocationResult::getAnalyticsTags)
                 .map(ExtModulesTraceAnalyticsTags::getActivities)
                 .flatMap(activities -> activities.stream()
                         .flatMap(activity -> activity.getResults().stream())
                         .findFirst())
                 .map(ExtModulesTraceAnalyticsResult::getValues);
+
+        analyticsResultValue
+                .map(values -> {
+                    try {
+                        return jacksonMapper.mapper().treeToValue(values, Map<String, Ortb2ImpExtResult>.class);
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
 
         System.out.println(
                 "GreenbidsAnalyticsReporter/extractGreenbidsIdFromAnalyticsTag" + "\n" +
