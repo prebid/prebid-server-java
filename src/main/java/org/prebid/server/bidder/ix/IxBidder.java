@@ -276,7 +276,6 @@ public class IxBidder implements Bidder<BidRequest> {
                 ? parseBidExtPrebidVideo(bid.getExt())
                 : null;
 
-
         final Bid updatedBid = switch (bidType) {
             case video -> updateBidWithVideoAttributes(bid, extBidPrebidVideo);
             case xNative -> updateBidAdmWithNativeAttributes(bid);
@@ -347,8 +346,7 @@ public class IxBidder implements Bidder<BidRequest> {
     }
 
     private Bid updateBidWithVideoAttributes(Bid bid, ExtBidPrebidVideo extBidPrebidVideo) {
-        final List<String> cat = bid.getCat();
-        return CollectionUtils.isEmpty(cat) && extBidPrebidVideo != null
+        return CollectionUtils.isEmpty(bid.getCat()) && extBidPrebidVideo != null
                 ? bid.toBuilder()
                 .cat(Collections.singletonList(extBidPrebidVideo.getPrimaryCategory()))
                 .build()
