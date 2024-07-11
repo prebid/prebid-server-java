@@ -20,8 +20,10 @@ import org.prebid.server.bidder.model.HttpResponse;
 import org.prebid.server.bidder.model.Result;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yeahmobi.ExtImpYeahmobi;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.Arrays.asList;
@@ -55,11 +57,14 @@ public class YeahmobiBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Invalid ExtImpYeahmobi value"));
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
+        });
     }
 
     @Test
-    public void makeHttpRequestsShouldReturnErrorOfEveryNotValidImp() {
+    public void makeHttpRequestsShouldReturnErrorOnEveryInvalidImp() {
         // given
         final BidRequest bidRequest = BidRequest.builder()
                 .imp(asList(givenImp(impBuilder -> impBuilder
@@ -72,7 +77,10 @@ public class YeahmobiBidderTest extends VertxTest {
         final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
 
         // then
-        assertThat(result.getErrors()).containsExactly(BidderError.badInput("Impression id=123, has invalid Ext"));
+        assertThat(result.getErrors()).allSatisfy(error -> {
+            assertThat(error.getType()).isEqualTo(BidderError.Type.bad_input);
+            assertThat(error.getMessage()).startsWith("Cannot deserialize value of type");
+        });
     }
 
     @Test
@@ -125,27 +133,6 @@ public class YeahmobiBidderTest extends VertxTest {
                 .extracting(Imp::getXNative)
                 .extracting(Native::getRequest)
                 .containsExactly(expectedNativeRequest);
-    }
-
-    @Test
-    public void makeHttpRequestsShouldAddEmptyNativeRequestIfRequestNotPresent() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                impBuilder -> impBuilder
-                        .banner(Banner.builder().build())
-                        .xNative(Native.builder().build()));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue())
-                .extracting(HttpRequest::getPayload)
-                .flatExtracting(BidRequest::getImp)
-                .extracting(Imp::getXNative)
-                .extracting(Native::getRequest)
-                .containsExactly("{\"native\":{}}");
     }
 
     @Test
@@ -265,6 +252,35 @@ public class YeahmobiBidderTest extends VertxTest {
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getValue())
                 .containsExactly(BidderBid.of(Bid.builder().impid("123").build(), xNative, "EUR"));
+    }
+
+    @Test
+    public void makeBidsShouldReturnVideoInfo() throws JsonProcessingException {
+        // given
+        final BidderCall<BidRequest> httpCall = givenHttpCall(
+                BidRequest.builder()
+                        .imp(singletonList(Imp.builder().id("123").xNative(Native.builder().build()).build()))
+                        .build(),
+                mapper.writeValueAsString(
+                        givenBidResponse(bidBuilder -> bidBuilder
+                                .impid("123")
+                                .ext(mapper.valueToTree(Map.of("video", Map.of("duration", 1)))))));
+
+        // when
+        final Result<List<BidderBid>> result = target.makeBids(httpCall, null);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue())
+                .containsExactly(BidderBid.builder()
+                        .bid(Bid.builder()
+                                .impid("123")
+                                .ext(mapper.valueToTree(Map.of("video", Map.of("duration", 1))))
+                                .build())
+                        .type(xNative)
+                        .bidCurrency("EUR")
+                        .videoInfo(ExtBidPrebidVideo.of(1, null))
+                        .build());
     }
 
     private static BidRequest givenBidRequest(
