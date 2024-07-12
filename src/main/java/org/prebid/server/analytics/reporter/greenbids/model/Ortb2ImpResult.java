@@ -3,9 +3,7 @@ package org.prebid.server.analytics.reporter.greenbids.model;
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class Ort2ImpExtResult {
+public class Ortb2ImpResult {
 
-    ExplorationResult explorationResult;
-
-    String tid;
+    Ortb2ImpExtResult ext;
 }
