@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.StoredResponseResult;
@@ -50,6 +51,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
 @ExtendWith(MockitoExtension.class)
@@ -58,7 +60,13 @@ public class StoredResponseProcessorTest extends VertxTest {
     @Mock
     private ApplicationSettings applicationSettings;
 
-    private StoredResponseProcessor storedResponseProcessor;
+    @Mock
+    private BidRejectionTracker rubiconBidRejectionTracker;
+
+    @Mock
+    private BidRejectionTracker appnexusBidRejectionTracker;
+
+    private StoredResponseProcessor target;
 
     private Timeout timeout;
 
@@ -67,7 +75,7 @@ public class StoredResponseProcessorTest extends VertxTest {
         final TimeoutFactory timeoutFactory = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()));
         timeout = timeoutFactory.create(500L);
 
-        storedResponseProcessor = new StoredResponseProcessor(applicationSettings, jacksonMapper);
+        target = new StoredResponseProcessor(applicationSettings, jacksonMapper);
     }
 
     @Test
@@ -82,7 +90,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                         emptyList())));
 
         // when
-        final Future<StoredResponseResult> result = storedResponseProcessor.getStoredResponseResult(imps, timeout);
+        final Future<StoredResponseResult> result = target.getStoredResponseResult(imps, timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
@@ -104,7 +112,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .build();
         // when
         final Future<StoredResponseResult> result =
-                storedResponseProcessor.getStoredResponseResult(singletonList(imp), timeout);
+                target.getStoredResponseResult(singletonList(imp), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
@@ -121,7 +129,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result =
-                storedResponseProcessor.getStoredResponseResult(imps, timeout);
+                target.getStoredResponseResult(imps, timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
@@ -146,7 +154,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result =
-                storedResponseProcessor.getStoredResponseResult(imps, timeout);
+                target.getStoredResponseResult(imps, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -169,7 +177,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result =
-                storedResponseProcessor.getStoredResponseResult(singletonList(imp), timeout);
+                target.getStoredResponseResult(singletonList(imp), timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
@@ -197,7 +205,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result =
-                storedResponseProcessor.getStoredResponseResult(imps, timeout);
+                target.getStoredResponseResult(imps, timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
@@ -219,7 +227,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result =
-                storedResponseProcessor.getStoredResponseResult(singletonList(imp1), timeout);
+                target.getStoredResponseResult(singletonList(imp1), timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -247,7 +255,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result =
-                storedResponseProcessor.getStoredResponseResult(imps, timeout);
+                target.getStoredResponseResult(imps, timeout);
 
         // then
         assertThat(result.result()).isEqualTo(StoredResponseResult.of(
@@ -276,7 +284,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .build());
 
         // when and then
-        assertThatThrownBy(() -> storedResponseProcessor.getStoredResponseResult(imps, timeout))
+        assertThatThrownBy(() -> target.getStoredResponseResult(imps, timeout))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageStartingWith("Error decoding bidRequest.imp.ext for impId = impId :");
     }
@@ -299,7 +307,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result =
-                storedResponseProcessor.getStoredResponseResult(imps, timeout);
+                target.getStoredResponseResult(imps, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -326,7 +334,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result =
-                storedResponseProcessor.getStoredResponseResult(imps, timeout);
+                target.getStoredResponseResult(imps, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -344,7 +352,7 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         // when
         final Future<StoredResponseResult> result =
-                storedResponseProcessor.getStoredResponseResult(imps, timeout);
+                target.getStoredResponseResult(imps, timeout);
 
         // then
         assertThat(result.failed()).isTrue();
@@ -377,7 +385,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .build();
 
         // when
-        final List<AuctionParticipation> result = storedResponseProcessor
+        final List<AuctionParticipation> result = target
                 .updateStoredBidResponse(singletonList(requestAuctionParticipation));
 
         // then
@@ -409,7 +417,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .build();
 
         // when
-        final List<AuctionParticipation> result = storedResponseProcessor
+        final List<AuctionParticipation> result = target
                 .updateStoredBidResponse(singletonList(requestAuctionParticipation));
 
         // then
@@ -441,7 +449,7 @@ public class StoredResponseProcessorTest extends VertxTest {
                 .build();
 
         // when
-        final List<AuctionParticipation> result = storedResponseProcessor
+        final List<AuctionParticipation> result = target
                 .updateStoredBidResponse(singletonList(requestAuctionParticipation));
 
         // then
@@ -479,41 +487,44 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
+        final Map<String, BidRejectionTracker> bidRejectionTrackers = Map.of(
+                "rubicon", rubiconBidRejectionTracker,
+                "appnexus", appnexusBidRejectionTracker);
+
         // when
-        final List<AuctionParticipation> result = storedResponseProcessor.mergeWithBidderResponses(
-                auctionParticipations, seatBid, imps);
+        final List<AuctionParticipation> result = target.mergeWithBidderResponses(
+                auctionParticipations, seatBid, imps, bidRejectionTrackers);
 
         // then
+        final List<BidderBid> expectedBids = asList(
+                BidderBid.of(
+                        Bid.builder()
+                                .id("bid2")
+                                .impid("storedImp")
+                                .build(),
+                        BidType.banner,
+                        "USD"),
+                BidderBid.of(
+                        Bid.builder()
+                                .id("bid1")
+                                .build(),
+                        BidType.banner,
+                        "USD"));
+
+        verifyNoInteractions(appnexusBidRejectionTracker);
+        verify(rubiconBidRejectionTracker).restoreFromRejection(expectedBids);
+
         assertThat(result)
                 .extracting(AuctionParticipation::getBidderResponse)
-                .containsOnly(BidderResponse.of(
-                                "rubicon",
-                                BidderSeatBid.of(
-                                        asList(
-                                                BidderBid.of(
-                                                        Bid.builder()
-                                                                .id("bid2")
-                                                                .impid("storedImp")
-                                                                .build(),
-                                                        BidType.banner,
-                                                        "USD"),
-                                                BidderBid.of(
-                                                        Bid.builder()
-                                                                .id("bid1")
-                                                                .build(),
-                                                        BidType.banner,
-                                                        "USD"))),
-                                100),
-                        null);
+                .containsOnly(BidderResponse.of("rubicon", BidderSeatBid.of(expectedBids), 100), null);
     }
 
     @Test
     public void mergeWithBidderResponsesShouldMergeBidderResponsesWithoutCorrespondingStoredSeatBid() {
         // given
-        final BidderResponse bidderResponse = BidderResponse.of(
-                "rubicon",
-                BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"))),
-                100);
+        final List<BidderBid> givenRubiconBids = singletonList(BidderBid.of(
+                Bid.builder().id("bid1").build(), BidType.banner, "USD"));
+        final BidderResponse bidderResponse = BidderResponse.of("rubicon", BidderSeatBid.of(givenRubiconBids), 100);
         final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
                 .bidder("rubicon")
                 .bidderResponse(bidderResponse)
@@ -527,15 +538,24 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
+        final Map<String, BidRejectionTracker> bidRejectionTrackers = Map.of(
+                "rubicon", rubiconBidRejectionTracker,
+                "appnexus", appnexusBidRejectionTracker);
+
         // when
-        final List<AuctionParticipation> result = storedResponseProcessor.mergeWithBidderResponses(
-                auctionParticipations, seatBid, imps);
+        final List<AuctionParticipation> result = target.mergeWithBidderResponses(
+                auctionParticipations, seatBid, imps, bidRejectionTrackers);
 
         // then
+        final List<BidderBid> expectedAppnexusBids = singletonList(
+                BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, "USD"));
+
+        verify(rubiconBidRejectionTracker).restoreFromRejection(givenRubiconBids);
+        verify(appnexusBidRejectionTracker).restoreFromRejection(expectedAppnexusBids);
+
         final BidderResponse secondExpectedBidResponse = BidderResponse.of(
                 "appnexus",
-                BidderSeatBid.of(singletonList(
-                        BidderBid.of(Bid.builder().id("bid2").impid("storedImp").build(), BidType.banner, "USD"))),
+                BidderSeatBid.of(expectedAppnexusBids),
                 0);
         assertThat(result)
                 .extracting(AuctionParticipation::getBidderResponse)
@@ -552,21 +572,26 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
+        final Map<String, BidRejectionTracker> bidRejectionTrackers = Map.of(
+                "rubicon", rubiconBidRejectionTracker,
+                "appnexus", rubiconBidRejectionTracker);
+
         // when
         final List<AuctionParticipation> result =
-                storedResponseProcessor.mergeWithBidderResponses(emptyList(), seatBid, imps);
+                target.mergeWithBidderResponses(emptyList(), seatBid, imps, bidRejectionTrackers);
 
         // then
+        final List<BidderBid> expectedBids = singletonList(BidderBid.of(
+                Bid.builder().id("bid2").impid("storedImp").build(),
+                BidType.banner,
+                "USD"));
+
+        verify(rubiconBidRejectionTracker).restoreFromRejection(expectedBids);
+        verifyNoInteractions(appnexusBidRejectionTracker);
+
         assertThat(result)
                 .extracting(AuctionParticipation::getBidderResponse)
-                .contains(BidderResponse.of(
-                        "rubicon",
-                        BidderSeatBid.of(
-                                singletonList(BidderBid.of(
-                                        Bid.builder().id("bid2").impid("storedImp").build(),
-                                        BidType.banner,
-                                        "USD"))),
-                        0));
+                .contains(BidderResponse.of("rubicon", BidderSeatBid.of(expectedBids), 0));
     }
 
     @Test
@@ -590,27 +615,31 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
+        final Map<String, BidRejectionTracker> bidRejectionTrackers = Map.of(
+                "rubicon", rubiconBidRejectionTracker,
+                "appnexus", rubiconBidRejectionTracker);
+
         // when
-        final List<AuctionParticipation> result = storedResponseProcessor.mergeWithBidderResponses(
-                auctionParticipations, seatBid, imps);
+        final List<AuctionParticipation> result = target.mergeWithBidderResponses(
+                auctionParticipations, seatBid, imps, bidRejectionTrackers);
 
         // then
+        final List<BidderBid> expectedBids = asList(
+                BidderBid.of(
+                        Bid.builder().id("bid2").impid("storedImp").build(),
+                        BidType.banner,
+                        "EUR"),
+                BidderBid.of(
+                        Bid.builder().id("bid1").build(),
+                        BidType.banner,
+                        "EUR"));
+
+        verify(rubiconBidRejectionTracker).restoreFromRejection(expectedBids);
+        verifyNoInteractions(appnexusBidRejectionTracker);
+
         assertThat(result)
                 .extracting(AuctionParticipation::getBidderResponse)
-                .contains(BidderResponse.of(
-                        "rubicon",
-                        BidderSeatBid.of(
-                                asList(
-                                        BidderBid.of(
-                                                Bid.builder().id("bid2").impid("storedImp").build(),
-                                                BidType.banner,
-                                                "EUR"),
-                                        BidderBid.of(
-                                                Bid.builder().id("bid1").build(),
-                                                BidType.banner,
-                                                "EUR"))),
-
-                        100));
+                .contains(BidderResponse.of("rubicon", BidderSeatBid.of(expectedBids), 100));
     }
 
     @Test
@@ -640,26 +669,31 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
+        final Map<String, BidRejectionTracker> bidRejectionTrackers = Map.of(
+                "rubicon", rubiconBidRejectionTracker,
+                "appnexus", rubiconBidRejectionTracker);
+
         // when
-        final List<AuctionParticipation> result = storedResponseProcessor.mergeWithBidderResponses(
-                auctionParticipations, seatBid, imps);
+        final List<AuctionParticipation> result = target.mergeWithBidderResponses(
+                auctionParticipations, seatBid, imps, bidRejectionTrackers);
 
         // then
+        final List<BidderBid> expectedBids = asList(
+                BidderBid.of(
+                        Bid.builder()
+                                .id("bid2")
+                                .impid("storedImp")
+                                .ext(mapper.createObjectNode()
+                                        .set("prebid", mapper.valueToTree(extBidPrebid))).build(),
+                        BidType.video, "USD"),
+                BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"));
+
+        verify(rubiconBidRejectionTracker).restoreFromRejection(expectedBids);
+        verifyNoInteractions(appnexusBidRejectionTracker);
+
         assertThat(result)
                 .extracting(AuctionParticipation::getBidderResponse)
-                .contains(BidderResponse.of(
-                        "rubicon",
-                        BidderSeatBid.of(asList(
-                                BidderBid.of(
-                                        Bid.builder()
-                                                .id("bid2")
-                                                .impid("storedImp")
-                                                .ext(mapper.createObjectNode()
-                                                        .set("prebid", mapper.valueToTree(extBidPrebid))).build(),
-                                        BidType.video, "USD"),
-                                BidderBid.of(
-                                        Bid.builder().id("bid1").build(), BidType.banner, "USD"))),
-                        100));
+                .contains(BidderResponse.of("rubicon", BidderSeatBid.of(expectedBids), 100));
     }
 
     @Test
@@ -678,18 +712,23 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         final List<Imp> imps = singletonList(Imp.builder().id("storedImp").banner(Banner.builder().build()).build());
 
+        final Map<String, BidRejectionTracker> bidRejectionTrackers = Map.of(
+                "rubicon", rubiconBidRejectionTracker,
+                "appnexus", rubiconBidRejectionTracker);
+
         // when and then
-        assertThatThrownBy(() -> storedResponseProcessor.mergeWithBidderResponses(emptyList(), seatBid, imps))
+        assertThatThrownBy(() -> target.mergeWithBidderResponses(emptyList(), seatBid, imps, bidRejectionTrackers))
                 .isInstanceOf(PreBidException.class).hasMessage("Error decoding stored response bid.ext.prebid");
+
+        verifyNoInteractions(appnexusBidRejectionTracker, rubiconBidRejectionTracker);
     }
 
     @Test
     public void mergeWithBidderResponsesShouldReturnSameResponseWhenThereAreNoStoredResponses() {
         // given
-        final BidderResponse bidderResponse = BidderResponse.of(
-                "rubicon",
-                BidderSeatBid.of(singletonList(BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"))),
-                100);
+        final List<BidderBid> givenBids = singletonList(
+                BidderBid.of(Bid.builder().id("bid1").build(), BidType.banner, "USD"));
+        final BidderResponse bidderResponse = BidderResponse.of("rubicon", BidderSeatBid.of(givenBids), 100);
         final AuctionParticipation requestAuctionParticipation = AuctionParticipation.builder()
                 .bidder("rubicon")
                 .bidderResponse(bidderResponse)
@@ -698,14 +737,20 @@ public class StoredResponseProcessorTest extends VertxTest {
 
         final List<Imp> imps = singletonList(Imp.builder().banner(Banner.builder().build()).build());
 
+        final Map<String, BidRejectionTracker> bidRejectionTrackers = Map.of(
+                "rubicon", rubiconBidRejectionTracker,
+                "appnexus", rubiconBidRejectionTracker);
+
         // when
-        final List<AuctionParticipation> result = storedResponseProcessor.mergeWithBidderResponses(
-                auctionParticipations, emptyList(), imps);
+        final List<AuctionParticipation> result = target.mergeWithBidderResponses(
+                auctionParticipations, emptyList(), imps, bidRejectionTrackers);
 
         // then
         assertThat(result)
                 .extracting(AuctionParticipation::getBidderResponse)
                 .containsOnly(bidderResponse);
+
+        verifyNoInteractions(appnexusBidRejectionTracker, rubiconBidRejectionTracker);
     }
 
     private <K, V> Map<K, V> doubleMap(K key1, V value1, K key2, V value2) {

@@ -75,6 +75,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
+import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
@@ -275,6 +276,9 @@ public class ExchangeServiceTest extends VertxTest {
     private PriceFloorEnforcer priceFloorEnforcer;
 
     @Mock(strictness = LENIENT)
+    private PriceFloorProcessor priceFloorProcessor;
+
+    @Mock(strictness = LENIENT)
     private DsaEnforcer dsaEnforcer;
 
     @Mock(strictness = LENIENT)
@@ -379,7 +383,7 @@ public class ExchangeServiceTest extends VertxTest {
         given(storedResponseProcessor.getStoredResponseResult(any(), any()))
                 .willAnswer(inv -> Future.succeededFuture(StoredResponseResult.of(inv.getArgument(0), emptyList(),
                         emptyMap())));
-        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any(), any()))
                 .willAnswer(inv -> inv.getArgument(0));
         given(storedResponseProcessor.updateStoredBidResponse(any()))
                 .willAnswer(inv -> inv.getArgument(0));
@@ -392,6 +396,8 @@ public class ExchangeServiceTest extends VertxTest {
                         ((Imp) inv.getArgument(0)).getBidfloor()));
 
         given(bidAdjustmentFactorResolver.resolve(any(ImpMediaType.class), any(), any())).willReturn(null);
+        given(priceFloorProcessor.enrichWithPriceFloors(any(), any(), any(), any(), any()))
+                .willAnswer(inv -> inv.getArgument(0));
 
         given(criteriaLogManager.traceResponse(any(), any(), any(), anyBoolean()))
                 .willAnswer(inv -> inv.getArgument(1));
@@ -647,7 +653,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<List<AuctionParticipation>> auctionParticipationCaptor =
                 ArgumentCaptor.forClass(List.class);
-        verify(storedResponseProcessor).mergeWithBidderResponses(auctionParticipationCaptor.capture(), any(), any());
+        verify(storedResponseProcessor).mergeWithBidderResponses(
+                auctionParticipationCaptor.capture(), any(), any(), any());
 
         assertThat(auctionParticipationCaptor.getValue())
                 .extracting(AuctionParticipation::getBidderResponse)
@@ -677,7 +684,8 @@ public class ExchangeServiceTest extends VertxTest {
         // then
         final ArgumentCaptor<List<AuctionParticipation>> auctionParticipationCaptor =
                 ArgumentCaptor.forClass(List.class);
-        verify(storedResponseProcessor).mergeWithBidderResponses(auctionParticipationCaptor.capture(), any(), any());
+        verify(storedResponseProcessor).mergeWithBidderResponses(
+                auctionParticipationCaptor.capture(), any(), any(), any());
 
         assertThat(auctionParticipationCaptor.getValue())
                 .extracting(AuctionParticipation::getBidderResponse)
@@ -772,9 +780,9 @@ public class ExchangeServiceTest extends VertxTest {
                         givenImp(singletonMap(bidder3Name, 3), identity())),
                 builder -> builder.ext(extRequest));
 
-        given(supplyChainResolver.resolveForBidder(eq("bidder1"), same(bidRequest))).willReturn(specificSchain);
-        given(supplyChainResolver.resolveForBidder(eq("bidder2"), same(bidRequest))).willReturn(specificSchain);
-        given(supplyChainResolver.resolveForBidder(eq("bidder3"), same(bidRequest))).willReturn(generalSchain);
+        given(supplyChainResolver.resolveForBidder(eq("bidder1"), any())).willReturn(specificSchain);
+        given(supplyChainResolver.resolveForBidder(eq("bidder2"), any())).willReturn(specificSchain);
+        given(supplyChainResolver.resolveForBidder(eq("bidder3"), any())).willReturn(generalSchain);
 
         // when
         target.holdAuction(givenRequestContext(bidRequest));
@@ -1792,7 +1800,7 @@ public class ExchangeServiceTest extends VertxTest {
 
         final BidderBid bidderBid = BidderBid.of(Bid.builder().id("bidId1").price(ONE).build(), banner, "USD");
         final BidderSeatBid bidderSeatBid = BidderSeatBid.of(singletonList(bidderBid));
-        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any(), any()))
                 .willReturn(singletonList(
                         AuctionParticipation.builder()
                                 .bidderResponse(BidderResponse.of("someBidder", bidderSeatBid, 100))
@@ -1837,7 +1845,7 @@ public class ExchangeServiceTest extends VertxTest {
         // given
         givenBidder(givenEmptySeatBid());
 
-        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any()))
+        given(storedResponseProcessor.mergeWithBidderResponses(any(), any(), any(), any()))
                 .willThrow(new PreBidException("Error"));
 
         final BidRequest bidRequest = givenBidRequest(singletonList(
@@ -4721,6 +4729,7 @@ public class ExchangeServiceTest extends VertxTest {
                 httpInteractionLogger,
                 priceFloorAdjuster,
                 priceFloorEnforcer,
+                priceFloorProcessor,
                 dsaEnforcer,
                 bidAdjustmentFactorResolver,
                 metrics,

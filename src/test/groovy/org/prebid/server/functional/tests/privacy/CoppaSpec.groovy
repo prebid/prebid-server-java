@@ -154,8 +154,11 @@ class CoppaSpec extends PrivacyBaseSpec {
             regs.coppa = 0
         }
 
+        and: "FLush metrics"
+        flushMetrics(privacyPbsService)
+
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request shouldn't mask device and user personal data"
         def bidderRequest = bidder.getBidderRequest(bidRequest.id)

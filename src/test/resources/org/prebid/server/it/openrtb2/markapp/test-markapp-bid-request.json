@@ -5,19 +5,15 @@
       "id": "imp_id",
       "secure": 1,
       "banner": {
-        "format": [
-          {
-            "h": 250,
-            "w": 300
-          }
-        ],
         "w": 300,
         "h": 250
       },
       "ext": {
         "tid": "${json-unit.any-string}",
         "bidder": {
-          "siteId": "10002"
+          "partnerName": "someUniquePartnerName",
+          "seat": "someSeat",
+          "token": "someToken"
         }
       }
     }
@@ -29,7 +25,6 @@
     "domain": "www.example.com",
     "page": "http://www.example.com",
     "publisher": {
-      "id": "10002",
       "domain": "example.com"
     },
     "ext": {
@@ -46,7 +41,9 @@
     "USD"
   ],
   "regs": {
-    "gdpr": 0
+    "ext": {
+      "gdpr": 0
+    }
   },
   "ext": {
     "prebid": {
@@ -56,9 +53,6 @@
         "datacenter": "local",
         "endpoint": "/openrtb2/auction"
       }
-    },
-    "ixdiag": {
-      "pbsv": "{{ pbs.java.version }}"
     }
   }
 }

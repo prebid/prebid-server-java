@@ -64,6 +64,7 @@ import org.prebid.server.execution.Timeout;
 import org.prebid.server.execution.TimeoutFactory;
 import org.prebid.server.floors.PriceFloorAdjuster;
 import org.prebid.server.floors.PriceFloorEnforcer;
+import org.prebid.server.floors.PriceFloorProcessor;
 import org.prebid.server.hooks.execution.HookStageExecutor;
 import org.prebid.server.hooks.execution.model.ExecutionAction;
 import org.prebid.server.hooks.execution.model.ExecutionStatus;
@@ -189,6 +190,7 @@ public class ExchangeService {
     private final HttpInteractionLogger httpInteractionLogger;
     private final PriceFloorAdjuster priceFloorAdjuster;
     private final PriceFloorEnforcer priceFloorEnforcer;
+    private final PriceFloorProcessor priceFloorProcessor;
     private final DsaEnforcer dsaEnforcer;
     private final BidAdjustmentFactorResolver bidAdjustmentFactorResolver;
     private final Metrics metrics;
@@ -218,6 +220,7 @@ public class ExchangeService {
                            HttpInteractionLogger httpInteractionLogger,
                            PriceFloorAdjuster priceFloorAdjuster,
                            PriceFloorEnforcer priceFloorEnforcer,
+                           PriceFloorProcessor priceFloorProcessor,
                            DsaEnforcer dsaEnforcer,
                            BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
                            Metrics metrics,
@@ -247,6 +250,7 @@ public class ExchangeService {
         this.httpInteractionLogger = Objects.requireNonNull(httpInteractionLogger);
         this.priceFloorAdjuster = Objects.requireNonNull(priceFloorAdjuster);
         this.priceFloorEnforcer = Objects.requireNonNull(priceFloorEnforcer);
+        this.priceFloorProcessor = Objects.requireNonNull(priceFloorProcessor);
         this.dsaEnforcer = Objects.requireNonNull(dsaEnforcer);
         this.bidAdjustmentFactorResolver = Objects.requireNonNull(bidAdjustmentFactorResolver);
         this.metrics = Objects.requireNonNull(metrics);
@@ -290,8 +294,8 @@ public class ExchangeService {
 
         return storedResponseProcessor.getStoredResponseResult(bidRequest.getImp(), timeout)
                 .map(storedResponseResult -> populateStoredResponse(storedResponseResult, storedAuctionResponses))
-                .compose(storedResponseResult -> extractAuctionParticipations(
-                        receivedContext, storedResponseResult, aliases, bidderToMultiBid)
+                .compose(storedResponseResult ->
+                        extractAuctionParticipations(receivedContext, storedResponseResult, aliases, bidderToMultiBid)
                         .map(receivedContext::with))
 
                 .map(context -> updateRequestMetric(context, uidsCookie, aliases, account, requestTypeMetric))
@@ -309,7 +313,10 @@ public class ExchangeService {
                         .map(CompositeFuture::<AuctionParticipation>list)
                         .map(storedResponseProcessor::updateStoredBidResponse)
                         .map(auctionParticipations -> storedResponseProcessor.mergeWithBidderResponses(
-                                auctionParticipations, storedAuctionResponses, bidRequest.getImp()))
+                                auctionParticipations,
+                                storedAuctionResponses,
+                                bidRequest.getImp(),
+                                context.getBidRejectionTrackers()))
                         .map(auctionParticipations -> dropZeroNonDealBids(auctionParticipations, debugWarnings))
                         .map(auctionParticipations -> validateAndAdjustBids(auctionParticipations, context, aliases))
                         .map(auctionParticipations -> updateResponsesMetrics(auctionParticipations, account, aliases))
@@ -873,8 +880,13 @@ public class ExchangeService {
                                          Map<String, JsonNode> bidderToPrebidBidders,
                                          AuctionContext context) {
 
-        final BidRequest bidRequest = context.getBidRequest();
         final String bidder = bidderPrivacyResult.getRequestBidder();
+        final BidRequest bidRequest = priceFloorProcessor.enrichWithPriceFloors(
+                context.getBidRequest().toBuilder().imp(imps).build(),
+                context.getAccount(),
+                bidder,
+                context.getPrebidErrors(),
+                context.getDebugWarnings());
         final boolean transmitTid = transmitTransactionId(bidder, context);
         final List<String> firstPartyDataBidders = firstPartyDataBidders(bidRequest.getExt());
         final boolean useFirstPartyData = firstPartyDataBidders == null || firstPartyDataBidders.stream()
@@ -920,12 +932,19 @@ public class ExchangeService {
         final boolean isDooh = !isApp && preparedDooh != null;
         final boolean isSite = !isApp && !isDooh && preparedSite != null;
 
+        final List<Imp> preparedImps = prepareImps(
+                bidder,
+                bidRequest,
+                transmitTid,
+                useFirstPartyData,
+                context.getAccount(),
+                context.getDebugWarnings());
+
         return bidRequest.toBuilder()
                 // User was already prepared above
                 .user(bidderPrivacyResult.getUser())
                 .device(bidderPrivacyResult.getDevice())
-                .imp(prepareImps(bidder, imps, bidRequest, transmitTid,
-                        useFirstPartyData, context.getAccount(), context.getDebugWarnings()))
+                .imp(preparedImps)
                 .app(isApp ? preparedApp : null)
                 .dooh(isDooh ? preparedDooh : null)
                 .site(isSite ? preparedSite : null)
@@ -952,14 +971,13 @@ public class ExchangeService {
     }
 
     private List<Imp> prepareImps(String bidder,
-                                  List<Imp> imps,
                                   BidRequest bidRequest,
                                   boolean transmitTid,
                                   boolean useFirstPartyData,
                                   Account account,
                                   List<String> debugWarnings) {
 
-        return imps.stream()
+        return bidRequest.getImp().stream()
                 .filter(imp -> bidderParamsFromImpExt(imp.getExt()).hasNonNull(bidder))
                 .map(imp -> prepareImp(imp, bidder, bidRequest, transmitTid, useFirstPartyData, account, debugWarnings))
                 .toList();

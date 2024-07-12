@@ -30,6 +30,7 @@ import com.iab.openrtb.response.Bid;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -107,15 +108,18 @@ import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
 import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidMeta;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
+import org.prebid.server.util.ListUtil;
 import org.prebid.server.util.ObjectUtil;
 
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -156,6 +160,11 @@ public class RubiconBidder implements Bidder<BidRequest> {
     private static final String DMP_STYPE = "dmp";
     private static final String XAPI_CURRENCY = "USD";
 
+    private static final int MAX_NUMBER_OF_SEGMENTS = 100;
+    private static final String SEGTAX_IAB = "iab";
+    private static final String SEGTAX_TAX = "tax";
+    private static final String SEGTAX = "segtax";
+
     private static final Set<Integer> USER_SEGTAXES = Set.of(4);
     private static final Set<Integer> SITE_SEGTAXES = Set.of(1, 2, 5, 6);
 
@@ -169,6 +178,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
             };
     private static final boolean DEFAULT_MULTIFORMAT_VALUE = false;
 
+    private final String bidderName;
     private final String endpointUrl;
     private final Set<String> supportedVendors;
     private final boolean generateBidId;
@@ -178,7 +188,8 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
     private final MultiMap headers;
 
-    public RubiconBidder(String endpoint,
+    public RubiconBidder(String bidderName,
+                         String endpoint,
                          String xapiUsername,
                          String xapiPassword,
                          List<String> supportedVendors,
@@ -187,6 +198,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                          PriceFloorResolver floorResolver,
                          JacksonMapper mapper) {
 
+        this.bidderName = Objects.requireNonNull(bidderName);
         this.endpointUrl = HttpUtil.validateUrl(Objects.requireNonNull(endpoint));
         this.supportedVendors = Set.copyOf(Objects.requireNonNull(supportedVendors));
         this.generateBidId = generateBidId;
@@ -534,6 +546,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 imp,
                 mediaType,
                 null,
+                bidderName,
                 warnings);
     }
 
@@ -1242,7 +1255,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         if (user != null) {
             mergeFirstPartyDataFromUser(user.getExt(), result);
 
-            enrichWithIabAttribute(result, user.getData(), USER_SEGTAXES);
+            enrichWithIabAndSegtaxAttribute(result, user.getData(), USER_SEGTAXES);
         }
 
         return !result.isEmpty() ? result : null;
@@ -1266,27 +1279,97 @@ public class RubiconBidder implements Bidder<BidRequest> {
         }
     }
 
-    private static void enrichWithIabAttribute(ObjectNode target, List<Data> data, Set<Integer> segtaxValues) {
-        final List<String> iabValue = CollectionUtils.emptyIfNull(data).stream()
+    private static void enrichWithIabAndSegtaxAttribute(ObjectNode target, List<Data> data, Set<Integer> segtaxValues) {
+        final Map<Integer, Deque<Segment>> segments = CollectionUtils.emptyIfNull(data).stream()
                 .filter(Objects::nonNull)
-                .filter(dataRecord -> containsSegtaxValue(dataRecord.getExt(), segtaxValues))
-                .map(Data::getSegment)
+                .map(RubiconBidder::getValidSegments)
                 .filter(Objects::nonNull)
-                .flatMap(segments -> segments.stream()
-                        .map(Segment::getId))
-                .filter(Objects::nonNull)
-                .toList();
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (first, second) -> {
+                            first.addAll(second);
+                            return first;
+                        }));
 
-        if (CollectionUtils.isNotEmpty(iabValue)) {
-            final ArrayNode iab = target.putArray("iab");
-            iabValue.forEach(iab::add);
+        if (MapUtils.isEmpty(segments)) {
+            return;
         }
+
+        final Map<Integer, List<String>> relevantSegments = pickRelevantSegments(segments);
+        final Map<String, List<String>> resultSegments = groupBySegtaxValues(relevantSegments, segtaxValues);
+
+        resultSegments.forEach((segtaxValue, segmentIds) -> {
+            final ArrayNode array = target.putArray(segtaxValue);
+            segmentIds.forEach(array::add);
+        });
     }
 
-    private static boolean containsSegtaxValue(ObjectNode ext, Set<Integer> segtaxValues) {
-        final JsonNode taxonomyName = ext != null ? ext.get("segtax") : null;
+    private static Map<String, List<String>> groupBySegtaxValues(Map<Integer, List<String>> segments,
+                                                                 Set<Integer> segtaxValues) {
 
-        return taxonomyName != null && taxonomyName.isInt() && segtaxValues.contains(taxonomyName.intValue());
+        return segments.entrySet().stream()
+                .collect(Collectors.toMap(
+                        entry -> resolveSegmentName(entry.getKey(), segtaxValues),
+                        Map.Entry::getValue,
+                        ListUtil::union));
+    }
+
+    private static String resolveSegmentName(Integer taxonomyId, Set<Integer> segtaxValues) {
+        return segtaxValues.contains(taxonomyId) ? SEGTAX_IAB : SEGTAX_TAX + taxonomyId;
+    }
+
+    private static Map.Entry<Integer, Deque<Segment>> getValidSegments(Data data) {
+        final ObjectNode ext = data.getExt();
+        final JsonNode taxonomyId = ext != null ? ext.get(SEGTAX) : null;
+        if (taxonomyId == null || !taxonomyId.isInt()) {
+            return null;
+        }
+
+        final Deque<Segment> segments = getValidOnlySegments(data.getSegment());
+        return CollectionUtils.isNotEmpty(segments) ? Map.entry(taxonomyId.intValue(), segments) : null;
+    }
+
+    private static Deque<Segment> getValidOnlySegments(List<Segment> segments) {
+        return CollectionUtils.isNotEmpty(segments)
+                ? segments.stream()
+                .filter(segment -> StringUtils.isNotBlank(segment.getId()))
+                .collect(Collectors.toCollection(ArrayDeque::new))
+                : null;
+    }
+
+    private static Map<Integer, List<String>> pickRelevantSegments(final Map<Integer, Deque<Segment>> segments) {
+        final Map<Integer, List<String>> result = new HashMap<>();
+        final List<Integer> segmentsKeys = new ArrayList<>(segments.keySet());
+
+        int i = 0;
+        int consumedSegmentsCount = 0;
+
+        while (consumedSegmentsCount < MAX_NUMBER_OF_SEGMENTS && !segmentsKeys.isEmpty()) {
+            final int segmentsIndex = i % segmentsKeys.size();
+            final Integer segmentKey = segmentsKeys.get(segmentsIndex);
+            final Deque<Segment> currentSegments = segments.get(segmentKey);
+
+            final Segment lastSegment = currentSegments.pollLast();
+            result.computeIfAbsent(segmentKey, key -> new ArrayList<>()).add(lastSegment.getId());
+            consumedSegmentsCount++;
+
+            if (currentSegments.isEmpty()) {
+                segmentsKeys.remove(segmentKey);
+                i--;
+            }
+            i++;
+        }
+
+        return result;
+    }
+
+    private static Segment getAndRemoveLastSegment(List<Segment> list) {
+        final int lastElementIndex = list.size() - 1;
+        final Segment lastSegment = list.get(lastElementIndex);
+        list.remove(lastElementIndex);
+
+        return lastSegment;
     }
 
     private void processWarnings(List<BidderError> errors, List<String> priceFloorsWarnings) {
@@ -1358,7 +1441,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         if (CollectionUtils.isNotEmpty(siteContentData)) {
             target = existingRubiconSiteExtRpTargetOrEmptyNode(extSite);
-            enrichWithIabAttribute(target, siteContentData, SITE_SEGTAXES);
+            enrichWithIabAndSegtaxAttribute(target, siteContentData, SITE_SEGTAXES);
         }
 
         return mapper.fillExtension(

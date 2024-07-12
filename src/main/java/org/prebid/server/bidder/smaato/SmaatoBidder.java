@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.TextNode;
 import com.iab.openrtb.request.App;
 import com.iab.openrtb.request.Banner;
 import com.iab.openrtb.request.BidRequest;
-import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Publisher;
@@ -69,7 +68,7 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private static final TypeReference<ExtPrebid<?, ExtImpSmaato>> SMAATO_EXT_TYPE_REFERENCE =
             new TypeReference<>() {
             };
-    private static final String CLIENT_VERSION = "prebid_server_0.4";
+    private static final String CLIENT_VERSION = "prebid_server_0.7";
     private static final String SMT_ADTYPE_HEADER = "X-Smt-Adtype";
     private static final String SMT_EXPIRES_HEADER = "X-Smt-Expires";
     private static final String SMT_AD_TYPE_IMG = "Img";
@@ -311,23 +310,10 @@ public class SmaatoBidder implements Bidder<BidRequest> {
     private List<Imp> modifyImpForAdSpace(Imp imp, String adSpaceId, ObjectNode impExtSkadn) {
         final Imp modifiedImp = imp.toBuilder()
                 .tagid(adSpaceId)
-                .banner(getIfNotNull(imp.getBanner(), SmaatoBidder::modifyBanner))
                 .ext(impExtSkadn)
                 .build();
 
         return Collections.singletonList(modifiedImp);
-    }
-
-    private static Banner modifyBanner(Banner banner) {
-        if (banner.getW() != null && banner.getH() != null) {
-            return banner;
-        }
-        final List<Format> format = banner.getFormat();
-        if (CollectionUtils.isEmpty(format)) {
-            throw new PreBidException("No sizes provided for Banner.");
-        }
-        final Format firstFormat = format.getFirst();
-        return banner.toBuilder().w(firstFormat.getW()).h(firstFormat.getH()).build();
     }
 
     private HttpRequest<BidRequest> constructHttpRequest(BidRequest bidRequest) {

@@ -164,6 +164,22 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     }
 
     @Test
+    public void storeModuleEntryShouldReturnFailedFutureIfApplicationIsMissed() {
+        // when
+        final Future<Void> result = target.storeModuleEntry("some-key",
+                "some-value",
+                ModuleCacheType.TEXT,
+                12,
+                null,
+                "some-module-code");
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class);
+        assertThat(result.cause().getMessage()).isEqualTo("Module cache 'application' can not be blank");
+    }
+
+    @Test
     public void storeModuleEntryShouldReturnFailedFutureIfTypeIsMissed() {
         // when
         final Future<Void> result = target.storeModuleEntry("some-key",
@@ -223,6 +239,18 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     }
 
     @Test
+    public void retrieveModuleEntryShouldReturnFailedFutureIfModuleApplicationIsMissed() {
+        // when
+        final Future<ModuleCacheResponse> result =
+                target.retrieveModuleEntry("some-key", "some-module-code", null);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class);
+        assertThat(result.cause().getMessage()).isEqualTo("Module cache 'application' can not be blank");
+    }
+
+    @Test
     public void retrieveModuleEntryShouldReturnFailedFutureIfModuleCodeIsMissed() {
         // when
         final Future<ModuleCacheResponse> result =
@@ -253,17 +281,6 @@ public class BasicModuleCacheServiceTest extends VertxTest {
         final String result = captureRetrieveUrl();
         assertThat(result)
                 .isEqualTo("http://cache-service/cache?k=module.some-module-code.some-key&a=some-app");
-    }
-
-    @Test
-    public void retrieveModuleEntryShouldCreateCallWithBlankAppInParams() {
-        // when
-        target.retrieveModuleEntry("some-key", "some-module-code", null);
-
-        // then
-        final String result = captureRetrieveUrl();
-        assertThat(result)
-                .isEqualTo("http://cache-service/cache?k=module.some-module-code.some-key&a=");
     }
 
     @Test
