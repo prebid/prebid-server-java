@@ -3,9 +3,9 @@ package org.prebid.server.hooks.modules.greenbids.real.time.data.model;
 import lombok.Value;
 
 @Value(staticConstructor = "of")
-public class Ort2ImpExtResult {
+public class Ortb2ImpExtResult {
 
-    ExplorationResult explorationResult;
+    ExplorationResult greenbids;
 
     String tid;
 }

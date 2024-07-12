@@ -21,6 +21,7 @@ import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.model.AmpEvent;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
+import org.prebid.server.analytics.reporter.greenbids.model.ExplorationResult;
 import org.prebid.server.analytics.reporter.greenbids.model.ExtBanner;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAdUnit;
 import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
@@ -130,7 +131,11 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final Map<String, Ortb2ImpExtResult> analyticsResultFromAnalyticsTag = extractAnalyticsResultFromAnalyticsTag(bidResponse);
 
         final String greenbidsId = analyticsResultFromAnalyticsTag.values().stream()
-                .map(ortb2ImpExtResult -> ortb2ImpExtResult.getExplorationResult().getGreenbidsId()).toString();
+                .map(ortb2ImpExtResult ->
+                        Optional.ofNullable(ortb2ImpExtResult.getGreenbids())
+                                .map(ExplorationResult::getFingerprint)
+                                .orElse(UUID.randomUUID().toString()))
+                .toString();
 
         System.out.println(
                 "GreenbidsAnalyticsReporter/processEvent" + "\n" +
@@ -173,6 +178,18 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 headers,
                 commonMessageJson,
                 greenbidsAnalyticsProperties.getTimeoutMs());
+
+        responseFuture
+                .onSuccess(response ->
+                        System.out.println(
+                                "Analytics Server response body: " +
+                                        response.getStatusCode() + "\n" +
+                                        response.getHeaders() + "\n" +
+                                        response.getBody() + "\n" +
+                                        commonMessageJson
+                        ))
+                .onFailure(error -> System.out.println("Can't send payload to Analytics Server: " + error));
+
 
         return responseFuture.compose(this::processAnalyticServerResponse);
     }

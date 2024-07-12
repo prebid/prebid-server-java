@@ -19,7 +19,7 @@ import org.prebid.server.hooks.modules.greenbids.real.time.data.model.AnalyticsR
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ExplorationResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.GreenbidsUserAgent;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.OnnxModelRunner;
-import org.prebid.server.hooks.modules.greenbids.real.time.data.model.Ort2ImpExtResult;
+import org.prebid.server.hooks.modules.greenbids.real.time.data.model.Ortb2ImpExtResult;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.model.ThrottlingMessage;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.InvocationResultImpl;
 import org.prebid.server.hooks.modules.greenbids.real.time.data.v1.model.analytics.ActivityImpl;
@@ -172,7 +172,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                 : bidRequest;
 
 
-        final Map<String, Ort2ImpExtResult> ort2ImpExtResultMap = createOrtb2ImpExt(
+        final Map<String, Ortb2ImpExtResult> ort2ImpExtResultMap = createOrtb2ImpExt(
                 bidRequest, impsBiddersFilterMap, greenbidsId, isExploration);
         final AnalyticsResult analyticsResult = AnalyticsResult.of(
                 "success", ort2ImpExtResultMap, null, null);
@@ -202,7 +202,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         return Future.succeededFuture(invocationResult);
     }
 
-    private Map<String, Ort2ImpExtResult> createOrtb2ImpExt(
+    private Map<String, Ortb2ImpExtResult> createOrtb2ImpExt(
             BidRequest bidRequest,
             Map<String, Map<String, Boolean>> impsBiddersFilterMap,
             String greenbidsId,
@@ -215,7 +215,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                             Map<String, Boolean> impBiddersFilterMap = impsBiddersFilterMap.get(imp.getId());
                             ExplorationResult explorationResult = ExplorationResult.of(
                                     greenbidsId, impBiddersFilterMap, isExploration);
-                            return Ort2ImpExtResult.of(
+                            return Ortb2ImpExtResult.of(
                                     explorationResult, tid);
                         }
                 ));
@@ -248,7 +248,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                         .build());
     }
 
-    private ObjectNode toObjectNode(Map<String, Ort2ImpExtResult> values) {
+    private ObjectNode toObjectNode(Map<String, Ortb2ImpExtResult> values) {
         return values != null ? mapper.valueToTree(values) : null;
     }
 
