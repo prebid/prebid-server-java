@@ -9,7 +9,7 @@ public class AnalyticsResult {
 
     String status;
 
-    Map<String, Ort2ImpExtResult> values;
+    Map<String, Ortb2ImpExtResult> values;
 
     String bidder;
 
