@@ -3,17 +3,14 @@ package org.prebid.server.it;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import io.restassured.response.Response;
 import org.json.JSONException;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.model.Endpoint;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 import java.util.List;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
 
-@RunWith(SpringRunner.class)
 public class VoxTest extends IntegrationTest {
 
     @Test

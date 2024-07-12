@@ -1,6 +1,6 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.v1.Hook;
 import org.prebid.server.hooks.v1.InvocationContext;
 import org.prebid.server.hooks.v1.Module;

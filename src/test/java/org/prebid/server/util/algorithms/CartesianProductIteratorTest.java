@@ -1,7 +1,7 @@
 package org.prebid.server.util.algorithms;
 
 import org.apache.commons.collections4.IteratorUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.util.IterableUtil;
 
 import java.util.Collections;

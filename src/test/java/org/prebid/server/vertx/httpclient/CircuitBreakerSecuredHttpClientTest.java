@@ -1,21 +1,19 @@
 package org.prebid.server.vertx.httpclient;
 
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.unit.Async;
-import io.vertx.ext.unit.TestContext;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.metric.Metrics;
 import org.prebid.server.vertx.httpclient.model.HttpClientResponse;
@@ -36,11 +34,9 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-@RunWith(VertxUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
+@ExtendWith(VertxExtension.class)
 public class CircuitBreakerSecuredHttpClientTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private Vertx vertx;
 
@@ -52,16 +48,16 @@ public class CircuitBreakerSecuredHttpClientTest {
 
     private CircuitBreakerSecuredHttpClient httpClient;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         vertx = Vertx.vertx();
         clock = Clock.fixed(Instant.now(), ZoneId.systemDefault());
         httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 1, 100L, 200L, 24, clock);
     }
 
-    @After
-    public void tearDown(TestContext context) {
-        vertx.close(context.asyncAssertSuccess());
+    @AfterEach
+    public void tearDown(VertxTestContext context) {
+        vertx.close(context.succeedingThenComplete());
     }
 
     @Test
@@ -73,12 +69,12 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldSucceedIfCircuitIsClosedAndWrappedHttpClientSucceeds(TestContext context) {
+    public void requestShouldSucceedIfCircuitIsClosedAndWrappedHttpClientSucceeds() {
         // given
         givenHttpClientReturning(HttpClientResponse.of(200, null, null));
 
         // when
-        final Future<?> future = doRequest(context);
+        final Future<?> future = doRequest();
 
         // then
         verify(wrappedHttpClient).request(any(), anyString(), any(), (String) any(), anyLong(), anyLong());
@@ -87,12 +83,12 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailIfCircuitIsClosedButWrappedHttpClientFails(TestContext context) {
+    public void requestShouldFailIfCircuitIsClosedButWrappedHttpClientFails() {
         // given
         givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
-        final Future<?> future = doRequest(context);
+        final Future<?> future = doRequest();
 
         // then
         verify(wrappedHttpClient).request(any(), anyString(), any(), (String) any(), anyLong(), anyLong());
@@ -102,14 +98,13 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailIfCircuitIsHalfOpenedButWrappedHttpClientFailsAndClosingTimeIsNotPassedBy(
-            TestContext context) {
+    public void requestShouldFailIfCircuitIsHalfOpenedButWrappedHttpClientFailsAndClosingTimeIsNotPassedBy() {
         // given
         givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
-        final Future<?> future1 = doRequest(context); // 1 call
-        final Future<?> future2 = doRequest(context); // 2 call
+        final Future<?> future1 = doRequest(); // 1 call
+        final Future<?> future2 = doRequest(); // 2 call
 
         // then
         // invoked only on 1 call
@@ -123,15 +118,15 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailIfCircuitIsHalfOpenedButWrappedHttpClientFails(TestContext context) {
+    public void requestShouldFailIfCircuitIsHalfOpenedButWrappedHttpClientFails() {
         // given
         givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
-        final Future<?> future1 = doRequest(context); // 1 call
-        final Future<?> future2 = doRequest(context); // 2 call
-        doWaitForClosingInterval(context);
-        final Future<?> future3 = doRequest(context); // 3 call
+        final Future<?> future1 = doRequest(); // 1 call
+        final Future<?> future2 = doRequest(); // 2 call
+        doWaitForClosingInterval();
+        final Future<?> future3 = doRequest(); // 3 call
 
         // then
         verify(wrappedHttpClient, times(2))
@@ -148,15 +143,15 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldSucceedIfCircuitIsHalfOpenedAndWrappedHttpClientSucceeds(TestContext context) {
+    public void requestShouldSucceedIfCircuitIsHalfOpenedAndWrappedHttpClientSucceeds() {
         // given
         givenHttpClientReturning(new RuntimeException("exception"), HttpClientResponse.of(200, null, null));
 
         // when
-        final Future<?> future1 = doRequest(context); // 1 call
-        final Future<?> future2 = doRequest(context); // 2 call
-        doWaitForClosingInterval(context);
-        final Future<?> future3 = doRequest(context); // 3 call
+        final Future<?> future1 = doRequest(); // 1 call
+        final Future<?> future2 = doRequest(); // 2 call
+        doWaitForClosingInterval();
+        final Future<?> future3 = doRequest(); // 3 call
 
         // then
         verify(wrappedHttpClient, times(2))
@@ -172,16 +167,16 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void requestShouldFailWithOriginalExceptionIfOpeningIntervalExceeds(TestContext context) {
+    public void requestShouldFailWithOriginalExceptionIfOpeningIntervalExceeds() {
         // given
         httpClient = new CircuitBreakerSecuredHttpClient(vertx, wrappedHttpClient, metrics, 2, 100L, 200L, 24, clock);
 
         givenHttpClientReturning(new RuntimeException("exception1"), new RuntimeException("exception2"));
 
         // when
-        final Future<?> future1 = doRequest(context); // 1 call
-        doWaitForOpeningInterval(context);
-        final Future<?> future2 = doRequest(context); // 2 call
+        final Future<?> future1 = doRequest(); // 1 call
+        doWaitForOpeningInterval();
+        final Future<?> future2 = doRequest(); // 2 call
 
         // then
         verify(wrappedHttpClient, times(2))
@@ -195,9 +190,9 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void circuitBreakerNumberGaugeShouldReportActualNumber(TestContext context) {
+    public void circuitBreakerNumberGaugeShouldReportActualNumber() {
         // when
-        doRequest(context);
+        doRequest();
 
         // then
         final ArgumentCaptor<LongSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(LongSupplier.class);
@@ -208,12 +203,12 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void circuitBreakerGaugeShouldReportOpenedWhenCircuitOpen(TestContext context) {
+    public void circuitBreakerGaugeShouldReportOpenedWhenCircuitOpen() {
         // given
         givenHttpClientReturning(new RuntimeException("exception"));
 
         // when
-        doRequest(context);
+        doRequest();
 
         // then
         final ArgumentCaptor<BooleanSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(BooleanSupplier.class);
@@ -226,15 +221,15 @@ public class CircuitBreakerSecuredHttpClientTest {
     }
 
     @Test
-    public void circuitBreakerGaugeShouldReportClosedWhenCircuitClosed(TestContext context) {
+    public void circuitBreakerGaugeShouldReportClosedWhenCircuitClosed() {
         // given
         givenHttpClientReturning(new RuntimeException("exception"), HttpClientResponse.of(200, null, null));
 
         // when
-        doRequest(context); // 1 call
-        doRequest(context); // 2 call
-        doWaitForClosingInterval(context);
-        doRequest(context); // 3 call
+        doRequest(); // 1 call
+        doRequest(); // 2 call
+        doWaitForClosingInterval();
+        doRequest(); // 3 call
 
         // then
         final ArgumentCaptor<BooleanSupplier> gaugeValueProviderCaptor = ArgumentCaptor.forClass(BooleanSupplier.class);
@@ -260,28 +255,28 @@ public class CircuitBreakerSecuredHttpClientTest {
         }
     }
 
-    private Future<HttpClientResponse> doRequest(TestContext context) {
-        final Future<HttpClientResponse> future = httpClient.request(HttpMethod.GET, "http://url", null, (String) null,
-                0L);
+    private Future<HttpClientResponse> doRequest() {
+        final Future<HttpClientResponse> future = httpClient
+                .request(HttpMethod.GET, "http://url", null, (String) null, 0L);
 
-        final Async async = context.async();
-        future.onComplete(ar -> async.complete());
-        async.await();
+        final Promise<?> promise = Promise.promise();
+        future.onComplete(ar -> promise.complete());
+        promise.future().toCompletionStage().toCompletableFuture().join();
 
         return future;
     }
 
-    private void doWaitForOpeningInterval(TestContext context) {
-        doWait(context, 150L);
+    private void doWaitForOpeningInterval() {
+        doWait(150L);
     }
 
-    private void doWaitForClosingInterval(TestContext context) {
-        doWait(context, 250L);
+    private void doWaitForClosingInterval() {
+        doWait(250L);
     }
 
-    private void doWait(TestContext context, long timeout) {
-        final Async async = context.async();
-        vertx.setTimer(timeout, id -> async.complete());
-        async.await();
+    private void doWait(long timeout) {
+        final Promise<?> promise = Promise.promise();
+        vertx.setTimer(timeout, id -> promise.complete());
+        promise.future().toCompletionStage().toCompletableFuture().join();
     }
 }

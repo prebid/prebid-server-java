@@ -6,13 +6,12 @@ import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.currency.CurrencyConversionService;
 import org.prebid.server.currency.proto.CurrencyConversionRates;
@@ -47,6 +46,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class CurrencyConversionServiceTest extends VertxTest {
 
     private static final String USD = "USD";
@@ -55,9 +55,6 @@ public class CurrencyConversionServiceTest extends VertxTest {
     private static final String UAH = "UAH";
     private static final String AUD = "AUD";
     private static final String URL = "http://currency-rates/latest.json";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private HttpClient httpClient;
@@ -69,7 +66,7 @@ public class CurrencyConversionServiceTest extends VertxTest {
 
     private CurrencyConversionService currencyService;
 
-    @Before
+    @BeforeEach
     public void setUp() throws JsonProcessingException {
         final Map<String, Map<String, BigDecimal>> currencyRates = new HashMap<>();
         currencyRates.put(GBP, singletonMap(EUR, BigDecimal.valueOf(1.3)));

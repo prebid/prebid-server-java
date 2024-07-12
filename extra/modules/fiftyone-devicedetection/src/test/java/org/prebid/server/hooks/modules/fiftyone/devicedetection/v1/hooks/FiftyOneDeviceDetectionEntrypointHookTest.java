@@ -1,11 +1,10 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.hooks;
 
 import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.hooks.execution.v1.entrypoint.EntrypointPayloadImpl;
-import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.FiftyOneDeviceDetectionModule;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
+import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.FiftyOneDeviceDetectionModule;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.model.ModuleContext;
 import org.prebid.server.hooks.v1.InvocationResult;
 import org.prebid.server.hooks.v1.entrypoint.EntrypointHook;
@@ -17,12 +16,8 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class FiftyOneDeviceDetectionEntrypointHookTest {
-    private EntrypointHook target;
 
-    @Before
-    public void setUp() {
-        target = new FiftyOneDeviceDetectionEntrypointHook();
-    }
+    private final EntrypointHook target = new FiftyOneDeviceDetectionEntrypointHook();
 
     @Test
     public void codeShouldStartWithModuleCode() {

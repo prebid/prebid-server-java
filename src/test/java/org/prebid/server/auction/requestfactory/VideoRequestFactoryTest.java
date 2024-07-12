@@ -15,12 +15,11 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.DebugResolver;
@@ -65,38 +64,37 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 public class VideoRequestFactoryTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private Ortb2RequestFactory ortb2RequestFactory;
     @Mock
     private VideoStoredRequestProcessor videoStoredRequestProcessor;
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidRequestOrtbVersionConversionManager ortbVersionConversionManager;
     @Mock
     private Ortb2ImplicitParametersResolver paramsResolver;
-    @Mock
+    @Mock(strictness = LENIENT)
     private AuctionPrivacyContextFactory auctionPrivacyContextFactory;
-    @Mock
+    @Mock(strictness = LENIENT)
     private GeoLocationServiceWrapper geoLocationServiceWrapper;
 
     private VideoRequestFactory target;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest httpServerRequest;
-    @Mock
+    @Mock(strictness = LENIENT)
     private DebugResolver debugResolver;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(ortb2RequestFactory.createAuctionContext(any(), eq(MetricName.video)))
                 .willReturn(AuctionContext.builder().build());

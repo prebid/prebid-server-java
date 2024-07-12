@@ -1,7 +1,7 @@
 package org.prebid.server.auction;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestBidAdjustmentFactors;
 import org.prebid.server.proto.openrtb.ext.request.ImpMediaType;
 
@@ -15,7 +15,7 @@ public class AdjustmentFactorResolverTest {
 
     private AdjustmentFactorResolver adjustmentFactorResolver;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         adjustmentFactorResolver = new AdjustmentFactorResolver();
     }

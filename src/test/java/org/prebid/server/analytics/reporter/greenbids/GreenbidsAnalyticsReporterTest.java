@@ -15,14 +15,13 @@ import com.iab.openrtb.response.SeatBid;
 import io.netty.handler.codec.http.HttpHeaderValues;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.analytics.model.AuctionEvent;
 import org.prebid.server.analytics.reporter.greenbids.model.CommonMessage;
@@ -58,7 +57,6 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -68,10 +66,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class GreenbidsAnalyticsReporterTest extends VertxTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Captor
     private ArgumentCaptor<String> jsonCaptor;
@@ -94,7 +90,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
     private JacksonMapper jacksonMapper;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         final ObjectMapper mapper = new ObjectMapper();
         jacksonMapper = new JacksonMapper(mapper);
@@ -366,9 +362,9 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final BidResponse bidResponse = mock(BidResponse.class);
         when(auctionContext.getBidRequest())
                 .thenReturn(BidRequest.builder()
-                                .id("request1")
-                                .ext(givenExtRequest())
-                                .build());
+                        .id("request1")
+                        .ext(givenExtRequest())
+                        .build());
 
         final AuctionEvent event = mock(AuctionEvent.class);
         when(event.getAuctionContext()).thenReturn(auctionContext);
@@ -416,7 +412,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final Future<Void> result = target.processEvent(event);
 
         //then
-        assertTrue(result.failed());
+        assertThat(result.failed()).isTrue();
         assertThat(result.cause())
                 .hasMessageStartingWith("Error decoding imp.ext.prebid: "
                         + "Cannot construct instance of `org.prebid.server.proto.openrtb.ext.request.ExtOptions`");

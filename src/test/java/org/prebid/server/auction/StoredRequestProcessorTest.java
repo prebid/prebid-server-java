@@ -11,12 +11,11 @@ import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionStoredResult;
 import org.prebid.server.exception.InvalidRequestException;
@@ -55,21 +54,20 @@ import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class StoredRequestProcessorTest extends VertxTest {
 
     private static final int DEFAULT_TIMEOUT = 500;
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private FileSystem fileSystem;
     @Mock
     private ApplicationSettings applicationSettings;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IdGenerator idGenerator;
     @Mock
     private Metrics metrics;
@@ -78,7 +76,7 @@ public class StoredRequestProcessorTest extends VertxTest {
 
     private StoredRequestProcessor storedRequestProcessor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(idGenerator.generateId()).willReturn("generated-stored-id");
 

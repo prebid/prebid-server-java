@@ -1,14 +1,11 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import io.vertx.ext.unit.junit.VertxUnitRunner;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -34,11 +31,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
-@RunWith(VertxUnitRunner.class)
-public class DatabaseApplicationSettingsTest extends VertxTest {
+@ExtendWith(MockitoExtension.class)
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
+public class DatabaseApplicationSettingsTest extends VertxTest {
 
     private static final String SELECT_ACCOUNT_QUERY =
             "SELECT config FROM accounts_account where uuid = %ACCOUNT_ID% LIMIT 1";
@@ -63,7 +58,7 @@ public class DatabaseApplicationSettingsTest extends VertxTest {
 
     private Timeout timeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(5000L);
         given(parametrizedQueryHelper.replaceAccountIdPlaceholder(SELECT_ACCOUNT_QUERY)).willReturn("query");
