@@ -4,28 +4,28 @@ import fiftyone.devicedetection.DeviceDetectionOnPremisePipelineBuilder;
 import fiftyone.devicedetection.DeviceDetectionPipelineBuilder;
 import fiftyone.pipeline.core.flowelements.Pipeline;
 import fiftyone.pipeline.engines.Constants;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFile;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.DataFileUpdate;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.ModuleConfig;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config.PerformanceConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class PipelineBuilderTest {
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     private ModuleConfig moduleConfig;
     private DataFileUpdate dataFileUpdate;
@@ -33,12 +33,12 @@ public class PipelineBuilderTest {
 
     @Mock
     private DeviceDetectionPipelineBuilder builderPrime;
-    @Mock
+    @Mock(strictness = LENIENT)
     private DeviceDetectionOnPremisePipelineBuilder builder;
     @Mock
     private Pipeline pipeline;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         dataFileUpdate = new DataFileUpdate();
         performanceConfig = new PerformanceConfig();
@@ -164,14 +164,15 @@ public class PipelineBuilderTest {
         assertThat(argumentCaptor.getAllValues()).containsExactly(dataFileUpdate.getPollingInterval());
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void buildShouldThrowWhenProfileIsUnknown() throws Exception {
+    @Test
+    public void buildShouldThrowWhenProfileIsUnknown() {
         // given
         performanceConfig.setProfile("ghost");
 
         try {
             // when
-            new PipelineBuilder(moduleConfig).build(builderPrime);
+            assertThatThrownBy(() -> new PipelineBuilder(moduleConfig).build(builderPrime))
+                    .isInstanceOf(IllegalArgumentException.class);
         } finally {
             // then
             verify(builder, never()).setPerformanceProfile(any());

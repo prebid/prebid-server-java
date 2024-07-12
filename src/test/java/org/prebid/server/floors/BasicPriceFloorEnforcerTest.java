@@ -44,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -52,9 +53,9 @@ public class BasicPriceFloorEnforcerTest {
 
     @Mock
     private BidRejectionTracker rejectionTracker;
-    @Mock
+    @Mock(strictness = LENIENT)
     private CurrencyConversionService currencyConversionService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private PriceFloorAdjuster priceFloorAdjuster;
     @Mock
     private Metrics metrics;

@@ -1,6 +1,6 @@
 package org.prebid.server.cache.utils;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 
 import static org.assertj.core.api.Assertions.assertThat;

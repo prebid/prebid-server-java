@@ -2,7 +2,7 @@ package org.prebid.server.hooks.modules.fiftyone.devicedetection.v1.core;
 
 import com.iab.openrtb.request.BrandVersion;
 import com.iab.openrtb.request.UserAgent;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;

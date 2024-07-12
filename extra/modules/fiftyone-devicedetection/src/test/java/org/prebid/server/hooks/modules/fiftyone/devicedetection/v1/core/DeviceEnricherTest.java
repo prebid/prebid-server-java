@@ -7,13 +7,12 @@ import fiftyone.pipeline.core.data.FlowData;
 import fiftyone.pipeline.core.flowelements.Pipeline;
 import fiftyone.pipeline.engines.data.AspectPropertyValue;
 import fiftyone.pipeline.engines.exceptions.NoValueException;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.hooks.modules.fiftyone.devicedetection.model.boundary.CollectedEvidence;
 import org.prebid.server.proto.openrtb.ext.request.ExtDevice;
 
@@ -25,27 +24,27 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class DeviceEnricherTest {
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private Pipeline pipeline;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private FlowData flowData;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private DeviceData deviceData;
 
     private DeviceEnricher target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         when(pipeline.createFlowData()).thenReturn(flowData);
         when(flowData.get(DeviceData.class)).thenReturn(deviceData);
