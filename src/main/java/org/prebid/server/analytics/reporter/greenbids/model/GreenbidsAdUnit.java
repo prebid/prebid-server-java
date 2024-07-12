@@ -19,4 +19,7 @@ public class GreenbidsAdUnit {
     MediaTypes mediaTypes;
 
     List<GreenbidsBids> bids;
+
+    @JsonProperty("ortb2Imp")
+    Ortb2ImpResult ortb2ImpResult;
 }
