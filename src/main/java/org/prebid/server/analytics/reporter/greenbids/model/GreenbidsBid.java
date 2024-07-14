@@ -28,18 +28,24 @@ public class GreenbidsBid {
 
     String currency;
 
-    public static GreenbidsBidBuilder ofBidBuilder(String seat, Bid bid) {
+    public static GreenbidsBid ofBid(String seat, Bid bid, JsonNode params, String currency) {
         return GreenbidsBid.builder()
                 .bidder(seat)
                 .isTimeout(false)
                 .hasBid(bid != null)
-                .cpm(bid.getPrice());
+                .params(params)
+                .cpm(bid.getPrice())
+                .currency(currency)
+                .build();
     }
 
-    public static GreenbidsBidBuilder ofNonBidBuilder(String seat, NonBid nonBid) {
+    public static GreenbidsBid ofNonBid(String seat, NonBid nonBid, JsonNode params, String currency) {
         return GreenbidsBid.builder()
                 .bidder(seat)
                 .isTimeout(nonBid.getStatusCode() == BidRejectionReason.TIMED_OUT)
-                .hasBid(false);
+                .hasBid(false)
+                .params(params)
+                .currency(currency)
+                .build();
     }
 }

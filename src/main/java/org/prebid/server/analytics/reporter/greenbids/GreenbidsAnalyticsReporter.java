@@ -291,18 +291,18 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         final ObjectNode impExt = imp.getExt();
         final String adUnitCode = imp.getId();
 
-        final ExtImpPrebid parseExtImpPrebid = Optional.ofNullable(impExt)
+        final ExtImpPrebid impExtPrebid = Optional.ofNullable(impExt)
                 .map(ext -> ext.get("prebid"))
                 .map(this::extImpPrebid)
-                .orElseThrow(() -> new PreBidException("ImpPrebid extension should not be empty"));
+                .orElseThrow(() -> new PreBidException("imp.ext.prebid should not be empty"));
 
         final GreenbidsUnifiedCode greenbidsUnifiedCode = getGpid(impExt)
-                .or(() -> getStoredRequestId(parseExtImpPrebid))
+                .or(() -> getStoredRequestId(impExtPrebid))
                 .orElseGet(() -> GreenbidsUnifiedCode.of(
                         adUnitCode, GreenbidsSource.AD_UNIT_CODE_SOURCE.getValue()));
 
         final List<GreenbidsBid> bids = extractBidders(
-                imp, seatsWithBids, seatsWithNonBids, parseExtImpPrebid, currency);
+                imp.getId(), seatsWithBids, seatsWithNonBids, impExtPrebid, currency);
 
         return GreenbidsAdUnit.builder()
                 .code(adUnitCode)
@@ -334,27 +334,22 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
     }
 
     private List<GreenbidsBid> extractBidders(
-            Imp imp,
+            String impId,
             Map<String, Bid> seatsWithBids,
             Map<String, NonBid> seatsWithNonBids,
-            ExtImpPrebid parseExtImpPrebid,
+            ExtImpPrebid impExtPrebid,
             String currency) {
+        final ObjectNode bidders = impExtPrebid.getBidder();
+
         return Stream.concat(
                 seatsWithBids.entrySet().stream()
-                        .filter(entry -> entry.getValue().getImpid().equals(imp.getId()))
-                        .map(entry -> Map.entry(
-                                entry.getKey(), GreenbidsBid.ofBidBuilder(entry.getKey(), entry.getValue()))),
+                        .filter(entry -> entry.getValue().getImpid().equals(impId))
+                        .map(entry -> GreenbidsBid.ofBid(
+                                entry.getKey(), entry.getValue(), bidders.get(entry.getKey()), currency)),
                 seatsWithNonBids.entrySet().stream()
-                        .filter(entry -> entry.getValue().getImpId().equals(imp.getId()))
-                        .map(entry -> Map.entry(
-                                entry.getKey(), GreenbidsBid.ofNonBidBuilder(entry.getKey(), entry.getValue()))))
-                .map(bidBuilderEntry -> {
-                    final JsonNode bidderParams = parseExtImpPrebid.getBidder().get(bidBuilderEntry.getKey());
-                    return bidBuilderEntry.getValue()
-                            .params(bidderParams)
-                            .currency(currency)
-                            .build();
-                })
+                        .filter(entry -> entry.getValue().getImpId().equals(impId))
+                        .map(entry -> GreenbidsBid.ofNonBid(
+                                entry.getKey(), entry.getValue(), bidders.get(entry.getKey()), currency)))
                 .toList();
     }
 

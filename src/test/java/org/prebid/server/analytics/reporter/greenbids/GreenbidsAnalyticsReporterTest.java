@@ -76,6 +76,9 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Captor
     private ArgumentCaptor<MultiMap> headersCaptor;
 
+    @Captor
+    private ArgumentCaptor<Long> timeoutCaptor;
+
     @Mock
     private HttpClient httpClient;
 
@@ -137,18 +140,17 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         when(mockResponse.getStatusCode()).thenReturn(202);
         when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
-        final CommonMessage expectedCommonMessage = givenCommonMessageForBanner();
+        final CommonMessage expectedCommonMessage = expectedCommonMessageForBanner();
 
         // when
-        final Future<Void> result = target.processEvent(event);
+        target.processEvent(event);
 
         // then
-        assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(
                 eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
                 headersCaptor.capture(),
                 jsonCaptor.capture(),
-                eq(greenbidsAnalyticsProperties.getTimeoutMs()));
+                timeoutCaptor.capture());
 
         final String capturedJson = jsonCaptor.getValue();
         final CommonMessage capturedCommonMessage = jacksonMapper.mapper()
@@ -159,13 +161,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .isEqualTo(expectedCommonMessage);
         assertThat(capturedCommonMessage.getGreenbidsId()).isNotNull();
         assertThat(capturedCommonMessage.getBillingId()).isNotNull();
-
-        assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
-                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
-        assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
-                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
-        assertThat(headersCaptor.getValue().get(HttpUtil.USER_AGENT_HEADER))
-                .isEqualTo(givenUserAgent());
     }
 
     @Test
@@ -192,18 +187,17 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         when(mockResponse.getStatusCode()).thenReturn(202);
         when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
-        final CommonMessage expectedCommonMessage = givenCommonMessageForVideo();
+        final CommonMessage expectedCommonMessage = expectedCommonMessageForVideo();
 
         // when
-        final Future<Void> result = target.processEvent(event);
+        target.processEvent(event);
 
         // then
-        assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(
                 eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
                 headersCaptor.capture(),
                 jsonCaptor.capture(),
-                eq(greenbidsAnalyticsProperties.getTimeoutMs()));
+                timeoutCaptor.capture());
 
         final String capturedJson = jsonCaptor.getValue();
         final CommonMessage capturedCommonMessage = jacksonMapper.mapper()
@@ -213,13 +207,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .isEqualTo(expectedCommonMessage);
         assertThat(capturedCommonMessage.getGreenbidsId()).isNotNull();
         assertThat(capturedCommonMessage.getBillingId()).isNotNull();
-
-        assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
-                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
-        assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
-                .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
-        assertThat(headersCaptor.getValue().get(HttpUtil.USER_AGENT_HEADER))
-                .isEqualTo(givenUserAgent());
     }
 
     @Test
@@ -251,18 +238,17 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 anyString(),
                 anyLong()))
                 .thenReturn(Future.succeededFuture(mockResponse));
-        final CommonMessage expectedCommonMessage = givenCommonMessageBannerWithoutFormat();
+        final CommonMessage expectedCommonMessage = expectedCommonMessageBannerWithoutFormat();
 
         // when
-        final Future<Void> result = target.processEvent(event);
+        target.processEvent(event);
 
         // then
-        assertThat(result.succeeded()).isTrue();
         verify(httpClient).post(
                 eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
                 headersCaptor.capture(),
                 jsonCaptor.capture(),
-                eq(greenbidsAnalyticsProperties.getTimeoutMs()));
+                timeoutCaptor.capture());
 
         final String capturedJson = jsonCaptor.getValue();
         final CommonMessage capturedCommonMessage = jacksonMapper.mapper()
@@ -272,13 +258,51 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .isEqualTo(expectedCommonMessage);
         assertThat(capturedCommonMessage.getGreenbidsId()).isNotNull();
         assertThat(capturedCommonMessage.getBillingId()).isNotNull();
+    }
 
+    @Test
+    public void shouldReturnValidHeadersAndTimeouts() throws IOException {
+        final Banner banner = givenBanner();
+
+        final ObjectNode impExtNode = mapper.createObjectNode();
+        impExtNode.set("gpid", TextNode.valueOf("gpidvalue"));
+        impExtNode.set("prebid", givenPrebidBidderParamsNode());
+
+        final Imp imp = Imp.builder()
+                .id("adunitcodevalue")
+                .ext(impExtNode)
+                .banner(banner)
+                .build();
+
+        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
+        final AuctionEvent event = AuctionEvent.builder()
+                .auctionContext(auctionContext)
+                .bidResponse(auctionContext.getBidResponse())
+                .build();
+
+        final HttpClientResponse mockResponse = mock(HttpClientResponse.class);
+        when(mockResponse.getStatusCode()).thenReturn(202);
+        when(httpClient.post(anyString(), any(MultiMap.class), anyString(), anyLong()))
+                .thenReturn(Future.succeededFuture(mockResponse));
+
+        // when
+        final Future<Void> result = target.processEvent(event);
+
+        // then
+        verify(httpClient).post(
+                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
+                headersCaptor.capture(),
+                jsonCaptor.capture(),
+                timeoutCaptor.capture());
+
+        assertThat(result.succeeded()).isTrue();
         assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
         assertThat(headersCaptor.getValue().get(HttpUtil.CONTENT_TYPE_HEADER))
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
         assertThat(headersCaptor.getValue().get(HttpUtil.USER_AGENT_HEADER))
                 .isEqualTo(givenUserAgent());
+        assertThat(timeoutCaptor.getValue()).isEqualTo(greenbidsAnalyticsProperties.getTimeoutMs());
     }
 
     @Test
@@ -333,7 +357,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         // then
         assertThat(result.failed()).isTrue();
         assertThat(result.cause())
-                .hasMessageStartingWith("ImpPrebid extension should not be empty");
+                .hasMessageStartingWith("imp.ext.prebid should not be empty");
     }
 
     @Test
@@ -600,34 +624,34 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                         .build());
     }
 
-    private static CommonMessage givenCommonMessageForBanner() {
-        return givenCommonMessage(
+    private static CommonMessage expectedCommonMessageForBanner() {
+        return expectedCommonMessage(
                 adUnit -> adUnit
                         .code("adunitcodevalue")
                         .unifiedCode(GreenbidsUnifiedCode.of("gpidvalue", "gpidSource"))
                         .mediaTypes(MediaTypes.of(givenExtBanner(320, 50, null), null, null))
-                        .bids(givenGreenbidsBids()));
+                        .bids(expectedGreenbidBids()));
     }
 
-    private static CommonMessage givenCommonMessageForVideo() {
-        return givenCommonMessage(
+    private static CommonMessage expectedCommonMessageForVideo() {
+        return expectedCommonMessage(
                 adUnit -> adUnit
                         .code("adunitcodevalue")
                         .unifiedCode(GreenbidsUnifiedCode.of("adunitcodevalue", "adUnitCodeSource"))
                         .mediaTypes(MediaTypes.of(null, givenVideo(), null))
-                        .bids(givenGreenbidsBids()));
+                        .bids(expectedGreenbidBids()));
     }
 
-    private static CommonMessage givenCommonMessageBannerWithoutFormat() {
-        return givenCommonMessage(
+    private static CommonMessage expectedCommonMessageBannerWithoutFormat() {
+        return expectedCommonMessage(
                 adUnit -> adUnit
                         .code("adunitcodevalue")
                         .unifiedCode(GreenbidsUnifiedCode.of("adunitcodevalue", "adUnitCodeSource"))
                         .mediaTypes(MediaTypes.of(givenExtBanner(728, 90, 1), null, null))
-                        .bids(givenGreenbidsBids()));
+                        .bids(expectedGreenbidBids()));
     }
 
-    private static CommonMessage givenCommonMessage(
+    private static CommonMessage expectedCommonMessage(
             UnaryOperator<GreenbidsAdUnit.GreenbidsAdUnitBuilder>... greenbidsAdUnitCutomizers) {
         return CommonMessage.builder()
                 .version("2.2.0")
@@ -642,7 +666,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .build();
     }
 
-    private static List<GreenbidsBid> givenGreenbidsBids() {
+    private static List<GreenbidsBid> expectedGreenbidBids() {
         final ObjectNode paramsSeat1 = mapper.createObjectNode()
                 .put("accountId", 1001)
                 .put("siteId", 267318)
@@ -655,7 +679,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final ObjectNode paramsSeat3 = mapper.createObjectNode()
                 .put("placementId", 222);
 
-        return givenGreenbidsBidsWithCustomizer(
+        return expectedGreenbidsBidsWithCustomizer(
                 builder -> builder.bidder("seat2").isTimeout(false).hasBid(true)
                         .cpm(BigDecimal.valueOf(0.5)).currency("USD").params(paramsSeat2),
                 builder -> builder.bidder("seat1").isTimeout(false).hasBid(true)
@@ -664,7 +688,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                         .currency("USD").params(paramsSeat3));
     }
 
-    private static List<GreenbidsBid> givenGreenbidsBidsWithCustomizer(
+    private static List<GreenbidsBid> expectedGreenbidsBidsWithCustomizer(
             UnaryOperator<GreenbidsBid.GreenbidsBidBuilder>... greenbidsBidsCustomizers) {
         return Arrays.stream(greenbidsBidsCustomizers)
                 .map(customizer -> customizer.apply(GreenbidsBid.builder()).build())
