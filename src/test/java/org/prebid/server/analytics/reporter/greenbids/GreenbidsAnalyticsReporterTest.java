@@ -61,7 +61,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -78,6 +77,9 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
     @Captor
     private ArgumentCaptor<Long> timeoutCaptor;
+
+    @Captor
+    private ArgumentCaptor<String> urlCaptor;
 
     @Mock
     private HttpClient httpClient;
@@ -147,7 +149,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         // then
         verify(httpClient).post(
-                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
+                urlCaptor.capture(),
                 headersCaptor.capture(),
                 jsonCaptor.capture(),
                 timeoutCaptor.capture());
@@ -194,7 +196,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         // then
         verify(httpClient).post(
-                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
+                urlCaptor.capture(),
                 headersCaptor.capture(),
                 jsonCaptor.capture(),
                 timeoutCaptor.capture());
@@ -245,7 +247,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         // then
         verify(httpClient).post(
-                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
+                urlCaptor.capture(),
                 headersCaptor.capture(),
                 jsonCaptor.capture(),
                 timeoutCaptor.capture());
@@ -261,7 +263,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     @Test
-    public void shouldReturnValidHeadersAndTimeouts() throws IOException {
+    public void shouldReturnValidHeadersAndTimeouts() {
         final Banner banner = givenBanner();
 
         final ObjectNode impExtNode = mapper.createObjectNode();
@@ -290,7 +292,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         // then
         verify(httpClient).post(
-                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
+                urlCaptor.capture(),
                 headersCaptor.capture(),
                 jsonCaptor.capture(),
                 timeoutCaptor.capture());
@@ -303,6 +305,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         assertThat(headersCaptor.getValue().get(HttpUtil.USER_AGENT_HEADER))
                 .isEqualTo(givenUserAgent());
         assertThat(timeoutCaptor.getValue()).isEqualTo(greenbidsAnalyticsProperties.getTimeoutMs());
+        assertThat(urlCaptor.getValue()).isEqualTo(greenbidsAnalyticsProperties.getAnalyticsServerUrl());
     }
 
     @Test
