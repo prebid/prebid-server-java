@@ -91,11 +91,14 @@ public class AnalyticsConfiguration {
 
             Double exploratorySamplingSplit;
 
+            Double defaultSamplingRate;
+
             Long timeoutMs;
 
             public GreenbidsAnalyticsProperties toComponentProperties() {
                 return GreenbidsAnalyticsProperties.builder()
                         .exploratorySamplingSplit(getExploratorySamplingSplit())
+                        .defaultSamplingRate(getDefaultSamplingRate())
                         .analyticsServerVersion(getAnalyticsServerVersion())
                         .analyticsServerUrl(getAnalyticsServer())
                         .timeoutMs(getTimeoutMs())

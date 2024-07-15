@@ -106,6 +106,10 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
 
         final GreenbidsPrebidExt greenbidsBidRequestExt = parseBidRequestExt(auctionContext.getBidRequest());
 
+        if (greenbidsBidRequestExt == null) {
+            return Future.succeededFuture();
+        }
+
         final String greenbidsId = UUID.randomUUID().toString();
         final String billingId = UUID.randomUUID().toString();
 
@@ -155,7 +159,7 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .filter(this::isNotEmptyObjectNode)
                 .map(analytics -> (ObjectNode) analytics.get(BID_REQUEST_ANALYTICS_EXTENSION_NAME))
                 .map(this::toGreenbidsPrebidExt)
-                .orElse(GreenbidsPrebidExt.of(null, null));
+                .orElse(null);
     }
 
     private GreenbidsPrebidExt toGreenbidsPrebidExt(ObjectNode adapterNode) {
@@ -178,10 +182,16 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
         return Future.failedFuture(new PreBidException("Unexpected response status: " + response.getStatusCode()));
     }
 
-    private boolean isSampled(double samplingRate, String greenbidsId) {
+    private boolean isSampled(Double samplingRate, String greenbidsId) {
+        if (samplingRate == null) {
+            logger.warn("Warning: Sampling rate is not defined in request. Set sampling at "
+                    + greenbidsAnalyticsProperties.getDefaultSamplingRate());
+            return true;
+        }
+
         if (samplingRate < 0 || samplingRate > 1) {
             logger.warn("Warning: Sampling rate must be between 0 and 1");
-            return false;
+            return true;
         }
 
         final double exploratorySamplingRate = samplingRate
@@ -233,11 +243,14 @@ public class GreenbidsAnalyticsReporter implements AnalyticsReporter {
                 .map(Site::getPage)
                 .orElse(null);
 
+        final Double greenbidsSamplingRate = Optional.ofNullable(greenbidsImpExt.getGreenbidsSampling())
+                .orElse(greenbidsAnalyticsProperties.getDefaultSamplingRate());
+
         return CommonMessage.builder()
                         .version(greenbidsAnalyticsProperties.getAnalyticsServerVersion())
                         .auctionId(auctionId)
                         .referrer(referrer)
-                        .sampling(greenbidsImpExt.getGreenbidsSampling())
+                        .sampling(greenbidsSamplingRate)
                         .prebidServer(prebidVersionProvider.getNameVersionRecord())
                         .greenbidsId(greenbidsId)
                         .pbuid(greenbidsImpExt.getPbuid())

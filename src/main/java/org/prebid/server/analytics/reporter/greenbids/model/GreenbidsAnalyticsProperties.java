@@ -9,6 +9,8 @@ public class GreenbidsAnalyticsProperties {
 
     Double exploratorySamplingSplit;
 
+    Double defaultSamplingRate;
+
     String analyticsServerVersion;
 
     String analyticsServerUrl;
