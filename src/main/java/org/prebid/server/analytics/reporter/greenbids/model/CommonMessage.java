@@ -17,7 +17,7 @@ public class CommonMessage {
 
     String referrer;
 
-    double sampling;
+    Double sampling;
 
     @JsonProperty("prebidServer")
     String prebidServer;
