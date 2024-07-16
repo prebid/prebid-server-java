@@ -274,6 +274,7 @@ settings:
       secretAccessKey: <S3 access key>
       endpoint: <endpoint> # http://s3.storage.com
       bucket: <bucket name> # prebid-application-settings
+      region: <region name> # if not provided AWS_GLOBAL will be used. Example value: 'eu-central-1'
       accounts-dir: accounts
       stored-imps-dir: stored-impressions
       stored-requests-dir: stored-requests

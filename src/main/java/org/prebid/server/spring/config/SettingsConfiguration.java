@@ -241,6 +241,10 @@ public class SettingsConfiguration {
             private String accessKeyId;
             @NotBlank
             private String secretAccessKey;
+            /**
+             * If not provided AWS_GLOBAL will be used as a region
+             */
+            private String region;
             @NotBlank
             private String endpoint;
             @NotBlank
@@ -260,12 +264,14 @@ public class SettingsConfiguration {
             final AwsBasicCredentials credentials = AwsBasicCredentials.create(
                     s3ConfigurationProperties.getAccessKeyId(),
                     s3ConfigurationProperties.getSecretAccessKey());
-
+            final String awsRegionName = s3ConfigurationProperties.getRegion();
+            final Region awsRegion = Objects.isNull(awsRegionName) ? Region.AWS_GLOBAL
+                    : Region.of(s3ConfigurationProperties.getRegion());
             return S3AsyncClient
                     .builder()
                     .credentialsProvider(StaticCredentialsProvider.create(credentials))
                     .endpointOverride(new URI(s3ConfigurationProperties.getEndpoint()))
-                    .region(Region.EU_CENTRAL_1)
+                    .region(awsRegion)
                     .build();
         }
 
