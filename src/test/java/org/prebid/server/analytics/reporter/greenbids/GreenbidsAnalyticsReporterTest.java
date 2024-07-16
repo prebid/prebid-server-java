@@ -77,12 +77,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     @Captor
     private ArgumentCaptor<MultiMap> headersCaptor;
 
-    @Captor
-    private ArgumentCaptor<Long> timeoutCaptor;
-
-    @Captor
-    private ArgumentCaptor<String> urlCaptor;
-
     @Mock
     private HttpClient httpClient;
 
