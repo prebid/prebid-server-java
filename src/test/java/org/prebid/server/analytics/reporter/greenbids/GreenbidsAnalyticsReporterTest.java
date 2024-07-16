@@ -597,16 +597,6 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         return prebidNode;
     }
 
-    private static UnaryOperator<ObjectNode> createBidderParams(
-            String bidder, UnaryOperator<ObjectNode> paramsCustomizer) {
-        return bidderNode -> {
-            final ObjectNode paramsNode = mapper.createObjectNode();
-            paramsCustomizer.apply(paramsNode);
-            bidderNode.set(bidder, paramsNode);
-            return bidderNode;
-        };
-    }
-
     private static ExtRequest givenExtRequest() {
         final ObjectNode greenbidsNode = new ObjectMapper().createObjectNode();
         greenbidsNode.put("pbuid", "leparisien");
