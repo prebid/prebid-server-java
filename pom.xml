@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.prebid</groupId>
         <artifactId>prebid-server-aggregator</artifactId>
-        <version>3.1.0-SNAPSHOT</version>
+        <version>3.6.0-SNAPSHOT</version>
         <relativePath>extra/pom.xml</relativePath>
     </parent>
 
@@ -21,21 +21,18 @@
     <properties>
         <dockerfileName>Dockerfile</dockerfileName>
 
-        <!-- TODO: remove explicit Jetty dependency -->
-        <jetty.version>9.4.53.v20231009</jetty.version>
-
         <!-- plugin versions -->
-        <checkstyle-plugin.version>3.1.2</checkstyle-plugin.version>
-        <checkstyle.version>10.3</checkstyle.version>
-        <download-plugin.version>1.2.0</download-plugin.version>
-        <jacoco-plugin.version>0.8.11</jacoco-plugin.version>
-        <git-commmit-plugin.version>2.2.4</git-commmit-plugin.version>
+        <checkstyle-plugin.version>3.4.0</checkstyle-plugin.version>
+        <checkstyle.version>10.17.0</checkstyle.version>
+        <download-plugin.version>1.9.0</download-plugin.version>
+        <jacoco-plugin.version>0.8.12</jacoco-plugin.version>
+        <git-commmit-plugin.version>4.9.10</git-commmit-plugin.version>
 
         <gmavenplus-plugin.version>3.0.2</gmavenplus-plugin.version>
         <skipFunctionalTests>false</skipFunctionalTests>
         <skipModuleFunctionalTests>true</skipModuleFunctionalTests>
-        <os-maven-plugin.version>1.6.2</os-maven-plugin.version>
-        <build-helper-maven-plugin.version>3.0.0</build-helper-maven-plugin.version>
+        <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
+        <build-helper-maven-plugin.version>3.6.0</build-helper-maven-plugin.version>
         <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
     </properties>
 
@@ -243,11 +240,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.junit.vintage</groupId>
-            <artifactId>junit-vintage-engine</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
@@ -269,77 +261,17 @@
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
-            <artifactId>vertx-unit</artifactId>
+            <artifactId>vertx-junit5</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.github.tomakehurst</groupId>
-            <artifactId>wiremock-jre8</artifactId>
+            <groupId>org.wiremock</groupId>
+            <artifactId>wiremock-jetty12</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.iabtcf</groupId>
             <artifactId>iabtcf-encoder</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-server</artifactId>
-            <version>${jetty.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-servlet</artifactId>
-            <version>${jetty.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-servlets</artifactId>
-            <version>${jetty.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-webapp</artifactId>
-            <version>${jetty.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-http</artifactId>
-            <version>${jetty.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-io</artifactId>
-            <version>${jetty.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-security</artifactId>
-            <version>${jetty.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-continuation</artifactId>
-            <version>${jetty.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-util</artifactId>
-            <version>${jetty.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eclipse.jetty</groupId>
-            <artifactId>jetty-xml</artifactId>
-            <version>${jetty.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -785,8 +717,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>21</source>
-                    <target>21</target>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
                 </configuration>
             </plugin>
         </plugins>

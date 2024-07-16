@@ -9,8 +9,7 @@ import com.iab.openrtb.response.Bid;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
 import org.assertj.core.api.Assertions;
-import org.hamcrest.MatcherAssert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -28,6 +27,7 @@ import java.util.function.Function;
 import static java.util.Collections.singletonList;
 import static java.util.function.Function.identity;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
@@ -58,7 +58,7 @@ public class ConnectadBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(2);
-        MatcherAssert.assertThat(result.getErrors(),
+        assertThat(result.getErrors(),
                 containsInAnyOrder(BidderError.badInput("Error in preprocess of Imp"),
                         BidderError.badInput("Impression id=123, has invalid Ext")));
         assertThat(result.getValue()).isEmpty();
@@ -74,8 +74,8 @@ public class ConnectadBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(1);
-        assertThat(result.getErrors().get(0).getMessage()).startsWith("Failed to decode: Unrecognized token");
-        assertThat(result.getErrors().get(0).getType()).isEqualTo(BidderError.Type.bad_server_response);
+        assertThat(result.getErrors().getFirst().getMessage()).startsWith("Failed to decode: Unrecognized token");
+        assertThat(result.getErrors().getFirst().getType()).isEqualTo(BidderError.Type.bad_server_response);
         assertThat(result.getValue()).isEmpty();
     }
 
@@ -134,7 +134,7 @@ public class ConnectadBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(2);
-        MatcherAssert.assertThat(result.getErrors(),
+        assertThat(result.getErrors(),
                 containsInAnyOrder(BidderError.badInput("Impression id=123, has invalid Ext"),
                         BidderError.badInput("Error in preprocess of Imp")));
     }
@@ -152,7 +152,7 @@ public class ConnectadBidderTest extends VertxTest {
 
         // then
         assertThat(result.getErrors()).hasSize(2);
-        MatcherAssert.assertThat(result.getErrors(),
+        assertThat(result.getErrors(),
                 containsInAnyOrder(BidderError.badInput("Impression id=123, has no siteId present"),
                         BidderError.badInput("Error in preprocess of Imp")));
     }
@@ -175,7 +175,7 @@ public class ConnectadBidderTest extends VertxTest {
                 .extracting(HttpRequest::getPayload)
                 .extracting(BidRequest::getImp)
                 .hasSize(1)
-                .extracting(imp -> imp.get(0).getSecure())
+                .extracting(imp -> imp.getFirst().getSecure())
                 .hasSize(1)
                 .containsOnly(1);
     }

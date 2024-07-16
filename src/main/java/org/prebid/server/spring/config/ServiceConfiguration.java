@@ -69,8 +69,11 @@ import org.prebid.server.bidder.BidderErrorNotifier;
 import org.prebid.server.bidder.BidderRequestCompletionTrackerFactory;
 import org.prebid.server.bidder.HttpBidderRequestEnricher;
 import org.prebid.server.bidder.HttpBidderRequester;
-import org.prebid.server.cache.CacheService;
+import org.prebid.server.cache.BasicModuleCacheService;
+import org.prebid.server.cache.CoreCacheService;
+import org.prebid.server.cache.ModuleCacheService;
 import org.prebid.server.cache.model.CacheTtl;
+import org.prebid.server.cache.utils.CacheServiceUtil;
 import org.prebid.server.cookie.CookieDeprecationService;
 import org.prebid.server.cookie.CookieSyncService;
 import org.prebid.server.cookie.CoopSyncProvider;
@@ -151,13 +154,11 @@ public class ServiceConfiguration {
     private double logSamplingRate;
 
     @Bean
-    CacheService cacheService(
+    CoreCacheService cacheService(
             @Value("${cache.scheme}") String scheme,
             @Value("${cache.host}") String host,
             @Value("${cache.path}") String path,
             @Value("${cache.query}") String query,
-            @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
-            @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl,
             @Value("${auction.cache.expected-request-time-ms}") long expectedCacheTimeMs,
             VastModifier vastModifier,
             EventsService eventsService,
@@ -166,17 +167,41 @@ public class ServiceConfiguration {
             Clock clock,
             JacksonMapper mapper) {
 
-        return new CacheService(
-                CacheTtl.of(bannerCacheTtl, videoCacheTtl),
+        return new CoreCacheService(
                 httpClient,
-                CacheService.getCacheEndpointUrl(scheme, host, path),
-                CacheService.getCachedAssetUrlTemplate(scheme, host, path, query),
+                CacheServiceUtil.getCacheEndpointUrl(scheme, host, path),
+                CacheServiceUtil.getCachedAssetUrlTemplate(scheme, host, path, query),
                 expectedCacheTimeMs,
                 vastModifier,
                 eventsService,
                 metrics,
                 clock,
                 new UUIDIdGenerator(),
+                mapper);
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "cache.module", name = "enabled", havingValue = "false", matchIfMissing = true)
+    ModuleCacheService noOpModuleCacheService() {
+        return ModuleCacheService.noOp();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "cache.module", name = "enabled", havingValue = "true")
+    ModuleCacheService basicModuleCacheService(
+            @Value("${cache.scheme}") String scheme,
+            @Value("${cache.host}") String host,
+            @Value("${cache.module.path}") String path,
+            @Value("${cache.module.call-timeout-ms}") int callTimeoutMs,
+            @Value("${cache.api.key}") String apiKey,
+            HttpClient httpClient,
+            JacksonMapper mapper) {
+
+        return new BasicModuleCacheService(
+                httpClient,
+                CacheServiceUtil.getCacheEndpointUrl(scheme, host, path),
+                apiKey,
+                callTimeoutMs,
                 mapper);
     }
 
@@ -757,7 +782,7 @@ public class ServiceConfiguration {
 
     @Bean
     BidResponseCreator bidResponseCreator(
-            CacheService cacheService,
+            CoreCacheService coreCacheService,
             BidderCatalog bidderCatalog,
             VastModifier vastModifier,
             EventsService eventsService,
@@ -768,10 +793,12 @@ public class ServiceConfiguration {
             CategoryMappingService categoryMappingService,
             @Value("${settings.targeting.truncate-attr-chars}") int truncateAttrChars,
             Clock clock,
-            JacksonMapper mapper) {
+            JacksonMapper mapper,
+            @Value("${cache.banner-ttl-seconds:#{null}}") Integer bannerCacheTtl,
+            @Value("${cache.video-ttl-seconds:#{null}}") Integer videoCacheTtl) {
 
         return new BidResponseCreator(
-                cacheService,
+                coreCacheService,
                 bidderCatalog,
                 vastModifier,
                 eventsService,
@@ -782,7 +809,8 @@ public class ServiceConfiguration {
                 categoryMappingService,
                 truncateAttrChars,
                 clock,
-                mapper);
+                mapper,
+                CacheTtl.of(bannerCacheTtl, videoCacheTtl));
     }
 
     @Bean
@@ -808,6 +836,7 @@ public class ServiceConfiguration {
             HttpInteractionLogger httpInteractionLogger,
             PriceFloorAdjuster priceFloorAdjuster,
             PriceFloorEnforcer priceFloorEnforcer,
+            PriceFloorProcessor priceFloorProcessor,
             DsaEnforcer dsaEnforcer,
             BidAdjustmentFactorResolver bidAdjustmentFactorResolver,
             Metrics metrics,
@@ -838,6 +867,7 @@ public class ServiceConfiguration {
                 httpInteractionLogger,
                 priceFloorAdjuster,
                 priceFloorEnforcer,
+                priceFloorProcessor,
                 dsaEnforcer,
                 bidAdjustmentFactorResolver,
                 metrics,
@@ -1103,8 +1133,8 @@ public class ServiceConfiguration {
     }
 
     @Bean
-    DsaEnforcer dsaEnforcer() {
-        return new DsaEnforcer();
+    DsaEnforcer dsaEnforcer(JacksonMapper mapper) {
+        return new DsaEnforcer(mapper);
     }
 
     private static List<String> splitToList(String listAsString) {

@@ -2,13 +2,12 @@ package org.prebid.server.settings;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -42,10 +41,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class HttpApplicationSettingsTest extends VertxTest {
 
     private static final String ENDPOINT = "http://stored-requests";
@@ -53,10 +54,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     private static final String VIDEO_ENDPOINT = "http://video-stored-requests";
     private static final String CATEGORY_ENDPOINT = "http://category-requests";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpClient httpClient;
 
     private HttpApplicationSettings httpApplicationSettings;
@@ -64,7 +62,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
     private Timeout timeout;
     private Timeout expiredTimeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         httpApplicationSettings = new HttpApplicationSettings(httpClient, jacksonMapper, ENDPOINT, AMP_ENDPOINT,
                 VIDEO_ENDPOINT, CATEGORY_ENDPOINT);
@@ -302,7 +300,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getStoredIdToRequest()).isEmpty();
         assertThat(future.result().getStoredIdToImp()).isEmpty();
-        assertThat(future.result().getErrors().get(0))
+        assertThat(future.result().getErrors().getFirst())
                 .startsWith("Error fetching stored requests for ids [id1] via HTTP: parsing json failed for response: "
                         + "invalid-response with message: Failed to decode");
     }
@@ -321,7 +319,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getStoredIdToRequest()).isEmpty();
         assertThat(future.result().getStoredIdToImp()).isEmpty();
-        assertThat(future.result().getErrors().get(0))
+        assertThat(future.result().getErrors().getFirst())
                 .startsWith("Error fetching stored requests for ids [id1] via HTTP: "
                         + "parsing json failed for response: {\"requests\": {\"id1\":\"invalid-stored-request\"} "
                         + "with message: Failed to decode");
@@ -341,7 +339,7 @@ public class HttpApplicationSettingsTest extends VertxTest {
         assertThat(future.succeeded()).isTrue();
         assertThat(future.result().getStoredIdToRequest()).isEmpty();
         assertThat(future.result().getStoredIdToImp()).isEmpty();
-        assertThat(future.result().getErrors().get(0))
+        assertThat(future.result().getErrors().getFirst())
                 .startsWith("Error fetching stored requests for ids [id1] via HTTP: parsing json failed for response: "
                         + "{\"imps\": {\"id1\":\"invalid-stored-imp\"} with message: Failed to decode");
     }

@@ -49,7 +49,7 @@ public class LemmaDigitalBidder implements Bidder<BidRequest> {
             return Result.withError(BidderError.badInput("Impression array should not be empty"));
         }
 
-        final Imp imp = bidRequest.getImp().get(0);
+        final Imp imp = bidRequest.getImp().getFirst();
         final ExtImpLemmaDigital extImpLemmaDigital;
 
         try {
@@ -116,6 +116,6 @@ public class LemmaDigitalBidder implements Bidder<BidRequest> {
     }
 
     private static BidType resolveBidType(BidRequest bidRequest) {
-        return bidRequest.getImp().get(0).getVideo() != null ? BidType.video : BidType.banner;
+        return bidRequest.getImp().getFirst().getVideo() != null ? BidType.video : BidType.banner;
     }
 }

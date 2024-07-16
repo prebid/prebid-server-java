@@ -1,5 +1,7 @@
 package org.prebid.server.spring.config.metrics;
 
+import org.slf4j.LoggerFactory;
+import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.ConsoleReporter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.ScheduledReporter;
@@ -92,8 +94,22 @@ public class MetricsConfiguration {
     }
 
     @Bean
-    Metrics metrics(@Value("${metrics.metricType}") CounterType counterType, MetricRegistry metricRegistry,
+    @ConditionalOnProperty(prefix = "metrics.logback", name = "enabled", havingValue = "true")
+    ScheduledReporter logReporter(MetricsLogProperties metricsLogProperties, MetricRegistry metricRegistry) {
+        final ScheduledReporter reporter = Slf4jReporter.forRegistry(metricRegistry)
+                .outputTo(LoggerFactory.getLogger(metricsLogProperties.getName()))
+                .convertRatesTo(TimeUnit.SECONDS)
+                .convertDurationsTo(TimeUnit.MILLISECONDS).build();
+        reporter.start(metricsLogProperties.getInterval(), TimeUnit.SECONDS);
+
+        return reporter;
+    }
+
+    @Bean
+    Metrics metrics(@Value("${metrics.metricType}") CounterType counterType,
+                    MetricRegistry metricRegistry,
                     AccountMetricsVerbosityResolver accountMetricsVerbosityResolver) {
+
         return new Metrics(metricRegistry, counterType, accountMetricsVerbosityResolver);
     }
 
@@ -180,6 +196,21 @@ public class MetricsConfiguration {
         @NotNull
         @Min(1)
         private Integer interval;
+    }
+
+    @Component
+    @ConfigurationProperties(prefix = "metrics.logback")
+    @ConditionalOnProperty(prefix = "metrics.logback", name = "enabled", havingValue = "true")
+    @Validated
+    @Data
+    @NoArgsConstructor
+    private static class MetricsLogProperties {
+
+        @NotNull
+        @Min(1)
+        private Integer interval;
+        @NotBlank
+        private String name;
     }
 
     @Component

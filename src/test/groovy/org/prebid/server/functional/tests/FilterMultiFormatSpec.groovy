@@ -7,9 +7,9 @@ import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.Audio
 import org.prebid.server.functional.model.request.auction.Banner
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.BidderControls
 import org.prebid.server.functional.model.request.auction.GenericPreferredBidder
 import org.prebid.server.functional.model.request.auction.Native
-import org.prebid.server.functional.model.request.auction.BidderControls
 
 import static org.prebid.server.functional.model.response.auction.ErrorType.GENERIC
 import static org.prebid.server.functional.model.response.auction.MediaType.AUDIO

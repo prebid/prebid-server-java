@@ -3,30 +3,28 @@ package org.prebid.server.events;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 
+@ExtendWith(MockitoExtension.class)
 public class EventUtilTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest httpRequest;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(routingContext.request()).willReturn(httpRequest);
         given(httpRequest.headers()).willReturn(MultiMap.caseInsensitiveMultiMap());

@@ -170,8 +170,6 @@ public class AmpRequestFactory {
                 .compose(auctionContext -> ortb2RequestFactory.executeProcessedAuctionRequestHooks(auctionContext)
                         .map(auctionContext::with))
 
-                .map(ortb2RequestFactory::enrichWithPriceFloors)
-
                 .map(ortb2RequestFactory::updateTimeout)
 
                 .recover(ortb2RequestFactory::restoreResultFromRejection);
@@ -193,9 +191,12 @@ public class AmpRequestFactory {
 
         final String addtlConsent = addtlConsentFromQueryStringParams(httpRequest);
         final Integer gdpr = gdprFromQueryStringParams(httpRequest);
-        final GppSidExtraction gppSidExtraction = gppSidFromQueryStringParams(httpRequest);
-        final String gpc = implicitParametersExtractor.gpcFrom(httpRequest);
         final Integer debug = debugFromQueryStringParam(httpRequest);
+        final GppSidExtraction gppSidExtraction = gppSidFromQueryStringParams(
+                httpRequest,
+                debug != null && debug == 1,
+                auctionContext.getDebugWarnings());
+        final String gpc = implicitParametersExtractor.gpcFrom(httpRequest);
         final Long timeout = timeoutFromQueryString(httpRequest);
 
         final BidRequest bidRequest = BidRequest.builder()
@@ -342,7 +343,10 @@ public class AmpRequestFactory {
         return null;
     }
 
-    private static GppSidExtraction gppSidFromQueryStringParams(HttpRequestContext httpRequest) {
+    private GppSidExtraction gppSidFromQueryStringParams(HttpRequestContext httpRequest,
+                                                         boolean debugEnabled,
+                                                         List<String> debugWarnings) {
+
         final String gppSidParam = httpRequest.getQueryParams().get(GPP_SID_PARAM);
 
         try {
@@ -354,6 +358,9 @@ public class AmpRequestFactory {
 
             return GppSidExtraction.success(gppSid);
         } catch (IllegalArgumentException e) {
+            if (debugEnabled) {
+                debugWarnings.add("Failed to parse gppSid: '%s'".formatted(gppSidParam));
+            }
             return GppSidExtraction.failed();
         }
     }
@@ -454,7 +461,7 @@ public class AmpRequestFactory {
     private BidRequest fillExplicitParameters(BidRequest bidRequest) {
         final List<Imp> imps = bidRequest.getImp();
         // Force HTTPS as AMP requires it, but pubs can forget to set it.
-        final Imp imp = imps.get(0);
+        final Imp imp = imps.getFirst();
         final Integer secure = imp.getSecure();
         final boolean setSecure = secure == null || secure != 1;
 
@@ -485,7 +492,7 @@ public class AmpRequestFactory {
                 || setDefaultCache) {
 
             result = bidRequest.toBuilder()
-                    .imp(setSecure ? Collections.singletonList(imps.get(0).toBuilder().secure(1).build()) : imps)
+                    .imp(setSecure ? Collections.singletonList(imps.getFirst().toBuilder().secure(1).build()) : imps)
                     .ext(extRequest(
                             bidRequest,
                             setDefaultTargeting,
@@ -507,7 +514,7 @@ public class AmpRequestFactory {
         ortbTypesResolver.normalizeTargeting(targetingNode, errors, referer);
 
         final Site updatedSite = overrideSite(bidRequest.getSite());
-        final Imp updatedImp = overrideImp(bidRequest.getImp().get(0), httpRequest, targetingNode);
+        final Imp updatedImp = overrideImp(bidRequest.getImp().getFirst(), httpRequest, targetingNode);
 
         if (ObjectUtils.anyNotNull(updatedSite, updatedImp)) {
             return bidRequest.toBuilder()

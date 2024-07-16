@@ -13,8 +13,8 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.response.Bid;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -27,7 +27,7 @@ import org.prebid.server.bidder.yieldlab.model.YieldlabResponse;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsaTransparency;
+import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtUser;
 import org.prebid.server.proto.openrtb.ext.request.yieldlab.ExtImpYieldlab;
 import org.prebid.server.proto.openrtb.ext.response.BidType;
@@ -56,7 +56,7 @@ public class YieldlabBidderTest extends VertxTest {
 
     private YieldlabBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         clock = Clock.fixed(Instant.parse("2019-07-26T10:00:00Z"), ZoneId.systemDefault());
         target = new YieldlabBidder(ENDPOINT_URL, clock, jacksonMapper);
@@ -311,7 +311,7 @@ public class YieldlabBidderTest extends VertxTest {
     public void makeHttpRequestsShouldAddDsaRequestParamsToRequestWhenDsaIsPresent() {
         //given
         final ExtRegsDsa dsa = ExtRegsDsa.of(
-                1, 2, 3, List.of(ExtRegsDsaTransparency.of("testDomain", List.of(1, 2, 3)))
+                1, 2, 3, List.of(DsaTransparency.of("testDomain", List.of(1, 2, 3)))
         );
         final Regs regs = Regs.builder()
                     .ext(ExtRegs.of(null, null, null, dsa))
@@ -337,7 +337,7 @@ public class YieldlabBidderTest extends VertxTest {
                 "&dsatransparency=testDomain%7E1_2_3"
         );
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getUri())
+        assertThat(result.getValue().getFirst().getUri())
                 .contains(expectations);
     }
 
@@ -346,8 +346,8 @@ public class YieldlabBidderTest extends VertxTest {
         //given
         final ExtRegsDsa dsa = ExtRegsDsa.of(
                 1, 2, 3, List.of(
-                    ExtRegsDsaTransparency.of("testDomain", List.of(1, 2, 3)),
-                    ExtRegsDsaTransparency.of("testDomain2", List.of(4, 5, 6))
+                    DsaTransparency.of("testDomain", List.of(1, 2, 3)),
+                    DsaTransparency.of("testDomain2", List.of(4, 5, 6))
                 )
         );
         final Regs regs = Regs.builder()
@@ -374,7 +374,7 @@ public class YieldlabBidderTest extends VertxTest {
                 "&dsatransparency=testDomain%7E1_2_3%7E%7EtestDomain2%7E4_5_6"
         );
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getUri())
+        assertThat(result.getValue().getFirst().getUri())
                 .contains(expectations);
     }
 
@@ -406,7 +406,7 @@ public class YieldlabBidderTest extends VertxTest {
                 "dsadatatopub=3"
         );
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getUri())
+        assertThat(result.getValue().getFirst().getUri())
                 .contains(expectations);
     }
 
@@ -414,7 +414,7 @@ public class YieldlabBidderTest extends VertxTest {
     public void makeHttpRequestsShouldNotAddDsaTransparencyParamsToBidRequestWhenParamsAreMissing() {
         //given
         final ExtRegsDsa dsa = ExtRegsDsa.of(
-                2, null, 3, List.of(ExtRegsDsaTransparency.of("domain", null))
+                2, null, 3, List.of(DsaTransparency.of("domain", null))
         );
         final Regs regs = Regs.builder()
                 .ext(ExtRegs.of(null, null, null, dsa))
@@ -438,7 +438,7 @@ public class YieldlabBidderTest extends VertxTest {
                 "dsadatatopub=3"
         );
         assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue().get(0).getUri())
+        assertThat(result.getValue().getFirst().getUri())
                 .contains(expectations);
     }
 
@@ -494,7 +494,7 @@ public class YieldlabBidderTest extends VertxTest {
         expectedDsa.put("adrender", 2);
         expectedDsa.set("transparency", transparencies);
 
-        final JsonNode actualDsa = result.getValue().get(0).getBid().getExt().get("dsa");
+        final JsonNode actualDsa = result.getValue().getFirst().getBid().getExt().get("dsa");
 
         assertThat(result.getErrors()).isEmpty();
         assertThat(actualDsa).isEqualTo(expectedDsa);

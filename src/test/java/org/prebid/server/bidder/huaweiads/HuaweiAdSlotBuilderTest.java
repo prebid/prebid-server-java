@@ -11,7 +11,7 @@ import com.iab.openrtb.request.Native;
 import com.iab.openrtb.request.Request;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.huaweiads.model.request.AdSlot30;
 import org.prebid.server.exception.PreBidException;

@@ -55,7 +55,7 @@ import org.prebid.server.proto.openrtb.ext.request.ExtPublisher;
 import org.prebid.server.proto.openrtb.ext.request.ExtPublisherPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegs;
 import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsa;
-import org.prebid.server.proto.openrtb.ext.request.ExtRegsDsaTransparency;
+import org.prebid.server.proto.openrtb.ext.request.DsaTransparency;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequest;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestPrebid;
 import org.prebid.server.proto.openrtb.ext.request.ExtRequestTargeting;
@@ -289,9 +289,9 @@ public class Ortb2RequestFactory {
     }
 
     private static ExtRegs mapRegsExtDsa(DefaultDsa defaultDsa, ExtRegs regsExt) {
-        final List<ExtRegsDsaTransparency> enrichedDsaTransparencies = defaultDsa.getTransparency()
+        final List<DsaTransparency> enrichedDsaTransparencies = defaultDsa.getTransparency()
                 .stream()
-                .map(dsaTransparency -> ExtRegsDsaTransparency.of(
+                .map(dsaTransparency -> DsaTransparency.of(
                         dsaTransparency.getDomain(), dsaTransparency.getDsaParams()))
                 .toList();
 
@@ -367,10 +367,6 @@ public class Ortb2RequestFactory {
         }
 
         return stageResult.getPayload().bidRequest();
-    }
-
-    public AuctionContext enrichWithPriceFloors(AuctionContext auctionContext) {
-        return priceFloorProcessor.enrichWithPriceFloors(auctionContext);
     }
 
     public AuctionContext updateTimeout(AuctionContext auctionContext) {

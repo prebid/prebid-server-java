@@ -19,12 +19,11 @@ import com.iab.openrtb.request.SupplyChain;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.ImplicitParametersExtractor;
 import org.prebid.server.auction.IpAddressHelper;
@@ -82,26 +81,25 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class Ortb2ImplicitParametersResolverTest extends VertxTest {
 
     private static final String ENDPOINT = Endpoint.openrtb2_amp.value();
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private ImplicitParametersExtractor paramsExtractor;
-    @Mock
+    @Mock(strictness = LENIENT)
     private TimeoutResolver timeoutResolver;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IpAddressHelper ipAddressHelper;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IdGenerator idGenerator;
-    @Mock
+    @Mock(strictness = LENIENT)
     private SecBrowsingTopicsResolver topicsResolver;
     @Mock
     private JsonMerger jsonMerger;
@@ -129,7 +127,7 @@ public class Ortb2ImplicitParametersResolverTest extends VertxTest {
                 jacksonMapper);
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         defaultBidRequest = BidRequest.builder().build();
 

@@ -7,12 +7,11 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import org.apache.commons.lang3.StringUtils;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
@@ -44,6 +43,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -51,6 +51,7 @@ import static org.prebid.server.assertion.FutureAssertion.assertThat;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.ONE;
 import static org.prebid.server.privacy.gdpr.vendorlist.proto.PurposeCode.TWO;
 
+@ExtendWith(MockitoExtension.class)
 public class VendorListServiceTest extends VertxTest {
 
     private static final String CACHE_DIR = "/cache/dir";
@@ -58,25 +59,22 @@ public class VendorListServiceTest extends VertxTest {
     private static final String FALLBACK_VENDOR_LIST_PATH = "fallback.json";
     private static final String GENERATION_VERSION = "v0";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
     @Mock
     private Vertx vertx;
     @Mock
     private FileSystem fileSystem;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpClient httpClient;
     @Mock
     private Metrics metrics;
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
-    @Mock
+    @Mock(strictness = LENIENT)
     private VendorListFetchThrottler fetchThrottler;
 
     private VendorListService target;
 
-    @Before
+    @BeforeEach
     public void setUp() throws JsonProcessingException {
         given(fileSystem.existsBlocking(anyString())).willReturn(false); // always create cache dir
 

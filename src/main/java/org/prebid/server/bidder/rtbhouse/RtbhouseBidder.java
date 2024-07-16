@@ -71,7 +71,7 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
             }
         }
 
-        if (errors.size() > 0) {
+        if (!errors.isEmpty()) {
             return Result.withErrors(errors);
         }
 
@@ -186,8 +186,8 @@ public class RtbhouseBidder implements Bidder<BidRequest> {
         final Price initialBidFloorPrice = Price.of(imp.getBidfloorcur(), imp.getBidfloor());
 
         final BigDecimal impExtBidFloor = impExt.getBidFloor();
-        final String impExtCurrency = impExtBidFloor != null && brCur != null && brCur.size() > 0
-                ? brCur.get(0) : null;
+        final String impExtCurrency = impExtBidFloor != null && brCur != null && !brCur.isEmpty()
+                ? brCur.getFirst() : null;
         final Price impExtBidFloorPrice = Price.of(impExtCurrency, impExtBidFloor);
         final Price resolvedPrice = initialBidFloorPrice.getValue() == null
                 ? impExtBidFloorPrice : initialBidFloorPrice;

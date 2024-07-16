@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.response.Bid;
 import io.vertx.core.Future;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.config.Attribute;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.config.AttributeActionOverrides;

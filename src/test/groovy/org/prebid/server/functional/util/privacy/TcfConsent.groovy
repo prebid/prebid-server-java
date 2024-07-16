@@ -3,7 +3,6 @@ package org.prebid.server.functional.util.privacy
 import com.iabtcf.encoder.PublisherRestrictionEntry
 import com.iabtcf.encoder.TCStringEncoder
 import com.iabtcf.utils.BitSetIntIterable
-import com.iabtcf.v2.RestrictionType
 import org.prebid.server.functional.model.config.Purpose
 import org.prebid.server.functional.util.PBSUtils
 
@@ -89,6 +88,11 @@ class TcfConsent implements ConsentString {
 
         Builder setPurposesLITransparency(PurposeId purposesLITransparency) {
             tcStringEncoder.addPurposesLITransparency(purposesLITransparency.value)
+            this
+        }
+
+        Builder setSpecialFeatureOptIns(PurposeId purposeId) {
+            tcStringEncoder.addSpecialFeatureOptIns(purposeId.value)
             this
         }
 

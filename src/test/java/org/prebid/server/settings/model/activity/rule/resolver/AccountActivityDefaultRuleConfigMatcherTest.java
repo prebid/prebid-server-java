@@ -1,9 +1,9 @@
 package org.prebid.server.settings.model.activity.rule.resolver;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.json.ObjectMapperProvider;
-import org.prebid.server.settings.model.activity.rule.AccountActivityComponentRuleConfig;
+import org.prebid.server.settings.model.activity.rule.AccountActivityConditionsRuleConfig;
 import org.prebid.server.settings.model.activity.rule.AccountActivityRuleConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +29,6 @@ public class AccountActivityDefaultRuleConfigMatcherTest {
         final Class<? extends AccountActivityRuleConfig> result = target.type();
 
         // then
-        assertThat(result).isEqualTo(AccountActivityComponentRuleConfig.class);
+        assertThat(result).isEqualTo(AccountActivityConditionsRuleConfig.class);
     }
 }

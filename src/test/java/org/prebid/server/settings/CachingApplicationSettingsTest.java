@@ -1,12 +1,11 @@
 package org.prebid.server.settings;
 
 import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.exception.InvalidRequestException;
 import org.prebid.server.exception.PreBidException;
 import org.prebid.server.execution.Timeout;
@@ -41,10 +40,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class CachingApplicationSettingsTest {
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private ApplicationSettings delegateSettings;
@@ -55,7 +52,7 @@ public class CachingApplicationSettingsTest {
 
     private Timeout timeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         timeout = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault())).create(500L);
 
@@ -112,6 +109,52 @@ public class CachingApplicationSettingsTest {
     }
 
     @Test
+    public void getAccountByIdShouldReturnResultFromSeparateCallWhenCacheWasInvalidatedForAccount() {
+        // given
+        final Account account = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("med")
+                        .build())
+                .build();
+        given(delegateSettings.getAccountById(eq("accountId"), same(timeout)))
+                .willReturn(Future.succeededFuture(account));
+
+        // when
+        final Future<Account> future = target.getAccountById("accountId", timeout);
+        target.invalidateAccountCache(account.getId());
+        target.getAccountById("accountId", timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isSameAs(account);
+        verify(delegateSettings, times(2)).getAccountById(eq("accountId"), same(timeout));
+    }
+
+    @Test
+    public void getAccountByIdShouldReturnResultFromSeparateCallWhenCacheWasInvalidatedForAllAccounts() {
+        // given
+        final Account account = Account.builder()
+                .id("accountId")
+                .auction(AccountAuctionConfig.builder()
+                        .priceGranularity("med")
+                        .build())
+                .build();
+        given(delegateSettings.getAccountById(eq("accountId"), same(timeout)))
+                .willReturn(Future.succeededFuture(account));
+
+        // when
+        final Future<Account> future = target.getAccountById("accountId", timeout);
+        target.invalidateAccountCache("accountId");
+        target.getAccountById("accountId", timeout);
+
+        // then
+        assertThat(future.succeeded()).isTrue();
+        assertThat(future.result()).isSameAs(account);
+        verify(delegateSettings, times(2)).getAccountById(eq("accountId"), same(timeout));
+    }
+
+    @Test
     public void getAccountByIdShouldPropagateFailure() {
         // given
         given(delegateSettings.getAccountById(anyString(), any()))
@@ -143,6 +186,46 @@ public class CachingApplicationSettingsTest {
 
         // then
         verify(delegateSettings).getAccountById(anyString(), any());
+        assertThat(lastFuture.failed()).isTrue();
+        assertThat(lastFuture.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("error");
+    }
+
+    @Test
+    public void getAccountByIdShouldThrowSeparatePreBidExceptionWhenCacheWasInvalidatedForAccount() {
+        // given
+        given(delegateSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("error")));
+
+        // when
+        target.getAccountById("accountId", timeout);
+        target.invalidateAccountCache("accountId");
+        final Future<Account> lastFuture = target
+                .getAccountById("accountId", timeout);
+
+        // then
+        verify(delegateSettings, times(2)).getAccountById(eq("accountId"), same(timeout));
+        assertThat(lastFuture.failed()).isTrue();
+        assertThat(lastFuture.cause())
+                .isInstanceOf(PreBidException.class)
+                .hasMessage("error");
+    }
+
+    @Test
+    public void getAccountByIdShouldThrowSeparatePreBidExceptionWhenCacheWasInvalidatedForAllAccounts() {
+        // given
+        given(delegateSettings.getAccountById(anyString(), any()))
+                .willReturn(Future.failedFuture(new PreBidException("error")));
+
+        // when
+        target.getAccountById("accountId", timeout);
+        target.invalidateAccountCache("accountId");
+        final Future<Account> lastFuture = target
+                .getAccountById("accountId", timeout);
+
+        // then
+        verify(delegateSettings, times(2)).getAccountById(eq("accountId"), same(timeout));
         assertThat(lastFuture.failed()).isTrue();
         assertThat(lastFuture.cause())
                 .isInstanceOf(PreBidException.class)

@@ -7,16 +7,32 @@
     "page_id": {
       "type": "integer",
       "minLength": 1,
+      "minimum": 1,
       "description": "Special Page Id provided by Yandex Manager"
     },
     "imp_id": {
       "type": "integer",
       "minLength": 1,
+      "minimum": 1,
       "description": "Special identifier provided by Yandex Manager"
+    },
+    "placement_id": {
+      "type": "string",
+      "description": "Ad placement identifier",
+      "pattern": "(\\S+-)?\\d+-\\d+"
     }
   },
-  "required": [
-    "page_id",
-    "imp_id"
+  "oneOf": [
+    {
+      "required": [
+        "page_id",
+        "imp_id"
+      ]
+    },
+    {
+      "required": [
+        "placement_id"
+      ]
+    }
   ]
 }

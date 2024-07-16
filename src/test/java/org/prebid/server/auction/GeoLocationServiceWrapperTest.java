@@ -4,12 +4,11 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Device;
 import com.iab.openrtb.request.Geo;
 import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.IpAddress;
@@ -31,28 +30,27 @@ import java.time.ZoneId;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 public class GeoLocationServiceWrapperTest extends VertxTest {
 
     private static final Timeout TIMEOUT = new TimeoutFactory(Clock.fixed(Instant.now(), ZoneId.systemDefault()))
             .create(1000L);
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
     @Mock
     private GeoLocationService geoLocationService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private Ortb2ImplicitParametersResolver resolver;
     @Mock
     private Metrics metrics;
 
     private GeoLocationServiceWrapper target;
 
-    @Before
+    @BeforeEach
     public void before() {
         target = new GeoLocationServiceWrapper(geoLocationService, resolver, metrics);
     }

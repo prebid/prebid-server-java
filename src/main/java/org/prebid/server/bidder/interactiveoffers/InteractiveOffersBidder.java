@@ -36,7 +36,7 @@ public class InteractiveOffersBidder implements Bidder<BidRequest> {
 
     @Override
     public Result<List<HttpRequest<BidRequest>>> makeHttpRequests(BidRequest request) {
-        final ObjectNode impExt = request.getImp().get(0).getExt();
+        final ObjectNode impExt = request.getImp().getFirst().getExt();
         final String resolvedPartnerId = StringUtils.defaultString(resolvePartnerId(impExt));
         final String resolvedEndpointUrl = endpointUrl.replace("{{PartnerId}}", resolvedPartnerId);
 

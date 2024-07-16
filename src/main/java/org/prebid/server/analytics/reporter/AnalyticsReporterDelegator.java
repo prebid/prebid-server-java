@@ -166,28 +166,33 @@ public class AnalyticsReporterDelegator {
     private static <T> boolean isAllowedAdapter(T event, String adapter) {
         final ActivityInfrastructure activityInfrastructure;
         final ActivityInvocationPayload activityInvocationPayload;
-        if (event instanceof AuctionEvent auctionEvent) {
-            final AuctionContext auctionContext = auctionEvent.getAuctionContext();
-            activityInfrastructure = auctionContext != null ? auctionContext.getActivityInfrastructure() : null;
-            activityInvocationPayload = auctionContext != null
-                    ? BidRequestActivityInvocationPayload.of(
-                    activityInvocationPayload(adapter),
-                    auctionContext.getBidRequest())
-                    : null;
-        } else if (event instanceof AmpEvent ampEvent) {
-            final AuctionContext auctionContext = ampEvent.getAuctionContext();
-            activityInfrastructure = auctionContext != null ? auctionContext.getActivityInfrastructure() : null;
-            activityInvocationPayload = auctionContext != null
-                    ? BidRequestActivityInvocationPayload.of(
-                    activityInvocationPayload(adapter),
-                    auctionContext.getBidRequest())
-                    : null;
-        } else if (event instanceof NotificationEvent notificationEvent) {
-            activityInfrastructure = notificationEvent.getActivityInfrastructure();
-            activityInvocationPayload = activityInvocationPayload(adapter);
-        } else {
-            activityInfrastructure = null;
-            activityInvocationPayload = null;
+        switch (event) {
+            case AuctionEvent auctionEvent -> {
+                final AuctionContext auctionContext = auctionEvent.getAuctionContext();
+                activityInfrastructure = auctionContext != null ? auctionContext.getActivityInfrastructure() : null;
+                activityInvocationPayload = auctionContext != null
+                        ? BidRequestActivityInvocationPayload.of(
+                        activityInvocationPayload(adapter),
+                        auctionContext.getBidRequest())
+                        : null;
+            }
+            case AmpEvent ampEvent -> {
+                final AuctionContext auctionContext = ampEvent.getAuctionContext();
+                activityInfrastructure = auctionContext != null ? auctionContext.getActivityInfrastructure() : null;
+                activityInvocationPayload = auctionContext != null
+                        ? BidRequestActivityInvocationPayload.of(
+                        activityInvocationPayload(adapter),
+                        auctionContext.getBidRequest())
+                        : null;
+            }
+            case NotificationEvent notificationEvent -> {
+                activityInfrastructure = notificationEvent.getActivityInfrastructure();
+                activityInvocationPayload = activityInvocationPayload(adapter);
+            }
+            case null, default -> {
+                activityInfrastructure = null;
+                activityInvocationPayload = null;
+            }
         }
 
         return isAllowedActivity(activityInfrastructure, Activity.REPORT_ANALYTICS, activityInvocationPayload);
@@ -318,23 +323,15 @@ public class AnalyticsReporterDelegator {
     }
 
     private <T> void updateMetricsByEventType(T event, String analyticsCode, MetricName result) {
-        final MetricName eventType;
-
-        if (event instanceof AmpEvent) {
-            eventType = MetricName.event_amp;
-        } else if (event instanceof AuctionEvent) {
-            eventType = MetricName.event_auction;
-        } else if (event instanceof CookieSyncEvent) {
-            eventType = MetricName.event_cookie_sync;
-        } else if (event instanceof NotificationEvent) {
-            eventType = MetricName.event_notification;
-        } else if (event instanceof SetuidEvent) {
-            eventType = MetricName.event_setuid;
-        } else if (event instanceof VideoEvent) {
-            eventType = MetricName.event_video;
-        } else {
-            eventType = MetricName.event_unknown;
-        }
+        final MetricName eventType = switch (event) {
+            case AmpEvent ampEvent -> MetricName.event_amp;
+            case AuctionEvent auctionEvent -> MetricName.event_auction;
+            case CookieSyncEvent cookieSyncEvent -> MetricName.event_cookie_sync;
+            case NotificationEvent notificationEvent -> MetricName.event_notification;
+            case SetuidEvent setuidEvent -> MetricName.event_setuid;
+            case VideoEvent videoEvent -> MetricName.event_video;
+            case null, default -> MetricName.event_unknown;
+        };
 
         metrics.updateAnalyticEventMetric(analyticsCode, eventType, result);
     }

@@ -111,4 +111,21 @@ class PBSUtils implements ObjectMapperWrapper {
         def values = anEnum.enumConstants
         values[getRandomNumber(0, values.length - 1)]
     }
+
+    static String convertCase(String input, Case caseType) {
+        def words = input.replaceAll(/([a-z])([A-Z])/) { match, p1, p2 -> "${p1}_${p2.toLowerCase()}" }
+                .split(/[_\-\s]+|\B(?=[A-Z])/).collect { it.toLowerCase() }
+
+        switch (caseType) {
+            case Case.KEBAB:
+                return words.join('-')
+            case Case.SNAKE:
+                return words.join('_')
+            case Case.CAMEL:
+                def camelCase = words.head() + words.tail().collect { it.capitalize() }.join('')
+                return camelCase
+            default:
+                throw new IllegalArgumentException("Unknown case type: $caseType")
+        }
+    }
 }

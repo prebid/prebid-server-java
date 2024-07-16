@@ -1,10 +1,10 @@
 package org.prebid.server.activity.infrastructure.debug;
 
 import com.fasterxml.jackson.databind.node.TextNode;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.ComponentType;
@@ -25,10 +25,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+@ExtendWith(MockitoExtension.class)
 public class ActivityInfrastructureDebugTest extends VertxTest {
-
-    @org.junit.Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Metrics metrics;
@@ -240,6 +238,62 @@ public class ActivityInfrastructureDebugTest extends VertxTest {
                 "Activity Infrastructure invocation result.",
                 Activity.CALL_BIDDER,
                 false));
+        verify(metrics).updateRequestsActivityDisallowedCount(eq(Activity.CALL_BIDDER));
+        verify(metrics).updateAccountActivityDisallowedCount(eq("accountId"), eq(Activity.CALL_BIDDER));
+        verify(metrics).updateAdapterActivityDisallowedCount(eq("bidder"), eq(Activity.CALL_BIDDER));
+        verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void updateActivityMetricsShouldReturnExpectedResultIfActivityDisallowed() {
+        // given
+        final ActivityInfrastructureDebug debug = debug(null);
+
+        // when
+        debug.updateActivityMetrics(Activity.CALL_BIDDER, null, null);
+
+        // then
+        verify(metrics).updateRequestsActivityDisallowedCount(eq(Activity.CALL_BIDDER));
+        verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void updateActivityMetricsShouldReturnExpectedResultIfActivityDisallowedAndComponentTypeIsBidder() {
+        // given
+        final ActivityInfrastructureDebug debug = debug(null);
+
+        // when
+        debug.updateActivityMetrics(Activity.CALL_BIDDER, ComponentType.BIDDER, "bidder");
+
+        // then
+        verify(metrics).updateRequestsActivityDisallowedCount(eq(Activity.CALL_BIDDER));
+        verify(metrics).updateAdapterActivityDisallowedCount(eq("bidder"), eq(Activity.CALL_BIDDER));
+        verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void updateActivityMetricsShouldReturnExpectedResultIfTraceLevelIsBasic() {
+        // given
+        final ActivityInfrastructureDebug debug = debug(TraceLevel.basic);
+
+        // when
+        debug.updateActivityMetrics(Activity.CALL_BIDDER, ComponentType.BIDDER, "bidder");
+
+        // then
+        verify(metrics).updateRequestsActivityDisallowedCount(eq(Activity.CALL_BIDDER));
+        verify(metrics).updateAdapterActivityDisallowedCount(eq("bidder"), eq(Activity.CALL_BIDDER));
+        verifyNoMoreInteractions(metrics);
+    }
+
+    @Test
+    public void updateActivityMetricsShouldReturnExpectedResultIfTraceLevelIsVerbose() {
+        // given
+        final ActivityInfrastructureDebug debug = debug(TraceLevel.verbose);
+
+        // when
+        debug.updateActivityMetrics(Activity.CALL_BIDDER, ComponentType.BIDDER, "bidder");
+
+        // then
         verify(metrics).updateRequestsActivityDisallowedCount(eq(Activity.CALL_BIDDER));
         verify(metrics).updateAccountActivityDisallowedCount(eq("accountId"), eq(Activity.CALL_BIDDER));
         verify(metrics).updateAdapterActivityDisallowedCount(eq("bidder"), eq(Activity.CALL_BIDDER));

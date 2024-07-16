@@ -1,6 +1,6 @@
 package org.prebid.server.hooks.modules.ortb2.blocking.model;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.auction.versionconverter.OrtbVersion;
 import org.prebid.server.hooks.modules.ortb2.blocking.core.model.BlockedAttributes;
 

@@ -121,7 +121,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                     throw new PreBidException("Size information missing for banner");
                 }
 
-                final Format firstFormat = formats.get(0);
+                final Format firstFormat = formats.getFirst();
                 return banner.toBuilder()
                         .w(firstFormat.getW())
                         .h(firstFormat.getH())
@@ -148,7 +148,7 @@ public class PubnativeBidder implements Bidder<BidRequest> {
             return bidFloorCurrency;
         }
         final List<String> bidRequestCurrencies = bidRequest.getCur();
-        return CollectionUtils.isNotEmpty(bidRequestCurrencies) ? bidRequestCurrencies.get(0) : null;
+        return CollectionUtils.isNotEmpty(bidRequestCurrencies) ? bidRequestCurrencies.getFirst() : null;
     }
 
     private HttpRequest<BidRequest> createHttpRequest(BidRequest outgoingRequest, ExtImpPubnative impExt) {
@@ -234,13 +234,14 @@ public class PubnativeBidder implements Bidder<BidRequest> {
                     ? Format.builder().w(width).h(height).build()
                     : null;
         } else if (formats.size() == 1) {
-            result = formats.get(0);
+            result = formats.getFirst();
         }
         return result;
     }
 
     private static boolean isOnlyOneSize(Integer width, Integer height, List<Format> formats) {
-        return CollectionUtils.isEmpty(formats) || (formats.size() == 1 && isSameFormat(width, height, formats.get(0)));
+        return CollectionUtils.isEmpty(formats)
+                || (formats.size() == 1 && isSameFormat(width, height, formats.getFirst()));
     }
 
     private static boolean isSameFormat(Integer width, Integer height, Format format) {

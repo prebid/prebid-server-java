@@ -32,12 +32,11 @@ import com.iab.openrtb.request.Uid;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.request.Video;
 import com.iab.openrtb.request.VideoObject;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.BidderCatalog;
 import org.prebid.server.metric.MetricName;
@@ -80,25 +79,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class RequestValidatorTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderCatalog bidderCatalog;
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderParamValidator bidderParamValidator;
     @Mock
     private Metrics metrics;
 
     private RequestValidator target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(bidderParamValidator.validate(any(), any())).willReturn(Collections.emptySet());
         given(bidderCatalog.isValidName(eq(RUBICON))).willReturn(true);
@@ -3202,7 +3200,7 @@ public class RequestValidatorTest extends VertxTest {
 
     private static BidRequest overwriteBannerFormatInFirstImp(
             BidRequest bidRequest, UnaryOperator<FormatBuilder> formatModifier) {
-        final Banner banner = bidRequest.getImp().get(0).getBanner().toBuilder()
+        final Banner banner = bidRequest.getImp().getFirst().getBanner().toBuilder()
                 .format(singletonList(formatModifier.apply(Format.builder()).build())).build();
 
         return bidRequest.toBuilder().imp(singletonList(validImpBuilder().banner(banner).build())).build();
@@ -3210,7 +3208,7 @@ public class RequestValidatorTest extends VertxTest {
 
     private static BidRequest overwritePmpFirstDealInFirstImp(
             BidRequest bidRequest, UnaryOperator<DealBuilder> dealModifier) {
-        final Pmp pmp = bidRequest.getImp().get(0).getPmp().toBuilder()
+        final Pmp pmp = bidRequest.getImp().getFirst().getPmp().toBuilder()
                 .deals(singletonList(dealModifier.apply(dealModifier.apply(Deal.builder())).build())).build();
 
         return bidRequest.toBuilder().imp(singletonList(validImpBuilder().pmp(pmp).build())).build();

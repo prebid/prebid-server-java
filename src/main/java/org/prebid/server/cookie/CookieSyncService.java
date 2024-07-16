@@ -497,7 +497,7 @@ public class CookieSyncService {
         final Set<String> allowedRequestedBidders = cookieSyncContext.getBiddersContext().allowedRequestedBidders();
 
         return biddersToSync.stream()
-                .filter(bidder -> allowedRequestedBidders.contains(bidder))
+                .filter(allowedRequestedBidders::contains)
                 .filter(this::isAliasSyncedAsRootFamily)
                 .map(this::warningForAliasSyncedAsRootFamily)
                 .toList();
