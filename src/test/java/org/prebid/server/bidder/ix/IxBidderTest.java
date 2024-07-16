@@ -431,7 +431,7 @@ public class IxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidderResponseShouldReturnBidWithVideoExt() throws JsonProcessingException {
+    public void makeBidderResponseShouldReturnBidWithVideoInfo() throws JsonProcessingException {
         // given
         final Video video = Video.builder().build();
         final BidRequest bidRequest = BidRequest.builder()
@@ -443,7 +443,7 @@ public class IxBidderTest extends VertxTest {
                         givenBidResponse(
                                 bidBuilder -> bidBuilder
                                         .impid("123")
-                                        .ext(mapper.valueToTree(ExtBidPrebid.builder()
+                                        .ext(mapper.createObjectNode().putPOJO("prebid", ExtBidPrebid.builder()
                                                 .video(ExtBidPrebidVideo.of(1, "cat"))
                                                 .build())))));
 
@@ -453,10 +453,7 @@ public class IxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids())
-                .extracting(BidderBid::getBid)
-                .extracting(Bid::getExt)
-                .extracting(node -> mapper.treeToValue(node, ExtBidPrebid.class))
-                .extracting(ExtBidPrebid::getVideo)
+                .extracting(BidderBid::getVideoInfo)
                 .extracting(ExtBidPrebidVideo::getDuration, ExtBidPrebidVideo::getPrimaryCategory)
                 .containsExactly(tuple(1, null));
     }
@@ -660,7 +657,8 @@ public class IxBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(banner)
-                        .video(video).build()))
+                        .video(video)
+                        .build()))
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,
