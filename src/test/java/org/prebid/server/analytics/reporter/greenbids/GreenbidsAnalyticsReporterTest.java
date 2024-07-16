@@ -57,10 +57,12 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonMap;
+import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -132,7 +134,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .banner(banner)
                 .build();
 
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
+        final AuctionContext auctionContext = givenAuctionContext(identity(), List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -149,10 +151,10 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         // then
         verify(httpClient).post(
-                urlCaptor.capture(),
-                headersCaptor.capture(),
+                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
+                any(MultiMap.class),
                 jsonCaptor.capture(),
-                timeoutCaptor.capture());
+                eq(greenbidsAnalyticsProperties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
         final CommonMessage capturedCommonMessage = jacksonMapper.mapper()
@@ -179,7 +181,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .video(video)
                 .build();
 
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
+        final AuctionContext auctionContext = givenAuctionContext(identity(), List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -196,10 +198,10 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         // then
         verify(httpClient).post(
-                urlCaptor.capture(),
-                headersCaptor.capture(),
+                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
+                any(MultiMap.class),
                 jsonCaptor.capture(),
-                timeoutCaptor.capture());
+                eq(greenbidsAnalyticsProperties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
         final CommonMessage capturedCommonMessage = jacksonMapper.mapper()
@@ -225,7 +227,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .ext(impExtNode)
                 .build();
 
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
+        final AuctionContext auctionContext = givenAuctionContext(identity(), List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -247,10 +249,10 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         // then
         verify(httpClient).post(
-                urlCaptor.capture(),
-                headersCaptor.capture(),
+                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
+                any(MultiMap.class),
                 jsonCaptor.capture(),
-                timeoutCaptor.capture());
+                eq(greenbidsAnalyticsProperties.getTimeoutMs()));
 
         final String capturedJson = jsonCaptor.getValue();
         final CommonMessage capturedCommonMessage = jacksonMapper.mapper()
@@ -276,7 +278,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .banner(banner)
                 .build();
 
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
+        final AuctionContext auctionContext = givenAuctionContext(identity(), List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -292,10 +294,10 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
 
         // then
         verify(httpClient).post(
-                urlCaptor.capture(),
+                eq(greenbidsAnalyticsProperties.getAnalyticsServerUrl()),
                 headersCaptor.capture(),
-                jsonCaptor.capture(),
-                timeoutCaptor.capture());
+                anyString(),
+                eq(greenbidsAnalyticsProperties.getTimeoutMs()));
 
         assertThat(result.succeeded()).isTrue();
         assertThat(headersCaptor.getValue().get(HttpUtil.ACCEPT_HEADER))
@@ -304,14 +306,12 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .isEqualTo(HttpHeaderValues.APPLICATION_JSON.toString());
         assertThat(headersCaptor.getValue().get(HttpUtil.USER_AGENT_HEADER))
                 .isEqualTo(givenUserAgent());
-        assertThat(timeoutCaptor.getValue()).isEqualTo(greenbidsAnalyticsProperties.getTimeoutMs());
-        assertThat(urlCaptor.getValue()).isEqualTo(greenbidsAnalyticsProperties.getAnalyticsServerUrl());
     }
 
     @Test
     public void shouldFailWhenBidResponseIsNull() {
         // given
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, null, false);
+        final AuctionContext auctionContext = givenAuctionContext(identity(), null, false);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -348,7 +348,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
         final Imp imp = Imp.builder()
                 .banner(banner)
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
+        final AuctionContext auctionContext = givenAuctionContext(identity(), List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -375,7 +375,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .banner(banner)
                 .ext(impExtNode)
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
+        final AuctionContext auctionContext = givenAuctionContext(identity(), List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -414,7 +414,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .banner(banner)
                 .ext(impExtNode)
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
+        final AuctionContext auctionContext = givenAuctionContext(identity(), List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -481,7 +481,7 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
                 .ext(prebidJsonNodes)
                 .banner(givenBanner())
                 .build();
-        final AuctionContext auctionContext = givenAuctionContext(context -> context, List.of(imp), true);
+        final AuctionContext auctionContext = givenAuctionContext(identity(), List.of(imp), true);
         final AuctionEvent event = AuctionEvent.builder()
                 .auctionContext(auctionContext)
                 .bidResponse(auctionContext.getBidResponse())
@@ -580,25 +580,26 @@ public class GreenbidsAnalyticsReporterTest extends VertxTest {
     }
 
     private static ObjectNode givenPrebidBidderParamsNode() {
-        return givenPrebidObjectNode(
-                createBidderParams("seat1", params -> params
-                        .put("accountId", 1001)
-                        .put("siteId", 267318)
-                        .put("zoneId", 1861698)),
-                createBidderParams("seat2", params -> params
-                        .put("publisherId", 111)
-                        .put("adSlotId", 123456)),
-                createBidderParams("seat3", params -> params
-                        .put("placementId", 222))
-        );
-    }
-
-    private static ObjectNode givenPrebidObjectNode(UnaryOperator<ObjectNode>... bidderCustomizers) {
         final ObjectNode bidderNode = mapper.createObjectNode();
-        Arrays.stream(bidderCustomizers).forEach(customizer -> customizer.apply(bidderNode));
+
+        final ObjectNode seat1Params = mapper.createObjectNode()
+                .put("accountId", 1001)
+                .put("siteId", 267318)
+                .put("zoneId", 1861698);
+        bidderNode.set("seat1", seat1Params);
+
+        final ObjectNode seat2Params = mapper.createObjectNode()
+                .put("publisherId", 111)
+                .put("adSlotId", 123456);
+        bidderNode.set("seat2", seat2Params);
+
+        final ObjectNode seat3Params = mapper.createObjectNode()
+                .put("placementId", 222);
+        bidderNode.set("seat3", seat3Params);
 
         final ObjectNode prebidNode = mapper.createObjectNode();
         prebidNode.set("bidder", bidderNode);
+
         return prebidNode;
     }
 
