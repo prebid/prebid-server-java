@@ -2886,45 +2886,6 @@ public class RubiconBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeHttpRequestsShouldCreateSourceWithPchainIfDefinedInImpExt() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.video(Video.builder().build()),
-                builder -> builder.pchain("pchain"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getSource).doesNotContainNull()
-                .extracting(Source::getPchain)
-                .containsOnly("pchain");
-    }
-
-    @Test
-    public void makeHttpRequestsShouldUpdateSourceWithPchainIfDefinedInImpExt() {
-        // given
-        final BidRequest bidRequest = givenBidRequest(
-                builder -> builder.source(Source.builder().tid("tid").build()),
-                builder -> builder.video(Video.builder().build()),
-                builder -> builder.pchain("pchain"));
-
-        // when
-        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
-
-        // then
-        assertThat(result.getErrors()).isEmpty();
-        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
-                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
-                .extracting(BidRequest::getSource).doesNotContainNull()
-                .extracting(Source::getPchain)
-                .containsOnly("pchain");
-    }
-
-    @Test
     public void makeHttpRequestsShouldReturnOnlyLineItemRequestsWithExpectedFieldsWhenImpPmpDealsArePresent()
             throws IOException {
         // given

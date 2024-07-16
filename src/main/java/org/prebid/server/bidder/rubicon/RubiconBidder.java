@@ -423,7 +423,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 .device(makeDevice(bidRequest.getDevice()))
                 .site(makeSite(bidRequest.getSite(), impLanguage, extImpRubicon))
                 .app(makeApp(bidRequest.getApp(), extImpRubicon))
-                .source(makeSource(bidRequest.getSource(), extImpRubicon.getPchain()))
+                .source(makeSource(bidRequest.getSource()))
                 .cur(null) // suppress currencies
                 .regs(makeRegs(bidRequest.getRegs()))
                 .ext(null) // suppress ext
@@ -1472,21 +1472,16 @@ public class RubiconBidder implements Bidder<BidRequest> {
                 RubiconAppExt.of(RubiconSiteExtRp.of(rubiconImpExt.getSiteId(), null)));
     }
 
-    private static Source makeSource(Source source, String pchain) {
-        final boolean isPchainEmpty = StringUtils.isEmpty(pchain);
+    private static Source makeSource(Source source) {
         final SupplyChain supplyChain = source != null ? source.getSchain() : null;
-        if (isPchainEmpty && supplyChain == null) {
+        if (supplyChain == null) {
             return source;
         }
 
-        final ExtSource extSource = source != null ? source.getExt() : null;
-        final ExtSource resolvedExtSource = supplyChain != null
-                ? copyProperties(extSource, ExtSource.of(supplyChain))
-                : extSource;
+        final ExtSource extSource = source.getExt();
+        final ExtSource resolvedExtSource = copyProperties(extSource, ExtSource.of(supplyChain));
 
-        final Source.SourceBuilder builder = source != null ? source.toBuilder() : Source.builder();
-        return builder
-                .pchain(!isPchainEmpty ? pchain : null)
+        return source.toBuilder()
                 .schain(null)
                 .ext(resolvedExtSource)
                 .build();
