@@ -1481,8 +1481,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
         final ExtSource extSource = source.getExt();
         final ExtSource resolvedExtSource = copyProperties(extSource, ExtSource.of(supplyChain));
 
-        final Source.SourceBuilder builder = source.toBuilder();
-        return builder
+        return source.toBuilder()
                 .schain(null)
                 .ext(resolvedExtSource)
                 .build();
