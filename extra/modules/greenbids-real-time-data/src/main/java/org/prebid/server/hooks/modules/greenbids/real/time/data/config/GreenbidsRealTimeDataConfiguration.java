@@ -29,7 +29,7 @@ public class GreenbidsRealTimeDataConfiguration {
                 param2
         );
 
-        OnnxModelRunner modelRunner = new OnnxModelRunner("extra/modules/greenbids-real-time-data/src/main/resources/onnx_log_reg_v2_rf (1).onnx");
+        OnnxModelRunner modelRunner = new OnnxModelRunner("extra/modules/greenbids-real-time-data/src/main/resources/onnx_rf_v2_pbs_user_agent.onnx");
 
         System.out.println(
                 "GreenbidsRealTimeDataConfiguration/greenbidsRealTimeDataModule" + "\n" +
