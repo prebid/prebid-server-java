@@ -36,6 +36,7 @@ adapters:
         url: GET_FROM_globalsupport@magnite.com
         support-cors: false
     generate-bid-id: false
+    use-video-size-id-logic: true
     XAPI:
       Username: GET_FROM_globalsupport@magnite.com
       Password: GET_FROM_globalsupport@magnite.com

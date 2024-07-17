@@ -53,6 +53,7 @@ public class RubiconConfiguration {
                                 config.getXapi().getPassword(),
                                 config.getMetaInfo().getSupportedVendors(),
                                 config.getGenerateBidId(),
+                                config.getUseVideoSizeIdLogic(),
                                 currencyConversionService,
                                 floorResolver,
                                 mapper))
@@ -71,6 +72,9 @@ public class RubiconConfiguration {
 
         @NotNull
         private Boolean generateBidId;
+
+        @NotNull
+        private Boolean useVideoSizeIdLogic;
     }
 
     @Data
