@@ -8,6 +8,9 @@ adapters:
       jdpmedia:
         enabled: false
         endpoint: http://jdpmedia-prebid.smart-hub.io/pbserver/?seat={{AccountID}}&token={{SourceId}}
+      tredio:
+        enabled: false
+        endpoint: http://tredio-prebid.smart-hub.io/pbserver/?seat={{AccountID}}&token={{SourceId}}
     meta-info:
       maintainer-email: support@smart-hub.io
       app-media-types:
