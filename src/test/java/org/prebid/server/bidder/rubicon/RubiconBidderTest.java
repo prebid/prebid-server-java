@@ -162,15 +162,31 @@ public class RubiconBidderTest extends VertxTest {
 
     @BeforeEach
     public void setUp() {
-        target = new RubiconBidder(BIDDER_NAME, ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, false,
-                currencyConversionService, priceFloorResolver, jacksonMapper);
+        target = new RubiconBidder(BIDDER_NAME,
+                ENDPOINT_URL,
+                USERNAME,
+                PASSWORD,
+                SUPPORTED_VENDORS,
+                false,
+                true,
+                currencyConversionService,
+                priceFloorResolver,
+                jacksonMapper);
     }
 
     @Test
     public void creationShouldFailOnInvalidEndpointUrl() {
         assertThatIllegalArgumentException().isThrownBy(
-                () -> new RubiconBidder(BIDDER_NAME, "invalid_url", USERNAME, PASSWORD, SUPPORTED_VENDORS, false,
-                        currencyConversionService, priceFloorResolver, jacksonMapper));
+                () -> new RubiconBidder(BIDDER_NAME,
+                        "invalid_url",
+                        USERNAME,
+                        PASSWORD,
+                        SUPPORTED_VENDORS,
+                        false,
+                        true,
+                        currencyConversionService,
+                        priceFloorResolver,
+                        jacksonMapper));
     }
 
     @Test
@@ -808,6 +824,37 @@ public class RubiconBidderTest extends VertxTest {
         assertThat(result.getErrors()).hasSize(1)
                 .containsOnly(BidderError.of("Unable to convert provided bid floor currency from EUR to USD"
                         + " for imp `impId` with a reason: failed", BidderError.Type.bad_input));
+    }
+
+    @Test
+    public void shouldNotSetSizeIfVideoSizeProcessingLogicIsDisabled() {
+        // given
+        target = new RubiconBidder(
+                BIDDER_NAME,
+                ENDPOINT_URL,
+                USERNAME,
+                PASSWORD,
+                SUPPORTED_VENDORS,
+                true,
+                false,
+                currencyConversionService,
+                priceFloorResolver,
+                jacksonMapper);
+        final BidRequest bidRequest = givenBidRequest(
+                builder -> builder.instl(1).video(Video.builder().placement(1).build()),
+                builder -> builder.video(RubiconVideoParams.builder().sizeId(null).build()));
+
+        // when
+        final Result<List<HttpRequest<BidRequest>>> result = target.makeHttpRequests(bidRequest);
+
+        // then
+        assertThat(result.getErrors()).isEmpty();
+        assertThat(result.getValue()).hasSize(1).doesNotContainNull()
+                .extracting(httpRequest -> mapper.readValue(httpRequest.getBody(), BidRequest.class))
+                .flatExtracting(BidRequest::getImp)
+                .extracting(Imp::getVideo).doesNotContainNull()
+                .extracting(Video::getExt)
+                .containsOnlyNulls();
     }
 
     @Test
@@ -3638,7 +3685,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidWithRandomlyGeneratedId() throws JsonProcessingException {
         // given
         target = new RubiconBidder(
-                BIDDER_NAME, ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
+                BIDDER_NAME, ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true, true,
                 currencyConversionService, priceFloorResolver, jacksonMapper);
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
@@ -3664,7 +3711,7 @@ public class RubiconBidderTest extends VertxTest {
     public void makeBidsShouldReturnBidWithCurrencyFromBidResponse() throws JsonProcessingException {
         // given
         target = new RubiconBidder(
-                BIDDER_NAME, ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true,
+                BIDDER_NAME, ENDPOINT_URL, USERNAME, PASSWORD, SUPPORTED_VENDORS, true, true,
                 currencyConversionService, priceFloorResolver, jacksonMapper);
 
         final BidderCall<BidRequest> httpCall = givenHttpCall(givenBidRequest(identity()),
