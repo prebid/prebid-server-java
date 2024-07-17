@@ -10,6 +10,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
+import com.maxmind.geoip2.DatabaseReader;
+import com.maxmind.geoip2.exception.GeoIp2Exception;
+import com.maxmind.geoip2.model.CountryResponse;
+import com.maxmind.geoip2.record.Country;
 import io.vertx.core.Future;
 import org.apache.commons.collections4.CollectionUtils;
 import org.prebid.server.auction.model.AuctionContext;
@@ -37,6 +41,10 @@ import org.prebid.server.hooks.v1.auction.ProcessedAuctionRequestHook;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.request.ExtImpPrebid;
 
+import java.io.File;
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -47,6 +55,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -82,11 +91,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
         final Integer hourBucket = timestamp.getHour();
         final Integer minuteQuadrant = (timestamp.getMinute() / 15) + 1;
 
-        //String userAgentStirng = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/59.0.3071.115 Safari/537.36";
-        String userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
-        GreenbidsUserAgent greenbidsUserAgent = new GreenbidsUserAgent(userAgentString);
-
         final BidRequest bidRequest = auctionContext.getBidRequest();
+        GreenbidsUserAgent greenbidsUserAgent = new GreenbidsUserAgent(bidRequest.getDevice().getUa());
 
         List<ThrottlingMessage> throttlingMessages = extractThrottlingMessages(
                 bidRequest,
@@ -98,11 +104,6 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
         System.out.println(
                 "GreenbidsRealTimeDataProcessedAuctionRequestHook/call" + "\n" +
-                        "greenbidsUserAgent: " + greenbidsUserAgent + "\n" +
-                        "device: " + greenbidsUserAgent.getDevice() + "\n" +
-                        "browser: " + greenbidsUserAgent.getBrowser() + "\n" +
-                        "isPC: " + greenbidsUserAgent.isPC() + "\n" +
-                        "isBot: " + greenbidsUserAgent.isBot() + "\n" +
                         "throttlingMessages: " + throttlingMessages + "\n"
         );
 
@@ -300,6 +301,21 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
 
                     List<ThrottlingMessage> throttlingImpMessages = new ArrayList<>();
 
+                    final String ipv4 = bidRequest.getDevice().getIp();
+                    String countryFromIp;
+                    try {
+                        countryFromIp = getCountry(ipv4);
+                    } catch (IOException | GeoIp2Exception e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    System.out.println(
+                            "extractThrottlingMessages" + "\n" +
+                                    "countryFromIp: " + countryFromIp + "\n" +
+                                    "greenbidsUserAgent.getBrowser(): " + greenbidsUserAgent.getBrowser() + "\n" +
+                                    "greenbidsUserAgent.getDevice(): " + greenbidsUserAgent.getDevice() + "\n"
+                    );
+
                     if (bidderNode.isObject()) {
                         ObjectNode bidders = (ObjectNode) bidderNode;
                         Iterator<String> fieldNames = bidders.fieldNames();
@@ -310,14 +326,9 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                                             .browser(greenbidsUserAgent.getBrowser())
                                             .bidder(bidderName)
                                             .adUnitCode(impId)
-                                            .country("UK")
+                                            .country(countryFromIp)
                                             .hostname(hostname)
                                             .device(greenbidsUserAgent.getDevice())
-                                            //.isPc(greenbidsUserAgent.isPC())
-                                            //.isBot(greenbidsUserAgent.isBot())
-                                            .isMobile("False")
-                                            .isTablet("False")
-                                            //.isTouchCapable(false)
                                             .hourBucket(hourBucket.toString())
                                             .minuteQuadrant(minuteQuadrant.toString())
                                             .build());
@@ -326,6 +337,16 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
                     return throttlingImpMessages.stream();
                 })
                 .collect(Collectors.toList());
+    }
+
+    public static String getCountry(String ip) throws IOException, GeoIp2Exception {
+        File database = new File("extra/modules/greenbids-real-time-data/src/main/resources/GeoLite2-Country.mmdb");
+        DatabaseReader dbReader = new DatabaseReader.Builder(database).build();
+
+        InetAddress ipAddress = InetAddress.getByName(ip);
+        CountryResponse response = dbReader.country(ipAddress);
+        Country country = response.getCountry();
+        return country.getName();
     }
 
     private ExtImpPrebid extImpPrebid(JsonNode extImpPrebid) {
@@ -337,7 +358,7 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
     }
 
     private static String[][] convertToArray(List<ThrottlingMessage> messages) {
-        String[][] result = new String[messages.size()][10];
+        String[][] result = new String[messages.size()][8];
         for (int i = 0; i < messages.size(); i++) {
             ThrottlingMessage message = messages.get(i);
             result[i][0] = message.getBrowser();
@@ -346,10 +367,8 @@ public class GreenbidsRealTimeDataProcessedAuctionRequestHook implements Process
             result[i][3] = message.getCountry();
             result[i][4] = message.getHostname();
             result[i][5] = message.getDevice();
-            result[i][6] = message.getIsMobile();
-            result[i][7] = message.getIsTablet();
-            result[i][8] = message.getHourBucket();
-            result[i][9] = message.getMinuteQuadrant();
+            result[i][6] = message.getHourBucket();
+            result[i][7] = message.getMinuteQuadrant();
         }
         return result;
     }

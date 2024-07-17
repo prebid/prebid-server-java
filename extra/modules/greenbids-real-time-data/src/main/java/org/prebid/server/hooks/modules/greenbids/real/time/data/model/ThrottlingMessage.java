@@ -7,27 +7,17 @@ import lombok.Value;
 @Value
 public class ThrottlingMessage {
 
-    String browser; // ok
+    String browser;
 
-    String bidder; // ok
+    String bidder;
 
-    String adUnitCode; // ok
+    String adUnitCode;
 
-    String country; // ok
+    String country;
 
-    String hostname; // ok
+    String hostname;
 
-    String device; // ok
-
-    //Boolean isPc;
-
-    String isMobile; // ok
-
-    String isTablet; // ok
-
-    //Boolean isBot;
-
-    //Boolean isTouchCapable;
+    String device;
 
     String hourBucket;
 
