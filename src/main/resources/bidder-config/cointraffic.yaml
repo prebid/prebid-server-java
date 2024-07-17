@@ -1,0 +1,11 @@
+adapters:
+  cointraffic:
+    endpoint: https://apps.adsgravity.io/pbs/v1/request
+    meta-info:
+      maintainer-email: tech@cointraffic.io
+      app-media-types:
+        - banner
+      site-media-types:
+        - banner
+      supported-vendors:
+      vendor-id: 0
