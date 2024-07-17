@@ -990,7 +990,7 @@ public class RubiconBidder implements Bidder<BidRequest> {
 
         final Integer skip = rubiconVideoParams != null ? rubiconVideoParams.getSkip() : null;
         final Integer skipDelay = rubiconVideoParams != null ? rubiconVideoParams.getSkipdelay() : null;
-        final Integer resolvedSizeId = resolveSizeId(rubiconVideoParams, imp, referer);
+        final Integer resolvedSizeId = useVideoSizeLogic ? resolveSizeId(rubiconVideoParams, imp, referer) : null;
 
         final Integer rewarded = imp.getRwdd();
         final String videoType = rewarded != null && rewarded == 1 ? "rewarded" : null;
@@ -1010,10 +1010,6 @@ public class RubiconBidder implements Bidder<BidRequest> {
     }
 
     private Integer resolveSizeId(RubiconVideoParams rubiconVideoParams, Imp imp, String referer) {
-        if (!useVideoSizeLogic) {
-            return null;
-        }
-
         final Integer sizeId = rubiconVideoParams != null ? rubiconVideoParams.getSizeId() : null;
         final Video video = imp.getVideo();
         final Integer resolvedSizeId = BidderUtil.isNullOrZero(sizeId)
