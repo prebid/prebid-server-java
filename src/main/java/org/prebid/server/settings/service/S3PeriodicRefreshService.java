@@ -76,6 +76,7 @@ public class S3PeriodicRefreshService implements Initializable {
         this.vertx = Objects.requireNonNull(vertx);
         this.metrics = Objects.requireNonNull(metrics);
         this.clock = Objects.requireNonNull(clock);
+        this.lastResult = new AtomicReference<>();
     }
 
     private static Set<String> getInvalidatedKeys(Map<String, String> newMap, Map<String, String> oldMap) {
