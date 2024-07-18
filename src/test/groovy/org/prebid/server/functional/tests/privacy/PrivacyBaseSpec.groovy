@@ -16,14 +16,17 @@ import org.prebid.server.functional.model.request.amp.AmpRequest
 import org.prebid.server.functional.model.request.amp.ConsentType
 import org.prebid.server.functional.model.request.auction.AllowActivities
 import org.prebid.server.functional.model.request.auction.BidRequest
+import org.prebid.server.functional.model.request.auction.Data
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.DistributionChannel
+import org.prebid.server.functional.model.request.auction.Eid
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.model.request.auction.GeoExt
 import org.prebid.server.functional.model.request.auction.GeoExtGeoProvider
 import org.prebid.server.functional.model.request.auction.RegsExt
 import org.prebid.server.functional.model.request.auction.User
 import org.prebid.server.functional.model.request.auction.UserExt
+import org.prebid.server.functional.model.request.auction.UserExtData
 import org.prebid.server.functional.service.PrebidServerService
 import org.prebid.server.functional.testcontainers.scaffolding.VendorList
 import org.prebid.server.functional.tests.BaseSpec
@@ -41,10 +44,12 @@ import static org.prebid.server.functional.model.config.PurposeEnforcement.FULL
 import static org.prebid.server.functional.model.config.PurposeEnforcement.NO
 import static org.prebid.server.functional.model.mock.services.vendorlist.VendorListResponse.getDefaultVendorListResponse
 import static org.prebid.server.functional.model.pricefloors.Country.USA
+import static org.prebid.server.functional.model.pricefloors.Country.BULGARIA
 import static org.prebid.server.functional.model.request.amp.ConsentType.GPP
 import static org.prebid.server.functional.model.request.amp.ConsentType.TCF_2
 import static org.prebid.server.functional.model.request.amp.ConsentType.US_PRIVACY
 import static org.prebid.server.functional.model.request.auction.DistributionChannel.SITE
+import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.model.response.cookiesync.UserSyncInfo.Type.REDIRECT
 import static org.prebid.server.functional.testcontainers.Dependencies.getNetworkServiceContainer
 import static org.prebid.server.functional.util.privacy.TcfConsent.GENERIC_VENDOR_ID
@@ -91,6 +96,8 @@ abstract class PrivacyBaseSpec extends BaseSpec {
             "gdpr.vendorlist.v3.retry-policy.exponential-backoff.max-delay-millis": EXPONENTIAL_BACKOFF_MAX_DELAY as String,
             "gdpr.vendorlist.v3.retry-policy.exponential-backoff.factor"          : Long.MAX_VALUE as String]
 
+    private static final Map<String, String> GDPR_EEA_COUNTRY = ["gdpr.eea-countries": "$BULGARIA.ISOAlpha2, SK, VK" as String]
+
     protected static final String VENDOR_LIST_PATH = "/app/prebid-server/data/vendorlist-v{VendorVersion}/{VendorVersion}.json"
     protected static final String VALID_VALUE_FOR_GPC_HEADER = "1"
     protected static final GppConsent SIMPLE_GPC_DISALLOW_LOGIC = new UsNatV1Consent.Builder().setGpc(true).build()
@@ -98,7 +105,7 @@ abstract class PrivacyBaseSpec extends BaseSpec {
 
     @Shared
     protected final PrebidServerService privacyPbsService = pbsServiceFactory.getService(GDPR_VENDOR_LIST_CONFIG +
-            GENERIC_COOKIE_SYNC_CONFIG + GENERIC_VENDOR_CONFIG + RETRY_POLICY_EXPONENTIAL_CONFIG)
+            GENERIC_COOKIE_SYNC_CONFIG + GENERIC_VENDOR_CONFIG + RETRY_POLICY_EXPONENTIAL_CONFIG + GDPR_EEA_COUNTRY)
 
     protected static final Map<String, String> PBS_CONFIG = OPENX_CONFIG + OPENX_COOKIE_SYNC_CONFIG +
             GENERIC_COOKIE_SYNC_CONFIG + GDPR_VENDOR_LIST_CONFIG + SETTING_CONFIG + GENERIC_VENDOR_CONFIG
@@ -136,6 +143,34 @@ abstract class PrivacyBaseSpec extends BaseSpec {
                 geo = new Geo(
                         lat: PBSUtils.getRandomDecimal(0, 90),
                         lon: PBSUtils.getRandomDecimal(0, 90))
+            }
+        }
+    }
+
+    protected static BidRequest getBidRequestWithPersonalData(String accountId = null, DistributionChannel channel = SITE) {
+        getBidRequestWithGeo(channel).tap {
+            if(accountId != null) {
+                setAccountId(accountId)
+            }
+            ext.prebid.trace = VERBOSE
+            device.tap {
+                didsha1 = PBSUtils.randomString
+                didmd5 = PBSUtils.randomString
+                dpidsha1 = PBSUtils.randomString
+                ifa = PBSUtils.randomString
+                macsha1 = PBSUtils.randomString
+                macmd5 = PBSUtils.randomString
+                dpidmd5 = PBSUtils.randomString
+            }
+            user.tap {
+                customdata = PBSUtils.randomString
+                eids = [Eid.defaultEid]
+                data = [new Data(name: PBSUtils.randomString)]
+                buyeruid = PBSUtils.randomString
+                yob = PBSUtils.randomNumber
+                gender = PBSUtils.randomString
+                geo = Geo.FPDGeo
+                ext = new UserExt(data: new UserExtData(buyeruid: PBSUtils.randomString))
             }
         }
     }

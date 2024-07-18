@@ -1,7 +1,7 @@
 package org.prebid.server.auction;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -13,7 +13,7 @@ public class TimeoutResolverTest {
 
     private TimeoutResolver timeoutResolver;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         timeoutResolver = new TimeoutResolver(MIN_TIMEOUT, MAX_TIMEOUT, 10L);
     }

@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.collections4.ListUtils;
 import org.prebid.server.analytics.AnalyticsReporter;
 import org.prebid.server.analytics.reporter.AnalyticsReporterDelegator;
+import org.prebid.server.analytics.reporter.greenbids.GreenbidsAnalyticsReporter;
+import org.prebid.server.analytics.reporter.greenbids.model.GreenbidsAnalyticsProperties;
 import org.prebid.server.analytics.reporter.log.LogAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.PubstackAnalyticsReporter;
 import org.prebid.server.analytics.reporter.pubstack.model.PubstackAnalyticsProperties;
@@ -13,6 +15,7 @@ import org.prebid.server.auction.privacy.enforcement.TcfEnforcement;
 import org.prebid.server.auction.privacy.enforcement.mask.UserFpdActivityMask;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.metric.Metrics;
+import org.prebid.server.version.PrebidVersionProvider;
 import org.prebid.server.vertx.httpclient.HttpClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +26,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.annotation.Validated;
 
 import jakarta.validation.constraints.NotNull;
+import java.time.Clock;
 import java.util.List;
 
 @Configuration
@@ -50,6 +54,57 @@ public class AnalyticsConfiguration {
     @ConditionalOnProperty(prefix = "analytics.log", name = "enabled", havingValue = "true")
     LogAnalyticsReporter logAnalyticsReporter(JacksonMapper mapper) {
         return new LogAnalyticsReporter(mapper);
+    }
+
+    @Configuration
+    @ConditionalOnProperty(prefix = "analytics.greenbids", name = "enabled", havingValue = "true")
+    public static class GreenbidsAnalyticsConfiguration {
+
+        @Bean
+        GreenbidsAnalyticsReporter greenbidsAnalyticsReporter(
+                GreenbidsAnalyticsConfigurationProperties greenbidsAnalyticsConfigurationProperties,
+                JacksonMapper jacksonMapper,
+                HttpClient httpClient,
+                Clock clock,
+                PrebidVersionProvider prebidVersionProvider) {
+            return new GreenbidsAnalyticsReporter(
+                    greenbidsAnalyticsConfigurationProperties.toComponentProperties(),
+                    jacksonMapper,
+                    httpClient,
+                    clock,
+                    prebidVersionProvider);
+        }
+
+        @Bean
+        @ConfigurationProperties(prefix = "analytics.greenbids")
+        GreenbidsAnalyticsConfigurationProperties greenbidsAnalyticsConfigurationProperties() {
+            return new GreenbidsAnalyticsConfigurationProperties();
+        }
+
+        @Validated
+        @NoArgsConstructor
+        @Data
+        private static class GreenbidsAnalyticsConfigurationProperties {
+            String analyticsServerVersion;
+
+            String analyticsServer;
+
+            Double exploratorySamplingSplit;
+
+            Double defaultSamplingRate;
+
+            Long timeoutMs;
+
+            public GreenbidsAnalyticsProperties toComponentProperties() {
+                return GreenbidsAnalyticsProperties.builder()
+                        .exploratorySamplingSplit(getExploratorySamplingSplit())
+                        .defaultSamplingRate(getDefaultSamplingRate())
+                        .analyticsServerVersion(getAnalyticsServerVersion())
+                        .analyticsServerUrl(getAnalyticsServer())
+                        .timeoutMs(getTimeoutMs())
+                        .build();
+            }
+        }
     }
 
     @Configuration

@@ -1,7 +1,7 @@
 package org.prebid.server.util.dsl.config.impl;
 
 import org.apache.commons.collections4.IteratorUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.util.IterableUtil;
 import org.prebid.server.util.dsl.config.PrebidConfigParameter;
 import org.prebid.server.util.dsl.config.PrebidConfigParameters;

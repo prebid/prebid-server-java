@@ -12,6 +12,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.prebid.server.auction.model.AuctionParticipation;
+import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderRequest;
 import org.prebid.server.auction.model.BidderResponse;
 import org.prebid.server.auction.model.StoredResponseResult;
@@ -38,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -158,7 +160,8 @@ public class StoredResponseProcessor {
 
     List<AuctionParticipation> mergeWithBidderResponses(List<AuctionParticipation> auctionParticipations,
                                                         List<SeatBid> storedAuctionResponses,
-                                                        List<Imp> imps) {
+                                                        List<Imp> imps,
+                                                        Map<String, BidRejectionTracker> bidRejectionTrackers) {
         if (CollectionUtils.isEmpty(storedAuctionResponses)) {
             return auctionParticipations;
         }
@@ -175,7 +178,24 @@ public class StoredResponseProcessor {
         return responseBidders.stream()
                 .map(bidder -> updateBidderResponse(bidderToAuctionParticipation.get(bidder),
                         bidderToSeatBid.get(bidder), impIdToBidType))
+                .map(auctionParticipation -> restoreStoredBidsFromRejection(bidRejectionTrackers, auctionParticipation))
                 .toList();
+    }
+
+    private static AuctionParticipation restoreStoredBidsFromRejection(
+            Map<String, BidRejectionTracker> bidRejectionTrackers,
+            AuctionParticipation auctionParticipation) {
+
+        final BidRejectionTracker bidRejectionTracker = bidRejectionTrackers.get(auctionParticipation.getBidder());
+
+        if (bidRejectionTracker != null) {
+            Optional.ofNullable(auctionParticipation.getBidderResponse())
+                    .map(BidderResponse::getSeatBid)
+                    .map(BidderSeatBid::getBids)
+                    .ifPresent(bidRejectionTracker::restoreFromRejection);
+        }
+
+        return auctionParticipation;
     }
 
     private Map<String, ExtImpPrebid> getImpsExtPrebid(List<Imp> imps) {

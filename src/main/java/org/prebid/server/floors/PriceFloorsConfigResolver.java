@@ -98,7 +98,7 @@ public class PriceFloorsConfigResolver {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("period-sec", periodicSec));
         }
 
-        final Long timeout = fetchConfig.getTimeout();
+        final Long timeout = fetchConfig.getTimeoutMs();
         if (timeout != null && isNotInRange(timeout, MIN_TIMEOUT_MS_VALUE, MAX_TIMEOUT_MS_VALUE)) {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("timeout-ms", timeout));
         }
@@ -108,7 +108,7 @@ public class PriceFloorsConfigResolver {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("max-rules", maxRules));
         }
 
-        final Long maxFileSize = fetchConfig.getMaxFileSize();
+        final Long maxFileSize = fetchConfig.getMaxFileSizeKb();
         if (maxFileSize != null && isNotInRange(maxFileSize, MIN_FILE_SIZE_VALUE, MAX_FILE_SIZE_VALUE)) {
             throw new PreBidException(invalidPriceFloorsPropertyMessage("max-file-size-kb", maxFileSize));
         }

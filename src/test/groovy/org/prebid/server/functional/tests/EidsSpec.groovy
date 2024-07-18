@@ -109,7 +109,7 @@ class EidsSpec extends BaseSpec {
         def response = pbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain two bidder request"
-        def bidderRequests = getRequest(response)
+        def bidderRequests = getRequests(response)
         assert bidderRequests.size() == 2
 
         and: "Generic bidder should contain one eid"

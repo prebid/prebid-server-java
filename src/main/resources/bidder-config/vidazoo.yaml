@@ -1,0 +1,20 @@
+adapters:
+  vidazoo:
+    endpoint: https://prebidsrvr.cootlogix.com/openrtb/
+    endpoint-compression: gzip
+    meta-info:
+      maintainer-email: dev@vidazoo.com
+      app-media-types:
+        - banner
+        - video
+      site-media-types:
+        - banner
+        - video
+      supported-vendors:
+      vendor-id: 744
+    usersync:
+      cookie-family-name: vidazoo
+      iframe:
+        url: https://sync.cootlogix.com/api/user/html/pbs_sync?gdpr={{gdpr}}&gdpr_consent={{gdpr_consent}}&us_privacy={{us_privacy}}&redirect={{redirect_url}}
+        support-cors: false
+        uid-macro: '${userId}'

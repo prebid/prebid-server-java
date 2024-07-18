@@ -10,5 +10,4 @@ public class AccountPrivacySandboxCookieDeprecationConfig {
 
     @JsonProperty("ttlsec")
     Long ttlSec;
-
 }

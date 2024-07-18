@@ -1,6 +1,6 @@
 package org.prebid.server.settings.model;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Builder;
 import lombok.Value;
 
@@ -12,18 +12,18 @@ public class AccountPriceFloorsFetchConfig {
 
     String url;
 
-    @JsonProperty("timeout-ms")
-    Long timeout;
+    @JsonAlias("timeout-ms")
+    Long timeoutMs;
 
-    @JsonProperty("max-file-size-kb")
-    Long maxFileSize;
+    @JsonAlias("max-file-size-kb")
+    Long maxFileSizeKb;
 
-    @JsonProperty("max-rules")
+    @JsonAlias("max-rules")
     Long maxRules;
 
-    @JsonProperty("max-age-sec")
+    @JsonAlias("max-age-sec")
     Long maxAgeSec;
 
-    @JsonProperty("period-sec")
+    @JsonAlias("period-sec")
     Long periodSec;
 }

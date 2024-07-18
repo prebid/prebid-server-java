@@ -2,12 +2,13 @@ package org.prebid.server.functional.tests
 
 import org.prebid.server.functional.model.config.AccountAuctionConfig
 import org.prebid.server.functional.model.config.AccountConfig
+import org.prebid.server.functional.model.config.AccountSetting
 import org.prebid.server.functional.model.db.Account
 import org.prebid.server.functional.model.request.auction.BidRequest
-import org.prebid.server.functional.model.config.AccountSetting
 import org.prebid.server.functional.model.request.auction.Device
 import org.prebid.server.functional.model.request.auction.Geo
 import org.prebid.server.functional.util.PBSUtils
+
 import java.time.Instant
 
 import static org.prebid.server.functional.model.AccountStatus.ACTIVE
@@ -36,7 +37,7 @@ class GeoSpec extends BaseSpec {
     def "PBS should populate geo with country and region and take precedence from device.id when geo location enabled in host and account config and ip specified in both places"() {
         given: "PBS service with geolocation and default account configs"
         def config = AccountConfig.defaultAccountConfig.tap {
-            settings = new AccountSetting(geoLookup: defaultAccountGeoLookup)
+            settings = settingDefaultAccountGeoLookup
         }
         def defaultPbsService = pbsServiceFactory.getService(
                 ["settings.default-account-config": encode(config),
@@ -58,7 +59,7 @@ class GeoSpec extends BaseSpec {
         and: "Account in the DB"
         def accountConfig = new AccountConfig(
                 auction: new AccountAuctionConfig(debugAllow: true),
-                settings: new AccountSetting(geoLookup: accountGeoLookup))
+                settings: settingAccountDefaultAccountGeoLookup)
         def account = new Account(status: ACTIVE, uuid: bidRequest.accountId, config: accountConfig)
         accountDao.save(account)
 
@@ -80,10 +81,12 @@ class GeoSpec extends BaseSpec {
         assert !metrics[GEO_LOCATION_FAIL]
 
         where:
-        defaultAccountGeoLookup | accountGeoLookup
-        false                   | true
-        true                    | true
-        true                    | null
+        settingDefaultAccountGeoLookup                | settingAccountDefaultAccountGeoLookup
+        new AccountSetting(geoLookupSnakeCase: false) | new AccountSetting(geoLookupSnakeCase: true)
+        new AccountSetting(geoLookup: true)           | new AccountSetting(geoLookup: true)
+        new AccountSetting(geoLookupSnakeCase: true)  | new AccountSetting(geoLookupSnakeCase: true)
+        new AccountSetting(geoLookup: true)           | new AccountSetting(geoLookup: null)
+        new AccountSetting(geoLookupSnakeCase: true)  | new AccountSetting(geoLookupSnakeCase: null)
     }
 
     def "PBS should populate geo with country and region when geo location enabled in host and account config and ip present in device.id"() {

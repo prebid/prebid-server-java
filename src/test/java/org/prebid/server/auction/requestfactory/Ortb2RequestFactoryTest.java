@@ -14,12 +14,11 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.net.impl.SocketAddressImpl;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
 import org.prebid.server.auction.IpAddressHelper;
@@ -92,17 +91,16 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.assertion.FutureAssertion.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 public class Ortb2RequestFactoryTest extends VertxTest {
 
     private static final List<String> BLOCKLISTED_ACCOUNTS = singletonList("bad_acc");
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private UidsCookieService uidsCookieService;
@@ -110,17 +108,17 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     private ActivityInfrastructureCreator activityInfrastructureCreator;
     @Mock
     private RequestValidator requestValidator;
-    @Mock
+    @Mock(strictness = LENIENT)
     private TimeoutResolver timeoutResolver;
     @Mock
     private TimeoutFactory timeoutFactory;
     @Mock
     private StoredRequestProcessor storedRequestProcessor;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ApplicationSettings applicationSettings;
     @Mock
     private IpAddressHelper ipAddressHelper;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HookStageExecutor hookStageExecutor;
     @Mock
     private PriceFloorProcessor priceFloorProcessor;
@@ -137,7 +135,7 @@ public class Ortb2RequestFactoryTest extends VertxTest {
     private HttpRequestContext httpRequest;
     private HookExecutionContext hookExecutionContext;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         httpRequest = HttpRequestContext.builder()
                 .headers(CaseInsensitiveMultiMap.empty())
