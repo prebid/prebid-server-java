@@ -81,7 +81,7 @@ public class AuctionHandlerTest extends VertxTest {
     private AuctionRequestFactory auctionRequestFactory;
     @Mock
     private ExchangeService exchangeService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private SkipAuctionService skipAuctionService;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;

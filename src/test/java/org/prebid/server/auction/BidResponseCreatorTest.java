@@ -1590,7 +1590,7 @@ public class BidResponseCreatorTest extends VertxTest {
                         givenImp()),
                 contextBuilder -> contextBuilder.auctionParticipations(toAuctionParticipant(bidderResponses)));
 
-        final BidResponseCreator bidResponseCreator = new BidResponseCreator(
+        target = new BidResponseCreator(
                 coreCacheService,
                 bidderCatalog,
                 vastModifier,
@@ -1606,7 +1606,7 @@ public class BidResponseCreatorTest extends VertxTest {
                 mediaTypeCacheTtl);
 
         // when
-        final BidResponse bidResponse = bidResponseCreator.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
+        final BidResponse bidResponse = target.create(auctionContext, CACHE_INFO, MULTI_BIDS).result();
 
         // then
         assertThat(bidResponse.getSeatbid())
@@ -2704,7 +2704,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
 
         // when
-        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+        final Future<BidResponse> response = target.create(auctionContext, cacheInfo, MULTI_BIDS);
 
         // then
         final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
@@ -3799,7 +3799,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
 
         // when
-        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+        final Future<BidResponse> response = target.create(auctionContext, cacheInfo, MULTI_BIDS);
 
         // then
         final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
@@ -3861,7 +3861,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
 
         // when
-        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+        final Future<BidResponse> response = target.create(auctionContext, cacheInfo, MULTI_BIDS);
 
         // then
         final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
@@ -3923,7 +3923,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
 
         // when
-        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+        final Future<BidResponse> response = target.create(auctionContext, cacheInfo, MULTI_BIDS);
 
         // then
         final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
@@ -3985,7 +3985,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
 
         // when
-        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+        final Future<BidResponse> response = target.create(auctionContext, cacheInfo, MULTI_BIDS);
 
         // then
         final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
@@ -4047,7 +4047,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
 
         // when
-        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+        final Future<BidResponse> response = target.create(auctionContext, cacheInfo, MULTI_BIDS);
 
         // then
         final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
@@ -4105,7 +4105,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(50);
 
         // when
-        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+        final Future<BidResponse> response = target.create(auctionContext, cacheInfo, MULTI_BIDS);
 
         // then
         final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
@@ -4163,7 +4163,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(null);
 
         // when
-        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+        final Future<BidResponse> response = target.create(auctionContext, cacheInfo, MULTI_BIDS);
 
         // then
         final ArgumentCaptor<CacheContext> contextArgumentCaptor = ArgumentCaptor.forClass(CacheContext.class);
@@ -4221,7 +4221,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(null);
 
         // when
-        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+        final Future<BidResponse> response = target.create(auctionContext, cacheInfo, MULTI_BIDS);
 
         // then
         assertThat(response.succeeded()).isTrue();
@@ -4280,7 +4280,7 @@ public class BidResponseCreatorTest extends VertxTest {
         given(mediaTypeCacheTtl.getBannerCacheTtl()).willReturn(null);
 
         // when
-        final Future<BidResponse> response = bidResponseCreator.create(auctionContext, cacheInfo, MULTI_BIDS);
+        final Future<BidResponse> response = target.create(auctionContext, cacheInfo, MULTI_BIDS);
 
         // then
         assertThat(response.succeeded()).isTrue();
