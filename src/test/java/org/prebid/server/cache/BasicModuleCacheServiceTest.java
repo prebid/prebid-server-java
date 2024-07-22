@@ -4,13 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.Future;
 import io.vertx.core.MultiMap;
 import lombok.SneakyThrows;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.cache.proto.request.module.ModuleCacheRequest;
 import org.prebid.server.cache.proto.request.module.ModuleCacheType;
@@ -28,19 +27,18 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class BasicModuleCacheServiceTest extends VertxTest {
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpClient httpClient;
 
     private BasicModuleCacheService target;
 
-    @Before
+    @BeforeEach
     public void setUp() throws MalformedURLException, JsonProcessingException {
         target = new BasicModuleCacheService(
                 httpClient,
@@ -164,6 +162,22 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     }
 
     @Test
+    public void storeModuleEntryShouldReturnFailedFutureIfApplicationIsMissed() {
+        // when
+        final Future<Void> result = target.storeModuleEntry("some-key",
+                "some-value",
+                ModuleCacheType.TEXT,
+                12,
+                null,
+                "some-module-code");
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class);
+        assertThat(result.cause().getMessage()).isEqualTo("Module cache 'application' can not be blank");
+    }
+
+    @Test
     public void storeModuleEntryShouldReturnFailedFutureIfTypeIsMissed() {
         // when
         final Future<Void> result = target.storeModuleEntry("some-key",
@@ -223,6 +237,18 @@ public class BasicModuleCacheServiceTest extends VertxTest {
     }
 
     @Test
+    public void retrieveModuleEntryShouldReturnFailedFutureIfModuleApplicationIsMissed() {
+        // when
+        final Future<ModuleCacheResponse> result =
+                target.retrieveModuleEntry("some-key", "some-module-code", null);
+
+        // then
+        assertThat(result.failed()).isTrue();
+        assertThat(result.cause()).isInstanceOf(PreBidException.class);
+        assertThat(result.cause().getMessage()).isEqualTo("Module cache 'application' can not be blank");
+    }
+
+    @Test
     public void retrieveModuleEntryShouldReturnFailedFutureIfModuleCodeIsMissed() {
         // when
         final Future<ModuleCacheResponse> result =
@@ -253,17 +279,6 @@ public class BasicModuleCacheServiceTest extends VertxTest {
         final String result = captureRetrieveUrl();
         assertThat(result)
                 .isEqualTo("http://cache-service/cache?k=module.some-module-code.some-key&a=some-app");
-    }
-
-    @Test
-    public void retrieveModuleEntryShouldCreateCallWithBlankAppInParams() {
-        // when
-        target.retrieveModuleEntry("some-key", "some-module-code", null);
-
-        // then
-        final String result = captureRetrieveUrl();
-        assertThat(result)
-                .isEqualTo("http://cache-service/cache?k=module.some-module-code.some-key&a=");
     }
 
     @Test

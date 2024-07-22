@@ -13,14 +13,13 @@ import io.vertx.core.Promise;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.BDDMockito;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.BidRejectionReason;
@@ -66,6 +65,7 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeast;
@@ -76,13 +76,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class HttpBidderRequesterTest extends VertxTest {
 
     private static final byte[] EMPTY_BYTE_BODY = "{}".getBytes();
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private Bidder<BidRequest> bidder;
     @Mock
     private BidRejectionTracker bidRejectionTracker;
@@ -90,13 +89,13 @@ public class HttpBidderRequesterTest extends VertxTest {
     private BidderAliases bidderAliases;
     @Mock
     private HttpClient httpClient;
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderErrorNotifier bidderErrorNotifier;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpBidderRequestEnricher requestEnricher;
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest httpServerRequest;
 
     private HttpBidderRequester target;
@@ -104,7 +103,7 @@ public class HttpBidderRequesterTest extends VertxTest {
     private Timeout timeout;
     private Timeout expiredTimeout;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(bidderErrorNotifier.processTimeout(any(), any())).will(invocation -> invocation.getArgument(0));
         given(routingContext.request()).willReturn(httpServerRequest);

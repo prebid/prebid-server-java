@@ -2,12 +2,11 @@ package org.prebid.server.hooks.modules.pb.richmedia.filter.v1;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.Future;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.auction.model.AuctionContext;
 import org.prebid.server.auction.model.BidRejectionTracker;
 import org.prebid.server.auction.model.BidderResponse;
@@ -39,16 +38,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+@ExtendWith(MockitoExtension.class)
 public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
 
     private static final ObjectMapper MAPPER = ObjectMapperProvider.mapper();
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private AllProcessedBidResponsesPayload allProcessedBidResponsesPayload;
@@ -59,7 +57,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
     @Mock
     private BidResponsesMraidFilter mraidFilter;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private ModuleConfigResolver configResolver;
 
     private PbRichmediaFilterAllProcessedBidResponsesHook target;
@@ -67,7 +65,7 @@ public class PbRichmediaFilterAllProcessedBidResponsesHookTest {
     private static final Map<String, BidRejectionTracker> BID_REJECTION_TRACKERS = Map.of(
             "bidder", new BidRejectionTracker("bidder", Collections.emptySet(), 0.1));
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new PbRichmediaFilterAllProcessedBidResponsesHook(ObjectMapperProvider.mapper(), mraidFilter, configResolver);
         when(configResolver.resolve(any())).thenReturn(PbRichMediaFilterProperties.of(true, "pattern"));

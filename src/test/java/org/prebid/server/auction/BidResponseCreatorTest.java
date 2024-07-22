@@ -24,13 +24,13 @@ import lombok.Value;
 import lombok.experimental.Accessors;
 import org.apache.commons.collections4.MapUtils;
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.Activity;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
@@ -148,6 +148,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -158,6 +159,7 @@ import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.video;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.xNative;
 
+@ExtendWith(MockitoExtension.class)
 public class BidResponseCreatorTest extends VertxTest {
 
     private static final BidRequestCacheInfo CACHE_INFO = BidRequestCacheInfo.builder().build();
@@ -167,9 +169,6 @@ public class BidResponseCreatorTest extends VertxTest {
     private static final String BID_ADM = "adm";
     private static final String BID_NURL = "nurl";
 
-    @org.junit.Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
     @Mock
     private CoreCacheService coreCacheService;
     @Mock
@@ -178,17 +177,17 @@ public class BidResponseCreatorTest extends VertxTest {
     private VastModifier vastModifier;
     @Mock
     private EventsService eventsService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private StoredRequestProcessor storedRequestProcessor;
-    @Mock
+    @Mock(strictness = LENIENT)
     private IdGenerator idGenerator;
-    @Mock
+    @Mock(strictness = LENIENT)
     private CategoryMappingService categoryMappingService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HookStageExecutor hookStageExecutor;
     @Mock
     private ActivityInfrastructure activityInfrastructure;
-    @Mock
+    @Mock(strictness = LENIENT)
     private CacheTtl mediaTypeCacheTtl;
 
     @Spy
@@ -200,7 +199,7 @@ public class BidResponseCreatorTest extends VertxTest {
 
     private BidResponseCreator bidResponseCreator;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(coreCacheService.getEndpointHost()).willReturn("testHost");
         given(coreCacheService.getEndpointPath()).willReturn("testPath");
@@ -3568,7 +3567,6 @@ public class BidResponseCreatorTest extends VertxTest {
     public void shouldNotPopulateExtPrebidSeatNonBidWhenReturnAllBidStatusFlagIsFalse() {
         // given
         final BidRejectionTracker bidRejectionTracker = mock(BidRejectionTracker.class);
-        given(bidRejectionTracker.getRejectionReasons()).willReturn(singletonMap("impId2", BidRejectionReason.NO_BID));
 
         final Bid bid = Bid.builder().id("bidId").price(BigDecimal.valueOf(3.67)).impid("impId").build();
         final List<BidderResponse> bidderResponses = singletonList(

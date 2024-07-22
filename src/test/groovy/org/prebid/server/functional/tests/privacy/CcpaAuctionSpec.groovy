@@ -10,7 +10,15 @@ import spock.lang.PendingFeature
 import static org.prebid.server.functional.model.ChannelType.PBJS
 import static org.prebid.server.functional.model.ChannelType.WEB
 import static org.prebid.server.functional.model.bidder.BidderName.GENERIC
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ACCOUNT_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_ADAPTER_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.privacy.Metric.TEMPLATE_REQUEST_DISALLOWED_COUNT
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_EIDS
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_PRECISE_GEO
+import static org.prebid.server.functional.model.request.auction.ActivityType.TRANSMIT_UFPD
 import static org.prebid.server.functional.model.request.auction.Prebid.Channel
+import static org.prebid.server.functional.model.request.auction.TraceLevel.BASIC
+import static org.prebid.server.functional.model.request.auction.TraceLevel.VERBOSE
 import static org.prebid.server.functional.util.privacy.CcpaConsent.Signal.ENFORCED
 
 class CcpaAuctionSpec extends PrivacyBaseSpec {
@@ -115,20 +123,76 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
         }
     }
 
-    def "PBS should apply ccpa when privacy.ccpa.channel-enabled.app or privacy.ccpa.enabled = true in account config"() {
+    def "PBS should apply ccpa and emit full metrics when privacy.ccpa.channel-enabled.app or privacy.ccpa.enabled = true in account config and trace level verbose"() {
         given: "Default basic generic BidRequest"
         def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
-        def bidRequest = getCcpaBidRequest(DistributionChannel.APP, validCcpa)
+        def bidRequest = getCcpaBidRequest(DistributionChannel.APP, validCcpa).tap {
+            ext.prebid.trace = VERBOSE
+        }
 
         and: "Save account config into DB"
-        accountDao.save(getAccountWithCcpa(bidRequest.app.publisher.id, ccpaConfig))
+        accountDao.save(getAccountWithCcpa(bidRequest.accountId, ccpaConfig))
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
 
         when: "PBS processes auction request"
-        defaultPbsService.sendAuctionRequest(bidRequest)
+        privacyPbsService.sendAuctionRequest(bidRequest)
 
         then: "Bidder request should contain masked values"
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequests.device?.geo == maskGeo(bidRequest)
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+
+        where:
+        ccpaConfig << [new AccountCcpaConfig(enabled: false, channelEnabled: [(ChannelType.APP): true]),
+                       new AccountCcpaConfig(enabled: true)]
+    }
+
+    def "PBS should apply ccpa and emit metrics when privacy.ccpa.channel-enabled.app or privacy.ccpa.enabled = true in account config and trace level basic"() {
+        given: "Default basic generic BidRequest"
+        def validCcpa = new CcpaConsent(explicitNotice: ENFORCED, optOutSale: ENFORCED)
+        def bidRequest = getCcpaBidRequest(DistributionChannel.APP, validCcpa).tap {
+            ext.prebid.trace = BASIC
+        }
+
+        and: "Save account config into DB"
+        accountDao.save(getAccountWithCcpa(bidRequest.accountId, ccpaConfig))
+
+        and: "Flush metrics"
+        flushMetrics(privacyPbsService)
+
+        when: "PBS processes auction request"
+        privacyPbsService.sendAuctionRequest(bidRequest)
+
+        then: "Bidder request should contain masked values"
+        def bidderRequests = bidder.getBidderRequest(bidRequest.id)
+        assert bidderRequests.device?.geo == maskGeo(bidRequest)
+
+        and: "Metrics processed across activities should be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)] == 1
+        assert metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)] == 1
+
+        and: "Metrics account shouldn't be populated"
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
 
         where:
         ccpaConfig << [new AccountCcpaConfig(enabled: false, channelEnabled: [(ChannelType.APP): true]),
@@ -170,6 +234,18 @@ class CcpaAuctionSpec extends PrivacyBaseSpec {
         def bidderRequests = bidder.getBidderRequest(bidRequest.id)
         assert bidderRequests.device?.geo?.lat == bidRequest.device.geo.lat
         assert bidderRequests.device?.geo?.lon == bidRequest.device.geo.lon
+
+        and: "Metrics processed across activities shouldn't be updated"
+        def metrics = privacyPbsService.sendCollectedMetricsRequest()
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_ADAPTER_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_REQUEST_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_UFPD)]
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_EIDS)]
+        assert !metrics[TEMPLATE_ACCOUNT_DISALLOWED_COUNT.getValue(bidRequest, TRANSMIT_PRECISE_GEO)]
 
         where:
         ccpaConfig << [new AccountCcpaConfig(enabled: true, channelEnabled: [(ChannelType.APP): false]),

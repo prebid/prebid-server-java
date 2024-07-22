@@ -18,5 +18,5 @@ public class GreenbidsAdUnit {
     @JsonProperty("mediaTypes")
     MediaTypes mediaTypes;
 
-    List<GreenbidsBids> bids;
+    List<GreenbidsBid> bids;
 }

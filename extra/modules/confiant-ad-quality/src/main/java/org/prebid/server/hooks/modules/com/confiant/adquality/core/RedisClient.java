@@ -4,13 +4,13 @@ import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import org.prebid.server.log.Logger;
-import org.prebid.server.log.LoggerFactory;
 import io.vertx.redis.client.Redis;
 import io.vertx.redis.client.RedisAPI;
 import io.vertx.redis.client.RedisConnection;
 import io.vertx.redis.client.RedisOptions;
 import org.prebid.server.hooks.modules.com.confiant.adquality.model.RedisRetryConfig;
+import org.prebid.server.log.Logger;
+import org.prebid.server.log.LoggerFactory;
 
 public class RedisClient {
 

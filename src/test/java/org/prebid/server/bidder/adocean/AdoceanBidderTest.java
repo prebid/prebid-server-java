@@ -11,7 +11,7 @@ import com.iab.openrtb.request.Site;
 import com.iab.openrtb.request.User;
 import com.iab.openrtb.response.Bid;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.adocean.model.AdoceanResponseAdUnit;
 import org.prebid.server.bidder.model.BidderBid;

@@ -1,6 +1,6 @@
 package org.prebid.server.activity;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.prebid.server.VertxTest;
 import org.prebid.server.settings.model.Account;
 import org.prebid.server.settings.model.AccountPrivacyConfig;

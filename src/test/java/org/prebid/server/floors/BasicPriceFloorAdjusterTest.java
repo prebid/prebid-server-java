@@ -3,12 +3,11 @@ package org.prebid.server.floors;
 import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Video;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.adjustment.FloorAdjustmentFactorResolver;
 import org.prebid.server.bidder.model.Price;
@@ -33,21 +32,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class BasicPriceFloorAdjusterTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private FloorAdjustmentFactorResolver floorAdjustmentFactorResolver;
 
     private BasicPriceFloorAdjuster target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         given(floorAdjustmentFactorResolver.resolve(anySet(), any(), any())).willReturn(BigDecimal.ONE);
 
@@ -56,6 +54,9 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
 
     @Test
     public void adjustForImpShouldCallAdjustmentFactorResolverAndApplyFactor() {
+        // given
+        given(floorAdjustmentFactorResolver.resolve(anySet(), any(), any())).willReturn(new BigDecimal("0.1"));
+
         // when
         final Price adjustedBidPrice = target.adjustForImp(
                 givenImp(identity()),
@@ -65,7 +66,7 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                 new ArrayList<>());
 
         // then
-        assertThat(adjustedBidPrice).isEqualTo(Price.of("USD", BigDecimal.TEN));
+        assertThat(adjustedBidPrice).isEqualTo(Price.of("USD", new BigDecimal(100)));
         verify(floorAdjustmentFactorResolver).resolve(anySet(), any(), any());
     }
 
@@ -240,6 +241,191 @@ public class BasicPriceFloorAdjusterTest extends VertxTest {
                 bidRequest,
                 null,
                 new ArrayList<>());
+
+        // then
+        assertThat(adjustedBidPrice).isEqualTo(Price.of("USD", BigDecimal.TEN));
+    }
+
+    @Test
+    public void revertAdjustmentForImpShouldCallAdjustmentFactorResolverAndApplyFactor() {
+        // given
+        given(floorAdjustmentFactorResolver.resolve(anySet(), any(), any())).willReturn(new BigDecimal("0.1"));
+
+        // when
+        final Price adjustedBidPrice = target.revertAdjustmentForImp(
+                givenImp(identity()),
+                RUBICON,
+                givenBidRequest(identity()),
+                null);
+
+        // then
+        assertThat(adjustedBidPrice).isEqualTo(Price.of("USD", BigDecimal.ONE));
+        verify(floorAdjustmentFactorResolver).resolve(anySet(), any(), any());
+    }
+
+    @Test
+    public void revertAdjustmentForImpShouldNotApplyFactorIfAdjustmentDisabledByAccount() {
+        // given
+        final Account account = Account.builder()
+                .auction(AccountAuctionConfig.builder()
+                        .priceFloors(AccountPriceFloorsConfig.builder()
+                                .adjustForBidAdjustment(false)
+                                .build())
+                        .build())
+                .build();
+
+        // when
+        final Price adjustedBidPrice = target.revertAdjustmentForImp(
+                givenImp(identity()),
+                RUBICON,
+                givenBidRequest(identity()),
+                account);
+
+        // then
+        assertThat(adjustedBidPrice).isEqualTo(Price.of("USD", BigDecimal.TEN));
+    }
+
+    @Test
+    public void revertAdjustmentForImpShouldNotApplyFactorIfAdjustmentDisabledByRequest() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
+                                .mediatypes(givenMediaTypes(Map.of(
+                                        ImpMediaType.video,
+                                        Map.of(RUBICON, BigDecimal.valueOf(0.85D)))))
+                                .build())
+                        .floors(PriceFloorRules.builder()
+                                .enforcement(PriceFloorEnforcement.builder()
+                                        .bidAdjustment(false)
+                                        .build())
+                                .build())
+                        .build())));
+
+        // when
+        final Price adjustedBidPrice = target.revertAdjustmentForImp(
+                givenImp(identity()),
+                RUBICON,
+                bidRequest,
+                null);
+
+        // then
+        assertThat(adjustedBidPrice).isEqualTo(Price.of("USD", BigDecimal.TEN));
+    }
+
+    @Test
+    public void revertAdjustmentForImpShouldApplyNoAdjustmentsIfBidAdjustmentsFactorIsNotPresent() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder().bidadjustmentfactors(null).build())));
+        final Imp imp = givenImp(identity());
+
+        // when
+        final Price adjustedBidPrice = target.revertAdjustmentForImp(
+                imp,
+                RUBICON,
+                bidRequest,
+                null);
+
+        // then
+        assertThat(adjustedBidPrice).isEqualTo(Price.of("USD", imp.getBidfloor()));
+    }
+
+    @Test
+    public void revertAdjustmentForImpShouldReturnNullIfImpBidFloorIsNotPresent() {
+        // given
+        final Imp imp = givenImp(impBuilder -> impBuilder.bidfloor(null));
+
+        // when
+        final Price adjustedBidPrice = target.revertAdjustmentForImp(
+                imp,
+                RUBICON,
+                givenBidRequest(identity()),
+                null);
+
+        // then
+        assertThat(adjustedBidPrice).isEqualTo(Price.of("USD", null));
+    }
+
+    @Test
+    public void revertAdjustmentForImpShouldReturnBidFloorNotFactoredByOtherBidder() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
+                                .mediatypes(givenMediaTypes(Map.of(
+                                        ImpMediaType.video,
+                                        Map.of("bidder", BigDecimal.valueOf(0.8D)))))
+                                .build())
+                        .build())));
+
+        // when
+        final Price adjustedBidPrice = target.revertAdjustmentForImp(
+                givenImp(identity()),
+                RUBICON,
+                bidRequest,
+                null);
+
+        // then
+        assertThat(adjustedBidPrice).isEqualTo(Price.of("USD", BigDecimal.TEN));
+    }
+
+    @Test
+    public void revertAdjustmentForImpShouldReturnFactoredOfOneIfExtBidAdjustmentsFactorMediaTypesIsNull() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
+                                .mediatypes(null)
+                                .build())
+                        .build())));
+
+        // when
+        final Price adjustedBidPrice = target.revertAdjustmentForImp(
+                givenImp(identity()),
+                RUBICON,
+                bidRequest,
+                null);
+
+        // then
+        assertThat(adjustedBidPrice).isEqualTo(Price.of("USD", BigDecimal.TEN));
+    }
+
+    @Test
+    public void revertAdjustmentForImpShouldReturnFactorOfOneIfNoMediaTypeInImpression() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(identity());
+        final Imp imp = givenImp(impBuilder -> impBuilder.video(null));
+
+        // when
+        final Price adjustedBidPrice = target.revertAdjustmentForImp(
+                imp,
+                RUBICON,
+                bidRequest,
+                null);
+
+        // then
+        assertThat(adjustedBidPrice).isEqualTo(Price.of("USD", BigDecimal.TEN));
+    }
+
+    @Test
+    public void revertAdjustmentForImpShouldSkipMediaTypeIfNoMediaTypesOfImpFound() {
+        // given
+        final BidRequest bidRequest = givenBidRequest(bidRequestBuilder ->
+                bidRequestBuilder.ext(ExtRequest.of(ExtRequestPrebid.builder()
+                        .bidadjustmentfactors(ExtRequestBidAdjustmentFactors.builder()
+                                .mediatypes(givenMediaTypes(Map.of(
+                                        ImpMediaType.video_outstream,
+                                        Map.of(RUBICON, BigDecimal.valueOf(0.8D)))))
+                                .build())
+                        .build())));
+
+        // when
+        final Price adjustedBidPrice = target.revertAdjustmentForImp(
+                givenImp(identity()),
+                RUBICON,
+                bidRequest,
+                null);
 
         // then
         assertThat(adjustedBidPrice).isEqualTo(Price.of("USD", BigDecimal.TEN));

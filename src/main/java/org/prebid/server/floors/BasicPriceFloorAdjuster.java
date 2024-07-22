@@ -23,10 +23,14 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiFunction;
 
 public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
 
     private static final int ADJUSTMENT_SCALE = 4;
+    private static final BiFunction<BigDecimal, BigDecimal, BigDecimal> DIVIDE_FUNCTION =
+            (priceFloor, factor) -> priceFloor.divide(factor, ADJUSTMENT_SCALE, RoundingMode.HALF_EVEN);
+    private static final BiFunction<BigDecimal, BigDecimal, BigDecimal> MULTIPLY_FUNCTION = BigDecimal::multiply;
 
     private final FloorAdjustmentFactorResolver floorAdjustmentFactorResolver;
 
@@ -41,6 +45,20 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
                               Account account,
                               List<String> debugWarnings) {
 
+        return adjust(imp, bidder, bidRequest, account, DIVIDE_FUNCTION);
+    }
+
+    @Override
+    public Price revertAdjustmentForImp(Imp imp, String bidder, BidRequest bidRequest, Account account) {
+        return adjust(imp, bidder, bidRequest, account, MULTIPLY_FUNCTION);
+    }
+
+    private Price adjust(Imp imp,
+                         String bidder,
+                         BidRequest bidRequest,
+                         Account account,
+                         BiFunction<BigDecimal, BigDecimal, BigDecimal> function) {
+
         final ExtRequestBidAdjustmentFactors extractBidAdjustmentFactors = extractBidAdjustmentFactors(bidRequest);
         final BigDecimal impBidFloor = imp.getBidfloor();
 
@@ -52,8 +70,8 @@ public class BasicPriceFloorAdjuster implements PriceFloorAdjuster {
         final BigDecimal factor = floorAdjustmentFactorResolver.resolve(
                 impMediaTypes, extractBidAdjustmentFactors, bidder);
 
-        final BigDecimal adjustedBidFloor = factor != null
-                ? BidderUtil.roundFloor(impBidFloor.divide(factor, ADJUSTMENT_SCALE, RoundingMode.HALF_EVEN))
+        final BigDecimal adjustedBidFloor = factor != null && factor.compareTo(BigDecimal.ONE) != 0
+                ? BidderUtil.roundFloor(function.apply(impBidFloor, factor))
                 : impBidFloor;
 
         return Price.of(imp.getBidfloorcur(), adjustedBidFloor);

@@ -1,6 +1,6 @@
 package org.prebid.server.hooks.modules.fiftyone.devicedetection.model.config;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 

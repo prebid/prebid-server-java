@@ -9,7 +9,6 @@ import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.request.Native;
 import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.SeatBid;
-import io.vertx.core.http.HttpMethod;
 import org.prebid.server.bidder.Bidder;
 import org.prebid.server.bidder.model.BidderBid;
 import org.prebid.server.bidder.model.BidderCall;
@@ -21,6 +20,9 @@ import org.prebid.server.json.DecodeException;
 import org.prebid.server.json.JacksonMapper;
 import org.prebid.server.proto.openrtb.ext.ExtPrebid;
 import org.prebid.server.proto.openrtb.ext.request.yeahmobi.ExtImpYeahmobi;
+import org.prebid.server.proto.openrtb.ext.response.BidType;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebid;
+import org.prebid.server.proto.openrtb.ext.response.ExtBidPrebidVideo;
 import org.prebid.server.util.BidderUtil;
 import org.prebid.server.util.HttpUtil;
 
@@ -40,6 +42,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
     };
     private static final String HOST_MACRO = "{{Host}}";
     private static final String HOST_PATTERN = "gw-%s-bid.yeahtargeter.com";
+    private static final String NATIVE = "native";
 
     private final String endpointUrl;
     private final JacksonMapper mapper;
@@ -65,7 +68,7 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
         }
 
         if (extImp == null) {
-            return Result.withError(BidderError.badInput("Invalid ExtImpYeahmobi value"));
+            return Result.withErrors(errors);
         }
 
         final BidRequest modifiedRequest = request.toBuilder().imp(modifiedImps).build();
@@ -74,48 +77,51 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
         return Result.of(Collections.singletonList(httpRequest), errors);
     }
 
-    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String zoneId) {
-        final String host = HOST_PATTERN.formatted(zoneId);
-        final String uri = endpointUrl.replace(HOST_MACRO, host);
-
-        return HttpRequest.<BidRequest>builder()
-                .method(HttpMethod.POST)
-                .uri(uri)
-                .impIds(BidderUtil.impIds(request))
-                .headers(HttpUtil.headers())
-                .payload(request)
-                .body(mapper.encodeToBytes(request))
-                .build();
-    }
-
     private ExtImpYeahmobi parseImpExt(Imp imp) {
         try {
             return mapper.mapper().convertValue(imp.getExt(), EXT_TYPE_REFERENCE).getBidder();
         } catch (IllegalArgumentException e) {
-            throw new PreBidException(String.format("Impression id=%s, has invalid Ext", imp.getId()));
+            throw new PreBidException(e.getMessage());
         }
     }
 
     private Imp modifyImp(Imp imp) {
         final Native impNative = imp.getXNative();
-        return Optional.ofNullable(impNative)
-                .map(xNative -> resolveNativeRequest(xNative.getRequest()))
-                .map(nativeRequest -> imp.toBuilder().xNative(
-                        impNative.toBuilder().request(nativeRequest).build())
-                        .build())
-                .orElse(imp);
+        final String resolvedNativeRequest = impNative != null
+                ? resolveNativeRequest(impNative.getRequest())
+                : null;
+
+        return resolvedNativeRequest != null
+                ? imp.toBuilder()
+                .xNative(impNative.toBuilder().request(resolvedNativeRequest).build())
+                .build()
+                : imp;
     }
 
     private String resolveNativeRequest(String nativeRequest) {
+        if (nativeRequest == null) {
+            return null;
+        }
+
         try {
-            final JsonNode nativePayload = nativeRequest != null
-                    ? mapper.mapper().readValue(nativeRequest, JsonNode.class)
-                    : mapper.mapper().createObjectNode();
-            final ObjectNode objectNode = mapper.mapper().createObjectNode().set("native", nativePayload);
+            final JsonNode nativePayload = mapper.mapper().readValue(nativeRequest, JsonNode.class);
+
+            if (nativeRequest.contains(NATIVE)) {
+                return nativeRequest;
+            }
+
+            final ObjectNode objectNode = mapper.mapper().createObjectNode().set(NATIVE, nativePayload);
             return mapper.mapper().writeValueAsString(objectNode);
         } catch (JsonProcessingException e) {
-            throw new PreBidException(e.getMessage());
+            return null;
         }
+    }
+
+    private HttpRequest<BidRequest> makeHttpRequest(BidRequest request, String zoneId) {
+        return BidderUtil.defaultRequest(
+                request,
+                endpointUrl.replace(HOST_MACRO, HOST_PATTERN.formatted(zoneId)),
+                mapper);
     }
 
     @Override
@@ -132,19 +138,55 @@ public class YeahmobiBidder implements Bidder<BidRequest> {
         if (bidResponse == null || bidResponse.getSeatbid() == null) {
             return Collections.emptyList();
         }
-        return bidsFromResponse(bidRequest, bidResponse);
-    }
 
-    private List<BidderBid> bidsFromResponse(BidRequest bidRequest, BidResponse bidResponse) {
         final Map<String, Imp> impMap = bidRequest.getImp().stream()
                 .collect(Collectors.toMap(Imp::getId, Function.identity()));
+
         return bidResponse.getSeatbid().stream()
                 .filter(Objects::nonNull)
                 .map(SeatBid::getBid)
                 .filter(Objects::nonNull)
                 .flatMap(Collection::stream)
-                .map(bid -> BidderBid.of(bid, BidderUtil.getBidType(bid, impMap), bidResponse.getCur()))
+                .filter(Objects::nonNull)
+                .map(bid -> BidderBid.builder()
+                        .bid(bid)
+                        .type(getBidType(bid.getImpid(), impMap))
+                        .bidCurrency(bidResponse.getCur())
+                        .videoInfo(videoInfo(parseBidExt(bid.getExt())))
+                        .build())
                 .toList();
     }
 
+    private static BidType getBidType(String impId, Map<String, Imp> impIdToImp) {
+        if (impId == null) {
+            return BidType.banner;
+        }
+
+        final Imp imp = impIdToImp.get(impId);
+        if (imp.getBanner() != null) {
+            return BidType.banner;
+        } else if (imp.getVideo() != null) {
+            return BidType.video;
+        } else if (imp.getXNative() != null) {
+            return BidType.xNative;
+        } else {
+            return BidType.banner;
+        }
+    }
+
+    private ExtBidPrebid parseBidExt(ObjectNode bidExt) {
+        try {
+            return mapper.mapper().treeToValue(bidExt, ExtBidPrebid.class);
+        } catch (JsonProcessingException e) {
+            throw new PreBidException("bid.ext json unmarshal error");
+        }
+    }
+
+    private ExtBidPrebidVideo videoInfo(ExtBidPrebid extBidPrebid) {
+        return Optional.ofNullable(extBidPrebid)
+                .map(ExtBidPrebid::getVideo)
+                .map(ExtBidPrebidVideo::getDuration)
+                .map(duration -> ExtBidPrebidVideo.of(duration, null))
+                .orElse(null);
+    }
 }

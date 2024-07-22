@@ -7,15 +7,14 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.function.Executable;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.activity.infrastructure.ActivityInfrastructure;
 import org.prebid.server.activity.infrastructure.creator.ActivityInfrastructureCreator;
@@ -66,33 +65,32 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anySet;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
+@ExtendWith(MockitoExtension.class)
 public class SetuidHandlerTest extends VertxTest {
 
     private static final String RUBICON = "rubicon";
     private static final String FACEBOOK = "audienceNetwork";
     private static final String ADNXS = "adnxs";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private UidsCookieService uidsCookieService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ApplicationSettings applicationSettings;
     @Mock
     private BidderCatalog bidderCatalog;
-    @Mock
+    @Mock(strictness = LENIENT)
     private SetuidPrivacyContextFactory setuidPrivacyContextFactory;
-    @Mock
+    @Mock(strictness = LENIENT)
     private SetuidGppService gppService;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ActivityInfrastructureCreator activityInfrastructureCreator;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HostVendorTcfDefinerService tcfDefinerService;
     @Mock
     private AnalyticsReporterDelegator analyticsReporterDelegator;
@@ -100,18 +98,18 @@ public class SetuidHandlerTest extends VertxTest {
     private Metrics metrics;
 
     private SetuidHandler setuidHandler;
-    @Mock
+    @Mock(strictness = LENIENT)
     private RoutingContext routingContext;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerRequest httpRequest;
-    @Mock
+    @Mock(strictness = LENIENT)
     private HttpServerResponse httpResponse;
-    @Mock
+    @Mock(strictness = LENIENT)
     private ActivityInfrastructure activityInfrastructure;
 
     private TcfContext tcfContext;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         final Map<Integer, PrivacyEnforcementAction> vendorIdToGdpr = singletonMap(1,
                 PrivacyEnforcementAction.allowAll());

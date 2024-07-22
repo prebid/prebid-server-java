@@ -6,12 +6,11 @@ import com.iab.openrtb.request.BidRequest;
 import com.iab.openrtb.request.Format;
 import com.iab.openrtb.request.Imp;
 import com.iab.openrtb.response.Bid;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.auction.BidderAliases;
 import org.prebid.server.auction.model.AuctionContext;
@@ -36,19 +35,18 @@ import static java.util.function.UnaryOperator.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.prebid.server.settings.model.BidValidationEnforcement.enforce;
 import static org.prebid.server.settings.model.BidValidationEnforcement.skip;
 import static org.prebid.server.settings.model.BidValidationEnforcement.warn;
 
+@ExtendWith(MockitoExtension.class)
 public class ResponseBidValidatorTest extends VertxTest {
 
     private static final String BIDDER_NAME = "bidder";
     private static final String ACCOUNT_ID = "account";
-
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
 
     @Mock
     private Metrics metrics;
@@ -58,10 +56,10 @@ public class ResponseBidValidatorTest extends VertxTest {
 
     private ResponseBidValidator target;
 
-    @Mock
+    @Mock(strictness = LENIENT)
     private BidderAliases bidderAliases;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new ResponseBidValidator(enforce, enforce, metrics, 0.01);
 

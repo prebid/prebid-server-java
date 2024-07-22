@@ -20,12 +20,11 @@ import com.iab.openrtb.response.BidResponse;
 import com.iab.openrtb.response.EventTracker;
 import com.iab.openrtb.response.Response;
 import com.iab.openrtb.response.SeatBid;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.prebid.server.VertxTest;
 import org.prebid.server.bidder.ix.model.request.IxDiag;
 import org.prebid.server.bidder.ix.model.response.IxBidResponse;
@@ -61,22 +60,21 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mock.Strictness.LENIENT;
 import static org.prebid.server.proto.openrtb.ext.response.BidType.banner;
 
+@ExtendWith(MockitoExtension.class)
 public class IxBidderTest extends VertxTest {
 
     private static final String ENDPOINT_URL = "http://exchange.org/";
     private static final String SITE_ID = "site id";
 
-    @Rule
-    public final MockitoRule mockitoRule = MockitoJUnit.rule();
-
-    @Mock
+    @Mock(strictness = LENIENT)
     private PrebidVersionProvider prebidVersionProvider;
 
     private IxBidder target;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         target = new IxBidder(ENDPOINT_URL, prebidVersionProvider, jacksonMapper);
         given(prebidVersionProvider.getNameVersionRecord()).willReturn(null);
@@ -433,7 +431,7 @@ public class IxBidderTest extends VertxTest {
     }
 
     @Test
-    public void makeBidderResponseShouldReturnBidWithVideoExt() throws JsonProcessingException {
+    public void makeBidderResponseShouldReturnBidWithVideoInfo() throws JsonProcessingException {
         // given
         final Video video = Video.builder().build();
         final BidRequest bidRequest = BidRequest.builder()
@@ -445,7 +443,7 @@ public class IxBidderTest extends VertxTest {
                         givenBidResponse(
                                 bidBuilder -> bidBuilder
                                         .impid("123")
-                                        .ext(mapper.valueToTree(ExtBidPrebid.builder()
+                                        .ext(mapper.createObjectNode().putPOJO("prebid", ExtBidPrebid.builder()
                                                 .video(ExtBidPrebidVideo.of(1, "cat"))
                                                 .build())))));
 
@@ -455,10 +453,7 @@ public class IxBidderTest extends VertxTest {
         // then
         assertThat(result.getErrors()).isEmpty();
         assertThat(result.getBids())
-                .extracting(BidderBid::getBid)
-                .extracting(Bid::getExt)
-                .extracting(node -> mapper.treeToValue(node, ExtBidPrebid.class))
-                .extracting(ExtBidPrebid::getVideo)
+                .extracting(BidderBid::getVideoInfo)
                 .extracting(ExtBidPrebidVideo::getDuration, ExtBidPrebidVideo::getPrimaryCategory)
                 .containsExactly(tuple(1, null));
     }
@@ -662,7 +657,8 @@ public class IxBidderTest extends VertxTest {
                 .imp(singletonList(Imp.builder()
                         .id("123")
                         .banner(banner)
-                        .video(video).build()))
+                        .video(video)
+                        .build()))
                 .build();
         final BidderCall<BidRequest> httpCall = givenHttpCall(
                 bidRequest,

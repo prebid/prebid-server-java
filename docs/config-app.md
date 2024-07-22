@@ -61,6 +61,10 @@ Removes and downloads file again if depending service cant process probably corr
 - `<SERVICE>.remote-file-syncer.tmp-filepath` - full path to the temporary file.
 - `<SERVICE>.remote-file-syncer.retry-count` - how many times try to download.
 - `<SERVICE>.remote-file-syncer.retry-interval-ms` - how long to wait between failed retries.
+- `<SERVICE>.remote-file-syncer.retry.delay-millis` - initial time of how long to wait between failed retries.
+- `<SERVICE>.remote-file-syncer.retry.max-delay-millis` - maximum allowed value for `delay-millis`.
+- `<SERVICE>.remote-file-syncer.retry.factor` - factor for the `delay-millis` value, that will be applied after each failed retry to modify `delay-millis` value. 
+- `<SERVICE>.remote-file-syncer.retry.jitter` - jitter (multiplicative) for `delay-millis` parameter.
 - `<SERVICE>.remote-file-syncer.timeout-ms` - default operation timeout for obtaining database file.
 - `<SERVICE>.remote-file-syncer.update-interval-ms` - time interval between updates of the usable file.
 - `<SERVICE>.remote-file-syncer.http-client.connect-timeout-ms` - set the connect timeout.
